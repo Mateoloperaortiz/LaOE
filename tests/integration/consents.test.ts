@@ -14,8 +14,8 @@ import {
   revokeConsent,
 } from "@/modules/people/domain/consents";
 import { auditLog, outbox } from "@/modules/system/schema";
+import { seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 describe("consentimientos", () => {
   beforeEach(truncateAll);

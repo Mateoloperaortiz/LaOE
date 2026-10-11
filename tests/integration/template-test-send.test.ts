@@ -8,8 +8,8 @@ import { sendTemplateTestAs, setMailTransportsForTests } from "@/modules/comms";
 import { createTemplate } from "@/modules/comms/domain/templates";
 import { message } from "@/modules/comms/schema";
 import { auditLog } from "@/modules/system/schema";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // «Enviarme una prueba» de una plantilla y de una campaña (ADR-038 regla 8) responde con lo que el
 // proveedor contestó (ADR-118 regla 14; DT-227): una prueba rechazada no dice «te la mandamos» ni

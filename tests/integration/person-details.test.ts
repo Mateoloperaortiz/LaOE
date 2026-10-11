@@ -21,8 +21,8 @@ import {
 import { person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedCommittee, seedCommitteeMembership, seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedCommittee, seedCommitteeMembership, seedMember, seedTerm } from "./factories";
 
 const details = {
   documentType: "CC" as const,

@@ -20,8 +20,8 @@ import {
 } from "@/modules/crm";
 import { person, tag } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
+import { seedMember, seedOrganization, seedPerson } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedOrganization, seedPerson } from "./factories";
 
 // Organizaciones y contactos (ADR-037 regla 6): nombre único sin mayúsculas, contactos solo externos,
 // un principal por organización, notas y tareas con sujeto organización, etiquetas y búsqueda.

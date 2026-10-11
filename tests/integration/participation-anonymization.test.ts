@@ -11,10 +11,10 @@ import { anonymizePersonAs, requestDeletionAs } from "@/modules/people";
 import { person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { tList } from "@/shared/copy";
+import { seedCheckIn, seedMember, seedOccasion, seedTerm } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedCheckIn, seedMember, seedOccasion, seedTerm } from "./factories";
 
 // Anonimizar a una persona (ADR-030 regla 4; ADR-114 regla 4): su asistencia se conserva de forma
 // anónima, pero el texto de una excusa lo aportó ella y puede decir de su salud, así que se borra.

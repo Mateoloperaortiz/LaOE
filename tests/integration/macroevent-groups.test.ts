@@ -12,9 +12,9 @@ import {
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
+import { seedMember, seedTerm } from "../factories";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 async function setup() {
   const termId = await seedTerm();

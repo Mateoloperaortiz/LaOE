@@ -26,8 +26,8 @@ import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
+import { currentTermCode, seedOccasion, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { currentTermCode, seedOccasion, seedTerm } from "./factories";
 
 const db = () => getDb();
 

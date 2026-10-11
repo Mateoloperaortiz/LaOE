@@ -30,8 +30,8 @@ import {
   wordleGame,
 } from "@/modules/participation/schema";
 import { t, tList } from "@/shared/copy";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // El ledger de los juegos (DT-026): la fila exacta que cada juego deja al acreditar, entera,
 // por sus comandos públicos. Lo demás de un crédito ya tiene su prueba en el archivo de cada juego

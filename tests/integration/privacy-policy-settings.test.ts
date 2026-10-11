@@ -11,8 +11,8 @@ import {
   setPrivacyPolicyVersionAs,
 } from "@/modules/system";
 import { appConfig, auditLog } from "@/modules/system/schema";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 describe("guardado auditado de la versión de política", () => {
   beforeEach(truncateAll);

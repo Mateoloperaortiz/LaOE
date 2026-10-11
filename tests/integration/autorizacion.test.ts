@@ -4,8 +4,8 @@ import { closeDb, getDb } from "@/db/client";
 import { hasLiveConsent, recordConsentAs } from "@/modules/people";
 import { consent } from "@/modules/people/schema";
 import { appConfig, auditLog, outbox } from "@/modules/system/schema";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // ADR-048: la autorización de membresía la da el titular en su primer ingreso.
 

@@ -18,7 +18,6 @@ import { auditLog } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
@@ -26,7 +25,8 @@ import {
   seedMembership,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Inhabilidades y topes al nombrar cargos (Regl. art. 11 y 27; ADR-060 regla 11): entre comités,
 // macroeventos y junta; nuevos sin aval; inhabilidad viva; ADMIN fuerza con motivo y queda auditado.

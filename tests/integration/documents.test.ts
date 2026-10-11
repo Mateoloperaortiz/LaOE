@@ -22,11 +22,11 @@ import { documentArticle, mediaAsset } from "@/modules/content/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedMember } from "../factories";
 import { heldThenSettled, holdCommand, outcome } from "../helpers/locks";
 import { sampleArticlesJson, sampleNormativaPdf } from "../helpers/pdf";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // Contra Garage en local, como hace el navegador: presign → POST → confirm.
 

@@ -15,14 +15,14 @@ import {
   recordPassIssued,
   walletAvailability,
 } from "@/modules/wallet/domain/passes";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 import { walletActor } from "./wallet-fixtures";
 
 describe("datos y registro de pases", () => {

@@ -7,8 +7,6 @@ import { endMembership } from "@/modules/people/domain/membership";
 import { committeeMembership, committeeRoleAssignment, membership } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { holdCommand, waitingOn } from "../helpers/locks";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
@@ -16,7 +14,9 @@ import {
   seedPerson,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { holdCommand, waitingOn } from "../helpers/locks";
+import { truncateAll } from "./db";
 
 // Solo quien tiene una membresía vigente cambia de comités (ADR-118 regla 11; DT-209 b): una baja
 // cierra pertenencias y cargos, y un editor de comités que quedó abierto no los vuelve a abrir.

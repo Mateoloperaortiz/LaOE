@@ -4,9 +4,9 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { checkIn, occasion } from "@/modules/participation/schema";
 import { t } from "@/shared/copy";
+import { currentTermCode, seedMembership, seedOccasion, seedPerson, seedTerm } from "../factories";
 import { elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
-import { currentTermCode, seedMembership, seedOccasion, seedPerson, seedTerm } from "./factories";
 
 // El `r` de la dirección de `/a/[publicId]` (ADR-120 regla 6): la action redirige con él recién
 // escrita la asistencia, pero cualquiera con sesión lo puede escribir a mano. Un resultado que

@@ -15,9 +15,9 @@ import {
 } from "@/modules/wallet/domain/google";
 import * as passRecords from "@/modules/wallet/domain/passes";
 import { listPassesFor } from "@/modules/wallet/domain/passes";
+import { seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
 import credentials from "../fixtures/wallet/toy-credentials.json";
 import { truncateAll } from "./db";
-import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 import { FakeGoogleWallet, walletActor, walletBarrier } from "./wallet-fixtures";
 
 describe("emisión y reconciliación Google Wallet", () => {

@@ -19,9 +19,9 @@ import { editionRegistration, formSubmission } from "@/modules/forms/schema";
 import { endMembershipAs, hasLiveConsent } from "@/modules/people";
 import { consent, person, personTag, tag } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
+import { seedForm, seedMember, seedSubmission, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedForm, seedMember, seedSubmission, seedTerm } from "./factories";
 
 // Formularios propios (ADR-013, ADR-037 reglas 3 a 5): envío público con vínculo por correo,
 // consentimiento, acciones, honeypot, rate limit, una por correo, tope y ventana; borrado al salir.

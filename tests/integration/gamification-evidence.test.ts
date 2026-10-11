@@ -29,10 +29,10 @@ import { outbox } from "@/modules/system/schema";
 import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedChallenge, seedMember, seedParticipation, seedTerm } from "../factories";
 import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedChallenge, seedMember, seedParticipation, seedTerm } from "./factories";
 
 // Evidencias (ADR-067 regla 6): validación de subida, verificación de objetos, re-encode a WebP
 // sin metadatos y entrega prefirmada solo al autor o a un ADMIN.

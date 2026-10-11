@@ -6,14 +6,14 @@ import { rolesResource } from "@/modules/people/admin";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Caracterización de `createCommitteeRole` y `updateCommitteeRole` (DT-147) por su única puerta, el
 // recurso Cargos del kit (`rolesResource.create` y `.update`). Una conducta queda fijada como está hoy

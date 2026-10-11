@@ -18,10 +18,10 @@ import { setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
+import { seedChallenge, seedMember, seedOccasion, seedTerm } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
 
 // Una excusa aceptada (ADR-060 regla 5) cierra una asistencia pendiente sin aprobarla. Con el premio
 // que esa asistencia tenía reservado hace lo mismo que un rechazo (ADR-067 regla 3): lo libera, y el

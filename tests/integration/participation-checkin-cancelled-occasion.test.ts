@@ -12,10 +12,10 @@ import {
 import { OCCASION_STATUSES } from "@/modules/participation/domain/occasion-pure";
 import { challenge } from "@/modules/participation/schema";
 import { t, tList } from "@/shared/copy";
+import { seedChallenge, seedMember, seedOccasion, seedTerm } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
 import { holdTransaction, waitingForLock, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
-import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
 
 // ADR-119 regla 1 (DT-161): una asistencia no nace ni se reaprueba en una ocasión cancelada. Crear y
 // decidir leen el estado de la ocasión con su fila tomada, después del término: la cancelación que va

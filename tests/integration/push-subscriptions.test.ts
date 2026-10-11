@@ -11,9 +11,9 @@ import {
 import { resolveActor, signOut } from "@/modules/identity";
 import { createSession } from "@/modules/identity/domain/session";
 import { t } from "@/shared/copy";
+import { seedMember } from "../factories";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // Qué suscripción de push se guarda (ADR-113 regla 6), por la interfaz pública de `comms`.
 

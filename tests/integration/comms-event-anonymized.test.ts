@@ -13,16 +13,16 @@ import {
 import { createRequestAs, decideRequestAs } from "@/modules/crm";
 import { admitPersonAs, anonymizePersonAs, requestDeletionAs } from "@/modules/people";
 import type { MailMessage } from "@/shared/adapters/mail";
-import { drainOutbox } from "../helpers/outbox";
-import { warmPool } from "../helpers/pool";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
 
 // La bienvenida (T-200) y la respuesta a una solicitud (T-205 y el push T-189) cuando la persona se
 // anonimiza antes de que el evento termine de procesarse (ADR-116 regla 9). El evento lleva su correo

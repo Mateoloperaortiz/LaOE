@@ -32,10 +32,6 @@ import { membership } from "@/modules/people/schema";
 import { setConfigAs } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
-import { decideInOwnOccasion } from "../helpers/check-ins";
-import { drainOutbox } from "../helpers/outbox";
-import { warmPool } from "../helpers/pool";
-import { truncateAll } from "./db";
 import {
   seedBooster,
   seedChallenge,
@@ -43,7 +39,11 @@ import {
   seedOccasion,
   seedParticipation,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { decideInOwnOccasion } from "../helpers/check-ins";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
 
 beforeEach(truncateAll);
 afterAll(closeDb);

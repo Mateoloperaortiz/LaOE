@@ -26,8 +26,6 @@ import {
 import { auditLog, outbox } from "@/modules/system/schema";
 import { closeTermPoints, getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
-import { decideInOwnOccasion } from "../helpers/check-ins";
-import { truncateAll } from "./db";
 import {
   seedChallenge,
   seedCheckIn,
@@ -36,7 +34,9 @@ import {
   seedOccasion,
   seedParticipation,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { decideInOwnOccasion } from "../helpers/check-ins";
+import { truncateAll } from "./db";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;

@@ -9,7 +9,6 @@ import {
 } from "@/modules/participation";
 import { challengeQuestion } from "@/modules/participation/schema";
 import { committeeMembership } from "@/modules/people/schema";
-import { truncateAll } from "./db";
 import {
   seedChallenge,
   seedCommittee,
@@ -20,7 +19,8 @@ import {
   seedPerson,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Lo que un miembro ve de los retos (ADR-067 regla 2, ADR-122 regla 6): la lista, «el siguiente reto»,
 // los destinos de un booster y el detalle salen por el público de cada reto, que el dominio resuelve

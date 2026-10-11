@@ -19,7 +19,6 @@ import {
 import { leaderScore } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
   seedCheckIn,
   seedCommittee,
@@ -28,7 +27,8 @@ import {
   seedOccasion,
   seedRule,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Reglas por término y tabla (ADR-036 regla 3): claves únicas, bloqueo que el líder no salta,
 // copia solo sobre tabla vacía, referencia, borrado restringido, recompute encolado una vez y

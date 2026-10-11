@@ -10,8 +10,8 @@ import {
   reward,
   sudokuRun,
 } from "@/modules/participation/schema";
+import { seedBooster, seedChallenge, seedMember, seedParticipation, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedBooster, seedChallenge, seedMember, seedParticipation, seedTerm } from "./factories";
 
 // "Mis datos" (ADR-034 regla 12, ADR-067 regla 16): el export incluye la actividad de la
 // gamificación — entregas, evidencias, boosters, logros y premios — sin los campos internos

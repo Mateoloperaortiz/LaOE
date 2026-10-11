@@ -17,10 +17,10 @@ import {
   requestDeletionAs,
 } from "@/modules/people";
 import { membership } from "@/modules/people/schema";
+import { leaveUntilSoon, seedMember } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { leaveUntilSoon, seedMember } from "./factories";
 
 // El token del calendario se retira con la persona (DT-130, ADR-116 regla 15): la baja y la
 // anonimización lo borran junto al carnet, la contraseña, los enlaces, las sesiones y los permisos.

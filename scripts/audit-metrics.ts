@@ -15,9 +15,9 @@ import {
 const GENERATED = "src/shared/copy/textos.generated.ts";
 const ACTION_HELPERS = ["requireAdmin", "text", "withQuery", "safeBack", "back", "single"];
 const RAW_ELEMENTS = ["input", "select", "table", "button"];
-// La base de pruebas (spec #244): dónde se vacía y dónde vive la fábrica que siembra.
+// La base de pruebas (spec #244): dónde se vacía. La fábrica que siembra vive en `tests/factories`,
+// fuera de `tests/integration`: el conteo de insert sueltos no tiene que apartarla.
 const TEST_EMPTYING = "tests/integration/db.ts";
-const TEST_FACTORY = "tests/integration/factories.ts";
 
 interface SourceFile {
   path: string;
@@ -179,7 +179,7 @@ const emptying = integration.find((file) => file.path === TEST_EMPTYING);
 if (!emptying) {
   throw new Error(`No está ${TEST_EMPTYING}: el vaciado de la base de pruebas se mudó`);
 }
-const insertsInIntegration = looseInserts(integration.filter((file) => file.path !== TEST_FACTORY));
+const insertsInIntegration = looseInserts(integration);
 const insertsInE2e = looseInserts(load("tests/e2e"));
 const unguarded = unguardedConcurrencyTests(
   integration.filter((file) => file.path.endsWith(".test.ts")),

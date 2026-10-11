@@ -10,8 +10,8 @@ import {
   startWordleAs,
   submitWordleGuessAs,
 } from "@/modules/participation";
+import { seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // DT-010: lo que cada juego le dice a su pantalla sobre el día y sobre cuándo empieza el siguiente,
 // por su lectura pública y con el reloj puesto en los bordes de la medianoche de Colombia. Fija la

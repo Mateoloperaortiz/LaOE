@@ -6,8 +6,8 @@ import {
   challengeParticipationsResource,
 } from "@/modules/participation/admin";
 import { achievement, badgeDefinition } from "@/modules/participation/schema";
+import { seedChallenge, seedMember, seedParticipation, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedChallenge, seedMember, seedParticipation, seedTerm } from "./factories";
 
 // Exportes personales de la gamificación (ADR-067 regla 16): "retos" lista entregas con premio e
 // "insignias" los logros de la colección; ambos piden step-up (personalData) en la interfaz.

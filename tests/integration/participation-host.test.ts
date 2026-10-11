@@ -7,8 +7,8 @@ import { buildLiveSnapshot, checkInLink } from "@/modules/participation/domain/l
 import { getOccasion } from "@/modules/participation/domain/occasions";
 import { rotatingCodeAt } from "@/modules/participation/domain/rotating-code-pure";
 import { searchMembersByName } from "@/modules/people/domain/people-reads";
+import { currentTermCode, seedMember, seedOccasion, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { currentTermCode, seedMember, seedOccasion, seedTerm } from "./factories";
 
 /** El snapshot de una ocasión leída por su id, como la leen la ruta del sondeo y la consola. */
 async function liveSnapshotOf(id: string, now?: Date) {

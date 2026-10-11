@@ -9,9 +9,9 @@ import {
 } from "@/modules/participation";
 import { hostCheckIn } from "@/modules/participation/domain/check-ins";
 import { t } from "@/shared/copy";
+import { seedMember, seedOccasion, seedTerm } from "../factories";
 import { holdCommand, outcome, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
-import { seedMember, seedOccasion, seedTerm } from "./factories";
 
 // ADR-119 regla 2 (DT-162): la excusa que crea la asistencia y choca con un registro que confirma en
 // ese instante responde lo de siempre (T-2223), no el error del índice único.

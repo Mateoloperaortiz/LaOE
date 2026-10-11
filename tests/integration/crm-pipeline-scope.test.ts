@@ -15,7 +15,6 @@ import { card, interaction, pipelineStage, task } from "@/modules/crm/schema";
 import { membership } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
   seedCard,
   seedCommittee,
@@ -23,7 +22,8 @@ import {
   seedPerson,
   seedPipeline,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // DT-146 inciso (b), ADR-122 regla 1: la página de un pipeline edita sus tarjetas, da de alta desde
 // ellas y mueve o borra sus etapas. Los cuatro comandos reciben el pipeline de la página y lo

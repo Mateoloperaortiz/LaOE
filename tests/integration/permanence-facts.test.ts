@@ -17,8 +17,6 @@ import {
   permanenceRule,
   workGroupMembership,
 } from "@/modules/permanence/schema";
-import { type CountedQuery, countQueries } from "../helpers/queries";
-import { truncateAll } from "./db";
 import {
   seedAppointment,
   seedCheckIn,
@@ -33,7 +31,9 @@ import {
   seedVeteran,
   seedWorkGroup,
   seedWorkGroupMembership,
-} from "./factories";
+} from "../factories";
+import { type CountedQuery, countQueries } from "../helpers/queries";
+import { truncateAll } from "./db";
 
 // Restricciones del esquema de permanencia (03-modelo) y el cargador de hechos que alimenta el
 // cálculo (ADR-036 regla 5).

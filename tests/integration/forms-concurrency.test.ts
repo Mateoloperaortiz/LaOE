@@ -3,9 +3,9 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { getPublicForm, submitFormAs } from "@/modules/forms";
 import { formSubmission } from "@/modules/forms/schema";
+import { seedForm, seedSubmission } from "../factories";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedForm, seedSubmission } from "./factories";
 
 // DT-148: un envío toma la fila del formulario con candado antes de contar las respuestas y de mirar
 // si ese correo ya respondió. Ningún índice único cubre el tope ni «una por correo»: el candado es la

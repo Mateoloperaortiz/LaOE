@@ -16,8 +16,6 @@ import { closeTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   seedCheckIn,
   seedCommittee,
@@ -25,7 +23,9 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Excusa válida como solicitud (ADR-060 regla 5): plazo de tres días hábiles, una pendiente por ocasión,
 // aceptar escribe un check-in excusado que no expulsa por una obligatoria ni cuenta como falta, y la

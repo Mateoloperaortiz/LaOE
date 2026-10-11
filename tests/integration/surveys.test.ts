@@ -20,8 +20,6 @@ import {
 } from "@/modules/participation/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   seedCheckIn,
   seedCommittee,
@@ -30,7 +28,9 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Encuesta anónima tras la ocasión (ADR-038 regla 13): una invitación por asistente aprobado al cerrar,
 // push con URL propia, una respuesta por invitación sin persona, ventana y agregados.

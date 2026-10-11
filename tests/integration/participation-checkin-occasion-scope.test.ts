@@ -5,9 +5,9 @@ import { balanceFor, decideCheckInAs, decideManyAs } from "@/modules/participati
 import { checkIn, occasion } from "@/modules/participation/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedCheckIn, seedMember, seedOccasion, seedTerm } from "../factories";
 import { holdTransaction, whileHeld } from "../helpers/locks";
 import { truncateAll } from "./db";
-import { seedCheckIn, seedMember, seedOccasion, seedTerm } from "./factories";
 
 // DT-146 inciso (b), ADR-122 regla 1: la consola de una ocasión decide las asistencias de esa
 // ocasión. El comando recibe la ocasión de la página y la compara con la asistencia que toma: la de

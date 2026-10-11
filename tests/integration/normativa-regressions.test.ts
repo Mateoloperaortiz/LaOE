@@ -12,7 +12,6 @@ import { listPreferentialSchedule } from "@/modules/people/domain/preferential-s
 import { setProbation } from "@/modules/people/domain/term-outcomes";
 import { membership, membershipTerm } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
   seedAppointment,
   seedCommittee,
@@ -20,7 +19,8 @@ import {
   seedMember,
   seedMembershipTerm,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 describe("regresiones de la revisión normativa", () => {
   beforeEach(truncateAll);

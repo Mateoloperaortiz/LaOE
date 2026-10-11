@@ -3,7 +3,6 @@ import { closeDb } from "@/db/client";
 import { boardExportRows, boardIndicators, recomputeSnapshots } from "@/modules/permanence";
 import { boardResource } from "@/modules/permanence/admin";
 import { tList } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
   seedCheckIn,
   seedCommittee,
@@ -13,7 +12,8 @@ import {
   seedPerson,
   seedRule,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Panel de la junta (ADR-036 regla 12): agregados por término y comité sobre datos sembrados, sin
 // ids ni correos de personas en la respuesta.

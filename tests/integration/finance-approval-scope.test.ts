@@ -6,8 +6,8 @@ import { createBudgetAs } from "@/modules/finance/domain/commands";
 import { eventApproval } from "@/modules/finance/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedCommittee, seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedCommittee, seedMember } from "./factories";
 
 // DT-146 inciso (b), ADR-122 regla 1: la Presidencia decide un aval desde la página de un
 // presupuesto, que muestra los avales del comité de ese presupuesto. El comando recibe el presupuesto

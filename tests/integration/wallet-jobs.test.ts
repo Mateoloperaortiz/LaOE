@@ -35,14 +35,14 @@ import {
 import { walletReconcile, walletSync } from "@/domain-events/wallet";
 import { walletPass } from "@/modules/wallet/schema";
 import { t } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 import { FakeGoogleWallet } from "./wallet-fixtures";
 
 const endInput = { endReason: "OTHER" as const, memorialConsent: false, contactConsent: false };

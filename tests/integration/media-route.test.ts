@@ -4,10 +4,10 @@ import { confirmUploadAs, getMedia, prepareUpload } from "@/modules/content";
 import { DELIVERY } from "@/modules/content/domain/media-pure";
 import { lockPersonAnonymization } from "@/modules/people";
 import { deleteObject } from "@/shared/adapters/storage";
+import { seedMember } from "../factories";
 import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // La ruta que entrega un medio (ADR-022, ADR-114 regla 8) con el dominio de verdad, contra Postgres y
 // Garage en local. Solo se simula quién tiene sesión, que la ruta lee de las cookies de la solicitud.

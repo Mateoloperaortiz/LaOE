@@ -12,8 +12,6 @@ import {
   seedWorkCommitteesAs,
 } from "@/modules/permanence";
 import { t } from "@/shared/copy";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   seedCall,
   seedCallEntry,
@@ -21,7 +19,9 @@ import {
   seedMembership,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Una inscripción aceptada entra al grupo o quien acepta recibe el motivo (ADR-116 regla 7): aceptar
 // comprueba antes lo que el grupo exige (solo activos, tope de dos comités de trabajo), y si la

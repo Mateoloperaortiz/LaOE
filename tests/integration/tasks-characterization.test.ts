@@ -24,9 +24,6 @@ import { nextTermCode } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays, bogotaInputToUtc, todayKey } from "@/shared/lib/dates";
-import { drainOutbox } from "../helpers/outbox";
-import { warmPool } from "../helpers/pool";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -36,7 +33,10 @@ import {
   seedPipeline,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
 
 // Las tareas de GH (DT-007, ADR-115 regla 9). Ocho sitios abren una: cuatro handlers de `crm/jobs.ts`
 // (pedido de borrado, pedido de retiro de un comité, término siguiente sin crear, licencia vencida),

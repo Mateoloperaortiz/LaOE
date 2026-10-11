@@ -18,11 +18,11 @@ import {
 import { checkIn, occasion, occasionSurveyInvite } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { outbox } from "@/modules/system/schema";
+import { seedCheckIn, seedForm, seedMember, seedOccasion, seedTerm } from "../factories";
 import { holdTransaction, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedCheckIn, seedForm, seedMember, seedOccasion, seedTerm } from "./factories";
 
 // Las invitaciones a la encuesta toleran el reintento (DT-214, ADR-118 regla 4). El enlace de cada
 // persona solo existe en memoria mientras corre el handler del cierre: en la base queda su huella. Si

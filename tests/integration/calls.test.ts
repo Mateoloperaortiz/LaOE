@@ -15,10 +15,6 @@ import { groupJoinBlocker, listGroupIdsOf } from "@/modules/permanence";
 import { workGroupMembership } from "@/modules/permanence/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
-import { copyPattern } from "../helpers/copy";
-import { drainOutbox } from "../helpers/outbox";
-import { warmPool } from "../helpers/pool";
-import { truncateAll } from "./db";
 import {
   seedCall,
   seedCallEntry,
@@ -27,7 +23,11 @@ import {
   seedPerson,
   seedTerm,
   seedWorkGroup,
-} from "./factories";
+} from "../factories";
+import { copyPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
 
 // Convocatorias internas (ADR-031, ADR-037 regla 10): abierta por estado y ventana, solo activos que
 // no estén en el grupo, orden de llegada con cupo bajo concurrencia y lista de espera, selección

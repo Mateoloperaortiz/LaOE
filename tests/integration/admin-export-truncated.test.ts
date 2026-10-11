@@ -7,7 +7,6 @@ import { achievement, badgeDefinition, checkIn } from "@/modules/participation/s
 import { auditLog } from "@/modules/system/schema";
 import { EXPORT_ROW_LIMIT } from "@/shared/admin-kit/types";
 import { t } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
   seedChallenge,
   seedCheckIn,
@@ -15,7 +14,8 @@ import {
   seedOccasion,
   seedParticipation,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Un exporte tiene un tope de filas (ADR-118 regla 13; DT-222). Lo que pasa del tope no viaja, y el
 // archivo y la auditoría lo dicen: la última fila avisa cuántas van de cuántas, y `export.csv` guarda

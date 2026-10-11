@@ -5,8 +5,8 @@ import { removeAppointmentAs } from "@/modules/people";
 import { appointment } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedAppointment, seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedAppointment, seedMember, seedTerm } from "./factories";
 
 // DT-146 inciso (b), ADR-122 regla 1: un cargo se quita desde la ficha de su persona o desde la mesa
 // de su edición. El comando recibe ese dueño y lo comprueba: el cargo de otra persona, o uno que no

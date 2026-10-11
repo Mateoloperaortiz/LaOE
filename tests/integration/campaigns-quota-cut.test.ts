@@ -17,8 +17,8 @@ import { getConfig, setConfig } from "@/modules/system";
 import { auditLog } from "@/modules/system/schema";
 import { type MailMessage, QuotaExceededError } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // DT-117 (ADR-116 regla 19, que enmienda ADR-115 regla 6): el corte de las campañas guarda la causa del
 // rechazo y dura según cuál. Todo por el tick que exporta `comms`, con el reloj de cada tick inyectado

@@ -9,8 +9,8 @@ import {
   setConfigAs,
   setPrivacyPolicyVersionAs,
 } from "@/modules/system";
+import { seedPerson } from "../factories";
 import { truncateAll } from "./db";
-import { seedPerson } from "./factories";
 
 // La caché de `getConfig` por la interfaz pública de `system`: un comando cambia una clave y otra lectura
 // cae cuando el cambio ya está escrito y su transacción todavía no confirma (DT-076, ADR-113 regla 9).

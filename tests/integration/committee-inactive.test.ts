@@ -21,8 +21,6 @@ import {
 } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -31,7 +29,9 @@ import {
   seedOccasion,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Un comité desactivado sale de la app (ADR-073): no se ofrece para elegir, no recibe pertenencias
 // nuevas, no compite en el ranking y no acumula faltas de asamblea; lo que ya existe se puede cerrar.

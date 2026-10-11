@@ -21,9 +21,9 @@ import {
 } from "@/modules/finance/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedCommittee, seedMember } from "../factories";
 import { holdTransaction, whileHeld } from "../helpers/locks";
 import { truncateAll } from "./db";
-import { seedCommittee, seedMember } from "./factories";
 
 // DT-146 inciso (c), ADR-122 regla 1: quien tiene FINANCE lo tiene en un comité, y desde la página
 // de finanzas de ese comité registra la presolicitud, el gasto y el traslado. Los tres comandos

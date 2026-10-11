@@ -20,8 +20,8 @@ import { getConfig, setConfig } from "@/modules/system";
 import { appConfig, auditLog } from "@/modules/system/schema";
 import { type MailProvider, QuotaExceededError } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // DT-115 (ADR-116 regla 20): lo que la pantalla de una campaña y la del cupo de correo le muestran a un
 // ADMIN, y el comando con el que cambia el margen. Todo por lo que exporta `comms`, con el reloj

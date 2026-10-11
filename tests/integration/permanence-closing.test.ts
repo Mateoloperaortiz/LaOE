@@ -26,6 +26,16 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { closeTermPermanence, closeTermPoints, findTermByCode, getTerm } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import {
+  seedCheckIn,
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMembership,
+  seedOccasion,
+  seedPerson,
+  seedRule,
+  seedTerm,
+} from "../factories";
 import { copyPattern, itemPattern } from "../helpers/copy";
 import {
   backendPid,
@@ -38,16 +48,6 @@ import {
 } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import {
-  seedCheckIn,
-  seedCommittee,
-  seedCommitteeMembership,
-  seedMembership,
-  seedOccasion,
-  seedPerson,
-  seedRule,
-  seedTerm,
-} from "./factories";
 
 // Cierre de permanencia (ADR-036 regla 9): precondiciones, propuestas derivadas, motivo al cambiar,
 // confirmación en bloque y aplicación reanudable por el job con comandos de `people`.

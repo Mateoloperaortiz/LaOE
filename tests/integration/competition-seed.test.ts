@@ -21,8 +21,8 @@ import { permission } from "@/modules/identity/schema";
 import { person } from "@/modules/people/schema";
 import { seedTheGames, THE_GAMES_REHEARSAL_SLUG } from "../../scripts/lib/seed-the-games";
 import { prepareTheGamesRehearsal, RehearsalError } from "../../scripts/lib/the-games-ensayo";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // El ensayo sintético de The Games que siembra `npm run db:seed` (desarrollo y staging).
 

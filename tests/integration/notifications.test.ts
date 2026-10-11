@@ -16,10 +16,10 @@ import { pushChallengePublished } from "@/modules/comms/domain/events";
 import { message, notificationPreference, pushSubscription } from "@/modules/comms/schema";
 import { endMembership } from "@/modules/people";
 import { t } from "@/shared/copy";
+import { seedMember } from "../factories";
 import { captureLogs, recordsOf } from "../helpers/logs";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 const db = () => getDb();
 

@@ -9,14 +9,14 @@ import {
 import { calendarToken } from "@/modules/identity/schema";
 import { listAgendaForPerson } from "@/modules/participation";
 import { membership } from "@/modules/people/schema";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Calendario personal (ADR-038 regla 12): el token se crea al primer uso, resuelve a la persona,
 // regenerarlo invalida el anterior; la agenda trae lo general, las asambleas y sus comités.

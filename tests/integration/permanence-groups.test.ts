@@ -15,8 +15,8 @@ import {
 } from "@/modules/permanence";
 import { outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedAppointment, seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedAppointment, seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
 // Grupos de trabajo (ADR-036 regla 6): siembra idempotente con líderes por cargo, altas solo de
 // activos, roles derivados, importación por CSV y recompute por persona.

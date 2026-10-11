@@ -22,9 +22,9 @@ import {
 import { setConfigAs } from "@/modules/system";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedChallenge, seedMember, seedParticipation, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedChallenge, seedMember, seedParticipation, seedTerm } from "./factories";
 
 // DT-315 (ADR-123 regla 8): el error de una decisión que ya no aplica nombra el estado con la
 // palabra del catálogo, no con el valor del enum. Son siete sitios: revisar y anular una entrega,

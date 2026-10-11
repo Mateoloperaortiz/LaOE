@@ -39,9 +39,6 @@ import { setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { decideInOwnOccasion } from "../helpers/check-ins";
-import { warmPool } from "../helpers/pool";
-import { truncateAll } from "./db";
 import {
   seedChallenge,
   seedCommittee,
@@ -50,7 +47,10 @@ import {
   seedOccasion,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { decideInOwnOccasion } from "../helpers/check-ins";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
 
 // Retos (ADR-067 reglas 2, 3, 5, 12 y 17): ciclo de vida, entregas de trivia y evidencia,
 // revisión, anulación y el gancho presencial sobre los check-ins.

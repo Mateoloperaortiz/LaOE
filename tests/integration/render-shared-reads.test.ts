@@ -2,8 +2,8 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import { getCurrentTerm } from "@/modules/terms";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // Lo que se comparte dentro de un render de servidor (DT-226 incisos b y e, ADR-121 regla 11).
 // `cache` de React solo guarda mientras el servidor de componentes pinta un request, y el `react` que

@@ -2,8 +2,8 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getResource } from "@/app/admin/_kit/registry";
 import { closeDb } from "@/db/client";
 import { t } from "@/shared/copy";
+import { seedCommittee } from "../factories";
 import { truncateAll } from "./db";
-import { seedCommittee } from "./factories";
 
 // El formulario de ediciones tal como lo arma el registro del admin, que es el que usan la pantalla
 // de ediciones y la action de guardar. `events` no importa `people` (ADR-110): las opciones de comité

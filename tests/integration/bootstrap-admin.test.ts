@@ -14,9 +14,9 @@ import {
   type BootstrapAdminInput,
   bootstrapAdmin,
 } from "../../scripts/lib/bootstrap-admin";
+import { seedPerson } from "../factories";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedPerson } from "./factories";
 
 const input: BootstrapAdminInput = {
   firstName: "Persona",

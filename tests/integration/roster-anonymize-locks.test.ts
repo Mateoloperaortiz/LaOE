@@ -11,9 +11,9 @@ import {
 } from "@/modules/people";
 import { anonymizePerson } from "@/modules/people/domain/membership";
 import { membership, person } from "@/modules/people/schema";
+import { seedMember, seedTerm } from "../factories";
 import { holdCommand, holdTransaction, outcome, waitingForLock, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // ADR-120 regla 3: el roster toma a cada persona en el orden del ciclo de membresía, primero el
 // consultivo `wallet-member:<persona>` y después su fila. Antes tomaba la fila y recién después, al dar

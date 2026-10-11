@@ -28,10 +28,10 @@ import { occasion, pointEntry, reward } from "@/modules/participation/schema";
 import { setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
+import { seedChallenge, seedMember, seedOccasion, seedTerm } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
 
 // Matriz de caracterización de DT-008 (ADR-109 regla 3): qué deja cada camino de una asistencia
 // (registro propio, organizador, decidir, cancelar la ocasión y excusa) en cada cambio de estado.

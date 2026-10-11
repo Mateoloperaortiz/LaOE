@@ -20,7 +20,6 @@ import {
 } from "@/modules/people/schema";
 import { getPrivacyPolicyState, PrivacyPolicyPendingError, requireConfig } from "@/modules/system";
 import { appConfig, auditLog, outbox } from "@/modules/system/schema";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedForm,
@@ -28,7 +27,8 @@ import {
   seedOccasion,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 

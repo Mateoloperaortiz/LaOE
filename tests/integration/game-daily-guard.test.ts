@@ -32,9 +32,9 @@ import {
 } from "@/modules/participation/schema";
 import { membership } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import { seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
 import { holdTransaction, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
-import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
 // La guardia de la partida diaria (DT-009): lo que cada juego responde al empezar y al seguir según
 // el día, el término, su cierre y la elegibilidad. La matriz fija la conducta de los cuatro juegos

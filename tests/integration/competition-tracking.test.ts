@@ -18,8 +18,8 @@ import {
 import { competitionSupport } from "@/modules/competition/schema";
 import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
+import { seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // El seguimiento del registro (ADR-105): la lista de la rotación en curso con el líder y el
 // calificador, las deudas de las rotaciones cerradas, quién se demora más y el aviso al líder.

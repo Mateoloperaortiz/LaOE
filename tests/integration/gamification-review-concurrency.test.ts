@@ -12,10 +12,10 @@ import { setConfigAs } from "@/modules/system";
 import { auditLog } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedChallenge, seedMember, seedTerm } from "../factories";
 import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedChallenge, seedMember, seedTerm } from "./factories";
 
 // DT-148: revisar y anular una entrega toman su fila con candado y recién después miran su estado.
 // Estas pruebas los llaman a la vez: sin esa espera, dos revisiones de la misma entrega valdrían

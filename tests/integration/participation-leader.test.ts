@@ -21,8 +21,6 @@ import { occasion } from "@/modules/participation/schema";
 import { createAlias, resolveAlias } from "@/modules/system/domain/aliases";
 import { getTerm } from "@/modules/terms/domain/terms";
 import { t } from "@/shared/copy";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -30,7 +28,9 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 

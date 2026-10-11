@@ -26,10 +26,6 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import type { MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { copyPattern, itemPattern } from "../helpers/copy";
-import { holdCommand, waitingOn, whileHeld } from "../helpers/locks";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   seedCard,
   seedCommittee,
@@ -39,7 +35,11 @@ import {
   seedPerson,
   seedPipeline,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { copyPattern, itemPattern } from "../helpers/copy";
+import { holdCommand, waitingOn, whileHeld } from "../helpers/locks";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Pipelines y tarjetas (ADR-037 reglas 7 y 8): plantillas por tipo, un sujeto por tarjeta, mover con
 // cierre y reapertura, tarjeta por outbox desde la respuesta, postulante, dar de alta en una

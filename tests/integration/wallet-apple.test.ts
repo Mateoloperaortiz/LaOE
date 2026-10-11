@@ -8,8 +8,8 @@ import { buildApplePass } from "@/modules/wallet/domain/apple";
 import { walletFailure } from "@/modules/wallet/domain/failure";
 import { listPassesFor } from "@/modules/wallet/domain/passes";
 import * as appleAdapter from "@/shared/adapters/apple-pass";
+import { seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 import { walletActor } from "./wallet-fixtures";
 
 function unzip(buffer: Buffer): Map<string, Buffer> {

@@ -23,10 +23,10 @@ import type { Game2048Move, Game2048State } from "@/modules/participation/game20
 import { game2048Run, pointEntry } from "@/modules/participation/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
 const db = () => getDb();
 const ORDER: Game2048Move[] = ["L", "U", "R", "D"];

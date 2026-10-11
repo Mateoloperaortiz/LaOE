@@ -7,9 +7,9 @@ import { message } from "@/modules/comms/schema";
 import type { MailProvider, MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { seedMember } from "../factories";
 import { elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // La pantalla del cupo de correo (`/admin/campanas/cupo`) dice a qué hora vuelve a empezar la cuenta
 // de hoy, que es la del proveedor y no la de Colombia (ADR-121 regla 5, T-3259). La E2E del cupo corre

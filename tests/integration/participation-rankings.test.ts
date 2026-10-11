@@ -19,8 +19,6 @@ import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -28,7 +26,9 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 

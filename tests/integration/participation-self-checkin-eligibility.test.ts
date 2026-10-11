@@ -7,9 +7,9 @@ import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { formatDate, formatTime } from "@/shared/lib/dates";
+import { currentTermCode, seedMembership, seedOccasion, seedPerson, seedTerm } from "../factories";
 import { elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
-import { currentTermCode, seedMembership, seedOccasion, seedPerson, seedTerm } from "./factories";
 
 // El registro propio (ADR-035 regla 5) responde dos veces a la misma pregunta: el comando decide si
 // la asistencia nace y la pantalla de `/a/[publicId]` decide qué texto o formulario muestra antes de

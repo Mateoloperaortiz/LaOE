@@ -21,16 +21,16 @@ import { admitPersonAs } from "@/modules/people";
 import type { MailMessage } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { logger } from "@/shared/log";
-import { captureLogs, recordsOf } from "../helpers/logs";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { captureLogs, recordsOf } from "../helpers/logs";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // La bienvenida (T-200) y la respuesta a una solicitud (T-205 y el push T-189) cuando el poller
 // reintenta el evento entero (ADR-115 regla 8). El poller es el real: corre en serie los handlers de

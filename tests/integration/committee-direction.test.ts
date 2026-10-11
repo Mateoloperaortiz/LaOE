@@ -23,6 +23,15 @@ import { committeeMembership, committeeRoleAssignment } from "@/modules/people/s
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import {
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMember,
+  seedMembership,
+  seedPerson,
+  seedTerm,
+  seedVeteran,
+} from "../factories";
 import { copyPattern } from "../helpers/copy";
 import {
   firstThenSecond,
@@ -33,15 +42,6 @@ import {
 } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import {
-  seedCommittee,
-  seedCommitteeMembership,
-  seedMember,
-  seedMembership,
-  seedPerson,
-  seedTerm,
-  seedVeteran,
-} from "./factories";
 
 // La dirección del comité por áreas (ADR-058): capacidades derivadas de los cargos, alerta de cargos
 // obligatorios, elegibles para entrar, y los comandos con eje comité con cada una de sus guardas.

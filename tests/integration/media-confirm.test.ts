@@ -4,10 +4,10 @@ import { confirmUploadAs, getMedia, listMedia, prepareUpload } from "@/modules/c
 import { lockPersonAnonymization } from "@/modules/people";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
 import { t } from "@/shared/copy";
+import { seedMember } from "../factories";
 import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // Quién confirma qué clave (ADR-113 regla 5), por la interfaz pública de `content` y contra Garage en
 // local. El alcance lo declara quien llama; el comando decide con la clave, no con el propósito declarado.

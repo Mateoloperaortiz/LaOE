@@ -9,15 +9,15 @@ import { permanenceSnapshot } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Condición del semestre desde la Persona 360 (ADR-056): el comando exige motivo, es idempotente,
 // audita, y su evento recalcula la permanencia de la persona y escribe la línea de tiempo.

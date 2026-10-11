@@ -19,11 +19,11 @@ import { mediaAsset } from "@/modules/content/schema";
 import { lockPersonAnonymization } from "@/modules/people";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject, putObject } from "@/shared/adapters/storage";
+import { seedMember } from "../factories";
 import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // Lo que se entrega de un medio (ADR-114 regla 8), por la interfaz pública de `content` y contra Garage
 // en local: se sube como sube el navegador, se procesa por el outbox y se descarga lo que firma el 302.

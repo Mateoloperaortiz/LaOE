@@ -36,10 +36,6 @@ import {
   reactivateMembershipAs,
 } from "@/modules/people";
 import { reactivateMembership } from "@/modules/people/domain/membership";
-import { holdCommand, waitingOn } from "../helpers/locks";
-import { drainOutbox } from "../helpers/outbox";
-import { warmPool } from "../helpers/pool";
-import { truncateAll } from "./db";
 import {
   leaveUntilSoon,
   seedCheckIn,
@@ -49,7 +45,11 @@ import {
   seedOccasion,
   seedSubmission,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { holdCommand, waitingOn } from "../helpers/locks";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
 
 // Los borrados de la baja toleran el reintento (DT-216 a, ADR-118 regla 5). Identity, crm, forms, comms
 // y participation borran lo que no es historia cuando llega `membership.changed` hacia INACTIVE. Decidían

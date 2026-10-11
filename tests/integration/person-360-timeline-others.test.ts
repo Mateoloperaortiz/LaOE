@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getDb } from "@/db/client";
 import { type InteractionView, listInteractions } from "@/modules/crm";
 import { type InteractionKind, interaction } from "@/modules/crm/schema";
+import { seedMember } from "../factories";
 import { elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // El filtro «Otros» de la línea de tiempo de la Persona 360 (DT-226 inciso a, ADR-121 regla 10).
 // La pantalla pedía las 200 interacciones más recientes de todos los tipos y descartaba en memoria

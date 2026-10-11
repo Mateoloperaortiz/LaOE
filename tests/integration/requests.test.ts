@@ -36,9 +36,6 @@ import { term } from "@/modules/terms/schema";
 import type { MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
-import { copyPattern, itemPattern } from "../helpers/copy";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   leaveUntilSoon,
@@ -48,7 +45,10 @@ import {
   seedPerson,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { copyPattern, itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Solicitudes (ADR-031, ADR-037 regla 9): una pendiente por tipo, retirar, rechazar con motivo,
 // aprobar ejecuta el comando de people en la misma transacción y la respuesta sale por correo.

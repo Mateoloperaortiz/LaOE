@@ -3,8 +3,8 @@ import { closeDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { listCommitteeViability } from "@/modules/participation";
 import { createCommittee } from "@/modules/people";
+import { seedCommitteeMembership, seedMembership, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedCommitteeMembership, seedMembership, seedPerson, seedTerm } from "./factories";
 
 // Viabilidad del comité (ADR-060 regla 8): los días que le quedan a la prueba se cuentan desde el
 // día civil de Colombia (ADR-020), que de 7 p. m. a medianoche va un día atrás del de UTC.

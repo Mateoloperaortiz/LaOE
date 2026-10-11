@@ -7,8 +7,8 @@ import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
 import { appointment } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
+import { seedTerm, seedVeteran } from "../factories";
 import { truncateAll } from "./db";
-import { seedTerm, seedVeteran } from "./factories";
 
 // La mesa de una edición queda en el término que contiene su fecha (ADR-060 regla 9; ADR-118 regla
 // 9). Acá van enteras, contra la base, las actions de las dos pantallas que la nombran:

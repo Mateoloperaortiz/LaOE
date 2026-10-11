@@ -34,9 +34,6 @@ import { setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
-import { decideInOwnOccasion } from "../helpers/check-ins";
-import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
-import { truncateAll } from "./db";
 import {
   seedBooster,
   seedChallenge,
@@ -44,7 +41,10 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { decideInOwnOccasion } from "../helpers/check-ins";
+import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
+import { truncateAll } from "./db";
 
 // Boosters y campañas (ADR-067 reglas 4, 6, 7, 8 y 17): apuntado, economía del impulso en
 // retos y asistencias, concurrencia, administración manual y ciclo de vida de campañas.

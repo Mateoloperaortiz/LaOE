@@ -21,6 +21,13 @@ import {
 } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
 import {
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMember,
+  seedTerm,
+  seedVeteran,
+} from "../factories";
+import {
   firstThenSecond,
   type Held,
   holdCommand,
@@ -29,13 +36,6 @@ import {
   waitingOn,
 } from "../helpers/locks";
 import { truncateAll } from "./db";
-import {
-  seedCommittee,
-  seedCommitteeMembership,
-  seedMember,
-  seedTerm,
-  seedVeteran,
-} from "./factories";
 
 // ADR-123 regla 6: los tres comandos que le cambian los comités a una persona por su propia puerta
 // toman el consultivo del ciclo de membresía, `wallet-member:<persona>`, antes que la fila de su

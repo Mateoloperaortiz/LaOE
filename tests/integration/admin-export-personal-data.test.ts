@@ -9,8 +9,8 @@ import { occasionKindLabel } from "@/modules/participation/admin";
 import { person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import type { AnyResource } from "@/shared/admin-kit/types";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // Un exporte con datos personales pide paso de seguridad reciente y deja su fila de auditoría
 // (ADR-014). Las dos guardas de la ruta dependen de que el recurso esté marcado: acá se prueba la ruta

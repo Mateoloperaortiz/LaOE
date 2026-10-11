@@ -15,8 +15,8 @@ import {
 import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
 import { t } from "@/shared/copy";
+import { seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // Los jurados de The Challenge (ADR-103): cada jurado por aparte, el orden con el promedio y, sobre
 // todo, que las notas no toquen el libro.

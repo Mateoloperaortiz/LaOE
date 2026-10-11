@@ -7,10 +7,10 @@ import { rankingsResource } from "@/modules/participation/admin";
 import { listActiveMemberRefs } from "@/modules/people";
 import { person } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
+import { currentTermCode, seedMember, seedTerm, seedVeteran } from "../factories";
 import { countQueries } from "../helpers/queries";
 import { elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
-import { currentTermCode, seedMember, seedTerm, seedVeteran } from "./factories";
 
 // Los rankings del término para GH (ADR-008, ADR-024): la pantalla del admin con los tableros de
 // nuevos, veteranos y comités, y el exporte de los tableros de personas. Lo que muestran y lo que

@@ -22,9 +22,9 @@ import { campaignRecipient, message } from "@/modules/comms/schema";
 import { recordConsentAs } from "@/modules/people";
 import { membership, person, segment } from "@/modules/people/schema";
 import type { MailMessage, MailTransport } from "@/shared/adapters/mail";
+import { seedMember, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // Campañas (ADR-038 regla 8): audiencia congelada con elegibilidad por motivo, lotes por minuto por
 // el transporte de desbordamiento, baja por token y cancelación en curso.

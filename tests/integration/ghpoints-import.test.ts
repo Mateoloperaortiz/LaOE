@@ -12,15 +12,15 @@ import { permanenceRule, workGroupMembership } from "@/modules/permanence/schema
 import { auditLog, outbox } from "@/modules/system/schema";
 import { applyGhImport, previewGhImport } from "../../scripts/lib/ghpoints-db";
 import { GhImportError, type GhManifest, ghManifestSchema } from "../../scripts/lib/ghpoints-plan";
-import { warmPool } from "../helpers/pool";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMembership,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
 
 let termId: string, actorId: string, personId: string, m: GhManifest;
 beforeEach(async () => {

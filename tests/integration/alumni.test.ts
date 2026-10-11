@@ -6,14 +6,14 @@ import { listAlumniByYear } from "@/modules/people/domain/alumni";
 import { addAppointment } from "@/modules/people/domain/appointments";
 import { recordConsent, revokeConsent } from "@/modules/people/domain/consents";
 import { membership, person } from "@/modules/people/schema";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMembership,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 async function alumni(email: string, name: string, endedAt: Date): Promise<string> {
   const termId = await seedTerm("2024-1");

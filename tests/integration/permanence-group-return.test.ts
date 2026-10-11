@@ -21,10 +21,6 @@ import {
 import { addMembers, removeMember } from "@/modules/permanence/domain/groups";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { holdCommand, waitingOn } from "../helpers/locks";
-import { drainOutbox } from "../helpers/outbox";
-import { warmPool } from "../helpers/pool";
-import { truncateAll } from "./db";
 import {
   seedCall,
   seedCallEntry,
@@ -33,7 +29,11 @@ import {
   seedMember,
   seedRule,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { holdCommand, waitingOn } from "../helpers/locks";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
 
 // Volver a un grupo de trabajo (ADR-116 regla 5): quien fue retirado vuelve a su misma pertenencia por
 // los tres caminos (a mano, por archivo y por una convocatoria aceptada), queda pendiente de una

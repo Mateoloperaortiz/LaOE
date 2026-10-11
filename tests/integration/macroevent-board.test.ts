@@ -17,8 +17,8 @@ import {
 import { appointment } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedMember, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedPerson, seedTerm } from "./factories";
 
 // Mesa directiva de un macroevento (ADR-060 regla 9): un titular y una codirección por cargo, una
 // persona por edición, solo miembros activos; se etiqueta con la edición.

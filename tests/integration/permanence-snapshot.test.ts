@@ -19,8 +19,6 @@ import {
 import { permanenceSnapshot } from "@/modules/permanence/schema";
 import { outbox } from "@/modules/system/schema";
 import { closeTermPermanence, closeTermPoints } from "@/modules/terms";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   seedCheckIn,
   seedCommittee,
@@ -31,7 +29,9 @@ import {
   seedPerson,
   seedRule,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Recompute por outbox (ADR-036 regla 5): clave por persona o por término, snapshot igual a la función
 // pura, sin recalcular términos cerrados ni filas congeladas; la vista en vivo coincide con el snapshot.

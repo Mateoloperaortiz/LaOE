@@ -2,9 +2,9 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { collectionFor } from "@/modules/participation";
 import { achievement, badgeDefinition } from "@/modules/participation/schema";
+import { seedChallenge, seedMember, seedOccasion, seedTerm } from "../factories";
 import { countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
-import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
 
 // Ediciones especiales en la colección (ADR-067 regla 9): cada una sale con el título de la ocasión
 // o del reto que la sostiene. Lo que la colección devuelve de ellas se fija primero, y después

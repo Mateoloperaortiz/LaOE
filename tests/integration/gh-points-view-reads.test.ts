@@ -5,10 +5,10 @@ import { adjustPointsAs, collectionFor, unseenBadgesFor } from "@/modules/partic
 import { achievement, badgeDefinition } from "@/modules/participation/schema";
 import { setConfig } from "@/modules/system";
 import { t } from "@/shared/copy";
+import { seedBooster, seedMember, seedOccasion, seedTerm, seedVeteran } from "../factories";
 import { type CountedQuery, countQueries } from "../helpers/queries";
 import { type AnyElement, elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
-import { seedBooster, seedMember, seedOccasion, seedTerm, seedVeteran } from "./factories";
 
 // La pestaña GH Points de Mi OE (ADR-035 reglas 9 y 10, ADR-067 regla 9): el puesto propio, el top
 // 10 del tablero elegido y el diálogo de las insignias sin ver. Lo que la vista muestra se fija

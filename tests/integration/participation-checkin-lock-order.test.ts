@@ -13,9 +13,9 @@ import {
 import { boosterItem } from "@/modules/participation/schema";
 import { setConfigAs } from "@/modules/system";
 import { t } from "@/shared/copy";
+import { seedMember, seedOccasion, seedTerm } from "../factories";
 import { holdTransaction, outcome, waitingForLock, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
-import { seedMember, seedOccasion, seedTerm } from "./factories";
 
 // ADR-119 regla 3 (DT-163): crear una asistencia ocupa el lugar de «asistencias» en el orden de
 // candados de ADR-116 regla 2. El premio de la persona (`reward:<persona>`) y su booster se toman

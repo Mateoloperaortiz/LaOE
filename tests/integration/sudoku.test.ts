@@ -27,12 +27,12 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
+import { seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
 import { itemPattern } from "../helpers/copy";
 import { heldThenSettled, holdTransaction } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
 const db = () => getDb();
 

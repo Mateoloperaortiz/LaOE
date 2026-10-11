@@ -40,11 +40,11 @@ import {
 } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
 import { withTimeout } from "@/shared/lib/timeout";
+import { seedMember } from "../factories";
 import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // Caracterización del lote de una campaña (ADR-038 regla 8) antes de tocarlo (ADR-109, DT-077): lo que
 // hoy funciona queda fijado en verde, por el tick que exporta `comms` y con el transporte de pruebas; los

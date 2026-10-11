@@ -20,7 +20,6 @@ import { updateOwnContact } from "@/modules/people/domain/own-data";
 import { person } from "@/modules/people/schema";
 import { requireConfig } from "@/modules/system";
 import { DomainError } from "@/shared/lib/errors";
-import { truncateAll } from "./db";
 import {
   leaveUntilSoon,
   seedCheckIn,
@@ -30,7 +29,8 @@ import {
   seedOccasion,
   seedTerm,
   seedWorkGroup,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 

@@ -27,8 +27,8 @@ import { competitionTeam } from "@/modules/competition/schema";
 import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
 import { t } from "@/shared/copy";
+import { seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // El contrato del hub de capitanes en la API pública v1 (ADR-096, ADR-099), tal como lo recibe DÍAS:
 // el código de estado y el cuerpo JSON de cada respuesta, con las rutas de verdad y el dominio de

@@ -28,9 +28,6 @@ import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { drainOutbox } from "../helpers/outbox";
-import { warmPool } from "../helpers/pool";
-import { truncateAll } from "./db";
 import {
   seedCheckIn,
   seedCommittee,
@@ -40,7 +37,10 @@ import {
   seedPerson,
   seedRule,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
 
 // Faltas y sanciones (Regl. cap. 9; ADR-060 regla 6): registro con fechas derivadas y línea de
 // tiempo, suspensión que bloquea reconocimientos, revocación, y la falta grave más otra sanción que el

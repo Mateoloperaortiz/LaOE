@@ -15,11 +15,11 @@ import {
 import { anonymizePersonAs, requestDeletionAs } from "@/modules/people";
 import { person } from "@/modules/people/schema";
 import type { MailMessage } from "@/shared/adapters/mail";
+import { seedMember, seedTerm } from "../factories";
 import { deferred, waitingForLock } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // Los avisos que no pasaban por `unlessAnonymized` (DT-172, ADR-119 regla 11): el correo del resultado
 // de permanencia (T-202) y todo push, del bus o por evento. Leían a la persona sin retenerla: con dos

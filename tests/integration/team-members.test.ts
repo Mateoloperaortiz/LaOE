@@ -14,14 +14,14 @@ import {
 import { permanenceRule, workGroup, workGroupMembership } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedRule,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 async function setup() {
   const termId = await seedTerm();

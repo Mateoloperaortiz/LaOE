@@ -8,8 +8,8 @@ import { setProbation } from "@/modules/people/domain/term-outcomes";
 import { consent } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedCommittee, seedCommitteeMembership, seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedCommittee, seedCommitteeMembership, seedMember, seedTerm } from "./factories";
 
 // DT-146 inciso (c), ADR-122 regla 2: un reconocimiento que llega con comité es de alguien que está
 // vivo en ese comité en ese término. Antes lo comprobaba solo la pantalla del líder; un llamador nuevo

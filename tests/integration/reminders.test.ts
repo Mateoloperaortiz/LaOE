@@ -17,9 +17,6 @@ import { outbox } from "@/modules/system/schema";
 import { conventionalTermDates } from "@/modules/terms";
 import type { MailMessage, MailTransport } from "@/shared/adapters/mail";
 import { tList } from "@/shared/copy";
-import { itemPattern } from "../helpers/copy";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -27,7 +24,10 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Recordatorios (ADR-038 regla 9) y avisos de permanencia (regla 10): audiencia por comité o solo
 // nuevos, una vez por ocasión y slot, y el correo T-202 solo a quien cumple.

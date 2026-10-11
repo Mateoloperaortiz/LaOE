@@ -10,9 +10,9 @@ import {
 import { membership, person } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedMember, seedTerm } from "../factories";
 import { holdTransaction, outcome, waitingForLock, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // ADR-120 regla 3, los otros dos caminos del ciclo de membresía: cambiar el estado y reactivar hacen
 // cola detrás de una importación del roster que ya pasó por la persona, igual que anonimizar y dar de

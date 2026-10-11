@@ -21,9 +21,9 @@ import {
 import { auditLog } from "@/modules/system/schema";
 import { getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
+import { seedBooster, seedChallenge, seedMember, seedParticipation, seedTerm } from "../factories";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedBooster, seedChallenge, seedMember, seedParticipation, seedTerm } from "./factories";
 
 // Economía de la gamificación (ADR-067 reglas 4 a 6): reserva con cupo, entrega en el ledger,
 // ciclo del booster, liberación, reversión e idempotencia, todo dentro de la transacción.

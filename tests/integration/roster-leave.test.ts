@@ -12,9 +12,9 @@ import {
 import { membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { todayKey } from "@/shared/lib/dates";
+import { currentTermCode, seedCommittee, seedMember, seedPerson, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { currentTermCode, seedCommittee, seedMember, seedPerson, seedTerm } from "./factories";
 
 // Una licencia lleva su fecha de regreso (Est. art. 5.4; ADR-060 regla 10). El roster no la trae: la
 // que importa vence al fin del término del roster, dentro de la ventana de un año. Sin fecha, la

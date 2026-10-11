@@ -13,9 +13,9 @@ import { dayKeyFor } from "@/modules/participation/domain/gamification-pure";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
+import { seedMember, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // Aviso diario del Wordle (ADR-074): a los activos que todavía no abrieron la partida, una sola vez
 // por día, con el interruptor propio `pushWordle` y solo mientras haya puntos abiertos.

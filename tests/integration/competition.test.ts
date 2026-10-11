@@ -72,10 +72,10 @@ import { membership } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedForm, seedMember, seedSubmission, seedTerm, seedVeteran } from "../factories";
 import { heldThenSettled, holdTransaction, outcome } from "../helpers/locks";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedForm, seedMember, seedSubmission, seedTerm, seedVeteran } from "./factories";
 
 // The Games (ADR-089, ADR-091): acceso por datos, calendario de 30 equipos y 15 bases, rotaciones,
 // resultados con reversión, extras idempotentes y apuestas que no pagan dos veces.

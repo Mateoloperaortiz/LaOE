@@ -6,10 +6,10 @@ import { committeeMembership, membership, membershipEvent } from "@/modules/peop
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedCommittee, seedMember, seedPerson, seedTerm } from "../factories";
 import { holdTransaction, waitingOn } from "../helpers/locks";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedCommittee, seedMember, seedPerson, seedTerm } from "./factories";
 
 // DT-148: dar de alta toma la fila de la persona con candado antes de mirar si ya tiene membresía, y
 // dar de baja toma el candado de la persona y la fila de su membresía antes de mirar su estado.

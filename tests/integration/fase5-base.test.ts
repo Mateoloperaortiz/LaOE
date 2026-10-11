@@ -18,8 +18,6 @@ import { consent, membership, person, personTag, tag } from "@/modules/people/sc
 import { outbox } from "@/modules/system/schema";
 import { ensureNextTerm, findTermByCode, getTerm, nextTermCode } from "@/modules/terms";
 import { t } from "@/shared/copy";
-import { copyPattern } from "../helpers/copy";
-import { truncateAll } from "./db";
 import {
   seedCall,
   seedCallEntry,
@@ -34,7 +32,9 @@ import {
   seedSubmission,
   seedTerm,
   seedWorkGroup,
-} from "./factories";
+} from "../factories";
+import { copyPattern } from "../helpers/copy";
+import { truncateAll } from "./db";
 
 // Fase 5, tramo 1 (ADR-037): restricciones del esquema 0007, "dar de alta" y el vínculo por correo.
 

@@ -26,9 +26,6 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { getTerm } from "@/modules/terms/domain/terms";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
-import { copyExact } from "../helpers/copy";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -36,7 +33,10 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { copyExact } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 

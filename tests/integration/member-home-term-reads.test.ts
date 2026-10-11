@@ -6,9 +6,9 @@ import { consent } from "@/modules/people/schema";
 import { getPersonPermanence } from "@/modules/permanence";
 import { getCurrentTerm } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
+import { seedMember } from "../factories";
 import { type CountedQuery, countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // Cuántas veces leen el término el inicio de Mi OE y Mi permanencia (DT-226 incisos b y e, ADR-121
 // regla 11). El layout y cada página se llaman como funciones contra Postgres y se cuenta lo que

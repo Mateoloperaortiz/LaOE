@@ -23,9 +23,6 @@ import { closeTermPermanence, closeTermPoints } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
-import { itemPattern } from "../helpers/copy";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
@@ -34,7 +31,10 @@ import {
   seedTerm,
   seedWorkGroup,
   seedWorkGroupMembership,
-} from "./factories";
+} from "../factories";
+import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Evaluaciones, puntajes, créditos y reconocimientos (ADR-026, ADR-028, ADR-036 reglas 6 a 8).
 

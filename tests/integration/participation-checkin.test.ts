@@ -21,11 +21,6 @@ import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { decideInOwnOccasion } from "../helpers/check-ins";
-import { itemPattern } from "../helpers/copy";
-import { drainOutbox } from "../helpers/outbox";
-import { warmPool } from "../helpers/pool";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -33,7 +28,12 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { decideInOwnOccasion } from "../helpers/check-ins";
+import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 

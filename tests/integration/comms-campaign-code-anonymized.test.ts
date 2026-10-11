@@ -19,11 +19,11 @@ import { person, segment } from "@/modules/people/schema";
 import { setConfig } from "@/modules/system";
 import type { MailMessage } from "@/shared/adapters/mail";
 import { withTimeout } from "@/shared/lib/timeout";
+import { seedMember } from "../factories";
 import { deferred, type Held, holdCommand, waitingForLock, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // El correo de una campaña y el del código de ingreso cuando la persona se anonimiza mientras salen
 // (ADR-120 regla 8, DT-276). La limpieza de `comms` corre una sola vez, al procesar

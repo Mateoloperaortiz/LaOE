@@ -4,9 +4,9 @@ import { closeDb, getDb } from "@/db/client";
 import { getPublicForm, submitFormAs } from "@/modules/forms";
 import { anonymizePersonAs, requestDeletionAs } from "@/modules/people";
 import { auditLog } from "@/modules/system/schema";
+import { seedForm, seedMember } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedForm, seedMember } from "./factories";
 
 // Lo que la auditoría guarda de una respuesta a un formulario (DT-138). La entrada es de la entidad
 // `form`, así que la anonimización, que solo limpia la auditoría de la entidad `person` (ADR-030), no

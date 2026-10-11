@@ -17,8 +17,8 @@ import { segment } from "@/modules/people/schema";
 import { getConfig, setConfig } from "@/modules/system";
 import { type MailProvider, type MailTransport, QuotaExceededError } from "@/shared/adapters/mail";
 import { formatDateTime } from "@/shared/lib/dates";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // DT-125 (ADR-121 regla 5): el cupo del día del correo se cuenta por el día del proveedor. Resend lo
 // cuenta por día calendario UTC y lo reinicia a la medianoche UTC, que en Colombia son las 7:00 p. m.

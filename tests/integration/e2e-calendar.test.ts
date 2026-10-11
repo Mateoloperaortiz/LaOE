@@ -5,8 +5,8 @@ import { committeeMembership } from "@/modules/people/schema";
 import { getCurrentTerm } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { alignSeedCalendar } from "../e2e/calendar-seed";
+import { seedCommittee, seedPerson } from "../factories";
 import { truncateAll } from "./db";
-import { seedCommittee, seedPerson } from "./factories";
 
 beforeEach(truncateAll);
 afterEach(() => vi.useRealTimers());

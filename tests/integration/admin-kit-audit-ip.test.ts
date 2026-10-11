@@ -6,8 +6,8 @@ import { permission } from "@/modules/identity/schema";
 import { tag } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import type { FormState } from "@/shared/admin-kit/types";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // Lo que se escribe por el admin kit se audita con la IP del request (ADR-082 regla 2; ADR-116 regla
 // 10). Acá va el camino entero, con el registro y la base de verdad: la action del kit, el recurso de

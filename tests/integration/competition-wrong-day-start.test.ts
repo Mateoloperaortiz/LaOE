@@ -31,8 +31,8 @@ import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // El error del operador de DT-264, de punta a punta y por los comandos: con la jornada 1 a medias y
 // sin rotación en curso, inicia a mano una rotación de la jornada 2. Estas pruebas no corrigen nada:

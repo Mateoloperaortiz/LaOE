@@ -16,9 +16,9 @@ import { achievement, boosterItem, checkIn, wordleGame } from "@/modules/partici
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedMember, seedOccasion, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedMember, seedOccasion, seedTerm } from "./factories";
 
 // Conciliación histórica (ADR-067 reglas 11 y 13): el barrido por lotes reconoce insignias por
 // hechos de cualquier semestre — importados incluidos, reuniones de comité no — sin puntos,

@@ -27,8 +27,8 @@ import { createTag, listPersonTags, setPersonTags } from "@/modules/people/domai
 import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
+import { leaveUntilSoon, seedCommittee, seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { leaveUntilSoon, seedCommittee, seedMember, seedTerm } from "./factories";
 
 const db = () => getDb();
 

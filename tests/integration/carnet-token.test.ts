@@ -26,9 +26,9 @@ import {
 import { getWalletMemberState } from "@/modules/people/domain/wallet-member";
 import { person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
+import { leaveUntilSoon, seedMember, seedPerson } from "../factories";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { leaveUntilSoon, seedMember, seedPerson } from "./factories";
 
 /** La sesión como la entrega `sessionActorContext`: con la IP del request, que acá no hay. */
 function actorFor(personId: string, isAdmin = false): Actor & { ip: string | null } {

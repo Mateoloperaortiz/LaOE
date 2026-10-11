@@ -39,10 +39,6 @@ import { setConfig, setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
-import { decideInOwnOccasion } from "../helpers/check-ins";
-import { itemPattern } from "../helpers/copy";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   seedChallenge,
   seedCheckIn,
@@ -51,7 +47,11 @@ import {
   seedOccasion,
   seedParticipation,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { decideInOwnOccasion } from "../helpers/check-ins";
+import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Colección de insignias (ADR-067 reglas 9, 10, 15 y 17): los hechos que sostienen cada familia,
 // el desbloqueo idempotente con su booster, la revocación cuando el hecho desaparece, destacadas,

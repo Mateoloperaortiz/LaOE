@@ -30,8 +30,6 @@ import { recordConsentAs } from "@/modules/people";
 import { membership } from "@/modules/people/schema";
 import { outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
@@ -39,7 +37,9 @@ import {
   seedOccasion,
   seedTerm,
   seedWorkGroup,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Push por evento (ADR-038 reglas 6 y 7): anuncio con audiencia por comité, puntos solo con puntos,
 // convocatoria abierta y reconocimiento publicado. El envío real se reemplaza por un contador.

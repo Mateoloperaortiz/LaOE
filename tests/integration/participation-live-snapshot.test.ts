@@ -5,9 +5,9 @@ import type { CheckInSource, CheckInStatus } from "@/modules/participation";
 import { buildLiveSnapshot, getOccasion } from "@/modules/participation";
 import { checkIn } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
+import { currentTermCode, seedMember, seedOccasion, seedTerm } from "../factories";
 import { countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
-import { currentTermCode, seedMember, seedOccasion, seedTerm } from "./factories";
 
 // La consola en vivo de una ocasión (ADR-035 regla 16): cinco conteos por estado y los diez últimos
 // registros con nombre, hora, origen y estado. La consola lo pide cada 4 segundos (DT-225): lo que

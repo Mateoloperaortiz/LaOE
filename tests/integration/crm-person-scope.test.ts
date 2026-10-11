@@ -5,8 +5,8 @@ import { addNoteAs, completePersonTaskAs, createTaskAs, editNoteAs } from "@/mod
 import { interaction, task } from "@/modules/crm/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // DT-146 inciso (b), ADR-122 regla 1: la ficha de una persona edita sus notas y completa sus tareas.
 // Los dos comandos reciben la persona de la ficha y la comprueban: la nota o la tarea de otra persona

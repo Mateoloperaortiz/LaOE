@@ -26,9 +26,6 @@ import { committeeMembership } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { holdCommand, waitingOn } from "../helpers/locks";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCheckIn,
@@ -39,7 +36,10 @@ import {
   seedOccasion,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { holdCommand, waitingOn } from "../helpers/locks";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Representación de los comités ante la Asamblea Directiva (ADR-060 regla 7): titular y suplente
 // activos del comité, asistencia por comité derivada al cerrar la asamblea (titular, suplente o

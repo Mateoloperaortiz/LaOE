@@ -6,8 +6,6 @@ import {
   rotatingCodeAt,
   secondsUntilRotation,
 } from "@/modules/participation";
-import { countQueries } from "../helpers/queries";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCheckIn,
@@ -16,7 +14,9 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { countQueries } from "../helpers/queries";
+import { truncateAll } from "./db";
 
 // El sondeo de la consola en vivo (ADR-035 regla 16): la ruta que la consola pide cada 4 segundos, con
 // el dominio de verdad contra Postgres. Solo se simula quién tiene sesión, que la ruta lee de las

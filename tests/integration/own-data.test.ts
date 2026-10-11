@@ -23,7 +23,6 @@ import { person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { addBusinessDays } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
@@ -31,7 +30,8 @@ import {
   seedMembership,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 

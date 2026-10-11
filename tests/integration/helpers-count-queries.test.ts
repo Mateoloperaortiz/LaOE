@@ -3,9 +3,9 @@ import { Client } from "pg";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { term } from "@/modules/terms/schema";
+import { seedTerm } from "../factories";
 import { countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
-import { seedTerm } from "./factories";
 
 // El ayudante que cuenta consultas (ciclo 8, DT-224, DT-225 y DT-294): lo que afirma una prueba de
 // «esta lectura hace N consultas» vale lo que valga esta cuenta.

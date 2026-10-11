@@ -6,14 +6,14 @@ import { listLeaderScores, scoreCriterionAs } from "@/modules/permanence";
 import { leaderScore } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedRule,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // DT-146 inciso (c), ADR-122 regla 2: el líder puntúa a quien está vivo en su comité en el término
 // de la tabla. Antes el comando lo creía porque quien lo llamaba se lo declaraba (`inCommittee`);

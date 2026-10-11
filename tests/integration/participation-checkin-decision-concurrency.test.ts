@@ -31,10 +31,10 @@ import { setConfigAs } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedChallenge, seedMember, seedOccasion, seedTerm } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
 
 // ADR-116 regla 1: dos decisiones a la vez sobre la misma asistencia se esperan. Toda transición de
 // una asistencia que ya existe toma su fila con candado después del candado del término y valida

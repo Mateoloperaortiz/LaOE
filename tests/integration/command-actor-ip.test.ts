@@ -16,9 +16,9 @@ import {
   seedWorkCommitteesAs,
 } from "@/modules/permanence";
 import { auditLog } from "@/modules/system/schema";
+import { seedCall, seedCallEntry, seedMember, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedCall, seedCallEntry, seedMember, seedTerm } from "./factories";
 
 // La IP del actor de un comando, puerta por puerta (ADR-121 regla 1): una action y una ruta la leen del
 // request y la entregan con el actor; un trabajo del poller no tiene request, así que su auditoría

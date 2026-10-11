@@ -5,9 +5,9 @@ import { enqueueEvent } from "@/db/tx";
 import { registerHandler } from "@/jobs/registry";
 import { listOutbox, retryDeadLetterAs } from "@/modules/system";
 import { auditLog } from "@/modules/system/schema";
+import { seedPerson } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedPerson } from "./factories";
 
 // El reintento que ofrece la pantalla de jobs del admin, por el comando público de `system`. El evento
 // `prueba.reintento` no es del catálogo: su handler se registra acá, encima de los de los módulos.

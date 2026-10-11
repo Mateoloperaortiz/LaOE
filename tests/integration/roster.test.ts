@@ -35,9 +35,6 @@ import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { copyPattern, itemPattern } from "../helpers/copy";
-import { holdTransaction, waitingOn } from "../helpers/locks";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -45,7 +42,10 @@ import {
   seedMembershipTerm,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { copyPattern, itemPattern } from "../helpers/copy";
+import { holdTransaction, waitingOn } from "../helpers/locks";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 

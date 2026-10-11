@@ -27,8 +27,6 @@ import { committeeMembership, membership, membershipTerm, person } from "@/modul
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { copyPattern } from "../helpers/copy";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
@@ -37,7 +35,9 @@ import {
   seedPerson,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { copyPattern } from "../helpers/copy";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 

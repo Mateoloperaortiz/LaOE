@@ -18,6 +18,14 @@ import { findTermByCode, nextTermCode } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
+  currentTermCode,
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMember,
+  seedTerm,
+  seedVeteran,
+} from "../factories";
+import {
   firstThenSecond,
   holdCommand,
   holdTransaction,
@@ -27,14 +35,6 @@ import {
 } from "../helpers/locks";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import {
-  currentTermCode,
-  seedCommittee,
-  seedCommitteeMembership,
-  seedMember,
-  seedTerm,
-  seedVeteran,
-} from "./factories";
 
 // DT-148: decidir y retirar una solicitud toman su fila con candado y recién después miran si sigue
 // pendiente. Estas pruebas los llaman a la vez: aprobar un retiro da de baja, así que una segunda

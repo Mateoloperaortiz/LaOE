@@ -6,8 +6,8 @@ import { budgetsResource } from "@/modules/finance/admin";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedCommittee, seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedCommittee, seedMember } from "./factories";
 
 // Caracterización de `updateBudgetAs` (DT-147) por su única puerta, el recurso Presupuestos del kit
 // (`budgetsResource.update`): en borrador se edita todo; abierto o cerrado, solo notas, actividad y

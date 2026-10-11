@@ -15,8 +15,6 @@ import {
 import { anonymizePersonAs, requestDeletionAs } from "@/modules/people";
 import { committeeMembership } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
-import { drainOutbox } from "../helpers/outbox";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
@@ -24,7 +22,9 @@ import {
   seedMembership,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Caracterización de `createCommitteeAnnouncementAs` (DT-147): el anuncio que la dirección de un comité
 // publica en su cartelera interna, con y sin aviso push, hasta que el outbox queda en reposo. El envío

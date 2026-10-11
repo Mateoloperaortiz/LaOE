@@ -24,11 +24,11 @@ import { person } from "@/modules/people/schema";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject, putObject } from "@/shared/adapters/storage";
 import { t } from "@/shared/copy";
+import { seedForm, seedMember, seedSubmission } from "../factories";
 import { holdCommand, waitingOn } from "../helpers/locks";
 import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedForm, seedMember, seedSubmission } from "./factories";
 
 // La foto propia cuando la persona pide la eliminación de sus datos (ADR-030 regla 4, ADR-116 regla 8):
 // con el dominio de verdad, contra Postgres y Garage en local, y por la ruta que entrega un medio. Del

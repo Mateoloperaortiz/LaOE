@@ -20,11 +20,11 @@ import { panalGame, panalWord, pointEntry } from "@/modules/participation/schema
 import { membership } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { seedMember, seedPerson } from "../factories";
 import { heldThenSettled, holdTransaction } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember, seedPerson } from "./factories";
 
 const db = () => getDb();
 const submit = (personId: string, gameId: string, word: string) =>

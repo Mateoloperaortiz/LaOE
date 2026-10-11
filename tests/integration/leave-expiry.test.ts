@@ -8,9 +8,9 @@ import { listExpiredLeaves } from "@/modules/people/domain/membership";
 import { membership, membershipEvent } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { leaveUntilSoon, seedMember } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { leaveUntilSoon, seedMember } from "./factories";
 
 // Licencia vencida sin regreso (Est. art. 11.3; ADR-060 regla 10): el programado abre una tarea a GH
 // por persona, una sola vez mientras siga abierta.
