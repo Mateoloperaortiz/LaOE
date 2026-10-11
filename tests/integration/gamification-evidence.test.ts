@@ -182,6 +182,17 @@ describe("evidencias de retos", () => {
     expect(await headObject(key)).toBeNull();
   });
 
+  it("un objeto propio de más de 5 MB se rechaza diciendo que pesa de más, y se borra", async () => {
+    const personId = await seedMember("evidencia.pesada@eafit.edu.co");
+    const key = evidenceKey(personId, "image/png", "archivopesadoprueba");
+    keys.push(key);
+    await putObject(key, Buffer.alloc(EVIDENCE_MAX_BYTES + 1, 7), "image/png");
+    await expect(verifyEvidenceObjects(personId, [key])).rejects.toSatisfy(
+      (error) => error instanceof DomainError && error.message === errors[1],
+    );
+    expect(await headObject(key)).toBeNull();
+  });
+
   it("verifica objetos del propio miembro y rechaza claves ajenas", async () => {
     const personId = await seedMember("evidencia.propia@eafit.edu.co");
     const otherId = await seedMember("evidencia.ajena@eafit.edu.co");
