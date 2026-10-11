@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as unsubscribeInOneClick } from "@/app/api/baja/[token]/route";
 import { POST as subscribeToPush } from "@/app/api/push/subscribe/route";
 import { revokeCarnetAction } from "@/app/app/carnet/actions";
+import { unsubscribeAction } from "@/app/baja/[token]/actions";
 import { closeDb, getDb } from "@/db/client";
 import { DEFAULT_PREFERENCES, getPreferences, updatePreferencesAs } from "@/modules/comms";
 import { decideEntryAs } from "@/modules/crm";
@@ -20,8 +21,10 @@ import { seedCall, seedCallEntry, seedMember, seedTerm } from "./factories";
 
 // La IP del actor de un comando, puerta por puerta (ADR-121 regla 1): una action y una ruta la leen del
 // request y la entregan con el actor; un trabajo del poller no tiene request, así que su auditoría
-// conserva a quien originó el evento y va sin IP. Lo que acá se afirma es lo que ya quedaba escrito en
-// `audit_log` antes de que el tipo `Actor` exigiera la IP: el cambio de tipo no mueve ninguna fila.
+// conserva a quien originó el evento y va sin IP. Casi todo lo que acá se afirma es lo que ya quedaba
+// escrito en `audit_log` antes de que el tipo `Actor` exigiera la IP: el cambio de tipo no movió ninguna
+// fila. Lo que sí cambió después: la baja de campañas por el token del correo, que tiene request y
+// salía sin IP, ahora la recibe de sus dos puertas (ADR-123 regla 2).
 
 const session = vi.hoisted(() => ({ getActor: vi.fn() }));
 const IP = "203.0.113.7";
@@ -64,6 +67,15 @@ function audits(action: string) {
     .select({ actorId: auditLog.actorId, ip: auditLog.ip })
     .from(auditLog)
     .where(eq(auditLog.action, action));
+}
+
+/** Una persona con el token de baja del pie de sus correos: se lo da guardar sus preferencias. */
+async function seedUnsubscribeToken(email: string): Promise<{ personId: string; token: string }> {
+  const personId = await seedMember(email);
+  await updatePreferencesAs({ personId, ip: null }, { ...DEFAULT_PREFERENCES });
+  const token = (await getPreferences(personId)).unsubscribeToken;
+  if (!token) throw new Error("la persona quedó sin token de baja");
+  return { personId, token };
 }
 
 async function seedSession(email: string): Promise<string> {
@@ -142,11 +154,8 @@ describe("la IP del actor de un comando llega a la auditoría según la puerta",
     expect(await audits("onboarding.step-done")).toEqual([{ actorId: personId, ip: null }]);
   });
 
-  it("la baja de campañas por el token del correo audita a nombre del dueño del token y sin IP (DT-313)", async () => {
-    const personId = await seedMember("baja.ip@eafit.edu.co");
-    // Guardar las preferencias le da a la persona el token del pie de sus correos.
-    await updatePreferencesAs({ personId, ip: null }, { ...DEFAULT_PREFERENCES });
-    const token = (await getPreferences(personId)).unsubscribeToken ?? "";
+  it("la baja de campañas por el clic único del correo audita a nombre del dueño del token y con la IP del request", async () => {
+    const { personId, token } = await seedUnsubscribeToken("baja.clic@eafit.edu.co");
 
     const response = await unsubscribeInOneClick(
       new Request(`http://localhost/api/baja/${token}`, { method: "POST" }),
@@ -154,9 +163,22 @@ describe("la IP del actor de un comando llega a la auditoría según la puerta",
     );
 
     expect(response.status).toBe(200);
-    // El request trae IP y la baja no la recibe: es la conducta de hoy, que DT-313 deja anotada.
+    // Sin sesión: actúa el dueño del token, y la IP es la de quien pulsó la baja (ADR-123 regla 2).
     expect(await audits("notification-preference.unsubscribed")).toEqual([
-      { actorId: personId, ip: null },
+      { actorId: personId, ip: IP },
+    ]);
+  });
+
+  it("la baja de campañas confirmada en su página audita a nombre del dueño del token y con la IP del request", async () => {
+    const { personId, token } = await seedUnsubscribeToken("baja.pagina@eafit.edu.co");
+    const form = new FormData();
+    form.set("token", token);
+
+    const confirmed = unsubscribeAction(form);
+
+    expect(await redirectOf(confirmed)).toBe(`redirect:/baja/${token}?estado=listo`);
+    expect(await audits("notification-preference.unsubscribed")).toEqual([
+      { actorId: personId, ip: IP },
     ]);
   });
 

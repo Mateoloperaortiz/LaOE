@@ -184,8 +184,12 @@ export async function unsubscribeTokenExists(token: string): Promise<boolean> {
   return row !== undefined;
 }
 
-/** Baja de campañas por el token del pie del correo (sin sesión); devuelve false si no existe. */
-export async function unsubscribeByToken(token: string): Promise<boolean> {
+/**
+ * Baja de campañas por el token del pie del correo (sin sesión); devuelve false si no existe. `ip` es
+ * la del request que la pulsó y la pasa la puerta, como texto o nula (ADR-123 regla 2): dice desde
+ * dónde llegó la baja, no quién la pulsó, que en el clic único puede ser el proveedor del correo.
+ */
+export async function unsubscribeByToken(token: string, ip: string | null): Promise<boolean> {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) {
     return false;
   }
@@ -197,8 +201,8 @@ export async function unsubscribeByToken(token: string): Promise<boolean> {
   if (!row) {
     return false;
   }
-  // Sin sesión: actúa el dueño del token. La baja no recibe la IP del request (DT-313).
-  await runCommand({ personId: row.personId, ip: null }, async (ctx) => {
+  // Sin sesión: actúa el dueño del token, con la IP del request que trajo la puerta.
+  await runCommand({ personId: row.personId, ip }, async (ctx) => {
     await ctx.tx
       .update(notificationPreference)
       .set({ emailCampaigns: false })

@@ -2,7 +2,8 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-11
-- Relacionadas: ADR-053, ADR-054, ADR-077, ADR-109, ADR-121, ADR-122
+- Relacionadas: ADR-038, ADR-053, ADR-054, ADR-077, ADR-082, ADR-109, ADR-119, ADR-121, ADR-122
+- Enmienda: ADR-121 (regla 1: la baja de campañas por el token del correo ya no audita sin IP; la recibe de sus dos puertas)
 
 ## Contexto
 
@@ -11,6 +12,8 @@ El undécimo ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresiv
 **La E2E completa en local fallaba en frío (DT-338).** En local `npm run test:e2e` levantaba `next dev`, que compila cada ruta la primera vez que se visita y guarda lo compilado en `.next/dev`. Una corrida completa sin nada guardado, como la primera de un worktree, se atascaba hacia su minuto 8 y lo que caía ahí se quedaba sin tiempo: en el ciclo 10 fueron dos pruebas del Sudoku, y en los ciclos 8 y 9 la ventana había caído sobre la de The Games. La fila trae cinco corridas medidas y tres remedios que no alcanzaron, cada uno con su corrida completa en frío: 15 s de espera por comprobación, 8 GB de memoria para el servidor y las dos cosas juntas. Contra el build, la misma suite pasaba entera. El ciclo 10 lo aceptó y movió la E2E del cierre al build que deja `npm run check`, con `CI=true`; el comando sin más seguía fallando en un worktree nuevo.
 
 El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` elegía `npm run start` si había `CI` y `npm run dev` si no. Compilar quedaba a cargo de quien corría, que además tenía que acordarse de hacerlo con el origen del puerto de la corrida.
+
+**La baja de campañas por el token del correo se auditaba sin IP (DT-313).** [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) regla 1 hizo obligatoria la IP del actor en el tipo y dejó anotado un `null` que no era de ninguna de sus tres clases: `unsubscribeByToken` tiene request, por sus dos puertas, y armaba su actor con el dueño del token y la IP en nulo. La fila `notification-preference.unsubscribed` decía a quién se le apagaron las campañas y no desde dónde. El ciclo 9 no lo resolvió porque antes había que decir si esa IP sirve: el clic único de RFC 8058 lo hace el cliente de correo, no la persona.
 
 ## Decisión
 
@@ -28,6 +31,16 @@ El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` ele
 
    **El OTP fijo sigue siendo solo del proceso de pruebas.** El build no lo recibe; lo admite el servidor que levanta Playwright, que corre con `NODE_ENV=test`, igual que en el CI.
 
+2. **La baja de campañas por el token del correo se audita con la IP del request.** `unsubscribeByToken(token, ip)` (`src/modules/comms/domain/preferences.ts`) recibe la IP como parámetro obligatorio, texto o nulo, y la escribe en la fila `notification-preference.unsubscribed`; quien llame sin ella no compila. Es el molde de [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) regla 18. Sus dos puertas, la action de `/baja/[token]` y `POST /api/baja/[token]`, la leen con `clientIp` (`src/shared/lib/request.ts`), la misma función con que `actorContext` arma el actor de una action. No pasan por `actorContext` porque no hay sesión: el actor sigue siendo el dueño del token, y lo resuelve el comando.
+
+   **Qué dice esa IP y qué no.** Dice desde dónde llegó el request que apagó las campañas. No dice quién lo pulsó: el actor de la fila es el dueño del token, no quien lo usó.
+   - **En el clic único** (RFC 8058, `POST /api/baja/[token]`) el POST lo manda el cliente o el proveedor del correo cuando la persona pulsa su «Cancelar suscripción», y lo puede disparar también un filtro que revise el mensaje. Ahí la IP suele ser la del proveedor.
+   - **En la página** la baja pide confirmar con un botón: abrir el enlace no da de baja a nadie, así que un filtro que solo lo visite no deja fila. La IP es la del navegador de quien tenía el enlace, que con un correo reenviado puede ser otra persona.
+
+   Sirve para eso mismo. Ante un «yo no me di de baja», la fila deja distinguir una baja que llegó desde la red de un proveedor de correo de una que llegó desde un navegador; antes no decía nada. Y es lo que hace el resto de la casa: las otras puertas sin sesión, la activación por enlace y el formulario público, también entregan la IP de su request.
+
+   **Lo que no cambia.** La acción, la entidad, el actor y el `after` de la fila (`{ emailCampaigns: false, source: "TOKEN" }`), que no dice por cuál de las dos puertas llegó. Qué apaga la baja y qué responde cada puerta. De dónde se lee la IP del cliente (DT-033). Si el proxy no entrega la cabecera, la IP queda nula, como en cualquier comando. Las filas ya escritas conservan su `ip` nula.
+
 ## Consecuencias
 
 - `npm run test:e2e` sin más pasa entera en un worktree nuevo: con `.next` borrado entero, 249 de 249 en 5,3 minutos (335 s contando la base, el build y la suite), la prueba de SEO en 0,7 s y las cinco del Sudoku entre 0,4 y 3,2 s. La misma suite, forzada a dev con `E2E_SERVER=dev` y `.next/dev` borrado, dio 248 de 249 en 9,1 minutos (550 s), con la firma de DT-338: la de SEO en 27 s, la primera del Sudoku sin tiempo (6 s contra 5) y la segunda en 23,2 s contra 30.
@@ -39,3 +52,6 @@ El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` ele
 - En el CI no cambia nada: ni el workflow, ni el comando, ni el servidor.
 - No hay migración ni texto nuevo.
 - Pruebas: `tests/unit/e2e-server-mode.test.ts` (la corrida completa, cada tipo de filtro, cada modo forzado, el CI, el valor que no se reconoce, la lista de opciones contra el `--help` de Playwright y el entorno del build contra la validación de producción de `src/env.ts`).
+- La firma de `unsubscribeByToken` cambia: su segundo parámetro es la IP. Lo llaman sus dos puertas y una prueba (`tests/integration/campaigns.test.ts`), que escribe `null` porque llama al dominio sin request.
+- Una baja por clic único queda con la IP que le llegue a la casa, que en muchos casos será la de un proveedor de correo. La fila sigue sin decir por cuál puerta entró: quien la lea tiene la IP y nada más para distinguirlas.
+- Prueba de la regla 2: `tests/integration/command-actor-ip.test.ts`, por las dos puertas y contra `audit_log`, con la cabecera del proxy simulada. Las dos en rojo sobre el código anterior: la fila salía con `ip` nula.

@@ -169,8 +169,8 @@ describe("campañas", () => {
     const first = ids[0] ?? "";
     const token = (await getPreferences(first)).unsubscribeToken ?? "";
     expect(token.length).toBeGreaterThan(10);
-    expect(await unsubscribeByToken(token)).toBe(true);
-    expect(await unsubscribeByToken("no-existe-este-token-xx")).toBe(false);
+    expect(await unsubscribeByToken(token, null)).toBe(true);
+    expect(await unsubscribeByToken("no-existe-este-token-xx", null)).toBe(false);
     expect((await getPreferences(first)).emailCampaigns).toBe(false);
 
     const second = await createCampaignAs(SYSTEM_ACTOR, { name: "Segunda", templateId, segmentId });
