@@ -8,20 +8,19 @@ import { actorContext } from "@/app/_lib/actor";
 import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
 import {
-  addNoteAs,
-  addOrganizationNoteAs,
+  addCardNoteAs,
   admitFromCardAs,
   cardInputSchema,
+  cardTaskInputSchema,
   cardUpdateSchema,
   createCardAs,
-  createTaskAs,
+  createCardTaskAs,
   deleteStageAs,
   getCard,
   moveCardAs,
   moveStageAs,
   saveStageAs,
   stageInputSchema,
-  taskInputSchema,
   updateCardAs,
 } from "@/modules/crm";
 import { requireAdminActor, safeNextPath } from "@/modules/identity";
@@ -135,14 +134,13 @@ export async function addCardNoteAction(formData: FormData): Promise<void> {
   const cardId = idSchema.parse(formData.get("cardId"));
   const actor = await actorFor(pipelineId);
   const body = formText(formData, "body").slice(0, 4000);
-  const card = await getCard(cardId);
-  if (!card || body.length < 2) {
+  if (body.length < 2) {
     redirect(back(pipelineId, { tarjeta: cardId }));
   }
-  if (card.personId) {
-    await addNoteAs(actor, card.personId, body);
-  } else if (card.organizationId) {
-    await addOrganizationNoteAs(actor, card.organizationId, body);
+  try {
+    await addCardNoteAs(actor, cardId, body, { pipelineId });
+  } catch (error) {
+    failed(pipelineId, error, { tarjeta: cardId });
   }
   done(pipelineId, { tarjeta: cardId });
 }
@@ -151,22 +149,19 @@ export async function createCardTaskAction(formData: FormData): Promise<void> {
   const pipelineId = idSchema.parse(formData.get("pipelineId"));
   const cardId = idSchema.parse(formData.get("cardId"));
   const actor = await actorFor(pipelineId);
-  const card = await getCard(cardId);
-  if (!card) {
-    redirect(back(pipelineId));
-  }
-  const parsed = taskInputSchema.safeParse({
+  const parsed = cardTaskInputSchema.safeParse({
     title: formText(formData, "title"),
     assigneeId: blank(formText(formData, "assigneeId")),
     dueAt: blank(formText(formData, "dueAt")),
-    personId: card.personId ?? undefined,
-    organizationId: card.organizationId ?? undefined,
-    cardId,
   });
   if (!parsed.success) {
     redirect(back(pipelineId, { tarjeta: cardId, error: parsed.error.issues[0]?.message ?? "" }));
   }
-  await createTaskAs(actor, parsed.data);
+  try {
+    await createCardTaskAs(actor, cardId, parsed.data, { pipelineId });
+  } catch (error) {
+    failed(pipelineId, error, { tarjeta: cardId });
+  }
   done(pipelineId, { tarjeta: cardId });
 }
 

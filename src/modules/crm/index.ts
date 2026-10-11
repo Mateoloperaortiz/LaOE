@@ -29,14 +29,17 @@ export {
   isCallOpen,
 } from "./domain/calls-pure";
 export {
+  addCardNoteAs,
   admitFromCardAs,
   type BoardColumn,
   type CardInput,
   type CardUpdateInput,
   type CardView,
   cardInputSchema,
+  cardTaskInputSchema,
   cardUpdateSchema,
   createCardAs,
+  createCardTaskAs,
   getBoard,
   getCard,
   listBoardSummaries,

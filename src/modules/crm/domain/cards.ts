@@ -17,9 +17,10 @@ import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { card, organization, pipeline, pipelineStage } from "../schema";
+import { addNote, addOrganizationNote } from "./interactions";
 import { assertInPipeline, type PipelineScope } from "./pipeline-scope";
 import { closedAtForStage } from "./pipelines-pure";
-import { openTaskForReason } from "./tasks";
+import { createTask, openTaskForReason, taskInputSchema } from "./tasks";
 
 // Tarjetas (02-crm.md, ADR-037 reglas 7 y 8): una persona o una organización avanzando por un pipeline.
 // Mover es un comando con interacción en el sujeto; llegar a una etapa ganada o perdida cierra la
@@ -517,6 +518,70 @@ export async function admitFromCard(
   return result;
 }
 
+/**
+ * La tarjeta de la página, leída sin tomarla: quien escribe sobre su sujeto no la cambia, y de qué
+ * pipeline es y cuál es su sujeto no cambian. El pipeline de la página es obligatorio (ADR-122
+ * regla 1): la tarjeta de otro responde como una que no existe.
+ */
+async function cardOfPage(
+  ctx: CommandContext,
+  cardId: string,
+  scope: PipelineScope,
+): Promise<CardRecord> {
+  const [row] = await ctx.tx.select().from(card).where(eq(card.id, cardId));
+  if (!row) {
+    throw new DomainError(t("T-032"));
+  }
+  assertInPipeline(row, scope);
+  return row;
+}
+
+/** Nota sobre el sujeto de la tarjeta, persona u organización, desde la página de su pipeline. */
+export async function addCardNote(
+  ctx: CommandContext,
+  cardId: string,
+  body: string,
+  scope: PipelineScope,
+): Promise<{ id: string }> {
+  const row = await cardOfPage(ctx, cardId, scope);
+  if (row.personId) {
+    return addNote(ctx, row.personId, body);
+  }
+  if (row.organizationId) {
+    return addOrganizationNote(ctx, row.organizationId, body);
+  }
+  // `card_one_subject` no deja una tarjeta sin sujeto: si apareciera, no hay ficha donde escribir.
+  throw new DomainError(t("T-032"));
+}
+
+/** Lo que la página escribe de una tarea de la tarjeta; el sujeto y la tarjeta los pone el comando. */
+export const cardTaskInputSchema = taskInputSchema.pick({
+  title: true,
+  assigneeId: true,
+  dueAt: true,
+});
+
+export type CardTaskInput = z.infer<typeof cardTaskInputSchema>;
+
+/** Tarea ligada a la tarjeta y a su sujeto, desde la página de su pipeline. */
+export async function createCardTask(
+  ctx: CommandContext,
+  cardId: string,
+  input: CardTaskInput,
+  scope: PipelineScope,
+): Promise<{ id: string }> {
+  const row = await cardOfPage(ctx, cardId, scope);
+  return createTask(ctx, {
+    title: input.title,
+    kind: "GENERAL",
+    assigneeId: input.assigneeId,
+    dueAt: input.dueAt,
+    personId: row.personId ?? undefined,
+    organizationId: row.organizationId ?? undefined,
+    cardId: row.id,
+  });
+}
+
 // Wrappers con transacción para las páginas.
 
 export function createCardAs(
@@ -549,4 +614,24 @@ export function admitFromCardAs(
   scope: PipelineScope,
 ): Promise<{ membershipId: string }> {
   return runCommand(actor, (ctx) => admitFromCard(ctx, cardId, input, scope));
+}
+
+/** `scope` es el pipeline de la página desde la que se deja la nota (ADR-122 regla 1). */
+export function addCardNoteAs(
+  actor: Actor,
+  cardId: string,
+  body: string,
+  scope: PipelineScope,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => addCardNote(ctx, cardId, body, scope));
+}
+
+/** `scope` es el pipeline de la página desde la que se abre la tarea (ADR-122 regla 1). */
+export function createCardTaskAs(
+  actor: Actor,
+  cardId: string,
+  input: CardTaskInput,
+  scope: PipelineScope,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => createCardTask(ctx, cardId, input, scope));
 }
