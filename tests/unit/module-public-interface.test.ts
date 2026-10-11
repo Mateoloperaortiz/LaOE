@@ -727,9 +727,6 @@ const EXCEPTIONS: Exceptions = {
     `,
   },
   terms: {
-    nadie: `
-      listTerms
-    `,
     "solo-pruebas": `
       updateTerm
     `,
