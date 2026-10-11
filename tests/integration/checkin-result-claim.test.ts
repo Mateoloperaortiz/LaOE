@@ -2,9 +2,16 @@ import { eq } from "drizzle-orm";
 import type { ReactNode } from "react";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { checkIn, occasion } from "@/modules/participation/schema";
+import { occasion } from "@/modules/participation/schema";
 import { t } from "@/shared/copy";
-import { currentTermCode, seedMembership, seedOccasion, seedPerson, seedTerm } from "../factories";
+import {
+  currentTermCode,
+  seedCheckIn,
+  seedMembership,
+  seedOccasion,
+  seedPerson,
+  seedTerm,
+} from "../factories";
 import { elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
 
@@ -87,7 +94,7 @@ async function seedClaim(existing: Existing): Promise<string> {
   if (!row) throw new Error("sin ocasión");
   expect(row.points).toBe(POINTS);
   if (existing) {
-    await db().insert(checkIn).values({ occasionId: row.id, personId, status: existing });
+    await seedCheckIn(row.id, personId, existing, { source: "SELF_QR" });
   }
   session = { personId };
   return row.publicId;

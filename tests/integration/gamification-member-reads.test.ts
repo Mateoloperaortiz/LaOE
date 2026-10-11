@@ -7,7 +7,6 @@ import {
   listChallengesForMember,
   nextChallengeForMember,
 } from "@/modules/participation";
-import { challengeQuestion } from "@/modules/participation/schema";
 import { committeeMembership } from "@/modules/people/schema";
 import {
   seedChallenge,
@@ -17,6 +16,7 @@ import {
   seedMembership,
   seedParticipation,
   seedPerson,
+  seedQuestion,
   seedTerm,
   seedVeteran,
 } from "../factories";
@@ -143,15 +143,7 @@ describe("retos: el detalle de un reto por comités de un término anterior (DT-
       opensAt: new Date("2025-03-01T15:00:00.000Z"),
       closesAt: new Date("2025-03-02T15:00:00.000Z"),
     });
-    await getDb()
-      .insert(challengeQuestion)
-      .values({
-        challengeId,
-        ordinal: 1,
-        prompt: "¿Pregunta?",
-        options: ["Sí", "No"],
-        correctIndex: 0,
-      });
+    await seedQuestion(challengeId);
     await seedParticipation(challengeId, participant, {
       status: "COMPLETED",
       submittedAt: new Date("2025-03-01T16:00:00.000Z"),

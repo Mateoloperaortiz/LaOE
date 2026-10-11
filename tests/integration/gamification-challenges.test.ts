@@ -45,6 +45,7 @@ import {
   seedCommitteeMembership,
   seedMember,
   seedOccasion,
+  seedQuestion,
   seedTerm,
   seedVeteran,
 } from "../factories";
@@ -82,15 +83,7 @@ async function outboxTypes(): Promise<string[]> {
 /** Trivia publicada con una pregunta de dos opciones; la correcta es la 0. */
 async function seedTrivia(termId: string, overrides: Parameters<typeof seedChallenge>[1] = {}) {
   const challengeId = await seedChallenge(termId, overrides);
-  await db()
-    .insert(challengeQuestion)
-    .values({
-      challengeId,
-      ordinal: 1,
-      prompt: "¿Pregunta?",
-      options: ["Sí", "No"],
-      correctIndex: 0,
-    });
+  await seedQuestion(challengeId);
   return challengeId;
 }
 

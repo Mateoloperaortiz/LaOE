@@ -18,6 +18,7 @@ import {
   boosterItem,
   challenge,
   challengeParticipation,
+  challengeQuestion,
   checkIn,
   occasion,
 } from "@/modules/participation/schema";
@@ -423,15 +424,28 @@ export async function seedOccasion(
   return row;
 }
 
-/** Check-in aprobado de una persona en una ocasión (sin crédito en el ledger: para permanencia). */
+type CheckInRow = typeof checkIn.$inferInsert;
+
+/**
+ * Check-in de una persona en una ocasión: aprobado, puesto por un admin y con la hora de ahora, salvo
+ * que se diga otra cosa (sin crédito en el ledger: para permanencia).
+ */
 export async function seedCheckIn(
   occasionId: string,
   personId: string,
-  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" = "APPROVED",
+  status: NonNullable<CheckInRow["status"]> = "APPROVED",
+  overrides: Partial<{ source: NonNullable<CheckInRow["source"]>; at: Date; reason: string }> = {},
 ): Promise<string> {
   const [row] = await db()
     .insert(checkIn)
-    .values({ occasionId, personId, status, source: "ADMIN" })
+    .values({
+      occasionId,
+      personId,
+      status,
+      source: overrides.source ?? "ADMIN",
+      reason: overrides.reason ?? null,
+      ...(overrides.at ? { at: overrides.at } : {}),
+    })
     .returning({ id: checkIn.id });
   if (!row) throw new Error("seed check-in");
   return row.id;
@@ -926,4 +940,20 @@ export async function seedBooster(
     .returning({ id: boosterItem.id });
   if (!row) throw new Error("seed booster");
   return row.id;
+}
+
+/** La pregunta de un reto: una sola, de sí o no y con la primera opción como correcta, salvo que se diga otra cosa. */
+export async function seedQuestion(
+  challengeId: string,
+  overrides: Partial<{ prompt: string; options: string[] }> = {},
+): Promise<void> {
+  await db()
+    .insert(challengeQuestion)
+    .values({
+      challengeId,
+      ordinal: 1,
+      prompt: overrides.prompt ?? "¿Pregunta?",
+      options: overrides.options ?? ["Sí", "No"],
+      correctIndex: 0,
+    });
 }

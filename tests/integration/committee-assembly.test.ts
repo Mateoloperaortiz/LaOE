@@ -8,7 +8,7 @@ import {
   recomputeCommitteeAssembly,
 } from "@/modules/participation";
 import { closeOccasion } from "@/modules/participation/domain/occasions";
-import { checkIn, committeeAssemblyAttendance } from "@/modules/participation/schema";
+import { committeeAssemblyAttendance } from "@/modules/participation/schema";
 import {
   anonymizePersonAs,
   endMembershipAs,
@@ -156,12 +156,7 @@ describe("representación en la asamblea", () => {
 
     // Segunda asamblea: nadie de A3; el suplente de Pixel con excusa aceptada; IUS de nuevo sin mesa.
     const second = await assembly(termId, "Segunda", 3);
-    await db().insert(checkIn).values({
-      occasionId: second.id,
-      personId: suplentePixel,
-      status: "EXCUSED",
-      source: "ADMIN",
-    });
+    await seedCheckIn(second.id, suplentePixel, "EXCUSED");
     await runCommand(SYSTEM_ACTOR, (ctx) => closeOccasion(ctx, second.id));
     await drainOutbox();
     const summary = await listCommitteeRepresentation(termId);

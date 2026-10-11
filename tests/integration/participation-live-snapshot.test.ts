@@ -5,7 +5,7 @@ import type { CheckInSource, CheckInStatus } from "@/modules/participation";
 import { buildLiveSnapshot, getOccasion } from "@/modules/participation";
 import { checkIn } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
-import { currentTermCode, seedMember, seedOccasion, seedTerm } from "../factories";
+import { currentTermCode, seedCheckIn, seedMember, seedOccasion, seedTerm } from "../factories";
 import { countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
 
@@ -41,19 +41,13 @@ async function seedCheckIns(
     });
     const source = SOURCES[index % SOURCES.length] ?? "SELF_QR";
     const at = new Date(BASE + index * 60_000);
-    const [row] = await db()
-      .insert(checkIn)
-      .values({
-        occasionId,
-        personId,
-        status,
-        source,
-        at,
-        reason: "motivo que la consola no lleva",
-      })
-      .returning({ id: checkIn.id });
+    const id = await seedCheckIn(occasionId, personId, status, {
+      source,
+      at,
+      reason: "motivo que la consola no lleva",
+    });
     seeded.push({
-      id: row?.id ?? "",
+      id,
       name: `${firstName} Sintética`,
       at: at.toISOString(),
       source,

@@ -6,6 +6,7 @@ import { person } from "@/modules/people/schema";
 import { legacyAlias } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
+import { seedCheckIn } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -121,11 +122,9 @@ test.describe("la dirección de un resultado, abierta a mano", () => {
       .from(occasion)
       .where(eq(occasion.publicId, PUBLIC_ID));
     if (!who || !row) throw new Error("sin miembro o sin ocasión");
-    const [attendance] = await db
-      .insert(checkIn)
-      .values({ occasionId: row.id, personId: who.id, status: "PENDING" })
-      .returning({ id: checkIn.id });
-    if (!attendance) throw new Error("sin asistencia");
+    const attendance = {
+      id: await seedCheckIn(row.id, who.id, "PENDING", { source: "SELF_QR" }),
+    };
 
     await page.goto(`/a/${PUBLIC_ID}?r=puntos`);
     await expect(page.locator('[data-resultado="estado"]')).toHaveText(t("T-094"));

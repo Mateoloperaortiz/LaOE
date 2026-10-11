@@ -29,7 +29,6 @@ import {
   badgeDefinition,
   boosterItem,
   challengeParticipation,
-  challengeQuestion,
   challenge as challengeTable,
   checkIn,
   wordleGame,
@@ -46,6 +45,7 @@ import {
   seedMember,
   seedOccasion,
   seedParticipation,
+  seedQuestion,
   seedTerm,
 } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
@@ -100,10 +100,8 @@ async function interactionsOf(personId: string) {
 
 /** Check-in aprobado importado de GHPOINTS (ADR-067: las importadas cuentan como hechos). */
 async function seedImportedCheckIn(occasionId: string, personId: string, at: Date) {
-  const [row] = await db()
-    .insert(checkIn)
-    .values({ occasionId, personId, status: "APPROVED", source: "IMPORT", at })
-    .returning();
+  const id = await seedCheckIn(occasionId, personId, "APPROVED", { source: "IMPORT", at });
+  const [row] = await db().select().from(checkIn).where(eq(checkIn.id, id));
   if (!row) throw new Error("seed import");
   return row;
 }
@@ -198,15 +196,7 @@ describe("insignias: hechos", () => {
 /** Trivia publicada con una pregunta de dos opciones; la correcta es la 0. */
 async function seedTrivia(termId: string): Promise<string> {
   const challengeId = await seedChallenge(termId);
-  await db()
-    .insert(challengeQuestion)
-    .values({
-      challengeId,
-      ordinal: 1,
-      prompt: "¿Pregunta?",
-      options: ["Sí", "No"],
-      correctIndex: 0,
-    });
+  await seedQuestion(challengeId);
   return challengeId;
 }
 

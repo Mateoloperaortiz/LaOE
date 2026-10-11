@@ -25,7 +25,6 @@ import {
   challenge,
   challengeEvidenceFile,
   challengeParticipation,
-  challengeQuestion,
   reward,
 } from "@/modules/participation/schema";
 import { membership } from "@/modules/people/schema";
@@ -38,6 +37,7 @@ import {
   seedMember,
   seedOccasion,
   seedParticipation,
+  seedQuestion,
   seedTerm,
 } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
@@ -105,9 +105,7 @@ it("absorbe envíos simultáneos y conserva el replay después del cierre", asyn
   const personId = await seedMember("replay.concurrente@test.dev");
   await setConfigAs({ personId, ip: null }, "gamification.enabled", true);
   const challengeId = await seedChallenge(termId);
-  await getDb()
-    .insert(challengeQuestion)
-    .values({ challengeId, ordinal: 1, prompt: "¿Una?", options: ["A", "B"], correctIndex: 0 });
+  await seedQuestion(challengeId, { prompt: "¿Una?", options: ["A", "B"] });
   const input = { challengeId, requestId: randomUUID(), answers: [0] };
   await warmPool();
   const results = await Promise.all([
@@ -268,9 +266,7 @@ it("revisión: requestId repetido con respuestas distintas se rechaza", async ()
   const personId = await seedMember("revision.request@eafit.edu.co");
   await setConfigAs({ personId, ip: null }, "gamification.enabled", true);
   const challengeId = await seedChallenge(termId);
-  await getDb()
-    .insert(challengeQuestion)
-    .values({ challengeId, ordinal: 1, prompt: "¿Una?", options: ["A", "B"], correctIndex: 0 });
+  await seedQuestion(challengeId, { prompt: "¿Una?", options: ["A", "B"] });
   const requestId = randomUUID();
   expect(
     (await submitTriviaAs({ personId, ip: null }, { challengeId, requestId, answers: [0] })).ok,

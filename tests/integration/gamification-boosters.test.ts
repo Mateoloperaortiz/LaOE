@@ -25,7 +25,6 @@ import {
   boostCampaign,
   boosterItem,
   challengeParticipation,
-  challengeQuestion,
   checkIn,
   pointEntry,
   reward,
@@ -40,6 +39,7 @@ import {
   seedCheckIn,
   seedMember,
   seedOccasion,
+  seedQuestion,
   seedTerm,
 } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
@@ -89,15 +89,7 @@ async function entriesOf(personId: string, termId: string) {
 /** Trivia publicada con una pregunta de dos opciones; la correcta es la 0. */
 async function seedTrivia(termId: string, overrides: Parameters<typeof seedChallenge>[1] = {}) {
   const challengeId = await seedChallenge(termId, overrides);
-  await db()
-    .insert(challengeQuestion)
-    .values({
-      challengeId,
-      ordinal: 1,
-      prompt: "¿Pregunta?",
-      options: ["Sí", "No"],
-      correctIndex: 0,
-    });
+  await seedQuestion(challengeId);
   return challengeId;
 }
 

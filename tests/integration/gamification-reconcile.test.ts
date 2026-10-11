@@ -16,7 +16,7 @@ import { achievement, boosterItem, checkIn, wordleGame } from "@/modules/partici
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { seedMember, seedOccasion, seedTerm } from "../factories";
+import { seedCheckIn, seedMember, seedOccasion, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
@@ -32,10 +32,8 @@ async function startRun(mode: "DRY_RUN" | "APPLY"): Promise<string> {
 }
 
 async function seedImportedCheckIn(occasionId: string, personId: string, at: Date) {
-  const [row] = await db()
-    .insert(checkIn)
-    .values({ occasionId, personId, status: "APPROVED", source: "IMPORT", at })
-    .returning();
+  const id = await seedCheckIn(occasionId, personId, "APPROVED", { source: "IMPORT", at });
+  const [row] = await db().select().from(checkIn).where(eq(checkIn.id, id));
   if (!row) throw new Error("seed import");
   return row;
 }
