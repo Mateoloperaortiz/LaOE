@@ -43,6 +43,7 @@ async function notify(
       skippedByPreference: 0,
       withoutDevice: 0,
       removedDevices: 0,
+      expired: 0,
       deviceFailures: {},
     };
   }

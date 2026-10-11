@@ -1,6 +1,6 @@
 # ADR-038: Comunicaciones y PWA (fase 6)
 
-- Estado: Aceptada (enmendada por ADR-039, ADR-074, ADR-113, ADR-115, ADR-116 y ADR-118)
+- Estado: Aceptada (enmendada por ADR-039, ADR-074, ADR-113, ADR-115, ADR-116, ADR-118 y ADR-122)
 - Fecha: 2026-09-05
 - Relacionadas: ADR-001, ADR-010, ADR-011, ADR-012, ADR-014, ADR-015, ADR-017, ADR-021, ADR-023, ADR-030, ADR-031, ADR-033, ADR-034, ADR-035, ADR-036, ADR-037
 - Enmienda: ADR-012 (programados `campaigns` y `notices`; el bus de notificaciones), ADR-015 (reglas concretas de preferencias, roster por defecto y consentimiento para no miembros; campañas por SES), ADR-023 (cabeceras de baja y `sendCampaignEmail`), ADR-031 (la encuesta tras la ocasión no usa `form_submission`), ADR-033 (push desde la cartelera; `/app/cartelera/[id]`), ADR-034 (dependencias de `comms`; pestaña Comunicaciones de la 360; mis datos), ADR-035 (`surveyFormId`, `participation → forms`, recordatorios), ADR-036 (regla 11: avisos por push desde `permanence.notices`; `recognition.granted`; T-202 al aplicar el cierre), ADR-037 (tipo de campo `RATING`; `call.opened`), 03-modelo (tablas de `comms`, `Message.kind`, encuesta en `participation`, `calendar_token`), 05-acceso (tokens de baja y calendario, dueño de la invitación, step-up de campañas), 06-mapa (rutas nuevas) y 14-copy (T-133 con seis secciones, T-924 con la calificación, T-194, T-195, T-209 a T-211, T-1063 en adelante)
@@ -79,3 +79,9 @@ Las reglas 5 y 13 dicen que salir de la OE borra las suscripciones, las preferen
 La regla 8 manda la prueba de una plantilla al correo de quien la pide y no decía qué responde si el proveedor la rechaza: respondía como enviada y lo auditaba. ADR-118 regla 14 lo fija: la prueba responde con lo que contestó el proveedor, solo la aceptada queda auditada como enviada, y las pantallas de la plantilla y de la campaña muestran el rechazo.
 
 La regla 5 dice cuándo se borra una suscripción: al quitarla, al responder el servicio 404 o 410 y al salir de la OE. ADR-118 regla 17 suma la salida de la sesión: cerrar sesión retira el dispositivo de ese navegador en la casa (la fila, si es de quien sale). El navegador solo dice cuál es su suscripción y la conserva: que entrar lo suscriba sin gesto no cambia y es la decisión abierta 43.
+
+## Enmienda (2026-10-10, ADR-122)
+
+La regla 2 enumera lo que trae `notification.requested`. [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 9 le suma `expiresAt`, opcional: desde ese instante el handler de `comms` no entrega el aviso ni le escribe `message`, y lo deja dicho en el registro. Un pedido sin él se entrega como siempre.
+
+La regla 9 dice qué recordatorios salen y con qué clave. Los cuatro llevan ahora como vencimiento la hora en que empieza su ocasión: si la cola se atrasa o el evento se reintenta, no salen cuando la ocasión ya empezó. Cuándo toca cada uno no cambia.

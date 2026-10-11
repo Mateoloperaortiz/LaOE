@@ -56,8 +56,17 @@ function logDelivery(ctx: JobContext, stats: DeliveryStats, deliveredMessage: st
 
 // Bus de notificaciones (ADR-038 regla 2): cualquier módulo emite `notification.requested` con
 // destinatarios, textos, URL y clave; aquí se entrega por push respetando la preferencia de cada quien.
+// Un aviso que venció en la cola no se entrega (ADR-122 regla 9): lo decide el reloj del poller.
 onEvent(notificationRequested, async (payload, ctx) => {
-  const stats = await deliverNotification(payload);
+  const stats = await deliverNotification(payload, ctx.now);
+  if (stats.expired > 0) {
+    // Sin la persona ni la clave del aviso, que en algunos trae su id: el evento ya va en `outboxId`.
+    ctx.log.warn(
+      { kind: payload.kind, expiresAt: payload.expiresAt, expired: stats.expired },
+      "notificación vencida: no se entrega",
+    );
+    return;
+  }
   logDelivery(ctx, stats, "notificación entregada");
 });
 

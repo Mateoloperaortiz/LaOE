@@ -37,6 +37,13 @@ export const notificationRequestedSchema = z.object({
   tag: z.string().min(1).optional(),
   /** Clave de entrega: una persona no recibe dos veces la misma. No es la del outbox. */
   dedupeKey: z.string().min(1).max(200),
+  /**
+   * Desde cuándo el aviso ya no sirve: un instante ISO en UTC, como lo da `toISOString()`. Quien lo
+   * entrega lo descarta a partir de ahí (ADR-122 regla 9). Es opcional y así se queda: un pedido sin él
+   * se entrega siempre, que es lo que hace con todos el poller de la versión anterior mientras dura un
+   * despliegue. Lo que no se lee como instante no pasa el contrato.
+   */
+  expiresAt: z.iso.datetime().optional(),
 });
 
 export type NotificationRequested = z.infer<typeof notificationRequestedSchema>;

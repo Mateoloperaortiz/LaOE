@@ -125,6 +125,10 @@ export async function runReminders(now = new Date()): Promise<RemindersResult> {
             url: `/a/${occasion.publicId}`,
             tag: `occasion-${occasion.id}`,
             dedupeKey,
+            // Vence cuando la ocasión empieza (ADR-122 regla 9): si la cola se atrasa, comms no avisa
+            // de algo que ya arrancó. Vale para los cuatro avisos; el de «hoy» ya salía solo para lo
+            // que no había empezado.
+            expiresAt: occasion.startsAt.toISOString(),
           },
           { dedupeKey: `${dedupeKey}:${start / NOTIFICATION_MAX_RECIPIENTS}` },
         ),

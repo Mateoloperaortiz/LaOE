@@ -74,7 +74,7 @@ function auditsOf(taskId: string) {
 async function handle(type: string, payload: Record<string, unknown>, id: string): Promise<void> {
   const log = pino({ level: "silent" });
   for (const handler of getHandlers(type)) {
-    await handler(payload, { id, attempt: 1, log });
+    await handler(payload, { id, attempt: 1, log, now: new Date() });
   }
 }
 

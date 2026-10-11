@@ -175,7 +175,7 @@ export async function processOne(
           if (abandoned) {
             return;
           }
-          await handler(row.payload, { id: row.id, attempt, log });
+          await handler(row.payload, { id: row.id, attempt, log, now: clock() });
         }
       };
       await withTimeout(runHandlers(), handlerTimeoutMs, `El evento ${row.eventType}`);

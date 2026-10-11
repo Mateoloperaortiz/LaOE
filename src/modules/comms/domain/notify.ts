@@ -85,6 +85,11 @@ export interface DeliveryStats {
   withoutDevice: number;
   removedDevices: number;
   /**
+   * Destinatarios de un aviso que ya había vencido cuando tocó entregarlo (ADR-122 regla 9): no se les
+   * envía ni se les registra un `message`.
+   */
+  expired: number;
+  /**
    * Dispositivos que no recibieron el aviso, contados por el código con que respondió el servicio de
    * push (`sin respuesta` si no contestó). Es lo que va al registro: nunca el endpoint ni las claves.
    */
@@ -107,8 +112,16 @@ export async function deliverNotification(raw: unknown, now = new Date()): Promi
     skippedByPreference: 0,
     withoutDevice: 0,
     removedDevices: 0,
+    expired: 0,
     deviceFailures: {},
   };
+  // Un aviso con vencimiento no sale desde ese instante (ADR-122 regla 9): la cola pudo atrasarse o el
+  // evento reintentarse, y avisar de lo que ya empezó confunde. No lee a nadie ni deja `message`: no
+  // hubo envío que registrar, y el rastro lo deja quien llama.
+  if (request.expiresAt !== undefined && Date.parse(request.expiresAt) <= now.getTime()) {
+    stats.expired = request.recipients.length;
+    return stats;
+  }
   const personIds = [...new Set(request.recipients.map((item) => item.personId))];
   const [already, preferences, subscriptions] = await Promise.all([
     listAlreadyNotified(personIds, request.dedupeKey),

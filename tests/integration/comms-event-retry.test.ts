@@ -242,9 +242,9 @@ describe("correos de un evento que el poller reintenta", () => {
     const [notify] = getHandlers(accessGrantIssued.type);
 
     for (const id of ["", "   "]) {
-      await expect(notify?.(payload, { id, attempt: 1, log: logger })).rejects.toThrow(
-        /sin el id de su evento/,
-      );
+      await expect(
+        notify?.(payload, { id, attempt: 1, log: logger, now: new Date() }),
+      ).rejects.toThrow(/sin el id de su evento/);
     }
 
     expect(pushes).toEqual([]);

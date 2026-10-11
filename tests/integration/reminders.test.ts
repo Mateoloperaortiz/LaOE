@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
@@ -53,6 +53,11 @@ function todayBogota(hour: number, minute = 0): Date {
 describe("recordatorios de participación", () => {
   const delivered: string[] = [];
   beforeEach(async () => {
+    // La fecha del proceso queda quieta en las 07:00 de hoy: un recordatorio vence cuando su ocasión
+    // empieza (ADR-122 regla 9) y `drainOutbox` entrega con la hora que haya. Con el reloj real, estas
+    // pruebas pasarían o fallarían según la hora a la que corrieran.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(todayBogota(7));
     await truncateAll();
     delivered.length = 0;
     setPushSenderForTests(async (subscription) => {
@@ -60,6 +65,7 @@ describe("recordatorios de participación", () => {
       return { ok: true, statusCode: 201 };
     });
   });
+  afterEach(() => vi.useRealTimers());
   afterAll(async () => {
     setPushSenderForTests(undefined);
     await closeDb();
