@@ -18,6 +18,10 @@ const REWRITTEN = ["app_config", "badge_definition"];
 const UNTOUCHED = ["committee_role", "macroevent_role"];
 const CATALOGS = [...REWRITTEN, ...UNTOUCHED];
 
+// Dónde deja la preparación de la suite la foto de los catálogos (ADR-124 regla 2): escrito acá y no
+// leído del vaciado.
+const BASELINE = "catalog_baseline";
+
 // Los valores de la migración 0030, escritos acá y no leídos del vaciado.
 const GAMIFICATION_AT_MIGRATION = {
   "gamification.enabled": false,
@@ -73,11 +77,15 @@ async function query<T extends Record<string, unknown>>(text: string, db: Execut
   return (await db.execute<T>(sql.raw(text))).rows;
 }
 
-async function publicTables(): Promise<string[]> {
+async function tablesOf(schema: string): Promise<string[]> {
   const rows = await query<{ name: string }>(
-    "select tablename as name from pg_tables where schemaname = 'public' order by 1",
+    `select tablename as name from pg_tables where schemaname = '${schema}' order by 1`,
   );
   return rows.map((row) => row.name);
+}
+
+function publicTables(): Promise<string[]> {
+  return tablesOf("public");
 }
 
 async function tablesWithRows(): Promise<string[]> {
@@ -187,15 +195,17 @@ async function fillEveryTableButTheCatalogs(): Promise<void> {
 }
 
 /** Las filas de un catálogo, enteras y en orden: lo que se compara antes y después de vaciar. */
-async function rowsOf(table: string): Promise<unknown[]> {
+async function rowsOf(table: string, schema = "public"): Promise<unknown[]> {
   const [found] = await query<{ rows: unknown[] }>(
-    `select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text), '[]') as rows from "${table}" t`,
+    `select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text), '[]') as rows from "${schema}"."${table}" t`,
   );
   return found?.rows ?? [];
 }
 
-async function config(): Promise<Record<string, unknown>> {
-  const rows = await query<{ key: string; value: unknown }>("select key, value from app_config");
+async function config(schema = "public"): Promise<Record<string, unknown>> {
+  const rows = await query<{ key: string; value: unknown }>(
+    `select key, value from "${schema}".app_config`,
+  );
   return Object.fromEntries(rows.map((row) => [row.key, row.value]));
 }
 
@@ -386,5 +396,38 @@ describe("el vaciado de la base entre pruebas", () => {
 
     expect(await fileNodes()).toEqual(files);
     expect(await tablesWithPages()).toEqual(CATALOGS);
+  });
+});
+
+describe("la foto de los catálogos que toma la preparación de la suite", () => {
+  it("vive fuera de public y cubre solo los cuatro catálogos: no las páginas ni los eventos que una migración también llena", async () => {
+    expect(await tablesOf(BASELINE)).toEqual(CATALOGS);
+  });
+
+  it("guarda la configuración de las migraciones, con la versión de la política de privacidad en su valor de prueba", async () => {
+    const photographed = await config(BASELINE);
+
+    expect(photographed).toMatchObject({
+      ...GAMIFICATION_AT_MIGRATION,
+      "privacy.policyVersion": "prueba-v1",
+    });
+    expect(Object.keys(photographed).filter((key) => key in CAMPAIGNS_UNSEEDED)).toEqual([]);
+    expect(
+      await query(
+        `select key from "${BASELINE}".app_config where updated_by_id is not null order by 1`,
+      ),
+    ).toEqual([]);
+  });
+
+  it("guarda los cargos y las insignias de las migraciones, sin ninguna edición especial", async () => {
+    for (const table of ["badge_definition", ...UNTOUCHED]) {
+      expect(await rowsOf(table, BASELINE), table).not.toEqual([]);
+    }
+    expect(
+      await query(
+        `select code from "${BASELINE}".badge_definition
+         where special_challenge_id is not null or special_occasion_id is not null`,
+      ),
+    ).toEqual([]);
   });
 });

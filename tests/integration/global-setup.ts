@@ -1,8 +1,9 @@
 import { Client } from "pg";
 import { testDatabaseUrl } from "./test-database";
 
-// Crea la base de pruebas si falta, la vacía y la deja migrada desde cero, con los catálogos de las
-// migraciones intactos. Corre una vez antes de la suite de integración.
+// Crea la base de pruebas si falta, la vacía, la deja migrada desde cero y guarda la foto de los
+// catálogos que llenan las migraciones (ADR-124 regla 2). Corre una vez antes de la suite de
+// integración.
 export default async function globalSetup(): Promise<void> {
   try {
     process.loadEnvFile(".env");
@@ -37,6 +38,8 @@ export default async function globalSetup(): Promise<void> {
   process.env.DATABASE_URL = testUrl;
   const { applyMigrationsAndVerify } = await import("../../scripts/lib/release");
   const { closeDb } = await import("@/db/client");
+  const { saveCatalogBaseline } = await import("./db");
   await applyMigrationsAndVerify();
+  await saveCatalogBaseline();
   await closeDb();
 }
