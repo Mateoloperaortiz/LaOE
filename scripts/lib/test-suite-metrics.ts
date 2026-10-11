@@ -71,6 +71,32 @@ export function looseInserts(files: TextFile[]): { calls: number; raw: number } 
 }
 
 /** `it` o `test`, solos o con lo que cuelgue de ellos: `it.each(casos)`, `test.each` con plantilla. */
+/**
+ * Dónde escribe a mano un archivo una fila de una de `tables`: `.insert(tabla)` de Drizzle o `insert
+ * into tabla` en SQL crudo, con su línea. Mira el nombre que el archivo le pasa a `insert`: no ve una
+ * tabla importada con otro nombre ni un SQL que arma el nombre de la tabla.
+ */
+export function insertsInto(
+  files: TextFile[],
+  tables: readonly string[],
+): { path: string; table: string; line: number }[] {
+  const names = tables.join("|");
+  const patterns = [
+    new RegExp(`\\.insert\\(\\s*(${names})\\s*\\)`, "g"),
+    new RegExp(`\\binsert\\s+into\\s+"?(${names})"?(?![A-Za-z0-9_])`, "gi"),
+  ];
+  return files.flatMap((file) =>
+    patterns
+      .flatMap((pattern) => [...file.text.matchAll(pattern)])
+      .map((match) => ({
+        path: file.path,
+        table: (match[1] ?? "").toLowerCase(),
+        line: file.text.slice(0, match.index).split("\n").length,
+      }))
+      .sort((a, b) => a.line - b.line),
+  );
+}
+
 function isTestCall(callee: ts.Expression): boolean {
   let root = callee;
   for (;;) {
