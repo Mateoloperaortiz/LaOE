@@ -52,6 +52,18 @@ export interface PreparedEvidenceUpload {
   expiresAt: string;
 }
 
+/**
+ * Por qué ese tamaño no entra, o `null` si entra. Cada borde dice el suyo (ADR-122 regla 18): la
+ * imagen diminuta no «pesa más de 5 MB». `tooLarge` es el texto del borde de arriba, que sale de la
+ * lista de errores de la evidencia. Lo usan la firma de la subida y la comprobación del objeto ya
+ * subido; el subidor del navegador decide con sus propios límites y textos (ADR-123 regla 22).
+ */
+function sizeRejection(byteSize: number, tooLarge: string): string | null {
+  if (byteSize < EVIDENCE_MIN_BYTES) return t("T-3264");
+  if (byteSize > EVIDENCE_MAX_BYTES) return tooLarge;
+  return null;
+}
+
 /** Un POST prefirmado de 10 minutos, acotado a una imagen de 5 KB a 5 MB bajo `evidence/<personId>/`. */
 export async function prepareEvidenceUpload(
   input: { contentType: string; byteSize: number },
@@ -61,12 +73,9 @@ export async function prepareEvidenceUpload(
   if (!(input.contentType in EVIDENCE_TYPES)) {
     throw new DomainError(errors[0] ?? "", "file");
   }
-  // Cada borde dice el suyo (ADR-122 regla 18): la imagen diminuta no «pesa más de 5 MB».
-  if (input.byteSize < EVIDENCE_MIN_BYTES) {
-    throw new DomainError(t("T-3264"), "file");
-  }
-  if (input.byteSize > EVIDENCE_MAX_BYTES) {
-    throw new DomainError(errors[1] ?? "", "file");
+  const size = sizeRejection(input.byteSize, errors[1] ?? "");
+  if (size !== null) {
+    throw new DomainError(size, "file");
   }
   const key = evidenceKey(owner.personId, input.contentType, createId());
   const upload = await presignUpload({
@@ -107,12 +116,10 @@ export async function verifyEvidenceObjects(
       await deleteObject(key).catch(() => undefined);
       throw new DomainError(errors[0] ?? "", "files");
     }
-    if (info.byteSize < EVIDENCE_MIN_BYTES || info.byteSize > EVIDENCE_MAX_BYTES) {
+    const size = sizeRejection(info.byteSize, errors[1] ?? "");
+    if (size !== null) {
       await deleteObject(key).catch(() => undefined);
-      throw new DomainError(
-        info.byteSize < EVIDENCE_MIN_BYTES ? t("T-3264") : (errors[1] ?? ""),
-        "files",
-      );
+      throw new DomainError(size, "files");
     }
     verified.push({ key, contentType, byteSize: info.byteSize });
   }
