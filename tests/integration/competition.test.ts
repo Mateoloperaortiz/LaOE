@@ -72,7 +72,7 @@ import { membership } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { outcome } from "../helpers/locks";
+import { heldThenSettled, holdTransaction, outcome } from "../helpers/locks";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedForm, seedMember, seedSubmission, seedTerm, seedVeteran } from "./factories";
@@ -767,6 +767,35 @@ describe("The Games", () => {
       expect(total).toBe(3000);
     });
 
+    it("una apuesta que encuentra el mercado tomado por otro escritor lo espera y lo vuelve a leer: cerrado, no entra", async () => {
+      const { id, actor, teamIds, code, marketId } = await seedBetting();
+      const t1 = teamIds[0] ?? "";
+      const t3 = teamIds[2] ?? "";
+      // El otro escritor es sintético: cierra la apuesta sin tomar la fila de la competencia, que hoy
+      // toman todos los comandos del módulo y por eso cubre a la prueba de arriba. Así lo único que
+      // hace esperar a quien apuesta es el `for update` del mercado en `lockedMarket` (DT-335).
+      const held = await holdTransaction((tx) =>
+        tx
+          .update(competitionMarket)
+          .set({ status: "CLOSED" })
+          .where(eq(competitionMarket.id, marketId)),
+      );
+      const { during, after } = await heldThenSettled(held, () =>
+        placeBetAs(actor, id, { marketId, teamId: t3, pickTeamId: t1, stake: 300, code: code(t3) }),
+      );
+
+      // Sin el mercado bajo candado la apuesta lo lee abierto, no espera a nadie y entra en uno cerrado.
+      expect(during).toBe("hizo cola");
+      expect(outcome(after)).toBe(t("T-2781"));
+      expect(await getDb().select().from(competitionBet)).toHaveLength(0);
+      expect(
+        await getDb()
+          .select()
+          .from(competitionCreditEntry)
+          .where(eq(competitionCreditEntry.kind, "STAKE")),
+      ).toHaveLength(0);
+    });
+
     it("un código errado queda contado y a los cinco se bloquea", async () => {
       const { id, actor, teamIds, marketId } = await seedBetting();
       const [t1 = "", t2 = ""] = teamIds;
@@ -818,6 +847,33 @@ describe("The Games", () => {
       ]);
       expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
       expect((await creditBalances(id)).get(t3)).toBe(300);
+    });
+
+    it("una apuesta que encuentra al equipo tomado por otro escritor lo espera y lo vuelve a leer: retirado, no apuesta", async () => {
+      const { id, actor, teamIds, code, marketId } = await seedBetting();
+      const t1 = teamIds[0] ?? "";
+      const t3 = teamIds[2] ?? "";
+      // El otro escritor es sintético: retira al equipo sin tomar la fila de la competencia ni el
+      // consultivo de su saldo, que hoy cubren a la prueba de arriba. Así lo único que hace esperar a
+      // quien apuesta es el `for update` del equipo en `placeBet` (DT-335).
+      const held = await holdTransaction((tx) =>
+        tx.update(competitionTeam).set({ status: "WITHDRAWN" }).where(eq(competitionTeam.id, t3)),
+      );
+      const { during, after } = await heldThenSettled(held, () =>
+        placeBetAs(actor, id, { marketId, teamId: t3, pickTeamId: t1, stake: 300, code: code(t3) }),
+      );
+
+      // Sin el equipo bajo candado la apuesta lo lee activo, no espera a nadie y le descuenta el saldo
+      // a un equipo retirado.
+      expect(during).toBe("hizo cola");
+      expect(outcome(after)).toBe(t("T-2764"));
+      expect(await getDb().select().from(competitionBet)).toHaveLength(0);
+      expect(
+        await getDb()
+          .select()
+          .from(competitionCreditEntry)
+          .where(eq(competitionCreditEntry.kind, "STAKE")),
+      ).toHaveLength(0);
     });
 
     it("cancelar devuelve todo y una apuesta cerrada no recibe más", async () => {

@@ -164,6 +164,25 @@ export async function whileHeld(held: Held, command: () => Promise<unknown>): Pr
   }
 }
 
+/**
+ * `whileHeld` y, además, cómo terminó el comando una vez suelto `held`: para la prueba que quiere ver
+ * que hizo cola y también con qué respondió después de volver a leer lo que el otro dejó escrito.
+ */
+export async function heldThenSettled<T>(
+  held: Held,
+  command: () => Promise<T>,
+): Promise<{ during: string; after: PromiseSettledResult<T> }> {
+  const settled: PromiseSettledResult<T>[] = [];
+  const during = await whileHeld(held, async () => {
+    settled.push(...(await Promise.allSettled([command()])));
+  });
+  const [after] = settled;
+  if (!after) {
+    throw new Error("El comando no llegó a terminar");
+  }
+  return { during, after };
+}
+
 /** «ok» o el mensaje del error, con su causa: el del driver trae ahí lo que dijo PostgreSQL. */
 export function outcome(result: PromiseSettledResult<unknown>): string {
   if (result.status === "fulfilled") {
