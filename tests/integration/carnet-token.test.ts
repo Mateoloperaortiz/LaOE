@@ -26,6 +26,7 @@ import {
 import { getWalletMemberState } from "@/modules/people/domain/wallet-member";
 import { person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { leaveUntilSoon, seedMember, seedPerson } from "./factories";
 
@@ -80,6 +81,7 @@ describe("credenciales del carnet de billetera", () => {
 
   it("crea una sola credencial ante solicitudes simultáneas y solo devuelve datos persistidos", async () => {
     const personId = await seedMember("simultanea@eafit.edu.co");
+    await warmPool(5);
     const tokens = await Promise.all(
       Array.from({ length: 5 }, () => getOrCreateCarnetToken(personId)),
     );

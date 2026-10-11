@@ -38,6 +38,7 @@ import {
 } from "@/shared/adapters/mail";
 import { tList } from "@/shared/copy";
 import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -551,6 +552,7 @@ describe("tope acumulado del ingreso por código (ADR-113)", () => {
 
   it("una solicitud que entra a la vez que los códigos equivocados no deja pasar del tope, ni en el roster ni afuera", async () => {
     await seedMember("carrera@eafit.edu.co");
+    await warmPool(6);
     for (const email of ["carrera@eafit.edu.co", "carrera-afuera@eafit.edu.co"]) {
       await failRounds(email, 2, 5);
       await requestOtp({ email, ip: null });

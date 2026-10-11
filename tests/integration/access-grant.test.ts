@@ -22,6 +22,7 @@ import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { backendPid, deferred, holdCommand, waitingOn, whileHeld } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
 // Enlace de un solo uso que emite la junta (ADR-051).
@@ -733,6 +734,7 @@ describe("enlace de acceso", () => {
       const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
       const colega = await seedMemberWith("colega@eafit.edu.co", "BOARD");
       for (let round = 0; round < 10; round += 1) {
+        await warmPool();
         const [a, b] = await Promise.allSettled([
           issueAccessGrantAs({ personId: junta, ip: null }, { personId: colega, kind: "RECOVERY" }),
           issueAccessGrantAs({ personId: colega, ip: null }, { personId: junta, kind: "RECOVERY" }),

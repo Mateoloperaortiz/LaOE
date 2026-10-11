@@ -21,6 +21,7 @@ import { createSession, resolveActor } from "@/modules/identity/domain/session";
 import { credential, loginAttempt, session } from "@/modules/identity/schema";
 import { membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
 // Step-up con la contraseña propia y contraseña desde Ajustes (ADR-051, reglas 7 y 8).
@@ -374,6 +375,7 @@ describe("fallos de contraseña de quien tiene sesión", () => {
       await paso(quien, mala(i));
     }
 
+    await warmPool(10);
     const juntos = await Promise.all(
       Array.from({ length: 20 }, (_, i) => paso(quien, mala(100 + i))),
     );
@@ -429,6 +431,7 @@ describe("fallos de contraseña de quien tiene sesión", () => {
       await cambiar(quien, mala(i));
     }
 
+    await warmPool(10);
     const juntos = await Promise.all(
       Array.from({ length: 20 }, (_, i) => cambiar(quien, mala(100 + i))),
     );

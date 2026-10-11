@@ -10,6 +10,7 @@ import { setConfig } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { type BootstrapAdminInput, bootstrapAdmin } from "../../scripts/lib/bootstrap-admin";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedPerson } from "./factories";
 
@@ -115,12 +116,18 @@ describe("bootstrap del primer ADMIN (ADR-039)", () => {
   });
 
   it("dos bootstraps concurrentes no conceden dos permisos ADMIN", async () => {
+    await warmPool();
     const results = await Promise.allSettled([
       bootstrapAdmin(input),
       bootstrapAdmin({ ...input, email: "concurrent-admin.demo@eafit.edu.co" }),
     ]);
     expect(results.filter((row) => row.status === "fulfilled")).toHaveLength(1);
-    expect(results.filter((row) => row.status === "rejected")).toHaveLength(1);
+    const rejected = results.filter(
+      (row): row is PromiseRejectedResult => row.status === "rejected",
+    );
+    expect(rejected).toHaveLength(1);
+    // El que esperó el candado ya encontró al ADMIN del otro: lo rechaza el bootstrap, no un índice.
+    expect(String(rejected[0]?.reason)).toContain("Ya existe un ADMIN");
     expect(await getDb().select().from(person)).toHaveLength(1);
     expect(await getDb().select().from(permission)).toHaveLength(1);
   });
