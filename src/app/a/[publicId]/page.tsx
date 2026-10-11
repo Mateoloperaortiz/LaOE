@@ -78,29 +78,36 @@ function resultView(
   existing: CheckInRow | null,
   points: number,
 ): View | null {
-  switch (result) {
-    case "puntos":
-      if (existing?.status !== "APPROVED") return null;
-      // El sello de marca ya dice "¡OE OE OE!": el texto no lo repite.
-      return {
-        kind: "message",
-        text: t("T-092", { n: points }).replace(/\s*¡OE OE OE!$/, ""),
-        success: true,
-        points,
-      };
-    case "registrado":
-      if (existing?.status !== "APPROVED") return null;
-      return { kind: "message", text: t("T-093"), success: true };
-    case "pendiente":
-      if (existing?.status !== "PENDING") return null;
-      return { kind: "message", text: t("T-094"), success: true };
-    default:
-      return null;
-  }
+  const success = SUCCESS_VIEWS[result];
+  return success && existing?.status === success.status ? success.view(points) : null;
 }
 
-/** Los resultados que anuncian un registro: valen solo con la fila que los respalda. */
-const SUCCESS_CODES: readonly CheckInResultCode[] = ["puntos", "registrado", "pendiente"];
+/**
+ * Los resultados que anuncian un registro, cada uno con el estado de la asistencia que lo respalda y
+ * lo que pinta con ella. Es la única lista: sin esa fila no pintan nada ni cuentan para lo que sigue.
+ */
+const SUCCESS_VIEWS: Partial<
+  Record<CheckInResultCode, { status: CheckInRow["status"]; view: (points: number) => View }>
+> = {
+  puntos: {
+    status: "APPROVED",
+    // El sello de marca ya dice "¡OE OE OE!": el texto no lo repite.
+    view: (points) => ({
+      kind: "message",
+      text: t("T-092", { n: points }).replace(/\s*¡OE OE OE!$/, ""),
+      success: true,
+      points,
+    }),
+  },
+  registrado: {
+    status: "APPROVED",
+    view: () => ({ kind: "message", text: t("T-093"), success: true }),
+  },
+  pendiente: {
+    status: "PENDING",
+    view: () => ({ kind: "message", text: t("T-094"), success: true }),
+  },
+};
 
 /**
  * Lo que la pantalla le dice a quien no entra por su membresía (`NOT_ELIGIBLE`): un texto propio,
@@ -194,7 +201,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
   const now = new Date();
   const fresh = claimed ? resultView(claimed, existing, row.points) : null;
   // Un resultado de éxito que la fila no respalda no cuenta para nada de lo que sigue.
-  const result = claimed && SUCCESS_CODES.includes(claimed) && !fresh ? null : claimed;
+  const result = claimed && SUCCESS_VIEWS[claimed] && !fresh ? null : claimed;
   const view: View =
     fresh ??
     (existing
