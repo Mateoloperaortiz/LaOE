@@ -14,9 +14,10 @@ export interface AssemblyRequirementView {
 
 /**
  * Una ordinaria por defecto; la elección de junta y la segunda vuelta se exigen cuando existen en el
- * término, en cualquier semestre (Regl. art. 60 y 63; Est. art. 7.9; ADR-060 regla 13).
+ * término, en cualquier semestre (Regl. art. 60 y 63; Est. art. 7.9; ADR-060 regla 13). Privada de
+ * este archivo: el requisito «del término» se pide por `termAssemblyRequirement` (ADR-123 regla 13).
  */
-export function defaultRequirement(
+function defaultRequirement(
   term: { requiredOrdinaryAssemblies: number },
   existing: { hasBoardElection: boolean; hasRunoff: boolean },
 ): AssemblyRequirementView {

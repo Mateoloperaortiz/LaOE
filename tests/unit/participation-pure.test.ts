@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   assemblyCompliance,
-  defaultRequirement,
   requiredTotal,
   termAssemblyRequirement,
 } from "@/modules/participation/domain/assembly-pure";
@@ -422,28 +421,24 @@ describe("elegibles del score", () => {
 
 describe("asambleas", () => {
   it("deriva el requisito de las ocasiones del término: elección y segunda vuelta cuando existen (ADR-060 regla 13)", () => {
-    const none = defaultRequirement(
-      { requiredOrdinaryAssemblies: 1 },
-      { hasBoardElection: false, hasRunoff: false },
-    );
+    const none = termAssemblyRequirement({ requiredOrdinaryAssemblies: 1 }, []);
     expect(none).toMatchObject({
       requiredOrdinary: 1,
       requiresBoardElection: false,
       requiresRunoff: false,
     });
-    const election = defaultRequirement(
-      { requiredOrdinaryAssemblies: 1 },
-      { hasBoardElection: true, hasRunoff: false },
-    );
+    const election = termAssemblyRequirement({ requiredOrdinaryAssemblies: 1 }, [
+      { assemblyKind: "BOARD_ELECTION", status: "OPEN" },
+    ]);
     expect(election).toMatchObject({
       requiredOrdinary: 1,
       requiresBoardElection: true,
       requiresRunoff: false,
     });
-    const withRunoff = defaultRequirement(
-      { requiredOrdinaryAssemblies: 2 },
-      { hasBoardElection: true, hasRunoff: true },
-    );
+    const withRunoff = termAssemblyRequirement({ requiredOrdinaryAssemblies: 2 }, [
+      { assemblyKind: "BOARD_ELECTION", status: "OPEN" },
+      { assemblyKind: "RUNOFF", status: "OPEN" },
+    ]);
     expect(withRunoff.requiresRunoff).toBe(true);
     expect(requiredTotal(withRunoff)).toBe(4);
   });
@@ -458,10 +453,10 @@ describe("asambleas", () => {
     expect(isShortNotice(thursday, new Date("2026-09-22T15:00:00Z"))).toBe(false);
   });
   it("calcula el cumplimiento por persona y lo que falta en orden", () => {
-    const requirement = defaultRequirement(
-      { requiredOrdinaryAssemblies: 1 },
-      { hasBoardElection: true, hasRunoff: true },
-    );
+    const requirement = termAssemblyRequirement({ requiredOrdinaryAssemblies: 1 }, [
+      { assemblyKind: "BOARD_ELECTION", status: "OPEN" },
+      { assemblyKind: "RUNOFF", status: "OPEN" },
+    ]);
     const none = assemblyCompliance(requirement, []);
     expect(none.compliant).toBe(false);
     expect(none.missing).toEqual(["ORDINARY", "BOARD_ELECTION", "RUNOFF"]);
