@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { providerDayEnd } from "@/modules/comms/domain/pure";
+import { termMidpointKey } from "@/modules/participation/domain/committee-viability-pure";
 import { nextDayAt, weekKeyFor } from "@/modules/participation/domain/gamification-pure";
 import { leaveWindow } from "@/modules/people/domain/leave-pure";
 import { deriveDates, SUSPENSION_DAYS } from "@/modules/people/domain/sanction-pure";
-import { evaluationWindow } from "@/modules/permanence/domain/permanence-pure";
+import { evaluationWindow, noticesFor } from "@/modules/permanence/domain/permanence-pure";
 import {
   APP_TIME_ZONE,
   addDays,
@@ -239,6 +240,96 @@ describe("la semana y el día siguiente", () => {
       for (const at of instantsOf(day, "UTC")) {
         if (providerDayEnd(at).toISOString() !== expected) {
           different.push(`${at.toISOString()}: ${providerDayEnd(at).toISOString()}`);
+        }
+      }
+    }
+    expect(different).toEqual([]);
+  });
+});
+
+// DT-321: «la mitad del término» estaba escrita dos veces. La de la viabilidad de un comité sumaba
+// los días con su propio `setUTCDate`; la de los avisos de permanencia, ya con `addDays` y su propia
+// resta. Acá quedan las dos como estaban, y se comparan entre sí, con el calendario contado a mano y
+// con lo que responde cada módulo, en términos de cada largo.
+
+/** `termMidpointKey` de `committee-viability-pure.ts`, con su `daysBetween`. */
+const viabilityMidpoint = (startsOn: string, endsOn: string): string => {
+  const days = Math.round(
+    (new Date(`${endsOn}T00:00:00Z`).getTime() - new Date(`${startsOn}T00:00:00Z`).getTime()) /
+      86_400_000,
+  );
+  const midpoint = new Date(`${startsOn}T00:00:00Z`);
+  midpoint.setUTCDate(midpoint.getUTCDate() + Math.floor(days / 2));
+  return midpoint.toISOString().slice(0, 10);
+};
+
+/** La mitad de `noticesFor` de `permanence-pure.ts`. */
+const noticesMidpoint = (startsOn: string, endsOn: string): string =>
+  addDays(
+    startsOn,
+    Math.floor(
+      (new Date(`${endsOn}T00:00:00Z`).getTime() - new Date(`${startsOn}T00:00:00Z`).getTime()) /
+        86_400_000 /
+        2,
+    ),
+  );
+
+/**
+ * Días del primero al último de un término: un día, semanas, meses de cada largo, semestres de 180 a
+ * 184 días y años, con largos pares e impares. Los negativos son un fin anterior al inicio: ningún
+ * término los tiene, pero las dos fórmulas respondían lo mismo y eso también se conserva.
+ */
+const TERM_LENGTHS = [
+  -31, -3, -1, 0, 1, 2, 3, 28, 29, 30, 31, 59, 89, 90, 119, 120, 150, 179, 180, 181, 182, 183, 184,
+  364, 365, 366,
+];
+
+describe("la mitad del término", () => {
+  it("es el mismo día por la fórmula de la viabilidad, por la de los avisos, contando a mano y por la función, con el medio día que sobra sin contar", () => {
+    const different: string[] = [];
+    for (const startsOn of DAYS) {
+      for (const length of TERM_LENGTHS) {
+        const endsOn = walk(startsOn, length);
+        const byHand = walk(startsOn, Math.floor(length / 2));
+        const answers = [
+          viabilityMidpoint(startsOn, endsOn),
+          noticesMidpoint(startsOn, endsOn),
+          termMidpointKey(startsOn, endsOn),
+        ];
+        if (answers.some((answer) => answer !== byHand)) {
+          different.push(`${startsOn} a ${endsOn}: ${answers.join(", ")} y a mano ${byHand}`);
+        }
+      }
+    }
+    expect(different).toEqual([]);
+  });
+
+  it("el aviso de mitad de término de permanencia sale desde ese día y no el anterior", () => {
+    // Lo mínimo que mira `noticesFor` para ese aviso: un comité que va por encima de su umbral.
+    const result = {
+      evaluated: false,
+      results: [{ state: "EN_CAMINO", total: 100, threshold: 60, remaining: 0, committeeId: "c" }],
+      mandatory: { upcoming: [] },
+    } as unknown as Parameters<typeof noticesFor>[1];
+    const config = { warningDays: 21, evaluationWindowDays: 14 } as unknown as Parameters<
+      typeof noticesFor
+    >[2];
+    const midTermOn = (startsOn: string, endsOn: string, day: string): boolean =>
+      noticesFor(
+        { code: "2027-1", startsOn, endsOn, permanenceClosedAt: null } as unknown as Parameters<
+          typeof noticesFor
+        >[0],
+        result,
+        config,
+        atHourIn(APP_TIME_ZONE, day, 12),
+      ).some((notice) => notice.kind === "MID_TERM");
+    const different: string[] = [];
+    for (const startsOn of DAYS.filter((_, index) => index % 7 === 0)) {
+      for (const length of TERM_LENGTHS.filter((days) => days >= 0)) {
+        const endsOn = walk(startsOn, length);
+        const byHand = walk(startsOn, Math.floor(length / 2));
+        if (!midTermOn(startsOn, endsOn, byHand) || midTermOn(startsOn, endsOn, walk(byHand, -1))) {
+          different.push(`${startsOn} a ${endsOn}: la mitad a mano es ${byHand}`);
         }
       }
     }
