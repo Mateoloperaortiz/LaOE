@@ -22,6 +22,7 @@ import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { formatMoney } from "@/shared/lib/money";
 import { copyPattern } from "../helpers/copy";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedCommittee, seedMember } from "./factories";
 
@@ -418,6 +419,7 @@ describe("presupuesto del comité", () => {
       );
 
     // Logística tiene 1000: cada gasto de 600 cabe solo, los dos juntos no.
+    await warmPool();
     const outcomes = await Promise.allSettled([spend("Carpas"), spend("Sonido")]);
 
     expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
@@ -472,6 +474,7 @@ describe("presupuesto del comité", () => {
       );
 
     // Logística tiene 1000: cada traslado de 600 cabe solo, los dos juntos no.
+    await warmPool();
     const outcomes = await Promise.allSettled([move("Refrigerios"), move("Almuerzos")]);
 
     expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
@@ -505,6 +508,7 @@ describe("presupuesto del comité", () => {
     const { id: budgetId } = await createBudgetAs(admin, { committeeId: a3, year: 2026 });
     const decisions = ["APPROVED", "REJECTED"] as const;
 
+    await warmPool();
     const outcomes = await Promise.allSettled(
       decisions.map((decision) =>
         decideEventApprovalAs(admin, aval, { decision, note: decision }, { budgetId }),
