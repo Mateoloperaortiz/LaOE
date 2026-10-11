@@ -87,3 +87,32 @@ test("el método por código sigue disponible como alterno", async ({ page }) =>
   await page.getByRole("button", { name: t("T-046"), exact: true }).click();
   await expect(page).toHaveURL(/\/app$/);
 });
+
+test("cerrar sesión sin conexión avisa, deja la página en pie y se puede reintentar", async ({
+  page,
+}) => {
+  await page.goto("/app/ajustes");
+  await page.getByLabel(t("T-042")).fill(E2E_EMAIL);
+  await page.getByLabel(t("T-2094"), { exact: true }).fill(E2E_PASSWORD);
+  await entrar(page).click();
+  await expect(page).toHaveURL(/\/app\/ajustes$/);
+
+  await page.getByRole("button", { name: t("T-1662"), exact: true }).click();
+  const signOut = page
+    .getByRole("dialog", { name: t("T-1660"), exact: true })
+    .getByRole("button", { name: t("T-231"), exact: true });
+  // El pedido de salida no llega a la casa.
+  await page.route("**/app/**", (route) =>
+    route.request().method() === "POST" ? route.abort() : route.continue(),
+  );
+  await signOut.click();
+  await expect(page.getByText(t("T-3263"))).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-418"));
+
+  // Con la conexión de vuelta, el mismo botón cierra la sesión.
+  await page.unroute("**/app/**");
+  await signOut.click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.goto("/app");
+  await expect(page).toHaveURL(/\/ingresar/);
+});

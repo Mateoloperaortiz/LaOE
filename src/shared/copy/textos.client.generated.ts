@@ -330,6 +330,7 @@ export const textosCliente = {
   "T-3261": "Tu texto debe tener entre {min} y {max} caracteres. Ajustalo y enviá de nuevo.",
   "T-3262":
     "No pudimos recibir tu evidencia así. Revisá el texto y las imágenes, y enviala de nuevo.",
+  "T-3263": "No pudimos confirmar que tu sesión se cerró. Revisá la conexión e intentá de nuevo.",
   "T-375": "Tus comités",
   "T-376": "Todavía no tenés comité este semestre. GH te ubica en uno.",
   "T-382": "Los demás comités",

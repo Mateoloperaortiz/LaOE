@@ -72,6 +72,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-038 | Navegación del portal público | Inicio · La OE · Cartelera · Eventos · Comités · Unirse | COM | Propuesta |
 | T-039 | Nombres de los cuatro macroeventos (identidades permanentes) | Días EAFIT · Inventiva · EnFemenino · Subsidios-OE | COM | Aprobado por el manual |
 | T-3252 | Formularios: la acción no respondió, por la red o por un fallo que la casa no atrapó (ADR-118) | No pudimos confirmar el envío. Revisá la conexión e intentá de nuevo. | MATEO | Propuesta |
+| T-3263 | Cerrar sesión: el pedido de salida no tuvo respuesta (ADR-122) | No pudimos confirmar que tu sesión se cerró. Revisá la conexión e intentá de nuevo. | MATEO | Propuesta |
 
 ### Portal público · fase 1 (cartelera, eventos, comités, imágenes para compartir)
 

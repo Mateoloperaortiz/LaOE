@@ -521,6 +521,49 @@ test("trivia en móvil: radios por teclado y sin scroll horizontal", async ({ pa
   await page.screenshot({ path: "test-results/reto-trivia-mobile.png", fullPage: true });
 });
 
+test("colección: cerrar el aviso de una insignia sin conexión deja la página en pie y el aviso vuelve a salir", async ({
+  page,
+}) => {
+  const member = await personId(E2E_MEMBER_EMAIL);
+  await getDb().delete(boosterItem).where(eq(boosterItem.personId, member));
+  await getDb().delete(achievement).where(eq(achievement.personId, member));
+  const id = await crearReto({
+    kind: "TRIVIA",
+    title: "e2e-Trivia insignia sin conexión",
+    description: "Una pregunta.",
+    passPercent: 100,
+    questions: [{ prompt: "e2e-¿Cuánto es 6 + 6?", options: ["12", "13"], correctIndex: 0 }],
+    ...ventana(),
+    basePoints: 5,
+  });
+  await page.goto(`/app/gh-points/retos/${id}`);
+  await page.getByRole("radio", { name: "12", exact: true }).press(" ");
+  await page.getByRole("button", { name: tList("T-2420")[1] }).press("Enter");
+  await expect(page.getByText(copyPattern("T-2422", { aciertos: 1, total: 1 }))).toBeVisible();
+  await drenarOutbox(); // challenge.completed → recompute → Relámpago 1 + booster
+  await drenarOutbox(); // badge.unlocked
+
+  await page.goto("/app/gh-points/coleccion");
+  await expect(page.getByRole("dialog").getByText(t("T-2495"))).toBeVisible();
+  // El pedido que marca la insignia como vista no llega a la casa.
+  await page.route("**/app/gh-points/coleccion", (route) =>
+    route.request().method() === "POST" ? route.abort() : route.continue(),
+  );
+  const rejected = page.waitForEvent("requestfailed", (request) => request.method() === "POST");
+  await page.keyboard.press("Escape");
+  await rejected;
+  // Cuando termina la transición del cierre, el botón del aviso deja de estar ocupado: el aviso
+  // sigue montado, cerrado, y la colección sigue en pie.
+  await expect(page.locator("dialog", { hasText: t("T-2495") }).locator("button")).toBeEnabled();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-2471"));
+
+  // El pedido nunca llegó, así que la insignia sigue sin ver: el aviso sale en la siguiente visita.
+  await page.unroute("**/app/gh-points/coleccion");
+  await page.reload();
+  await expect(page.getByRole("dialog").getByText(t("T-2495"))).toBeVisible();
+});
+
 test("colección: la insignia abre el diálogo una vez, se destaca y sale en el directorio", async ({
   page,
 }) => {

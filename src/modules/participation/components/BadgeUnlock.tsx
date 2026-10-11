@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { t, tList } from "@/shared/copy/client";
 import { BOOSTER_KINDS, type BoosterKind } from "../gamification-types";
@@ -63,7 +63,13 @@ export function BadgeUnlock({ unseen, onSeen }: Props) {
     if (!marked.current) {
       marked.current = true;
       startTransition(async () => {
-        await onSeen(unseen.map((item) => item.achievementId));
+        try {
+          await onSeen(unseen.map((item) => item.achievementId));
+        } catch (error) {
+          // El pedido no llegó (ADR-122 regla 17): el aviso ya se cerró y la insignia queda sin
+          // marcar, así que vuelve a salir en la próxima visita. Una redirección sigue su camino.
+          unstable_rethrow(error);
+        }
       });
     }
     dialog.current?.close();

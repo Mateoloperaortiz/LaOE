@@ -10720,6 +10720,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3263": {
+    where: "Cerrar sesión: el pedido de salida no tuvo respuesta (ADR-122)",
+    text: "No pudimos confirmar que tu sesión se cerró. Revisá la conexión e intentá de nuevo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",
