@@ -20,8 +20,6 @@ interface JsonPost {
 
 interface UploadPlan {
   presign: JsonPost;
-  /** Lo que se dice cuando el paso que falla no trae un mensaje propio. */
-  fallback: string;
 }
 
 interface ConfirmedUploadPlan extends UploadPlan {
@@ -37,14 +35,28 @@ function postJson(call: JsonPost): Promise<Response> {
   });
 }
 
-/** El mensaje con que la casa rechazó; sin cuerpo JSON o sin `error`, el de siempre. */
-async function readError(response: Response, fallback: string): Promise<string> {
+/** El mensaje con que la casa rechazó, o `null` si no dijo nada: sin cuerpo JSON o sin `error`. */
+async function houseMessage(response: Response): Promise<string | null> {
   try {
     const body = (await response.json()) as { error?: string };
-    return body.error ?? fallback;
+    return body.error ?? null;
   } catch {
-    return fallback;
+    return null;
   }
+}
+
+/**
+ * El error de un paso rechazado. Si la casa dijo por qué, es un `UploadError` con su mensaje; si no,
+ * un error sin texto para mostrar, que solo nombra el paso y el estado para quien depura.
+ */
+function stepError(
+  step: "presign" | "bucket" | "confirm",
+  response: Response,
+  said: string | null,
+): Error {
+  return said === null
+    ? new Error(`upload ${step}: HTTP ${response.status}`)
+    : new UploadError(said);
 }
 
 /** Los campos firmados en su orden y el archivo al final: el bucket ignora lo que venga después. */
@@ -61,9 +73,10 @@ function uploadForm(fields: Record<string, string>, file: File): FormData {
  * Sube un archivo al bucket y devuelve su `key`; con `confirm`, también la respuesta de la casa, sin
  * leer, para quien necesite el `id`.
  *
- * Un rechazo de la casa sale como `UploadError` con su mensaje, y uno del bucket con `fallback`: lo que
- * el bucket responda no se lee. Una falla de red o una respuesta que no es JSON salen tal cual, para
- * que el subidor las pase por `uploadErrorMessage`.
+ * Un rechazo de la casa que dice por qué sale como `UploadError` con su mensaje. Todo lo demás sale
+ * como un error sin texto para mostrar: un rechazo de la casa sin mensaje, uno del bucket (lo que
+ * responda no se lee), una falla de red o una respuesta que no es JSON. El texto de siempre lo pone
+ * el subidor, en un solo sitio, con `uploadErrorMessage` (ADR-123 regla 25).
  */
 export async function uploadToBucket(
   file: File,
@@ -76,7 +89,7 @@ export async function uploadToBucket(
 ): Promise<{ key: string; confirmation?: Response }> {
   const presign = await postJson(plan.presign);
   if (!presign.ok) {
-    throw new UploadError(await readError(presign, plan.fallback));
+    throw stepError("presign", presign, await houseMessage(presign));
   }
   const prepared = (await presign.json()) as PreparedUpload;
   const stored = await fetch(prepared.url, {
@@ -84,7 +97,7 @@ export async function uploadToBucket(
     body: uploadForm(prepared.fields, file),
   });
   if (!stored.ok) {
-    throw new UploadError(plan.fallback);
+    throw stepError("bucket", stored, null);
   }
   if (!plan.confirm) {
     return { key: prepared.key };
@@ -94,7 +107,7 @@ export async function uploadToBucket(
     body: { key: prepared.key, ...plan.confirm.body },
   });
   if (!confirmation.ok) {
-    throw new UploadError(await readError(confirmation, plan.fallback));
+    throw stepError("confirm", confirmation, await houseMessage(confirmation));
   }
   return { key: prepared.key, confirmation };
 }

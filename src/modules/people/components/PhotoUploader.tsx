@@ -107,7 +107,6 @@ export function PhotoUploader({
           url: "/api/media/confirm",
           body: { filename: file.name, visibility: "PRIVATE", purpose: "photo" },
         },
-        fallback: labels.errorUpload,
       });
       const { id } = (await confirmation.json()) as { id: string };
       const result = await onChange(id);

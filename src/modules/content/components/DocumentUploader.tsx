@@ -90,7 +90,6 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
             audience,
           },
         },
-        fallback: labels.errorUpload,
       });
       const result = (await confirmation.json()) as { id: string };
       setState({ kind: "done" });

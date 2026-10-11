@@ -47,7 +47,6 @@ const sentJson = (call: Call | undefined) => JSON.parse(String(call?.init.body))
 
 const plan = () => ({
   presign: { url: PRESIGN, body: { contentType: "image/png", byteSize: 3 } },
-  fallback: FALLBACK,
 });
 
 const confirmedPlan = () => ({
@@ -119,16 +118,17 @@ describe("subir un archivo directo al bucket", () => {
   it.each([
     ["no trae cuerpo JSON", () => html(502)],
     ["trae un JSON sin mensaje", () => json({ code: "x" }, 500)],
-  ])("si la casa no firma y su respuesta %s, el error lleva el texto de siempre", async (_case, reply) => {
+  ])("si la casa no firma y su respuesta %s, el error no trae mensaje y el subidor muestra su texto de siempre", async (_case, reply) => {
     network(reply());
 
     const failure = await uploadToBucket(file(), plan()).catch((error: unknown) => error);
 
-    expect(failure).toBeInstanceOf(UploadError);
-    expect((failure as UploadError).message).toBe(FALLBACK);
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).not.toBeInstanceOf(UploadError);
+    expect(uploadErrorMessage(failure, FALLBACK)).toBe(FALLBACK);
   });
 
-  it("si el bucket rechaza, el error lleva el texto de siempre aunque el bucket diga por qué, y no se confirma", async () => {
+  it("si el bucket rechaza, el subidor muestra su texto de siempre aunque el bucket diga por qué, y no se confirma", async () => {
     const calls = network(
       json(PREPARED),
       new Response("<Error><Code>EntityTooLarge</Code><Message>Too large</Message></Error>", {
@@ -139,12 +139,15 @@ describe("subir un archivo directo al bucket", () => {
 
     const failure = await uploadToBucket(file(), confirmedPlan()).catch((error: unknown) => error);
 
-    expect(failure).toBeInstanceOf(UploadError);
-    expect((failure as UploadError).message).toBe(FALLBACK);
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).not.toBeInstanceOf(UploadError);
+    expect(uploadErrorMessage(failure, FALLBACK)).toBe(FALLBACK);
+    // Lo que el bucket responda no se lee: ni siquiera queda en el error.
+    expect((failure as Error).message).not.toContain("Too large");
     expect(calls.map((call) => call.url)).toEqual([PRESIGN, BUCKET]);
   });
 
-  it("si la casa no confirma, el error lleva lo que la casa dijo, y sin cuerpo JSON el texto de siempre", async () => {
+  it("si la casa no confirma, el error lleva lo que la casa dijo, y sin cuerpo JSON el subidor muestra su texto de siempre", async () => {
     network(
       json(PREPARED),
       new Response(null, { status: 204 }),
@@ -156,8 +159,9 @@ describe("subir un archivo directo al bucket", () => {
 
     network(json(PREPARED), new Response(null, { status: 204 }), html(502));
     const silent = await uploadToBucket(file(), confirmedPlan()).catch((error: unknown) => error);
-    expect(silent).toBeInstanceOf(UploadError);
-    expect((silent as UploadError).message).toBe(FALLBACK);
+    expect(silent).toBeInstanceOf(Error);
+    expect(silent).not.toBeInstanceOf(UploadError);
+    expect(uploadErrorMessage(silent, FALLBACK)).toBe(FALLBACK);
   });
 
   it("una falla de red sale tal cual, y el subidor la muestra con su texto de siempre", async () => {

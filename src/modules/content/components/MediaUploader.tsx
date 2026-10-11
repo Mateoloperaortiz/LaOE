@@ -73,7 +73,6 @@ export function MediaUploader({ allowedTypes, minBytes, maxBytes, labels, succes
           },
         },
         confirm: { url: "/api/media/confirm", body: { filename: file.name, visibility } },
-        fallback: labels.errorUpload,
       });
       setState({ kind: "done" });
       if (input.current) input.current.value = "";

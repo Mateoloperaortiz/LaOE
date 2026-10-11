@@ -125,7 +125,6 @@ export function EvidenceUploader({
           url: "/api/retos/evidencia/presign",
           body: { contentType: file.type, byteSize: file.size },
         },
-        fallback: errors[3] ?? "",
       });
       setFiles((current) => [
         ...current,
