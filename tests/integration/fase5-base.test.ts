@@ -14,7 +14,7 @@ import {
   getMyMembership,
   hasLiveConsent,
 } from "@/modules/people";
-import { membership, person, personTag } from "@/modules/people/schema";
+import { consent, membership, person, personTag } from "@/modules/people/schema";
 import { outbox } from "@/modules/system/schema";
 import { ensureNextTerm, findTermByCode, getTerm, nextTermCode } from "@/modules/terms";
 import { t } from "@/shared/copy";
@@ -230,6 +230,12 @@ describe("vínculo por correo y etiquetas aditivas", () => {
       await getDb().select().from(personTag).where(eq(personTag.personId, personId)),
     ).toHaveLength(2);
     await seedConsent(personId, "DATA_PROCESSING", "FORM");
+    expect(
+      await getDb()
+        .select({ purpose: consent.purpose, source: consent.source })
+        .from(consent)
+        .where(eq(consent.personId, personId)),
+    ).toEqual([{ purpose: "DATA_PROCESSING", source: "FORM" }]);
     expect(await hasLiveConsent(personId, "DATA_PROCESSING")).toBe(true);
   });
 });

@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { clearConfigCache } from "@/modules/system/domain/config";
+import { TEST_POLICY_VERSION } from "../factories/policy-version";
 
 // Deja la base de pruebas como recién migrada entre una prueba y la siguiente: las tablas de `public`
 // sin filas y los catálogos de migración como en la foto que tomó la preparación de la suite (ADR-124).
@@ -14,11 +15,7 @@ const CATALOGS = ["app_config", "badge_definition", "committee_role", "macroeven
 
 // Dónde queda la foto de los catálogos: un esquema de la base de pruebas que no es `public`, así el
 // vaciado no la alcanza, ni es de los que crea `e2e-baseline.test.ts`.
-const BASELINE = "catalog_baseline";
-
-// La versión de la política de privacidad con la que corren las pruebas. La migración 0001 deja
-// `"pendiente"`, que es justo el valor con el que la casa todavía no pide consentimiento.
-const TEST_POLICY_VERSION = "prueba-v1";
+const BASELINE_SCHEMA = "catalog_baseline";
 
 /**
  * Guarda la foto de los catálogos como los dejan las migraciones (ADR-124 regla 2). La toma
@@ -27,7 +24,7 @@ const TEST_POLICY_VERSION = "prueba-v1";
  * las filas de `page` y `event`. La versión de la política queda en su valor de prueba.
  */
 export async function saveCatalogBaseline(): Promise<void> {
-  const baseline = sql.identifier(BASELINE);
+  const baseline = sql.identifier(BASELINE_SCHEMA);
   await getDb().transaction(async (tx) => {
     await tx.execute(sql`drop schema if exists ${baseline} cascade`);
     await tx.execute(sql`create schema ${baseline}`);
@@ -50,8 +47,9 @@ export async function saveCatalogBaseline(): Promise<void> {
 // Una sola sentencia vuelve a llenar los cuatro catálogos con las filas de la foto, en el orden en que
 // la foto las guarda. Las claves foráneas se revisan al terminar la sentencia, así que el cargo que
 // nombra a otro como su reemplazo no depende del orden.
-const REFILL = `with ${CATALOGS.map(
-  (table, index) => `c${index} as (insert into public.${table} select * from ${BASELINE}.${table})`,
+const REFILL_SQL = `with ${CATALOGS.map(
+  (table, index) =>
+    `c${index} as (insert into public.${table} select * from ${BASELINE_SCHEMA}.${table})`,
 ).join(", ")} select 1`;
 
 /**
@@ -99,6 +97,6 @@ export async function truncateAll(): Promise<void> {
   // Los catálogos se borraron con las demás tablas y vuelven de la foto, no de lo que dejó la prueba
   // anterior (ADR-124 regla 3). Van después del `VACUUM`, sobre páginas en blanco: así quedan en el
   // orden de la foto. Si un vaciado falla antes de llegar acá, el siguiente los repone igual.
-  await db.execute(sql.raw(REFILL));
+  await db.execute(sql.raw(REFILL_SQL));
   clearConfigCache();
 }

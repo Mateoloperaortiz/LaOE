@@ -93,7 +93,7 @@ describe("campañas", () => {
         pushWordle: true,
       },
     );
-    const segmentId = await seedSegment("todos", {});
+    const segmentId = await seedSegment("todos");
     const templateId = await seedTemplate();
     const { id } = await createCampaignAs(SYSTEM_ACTOR, {
       name: "Lanzamiento",
@@ -145,7 +145,7 @@ describe("campañas", () => {
     for (let i = 0; i < 5; i += 1) {
       ids.push(await seedMember(`lote${i}@eafit.edu.co`));
     }
-    const segmentId = await seedSegment("lote", {});
+    const segmentId = await seedSegment("lote");
     const templateId = await seedTemplate("lote");
     const { id } = await createCampaignAs(SYSTEM_ACTOR, { name: "Lote", templateId, segmentId });
     await scheduleCampaignAs(SYSTEM_ACTOR, id, new Date(Date.now() - 1000));

@@ -49,6 +49,7 @@ import {
   seedPerson,
   seedTerm,
 } from "../factories";
+import { TEST_POLICY_VERSION } from "../factories/policy-version";
 import { E2E_TERM } from "./calendar";
 import { alignSeedCalendar } from "./calendar-seed";
 import { assertOwnedDatabase } from "./environment";
@@ -109,10 +110,10 @@ export default async function globalSetup(): Promise<void> {
   await alignSeedCalendar(new Date());
   await db
     .insert(appConfig)
-    .values({ key: "privacy.policyVersion", value: "prueba-v1" })
+    .values({ key: "privacy.policyVersion", value: TEST_POLICY_VERSION })
     .onConflictDoUpdate({
       target: appConfig.key,
-      set: { value: "prueba-v1", updatedAt: new Date() },
+      set: { value: TEST_POLICY_VERSION, updatedAt: new Date() },
     });
   const current = {
     id: await seedTerm(E2E_TERM.code, { startsOn: E2E_TERM.startsOn, endsOn: E2E_TERM.endsOn }),

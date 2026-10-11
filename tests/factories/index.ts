@@ -44,6 +44,7 @@ import {
 import { conventionalTermDates } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { todayKey } from "@/shared/lib/dates";
+import { TEST_POLICY_VERSION } from "./policy-version";
 
 // Fábricas de datos sintéticos para las pruebas de integración y de la E2E: nunca datos reales.
 // Escriben filas, no llaman comandos, y lo hacen por `getDb()`: en integración es la base `_test` y
@@ -134,13 +135,15 @@ export async function seedPerson(email: string, overrides: PersonOverrides = {})
   return id;
 }
 
-type MembershipStatus = "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE";
+type MembershipStatus = NonNullable<(typeof membership.$inferInsert)["status"]>;
 type MembershipEndReason = NonNullable<(typeof membership.$inferInsert)["endReason"]>;
 
 /**
  * La membresía de varias personas en una sola escritura, con el mismo término de ingreso y el mismo
  * estado; devuelve sus ids en el orden pedido. Una inactiva lleva su fecha y su motivo de salida
- * (`endReason`), como la deja una baja.
+ * (`endReason`), que el esquema exige juntos. No es todo lo que deja una baja: `endMembership` escribe
+ * además el último semestre (`lastTermId`), sube la época del carné (`walletEpoch`) y pasa a la persona
+ * a exalumna; `tests/integration/factory-parity.test.ts` fija esa diferencia (DT-351).
  */
 export async function seedMemberships(
   personIds: string[],
@@ -197,10 +200,11 @@ export async function seedVeteran(email: string, overrides: PersonOverrides = {}
  * Permiso global (ADMIN, BOARD) o de líder de un comité. Deja la fila que deja `grantPermission`
  * (`tests/integration/factory-parity.test.ts`) y nada más de lo que hace el comando: no audita, no
  * emite el evento ni retira los enlaces de acceso de la persona. Si ya lo tiene, devuelve el que hay.
+ * `grantedById` está para esa comparación: el comando escribe a quien concede, y sin decirlo queda nulo.
  */
 export async function seedPermission(
   personId: string,
-  code: "ADMIN" | "BOARD" | "COMMITTEE_LEADER",
+  code: (typeof permission.$inferInsert)["code"],
   committeeId: string | null = null,
   grantedById: string | null = null,
 ): Promise<string> {
@@ -333,7 +337,7 @@ export async function seedConsent(
 ): Promise<void> {
   await db()
     .insert(consent)
-    .values({ personId, purpose, source, policyVersion: "prueba-v1" })
+    .values({ personId, purpose, source, policyVersion: TEST_POLICY_VERSION })
     // Solo calla el choque con la autorización viva (`consent_live_unique`), no otro.
     .onConflictDoNothing({
       target: [consent.personId, consent.purpose],
@@ -341,12 +345,16 @@ export async function seedConsent(
     });
 }
 
-/** Un segmento sin creador; sin filtro alcanza a todas las personas. */
-export async function seedSegment(
-  name = "Todos",
-  filter: Record<string, unknown> = {},
-): Promise<string> {
-  const [row] = await db().insert(segment).values({ name, filter }).returning({ id: segment.id });
+/**
+ * Un segmento sin creador y con el filtro vacío, que alcanza a todas las personas. `createSegment`
+ * escribe además cada filtro con su valor por defecto y a quien lo crea; el vacío se lee igual
+ * (`tests/integration/factory-parity.test.ts`).
+ */
+export async function seedSegment(name = "Todos"): Promise<string> {
+  const [row] = await db()
+    .insert(segment)
+    .values({ name, filter: {} })
+    .returning({ id: segment.id });
   if (!row) throw new Error("seed segment");
   return row.id;
 }
