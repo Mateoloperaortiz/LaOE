@@ -731,21 +731,6 @@ const EXCEPTIONS: Exceptions = {
       updateTerm
     `,
   },
-  wallet: {
-    nadie: `
-      CarnetData
-      buildApplePassJson
-      buildGoogleClass
-      buildGoogleObject
-      buildGoogleTombstone
-      buildSaveClaims
-      googleIdentifiers
-      loadCarnetData
-      recordPassIssued
-      refreshGooglePass
-      setGoogleWalletTransportForTests
-    `,
-  },
 };
 
 const PRODUCTION_DIRS = ["src", "scripts", ".railway"];
