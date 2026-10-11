@@ -418,7 +418,7 @@ async function runFinance(
 export async function submitPrerequestAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
   const budgetId = formText(formData, "budgetId");
-  const { actor } = await financeOf(slug, budgetId);
+  const { actor, committee } = await financeOf(slug, budgetId);
   const parsed = prerequestInputSchema.safeParse({
     budgetId,
     month: formText(formData, "month"),
@@ -427,13 +427,15 @@ export async function submitPrerequestAction(formData: FormData): Promise<void> 
   if (!parsed.success) {
     redirect(back(slug, { ...finanzas, error: t("T-260") }));
   }
-  await runFinance(slug, "presolicitud", () => submitPrerequestAs(actor, parsed.data));
+  await runFinance(slug, "presolicitud", () =>
+    submitPrerequestAs(actor, parsed.data, { committeeId: committee.id }),
+  );
 }
 
 export async function recordExpenseAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
   const budgetId = formText(formData, "budgetId");
-  const { actor } = await financeOf(slug, budgetId);
+  const { actor, committee } = await financeOf(slug, budgetId);
   const parsed = expenseInputSchema.safeParse({
     budgetId,
     lineId: formText(formData, "lineId"),
@@ -446,13 +448,15 @@ export async function recordExpenseAction(formData: FormData): Promise<void> {
   if (!parsed.success) {
     redirect(back(slug, { ...finanzas, error: t("T-260") }));
   }
-  await runFinance(slug, "gasto", () => recordExpenseAs(actor, parsed.data));
+  await runFinance(slug, "gasto", () =>
+    recordExpenseAs(actor, parsed.data, { committeeId: committee.id }),
+  );
 }
 
 export async function recordTransferAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
   const budgetId = formText(formData, "budgetId");
-  const { actor } = await financeOf(slug, budgetId);
+  const { actor, committee } = await financeOf(slug, budgetId);
   const parsed = transferInputSchema.safeParse({
     budgetId,
     fromLineId: formText(formData, "fromLineId"),
@@ -464,7 +468,9 @@ export async function recordTransferAction(formData: FormData): Promise<void> {
   if (!parsed.success) {
     redirect(back(slug, { ...finanzas, error: t("T-260") }));
   }
-  await runFinance(slug, "traslado", () => recordTransferAs(actor, parsed.data));
+  await runFinance(slug, "traslado", () =>
+    recordTransferAs(actor, parsed.data, { committeeId: committee.id }),
+  );
 }
 
 export async function requestApprovalAction(formData: FormData): Promise<void> {

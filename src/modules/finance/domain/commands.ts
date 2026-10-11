@@ -21,6 +21,7 @@ import {
 } from "./budgets";
 import {
   type ExpenseInput,
+  type MovementScope,
   type PrerequestInput,
   recordExpense,
   recordTransfer,
@@ -67,16 +68,31 @@ export function sanctionBudgetAs(
   return runCommand(actor, (ctx) => sanctionBudget(ctx, id, input));
 }
 
-export function submitPrerequestAs(actor: Actor, input: PrerequestInput): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => submitPrerequest(ctx, input));
+// En los tres movimientos `scope` es el comité de la página de finanzas desde la que se registran
+// (ADR-122 regla 1): quien tiene FINANCE lo tiene en un comité, y el presupuesto es de ese o no existe.
+
+export function submitPrerequestAs(
+  actor: Actor,
+  input: PrerequestInput,
+  scope: MovementScope,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => submitPrerequest(ctx, input, scope));
 }
 
-export function recordExpenseAs(actor: Actor, input: ExpenseInput): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => recordExpense(ctx, input));
+export function recordExpenseAs(
+  actor: Actor,
+  input: ExpenseInput,
+  scope: MovementScope,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => recordExpense(ctx, input, scope));
 }
 
-export function recordTransferAs(actor: Actor, input: TransferInput): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => recordTransfer(ctx, input));
+export function recordTransferAs(
+  actor: Actor,
+  input: TransferInput,
+  scope: MovementScope,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => recordTransfer(ctx, input, scope));
 }
 
 export function requestEventApprovalAs(

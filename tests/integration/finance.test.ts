@@ -98,43 +98,59 @@ describe("presupuesto del comité", () => {
 
     // Sin presolicitud del mes no hay acceso a los recursos (Est. art. 38.3).
     await expect(
-      recordExpenseAs(actor, {
+      recordExpenseAs(
+        actor,
+        {
+          budgetId: id,
+          lineId: logistica,
+          spentOn: "2026-09-13",
+          amount: 100,
+          description: "Carpas",
+        },
+        { committeeId: a3 },
+      ),
+    ).rejects.toThrow(t("T-2292", { mes: "2026-09" }));
+    await submitPrerequestAs(actor, { budgetId: id, month: "2026-09" }, { committeeId: a3 });
+    await expect(
+      submitPrerequestAs(actor, { budgetId: id, month: "2026-09" }, { committeeId: a3 }),
+    ).rejects.toThrow(t("T-2297", { mes: "2026-09" }));
+    await recordExpenseAs(
+      actor,
+      {
         budgetId: id,
         lineId: logistica,
         spentOn: "2026-09-13",
         amount: 100,
         description: "Carpas",
-      }),
-    ).rejects.toThrow(t("T-2292", { mes: "2026-09" }));
-    await submitPrerequestAs(actor, { budgetId: id, month: "2026-09" });
-    await expect(submitPrerequestAs(actor, { budgetId: id, month: "2026-09" })).rejects.toThrow(
-      t("T-2297", { mes: "2026-09" }),
+        supplier: "Carpas del Valle",
+      },
+      { committeeId: a3 },
     );
-    await recordExpenseAs(actor, {
-      budgetId: id,
-      lineId: logistica,
-      spentOn: "2026-09-13",
-      amount: 100,
-      description: "Carpas",
-      supplier: "Carpas del Valle",
-    });
     await expect(
-      recordExpenseAs(actor, {
-        budgetId: id,
-        lineId: logistica,
-        spentOn: "2026-09-14",
-        amount: 901,
-        description: "Demasiado",
-      }),
+      recordExpenseAs(
+        actor,
+        {
+          budgetId: id,
+          lineId: logistica,
+          spentOn: "2026-09-14",
+          amount: 901,
+          description: "Demasiado",
+        },
+        { committeeId: a3 },
+      ),
     ).rejects.toThrow(copyPattern("T-2196", { rubro: "Logística" }));
     await expect(
-      recordTransferAs(actor, {
-        budgetId: id,
-        fromLineId: logistica,
-        toLineId: logistica,
-        amount: 10,
-        reason: "Mismo rubro",
-      }),
+      recordTransferAs(
+        actor,
+        {
+          budgetId: id,
+          fromLineId: logistica,
+          toLineId: logistica,
+          amount: 10,
+          reason: "Mismo rubro",
+        },
+        { committeeId: a3 },
+      ),
     ).rejects.toThrow(t("T-2293"));
     const transfer = {
       budgetId: id,
@@ -143,7 +159,9 @@ describe("presupuesto del comité", () => {
       amount: 400,
       reason: "Sobró logística",
     };
-    await expect(recordTransferAs(actor, transfer)).rejects.toThrow(t("T-2294"));
+    await expect(recordTransferAs(actor, transfer, { committeeId: a3 })).rejects.toThrow(
+      t("T-2294"),
+    );
     const { id: approvedId } = await requestEventApprovalAs(actor, {
       committeeId: a3,
       budgetId: id,
@@ -151,14 +169,18 @@ describe("presupuesto del comité", () => {
       eventOn: "2026-11-20",
     });
     await decideEventApprovalAs(admin, approvedId, { decision: "APPROVED" }, { budgetId: id });
-    await recordTransferAs(actor, {
-      budgetId: id,
-      fromLineId: logistica,
-      toLineId: alimentacion,
-      amount: 400,
-      approvalId: approvedId,
-      reason: "Sobró logística",
-    });
+    await recordTransferAs(
+      actor,
+      {
+        budgetId: id,
+        fromLineId: logistica,
+        toLineId: alimentacion,
+        amount: 400,
+        approvalId: approvedId,
+        reason: "Sobró logística",
+      },
+      { committeeId: a3 },
+    );
     const summary = await getBudgetSummary(id);
     expect(summary?.lines.map((line) => [line.name, line.available])).toEqual([
       ["Logística", 500],
@@ -181,9 +203,9 @@ describe("presupuesto del comité", () => {
     await sanctionBudgetAs(admin, id, { percent: 10, reason: "Presentado tarde" });
     expect((await getBudgetSummary(id))?.totals.assigned).toBe(1350);
     await closeBudgetAs(admin, id);
-    await expect(submitPrerequestAs(actor, { budgetId: id, month: "2026-10" })).rejects.toThrow(
-      t("T-2204", { año: 2026 }),
-    );
+    await expect(
+      submitPrerequestAs(actor, { budgetId: id, month: "2026-10" }, { committeeId: a3 }),
+    ).rejects.toThrow(t("T-2204", { año: 2026 }));
     const acciones = (await getDb().select().from(auditLog).where(eq(auditLog.entityId, id))).map(
       (row) => row.action,
     );
@@ -209,12 +231,14 @@ describe("presupuesto del comité", () => {
     const actor = { personId: financiero, ip: null };
     const id = await openBudgetFor(a3);
     const { logistica, alimentacion } = await lineIds(id);
-    await submitPrerequestAs(actor, { budgetId: id, month: "2026-09" });
+    await submitPrerequestAs(actor, { budgetId: id, month: "2026-09" }, { committeeId: a3 });
 
-    await expect(submitPrerequestAs(actor, { budgetId: id, month: "2026-13" })).rejects.toThrow();
-    await expect(submitPrerequestAs(actor, { budgetId: id, month: "2027-01" })).rejects.toThrow(
-      t("T-2329", { año: 2026 }),
-    );
+    await expect(
+      submitPrerequestAs(actor, { budgetId: id, month: "2026-13" }, { committeeId: a3 }),
+    ).rejects.toThrow();
+    await expect(
+      submitPrerequestAs(actor, { budgetId: id, month: "2027-01" }, { committeeId: a3 }),
+    ).rejects.toThrow(t("T-2329", { año: 2026 }));
     await expect(
       requestEventApprovalAs(actor, {
         committeeId: pixel,
@@ -249,14 +273,18 @@ describe("presupuesto del comité", () => {
     });
     // Pendiente no sirve como aval.
     await expect(
-      recordExpenseAs(actor, {
-        budgetId: id,
-        lineId: logistica,
-        spentOn: "2026-09-13",
-        amount: 50,
-        description: "Sonido",
-        approvalId: aval,
-      }),
+      recordExpenseAs(
+        actor,
+        {
+          budgetId: id,
+          lineId: logistica,
+          spentOn: "2026-09-13",
+          amount: 50,
+          description: "Sonido",
+          approvalId: aval,
+        },
+        { committeeId: a3 },
+      ),
     ).rejects.toThrow(t("T-2294"));
     await expect(
       decideEventApprovalAs(admin, pasado, { decision: "APPROVED" }, { budgetId: id }),
@@ -288,52 +316,72 @@ describe("presupuesto del comité", () => {
       decideEventApprovalAs(admin, aval, { decision: "REJECTED", note: "Tarde" }, { budgetId: id }),
     ).rejects.toThrow(t("T-2296"));
     await expect(
-      recordExpenseAs(actor, {
-        budgetId: id,
-        lineId: logistica,
-        spentOn: "2026-09-12",
-        amount: 50,
-        description: "Anterior al aval",
-        approvalId: aval,
-      }),
+      recordExpenseAs(
+        actor,
+        {
+          budgetId: id,
+          lineId: logistica,
+          spentOn: "2026-09-12",
+          amount: 50,
+          description: "Anterior al aval",
+          approvalId: aval,
+        },
+        { committeeId: a3 },
+      ),
     ).rejects.toThrow(t("T-2330"));
-    await recordExpenseAs(actor, {
-      budgetId: id,
-      lineId: logistica,
-      spentOn: "2026-09-13",
-      amount: 50,
-      description: "Sonido",
-      approvalId: aval,
-    });
-    await expect(
-      recordExpenseAs(actor, {
+    await recordExpenseAs(
+      actor,
+      {
         budgetId: id,
         lineId: logistica,
         spentOn: "2026-09-13",
         amount: 50,
-        description: "Ajeno",
-        approvalId: ajeno,
-      }),
+        description: "Sonido",
+        approvalId: aval,
+      },
+      { committeeId: a3 },
+    );
+    await expect(
+      recordExpenseAs(
+        actor,
+        {
+          budgetId: id,
+          lineId: logistica,
+          spentOn: "2026-09-13",
+          amount: 50,
+          description: "Ajeno",
+          approvalId: ajeno,
+        },
+        { committeeId: a3 },
+      ),
     ).rejects.toThrow(t("T-2294"));
     // Las reasignaciones se presentan antes del evento (Est. art. 38 par. 2).
     await expect(
-      recordTransferAs(actor, {
+      recordTransferAs(
+        actor,
+        {
+          budgetId: id,
+          fromLineId: logistica,
+          toLineId: alimentacion,
+          amount: 10,
+          reason: "Tarde",
+          approvalId: pasado,
+        },
+        { committeeId: a3 },
+      ),
+    ).rejects.toThrow(copyPattern("T-2295"));
+    await recordTransferAs(
+      actor,
+      {
         budgetId: id,
         fromLineId: logistica,
         toLineId: alimentacion,
         amount: 10,
-        reason: "Tarde",
-        approvalId: pasado,
-      }),
-    ).rejects.toThrow(copyPattern("T-2295"));
-    await recordTransferAs(actor, {
-      budgetId: id,
-      fromLineId: logistica,
-      toLineId: alimentacion,
-      amount: 10,
-      reason: "A tiempo",
-      approvalId: aval,
-    });
+        reason: "A tiempo",
+        approvalId: aval,
+      },
+      { committeeId: a3 },
+    );
     const summary = await getBudgetSummary(id);
     expect(summary?.expenses[0]?.approvalTitle).toBe("Noche de talentos");
     expect(summary?.transfers[0]?.approvalTitle).toBe("Noche de talentos");
@@ -355,15 +403,19 @@ describe("presupuesto del comité", () => {
     const actor = { personId: financiero, ip: null };
     const id = await openBudgetFor(a3);
     const { logistica } = await lineIds(id);
-    await submitPrerequestAs(actor, { budgetId: id, month: "2026-09" });
+    await submitPrerequestAs(actor, { budgetId: id, month: "2026-09" }, { committeeId: a3 });
     const spend = (description: string) =>
-      recordExpenseAs(actor, {
-        budgetId: id,
-        lineId: logistica,
-        spentOn: "2026-09-13",
-        amount: 600,
-        description,
-      });
+      recordExpenseAs(
+        actor,
+        {
+          budgetId: id,
+          lineId: logistica,
+          spentOn: "2026-09-13",
+          amount: 600,
+          description,
+        },
+        { committeeId: a3 },
+      );
 
     // Logística tiene 1000: cada gasto de 600 cabe solo, los dos juntos no.
     const outcomes = await Promise.allSettled([spend("Carpas"), spend("Sonido")]);
@@ -406,14 +458,18 @@ describe("presupuesto del comité", () => {
       { budgetId: id },
     );
     const move = (reason: string) =>
-      recordTransferAs(actor, {
-        budgetId: id,
-        fromLineId: logistica,
-        toLineId: alimentacion,
-        amount: 600,
-        reason,
-        approvalId: aval,
-      });
+      recordTransferAs(
+        actor,
+        {
+          budgetId: id,
+          fromLineId: logistica,
+          toLineId: alimentacion,
+          amount: 600,
+          reason,
+          approvalId: aval,
+        },
+        { committeeId: a3 },
+      );
 
     // Logística tiene 1000: cada traslado de 600 cabe solo, los dos juntos no.
     const outcomes = await Promise.allSettled([move("Refrigerios"), move("Almuerzos")]);
