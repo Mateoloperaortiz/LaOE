@@ -34,9 +34,11 @@ import {
 
 const failuresByIp = new Map<string, number[]>();
 
-/** Solo para pruebas. */
-export function clearHubFailures(): void {
+/** Solo para pruebas: olvida los fallos y dice de cuántas IP tenía. */
+export function clearHubFailures(): number {
+  const held = failuresByIp.size;
   failuresByIp.clear();
+  return held;
 }
 
 function tooManyFailures(ip: string | null | undefined, now: Date): boolean {
@@ -49,6 +51,11 @@ function tooManyFailures(ip: string | null | undefined, now: Date): boolean {
 
 function countFailure(ip: string | null | undefined, now: Date): void {
   if (!ip) return;
+  // Al anotar un fallo se sueltan las IP cuyos fallos ya salieron de la ventana (ADR-122 regla 10):
+  // la que fallaba y no volvía dejaba su entrada hasta el reinicio.
+  for (const [other, times] of failuresByIp) {
+    if (recentFailures(times, now).length === 0) failuresByIp.delete(other);
+  }
   failuresByIp.set(ip, [...recentFailures(failuresByIp.get(ip) ?? [], now), now.getTime()]);
 }
 

@@ -22,6 +22,14 @@ interface Entry {
 
 const memo = new Map<string, Entry>();
 
+/** Al guardar se suelta lo vencido (ADR-122 regla 10). El slug lo escribe quien pide: sin esto, cada
+ *  uno que no existe dejaba una entrada hasta el reinicio. Lo vencido ya no le ahorra nada a nadie. */
+function dropExpired(now: Date): void {
+  for (const [key, entry] of memo) {
+    if (now.getTime() - entry.at >= MEMO_MS) memo.delete(key);
+  }
+}
+
 async function build(slug: string): Promise<ShowcaseBody | null> {
   const row = await getCompetitionBySlug(slug);
   if (!row || row.status === "DRAFT") return null;
@@ -54,6 +62,7 @@ export async function getShowcase(slug: string, now = new Date()): Promise<Showc
   const fresh = cached && now.getTime() - cached.at < MEMO_MS;
   const entry: Entry = fresh && cached ? cached : { at: now.getTime(), value: build(slug) };
   if (!fresh) {
+    dropExpired(now);
     memo.set(slug, entry);
     entry.value.catch(() => memo.delete(slug));
   }
@@ -61,7 +70,9 @@ export async function getShowcase(slug: string, now = new Date()): Promise<Showc
   return body ? showcaseSchema.parse({ ...body, serverNow: now.toISOString() }) : null;
 }
 
-/** Solo para pruebas: vacía el memo. */
-export function clearShowcaseMemo(): void {
+/** Solo para pruebas: vacía el memo y dice cuántas entradas tenía. */
+export function clearShowcaseMemo(): number {
+  const held = memo.size;
   memo.clear();
+  return held;
 }

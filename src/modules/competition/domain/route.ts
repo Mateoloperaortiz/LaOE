@@ -16,6 +16,14 @@ interface Entry {
 
 const memo = new Map<string, Entry>();
 
+/** Al guardar se suelta lo vencido (ADR-122 regla 10). El slug lo escribe quien pide: sin esto, cada
+ *  uno que no existe dejaba una entrada hasta el reinicio. Lo vencido ya no le ahorra nada a nadie. */
+function dropExpired(now: Date): void {
+  for (const [key, entry] of memo) {
+    if (now.getTime() - entry.at >= MEMO_MS) memo.delete(key);
+  }
+}
+
 async function build(slug: string, number: number): Promise<Omit<TeamRoute, "serverNow"> | null> {
   const row = await getCompetitionBySlug(slug);
   if (!row || row.status === "DRAFT") return null;
@@ -49,6 +57,7 @@ export async function getTeamRoute(
   const fresh = cached && now.getTime() - cached.at < MEMO_MS;
   const entry: Entry = fresh && cached ? cached : { at: now.getTime(), value: build(slug, number) };
   if (!fresh) {
+    dropExpired(now);
     memo.set(key, entry);
     entry.value.catch(() => memo.delete(key));
   }
@@ -56,7 +65,9 @@ export async function getTeamRoute(
   return body ? teamRouteSchema.parse({ ...body, serverNow: now.toISOString() }) : null;
 }
 
-/** Solo para pruebas: vacía el memo. */
-export function clearRouteMemo(): void {
+/** Solo para pruebas: vacía el memo y dice cuántas entradas tenía. */
+export function clearRouteMemo(): number {
+  const held = memo.size;
   memo.clear();
+  return held;
 }
