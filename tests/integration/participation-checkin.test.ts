@@ -15,7 +15,7 @@ import { getOccasion } from "@/modules/participation/domain/occasions";
 import { rotatingCodeAt } from "@/modules/participation/domain/rotating-code-pure";
 import { listOccasionScores } from "@/modules/participation/domain/scores";
 import { checkIn, committeeParticipation, pointEntry } from "@/modules/participation/schema";
-import { committeeMembership, membership, person } from "@/modules/people/schema";
+import { committeeMembership, membership } from "@/modules/people/schema";
 import { setConfig } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
@@ -26,7 +26,9 @@ import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
+  seedMemberships,
   seedOccasion,
+  seedPeople,
   seedTerm,
 } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
@@ -46,22 +48,13 @@ async function seedMembersBulk(
   committeeIds: string[],
   prefix = "bulk",
 ): Promise<string[]> {
-  const people = await db()
-    .insert(person)
-    .values(
-      Array.from({ length: n }, (_, index) => ({
-        email: `${prefix}.${index}@eafit.edu.co`,
-        firstName: "Persona",
-        lastName: `Lote ${index}`,
-        stage: "MEMBER" as const,
-        source: "TEST",
-      })),
-    )
-    .returning({ id: person.id });
-  const ids = people.map((row) => row.id);
-  await db()
-    .insert(membership)
-    .values(ids.map((personId) => ({ personId, firstTermId: termId, status: "ACTIVE" as const })));
+  const ids = await seedPeople(
+    Array.from({ length: n }, (_, index) => ({
+      email: `${prefix}.${index}@eafit.edu.co`,
+      lastName: `Lote ${index}`,
+    })),
+  );
+  await seedMemberships(ids, termId);
   await db()
     .insert(committeeMembership)
     .values(

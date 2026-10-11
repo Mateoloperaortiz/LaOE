@@ -5,7 +5,7 @@ import { committeeMembership } from "@/modules/people/schema";
 import { getCurrentTerm } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { alignSeedCalendar } from "../e2e/calendar-seed";
-import { seedCommittee, seedPerson } from "../factories";
+import { seedCommittee, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
 
 beforeEach(truncateAll);
@@ -19,12 +19,8 @@ it.each([
   ["2027-07-01T00:00:00-05:00", "2027-2"],
   ["2028-02-29T12:00:00-05:00", "2028-1"],
 ])("el servidor encuentra el semestre vigente con el reloj en %s", async (at, expected) => {
-  await getDb()
-    .insert(term)
-    .values([
-      { code: "2026-1", semester: 1, startsOn: "2026-01-19", endsOn: "2026-06-06" },
-      { code: "2026-2", semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" },
-    ]);
+  await seedTerm("2026-1", { startsOn: "2026-01-19", endsOn: "2026-06-06" });
+  await seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
   const [original] = await getDb().select().from(term).where(eq(term.code, "2026-2"));
   const [previous] = await getDb().select().from(term).where(eq(term.code, "2026-1"));
   if (!original || !previous) throw new Error("Faltan los términos sintéticos de partida");

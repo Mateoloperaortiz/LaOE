@@ -22,12 +22,12 @@ import {
 import { WORDLE_RULES_VERSION } from "@/modules/participation/domain/wordle-pure";
 import { pointEntry, wordleAttempt, wordleGame } from "@/modules/participation/schema";
 import type { WordleGameView } from "@/modules/participation/wordle-types";
-import { membership, person } from "@/modules/people/schema";
+import { membership } from "@/modules/people/schema";
 import { setConfig } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
-import { seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
+import { seedMember, seedMembership, seedPeople, seedPerson, seedTerm } from "../factories";
 import { itemPattern } from "../helpers/copy";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
@@ -101,22 +101,17 @@ describe("Wordle diario persistido", () => {
     // Al catálogo le quedan justo tantas respuestas como miembros: si dos leyeran a la vez las
     // disponibles, elegirían al azar entre las mismas y se repetirían casi siempre.
     const spent = WORDLE_ANSWERS.slice(people.length);
-    const others = await db()
-      .insert(person)
-      .values(
-        spent.map((_, i) => ({
-          email: `wordle.gastada.${i}@eafit.edu.co`,
-          firstName: "Persona",
-          lastName: "Sintética",
-          source: "TEST",
-        })),
-      )
-      .returning({ id: person.id });
+    const others = await seedPeople(
+      spent.map((_, i) => ({
+        email: `wordle.gastada.${i}@eafit.edu.co`,
+        stage: "PROSPECT" as const,
+      })),
+    );
     await db()
       .insert(wordleGame)
       .values(
         spent.map((answer, i) => ({
-          personId: others[i]?.id ?? "",
+          personId: others[i] ?? "",
           day: dayKeyFor(new Date()),
           termId,
           answer,
@@ -429,22 +424,17 @@ describe("Wordle diario persistido", () => {
   it("agotamiento del catálogo no repite una respuesta", async () => {
     const personId = await seedMember("wordle.agotado@eafit.edu.co");
     const termId = await seedTerm();
-    const people = await db()
-      .insert(person)
-      .values(
-        WORDLE_ANSWERS.map((_, i) => ({
-          email: `wordle.catalogo.${i}@eafit.edu.co`,
-          firstName: "Persona",
-          lastName: "Sintética",
-          source: "TEST",
-        })),
-      )
-      .returning({ id: person.id });
+    const people = await seedPeople(
+      WORDLE_ANSWERS.map((_, i) => ({
+        email: `wordle.catalogo.${i}@eafit.edu.co`,
+        stage: "PROSPECT" as const,
+      })),
+    );
     await db()
       .insert(wordleGame)
       .values(
         WORDLE_ANSWERS.map((answer, i) => ({
-          personId: people[i]?.id ?? personId,
+          personId: people[i] ?? personId,
           day: dayKeyFor(new Date()),
           termId,
           answer,

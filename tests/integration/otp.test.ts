@@ -28,8 +28,7 @@ import {
   resolveActor,
 } from "@/modules/identity/domain/session";
 import { otpChallenge, session } from "@/modules/identity/schema";
-import { membership, person } from "@/modules/people/schema";
-import { term } from "@/modules/terms/schema";
+import { membership } from "@/modules/people/schema";
 import {
   type MailMessage,
   type MailTransport,
@@ -37,7 +36,7 @@ import {
   QuotaExceededError,
 } from "@/shared/adapters/mail";
 import { tList } from "@/shared/copy";
-import { seedPermission } from "../factories";
+import { seedMembership, seedPermission, seedPerson, seedTerm } from "../factories";
 import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
@@ -50,20 +49,10 @@ async function seedMember(
   email: string,
   status: "ACTIVE" | "HONORARY" | "ON_LEAVE" | "INACTIVE" = "ACTIVE",
 ) {
-  let [current] = await db().select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
-  if (!current) {
-    [current] = await db()
-      .insert(term)
-      .values({ code: "2026-2", semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
-      .returning({ id: term.id });
-  }
-  const [who] = await db()
-    .insert(person)
-    .values({ email, firstName: "Persona", lastName: "Sintética", stage: "MEMBER" })
-    .returning({ id: person.id });
-  if (!who || !current) throw new Error("seed");
-  await db().insert(membership).values({ personId: who.id, status, firstTermId: current.id });
-  return who.id;
+  const termId = await seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
+  const personId = await seedPerson(email);
+  await seedMembership(personId, termId, status);
+  return personId;
 }
 
 async function challengesFor(email: string) {

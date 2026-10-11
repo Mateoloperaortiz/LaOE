@@ -16,9 +16,15 @@ import {
   getSurveyInviteForActor,
 } from "@/modules/participation";
 import { checkIn, occasion, occasionSurveyInvite } from "@/modules/participation/schema";
-import { person } from "@/modules/people/schema";
 import { outbox } from "@/modules/system/schema";
-import { seedCheckIn, seedForm, seedMember, seedOccasion, seedTerm } from "../factories";
+import {
+  seedCheckIn,
+  seedForm,
+  seedMember,
+  seedOccasion,
+  seedPeople,
+  seedTerm,
+} from "../factories";
 import { holdTransaction, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
@@ -152,23 +158,19 @@ describe("las invitaciones a la encuesta toleran el reintento", () => {
     const termId = await seedTerm();
     const occasionId = await closedOccasionWithSurvey(termId);
     const total = NOTIFICATION_MAX_RECIPIENTS + 1;
-    const attendees = await db()
-      .insert(person)
-      .values(
-        Array.from({ length: total }, (_unused, index) => ({
-          email: `tanda-${index}@eafit.edu.co`,
-          firstName: "Tanda",
-          lastName: `Sintética ${index}`,
-          stage: "MEMBER" as const,
-        })),
-      )
-      .returning({ id: person.id });
+    const attendees = await seedPeople(
+      Array.from({ length: total }, (_unused, index) => ({
+        email: `tanda-${index}@eafit.edu.co`,
+        firstName: "Tanda",
+        lastName: `Sintética ${index}`,
+      })),
+    );
     await db()
       .insert(checkIn)
       .values(
-        attendees.map((row) => ({
+        attendees.map((personId) => ({
           occasionId,
-          personId: row.id,
+          personId,
           status: "APPROVED" as const,
           source: "ADMIN" as const,
         })),
@@ -194,9 +196,7 @@ describe("las invitaciones a la encuesta toleran el reintento", () => {
       .where(eq(occasionSurveyInvite.occasionId, occasionId));
     const notices = await surveyNotices(occasionId);
     // Nadie se queda sin aviso, nadie lo recibe dos veces, y cada enlace es el de su invitación.
-    expect(notices.map((notice) => notice.personId).sort()).toEqual(
-      attendees.map((row) => row.id).sort(),
-    );
+    expect(notices.map((notice) => notice.personId).sort()).toEqual([...attendees].sort());
     expect(
       notices.map((notice) => `${notice.personId}:${hashOf(tokenOf(notice.url))}`).sort(),
     ).toEqual(invites.map((invite) => `${invite.personId}:${invite.tokenHash}`).sort());

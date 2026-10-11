@@ -14,7 +14,7 @@ import {
   type BootstrapAdminInput,
   bootstrapAdmin,
 } from "../../scripts/lib/bootstrap-admin";
-import { seedPerson } from "../factories";
+import { seedPerson, seedTerm } from "../factories";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
@@ -111,9 +111,10 @@ describe("bootstrap del primer ADMIN (ADR-039)", () => {
   });
 
   it("no modifica un término existente con fechas distintas", async () => {
-    await getDb()
-      .insert(term)
-      .values({ ...input.firstTerm, semester: 1, startsOn: "2040-01-01" });
+    await seedTerm(input.firstTerm.code, {
+      startsOn: "2040-01-01",
+      endsOn: input.firstTerm.endsOn,
+    });
     await expect(bootstrapAdmin(input)).rejects.toThrow("otras fechas");
     expect(await getDb().select().from(person)).toHaveLength(0);
     expect(await getDb().select().from(term)).toMatchObject([{ startsOn: "2040-01-01" }]);

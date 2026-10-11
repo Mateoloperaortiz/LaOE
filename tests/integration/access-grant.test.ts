@@ -25,6 +25,7 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedMembership, seedPerson, seedTerm } from "../factories";
 import {
   backendPid,
   deferred,
@@ -48,20 +49,10 @@ async function seedMember(
   email: string,
   status: "ACTIVE" | "INACTIVE" = "ACTIVE",
 ): Promise<string> {
-  let [current] = await db().select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
-  if (!current) {
-    [current] = await db()
-      .insert(term)
-      .values({ code: "2026-2", semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
-      .returning({ id: term.id });
-  }
-  const [who] = await db()
-    .insert(person)
-    .values({ email, firstName: "Camila", lastName: "Sintética", stage: "MEMBER" })
-    .returning({ id: person.id });
-  if (!who || !current) throw new Error("seed");
-  await db().insert(membership).values({ personId: who.id, status, firstTermId: current.id });
-  return who.id;
+  const termId = await seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
+  const personId = await seedPerson(email, { firstName: "Camila" });
+  await seedMembership(personId, termId, status);
+  return personId;
 }
 
 async function seedCommittee(slug: string): Promise<string> {

@@ -7,10 +7,9 @@ import { consumeAccessGrant } from "@/modules/identity/domain/access-grant";
 import { findPasswordHash } from "@/modules/identity/domain/password";
 import { hashPassword, verifyPassword } from "@/modules/identity/domain/pure";
 import { accessGrant, credential } from "@/modules/identity/schema";
-import { membership, person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
-import { term } from "@/modules/terms/schema";
 import { BootstrapAccessError, bootstrapAccess } from "../../scripts/lib/bootstrap-access";
+import { seedMembership, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
 
 // Arranque del acceso (ADR-051, regla 16): el único camino de vuelta cuando nadie puede entrar.
@@ -21,20 +20,10 @@ async function seedMember(
   email: string,
   status: "ACTIVE" | "INACTIVE" = "ACTIVE",
 ): Promise<string> {
-  let [current] = await db().select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
-  if (!current) {
-    [current] = await db()
-      .insert(term)
-      .values({ code: "2026-2", semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
-      .returning({ id: term.id });
-  }
-  const [who] = await db()
-    .insert(person)
-    .values({ email, firstName: "Junta", lastName: "Sintética", stage: "MEMBER" })
-    .returning({ id: person.id });
-  if (!who || !current) throw new Error("seed");
-  await db().insert(membership).values({ personId: who.id, status, firstTermId: current.id });
-  return who.id;
+  const termId = await seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
+  const personId = await seedPerson(email, { firstName: "Junta" });
+  await seedMembership(personId, termId, status);
+  return personId;
 }
 
 describe("bootstrapAccess", () => {

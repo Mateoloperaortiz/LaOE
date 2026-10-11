@@ -4,8 +4,7 @@ import { closeDb, getDb } from "@/db/client";
 import { pruneIdentity } from "@/modules/identity/domain/maintenance";
 import { hashToken } from "@/modules/identity/domain/pure";
 import { accessGrant, loginAttempt, session } from "@/modules/identity/schema";
-import { membership, person } from "@/modules/people/schema";
-import { term } from "@/modules/terms/schema";
+import { seedMembership, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
 
 // La depuración diaria también limpia lo que ADR-051 agrega: intentos de ingreso y enlaces que ya
@@ -15,19 +14,10 @@ const db = () => getDb();
 const DAY = 24 * 60 * 60_000;
 
 async function seedMember(email: string): Promise<string> {
-  const [current] = await db()
-    .insert(term)
-    .values({ code: "2026-2", semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
-    .returning({ id: term.id });
-  const [who] = await db()
-    .insert(person)
-    .values({ email, firstName: "Persona", lastName: "Sintética", stage: "MEMBER" })
-    .returning({ id: person.id });
-  if (!who || !current) throw new Error("seed");
-  await db()
-    .insert(membership)
-    .values({ personId: who.id, status: "ACTIVE", firstTermId: current.id });
-  return who.id;
+  const termId = await seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
+  const personId = await seedPerson(email);
+  await seedMembership(personId, termId);
+  return personId;
 }
 
 describe("pruneIdentity", () => {

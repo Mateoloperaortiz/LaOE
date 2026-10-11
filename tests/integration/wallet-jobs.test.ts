@@ -17,7 +17,7 @@ import {
   endMembership,
   reactivateMembership,
 } from "@/modules/people/domain/membership";
-import { membership, person } from "@/modules/people/schema";
+import { person } from "@/modules/people/schema";
 import { outbox } from "@/modules/system/schema";
 import { loadCarnetData } from "@/modules/wallet/domain/carnet-data";
 import {
@@ -40,6 +40,8 @@ import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
+  seedMemberships,
+  seedPeople,
   seedTerm,
 } from "../factories";
 import { truncateAll } from "./db";
@@ -295,20 +297,15 @@ describe("wallet por outbox y reconciliación diaria", () => {
 
   it("pagina ciento un pases en lotes de cien sin omitir personas ni duplicar escrituras", async () => {
     const termId = await seedTerm();
-    const people = await getDb()
-      .insert(person)
-      .values(
-        Array.from({ length: 101 }, (_, index) => ({
-          email: `wallet-lote-${index}@eafit.edu.co`,
-          firstName: "Miembro",
-          lastName: `Sintético ${index}`,
-          stage: "MEMBER" as const,
-        })),
-      )
-      .returning({ id: person.id });
-    await getDb()
-      .insert(membership)
-      .values(people.map(({ id }) => ({ personId: id, firstTermId: termId })));
+    const personIds = await seedPeople(
+      Array.from({ length: 101 }, (_, index) => ({
+        email: `wallet-lote-${index}@eafit.edu.co`,
+        firstName: "Miembro",
+        lastName: `Sintético ${index}`,
+      })),
+    );
+    const people = personIds.map((id) => ({ id }));
+    await seedMemberships(personIds, termId);
     await getDb()
       .insert(carnetToken)
       .values(

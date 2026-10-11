@@ -16,29 +16,13 @@ import {
   person,
 } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
-import { term } from "@/modules/terms/schema";
-import { seedPermission } from "../factories";
+import { seedMembership, seedPermission, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
 
-async function createPerson(email: string) {
-  const [row] = await db()
-    .insert(person)
-    .values({ email, firstName: "Persona", lastName: "Sintética", stage: "MEMBER" })
-    .returning({ id: person.id });
-  if (!row) throw new Error("sin persona");
-  return row.id;
-}
-
-async function createTerm(code = "2026-2") {
-  const [row] = await db()
-    .insert(term)
-    .values({ code, semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
-    .returning({ id: term.id });
-  if (!row) throw new Error("sin término");
-  return row.id;
-}
+const createPerson = (email: string) => seedPerson(email);
+const createTerm = () => seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
 
 async function createCommittee(slug: string) {
   const [row] = await db()
@@ -65,7 +49,7 @@ describe("restricciones que no negocia el esquema", () => {
   it("permite una sola membresía por persona", async () => {
     const personId = await createPerson("m@eafit.edu.co");
     const termId = await createTerm();
-    await db().insert(membership).values({ personId, firstTermId: termId });
+    await seedMembership(personId, termId);
     await expect(
       db().insert(membership).values({ personId, firstTermId: termId }),
     ).rejects.toSatisfy((error) => isUniqueViolation(error, "membership_person_unique"));

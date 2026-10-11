@@ -51,15 +51,26 @@ export function currentTermCode(): string {
   return `${year}-${month <= 6 ? 1 : 2}`;
 }
 
-export async function seedTerm(code = currentTermCode()): Promise<string> {
+/**
+ * El término de ese código: si ya existe devuelve el que hay, con las fechas que tenga. Uno nuevo
+ * nace con las fechas convencionales del semestre calendario, salvo las que se pidan en `dates`.
+ */
+export async function seedTerm(
+  code = currentTermCode(),
+  dates: Partial<{ startsOn: string; endsOn: string }> = {},
+): Promise<string> {
   const [existing] = await db().select({ id: term.id }).from(term).where(eq(term.code, code));
   if (existing) {
     return existing.id;
   }
-  const dates = conventionalTermDates(code);
   const [row] = await db()
     .insert(term)
-    .values({ code, semester: code.endsWith("-2") ? 2 : 1, ...dates })
+    .values({
+      code,
+      semester: code.endsWith("-2") ? 2 : 1,
+      ...conventionalTermDates(code),
+      ...dates,
+    })
     .returning({ id: term.id });
   if (!row) throw new Error("seed term");
   return row.id;
@@ -77,41 +88,81 @@ type PersonOverrides = Partial<{
   entryTermCode: string;
 }>;
 
-export async function seedPerson(email: string, overrides: PersonOverrides = {}): Promise<string> {
-  const [row] = await db()
+/** Varias personas en una sola escritura, cada una con sus overrides; devuelve sus ids en el orden pedido. */
+export async function seedPeople(
+  people: Array<{ email: string } & PersonOverrides>,
+): Promise<string[]> {
+  if (people.length === 0) return [];
+  const rows = await db()
     .insert(person)
-    .values({
-      email,
-      firstName: overrides.firstName ?? "Persona",
-      lastName: overrides.lastName ?? "Sintética",
-      stage: overrides.stage ?? "MEMBER",
-      kind: overrides.kind ?? "STUDENT",
-      phone: overrides.phone ?? null,
-      program: overrides.program ?? null,
-      personalEmail: overrides.personalEmail ?? null,
-      source: "TEST",
-    })
-    .returning({ id: person.id });
-  if (!row) throw new Error("seed person");
-  return row.id;
+    .values(
+      people.map((one) => ({
+        email: one.email,
+        firstName: one.firstName ?? "Persona",
+        lastName: one.lastName ?? "Sintética",
+        stage: one.stage ?? "MEMBER",
+        kind: one.kind ?? "STUDENT",
+        phone: one.phone ?? null,
+        program: one.program ?? null,
+        personalEmail: one.personalEmail ?? null,
+        source: "TEST",
+      })),
+    )
+    .returning({ id: person.id, email: person.email });
+  const ids = new Map(rows.map((row) => [row.email, row.id]));
+  return people.map((one) => {
+    const id = ids.get(one.email);
+    if (!id) throw new Error("seed person");
+    return id;
+  });
+}
+
+export async function seedPerson(email: string, overrides: PersonOverrides = {}): Promise<string> {
+  const [id] = await seedPeople([{ email, ...overrides }]);
+  if (!id) throw new Error("seed person");
+  return id;
+}
+
+type MembershipStatus = "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE";
+
+/**
+ * La membresía de varias personas en una sola escritura, con el mismo término de ingreso y el mismo
+ * estado; devuelve sus ids en el orden pedido. Una inactiva lleva su fecha y su motivo de salida,
+ * como la deja una baja.
+ */
+export async function seedMemberships(
+  personIds: string[],
+  termId: string,
+  status: MembershipStatus = "ACTIVE",
+): Promise<string[]> {
+  if (personIds.length === 0) return [];
+  const rows = await db()
+    .insert(membership)
+    .values(
+      personIds.map((personId) => ({
+        personId,
+        firstTermId: termId,
+        status,
+        ...(status === "INACTIVE" ? { endedAt: new Date(), endReason: "OTHER" as const } : {}),
+      })),
+    )
+    .returning({ id: membership.id, personId: membership.personId });
+  const ids = new Map(rows.map((row) => [row.personId, row.id]));
+  return personIds.map((personId) => {
+    const id = ids.get(personId);
+    if (!id) throw new Error("seed membership");
+    return id;
+  });
 }
 
 export async function seedMembership(
   personId: string,
   termId: string,
-  status: "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE" = "ACTIVE",
+  status: MembershipStatus = "ACTIVE",
 ): Promise<string> {
-  const [row] = await db()
-    .insert(membership)
-    .values({
-      personId,
-      firstTermId: termId,
-      status,
-      ...(status === "INACTIVE" ? { endedAt: new Date(), endReason: "OTHER" as const } : {}),
-    })
-    .returning({ id: membership.id });
-  if (!row) throw new Error("seed membership");
-  return row.id;
+  const [id] = await seedMemberships([personId], termId, status);
+  if (!id) throw new Error("seed membership");
+  return id;
 }
 
 /** Persona del roster con membresía activa en el término actual; devuelve su id. */

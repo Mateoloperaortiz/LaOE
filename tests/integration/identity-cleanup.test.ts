@@ -10,8 +10,7 @@ import { hashPassword } from "@/modules/identity/domain/pure";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
 import { accessGrant, credential, session } from "@/modules/identity/schema";
 import { endMembershipAs } from "@/modules/people";
-import { membership, person } from "@/modules/people/schema";
-import { term } from "@/modules/terms/schema";
+import { seedMembership, seedPerson, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
@@ -24,25 +23,13 @@ const sessionRowsOf = (personId: string) =>
   db().select({ id: session.id }).from(session).where(eq(session.personId, personId));
 
 async function seedMember(email: string): Promise<string> {
-  let [current] = await db().select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
-  if (!current) {
-    [current] = await db()
-      .insert(term)
-      .values({ code: "2026-2", semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
-      .returning({ id: term.id });
-  }
-  const [who] = await db()
-    .insert(person)
-    .values({ email, firstName: "Salida", lastName: "Sintética", stage: "MEMBER" })
-    .returning({ id: person.id });
-  if (!who || !current) throw new Error("seed");
-  await db()
-    .insert(membership)
-    .values({ personId: who.id, status: "ACTIVE", firstTermId: current.id });
+  const termId = await seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
+  const personId = await seedPerson(email, { firstName: "Salida" });
+  await seedMembership(personId, termId);
   await db()
     .insert(credential)
-    .values({ personId: who.id, passwordHash: await hashPassword(CLAVE) });
-  return who.id;
+    .values({ personId, passwordHash: await hashPassword(CLAVE) });
+  return personId;
 }
 
 describe("retiro y anonimización retiran la credencial", () => {
@@ -118,11 +105,10 @@ describe("retiro y anonimización retiran la credencial", () => {
   it("un cambio a un estado sin ingreso le cierra la sesión a quien no tiene membresía: sin estado que releer, se cierra", async () => {
     // Alguien con sesión y sin fila de membresía: el handler no tiene con qué comprobar que hoy puede
     // entrar, y ante la duda no conserva la sesión (ADR-118 regla 5).
-    const [who] = await db()
-      .insert(person)
-      .values({ email: "sin-membresia@eafit.edu.co", firstName: "Sesión", lastName: "Sintética" })
-      .returning({ id: person.id });
-    const personId = who?.id ?? "";
+    const personId = await seedPerson("sin-membresia@eafit.edu.co", {
+      firstName: "Sesión",
+      stage: "PROSPECT",
+    });
     await createSession(db(), { personId, remember: true, userAgent: null, ip: null });
     expect(await sessionRowsOf(personId)).toHaveLength(1);
 
