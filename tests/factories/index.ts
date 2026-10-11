@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { message } from "@/modules/comms/schema";
+import { competitionSupport } from "@/modules/competition/schema";
 import { mediaAsset } from "@/modules/content/schema";
 import {
   card,
@@ -1313,4 +1314,14 @@ export async function seedConfig(key: string, value: unknown): Promise<void> {
     .insert(appConfig)
     .values({ key, value })
     .onConflictDoUpdate({ target: appConfig.key, set: { value } });
+}
+
+/** Apoyo de una base de la competencia, como lo deja la importación del personal, sin decir quién lo cargó. */
+export async function seedCompetitionSupport(
+  competitionId: string,
+  baseId: string,
+  personId: string,
+  role: (typeof competitionSupport.$inferInsert)["role"],
+): Promise<void> {
+  await db().insert(competitionSupport).values({ competitionId, baseId, personId, role });
 }
