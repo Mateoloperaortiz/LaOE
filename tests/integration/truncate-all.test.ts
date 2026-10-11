@@ -250,6 +250,30 @@ async function unchecked(...statements: string[]): Promise<void> {
   });
 }
 
+/**
+ * En cada conexión que el pool tiene abierta, cuánto vale un parámetro y cuánto valía al abrirla. Se
+ * piden todas antes de devolver ninguna: así responde también la que corrió el último vaciado.
+ */
+async function settingOnEveryConnection(name: string) {
+  const pool = getDb().$client;
+  const clients = await Promise.all(Array.from({ length: pool.totalCount }, () => pool.connect()));
+  try {
+    return await Promise.all(
+      clients.map(async (client) => {
+        const { rows } = await client.query<{ now: string; atStart: string }>(
+          'select setting as now, reset_val as "atStart" from pg_settings where name = $1',
+          [name],
+        );
+        return rows[0];
+      }),
+    );
+  } finally {
+    for (const client of clients) {
+      client.release();
+    }
+  }
+}
+
 let photographed: Record<string, unknown[]>;
 
 beforeAll(async () => {
@@ -462,6 +486,18 @@ describe("el vaciado de la base entre pruebas", () => {
     await expect(emptying).resolves.toBeUndefined();
     expect(await tablesWithRows()).toEqual(CATALOGS);
     expect(await catalogsOf("public")).toEqual(photographed);
+  });
+
+  it("le deja a cada conexión del pool el plazo de espera de candado que tenía: el suyo vale solo para sus dos transacciones (ADR-124 regla 7)", async () => {
+    // Puesto para la sesión, el plazo de 250 ms le quedaría a la conexión que corrió el vaciado, y la
+    // prueba siguiente que esperara un candado por ella caería con un `55P03` que nadie le puso.
+    await warmPool();
+
+    await truncateAll();
+
+    const timeouts = await settingOnEveryConnection("lock_timeout");
+    expect(timeouts.length).toBeGreaterThanOrEqual(4);
+    expect(timeouts.filter((timeout) => timeout?.now !== timeout?.atStart)).toEqual([]);
   });
 
   it("dos vaciados a la vez terminan los dos y dejan los catálogos como en la foto (DT-349)", async () => {
