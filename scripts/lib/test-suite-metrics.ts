@@ -101,38 +101,72 @@ function testTitles(source: ts.SourceFile): string[] {
   return titles;
 }
 
-/**
- * Si el archivo importa lo que fuerza un cruce: `warmPool`, con el nombre local que sea, o el módulo
- * de los ayudantes de candados (`tests/helpers/locks.ts`). Nombrarlos en un comentario no cuenta.
- */
-function importsCrossingHelper(source: ts.SourceFile): boolean {
-  return source.statements.some((statement) => {
+// Lo que fuerza un cruce, por el módulo de `tests/helpers` que lo exporta: `warmPool` abre las
+// conexiones antes de lanzar, y los de candados retienen, ponen el orden o le preguntan a PostgreSQL
+// quién hace cola. `deferred`, `backendPid`, `outcome` y el tipo `Held` salen del mismo módulo y no
+// fuerzan nada. Un ayudante nuevo se suma acá: mientras no esté, el archivo que solo lo usa a él cae.
+const CROSSING_HELPERS: [module: RegExp, names: ReadonlySet<string>][] = [
+  [/(^|\/)helpers\/pool$/, new Set(["warmPool"])],
+  [
+    /(^|\/)helpers\/locks$/,
+    new Set([
+      "holdTransaction",
+      "holdCommand",
+      "firstThenSecond",
+      "whileHeld",
+      "heldThenSettled",
+      "waitingOn",
+      "waitingForLock",
+    ]),
+  ],
+];
+
+/** Los nombres locales con que el archivo importa algo que fuerza un cruce. */
+function crossingHelperNames(source: ts.SourceFile): Set<string> {
+  const names = new Set<string>();
+  for (const statement of source.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
-      return false;
+      continue;
     }
-    if (/(^|\/)helpers\/locks$/.test(statement.moduleSpecifier.text)) {
-      return true;
-    }
+    const from = statement.moduleSpecifier.text;
+    const helpers = CROSSING_HELPERS.find(([module]) => module.test(from))?.[1];
     const bindings = statement.importClause?.namedBindings;
-    return (
-      bindings !== undefined &&
-      ts.isNamedImports(bindings) &&
-      bindings.elements.some(
-        (element) => (element.propertyName ?? element.name).text === "warmPool",
-      )
-    );
-  });
+    if (!helpers || !bindings || !ts.isNamedImports(bindings)) {
+      continue;
+    }
+    for (const element of bindings.elements) {
+      if (helpers.has((element.propertyName ?? element.name).text)) {
+        names.add(element.name.text);
+      }
+    }
+  }
+  return names;
 }
 
 /**
- * Las pruebas que nombran una simultaneidad en el título y viven en un archivo que no importa
- * `warmPool` ni los ayudantes de candados, cada una con su archivo. Por archivo y sobre el título,
+ * Si el archivo llama a algo que fuerza un cruce. Importarlo y no llamarlo no cuenta, ni nombrarlo en
+ * un comentario. Lo que no se sigue (`import * as`, un import dinámico, el ayudante que se pasa sin
+ * llamarlo) tampoco: cae hacia pedir una excepción.
+ */
+function callsCrossingHelper(source: ts.SourceFile): boolean {
+  const names = crossingHelperNames(source);
+  const calls = (node: ts.Node): boolean =>
+    (ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      names.has(node.expression.text)) ||
+    (ts.forEachChild(node, calls) ?? false);
+  return names.size > 0 && calls(source);
+}
+
+/**
+ * Las pruebas que nombran una simultaneidad en el título y viven en un archivo que no llama a
+ * `warmPool` ni a un ayudante de candados, cada una con su archivo. Por archivo y sobre el título,
  * como la midió la spec: ni condena ni absuelve a una prueba, da un techo.
  */
 export function unguardedConcurrencyTitles(files: TextFile[]): { path: string; title: string }[] {
   return files.flatMap((file) => {
     const source = parse(file);
-    return importsCrossingHelper(source)
+    return callsCrossingHelper(source)
       ? []
       : testTitles(source)
           .filter((title) => CONCURRENCY.test(title))

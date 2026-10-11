@@ -14,7 +14,7 @@ import {
 // haga funcionaría igual y nada lo notaría: por eso esta prueba lee el código (ADR-124 regla 4).
 //
 // Es un trinquete, no una demostración. Mira el archivo entero y, de cada prueba, solo el título: ni
-// condena ni absuelve. Un archivo que importa `warmPool` puede traer una prueba que no lo llama, y una
+// condena ni absuelve. Un archivo que llama a `warmPool` puede traer una prueba que no lo hace, y una
 // carrera puede no decirlo en su título («mientras…», «otro escritor»). Lo que demuestra que una
 // prueba ve su candado sigue siendo quitarlo y verla en rojo.
 
@@ -97,21 +97,25 @@ function unlisted(dir: string): string[] {
 }
 
 // Dice «a la vez», lanza sus dos llamadas juntas y no abre las conexiones ni retiene nada: con una
-// sola conexión abierta en el pool pasa aunque `creditAs` no tome ningún candado.
-const SEEDED = [
-  'import { expect, it } from "vitest";',
-  'import { creditAs } from "@/modules/participation";',
-  'import { truncateAll } from "./db";',
-  "",
-  'it("dos créditos a la vez dejan uno solo", async () => {',
-  "  await truncateAll();",
-  "  const settled = await Promise.allSettled([creditAs(actor, input), creditAs(actor, input)]);",
-  '  expect(settled.filter((result) => result.status === "fulfilled")).toHaveLength(1);',
-  "});",
-].join("\n");
+// sola conexión abierta en el pool pasa aunque `creditAs` no tome ningún candado. `helperImport` y
+// `crossing` le suman el import de un ayudante y la línea que lo llama antes de lanzar.
+const seededTest = (helperImport = "", crossing = "") =>
+  [
+    'import { expect, it } from "vitest";',
+    'import { creditAs } from "@/modules/participation";',
+    ...(helperImport ? [helperImport] : []),
+    'import { truncateAll } from "./db";',
+    "",
+    'it("dos créditos a la vez dejan uno solo", async () => {',
+    "  await truncateAll();",
+    ...(crossing ? [`  ${crossing}`] : []),
+    "  const settled = await Promise.allSettled([creditAs(actor, input), creditAs(actor, input)]);",
+    '  expect(settled.filter((result) => result.status === "fulfilled")).toHaveLength(1);',
+    "});",
+  ].join("\n");
 
 describe("las pruebas de integración que nombran una simultaneidad", () => {
-  it("viven en un archivo que importa warmPool o los ayudantes de candados, o están en la lista de excepciones", () => {
+  it("viven en un archivo que llama a warmPool o a un ayudante de candados, o están en la lista de excepciones", () => {
     expect(unlisted(INTEGRATION)).toEqual([]);
   });
 
@@ -135,28 +139,40 @@ describe("las pruebas de integración que nombran una simultaneidad", () => {
     });
   });
 
-  it("un archivo sembrado que dice «a la vez» y lanza dos llamadas sin forzar el cruce cae, y deja de caer cuando importa warmPool o los ayudantes de candados", () => {
+  it("un archivo sembrado que dice «a la vez» y lanza dos llamadas sin forzar el cruce cae, también si importa warmPool sin llamarlo, y deja de caer cuando llama a warmPool o a un ayudante de candados", () => {
     const dir = mkdtempSync(join(tmpdir(), "casa-simultaneidad-"));
     const seeded = join(dir, "sembrado.test.ts");
+    const caught = [`${dir}/sembrado.test.ts › dos créditos a la vez dejan uno solo`];
     try {
-      writeFileSync(seeded, SEEDED);
-      expect(unlisted(dir)).toEqual([
-        `${dir}/sembrado.test.ts › dos créditos a la vez dejan uno solo`,
-      ]);
+      writeFileSync(seeded, seededTest());
+      expect(unlisted(dir)).toEqual(caught);
 
       // Lo que no es un archivo de prueba no cuenta, como en la suite.
-      writeFileSync(join(dir, "fixtures.ts"), SEEDED);
-      expect(unlisted(dir)).toHaveLength(1);
+      writeFileSync(join(dir, "fixtures.ts"), seededTest());
+      expect(unlisted(dir)).toEqual(caught);
 
-      writeFileSync(seeded, `import { warmPool } from "../helpers/pool";\n${SEEDED}`);
+      // Importar el ayudante no fuerza nada: hay que llamarlo.
+      writeFileSync(seeded, seededTest('import { warmPool } from "../helpers/pool";'));
+      expect(unlisted(dir)).toEqual(caught);
+
+      writeFileSync(
+        seeded,
+        seededTest('import { warmPool } from "../helpers/pool";', "await warmPool();"),
+      );
       expect(unlisted(dir)).toEqual([]);
 
-      writeFileSync(seeded, `import { firstThenSecond } from "../helpers/locks";\n${SEEDED}`);
+      writeFileSync(
+        seeded,
+        seededTest(
+          'import { holdCommand } from "../helpers/locks";',
+          "const held = await holdCommand(actor, (ctx) => credit(ctx, input));",
+        ),
+      );
       expect(unlisted(dir)).toEqual([]);
 
-      // Nombrar el ayudante sin importarlo no alcanza.
-      writeFileSync(seeded, `// Falta warmPool, de ../helpers/pool\n${SEEDED}`);
-      expect(unlisted(dir)).toHaveLength(1);
+      // Nombrar el ayudante sin importarlo tampoco alcanza.
+      writeFileSync(seeded, `// Falta warmPool, de ../helpers/pool\n${seededTest()}`);
+      expect(unlisted(dir)).toEqual(caught);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

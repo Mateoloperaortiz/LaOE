@@ -75,7 +75,7 @@ describe("los insert sueltos", () => {
 });
 
 describe("las pruebas de simultaneidad sin ayudante", () => {
-  const racing = (title: string) => `it("${title}", async () => {});`;
+  const racing = (title: string, crossing = "") => `it("${title}", async () => { ${crossing} });`;
 
   it("cuenta la prueba que nombra una simultaneidad en el título, con cualquiera de sus palabras", () => {
     const text = [
@@ -111,20 +111,91 @@ describe("las pruebas de simultaneidad sin ayudante", () => {
     });
   });
 
-  it("no cuenta el archivo que importa warmPool ni el que importa los ayudantes de candados", () => {
+  it("no cuenta el archivo que llama a warmPool ni el que llama a un ayudante de candados", () => {
     const files = [
       {
         path: "a.test.ts",
-        text: `import { warmPool } from "../helpers/pool";\n${racing("dos altas a la vez")}`,
+        text: `import { warmPool } from "../helpers/pool";\n${racing("dos altas a la vez", "await warmPool();")}`,
       },
       {
         path: "b.test.ts",
-        text: `import { holdCommand } from "../helpers/locks";\n${racing("dos altas a la vez")}`,
+        text: `import { holdCommand } from "../helpers/locks";\n${racing("dos altas a la vez", "await holdCommand(actor, command);")}`,
       },
       { path: "c.test.ts", text: racing("dos altas a la vez") },
     ];
 
     expect(unguardedConcurrencyTests(files)).toEqual({ tests: 1, files: 1 });
+  });
+
+  it("absuelve la llamada a cada ayudante de candados que retiene, ordena o pregunta por la cola", () => {
+    const helpers = [
+      "holdTransaction",
+      "holdCommand",
+      "firstThenSecond",
+      "whileHeld",
+      "heldThenSettled",
+      "waitingOn",
+      "waitingForLock",
+    ];
+
+    for (const helper of helpers) {
+      const text = `import { ${helper} } from "../helpers/locks";\n${racing("dos altas a la vez", `await ${helper}();`)}`;
+
+      expect(unguardedConcurrencyTests([{ path: "a.test.ts", text }]), helper).toEqual({
+        tests: 0,
+        files: 0,
+      });
+    }
+  });
+
+  it("absuelve la llamada por el nombre local con que el archivo importa el ayudante", () => {
+    const text = `import { warmPool as abrir } from "../helpers/pool";\n${racing("dos altas a la vez", "await abrir();")}`;
+
+    expect(unguardedConcurrencyTests([{ path: "a.test.ts", text }])).toEqual({
+      tests: 0,
+      files: 0,
+    });
+  });
+
+  it("no absuelve al archivo que importa un ayudante y no lo llama", () => {
+    const imports = [
+      'import { warmPool } from "../helpers/pool";',
+      'import { firstThenSecond, holdCommand } from "../helpers/locks";',
+      'import "../helpers/locks";',
+      'import type { Held } from "../helpers/locks";',
+    ];
+
+    for (const line of imports) {
+      const text = `${line}\n${racing("dos altas a la vez")}`;
+
+      expect(unguardedConcurrencyTests([{ path: "a.test.ts", text }]), line).toEqual({
+        tests: 1,
+        files: 1,
+      });
+    }
+  });
+
+  it("no absuelve la llamada a lo que no fuerza un cruce, ni la que el trinquete no reconoce", () => {
+    const texts = [
+      // Salen del módulo de los candados y no retienen ni ordenan nada.
+      `import { outcome } from "../helpers/locks";\n${racing("dos altas a la vez", "outcome(result);")}`,
+      `import { deferred } from "../helpers/locks";\n${racing("dos altas a la vez", "deferred();")}`,
+      `import { backendPid } from "../helpers/locks";\n${racing("dos altas a la vez", "await backendPid(tx);")}`,
+      // Un warmPool que no es el de los ayudantes.
+      `import { warmPool } from "./fixtures";\n${racing("dos altas a la vez", "await warmPool();")}`,
+      `const warmPool = async () => {};\n${racing("dos altas a la vez", "await warmPool();")}`,
+      // Formas que no se siguen: caen hacia pedir una excepción.
+      `import * as locks from "../helpers/locks";\n${racing("dos altas a la vez", "await locks.holdCommand(actor, command);")}`,
+      `import { warmPool } from "../helpers/pool.ts";\n${racing("dos altas a la vez", "await warmPool();")}`,
+      `import { warmPool } from "../helpers/pool";\nbeforeEach(warmPool);\n${racing("dos altas a la vez")}`,
+    ];
+
+    for (const text of texts) {
+      expect(unguardedConcurrencyTests([{ path: "a.test.ts", text }]), text).toEqual({
+        tests: 1,
+        files: 1,
+      });
+    }
   });
 
   it("no absuelve al archivo que nombra los ayudantes en un comentario o en una cadena y no los importa", () => {
@@ -140,27 +211,12 @@ describe("las pruebas de simultaneidad sin ayudante", () => {
     });
   });
 
-  it("absuelve por el import: warmPool con otro nombre local y un tipo de los ayudantes de candados", () => {
-    const files = [
-      {
-        path: "a.test.ts",
-        text: `import { warmPool as abrir } from "../helpers/pool";\n${racing("dos altas a la vez")}`,
-      },
-      {
-        path: "b.test.ts",
-        text: `import type { Held } from "../helpers/locks";\n${racing("dos altas a la vez")}`,
-      },
-    ];
-
-    expect(unguardedConcurrencyTests(files)).toEqual({ tests: 0, files: 0 });
-  });
-
   it("dice de qué archivo es cada una y con qué título, en el orden en que se le pasan", () => {
     const files = [
       { path: "b.test.ts", text: `${racing("dos altas a la vez")}\n${racing("un alta sola")}` },
       {
         path: "c.test.ts",
-        text: `import { warmPool } from "../helpers/pool";\n${racing("dos giros a la vez")}`,
+        text: `import { warmPool } from "../helpers/pool";\n${racing("dos giros a la vez", "await warmPool();")}`,
       },
       {
         path: "a.test.ts",
