@@ -4,7 +4,6 @@ import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
 import { drainOutbox } from "../helpers/outbox";
 import "@/modules/crm/jobs";
-import { mediaAsset } from "@/modules/content/schema";
 import { listInteractions } from "@/modules/crm/domain/interactions";
 import { task } from "@/modules/crm/schema";
 import { recordConsent } from "@/modules/people/domain/consents";
@@ -26,6 +25,7 @@ import { DomainError } from "@/shared/lib/errors";
 import {
   seedCommittee,
   seedCommitteeMembership,
+  seedMediaAsset,
   seedMember,
   seedMembership,
   seedPerson,
@@ -61,39 +61,23 @@ describe("datos propios desde Ajustes", () => {
   it("solo acepta como foto un medio privado que la misma persona subió a photos/<id>/", async () => {
     const me = await seedMember("foto@eafit.edu.co");
     const other = await seedMember("otra@eafit.edu.co");
-    const [own] = await db()
-      .insert(mediaAsset)
-      .values({
-        visibility: "PRIVATE",
-        objectKey: `photos/${me}/abcdefghij.jpg`,
-        originalFilename: "yo.jpg",
-        contentType: "image/jpeg",
-        byteSize: 10_000,
-        uploadedById: me,
-        status: "READY",
-      })
-      .returning({ id: mediaAsset.id });
-    const [foreign] = await db()
-      .insert(mediaAsset)
-      .values({
-        visibility: "PRIVATE",
-        objectKey: `photos/${other}/abcdefghij.jpg`,
-        originalFilename: "otra.jpg",
-        contentType: "image/jpeg",
-        byteSize: 10_000,
-        uploadedById: other,
-        status: "READY",
-      })
-      .returning({ id: mediaAsset.id });
+    const own = await seedMediaAsset(`photos/${me}/abcdefghij.jpg`, {
+      originalFilename: "yo.jpg",
+      uploadedById: me,
+    });
+    const foreign = await seedMediaAsset(`photos/${other}/abcdefghij.jpg`, {
+      originalFilename: "otra.jpg",
+      uploadedById: other,
+    });
     await expect(
-      runCommand({ personId: me, ip: null }, (ctx) => setOwnPhoto(ctx, me, foreign?.id ?? "")),
+      runCommand({ personId: me, ip: null }, (ctx) => setOwnPhoto(ctx, me, foreign)),
     ).rejects.toThrow(DomainError);
-    await runCommand({ personId: me, ip: null }, (ctx) => setOwnPhoto(ctx, me, own?.id ?? ""));
+    await runCommand({ personId: me, ip: null }, (ctx) => setOwnPhoto(ctx, me, own));
     const [row] = await db()
       .select({ photo: person.photoAssetId })
       .from(person)
       .where(eq(person.id, me));
-    expect(row?.photo).toBe(own?.id);
+    expect(row?.photo).toBe(own);
     await runCommand({ personId: me, ip: null }, (ctx) => setOwnPhoto(ctx, me, null));
     const [cleared] = await db()
       .select({ photo: person.photoAssetId })

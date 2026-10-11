@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { message } from "@/modules/comms/schema";
+import { mediaAsset } from "@/modules/content/schema";
 import {
   card,
   internalCall,
@@ -1188,5 +1189,31 @@ export async function seedEdition(
     .values({ eventId, slug, name, startsAt: new Date(), ...overrides })
     .returning({ id: eventEdition.id });
   if (!row) throw new Error("seed edition");
+  return row.id;
+}
+
+type MediaAssetOverrides = Partial<Omit<typeof mediaAsset.$inferInsert, "objectKey">>;
+
+/**
+ * Medio privado y listo, como queda una imagen ya procesada: un JPEG de 10 kB con el nombre de su
+ * clave, salvo overrides. Escribe la fila y nada más: no sube el objeto ni arma sus variantes.
+ */
+export async function seedMediaAsset(
+  objectKey: string,
+  overrides: MediaAssetOverrides = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(mediaAsset)
+    .values({
+      objectKey,
+      visibility: "PRIVATE",
+      originalFilename: objectKey.split("/").pop() ?? objectKey,
+      contentType: "image/jpeg",
+      byteSize: 10_000,
+      status: "READY",
+      ...overrides,
+    })
+    .returning({ id: mediaAsset.id });
+  if (!row) throw new Error("seed media asset");
   return row.id;
 }

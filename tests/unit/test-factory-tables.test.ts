@@ -346,7 +346,7 @@ const EXCEPTIONS: Exception[] = [
 // El total de `PENDING`. Se edita solo hacia abajo, en el mismo commit que muda o justifica un
 // pendiente. La prueba no sabe cuánto valía ayer: es una convención, y lo que la sostiene es que
 // subir este número se ve en el diff.
-const PENDING_CEILING = 75;
+const PENDING_CEILING = 71;
 
 // Lo que queda por mudar o por justificar (DT-013). Ordenada por archivo y destino.
 const PENDING: Pending[] = [
@@ -407,9 +407,6 @@ const PENDING: Pending[] = [
   ["tests/e2e/the-games.spec.ts", "eventEdition", 1],
   ["tests/integration/autorizacion.test.ts", "appConfig", 1],
   ["tests/integration/competition-tracking.test.ts", "competitionSupport", 1],
-  ["tests/integration/documents.test.ts", "mediaAsset", 1],
-  ["tests/integration/media-metadata.test.ts", "mediaAsset", 1],
-  ["tests/integration/own-data.test.ts", "mediaAsset", 2],
   ["tests/integration/permanence-closing.test.ts", "manualCredit", 1],
   ["tests/integration/permanence-rules.test.ts", "leaderScore", 2],
   ["tests/integration/person-360-timeline-others.test.ts", "interaction", 1],

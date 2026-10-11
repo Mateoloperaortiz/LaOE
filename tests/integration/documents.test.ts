@@ -22,7 +22,7 @@ import { documentArticle, mediaAsset } from "@/modules/content/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { seedMember } from "../factories";
+import { seedMediaAsset, seedMember } from "../factories";
 import { heldThenSettled, holdCommand, outcome } from "../helpers/locks";
 import { sampleArticlesJson, sampleNormativaPdf } from "../helpers/pdf";
 import { warmPool } from "../helpers/pool";
@@ -262,18 +262,13 @@ describe("normativa", () => {
 
   it("exige imágenes privadas listas y vuelve a comprobarlas al publicar", async () => {
     const { id } = await createDocument();
-    const [asset] = await getDb()
-      .insert(mediaAsset)
-      .values({
-        objectKey: "uploads/imagen-sintetica.png",
-        originalFilename: "imagen-sintetica.png",
+    const asset = {
+      id: await seedMediaAsset("uploads/imagen-sintetica.png", {
         contentType: "image/png",
         byteSize: 2048,
         visibility: "PUBLIC",
-        status: "READY",
-      })
-      .returning();
-    if (!asset) throw new Error("Falta la imagen sintética");
+      }),
+    };
     const data = completeArticles();
     data.articles[0]?.blocks.push({
       type: "image",

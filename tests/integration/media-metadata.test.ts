@@ -19,7 +19,7 @@ import { mediaAsset } from "@/modules/content/schema";
 import { lockPersonAnonymization } from "@/modules/people";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject, putObject } from "@/shared/adapters/storage";
-import { seedMember } from "../factories";
+import { seedMediaAsset, seedMember } from "../factories";
 import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
@@ -147,17 +147,7 @@ async function oldAsset(
   } else {
     await putObject(objectKey, bytes, contentType);
   }
-  await getDb()
-    .insert(mediaAsset)
-    .values({
-      id,
-      visibility: "PRIVATE",
-      objectKey,
-      originalFilename: `${id}.bin`,
-      contentType,
-      byteSize: 10_000,
-      status: "READY",
-    });
+  await seedMediaAsset(objectKey, { id, originalFilename: `${id}.bin`, contentType });
   return { id, objectKey };
 }
 
