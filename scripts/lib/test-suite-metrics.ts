@@ -10,9 +10,10 @@ interface TextFile {
   text: string;
 }
 
-const CONCURRENCY = /simultáne|a la vez|al mismo tiempo|concurren|en paralelo|carrera/iu;
-// Por archivo y sobre el texto, como la midió la spec: ni condena ni absuelve a una prueba, da un techo.
-const CROSSING_HELPERS = /warmPool|helpers\/locks/;
+// Las palabras con las que un título nombra una simultaneidad: las de la spec, más «al tiempo» y
+// «simultáne» sin su tilde, que entraron con el trinquete (#301) sin mover la cuenta de ese día.
+const CONCURRENCY =
+  /simult[aá]ne|a la vez|al mismo tiempo|al tiempo|concurren|en paralelo|carrera/iu;
 // Una palabra entera: `person_id`, `termId` y `long-term` no nombran a `person` ni a `term`.
 const WORD = /(?<![A-Za-z0-9_-])[a-z][a-z0-9_]*(?![A-Za-z0-9_-])/g;
 
@@ -83,8 +84,7 @@ function isTestCall(callee: ts.Expression): boolean {
   }
 }
 
-function testTitles(file: TextFile): string[] {
-  const source = parse(file);
+function testTitles(source: ts.SourceFile): string[] {
   const titles: string[] = [];
   const visit = (node: ts.Node) => {
     if (ts.isCallExpression(node) && isTestCall(node.expression)) {
@@ -102,13 +102,46 @@ function testTitles(file: TextFile): string[] {
 }
 
 /**
- * Las pruebas que nombran una simultaneidad en el título y viven en un archivo que no importa
- * `warmPool` ni los ayudantes de candados, y en cuántos archivos están.
+ * Si el archivo importa lo que fuerza un cruce: `warmPool`, con el nombre local que sea, o el módulo
+ * de los ayudantes de candados (`tests/helpers/locks.ts`). Nombrarlos en un comentario no cuenta.
  */
+function importsCrossingHelper(source: ts.SourceFile): boolean {
+  return source.statements.some((statement) => {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
+      return false;
+    }
+    if (/(^|\/)helpers\/locks$/.test(statement.moduleSpecifier.text)) {
+      return true;
+    }
+    const bindings = statement.importClause?.namedBindings;
+    return (
+      bindings !== undefined &&
+      ts.isNamedImports(bindings) &&
+      bindings.elements.some(
+        (element) => (element.propertyName ?? element.name).text === "warmPool",
+      )
+    );
+  });
+}
+
+/**
+ * Las pruebas que nombran una simultaneidad en el título y viven en un archivo que no importa
+ * `warmPool` ni los ayudantes de candados, cada una con su archivo. Por archivo y sobre el título,
+ * como la midió la spec: ni condena ni absuelve a una prueba, da un techo.
+ */
+export function unguardedConcurrencyTitles(files: TextFile[]): { path: string; title: string }[] {
+  return files.flatMap((file) => {
+    const source = parse(file);
+    return importsCrossingHelper(source)
+      ? []
+      : testTitles(source)
+          .filter((title) => CONCURRENCY.test(title))
+          .map((title) => ({ path: file.path, title }));
+  });
+}
+
+/** Cuántas son y en cuántos archivos están: la fila de `npm run audit:metrics`. */
 export function unguardedConcurrencyTests(files: TextFile[]): { tests: number; files: number } {
-  const perFile = files
-    .filter((file) => !CROSSING_HELPERS.test(file.text))
-    .map((file) => testTitles(file).filter((title) => CONCURRENCY.test(title)).length)
-    .filter((named) => named > 0);
-  return { tests: perFile.reduce((total, named) => total + named, 0), files: perFile.length };
+  const found = unguardedConcurrencyTitles(files);
+  return { tests: found.length, files: new Set(found.map((test) => test.path)).size };
 }

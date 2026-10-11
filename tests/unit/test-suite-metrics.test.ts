@@ -3,6 +3,7 @@ import {
   looseInserts,
   tableNamesWritten,
   unguardedConcurrencyTests,
+  unguardedConcurrencyTitles,
 } from "../../scripts/lib/test-suite-metrics";
 
 // Las tres medidas de la base de pruebas que imprime `npm run audit:metrics` (spec #244): cada una
@@ -85,11 +86,13 @@ describe("las pruebas de simultaneidad sin ayudante", () => {
       racing("lecturas concurrentes"),
       racing("dos lotes en paralelo"),
       racing("la carrera entre el alta y la baja"),
+      racing("dos bajas al tiempo"),
+      racing("dos giros simultaneos, sin la tilde"),
       racing("un alta sola"),
     ].join("\n");
 
     expect(unguardedConcurrencyTests([{ path: "a.test.ts", text }])).toEqual({
-      tests: 7,
+      tests: 9,
       files: 1,
     });
   });
@@ -122,6 +125,55 @@ describe("las pruebas de simultaneidad sin ayudante", () => {
     ];
 
     expect(unguardedConcurrencyTests(files)).toEqual({ tests: 1, files: 1 });
+  });
+
+  it("no absuelve al archivo que nombra los ayudantes en un comentario o en una cadena y no los importa", () => {
+    const text = [
+      "// Sin warmPool: ver ../helpers/locks",
+      'const hint = "warmPool y tests/helpers/locks";',
+      racing("dos altas a la vez"),
+    ].join("\n");
+
+    expect(unguardedConcurrencyTests([{ path: "a.test.ts", text }])).toEqual({
+      tests: 1,
+      files: 1,
+    });
+  });
+
+  it("absuelve por el import: warmPool con otro nombre local y un tipo de los ayudantes de candados", () => {
+    const files = [
+      {
+        path: "a.test.ts",
+        text: `import { warmPool as abrir } from "../helpers/pool";\n${racing("dos altas a la vez")}`,
+      },
+      {
+        path: "b.test.ts",
+        text: `import type { Held } from "../helpers/locks";\n${racing("dos altas a la vez")}`,
+      },
+    ];
+
+    expect(unguardedConcurrencyTests(files)).toEqual({ tests: 0, files: 0 });
+  });
+
+  it("dice de qué archivo es cada una y con qué título, en el orden en que se le pasan", () => {
+    const files = [
+      { path: "b.test.ts", text: `${racing("dos altas a la vez")}\n${racing("un alta sola")}` },
+      {
+        path: "c.test.ts",
+        text: `import { warmPool } from "../helpers/pool";\n${racing("dos giros a la vez")}`,
+      },
+      {
+        path: "a.test.ts",
+        text: `${racing("dos bajas en paralelo")}\n${racing("dos bajas en paralelo")}`,
+      },
+    ];
+
+    expect(unguardedConcurrencyTitles(files)).toEqual([
+      { path: "b.test.ts", title: "dos altas a la vez" },
+      { path: "a.test.ts", title: "dos bajas en paralelo" },
+      { path: "a.test.ts", title: "dos bajas en paralelo" },
+    ]);
+    expect(unguardedConcurrencyTests(files)).toEqual({ tests: 3, files: 2 });
   });
 
   it("no cuenta el describe, el comentario ni la cadena que no es el título de una prueba", () => {
