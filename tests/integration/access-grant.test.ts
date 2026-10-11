@@ -13,14 +13,28 @@ import { findPasswordHash, signInWithPassword } from "@/modules/identity/domain/
 import { hashPassword, hashToken, verifyPassword } from "@/modules/identity/domain/pure";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
 import { accessGrant, credential, permission, session } from "@/modules/identity/schema";
-import { changeMembershipStatus, endMembershipAs } from "@/modules/people";
+import {
+  applyRosterImportAs,
+  changeMembershipStatus,
+  createRosterPreviewAs,
+  endMembershipAs,
+} from "@/modules/people";
 import { endMembership } from "@/modules/people/domain/membership";
 import { committee, membership, person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { backendPid, deferred, holdCommand, waitingOn, whileHeld } from "../helpers/locks";
+import {
+  backendPid,
+  deferred,
+  holdCommand,
+  holdTransaction,
+  outcome,
+  waitingForLock,
+  waitingOn,
+  whileHeld,
+} from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
@@ -741,6 +755,50 @@ describe("enlace de acceso", () => {
         ]);
         expect([a.status, b.status]).toEqual(["fulfilled", "fulfilled"]);
       }
+    });
+
+    // La importación del roster retiene el consultivo de cada persona de su archivo hasta el final.
+    // Si los tomaba en el orden de las filas, con la de `id` mayor primero, una emisión entre esas
+    // dos personas que cayera en medio tenía el que la importación esperaba, y al revés.
+    it("la emisión entre dos personas del archivo que cae en medio de una importación del roster termina, y la importación también", async () => {
+      const admin = { personId: await seedMember("admin.roster@eafit.edu.co"), ip: null };
+      const emails = new Map([
+        [await seedMemberWith("junta@eafit.edu.co", "BOARD"), "junta@eafit.edu.co"],
+        [await seedMemberWith("colega@eafit.edu.co", "BOARD"), "colega@eafit.edu.co"],
+      ]);
+      const [low, high] = [...emails.keys()].sort();
+      if (!low || !high) throw new Error("seed");
+      const [current] = await db().select({ id: term.id }).from(term);
+      if (!current) throw new Error("término");
+      const lines = ["CORREO;ESTADO", `${emails.get(high)};Activo`, `${emails.get(low)};Activo`];
+      const { jobId } = await createRosterPreviewAs(admin, {
+        filename: "estados.csv",
+        contentType: "text/csv",
+        bytes: new TextEncoder().encode(`${lines.join("\r\n")}\r\n`),
+        termId: current.id,
+      });
+      // Alguien retiene la fila de la primera persona del archivo: la importación se detiene ahí,
+      // con lo que ya tomó, y la emisión llega en ese momento.
+      const held = await holdTransaction((tx) =>
+        tx.select({ id: person.id }).from(person).where(eq(person.id, high)).for("update"),
+      );
+      let results: PromiseSettledResult<unknown>[];
+      try {
+        const importing = applyRosterImportAs(admin, jobId);
+        await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBe(1), { timeout: 5_000 });
+        const issuing = issueAccessGrantAs(
+          { personId: low, ip: null },
+          { personId: high, kind: "RECOVERY" },
+        );
+        await vi.waitFor(async () => expect(await waitingForLock()).toBe(2), { timeout: 5_000 });
+        held.release();
+        results = await Promise.allSettled([importing, issuing]);
+      } finally {
+        held.release();
+        await held.done;
+      }
+
+      expect(results.map(outcome)).toEqual(["ok", "ok"]);
     });
   });
 

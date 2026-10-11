@@ -276,6 +276,7 @@ export { probationInputSchema } from "./domain/term-outcomes";
 export {
   getWalletMemberState,
   lockWalletMember,
+  lockWalletMembers,
   purgeIfMembershipEnded,
   type WalletMemberState,
 } from "./domain/wallet-member";

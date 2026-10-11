@@ -45,6 +45,24 @@ export async function lockWalletMember(
 }
 
 /**
+ * El consultivo de varias personas, de menor a mayor `id`, y el estado de cada una leído con su
+ * candado ya tomado (ADR-122 regla 5). Es el orden de todo el que retiene más de uno a la vez: la
+ * emisión de un enlace (el destinatario y quien emite) y la importación del roster (las personas de
+ * su archivo). Tomados cada uno a su manera, dos de ellos tienen el que el otro espera y PostgreSQL
+ * corta a uno por interbloqueo.
+ */
+export async function lockWalletMembers(
+  tx: Tx,
+  personIds: readonly string[],
+): Promise<Map<string, WalletMemberState | null>> {
+  const states = new Map<string, WalletMemberState | null>();
+  for (const personId of [...new Set(personIds)].sort()) {
+    states.set(personId, await lockWalletMember(tx, personId));
+  }
+  return states;
+}
+
+/**
  * El mismo candado para quien llega con el correo y no con el `id` (el roster; ADR-120 regla 3):
  * resuelve a la persona y toma su consultivo en una sola sentencia, sin tocar todavía su fila.
  * Responde el `id` cuyo candado quedó tomado, o `null` si nadie tiene ese correo. El correo pudo

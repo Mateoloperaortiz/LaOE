@@ -6,7 +6,7 @@ import { accessGrantIssued } from "@/domain-events/identity";
 import {
   canParticipate,
   getMemberSummary,
-  lockWalletMember,
+  lockWalletMembers,
   SIGN_IN_STATUSES,
   type WalletMemberState,
 } from "@/modules/people";
@@ -65,7 +65,12 @@ export async function issueAccessGrant(
   // no aplica y a quien emite no se lo espera, como antes.
   const issuerId = ctx.actor.personId;
   const guarded = issuerId !== null && (await hasPermissions(ctx.tx, input.personId));
-  const states = await lockMembers(ctx.tx, guarded ? [input.personId, issuerId] : [input.personId]);
+  // De menor a mayor `id` (`lockWalletMembers`): dos emisiones cruzadas, cada uno para el otro, y la
+  // importación del roster los piden en el mismo orden y no se interbloquean.
+  const states = await lockWalletMembers(
+    ctx.tx,
+    guarded ? [input.personId, issuerId] : [input.personId],
+  );
   // El destinatario se lee con el candado de su ciclo de membresía: una baja que va en vuelo termina
   // primero y esto responde T-2127; una que llega después espera, y lo que depura borra este enlace.
   const recipient = states.get(input.personId);
@@ -175,22 +180,6 @@ async function hasPermissions(tx: Tx, personId: string): Promise<boolean> {
     .where(eq(permission.personId, personId))
     .limit(1);
   return row !== undefined;
-}
-
-/**
- * Toma el consultivo del ciclo de membresía de cada persona y devuelve su estado, leído con el candado
- * ya tomado. De menor a mayor `id`: dos emisiones cruzadas (cada uno para el otro) los piden en el
- * mismo orden y no se interbloquean.
- */
-async function lockMembers(
-  tx: Tx,
-  personIds: readonly string[],
-): Promise<Map<string, WalletMemberState | null>> {
-  const states = new Map<string, WalletMemberState | null>();
-  for (const personId of [...personIds].sort()) {
-    states.set(personId, await lockWalletMember(tx, personId));
-  }
-  return states;
 }
 
 /**

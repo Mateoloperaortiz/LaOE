@@ -55,7 +55,7 @@ import {
   staysInactive,
   validateRoster,
 } from "./roster-pure";
-import { lockWalletMemberByEmail } from "./wallet-member";
+import { lockWalletMemberByEmail, lockWalletMembers } from "./wallet-member";
 
 // El asistente del roster (13-importacion-del-roster.md, ADR-034): el archivo se guarda en el bucket, la
 // vista previa vive en un ImportJob y confirmar aplica todo en una transacción, idempotente por correo.
@@ -888,6 +888,29 @@ async function applyRow(
 }
 
 /**
+ * Toma, antes de aplicar la primera fila, el consultivo del ciclo de membresía de cada persona del
+ * archivo que ya existe, de menor a mayor `id` (ADR-122 regla 5). La importación los retiene todos
+ * hasta el final: tomados en el orden de las filas se cruzaba con la emisión de un enlace entre dos
+ * personas del archivo, que toma los suyos por `id`. Cada fila vuelve a pedir el suyo al aplicarse
+ * (`lockPersonByEmail`), que ya es de esta transacción, y ahí se toma el de quien recibió ese correo
+ * después de esta lectura.
+ */
+async function lockRosterMembers(ctx: CommandContext, rows: readonly PreviewRow[]): Promise<void> {
+  const emails = rows.flatMap((row) => (row.group !== "ERROR" && row.email ? [row.email] : []));
+  if (emails.length === 0) {
+    return;
+  }
+  const people = await ctx.tx
+    .select({ id: person.id })
+    .from(person)
+    .where(inArray(person.email, emails));
+  await lockWalletMembers(
+    ctx.tx,
+    people.map((row) => row.id),
+  );
+}
+
+/**
  * Paso 3: relee el archivo, vuelve a validar contra la base de hoy y aplica todo en una transacción.
  * Que el trabajo siga en vista previa lo decide la transacción, que lo toma antes de escribir; de la
  * fila tomada salen las columnas que se aplican.
@@ -931,6 +954,7 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
       rolesCreated,
       proposals: built.proposals,
     };
+    await lockRosterMembers(ctx, built.rows);
     for (const row of built.rows) {
       if (row.group === "ERROR") {
         summary.skipped += 1;
