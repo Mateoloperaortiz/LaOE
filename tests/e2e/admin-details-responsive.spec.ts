@@ -21,6 +21,7 @@ import {
   seedEmailTemplate,
   seedEvent,
   seedForm,
+  seedOccasion,
   seedOrganization,
   seedPipeline,
   seedSegment,
@@ -110,19 +111,15 @@ test.beforeEach(async () => {
       startsAt: new Date(Date.now() + 86_400_000),
     }),
   };
-  const activity = await db
-    .insert(occasion)
-    .values({
-      publicId: randomBytes(5).toString("hex"),
-      termId: current.id,
-      title: prefix,
-      startsAt: new Date(),
-      checkInOpensAt: new Date(Date.now() - 60_000),
-      checkInClosesAt: new Date(Date.now() + 3_600_000),
-      status: "OPEN",
-    })
-    .returning()
-    .then(first);
+  const activity = await seedOccasion(current.id, {
+    publicId: randomBytes(5).toString("hex"),
+    title: prefix,
+    points: 0,
+    startsAt: new Date(),
+    checkInOpensAt: new Date(Date.now() - 60_000),
+    checkInClosesAt: new Date(Date.now() + 3_600_000),
+    status: "OPEN",
+  });
   const pdf = { id: await seedDocument(prefix, { version: "Versión de prueba, texto libre" }) };
   routes = [
     `/admin/campanas/${mail.id}`,

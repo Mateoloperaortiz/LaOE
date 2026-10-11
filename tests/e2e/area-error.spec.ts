@@ -1,9 +1,9 @@
 import { expect, type Page } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedOccasion } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -37,22 +37,17 @@ test.describe("/admin", () => {
       .where(eq(term.code, E2E_TERM.code));
     if (!current) throw new Error("sin término");
     const now = Date.now();
-    const [row] = await db
-      .insert(occasion)
-      .values({
-        publicId: "e2eerror01",
-        termId: current.id,
-        title: TITLE,
-        category: "TALK",
-        points: 10,
-        status: "OPEN",
-        startsAt: new Date(now),
-        checkInOpensAt: new Date(now - 3_600_000),
-        checkInClosesAt: new Date(now + 3_600_000),
-      })
-      .returning({ id: occasion.id });
+    const row = await seedOccasion(current.id, {
+      publicId: "e2eerror01",
+      title: TITLE,
+      category: "TALK",
+      points: 10,
+      status: "OPEN",
+      startsAt: new Date(now),
+      checkInOpensAt: new Date(now - 3_600_000),
+      checkInClosesAt: new Date(now + 3_600_000),
+    });
     await closeDb();
-    if (!row) throw new Error("sin ocasión");
 
     await page.goto(`/admin/ocasiones/${row.id}`);
     const content = page.locator("#admin-content");

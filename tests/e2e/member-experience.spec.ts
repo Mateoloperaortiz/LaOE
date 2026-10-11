@@ -6,7 +6,7 @@ import { event } from "@/modules/events/schema";
 import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
-import { seedEdition, seedEvent } from "../factories";
+import { seedEdition, seedEvent, seedOccasion } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -33,20 +33,16 @@ test.beforeEach(async () => {
     startsAt: new Date(Date.now() + 3_600_000),
     publicationStatus: "PUBLISHED",
   });
-  const [activity] = await db
-    .insert(occasion)
-    .values({
-      publicId: randomBytes(5).toString("hex"),
-      termId: current.id,
-      title: `${title} futura`,
-      description: "Podés consultar la actividad antes de que abra la asistencia.",
-      startsAt: new Date(Date.now() + 7_200_000),
-      checkInOpensAt: new Date(Date.now() + 7_200_000),
-      checkInClosesAt: new Date(Date.now() + 10_800_000),
-      status: "OPEN",
-    })
-    .returning();
-  if (!activity) throw new Error("Faltan detalles sintéticos");
+  const activity = await seedOccasion(current.id, {
+    publicId: randomBytes(5).toString("hex"),
+    title: `${title} futura`,
+    description: "Podés consultar la actividad antes de que abra la asistencia.",
+    points: 0,
+    startsAt: new Date(Date.now() + 7_200_000),
+    checkInOpensAt: new Date(Date.now() + 7_200_000),
+    checkInClosesAt: new Date(Date.now() + 10_800_000),
+    status: "OPEN",
+  });
   activityId = activity.id;
 });
 test.afterEach(async () => {

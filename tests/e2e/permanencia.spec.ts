@@ -1,11 +1,11 @@
 import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { occasion } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { workGroup, workGroupMembership } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedOccasion } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -28,22 +28,17 @@ test.describe("miembro", () => {
       .where(eq(term.code, E2E_TERM.code));
     if (!current) throw new Error("sin término");
     const now = Date.now();
-    const [row] = await db
-      .insert(occasion)
-      .values({
-        termId: current.id,
-        publicId: `e2ei${String(now % 1_000_000).padStart(6, "0")}`,
-        title: "e2e-Integración de permanencia",
-        kind: "ACTIVITY",
-        category: "INTEGRATION",
-        points: 0,
-        status: "OPEN",
-        startsAt: new Date(now),
-        checkInOpensAt: new Date(now - 3_600_000),
-        checkInClosesAt: new Date(now + 3_600_000),
-      })
-      .returning({ publicId: occasion.publicId });
-    if (!row) throw new Error("sin ocasión");
+    const row = await seedOccasion(current.id, {
+      publicId: `e2ei${String(now % 1_000_000).padStart(6, "0")}`,
+      title: "e2e-Integración de permanencia",
+      kind: "ACTIVITY",
+      category: "INTEGRATION",
+      points: 0,
+      status: "OPEN",
+      startsAt: new Date(now),
+      checkInOpensAt: new Date(now - 3_600_000),
+      checkInClosesAt: new Date(now + 3_600_000),
+    });
     publicId = row.publicId;
     await closeDb();
   });

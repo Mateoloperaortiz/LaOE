@@ -13,18 +13,13 @@ import {
   EVIDENCE_TEXT_MIN,
   publishChallengeAs,
 } from "@/modules/participation";
-import {
-  achievement,
-  boosterItem,
-  occasion,
-  pointEntry,
-  wordleGame,
-} from "@/modules/participation/schema";
+import { achievement, boosterItem, pointEntry } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { headObject } from "@/shared/adapters/storage";
 import { t, tList } from "@/shared/copy";
 import { utcToBogotaInput } from "@/shared/lib/dates";
+import { seedOccasion, seedWordleGame } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { rejectBucketUploads } from "./bucket-helper";
@@ -415,23 +410,18 @@ test("evidencia: un texto que queda corto sin los espacios de los bordes avisa c
 test("presencial: el check-in de la actividad completa el reto solo", async ({ page }) => {
   const termId = await currentTermId();
   const now = Date.now();
-  const [ocasion] = await getDb()
-    .insert(occasion)
-    .values({
-      publicId: "e2ereto001",
-      termId,
-      title: "e2e-Actividad con reto",
-      category: "INTEGRATION",
-      location: "Bloque 38",
-      points: 20,
-      status: "OPEN",
-      approval: "AUTO",
-      startsAt: new Date(now),
-      checkInOpensAt: new Date(now - 3_600_000),
-      checkInClosesAt: new Date(now + 3_600_000),
-    })
-    .returning({ id: occasion.id });
-  if (!ocasion) throw new Error("sin ocasión");
+  const ocasion = await seedOccasion(termId, {
+    publicId: "e2ereto001",
+    title: "e2e-Actividad con reto",
+    category: "INTEGRATION",
+    location: "Bloque 38",
+    points: 20,
+    status: "OPEN",
+    approval: "AUTO",
+    startsAt: new Date(now),
+    checkInOpensAt: new Date(now - 3_600_000),
+    checkInClosesAt: new Date(now + 3_600_000),
+  });
   const id = await crearReto({
     kind: "PRESENTIAL",
     title: "e2e-Reto presencial",
@@ -521,23 +511,18 @@ test("campaña: el admin cubre una actividad y el check-in suma el extra", async
 }) => {
   const termId = await currentTermId();
   const now = Date.now();
-  const [ocasion] = await getDb()
-    .insert(occasion)
-    .values({
-      publicId: "e2eboost01",
-      termId,
-      title: "e2e-Actividad con campaña",
-      category: "INTEGRATION",
-      location: "Bloque 38",
-      points: 10,
-      status: "OPEN",
-      approval: "AUTO",
-      startsAt: new Date(now),
-      checkInOpensAt: new Date(now - 3_600_000),
-      checkInClosesAt: new Date(now + 3_600_000),
-    })
-    .returning({ id: occasion.id });
-  if (!ocasion) throw new Error("sin ocasión");
+  await seedOccasion(termId, {
+    publicId: "e2eboost01",
+    title: "e2e-Actividad con campaña",
+    category: "INTEGRATION",
+    location: "Bloque 38",
+    points: 10,
+    status: "OPEN",
+    approval: "AUTO",
+    startsAt: new Date(now),
+    checkInOpensAt: new Date(now - 3_600_000),
+    checkInClosesAt: new Date(now + 3_600_000),
+  });
 
   // Campaña +50 % por la interfaz admin, con ventana ya vigente.
   const admin = await adminPage(browser);
@@ -707,25 +692,21 @@ test("colección en móvil y movimiento reducido: alternativa estática sin anim
   await getDb().delete(achievement).where(eq(achievement.personId, miembro));
 
   // Palabra a palabra 1: un Wordle ganado en base + el evento que lo publica.
-  const [game] = await getDb()
-    .insert(wordleGame)
-    .values({
-      personId: miembro,
-      day: "2026-01-15",
-      termId,
+  const game = {
+    id: await seedWordleGame(miembro, termId, "2026-01-15", {
       answer: "PRUEB",
       dictionaryVersion: "e2e",
       rulesVersion: "e2e",
       status: "WON",
       completedAt: new Date(),
-    })
-    .returning({ id: wordleGame.id });
+    }),
+  };
   await runCommand(SYSTEM_ACTOR, (ctx) =>
     ctx.emit(
       eventOf(wordleCompleted, {
         personId: miembro,
         termId,
-        gameId: game?.id ?? "",
+        gameId: game.id,
         day: "2026-01-15",
         attempts: 4,
         points: 5,
@@ -762,18 +743,13 @@ test("conciliación: el admin simula y aplica, y la insignia histórica aparece 
   // como Palabra a palabra 1 histórica (sin booster ni aviso, ADR-067 regla 11).
   const miembro = await personId(E2E_MEMBER_EMAIL);
   const termId = await currentTermId();
-  await getDb()
-    .insert(wordleGame)
-    .values({
-      personId: miembro,
-      day: "2024-11-05",
-      termId,
-      answer: "TESTO",
-      dictionaryVersion: "e2e",
-      rulesVersion: "e2e",
-      status: "WON",
-      completedAt: new Date("2024-11-05T20:00:00Z"),
-    });
+  await seedWordleGame(miembro, termId, "2024-11-05", {
+    answer: "TESTO",
+    dictionaryVersion: "e2e",
+    rulesVersion: "e2e",
+    status: "WON",
+    completedAt: new Date("2024-11-05T20:00:00Z"),
+  });
 
   const admin = await adminPage(browser);
   await admin.goto("/admin/gamificacion");

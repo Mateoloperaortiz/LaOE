@@ -2,11 +2,11 @@ import { mkdir } from "node:fs/promises";
 import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { committeeParticipation, occasion } from "@/modules/participation/schema";
+import { committeeParticipation } from "@/modules/participation/schema";
 import { committee } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
-import { seedCommittee, seedTerm } from "../factories";
+import { seedCommittee, seedOccasion, seedTerm } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -42,20 +42,15 @@ async function seedRanking(scores: number[]) {
   }
   for (const index of [0, 1, 2]) {
     const startsAt = new Date(`${current.startsOn}T12:00:00-05:00`);
-    const [activity] = await db
-      .insert(occasion)
-      .values({
-        publicId: `podium000${index}`,
-        title: `e2e-podio-actividad-${index}`,
-        termId: current.id,
-        startsAt,
-        checkInOpensAt: startsAt,
-        checkInClosesAt: new Date(startsAt.getTime() + 3_600_000),
-        status: index === 2 ? "OPEN" : "CLOSED",
-        points: index === 0 ? 10 : 100,
-      })
-      .returning();
-    if (!activity) throw new Error("sin actividad sintética");
+    const activity = await seedOccasion(current.id, {
+      publicId: `podium000${index}`,
+      title: `e2e-podio-actividad-${index}`,
+      startsAt,
+      checkInOpensAt: startsAt,
+      checkInClosesAt: new Date(startsAt.getTime() + 3_600_000),
+      status: index === 2 ? "OPEN" : "CLOSED",
+      points: index === 0 ? 10 : 100,
+    });
     await db.insert(committeeParticipation).values(
       committees.map((item) => ({
         occasionId: activity.id,

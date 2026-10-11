@@ -13,6 +13,7 @@ import {
   seedCommitteeMembership,
   seedConsent,
   seedMembership,
+  seedOccasion,
   seedPerson,
 } from "../factories";
 import { sinViolaciones } from "./axe";
@@ -182,22 +183,17 @@ test("la excusa conserva la ocasión y la causal cuando el envío falla o se rec
   const [current] = await db.select().from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("Falta el semestre sintético");
   const startsAt = Date.now() + 12 * 3_600_000;
-  const [activity] = await db
-    .insert(occasion)
-    .values({
-      termId: current.id,
-      publicId: `e2ex${randomBytes(3).toString("hex")}`,
-      title: `${prefix} actividad`,
-      category: "OTHER",
-      location: "Bloque 38",
-      points: 0,
-      status: "OPEN",
-      startsAt: new Date(startsAt),
-      checkInOpensAt: new Date(startsAt - 3_600_000),
-      checkInClosesAt: new Date(startsAt + 3_600_000),
-    })
-    .returning();
-  if (!activity) throw new Error("No se creó la ocasión sintética");
+  const activity = await seedOccasion(current.id, {
+    publicId: `e2ex${randomBytes(3).toString("hex")}`,
+    title: `${prefix} actividad`,
+    category: "OTHER",
+    location: "Bloque 38",
+    points: 0,
+    status: "OPEN",
+    startsAt: new Date(startsAt),
+    checkInOpensAt: new Date(startsAt - 3_600_000),
+    checkInClosesAt: new Date(startsAt + 3_600_000),
+  });
   occasionId = activity.id;
 
   await page.goto("/app/solicitudes?tipo=excusa");

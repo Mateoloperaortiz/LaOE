@@ -1,9 +1,9 @@
 import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedOccasion } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -20,21 +20,16 @@ test.beforeEach(async () => {
   const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("sin término");
   const now = Date.now();
-  const [row] = await db
-    .insert(occasion)
-    .values({
-      publicId: "e2econsol1",
-      termId: current.id,
-      title: "e2e-Consola de prueba",
-      category: "TALK",
-      points: 10,
-      status: "OPEN",
-      startsAt: new Date(now),
-      checkInOpensAt: new Date(now - 3_600_000),
-      checkInClosesAt: new Date(now + 3_600_000),
-    })
-    .returning({ id: occasion.id });
-  if (!row) throw new Error("sin ocasión");
+  const row = await seedOccasion(current.id, {
+    publicId: "e2econsol1",
+    title: "e2e-Consola de prueba",
+    category: "TALK",
+    points: 10,
+    status: "OPEN",
+    startsAt: new Date(now),
+    checkInOpensAt: new Date(now - 3_600_000),
+    checkInClosesAt: new Date(now + 3_600_000),
+  });
   occasionId = row.id;
   await closeDb();
 });

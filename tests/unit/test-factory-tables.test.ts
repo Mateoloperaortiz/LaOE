@@ -46,6 +46,13 @@ const PROBE_SCHEMA =
 // produce y que la prueba arma a propósito, y para la escritura que no es siembra.
 const EXCEPTIONS: Exception[] = [
   {
+    path: "tests/e2e/committee-podium.spec.ts",
+    target: "committeeParticipation",
+    inserts: 1,
+    reason:
+      "Son las fotos de participación de once comités sin miembros, con las tasas escritas a mano para comprobar porcentajes y puestos del podio: el recálculo las saca de las asistencias y no deja foto de un comité sin elegibles.",
+  },
+  {
     path: "tests/e2e/database.ts",
     target: "into <tables[index]>",
     inserts: 1,
@@ -346,36 +353,24 @@ const EXCEPTIONS: Exception[] = [
 // El total de `PENDING`. Se edita solo hacia abajo, en el mismo commit que muda o justifica un
 // pendiente. La prueba no sabe cuánto valía ayer: es una convención, y lo que la sostiene es que
 // subir este número se ve en el diff.
-const PENDING_CEILING = 31;
+const PENDING_CEILING = 17;
 
 // Lo que queda por mudar o por justificar (DT-013). Ordenada por archivo y destino.
 const PENDING: Pending[] = [
-  ["tests/e2e/admin-details-responsive.spec.ts", "occasion", 1],
   ["tests/e2e/admin-details-responsive.spec.ts", "workGroup", 1],
   ["tests/e2e/admin-navigation-roles.spec.ts", "workGroup", 1],
   ["tests/e2e/admin-navigation-roles.spec.ts", "workGroupEvaluator", 1],
-  ["tests/e2e/area-error.spec.ts", "occasion", 1],
-  ["tests/e2e/checkin.spec.ts", "occasion", 1],
   ["tests/e2e/comite-areas.spec.ts", "committeeRoleAssignment", 1],
   ["tests/e2e/comite-faltas.spec.ts", "committeeRoleAssignment", 1],
-  ["tests/e2e/committee-podium.spec.ts", "committeeParticipation", 1],
-  ["tests/e2e/committee-podium.spec.ts", "occasion", 1],
-  ["tests/e2e/consola.spec.ts", "occasion", 1],
-  ["tests/e2e/gamificacion.spec.ts", "occasion", 2],
-  ["tests/e2e/gamificacion.spec.ts", "wordleGame", 2],
-  ["tests/e2e/member-experience.spec.ts", "occasion", 1],
   ["tests/e2e/permanencia-admin.spec.ts", "workGroup", 1],
-  ["tests/e2e/permanencia-avisos.spec.ts", "occasion", 1],
   ["tests/e2e/permanencia-evaluaciones.spec.ts", "permanenceRule", 2],
   ["tests/e2e/permanencia-evaluaciones.spec.ts", "workGroup", 2],
   ["tests/e2e/permanencia-evaluaciones.spec.ts", "workGroupEvaluator", 1],
   ["tests/e2e/permanencia-evaluaciones.spec.ts", "workGroupMembership", 2],
   ["tests/e2e/permanencia-reglas.spec.ts", "permanenceRule", 1],
   ["tests/e2e/permanencia-reglas.spec.ts", "permanenceTable", 1],
-  ["tests/e2e/permanencia.spec.ts", "occasion", 1],
   ["tests/e2e/permanencia.spec.ts", "workGroup", 1],
   ["tests/e2e/permanencia.spec.ts", "workGroupMembership", 1],
-  ["tests/e2e/solicitudes-ux.spec.ts", "occasion", 1],
 ];
 
 /** Los archivos de código de una carpeta de pruebas: los casos, su preparación y sus ayudantes. */

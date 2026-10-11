@@ -6,7 +6,7 @@ import { person } from "@/modules/people/schema";
 import { legacyAlias } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
-import { seedAlias, seedCheckIn } from "../factories";
+import { seedAlias, seedCheckIn, seedOccasion } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -26,22 +26,17 @@ test.beforeEach(async () => {
   const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("sin término");
   const now = Date.now();
-  const [row] = await db
-    .insert(occasion)
-    .values({
-      publicId: PUBLIC_ID,
-      termId: current.id,
-      title: "e2e-Integración por QR",
-      category: "INTEGRATION",
-      location: "Bloque 38",
-      points: 20,
-      status: "OPEN",
-      startsAt: new Date(now),
-      checkInOpensAt: new Date(now - 3_600_000),
-      checkInClosesAt: new Date(now + 3_600_000),
-    })
-    .returning({ id: occasion.id });
-  if (!row) throw new Error("sin ocasión");
+  const row = await seedOccasion(current.id, {
+    publicId: PUBLIC_ID,
+    title: "e2e-Integración por QR",
+    category: "INTEGRATION",
+    location: "Bloque 38",
+    points: 20,
+    status: "OPEN",
+    startsAt: new Date(now),
+    checkInOpensAt: new Date(now - 3_600_000),
+    checkInClosesAt: new Date(now + 3_600_000),
+  });
   await db.delete(legacyAlias).where(eq(legacyAlias.path, `/asamblea/${LEGACY_ID}`));
   await seedAlias(`/asamblea/${LEGACY_ID}`, row.id);
 });

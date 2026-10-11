@@ -413,6 +413,8 @@ export async function seedSentEmails(
 
 type OccasionOverrides = Partial<{
   title: string;
+  description: string;
+  location: string;
   kind: "ACTIVITY" | "ASSEMBLY" | "EDITION_SESSION";
   assemblyKind: "ORDINARY" | "BOARD_ELECTION" | "RUNOFF" | null;
   category: (typeof occasion.$inferInsert)["category"];
@@ -431,7 +433,10 @@ type OccasionOverrides = Partial<{
 
 let occasionCounter = 0;
 
-/** Ocasión abierta ahora mismo, con 10 puntos y aprobación automática salvo que se diga otra cosa. */
+/**
+ * Ocasión abierta ahora mismo, con 10 puntos, aprobación automática y sin descripción ni lugar,
+ * salvo que se diga otra cosa.
+ */
 export async function seedOccasion(
   termId: string,
   overrides: OccasionOverrides = {},
@@ -446,6 +451,8 @@ export async function seedOccasion(
         overrides.publicId ??
         `t${String(occasionCounter).padStart(4, "0")}${String(now % 100_000).padStart(5, "0")}`,
       title: overrides.title ?? `Ocasión de prueba ${occasionCounter}`,
+      description: overrides.description ?? "",
+      location: overrides.location ?? "",
       kind: overrides.kind ?? "ACTIVITY",
       assemblyKind: overrides.assemblyKind ?? null,
       category: overrides.category ?? "OTHER",
