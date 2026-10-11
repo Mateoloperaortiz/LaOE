@@ -12,6 +12,7 @@ import {
 } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedPermission } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -188,11 +189,7 @@ test.describe("líder", () => {
   test.beforeEach(async () => {
     const { member, home } = await ids();
     slug = home.slug;
-    const db = getDb();
-    await db
-      .insert(permission)
-      .values({ personId: member.id, code: "COMMITTEE_LEADER", committeeId: home.id })
-      .onConflictDoNothing();
+    await seedPermission(member.id, "COMMITTEE_LEADER", home.id);
     await closeDb();
   });
 

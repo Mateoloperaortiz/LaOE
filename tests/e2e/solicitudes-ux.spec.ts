@@ -4,16 +4,11 @@ import { and, eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { request, task } from "@/modules/crm/schema";
 import { occasion } from "@/modules/participation/schema";
-import {
-  committee,
-  committeeMembership,
-  consent,
-  membership,
-  person,
-} from "@/modules/people/schema";
+import { committee, committeeMembership, consent, person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedMembership, seedPerson } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -31,19 +26,12 @@ test.beforeEach(async ({ browser }) => {
   const db = getDb();
   const [current] = await db.select().from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("Falta el semestre sintético");
-  const [who] = await db
-    .insert(person)
-    .values({
-      email: `${prefix}@eafit.edu.co`,
-      firstName: "Solicitud",
-      lastName: "UX",
-      stage: "MEMBER",
-      source: "E2E",
-    })
-    .returning();
-  if (!who) throw new Error("No se creó el miembro sintético");
-  personId = who.id;
-  await db.insert(membership).values({ personId, status: "ACTIVE", firstTermId: current.id });
+  personId = await seedPerson(`${prefix}@eafit.edu.co`, {
+    firstName: "Solicitud",
+    lastName: "UX",
+    source: "E2E",
+  });
+  await seedMembership(personId, current.id);
   // ADR-048: sin autorización viva no se entra a Mi OE; esta suite prueba solicitudes, no la pantalla.
   await db
     .insert(consent)

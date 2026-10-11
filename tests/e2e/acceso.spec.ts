@@ -2,15 +2,10 @@ import { randomBytes } from "node:crypto";
 import { expect } from "@playwright/test";
 import { eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import {
-  committee,
-  committeeMembership,
-  consent,
-  membership,
-  person,
-} from "@/modules/people/schema";
+import { committee, committeeMembership, consent, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
+import { seedMembership, seedPerson } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -39,20 +34,14 @@ test.beforeEach(async () => {
     .insert(committee)
     .values({ name: `${prefix} comité`, slug: prefix, status: "ACTIVE" })
     .returning();
-  const [who] = await db
-    .insert(person)
-    .values({
-      email: `${prefix}@eafit.edu.co`,
-      firstName: "Acceso",
-      lastName: "Sintético",
-      stage: "MEMBER",
-      source: "E2E",
-    })
-    .returning();
-  if (!who || !comite) throw new Error("No se creó la persona sintética");
-  personId = who.id;
+  if (!comite) throw new Error("No se creó el comité sintético");
+  personId = await seedPerson(`${prefix}@eafit.edu.co`, {
+    firstName: "Acceso",
+    lastName: "Sintético",
+    source: "E2E",
+  });
   committeeId = comite.id;
-  await db.insert(membership).values({ personId, status: "ACTIVE", firstTermId: current.id });
+  await seedMembership(personId, current.id);
   // ADR-048: sin autorización viva no se llega a Mi OE, y esta suite prueba el acceso.
   await db
     .insert(consent)
@@ -63,38 +52,24 @@ test.beforeEach(async () => {
 
   // Dos pertenencias del término que la lista del comité no muestra: quien se cambió de comité y
   // quien salió de la OE con la pertenencia abierta. Tampoco pueden contar en su chip.
-  const salidas = await db
-    .insert(person)
-    .values([
-      {
-        email: `${prefix}-cambio@eafit.edu.co`,
-        firstName: "Cambio",
-        lastName: "Sintético",
-        stage: "MEMBER",
-        source: "E2E",
-      },
-      {
-        email: `${prefix}-baja@eafit.edu.co`,
-        firstName: "Baja",
-        lastName: "Sintética",
-        stage: "ALUMNI",
-        source: "E2E",
-      },
-    ])
-    .returning();
-  const [cambio, baja] = salidas;
-  if (!cambio || !baja) throw new Error("No se crearon las salidas sintéticas");
+  const cambio = {
+    id: await seedPerson(`${prefix}-cambio@eafit.edu.co`, {
+      firstName: "Cambio",
+      lastName: "Sintético",
+      source: "E2E",
+    }),
+  };
+  const baja = {
+    id: await seedPerson(`${prefix}-baja@eafit.edu.co`, {
+      firstName: "Baja",
+      lastName: "Sintética",
+      stage: "ALUMNI",
+      source: "E2E",
+    }),
+  };
   fuera = [cambio.id, baja.id];
-  await db.insert(membership).values([
-    { personId: cambio.id, status: "ACTIVE", firstTermId: current.id },
-    {
-      personId: baja.id,
-      status: "INACTIVE",
-      firstTermId: current.id,
-      endedAt: new Date(),
-      endReason: "RESIGNATION",
-    },
-  ]);
+  await seedMembership(cambio.id, current.id);
+  await seedMembership(baja.id, current.id, "INACTIVE", "RESIGNATION");
   await db.insert(committeeMembership).values([
     {
       personId: cambio.id,

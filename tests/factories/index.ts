@@ -39,7 +39,10 @@ import { conventionalTermDates } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { todayKey } from "@/shared/lib/dates";
 
-// Fábricas de datos sintéticos para las pruebas de integración: nunca datos reales.
+// Fábricas de datos sintéticos para las pruebas de integración y de la E2E: nunca datos reales.
+// Escriben filas, no llaman comandos, y lo hacen por `getDb()`: en integración es la base `_test` y
+// en la E2E la base desechable que el lanzador deja en `DATABASE_URL`. No importan nada de
+// `tests/integration` ni de `tests/e2e`, para que las dos suites puedan compartirlas.
 
 const db = () => getDb();
 
@@ -84,6 +87,8 @@ type PersonOverrides = Partial<{
   phone: string | null;
   program: string | null;
   personalEmail: string | null;
+  /** De dónde viene la fila: `TEST` si no se dice; la E2E marca las suyas con `E2E`. */
+  source: string;
   /** Término de ingreso de `seedMember`; uno anterior al actual lo hace veterano (sin la guarda de nuevo, ADR-060 regla 11). */
   entryTermCode: string;
 }>;
@@ -105,7 +110,7 @@ export async function seedPeople(
         phone: one.phone ?? null,
         program: one.program ?? null,
         personalEmail: one.personalEmail ?? null,
-        source: "TEST",
+        source: one.source ?? "TEST",
       })),
     )
     .returning({ id: person.id, email: person.email });
@@ -124,16 +129,18 @@ export async function seedPerson(email: string, overrides: PersonOverrides = {})
 }
 
 type MembershipStatus = "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE";
+type MembershipEndReason = NonNullable<(typeof membership.$inferInsert)["endReason"]>;
 
 /**
  * La membresía de varias personas en una sola escritura, con el mismo término de ingreso y el mismo
- * estado; devuelve sus ids en el orden pedido. Una inactiva lleva su fecha y su motivo de salida,
- * como la deja una baja.
+ * estado; devuelve sus ids en el orden pedido. Una inactiva lleva su fecha y su motivo de salida
+ * (`endReason`), como la deja una baja.
  */
 export async function seedMemberships(
   personIds: string[],
   termId: string,
   status: MembershipStatus = "ACTIVE",
+  endReason: MembershipEndReason = "OTHER",
 ): Promise<string[]> {
   if (personIds.length === 0) return [];
   const rows = await db()
@@ -143,7 +150,7 @@ export async function seedMemberships(
         personId,
         firstTermId: termId,
         status,
-        ...(status === "INACTIVE" ? { endedAt: new Date(), endReason: "OTHER" as const } : {}),
+        ...(status === "INACTIVE" ? { endedAt: new Date(), endReason } : {}),
       })),
     )
     .returning({ id: membership.id, personId: membership.personId });
@@ -159,8 +166,9 @@ export async function seedMembership(
   personId: string,
   termId: string,
   status: MembershipStatus = "ACTIVE",
+  endReason: MembershipEndReason = "OTHER",
 ): Promise<string> {
-  const [id] = await seedMemberships([personId], termId, status);
+  const [id] = await seedMemberships([personId], termId, status, endReason);
   if (!id) throw new Error("seed membership");
   return id;
 }

@@ -24,9 +24,10 @@ import {
 import { HUB_TERMS_VERSION } from "@/modules/competition/domain/hub-pure";
 import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
 import { event, eventEdition } from "@/modules/events/schema";
-import { membership, person } from "@/modules/people/schema";
+import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedMembership, seedPerson } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM, withinTermInput } from "./calendar";
 import { test } from "./fixtures";
@@ -517,14 +518,9 @@ test.describe("hub de capitanes", () => {
 async function seedHelper(email: string, firstName: string, lastName: string): Promise<void> {
   const db = getDb();
   const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
-  const [row] = await db
-    .insert(person)
-    .values({ email, firstName, lastName, stage: "MEMBER", source: "E2E" })
-    .returning({ id: person.id });
-  if (!current || !row) throw new Error("No se creó el miembro sintético");
-  await db
-    .insert(membership)
-    .values({ personId: row.id, status: "ACTIVE", firstTermId: current.id });
+  if (!current) throw new Error("No se creó el miembro sintético");
+  const personId = await seedPerson(email, { firstName, lastName, source: "E2E" });
+  await seedMembership(personId, current.id);
 }
 
 test.describe("personal desde la hoja del GAP", () => {

@@ -41,6 +41,7 @@ import {
 import { appConfig, importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { walletPass } from "@/modules/wallet/schema";
+import { seedMembership, seedPermission, seedPerson, seedTerm } from "../factories";
 import { E2E_TERM } from "./calendar";
 import { alignSeedCalendar } from "./calendar-seed";
 import { assertOwnedDatabase } from "./environment";
@@ -79,6 +80,17 @@ async function setE2ePassword(personId: string, email: string): Promise<void> {
     });
 }
 
+/** La membresía activa de una identidad sintética, si la base no se la trae ya. */
+async function ensureMembership(personId: string, termId: string): Promise<void> {
+  const [own] = await getDb()
+    .select({ id: membership.id })
+    .from(membership)
+    .where(eq(membership.personId, personId));
+  if (!own) {
+    await seedMembership(personId, termId);
+  }
+}
+
 export default async function globalSetup(): Promise<void> {
   if (process.env.E2E_RUN !== "1")
     throw new Error("Usá npm run test:e2e para preparar una base aislada");
@@ -101,35 +113,16 @@ export default async function globalSetup(): Promise<void> {
       target: appConfig.key,
       set: { value: "prueba-v1", updatedAt: new Date() },
     });
-  let [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
-  if (!current) {
-    [current] = await db.insert(term).values(E2E_TERM).returning({ id: term.id });
-  }
-  if (!current) {
-    throw new Error("sin término");
-  }
+  const current = {
+    id: await seedTerm(E2E_TERM.code, { startsOn: E2E_TERM.startsOn, endsOn: E2E_TERM.endsOn }),
+  };
   let [who] = await db.select({ id: person.id }).from(person).where(eq(person.email, E2E_EMAIL));
-  if (!who) {
-    [who] = await db
-      .insert(person)
-      .values({
-        email: E2E_EMAIL,
-        firstName: "Prueba",
-        lastName: "E2E",
-        stage: "MEMBER",
-        source: "E2E",
-      })
-      .returning({ id: person.id });
-  }
-  if (!who) {
-    throw new Error("sin persona");
-  }
+  who ??= {
+    id: await seedPerson(E2E_EMAIL, { firstName: "Prueba", lastName: "E2E", source: "E2E" }),
+  };
   await db.delete(walletPass).where(eq(walletPass.personId, who.id));
   await db.delete(carnetToken).where(eq(carnetToken.personId, who.id));
-  await db
-    .insert(membership)
-    .values({ personId: who.id, status: "ACTIVE", firstTermId: current.id })
-    .onConflictDoNothing({ target: membership.personId });
+  await ensureMembership(who.id, current.id);
   // La suite cambia su estado desde la Persona 360: vuelve a activo en cada corrida.
   await db
     .update(membership)
@@ -152,7 +145,7 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(importJob).where(like(importJob.filename, "roster-e2e%"));
   // La persona de e2e es ADMIN para probar el admin; BOARD lo prueba la suite y se limpia aquí.
   await db.delete(permission).where(eq(permission.personId, who.id));
-  await db.insert(permission).values({ personId: who.id, code: "ADMIN" });
+  await seedPermission(who.id, "ADMIN");
   // La identidad ADMIN también entra a Mi OE en algunas suites (ADR-048).
   await db
     .insert(consent)
@@ -187,63 +180,36 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(pointEntry).where(like(pointEntry.reason, "e2e-%"));
   await db.delete(occasion).where(like(occasion.title, "e2e-%"));
   // Término de pruebas del cierre: existe, abierto, sin standing ni ocasiones.
-  let [closing] = await db
-    .select({ id: term.id })
-    .from(term)
-    .where(eq(term.code, E2E_CLOSING_TERM));
-  if (!closing) {
-    [closing] = await db
-      .insert(term)
-      .values({ code: E2E_CLOSING_TERM, semester: 2, startsOn: "2019-07-01", endsOn: "2019-12-31" })
-      .returning({ id: term.id });
-  }
-  if (closing) {
-    await db.update(term).set({ pointsClosedAt: null }).where(eq(term.id, closing.id));
-    await db.delete(termStanding).where(eq(termStanding.termId, closing.id));
-    const closingCheckIns = db
-      .select({ id: checkIn.id })
-      .from(checkIn)
-      .where(
-        inArray(
-          checkIn.occasionId,
-          db.select({ id: occasion.id }).from(occasion).where(eq(occasion.termId, closing.id)),
-        ),
-      );
-    await db.delete(pointEntry).where(inArray(pointEntry.checkInId, closingCheckIns));
-    await db.delete(pointEntry).where(eq(pointEntry.termId, closing.id));
-    await db.delete(occasion).where(eq(occasion.termId, closing.id));
-    // Permanencia (fase 4): el término de pruebas arranca sin tablas ni bloqueos.
-    await db.update(term).set({ permanenceClosedAt: null }).where(eq(term.id, closing.id));
-    await db.delete(permanenceTable).where(eq(permanenceTable.termId, closing.id));
-    await db.delete(permanenceRule).where(eq(permanenceRule.termId, closing.id));
-  }
+  const closing = { id: await seedTerm(E2E_CLOSING_TERM) };
+  await db.update(term).set({ pointsClosedAt: null }).where(eq(term.id, closing.id));
+  await db.delete(termStanding).where(eq(termStanding.termId, closing.id));
+  const closingCheckIns = db
+    .select({ id: checkIn.id })
+    .from(checkIn)
+    .where(
+      inArray(
+        checkIn.occasionId,
+        db.select({ id: occasion.id }).from(occasion).where(eq(occasion.termId, closing.id)),
+      ),
+    );
+  await db.delete(pointEntry).where(inArray(pointEntry.checkInId, closingCheckIns));
+  await db.delete(pointEntry).where(eq(pointEntry.termId, closing.id));
+  await db.delete(occasion).where(eq(occasion.termId, closing.id));
+  // Permanencia (fase 4): el término de pruebas arranca sin tablas ni bloqueos.
+  await db.update(term).set({ permanenceClosedAt: null }).where(eq(term.id, closing.id));
+  await db.delete(permanenceTable).where(eq(permanenceTable.termId, closing.id));
+  await db.delete(permanenceRule).where(eq(permanenceRule.termId, closing.id));
   // Término del cierre de permanencia: puntos cerrados, permanencia reabierta, sin decisiones,
   // snapshots, reglas ni tablas (la persona desechable ya salió por el prefijo e2e-).
-  let [permanenceTerm] = await db
-    .select({ id: term.id })
-    .from(term)
-    .where(eq(term.code, E2E_PERMANENCE_TERM));
-  if (!permanenceTerm) {
-    [permanenceTerm] = await db
-      .insert(term)
-      .values({
-        code: E2E_PERMANENCE_TERM,
-        semester: 1,
-        startsOn: "2019-01-01",
-        endsOn: "2019-06-30",
-      })
-      .returning({ id: term.id });
-  }
-  if (permanenceTerm) {
-    await db
-      .update(term)
-      .set({ pointsClosedAt: new Date(), permanenceClosedAt: null })
-      .where(eq(term.id, permanenceTerm.id));
-    await db.delete(permanenceDecision).where(eq(permanenceDecision.termId, permanenceTerm.id));
-    await db.delete(permanenceSnapshot).where(eq(permanenceSnapshot.termId, permanenceTerm.id));
-    await db.delete(permanenceTable).where(eq(permanenceTable.termId, permanenceTerm.id));
-    await db.delete(permanenceRule).where(eq(permanenceRule.termId, permanenceTerm.id));
-  }
+  const permanenceTerm = { id: await seedTerm(E2E_PERMANENCE_TERM) };
+  await db
+    .update(term)
+    .set({ pointsClosedAt: new Date(), permanenceClosedAt: null })
+    .where(eq(term.id, permanenceTerm.id));
+  await db.delete(permanenceDecision).where(eq(permanenceDecision.termId, permanenceTerm.id));
+  await db.delete(permanenceSnapshot).where(eq(permanenceSnapshot.termId, permanenceTerm.id));
+  await db.delete(permanenceTable).where(eq(permanenceTable.termId, permanenceTerm.id));
+  await db.delete(permanenceRule).where(eq(permanenceRule.termId, permanenceTerm.id));
   // Criterios y bloqueos que crean las suites de permanencia sobre el término actual (los puntajes y
   // créditos de esos criterios salen antes: la clave foránea es restrict).
   const e2eRules = db
@@ -265,27 +231,16 @@ export default async function globalSetup(): Promise<void> {
     .select({ id: person.id })
     .from(person)
     .where(eq(person.email, E2E_MEMBER_EMAIL));
-  if (!member) {
-    [member] = await db
-      .insert(person)
-      .values({
-        email: E2E_MEMBER_EMAIL,
-        firstName: "Miembro",
-        lastName: "E2E",
-        stage: "MEMBER",
-        source: "E2E",
-      })
-      .returning({ id: person.id });
-  }
-  if (!member) {
-    throw new Error("sin miembro");
-  }
+  member ??= {
+    id: await seedPerson(E2E_MEMBER_EMAIL, {
+      firstName: "Miembro",
+      lastName: "E2E",
+      source: "E2E",
+    }),
+  };
   await db.delete(walletPass).where(eq(walletPass.personId, member.id));
   await db.delete(carnetToken).where(eq(carnetToken.personId, member.id));
-  await db
-    .insert(membership)
-    .values({ personId: member.id, status: "ACTIVE", firstTermId: current.id })
-    .onConflictDoNothing({ target: membership.personId });
+  await ensureMembership(member.id, current.id);
   await db
     .update(membership)
     .set({ status: "ACTIVE", endedAt: null, endReason: null })
@@ -341,62 +296,48 @@ export default async function globalSetup(): Promise<void> {
     .where(and(eq(committee.status, "ACTIVE"), notLike(committee.slug, "e2e-%")))
     .orderBy(asc(committee.name))
     .limit(1);
-  if (home && permanenceTerm) {
+  if (home) {
     // La persona desechable del cierre de permanencia: nueva en 2019-1, en el mismo comité.
-    const [disposable] = await db
-      .insert(person)
-      .values({
-        email: E2E_CLOSING_EMAIL,
+    const disposable = {
+      id: await seedPerson(E2E_CLOSING_EMAIL, {
         firstName: "Cierre",
         lastName: "E2E",
-        stage: "MEMBER",
         source: "E2E",
-      })
-      .returning({ id: person.id });
-    if (disposable) {
-      await db
-        .insert(membership)
-        .values({ personId: disposable.id, status: "ACTIVE", firstTermId: permanenceTerm.id });
-      await db.insert(committeeMembership).values({
-        personId: disposable.id,
-        committeeId: home.id,
-        termId: permanenceTerm.id,
-        roleCode: "MIEMBRO",
-        joinedAt: new Date("2019-01-20T12:00:00Z"),
-      });
-    }
+      }),
+    };
+    await seedMembership(disposable.id, permanenceTerm.id);
+    await db.insert(committeeMembership).values({
+      personId: disposable.id,
+      committeeId: home.id,
+      termId: permanenceTerm.id,
+      roleCode: "MIEMBRO",
+      joinedAt: new Date("2019-01-20T12:00:00Z"),
+    });
   }
   if (home) {
     // Miembro desechable: al aprobar GH la licencia, conserva consulta de Mi OE y suspende operaciones.
-    const [leaver] = await db
-      .insert(person)
-      .values({
-        email: E2E_LEAVE_EMAIL,
+    const leaver = {
+      id: await seedPerson(E2E_LEAVE_EMAIL, {
         firstName: "Licencia",
         lastName: "E2E",
-        stage: "MEMBER",
         source: "E2E",
-      })
-      .returning({ id: person.id });
-    if (leaver) {
-      await db
-        .insert(membership)
-        .values({ personId: leaver.id, status: "ACTIVE", firstTermId: current.id });
-      await db.insert(committeeMembership).values({
-        personId: leaver.id,
-        committeeId: home.id,
-        termId: current.id,
-        roleCode: "MIEMBRO",
-        joinedAt: new Date(),
-      });
-      // ADR-048: ya autorizó en un ingreso anterior; su suite prueba licencias, no la autorización.
-      await db.insert(consent).values({
-        personId: leaver.id,
-        purpose: "MEMBERSHIP",
-        source: "SELF",
-        policyVersion: "prueba-v1",
-      });
-    }
+      }),
+    };
+    await seedMembership(leaver.id, current.id);
+    await db.insert(committeeMembership).values({
+      personId: leaver.id,
+      committeeId: home.id,
+      termId: current.id,
+      roleCode: "MIEMBRO",
+      joinedAt: new Date(),
+    });
+    // ADR-048: ya autorizó en un ingreso anterior; su suite prueba licencias, no la autorización.
+    await db.insert(consent).values({
+      personId: leaver.id,
+      purpose: "MEMBERSHIP",
+      source: "SELF",
+      policyVersion: "prueba-v1",
+    });
     await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_LEAVE_EMAIL));
     const [existing] = await db
       .select({ id: committeeMembership.id })

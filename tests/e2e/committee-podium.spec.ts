@@ -6,6 +6,7 @@ import { committeeParticipation, occasion } from "@/modules/participation/schema
 import { committee } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
+import { seedTerm } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -123,13 +124,9 @@ test("porcentajes calculados del semestre, top diez, detalle por teclado y cambi
   await expect(last).toBeFocused();
   await expect(last).toBeInViewport();
   await sinViolaciones(page);
-  const [empty] = await getDb()
-    .insert(term)
-    .values({ code: "1900-1", semester: 1, startsOn: "1900-01-01", endsOn: "1900-06-30" })
-    .returning();
-  if (!empty) throw new Error("sin término vacío");
+  const emptyTermId = await seedTerm("1900-1");
   await page.reload();
-  await page.getByLabel(t("T-550"), { exact: true }).selectOption(empty.id);
+  await page.getByLabel(t("T-550"), { exact: true }).selectOption(emptyTermId);
   await page.getByRole("button", { name: t("T-250"), exact: true }).click();
   await expect(page).toHaveURL(/tablero=comites/);
   await expect(podium).toHaveCount(0);

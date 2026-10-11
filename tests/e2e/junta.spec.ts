@@ -4,6 +4,7 @@ import { closeDb, getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
 import { person } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
+import { seedPermission } from "../factories";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
@@ -21,7 +22,7 @@ test.beforeEach(async () => {
     .from(person)
     .where(eq(person.email, E2E_MEMBER_EMAIL));
   if (!member) throw new Error("sin miembro");
-  await db.insert(permission).values({ personId: member.id, code: "BOARD" }).onConflictDoNothing();
+  await seedPermission(member.id, "BOARD");
   await closeDb();
 });
 

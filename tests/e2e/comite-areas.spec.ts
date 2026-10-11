@@ -11,6 +11,7 @@ import {
 } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedMembership, seedPerson } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_CALENDAR, E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -67,21 +68,17 @@ async function direct(roleCode: string, coDirector = false): Promise<void> {
     .update(committeeMembership)
     .set({ roleCode: coDirector ? "MIEMBRO" : roleCode })
     .where(eq(committeeMembership.id, row.id));
-  const [nuevo] = await db
-    .insert(person)
-    .values({
-      email: NEW_EMAIL,
+  const [known] = await db
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.email, NEW_EMAIL));
+  if (!known) {
+    const nuevo = await seedPerson(NEW_EMAIL, {
       firstName: "Director",
       lastName: "Nuevo",
-      stage: "MEMBER",
       source: "E2E",
-    })
-    .onConflictDoNothing()
-    .returning({ id: person.id });
-  if (nuevo) {
-    await db
-      .insert(membership)
-      .values({ personId: nuevo.id, status: "ACTIVE", firstTermId: current.id });
+    });
+    await seedMembership(nuevo, current.id);
   }
   await closeDb();
 }
