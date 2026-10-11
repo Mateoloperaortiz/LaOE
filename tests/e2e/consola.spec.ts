@@ -95,8 +95,11 @@ test("la consola avisa cuando el sondeo responde con error y deja de mostrar el 
   await page.getByRole("button", { name: tList("T-588")[0] }).click();
   const code = page.getByText(copyPattern("T-587"));
   const qr = page.getByRole("img", { name: t("T-586") });
+  // El enlace es lo que codifica el QR: lleva el código rotativo en claro (`?c=`).
+  const link = page.getByText(copyPattern("T-611"));
   await expect(code).toBeVisible();
   await expect(qr).toBeVisible();
+  await expect(link).toContainText("?c=");
 
   // La sesión del anfitrión vence a mitad del evento: cada sondeo responde 401.
   await page.route("**/api/ocasiones/*/live", (route) =>
@@ -106,11 +109,15 @@ test("la consola avisa cuando el sondeo responde con error y deja de mostrar el 
   await expect(notice).toBeVisible({ timeout: 15_000 });
   await expect(qr).toHaveCount(0);
   await expect(code).toHaveCount(0);
+  // El código tampoco queda a la vista dentro del enlace.
+  await expect(link).toHaveCount(0);
+  await expect(page.getByText("?c=")).toHaveCount(0);
   await sinViolaciones(page);
 
   // La casa vuelve a responder: la consola se recupera sola en el siguiente sondeo.
   await page.unroute("**/api/ocasiones/*/live");
   await expect(qr).toBeVisible({ timeout: 15_000 });
   await expect(code).toBeVisible();
+  await expect(link).toContainText("?c=");
   await expect(notice).toHaveCount(0);
 });

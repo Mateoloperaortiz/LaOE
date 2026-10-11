@@ -5,8 +5,8 @@ import { afterPoll, type LiveStatus, showsAsCurrent } from "./console-live";
 
 // Contador en vivo (ADR-035 regla 16): pide el JSON de la ocasión cada pocos segundos, se pausa con
 // la pestaña oculta y redibuja el QR con el código rotativo vigente. Sin websockets. Si un sondeo
-// responde con error, avisa y deja de mostrar el QR y el código como vigentes hasta que la casa
-// vuelva a responder (ADR-122 regla 14, `console-live.ts`).
+// responde con error, avisa y deja de mostrar el QR, el código y el enlace que lo lleva hasta que la
+// casa vuelva a responder (ADR-122 regla 14, `console-live.ts`).
 
 export interface LiveData {
   status: string;
@@ -132,6 +132,10 @@ export function ConsolaEnVivo({
                 {fill(labels.code, { codigo: data.code.value, s: String(secondsLeft) })}
               </p>
             ) : null}
+            {/* El enlace es lo que codifica el QR y lleva el código en claro (`?c=`): se va con ellos. */}
+            <p className="break-all text-center text-sm text-oe-navy/70">
+              {fill(labels.link, { url: data.link })}
+            </p>
           </>
         ) : (
           <p
@@ -141,9 +145,6 @@ export function ConsolaEnVivo({
             {labels.stale}
           </p>
         )}
-        <p className="break-all text-center text-sm text-oe-navy/70">
-          {fill(labels.link, { url: data.link })}
-        </p>
       </section>
       <div className="flex flex-col gap-6">
         <dl className="grid grid-cols-2 gap-4" aria-live="polite">
