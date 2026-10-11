@@ -19,7 +19,6 @@ import {
   representationLadder,
 } from "@/modules/participation/domain/committee-assembly";
 import {
-  termMidpointKey,
   type ViabilityInput,
   viabilityAlerts,
 } from "@/modules/participation/domain/committee-viability-pure";
@@ -53,6 +52,7 @@ import {
   verifyRotatingCode,
 } from "@/modules/participation/domain/rotating-code-pure";
 import { eligibleByCommittee } from "@/modules/participation/domain/scores";
+import { midpointDay } from "@/shared/lib/dates-pure";
 
 describe("publicId", () => {
   it("genera diez caracteres del alfabeto sin ambiguos y valida el formato", () => {
@@ -551,9 +551,9 @@ describe("viabilidad del comité (ADR-060 regla 8)", () => {
 
   it("la mitad del término es un día del calendario, con días pares o impares", () => {
     // 2026-1: 180 días del 1 de enero al 30 de junio.
-    expect(termMidpointKey("2026-01-01", "2026-06-30")).toBe("2026-04-01");
+    expect(midpointDay("2026-01-01", "2026-06-30")).toBe("2026-04-01");
     // 2026-2: 183 días del 1 de julio al 31 de diciembre; el medio día que sobra no cuenta.
-    expect(termMidpointKey("2026-07-01", "2026-12-31")).toBe("2026-09-30");
+    expect(midpointDay("2026-07-01", "2026-12-31")).toBe("2026-09-30");
   });
 
   it("en prueba exige diez miembros, el 90 % de asambleas y avisa el vencimiento (Regl. art. 25)", () => {

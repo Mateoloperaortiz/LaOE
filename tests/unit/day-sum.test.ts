@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { providerDayEnd } from "@/modules/comms/domain/pure";
-import { termMidpointKey } from "@/modules/participation/domain/committee-viability-pure";
 import { nextDayAt, weekKeyFor } from "@/modules/participation/domain/gamification-pure";
 import { leaveWindow } from "@/modules/people/domain/leave-pure";
 import { deriveDates, SUSPENSION_DAYS } from "@/modules/people/domain/sanction-pure";
@@ -10,6 +9,7 @@ import {
   addDays,
   atHourIn,
   dateKeyIn,
+  midpointDay,
   startOfNextDayIn,
   startOfTodayIn,
 } from "@/shared/lib/dates-pure";
@@ -294,7 +294,7 @@ describe("la mitad del término", () => {
         const answers = [
           viabilityMidpoint(startsOn, endsOn),
           noticesMidpoint(startsOn, endsOn),
-          termMidpointKey(startsOn, endsOn),
+          midpointDay(startsOn, endsOn),
         ];
         if (answers.some((answer) => answer !== byHand)) {
           different.push(`${startsOn} a ${endsOn}: ${answers.join(", ")} y a mano ${byHand}`);

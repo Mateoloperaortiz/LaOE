@@ -107,6 +107,20 @@ export function addDays(dayKey: string, days: number): string {
 }
 
 /**
+ * El día de la mitad entre dos días ("AAAA-MM-DD"): el primero más la mitad, hacia abajo, de los días
+ * que los separan, así que el medio día que sobra no cuenta. Aritmética de calendario, sin zona: quien
+ * la compara con «hoy» trae el día civil de Colombia. Es la única escritura de «la mitad del término»
+ * (ADR-122 regla 12).
+ */
+export function midpointDay(startKey: string, endKey: string): string {
+  const days = Math.round(
+    (new Date(`${endKey}T00:00:00Z`).getTime() - new Date(`${startKey}T00:00:00Z`).getTime()) /
+      86_400_000,
+  );
+  return addDays(startKey, Math.floor(days / 2));
+}
+
+/**
  * La medianoche que le sigue a ese instante en la zona dada: cuando empieza su día siguiente. Va por
  * el día y no por horas sumadas: el día de ese instante, más uno, a las cero de la zona.
  */
