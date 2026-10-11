@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { getPublicForm, submitFormAs } from "@/modules/forms";
 import { formSubmission } from "@/modules/forms/schema";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedForm, seedSubmission } from "./factories";
 
@@ -44,6 +45,7 @@ describe("envíos a la vez al mismo formulario", () => {
     const { id, view } = await openForm("ultimo-cupo", { maxSubmissions: 2 });
     await seedSubmission(id, "primera@gmail.com");
 
+    await warmPool();
     const results = await Promise.all(
       ["ana", "bruno", "carla"].map((name) => send(view, `${name}.cupo@eafit.edu.co`)),
     );
@@ -63,6 +65,7 @@ describe("envíos a la vez al mismo formulario", () => {
   ])("dos envíos a la vez con el mismo correo a un formulario de una respuesta por persona %s: entra uno y el otro recibe que ya respondió", async (_kind, actions) => {
     const { id, view } = await openForm("una-por-correo", { actions });
 
+    await warmPool();
     const results = await Promise.all([
       send(view, "repetida@eafit.edu.co"),
       send(view, "repetida@eafit.edu.co"),
