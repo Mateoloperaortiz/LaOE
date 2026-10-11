@@ -17,3 +17,16 @@ export function ErrorScreen({ reset }: { reset: () => void }) {
     </>
   );
 }
+
+/**
+ * La pantalla de error de un área (/admin, /app; ADR-123 regla 21). Next la pinta dentro del layout
+ * del área, así que su navegación sigue en su sitio y no lleva contenedor principal propio: ya lo abre
+ * el shell del área.
+ */
+export function AreaErrorScreen({ reset }: { reset: () => void }) {
+  return (
+    <div className="flex max-w-2xl flex-col items-start gap-6 py-8">
+      <ErrorScreen reset={reset} />
+    </div>
+  );
+}
