@@ -22,7 +22,7 @@ import {
 import { assertNoInhabilities, leadershipRolesOf, type Override } from "./inhabilities";
 import type { HeldRole } from "./inhabilities-pure";
 import type { MembershipStatus } from "./reads";
-import { lockWalletMember } from "./wallet-member";
+import { lockMembershipCycle } from "./wallet-member";
 
 // Pertenencia a comité por término (ADR-005): de 1 a 3 para activos. Los cargos viven en
 // `committee_role_assignment` (ADR-058), con un titular y una codirección por cargo, comité y término;
@@ -175,7 +175,7 @@ export async function getMyMembershipForUpdate(
   personId: string,
   now = new Date(),
 ): Promise<MyMembership> {
-  await lockWalletMember(tx, personId);
+  await lockMembershipCycle(tx, personId);
   await tx
     .select({ personId: membership.personId })
     .from(membership)

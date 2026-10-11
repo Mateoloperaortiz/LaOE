@@ -9,7 +9,7 @@ import {
   findMemberByEmail,
   getPeopleByIds,
   listAllCommittees,
-  lockWalletMember,
+  lockMembershipCycle,
   searchPeople,
 } from "@/modules/people";
 import { t } from "@/shared/copy";
@@ -215,7 +215,7 @@ export async function revokePermission(ctx: CommandContext, id: string): Promise
   // para quien emite antes de leer sus permisos (ADR-122 regla 5): la emisión que llega espera y
   // decide sin este permiso, y esta espera a una emisión que va en vuelo. La fila se vuelve a leer
   // con el candado tomado: otra revocación o la baja pudieron borrarla mientras tanto.
-  await lockWalletMember(ctx.tx, found.personId);
+  await lockMembershipCycle(ctx.tx, found.personId);
   const [row] = await ctx.tx.select().from(permission).where(eq(permission.id, id));
   if (!row) {
     return;

@@ -5,7 +5,7 @@ import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { personImported } from "@/domain-events/people";
 import {
   endMembershipAs,
-  lockWalletMember,
+  lockMembershipCycle,
   recordSanctionAs,
   setProbationAs,
 } from "@/modules/people";
@@ -581,7 +581,7 @@ describe("importación del roster", () => {
     // Otra transacción tiene el candado del ciclo de Ana y le cambió el programa, sin confirmar: el
     // roster calcula su diff con el programa viejo y hace cola por ese candado.
     const held = await holdTransaction(async (tx) => {
-      await lockWalletMember(tx, ana);
+      await lockMembershipCycle(tx, ana);
       await tx.update(person).set({ program: "Economía" }).where(eq(person.id, ana));
     });
     let applied: Awaited<ReturnType<typeof applyRosterImportAs>>;

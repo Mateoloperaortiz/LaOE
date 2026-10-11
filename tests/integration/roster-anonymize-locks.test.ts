@@ -6,7 +6,7 @@ import {
   applyRosterImportAs,
   createRosterPreviewAs,
   endMembershipAs,
-  lockWalletMember,
+  lockMembershipCycle,
   requestDeletionAs,
 } from "@/modules/people";
 import { anonymizePerson } from "@/modules/people/domain/membership";
@@ -67,7 +67,7 @@ describe("importar el roster y anonimizar a la misma persona", () => {
     const { admin, sale, jobId } = await escenario([`${EMAIL};Retirado`]);
     // Alguien retiene el candado del ciclo de membresía de la persona: detrás hace cola primero la
     // anonimización y después el roster, que con el orden viejo ya traía tomada la fila de `person`.
-    const held = await holdTransaction((tx) => lockWalletMember(tx, sale));
+    const held = await holdTransaction((tx) => lockMembershipCycle(tx, sale));
     let results: PromiseSettledResult<unknown>[];
     try {
       const anonymizing = anonymizePersonAs(admin, sale);
@@ -176,7 +176,7 @@ describe("importar el roster mientras actúa alguien que figura antes en el arch
     jobId: string,
     importa: { personId: string; ip: null },
   ) {
-    const held = await holdTransaction((tx) => lockWalletMember(tx, sale));
+    const held = await holdTransaction((tx) => lockMembershipCycle(tx, sale));
     try {
       const acting = command();
       await hacenCola(held.pid, 1);

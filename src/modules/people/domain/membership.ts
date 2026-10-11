@@ -27,7 +27,7 @@ import { conditionAtDeparture, leftOnProbation, savedCondition } from "./leave-c
 import { leaveUntilError, leaveWindow } from "./leave-pure";
 import { SIGN_IN_STATUSES } from "./reads";
 import { setProbation } from "./term-outcomes";
-import { lockWalletMember } from "./wallet-member";
+import { lockMembershipCycle } from "./wallet-member";
 
 // El ciclo de vida de la membresía cambia solo por comandos (ADR-003): cada uno audita, escribe el
 // historial y emite `membership.changed`; salir y anonimizar siguen ADR-030 y ADR-034.
@@ -202,7 +202,7 @@ export async function changeMembershipStatus(
   input: ChangeStatusInput,
   now = new Date(),
 ): Promise<void> {
-  await lockWalletMember(ctx.tx, personId);
+  await lockMembershipCycle(ctx.tx, personId);
   const current = await lockMembership(ctx, personId);
   if (current.status === "INACTIVE") {
     // Llega acá quien pidió el cambio mientras otro la daba de baja, como una importación del roster
@@ -306,7 +306,7 @@ export async function endMembership(
   input: EndMembershipInput,
   now = new Date(),
 ): Promise<boolean> {
-  await lockWalletMember(ctx.tx, personId);
+  await lockMembershipCycle(ctx.tx, personId);
   const current = await lockMembership(ctx, personId);
   if (current.status === "INACTIVE") {
     return false;
@@ -375,7 +375,7 @@ export async function reactivateMembership(
   personId: string,
   input: ReactivateInput,
 ): Promise<void> {
-  await lockWalletMember(ctx.tx, personId);
+  await lockMembershipCycle(ctx.tx, personId);
   const current = await lockMembership(ctx, personId);
   if (current.status !== "INACTIVE") {
     throw new Error("Solo se reactiva una membresía terminada");
@@ -448,7 +448,7 @@ export async function anonymizePerson(
   personId: string,
   now = new Date(),
 ): Promise<void> {
-  await lockWalletMember(ctx.tx, personId);
+  await lockMembershipCycle(ctx.tx, personId);
   const [who] = await ctx.tx.select().from(person).where(eq(person.id, personId)).for("update");
   if (!who) {
     throw new DomainError(t("T-032"));

@@ -12,7 +12,7 @@ import {
   membership,
   person,
 } from "../schema";
-import { lockWalletMember } from "./wallet-member";
+import { lockMembershipCycle } from "./wallet-member";
 
 // Representación de los comités ante la Asamblea Directiva (Est. art. 16.2 y 33.3; Regl. art. 14;
 // ADR-060 regla 7): un titular y un suplente por comité y término, miembros activos del comité. Quien
@@ -78,7 +78,7 @@ export async function setRepresentative(
     // que se escribe abajo referencia la fila de `person`, que una anonimización toma antes que la
     // membresía. Sin él, el nombramiento y la anonimización de la misma persona se quedaban
     // esperándose (DT-341).
-    await lockWalletMember(ctx.tx, input.personId);
+    await lockMembershipCycle(ctx.tx, input.personId);
     const [member] = await ctx.tx
       .select({ status: membership.status })
       .from(membership)

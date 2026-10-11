@@ -139,6 +139,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Token de billetera | `CarnetToken` / `readCarnet` | Capacidad opaca `oe2`, en claro para reemitir; generación y revisión verificadas en servidor, revocable sin cerrar sesiones |
 | Pase de billetera | `WalletPass` | Reserva o pase Apple/Google con fechas y snapshots; emisión pendiente si aún no tiene `issuedAt` |
 | Generación del carnet | `Membership.walletEpoch` | Contador que sube al salir o anonimizar; reactivar no restaura los pases de generaciones anteriores |
+| Candado del ciclo de membresía | `lockMembershipCycle` | Candado consultivo por persona, con la clave `wallet-member:<persona>`, que serializa todo lo que cambia su membresía, sus comités, sus cargos, sus permisos, sus enlaces y su carnet; se toma antes que cualquier fila (ADR-120 regla 3). La clave conserva el nombre de cuando solo cuidaba la billetera |
 | Revisión del carnet | `CarnetToken.revision` | Número que aumenta al rotar el QR y permite saber si el pase publicado representa el token actual |
 | Importación | `ImportJob` | Un archivo del roster (o un ensayo de migración) con su vista previa, su estado y su resumen |
 | Solicitud de eliminación | `Person.deletionRequestedAt` + `Task.kind = DELETION_REQUEST` | Pedido del miembro para borrar sus datos; GH lo atiende anonimizando el perfil |

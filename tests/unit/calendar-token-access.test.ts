@@ -18,7 +18,7 @@ const state = vi.hoisted(() => ({
 vi.mock("@/modules/people", async () => ({
   canParticipate: (await import("@/modules/people/domain/access-pure")).canParticipate,
   getMembershipRef: state.membership,
-  lockWalletMember: state.lock,
+  lockMembershipCycle: state.lock,
 }));
 vi.mock("@/db/client", () => ({ getDb: () => state.db }));
 vi.mock("@/db/tx", () => ({

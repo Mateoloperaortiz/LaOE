@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type Executor, runCommand, SYSTEM_ACTOR, type Tx } from "@/db/tx";
-import { canParticipate, getMembershipRef, lockWalletMember } from "@/modules/people";
+import { canParticipate, getMembershipRef, lockMembershipCycle } from "@/modules/people";
 import { calendarToken } from "../schema";
 import { ForbiddenError } from "./errors";
 
@@ -21,7 +21,7 @@ function newToken(): string {
  * token no nace de una membresía que se leyó activa y ya no lo es (ADR-116 regla 15).
  */
 async function lockTokenHolder(tx: Tx, personId: string): Promise<void> {
-  const state = await lockWalletMember(tx, personId);
+  const state = await lockMembershipCycle(tx, personId);
   if (!state || state.anonymizedAt || !canParticipate(state.status)) {
     throw new ForbiddenError();
   }
@@ -127,7 +127,7 @@ export async function pruneCalendarTokens(): Promise<number> {
   let deleted = 0;
   for (const { personId } of holders) {
     deleted += await runCommand(SYSTEM_ACTOR, async (ctx) => {
-      const state = await lockWalletMember(ctx.tx, personId);
+      const state = await lockMembershipCycle(ctx.tx, personId);
       if (state && !state.anonymizedAt && state.status !== "INACTIVE") {
         return 0;
       }

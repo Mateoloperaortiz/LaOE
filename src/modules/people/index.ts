@@ -275,8 +275,8 @@ export { addPersonTags, listAllTags, listPersonTags, type TagRow } from "./domai
 export { probationInputSchema } from "./domain/term-outcomes";
 export {
   getWalletMemberState,
-  lockWalletMember,
-  lockWalletMembers,
+  lockMembershipCycle,
+  lockMembershipCycles,
   purgeIfMembershipEnded,
   type WalletMemberState,
 } from "./domain/wallet-member";

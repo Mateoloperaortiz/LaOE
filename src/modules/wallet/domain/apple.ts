@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { getDb } from "@/db/client";
 import { getEnv } from "@/env";
 import { getOrCreateCarnetCredential } from "@/modules/identity";
-import { getWalletMemberState, lockWalletMember } from "@/modules/people";
+import { getWalletMemberState, lockMembershipCycle } from "@/modules/people";
 import { isApplePassConfigured, signPass } from "@/shared/adapters/apple-pass";
 import { WalletError } from "@/shared/adapters/wallet-error";
 import { loadCarnetData } from "./carnet-data";
@@ -55,7 +55,7 @@ export async function buildApplePass(personId: string): Promise<Buffer> {
   });
   // La firma no sostiene el lock de membresía; si cambió la persona, no se entrega el pase viejo.
   await getDb().transaction(async (tx) => {
-    await lockWalletMember(tx, personId);
+    await lockMembershipCycle(tx, personId);
     const state = await getWalletMemberState(tx, personId);
     if (
       !state ||

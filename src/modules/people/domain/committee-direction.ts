@@ -37,7 +37,7 @@ import {
 } from "./committee-role-assignments";
 import type { CommitteeRef } from "./committees";
 import { assertNoInhabilities, leadershipRolesOf } from "./inhabilities";
-import { lockWalletMember } from "./wallet-member";
+import { lockMembershipCycle } from "./wallet-member";
 
 // La dirección del comité (ADR-058): qué comités dirige una persona y con qué capacidades, qué comités
 // quedaron sin un cargo obligatorio, quién puede entrar a un comité y los comandos con eje comité
@@ -441,7 +441,7 @@ export async function addCommitteeMember(
   // la pertenencia referencia la fila de `person`, que quien anonimiza toma antes que la de la
   // membresía y quien reactiva con correo nuevo toma después. Con solo la fila, el «Agregar» y una
   // anonimización de la misma persona se quedaban esperándose (DT-328).
-  await lockWalletMember(ctx.tx, input.personId);
+  await lockMembershipCycle(ctx.tx, input.personId);
   // La fila de la membresía, con el candado de `setCommitteeMemberships` y de la baja (ADR-118 regla
   // 11): el estado y el cupo se leen después de tomarla. Una baja que llega a la vez no deja una
   // pertenencia viva, y dos «Agregar» de la misma persona cuentan su cupo uno después del otro.
@@ -549,7 +549,7 @@ export async function setMemberRoles(
   // referencia la fila de `person`, que quien anonimiza toma antes que la de la membresía y quien
   // reactiva con correo nuevo toma después. Con este candado los tres corren de a uno por persona y el
   // orden en que cada uno toma esas dos filas no los cruza.
-  await lockWalletMember(ctx.tx, input.personId);
+  await lockMembershipCycle(ctx.tx, input.personId);
   // La pertenencia y sus cargos se leen con la fila de la membresía tomada (ADR-122 regla 4), como en
   // «Agregar»: el que saca a la persona del comité o la da de baja termina primero y esto responde
   // T-2173, y la aprobación de un cambio de comité, que copia estos cargos al término siguiente con

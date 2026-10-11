@@ -33,10 +33,16 @@ export async function getWalletMemberState(
 const LOCK_PREFIX = "wallet-member:";
 
 /**
- * Serializa el ciclo de membresía con la emisión y rotación de credenciales. Se adquiere antes de
- * cualquier lock de filas y solo dentro de transacciones cortas: nunca cubre llamadas a Google.
+ * El candado del ciclo de membresía de una persona (ADR-120 regla 3): serializa todo lo que cambia su
+ * membresía, sus comités, sus cargos, sus permisos y sus enlaces con la emisión y rotación de
+ * credenciales. Se adquiere antes de cualquier lock de filas y solo dentro de transacciones cortas:
+ * nunca cubre llamadas a Google.
+ *
+ * La clave conserva `wallet-member:` de cuando solo cuidaba la billetera (ADR-123 regla 23): con otra
+ * clave, la versión vieja y la nueva de la casa tomarían candados distintos mientras conviven en un
+ * despliegue.
  */
-export async function lockWalletMember(
+export async function lockMembershipCycle(
   tx: Tx,
   personId: string,
 ): Promise<WalletMemberState | null> {
@@ -51,13 +57,13 @@ export async function lockWalletMember(
  * su archivo). Tomados cada uno a su manera, dos de ellos tienen el que el otro espera y PostgreSQL
  * corta a uno por interbloqueo.
  */
-export async function lockWalletMembers(
+export async function lockMembershipCycles(
   tx: Tx,
   personIds: readonly string[],
 ): Promise<Map<string, WalletMemberState | null>> {
   const states = new Map<string, WalletMemberState | null>();
   for (const personId of [...new Set(personIds)].sort()) {
-    states.set(personId, await lockWalletMember(tx, personId));
+    states.set(personId, await lockMembershipCycle(tx, personId));
   }
   return states;
 }
@@ -68,7 +74,7 @@ export async function lockWalletMembers(
  * Responde el `id` cuyo candado quedó tomado, o `null` si nadie tiene ese correo. El correo pudo
  * cambiar de dueño mientras se esperaba: quien llama vuelve a leer la fila con el candado tomado.
  */
-export async function lockWalletMemberByEmail(tx: Tx, email: string): Promise<string | null> {
+export async function lockMembershipCycleByEmail(tx: Tx, email: string): Promise<string | null> {
   const [row] = await tx
     .select({
       id: person.id,
@@ -96,7 +102,7 @@ export async function purgeIfMembershipEnded<Purged>(
   purge: (ctx: CommandContext) => Promise<Purged>,
 ): Promise<Purged | null> {
   return runCommand(SYSTEM_ACTOR, async (ctx) => {
-    const state = await lockWalletMember(ctx.tx, personId);
+    const state = await lockMembershipCycle(ctx.tx, personId);
     if (state && state.status !== "INACTIVE") {
       return null;
     }

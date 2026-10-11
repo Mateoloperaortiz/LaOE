@@ -6,7 +6,7 @@ import { accessGrantIssued } from "@/domain-events/identity";
 import {
   canParticipate,
   getMemberSummary,
-  lockWalletMembers,
+  lockMembershipCycles,
   SIGN_IN_STATUSES,
   type WalletMemberState,
 } from "@/modules/people";
@@ -65,9 +65,9 @@ export async function issueAccessGrant(
   // no aplica y a quien emite no se lo espera, como antes.
   const issuerId = ctx.actor.personId;
   const privilegeRuleApplies = issuerId !== null && (await hasPermissions(ctx.tx, input.personId));
-  // De menor a mayor `id` (`lockWalletMembers`): dos emisiones cruzadas, cada uno para el otro, y la
+  // De menor a mayor `id` (`lockMembershipCycles`): dos emisiones cruzadas, cada uno para el otro, y la
   // importación del roster los piden en el mismo orden y no se interbloquean.
-  const states = await lockWalletMembers(
+  const states = await lockMembershipCycles(
     ctx.tx,
     privilegeRuleApplies ? [input.personId, issuerId] : [input.personId],
   );

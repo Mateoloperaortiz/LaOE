@@ -2,7 +2,7 @@ import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { membershipChanged, personAnonymized, personEmailChanged } from "@/domain-events/people";
 import { onEvent, registerHandler } from "@/jobs/registry";
-import { lockWalletMember, purgeIfMembershipEnded, SIGN_IN_STATUSES } from "@/modules/people";
+import { lockMembershipCycle, purgeIfMembershipEnded, SIGN_IN_STATUSES } from "@/modules/people";
 import { deleteAccessGrantsFor } from "./domain/access-grant";
 import { deleteCalendarTokenFor } from "./domain/calendar-token";
 import { deleteCarnetTokenFor } from "./domain/carnet-token";
@@ -28,7 +28,7 @@ registerHandler("identity.prune", async (_payload, ctx) => {
  */
 function closeSessionsUnlessSignedIn(personId: string): Promise<number | null> {
   return runCommand(SYSTEM_ACTOR, async ({ tx }) => {
-    const state = await lockWalletMember(tx, personId);
+    const state = await lockMembershipCycle(tx, personId);
     if (state && SIGN_IN_STATUSES.includes(state.status)) {
       return null;
     }

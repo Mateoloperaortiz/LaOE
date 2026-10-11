@@ -60,7 +60,7 @@ import {
   staysInactive,
   validateRoster,
 } from "./roster-pure";
-import { lockWalletMemberByEmail, lockWalletMembers } from "./wallet-member";
+import { lockMembershipCycleByEmail, lockMembershipCycles } from "./wallet-member";
 
 // El asistente del roster (13-importacion-del-roster.md, ADR-034): el archivo se guarda en el bucket, la
 // vista previa vive en un ImportJob y confirmar aplica todo en una transacción, idempotente por correo.
@@ -648,7 +648,7 @@ async function lockPersonByEmail(
   ctx: CommandContext,
   email: string,
 ): Promise<LockedPerson | undefined> {
-  const personId = await lockWalletMemberByEmail(ctx.tx, email);
+  const personId = await lockMembershipCycleByEmail(ctx.tx, email);
   if (personId === null) {
     return undefined;
   }
@@ -913,7 +913,7 @@ async function lockRosterMembers(ctx: CommandContext, rows: readonly PreviewRow[
     .select({ id: person.id })
     .from(person)
     .where(inArray(person.email, emails));
-  await lockWalletMembers(
+  await lockMembershipCycles(
     ctx.tx,
     people.map((row) => row.id),
   );
