@@ -21,6 +21,7 @@ import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject, putObject } from "@/shared/adapters/storage";
 import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
 
@@ -496,6 +497,7 @@ describe("el relleno de los medios procesados antes", () => {
     await asProcessedBefore(id);
 
     // Dos pasadas simultáneas no encolan dos veces el trabajo del mismo medio.
+    await warmPool();
     const queued = await Promise.all([
       queueFullVariantBackfill({ cursor: undefined, eventId: "pasada-a" }),
       queueFullVariantBackfill({ cursor: undefined, eventId: "pasada-b" }),
