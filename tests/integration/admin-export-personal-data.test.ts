@@ -4,6 +4,8 @@ import { listResources } from "@/app/admin/_kit/registry";
 import { GET as exportCsv } from "@/app/api/export/[tipo]/route";
 import { GET as exportOwnData } from "@/app/api/mis-datos/route";
 import { closeDb, getDb } from "@/db/client";
+import { callsResource } from "@/modules/crm/admin";
+import { occasionKindLabel } from "@/modules/participation/admin";
 import { person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import type { AnyResource } from "@/shared/admin-kit/types";
@@ -233,12 +235,13 @@ function probe(path: string[], absent: ReadonlySet<string>, read: Set<string>): 
 }
 
 /**
- * Todo lo que el exporte lee de la fila, por cualquiera de sus ramas. Una sonda siempre es verdadera,
- * así que sola no llega al `row.name` de `row.anonymized ? … : row.name` ni al segundo de
+ * Lo que la sonda alcanza a leer al correr el exporte, por cualquiera de sus ramas. Una sonda siempre
+ * es verdadera, así que sola no llega al `row.name` de `row.anonymized ? … : row.name` ni al segundo de
  * `row.firstName ?? row.personName`: cada ruta que aparece se vuelve a correr ausente, junto con las
- * ausencias que la destaparon.
+ * ausencias que la destaparon. A la rama que depende del valor de un campo no llega nunca
+ * (`row.kind === "PERSON" ? row.name : …`): eso lo cubre el texto, en `pathsReadByExport`.
  */
-function pathsReadByExport(resource: Exportable): string[] {
+function pathsProbed(resource: Exportable): string[] {
   const seen = new Set<string>();
   const pending: string[][] = [[]];
   for (let absent = pending.shift(); absent; absent = pending.shift()) {
@@ -264,12 +267,131 @@ function pathsReadByExport(resource: Exportable): string[] {
   return [...seen].sort();
 }
 
+/** Una función que recibe la fila de un exporte: su `exportRow`, o aquella a la que este se la entrega. */
+type RowReader = (row: never) => unknown;
+
+/** Por recurso, las funciones a las que su exporte le entrega la fila entera. */
+type RowHandedTo = Record<string, readonly RowReader[]>;
+
+const IDENTIFIER = "[A-Za-z_$][\\w$]*";
+const WHOLE_ROW = "@ROW@";
+
+interface RowText {
+  /** Las rutas que el texto escribe desde la fila, tramo por tramo: `person`, `person.fullName`. */
+  paths: string[];
+  /** Lo que lee de otra cosa, sea el elemento de una lista o una variable: `fullName` en `member.fullName`. */
+  loose: string[];
+  /** El cuerpo, con `@ROW@` donde nombra la fila sin leerle un campo: ahí la entrega entera. */
+  rest: string;
+}
+
+/**
+ * Lo que dice de su fila el texto de una función, lo corra o no la sonda (ADR-123 regla 14). Lee el
+ * texto que Vitest ejecuta, sin los prefijos que les pone a los imports. Falla cerrado: si no reconoce
+ * cómo la función llama a su fila, lanza; y la fila nombrada sin un campo detrás (pasada a otra
+ * función, copiada con `...`, desarmada, o leída con una clave calculada) cuenta como entregada entera.
+ */
+function rowText(reader: RowReader): RowText {
+  const source = Function.prototype.toString
+    .call(reader)
+    .replace(/__vi(?:te_ssr)?_import_\d+__\./g, "");
+  const declaration =
+    new RegExp(
+      `^(?:async\\s+)?(?:function\\b\\s*)?(?:${IDENTIFIER})?\\s*\\(\\s*(${IDENTIFIER})?\\s*[,)]`,
+    ).exec(source) ?? new RegExp(`^(?:async\\s+)?(${IDENTIFIER})\\s*=>`).exec(source);
+  if (!declaration || source.includes("[native code]")) {
+    throw new Error(`El texto de «${reader.name}» no deja leer cómo llama a su fila`);
+  }
+  const row = declaration[1];
+  const paths = new Set<string>();
+  let rest = source.slice(declaration[0].length);
+  if (row !== undefined) {
+    const mention = new RegExp(
+      // No es la fila lo que cuelga de otra cosa (`item.row`); sí lo que se copia con `...row`.
+      `(?<![\\w$])(?<!(?<!\\.\\.)\\.)${row.replaceAll("$", "\\$")}(?![\\w$])((?:\\s*\\??\\.\\s*${IDENTIFIER})*)`,
+      "g",
+    );
+    rest = rest.replace(mention, (_mention, chain: string) => {
+      const steps = chain.split(/\s*\??\.\s*/).filter((step) => step !== "");
+      for (let length = 1; length <= steps.length; length += 1) {
+        paths.add(steps.slice(0, length).join("."));
+      }
+      return steps.length > 0 ? "@FIELD@" : WHOLE_ROW;
+    });
+  }
+  const loose = new Set<string>();
+  // Un punto solo: los tres de `...lista` no leen nada.
+  for (const [, name] of rest.matchAll(new RegExp(`(?<!\\.)\\.\\s*(${IDENTIFIER})`, "g"))) {
+    if (name) loose.add(name);
+  }
+  return { paths: [...paths], loose: [...loose], rest };
+}
+
+/** Cuántas veces el texto le entrega la fila entera a `reader`, llamándola por su nombre. */
+function handoversTo(text: RowText, reader: RowReader): number {
+  if (reader.name === "") {
+    throw new Error("Una función a la que se le entrega la fila tiene que tener nombre");
+  }
+  const call = new RegExp(
+    `(?<![\\w$])${reader.name.replaceAll("$", "\\$")}\\)?\\s*\\(\\s*${WHOLE_ROW}\\s*\\)`,
+    "g",
+  );
+  return [...text.rest.matchAll(call)].length;
+}
+
+/**
+ * Todo lo que el exporte lee de la fila: lo que la sonda alcanza y lo que nombra su texto, que es como
+ * se ve la rama que depende del valor de un campo (DT-303, ADR-123 regla 14). Del texto salen las rutas
+ * escritas desde la fila y, como `*.campo`, lo que se lee de otra cosa y la sonda no vio leer con ese
+ * nombre. Va también el texto de las funciones de `handedTo`, que reciben la fila entera.
+ */
+function pathsReadByExport(resource: Exportable, handedTo: RowHandedTo = {}): string[] {
+  const probed = pathsProbed(resource);
+  const seenByName = new Set(probed.map((path) => path.slice(path.lastIndexOf(".") + 1)));
+  const readers = handedTo[resource.key] ?? [];
+  const named = [resource.exportRow as RowReader, ...readers]
+    .map(rowText)
+    .flatMap((text) => [
+      ...text.paths,
+      ...text.loose
+        .filter((name) => !seenByName.has(name) && !readers.some((reader) => reader.name === name))
+        .map((name) => `*.${name}`),
+    ]);
+  return [...new Set([...probed, ...named])].sort();
+}
+
+/**
+ * Lo que no cuadra entre a quién le entrega la fila un exporte y lo declarado en `handedTo`: lo que
+ * pasa adentro de otra función no está en el texto del exporte, así que no pasa hasta que alguien
+ * declare esa función y su texto se lea igual.
+ */
+function handoverDrift(resource: Exportable, readers: readonly RowReader[]): string[] {
+  const own = rowText(resource.exportRow as RowReader);
+  const whole = own.rest.split(WHOLE_ROW).length - 1;
+  const calls = readers.map((reader) => handoversTo(own, reader));
+  const declared = calls.reduce((sum, count) => sum + count, 0);
+  return [
+    ...(whole > declared
+      ? [`${resource.key}: entrega la fila entera y nadie declaró a quién`]
+      : []),
+    ...readers.flatMap((reader, index) => [
+      ...(calls[index] === 0 ? [`${resource.key}: ya no le entrega la fila a ${reader.name}`] : []),
+      ...(rowText(reader).rest.includes(WHOLE_ROW)
+        ? [`${resource.key}: ${reader.name} entrega la fila a su vez, y hasta ahí no se sigue`]
+        : []),
+    ]),
+  ];
+}
+
 /** Por cada recurso sin la marca que exporta una columna de persona, su clave y esas columnas. */
-function unmarkedPersonColumns(resources: readonly Exportable[]): string[] {
+function unmarkedPersonColumns(
+  resources: readonly Exportable[],
+  handedTo: RowHandedTo = {},
+): string[] {
   return resources
     .filter((resource) => resource.personalData !== true)
     .flatMap((resource) => {
-      const columns = pathsReadByExport(resource).filter((path) =>
+      const columns = pathsReadByExport(resource, handedTo).filter((path) =>
         isPersonColumn(resource.key, path),
       );
       return columns.length > 0 ? [`${resource.key}: ${columns.join(", ")}`] : [];
@@ -282,8 +404,10 @@ function unmarkedPersonColumns(resources: readonly Exportable[]): string[] {
  * nombre de alguien bajo `title` o `label`. Por eso la lista es exacta y falla cerrado: una ruta nueva,
  * o un recurso nuevo con `false`, no pasa hasta que alguien lea ese exporte, confirme que no entrega
  * nada de una persona y lo sume acá. Va también lo que el exporte le hace al campo
- * (`createdAt.toISOString`), que es como la sonda lo anota. Si lo que se suma es de una persona, lo
- * que corresponde es marcar el recurso con `personalData: true`, no esta lista.
+ * (`createdAt.toISOString`), que es como la sonda lo anota, y con `*.` lo que el texto del exporte lee
+ * de algo que no es la fila y la sonda no vio leer con ese nombre (`*.key`, de `field.key`; ADR-123
+ * regla 14). Si lo que se suma es de una persona, lo que corresponde es marcar el recurso con
+ * `personalData: true`, no esta lista.
  */
 const REVIEWED_PATHS: Record<string, readonly string[]> = {
   alias: ["createdAt", "createdAt.toISOString", "occasionTitle", "path"],
@@ -360,6 +484,9 @@ const REVIEWED_PATHS: Record<string, readonly string[]> = {
     "summary",
   ],
   formularios: [
+    "*.join",
+    "*.key",
+    "*.map",
     "audience",
     "closesAt",
     "closesAt.toISOString",
@@ -375,8 +502,10 @@ const REVIEWED_PATHS: Record<string, readonly string[]> = {
   ],
   junta: ["committee", "indicator", "term", "value"],
   ocasiones: [
+    "*.indexOf",
     "approval",
     "approvedCount",
+    "assemblyKind",
     "category",
     "checkInClosesAt",
     "checkInClosesAt.toISOString",
@@ -410,7 +539,7 @@ const REVIEWED_PATHS: Record<string, readonly string[]> = {
     "vpFinanceApprovedOn",
     "year",
   ],
-  segmentos: ["count", "filter", "filter.toJSON", "name"],
+  segmentos: ["*.stringify", "count", "filter", "filter.toJSON", "name"],
   terminos: [
     "code",
     "endsOn",
@@ -423,6 +552,16 @@ const REVIEWED_PATHS: Record<string, readonly string[]> = {
 };
 
 /**
+ * Las funciones a las que el exporte de un recurso sin la marca le entrega la fila entera, leídas a
+ * mano igual que sus rutas (ADR-123 regla 14). Lo que una de ellas lee de la fila se suma a lo que lee
+ * el exporte, por su texto: `occasionKindLabel` lee `assemblyKind` solo si la ocasión es una asamblea.
+ */
+const ROW_HANDED_TO: RowHandedTo = {
+  convocatorias: [callsResource.exportRow as RowReader],
+  ocasiones: [occasionKindLabel as RowReader],
+};
+
+/**
  * Lo que no coincide entre lo revisado y lo que hoy leen los exportes de los recursos sin la marca:
  * rutas que nadie revisó, rutas revisadas que ya no se leen y revisiones de un recurso que ya no está
  * entre los que declaran `false`.
@@ -430,22 +569,31 @@ const REVIEWED_PATHS: Record<string, readonly string[]> = {
 function reviewDrift(
   resources: readonly Exportable[],
   reviewed: Record<string, readonly string[]>,
+  handedTo: RowHandedTo = {},
 ): string[] {
   const unmarkedOnes = resources.filter((resource) => resource.personalData !== true);
   const drift = unmarkedOnes.flatMap((resource) => {
     const known = reviewed[resource.key] ?? [];
-    const read = pathsReadByExport(resource);
+    const read = pathsReadByExport(resource, handedTo);
     const fresh = read.filter((path) => !known.includes(path));
     const gone = known.filter((path) => !read.includes(path));
     return [
       ...(fresh.length > 0 ? [`${resource.key}: sin revisar ${fresh.join(", ")}`] : []),
       ...(gone.length > 0 ? [`${resource.key}: ya no lee ${gone.join(", ")}`] : []),
+      ...handoverDrift(resource, handedTo[resource.key] ?? []),
     ];
   });
+  const isUnmarked = (key: string) => unmarkedOnes.some((resource) => resource.key === key);
   const orphans = Object.keys(reviewed)
-    .filter((key) => !unmarkedOnes.some((resource) => resource.key === key))
+    .filter((key) => !isUnmarked(key))
     .map((key) => `${key}: revisado, y no es un recurso sin datos personales`);
-  return [...drift, ...orphans];
+  const handedOrphans = Object.keys(handedTo)
+    .filter((key) => !isUnmarked(key))
+    .map(
+      (key) =>
+        `${key}: declara a quién le entrega la fila, y no es un recurso sin datos personales`,
+    );
+  return [...drift, ...orphans, ...handedOrphans];
 }
 
 interface ProbedRow {
@@ -454,7 +602,7 @@ interface ProbedRow {
   alias: string | null;
   personName: string;
   person: { fullName: string };
-  members: Array<{ fullName: string }>;
+  members: Array<{ fullName: string; label: string }>;
   committeeName: string;
   documentType: string;
   documentNumber: string;
@@ -465,6 +613,7 @@ interface ProbedRow {
   label: string;
   kind: string;
   slug: string;
+  [field: string]: unknown;
 }
 
 /**
@@ -484,7 +633,7 @@ describe("marca de datos personales en el registro del admin", () => {
   afterAll(() => closeDb());
 
   it("ningún recurso exportable entrega un dato de una persona sin la marca", () => {
-    expect(unmarkedPersonColumns(listResources())).toEqual([]);
+    expect(unmarkedPersonColumns(listResources(), ROW_HANDED_TO)).toEqual([]);
   });
 
   it("cada recurso del registro declara si lleva datos personales, con sí o con no", () => {
@@ -600,7 +749,7 @@ describe("marca de datos personales en el registro del admin", () => {
   });
 
   it("cada ruta que lee el exporte de un recurso sin datos personales está revisada", () => {
-    expect(reviewDrift(listResources(), REVIEWED_PATHS)).toEqual([]);
+    expect(reviewDrift(listResources(), REVIEWED_PATHS, ROW_HANDED_TO)).toEqual([]);
   });
 
   it("una ruta que nadie revisó no pasa aunque no se llame como un dato de persona, y lo revisado no se queda viejo", () => {
@@ -628,15 +777,141 @@ describe("marca de datos personales en el registro del admin", () => {
     ]);
   });
 
-  // El límite que queda (DT-303): la sonda no sabe qué valores probar, así que no llega a la rama que
-  // depende del valor de un campo. Esa lectura no aparece ni como dato de persona ni como ruta sin
-  // revisar: la ataja solo quien lee el exporte al revisarlo.
-  it("una lectura que depende del valor de un campo no se ve: la sonda no llega a esa rama", () => {
+  // DT-303, ADR-123 regla 14: la sonda no sabe qué valores probar, así que sola no llega a la rama que
+  // depende del valor de un campo. El texto del exporte sí nombra esa lectura.
+  it("una lectura que depende del valor de un campo se ve: el texto del exporte la nombra aunque la sonda no llegue a esa rama", () => {
     const hidden = unmarked("con-valor", (row) => ({
       quien: row.kind === "PERSON" ? row.name : row.slug,
     }));
 
-    expect(pathsReadByExport(hidden)).toEqual(["kind", "slug"]);
-    expect(unmarkedPersonColumns([hidden])).toEqual([]);
+    expect(pathsReadByExport(hidden)).toEqual(["kind", "name", "slug"]);
+    expect(unmarkedPersonColumns([hidden])).toEqual(["con-valor: name"]);
+  });
+
+  it("también se ve cuando la rama que depende de un valor lee adentro de un objeto, de una lista o de una variable", () => {
+    const found = unmarkedPersonColumns([
+      unmarked("con-objeto", (row) => ({
+        quien: row.kind === "PERSON" ? row.person.fullName : "",
+      })),
+      unmarked("con-lista", (row) => ({
+        quienes:
+          row.kind === "GROUP" ? row.members.map((member) => member.fullName).join(", ") : "",
+      })),
+      unmarked("con-variable", (row) => {
+        const owner = row.owner;
+        return { quien: row.kind === "PERSON" ? owner.epikId : owner.label };
+      }),
+      unmarked("con-opciones", (row) => {
+        switch (row.kind) {
+          case "PERSON":
+            return { quien: row.phone };
+          default:
+            return { quien: row.slug };
+        }
+      }),
+    ]);
+
+    expect(found).toEqual([
+      "con-objeto: person.fullName",
+      "con-lista: *.fullName",
+      "con-variable: *.epikId",
+      "con-opciones: phone",
+    ]);
+  });
+
+  it("lo que el texto nombra y la sonda no alcanza tampoco pasa sin revisar, se llame como se llame", () => {
+    const drift = reviewDrift(
+      [
+        unmarked("con-valor", (row) => ({
+          que: row.kind === "DRAFT" ? row.title : row.slug,
+        })),
+        unmarked("con-lista", (row) => ({
+          que: row.kind === "GROUP" ? row.members.map((member) => member.label).join(", ") : "",
+        })),
+      ],
+      { "con-valor": ["kind", "slug"], "con-lista": ["kind"] },
+    );
+
+    expect(drift).toEqual([
+      "con-valor: sin revisar title",
+      "con-lista: sin revisar *.join, *.label, members, members.map",
+    ]);
+  });
+
+  it("un exporte que entrega la fila entera no pasa hasta que alguien declare a quién, y lo que esa función lee cuenta como suyo", () => {
+    const quien = (row: ProbedRow) => (row.kind === "PERSON" ? row.name : row.slug);
+    const copia = (row: ProbedRow) => ({ ...row });
+    const field = "phone";
+    const resources = [
+      unmarked("entrega", (row) => ({ quien: quien(row) })),
+      unmarked("entrega-declarada", (row) => ({ quien: quien(row) })),
+      unmarked("entrega-a-dos", (row) => ({
+        quien: quien(row),
+        cuantos: String(Object.keys(row).length),
+      })),
+      unmarked("clave-calculada", (row) => ({ valor: String(row[field]) })),
+      unmarked("desarmada", (row) => {
+        const { title } = row;
+        return { titulo: title };
+      }),
+      unmarked("ya-no-entrega", (row) => ({ titulo: row.title })),
+      unmarked("entrega-en-cadena", (row) => ({ titulo: row.title, filas: String(copia(row)) })),
+      { ...unmarked("ya-marcado", (row) => ({ quien: quien(row) })), personalData: true },
+    ];
+    const handedTo = {
+      "entrega-declarada": [quien as RowReader],
+      "entrega-a-dos": [quien as RowReader],
+      "ya-no-entrega": [quien as RowReader],
+      "entrega-en-cadena": [copia as RowReader],
+      "ya-marcado": [quien as RowReader],
+    };
+    const drift = reviewDrift(
+      resources,
+      {
+        entrega: ["kind", "slug"],
+        "entrega-declarada": ["kind", "name", "slug"],
+        "entrega-a-dos": ["*.keys", "*.length", "kind", "name", "slug"],
+        "clave-calculada": ["phone"],
+        desarmada: ["title"],
+        "ya-no-entrega": ["kind", "name", "slug", "title"],
+        "entrega-en-cadena": ["title"],
+      },
+      handedTo,
+    );
+
+    expect(drift).toEqual([
+      "entrega: entrega la fila entera y nadie declaró a quién",
+      "entrega-a-dos: entrega la fila entera y nadie declaró a quién",
+      "clave-calculada: entrega la fila entera y nadie declaró a quién",
+      "desarmada: entrega la fila entera y nadie declaró a quién",
+      "ya-no-entrega: ya no le entrega la fila a quien",
+      "entrega-en-cadena: copia entrega la fila a su vez, y hasta ahí no se sigue",
+      "ya-marcado: declara a quién le entrega la fila, y no es un recurso sin datos personales",
+    ]);
+    // Declarada la función, la lectura que hace por un valor sale como dato de persona del recurso. Lo
+    // de la clave calculada lo ve la sonda al correr, con el valor que la clave tenga ese día.
+    expect(unmarkedPersonColumns(resources, handedTo)).toEqual([
+      "entrega-declarada: name",
+      "entrega-a-dos: name",
+      "clave-calculada: phone",
+      "ya-no-entrega: name",
+    ]);
+  });
+
+  it("un exporte cuyo texto no deja ver cómo llama a su fila no pasa", () => {
+    const sinTexto = unmarked(
+      "sin-texto",
+      ((row: ProbedRow) => ({ titulo: row.title })).bind(null),
+    );
+    const desarmado = {
+      key: "desarmado",
+      personalData: false,
+      exportRow: (({ title }: ProbedRow) => ({
+        titulo: title,
+      })) as unknown as Exportable["exportRow"],
+    };
+
+    expect(() => reviewDrift([sinTexto], {})).toThrow(/no deja leer cómo llama a su fila/);
+    expect(() => unmarkedPersonColumns([desarmado])).toThrow(/no deja leer cómo llama a su fila/);
   });
 });
