@@ -1,7 +1,20 @@
 import { ForbiddenError } from "@/modules/identity";
-import { WalletError, type WalletFailureReason } from "@/shared/adapters/wallet-error";
+import { type WalletAdapterFailureReason, WalletError } from "@/shared/adapters/wallet-error";
 import { DomainError } from "@/shared/lib/errors";
 import { errorCode } from "@/shared/log";
+
+/**
+ * Por qué no se pudo emitir o sincronizar un pase: los motivos del adaptador y los que solo conoce la
+ * emisión, que se declaran acá y no en el adaptador compartido (ADR-123 regla 24).
+ */
+export type WalletFailureReason =
+  | WalletAdapterFailureReason
+  /** El pase registrado no es del emisor o del sufijo configurados hoy. */
+  | "PASS_MISMATCH"
+  /** El enlace de guardado supera el tamaño admitido. */
+  | "LINK_TOO_LONG"
+  /** La membresía o el QR cambiaron mientras se emitía: la persona vuelve a intentar. */
+  | "CHANGED_DURING_ISSUE";
 
 type WalletFailure =
   | { reason: WalletFailureReason; status?: number }
@@ -43,9 +56,9 @@ export function walletFailure(error: unknown): WalletFailure | WalletRefusal {
     return { reason: "REFUSED", errorType: "DomainError" };
   }
   if (error instanceof WalletError) {
-    return error.status === undefined
-      ? { reason: error.reason }
-      : { reason: error.reason, status: error.status };
+    // Un `WalletError` lo lanza un adaptador o la emisión: su motivo es de la unión del módulo.
+    const { reason, status } = error as WalletError<WalletFailureReason>;
+    return status === undefined ? { reason } : { reason, status };
   }
   if (!(error instanceof Error)) {
     return { reason: "UNEXPECTED", errorType: typeof error };

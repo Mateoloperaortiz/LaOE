@@ -2,6 +2,7 @@ import { DrizzleQueryError } from "drizzle-orm/errors";
 import { describe, expect, it, vi } from "vitest";
 import { logCarnetNotIssued } from "@/app/api/wallet/not-issued";
 import { ForbiddenError } from "@/modules/identity/domain/errors";
+import type { WalletFailureReason } from "@/modules/wallet/domain/failure";
 import { WalletError } from "@/shared/adapters/wallet-error";
 import { DomainError } from "@/shared/lib/errors";
 import { captureLogs, type LoggedLine } from "../helpers/logs";
@@ -92,7 +93,7 @@ describe.each(
   it("un carnet que cambió mientras se emitía avisa sin nivel de fallo: la persona vuelve a intentar", async () => {
     const lines = await linesOf(
       platform,
-      new WalletError("CHANGED_DURING_ISSUE", "cambió durante la emisión"),
+      new WalletError<WalletFailureReason>("CHANGED_DURING_ISSUE", "cambió durante la emisión"),
     );
     expect(lines).toHaveLength(1);
     expect(lines[0]?.record).toMatchObject({ level: 40, platform, reason: "CHANGED_DURING_ISSUE" });

@@ -1,5 +1,9 @@
-/** Por qué no se pudo emitir o sincronizar un pase de billetera: el motivo, sin datos. */
-export type WalletFailureReason =
+/**
+ * Por qué un adaptador de billetera no pudo firmar o hablar con el proveedor: el motivo, sin datos.
+ * Acá van solo los que lanza un adaptador; los que solo conoce la emisión los declara el módulo
+ * `wallet`, que amplía esta unión (`WalletFailureReason`, ADR-123 regla 24).
+ */
+export type WalletAdapterFailureReason =
   /** Faltan las credenciales o los identificadores del emisor. */
   | "NOT_CONFIGURED"
   /** La llave o el certificado no firmaron: la credencial está mal cargada. */
@@ -11,24 +15,22 @@ export type WalletFailureReason =
   /** El proveedor respondió a la operación un estado que no es de éxito; va en `status`. */
   | "PROVIDER_HTTP"
   /** El proveedor respondió con éxito algo que no se pudo leer. */
-  | "PROVIDER_RESPONSE"
-  /** El pase registrado no es del emisor o del sufijo configurados hoy. */
-  | "PASS_MISMATCH"
-  /** El enlace de guardado supera el tamaño admitido. */
-  | "LINK_TOO_LONG"
-  /** La membresía o el QR cambiaron mientras se emitía: la persona vuelve a intentar. */
-  | "CHANGED_DURING_ISSUE";
+  | "PROVIDER_RESPONSE";
 
 /**
  * El error de un adaptador de billetera y del dominio que lo usa. El mensaje lo escribe la casa, sin
  * nada de lo que respondió el proveedor, y es para quien depura con el error en la mano; lo que una
  * ruta registra es `reason` y, si el proveedor respondió, `status` (ADR-120 regla 13).
+ *
+ * Sin más, el motivo es uno del adaptador. Quien lanza uno propio nombra su unión
+ * (`new WalletError<WalletFailureReason>(…)`): el motivo no se infiere de lo que se escriba, así que
+ * uno que no está en ninguna unión no compila.
  */
-export class WalletError extends Error {
-  readonly reason: WalletFailureReason;
+export class WalletError<Reason extends string = WalletAdapterFailureReason> extends Error {
+  readonly reason: Reason;
   readonly status: number | undefined;
 
-  constructor(reason: WalletFailureReason, message: string, status?: number) {
+  constructor(reason: NoInfer<Reason>, message: string, status?: number) {
     super(message);
     this.name = "WalletError";
     this.reason = reason;
