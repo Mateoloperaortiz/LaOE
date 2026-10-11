@@ -5,6 +5,7 @@ import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { personAnonymized } from "@/domain-events/people";
 import { task } from "@/modules/crm/schema";
+import { assembliesResource } from "@/modules/participation/admin";
 import {
   adjustRequirement,
   assemblyOverview,
@@ -133,6 +134,106 @@ describe("asambleas", () => {
     expect(
       overview.map((row) => [row.personId, row.requirement.adjusted, row.compliance.compliant]),
     ).toEqual([[personId, true, true]]);
+  });
+
+  it("la mesa de GH y su exporte le ponen a quien no tiene ajuste el requisito del término: sus ordinarias y cada especial que exista sin cancelar", async () => {
+    const termId = await seedTerm(currentTermCode());
+    // Dos ordinarias y no la que trae un término por defecto: el número sale del término.
+    await db().update(term).set({ requiredOrdinaryAssemblies: 2 }).where(eq(term.id, termId));
+    const current = await termRow(termId);
+    const unadjusted = await seedMember("sin-ajuste@eafit.edu.co", {
+      firstName: "Ana",
+      lastName: "Sin Ajuste",
+    });
+    const adjusted = await seedMember("ajustado@eafit.edu.co", {
+      firstName: "Beto",
+      lastName: "Ajustado",
+    });
+    // La elección en borrador ya existe y se exige; la segunda vuelta cancelada no exige nada.
+    await seedOccasion(termId, {
+      kind: "ASSEMBLY",
+      assemblyKind: "BOARD_ELECTION",
+      status: "DRAFT",
+      points: 0,
+      title: "Elección",
+    });
+    await seedOccasion(termId, {
+      kind: "ASSEMBLY",
+      assemblyKind: "RUNOFF",
+      status: "CANCELLED",
+      points: 0,
+      title: "Segunda vuelta",
+    });
+    // El ajuste dice lo contrario del término en sus tres valores: ninguno se le pega al otro.
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      adjustRequirement(ctx, {
+        termId,
+        personId: adjusted,
+        requiredOrdinary: 0,
+        requiresBoardElection: false,
+        requiresRunoff: true,
+        reason: "licencia",
+      }),
+    );
+
+    const overview = await assemblyOverview(current);
+    const termRequirement = {
+      requiredOrdinary: 2,
+      requiresBoardElection: true,
+      requiresRunoff: false,
+      adjusted: false,
+      reason: null,
+    };
+    expect(overview.map((row) => [row.personId, row.requirement])).toEqual([
+      [unadjusted, termRequirement],
+      [
+        adjusted,
+        {
+          requiredOrdinary: 0,
+          requiresBoardElection: false,
+          requiresRunoff: true,
+          adjusted: true,
+          reason: "licencia",
+        },
+      ],
+    ]);
+    // Ese requisito es el que decide qué le falta a cada quien, y es el mismo que ve el miembro.
+    expect(overview.map((row) => row.compliance.missing)).toEqual([
+      ["ORDINARY", "BOARD_ELECTION"],
+      ["RUNOFF"],
+    ]);
+    expect((await assemblyStatusFor(unadjusted, current)).requirement).toEqual(termRequirement);
+
+    const listed = await assembliesResource.list({
+      q: "",
+      page: 1,
+      pageSize: 100,
+      filters: { termId },
+    });
+    expect(listed.rows.map((row) => assembliesResource.exportRow(row))).toEqual([
+      {
+        nombre: "Ana Sin Ajuste",
+        ordinarias_requeridas: 2,
+        ordinarias_firmadas: 0,
+        eleccion_requerida: "si",
+        eleccion_firmada: "no",
+        segunda_vuelta_requerida: "no",
+        segunda_vuelta_firmada: "no",
+        cumple: "no",
+        ajustado: "no",
+      },
+      {
+        nombre: "Beto Ajustado",
+        ordinarias_requeridas: 0,
+        ordinarias_firmadas: 0,
+        eleccion_requerida: "no",
+        eleccion_firmada: "no",
+        segunda_vuelta_requerida: "si",
+        segunda_vuelta_firmada: "no",
+        cumple: "no",
+        ajustado: "si",
+      },
+    ]);
   });
 
   it("cierra los puntos: bloquea con ocasiones abiertas, congela el standing y rechaza ajustes después", async () => {
