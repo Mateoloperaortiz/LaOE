@@ -2,7 +2,7 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-11
-- Relacionadas: ADR-034, ADR-037, ADR-038, ADR-053, ADR-054, ADR-058, ADR-059, ADR-060, ADR-061, ADR-077, ADR-082, ADR-109, ADR-118, ADR-119, ADR-120, ADR-121, ADR-122
+- Relacionadas: ADR-034, ADR-037, ADR-038, ADR-053, ADR-054, ADR-058, ADR-059, ADR-060, ADR-061, ADR-067, ADR-077, ADR-082, ADR-109, ADR-118, ADR-119, ADR-120, ADR-121, ADR-122
 - Enmienda: ADR-121 (regla 1: la baja de campañas por el token del correo ya no audita sin IP, la recibe de sus dos puertas; y la evidencia automática del onboarding que agenda una puerta con request tampoco, mientras la que marca un trabajo sigue sin ella; y regla 15: la aprobación de un cambio de comité toma el consultivo del ciclo de membresía antes que la fila de la membresía), ADR-120 (regla 3: el orden del ciclo de membresía lo siguen también el «Agregar» de la dirección, el cambio de comités desde la Persona 360, la aprobación de un cambio de comité y el nombramiento de un representante; y regla 4: la prueba guardada al salir a licencia bloquea también reconocimientos, avales y horario preferencial, no solo el paso a honorario), ADR-122 (regla 4: lo que su «Lo que queda» dejaba abierto, DT-328, queda cerrado), ADR-118 (regla 6: el nombramiento de un representante toma el consultivo del ciclo de membresía antes que la fila de la membresía)
 
 ## Contexto
@@ -32,6 +32,8 @@ El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` ele
 - **Horario preferencial** (`listPreferentialSchedule`, `src/modules/people/domain/preferential-schedule.ts`). El exporte lista los nombramientos de junta y de macroevento y los cargos de dirección vivos del término, sin mirar el estado de la membresía, y la licencia no cierra cargos ni nombramientos: solo la baja.
 
 Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre anterior y preside la junta del vigente recibía un Premio OE, pedía un aval y figuraba en el horario preferencial.
+
+**El error «esa decisión no aplica» de las entregas, los premios y la conciliación nombraba el estado en inglés (DT-315).** Siete sitios llenaban T-676 («Esa decisión no aplica: el registro está {estado}.») con el valor del enum tal cual: revisar y anular una entrega de un reto, los cuatro pasos de un premio (entregar, liberar, anular y volver a reservar) y reanudar una conciliación histórica ([ADR-067](ADR-067-retos-boosters-y-coleccion.md)). Quien revisaba una entrega que otra persona acababa de aprobar leía «el registro está COMPLETED.». Las asistencias ya lo traducían con su lista (T-597, [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md)). El catálogo no tenía lista para los estados de una entrega ni de un premio; la de la conciliación existía (T-2559) y la usaba solo el panel. Ejecutado en los siete, con cada estado que hace responder a cada uno. Las pruebas de concurrencia del ciclo 9 lo habían fijado como estaba.
 
 ## Decisión
 
@@ -113,6 +115,15 @@ Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre ante
 
    **Lo que falta confirmar.** Que la prueba guardada se mida distinto que la de un activo. La de quien está en licencia cuenta para cualquier término por el que se pregunte; la de un activo es la fila de un semestre y cuenta solo para ese. Se nota donde el término se elige: a quien salió a licencia en prueba no se le registra el reconocimiento de un semestre anterior a su prueba, ni figura en el exporte del horario preferencial de un término pasado, y a un activo en prueba sí. El aval pregunta siempre por el vigente. Queda como está, fijado con su prueba, y es la decisión abierta 72 (DT-342).
 
+8. **El error de una decisión que ya no aplica nombra el estado con la palabra del catálogo, no con el valor del enum.** Cada enum tiene su lista en `docs/14-copy-y-textos.md`, en el orden del enum, y su traductor junto a los comandos que lo usan, como `checkInStatusLabel` con las asistencias:
+   - `participationStatusLabel` (`src/modules/participation/domain/challenge-participation.ts`) con T-3266, «Pendiente · Completado · Rechazado · Anulado», en revisar y anular una entrega;
+   - `rewardStatusLabel` (`rewards.ts`) con T-3267, «Reservado · Entregado · Liberado · Anulado», en `grantReward`, `releaseReward`, `reverseReward` y `rereserveReward`;
+   - `reconciliationStatusLabel` (`reconciliation.ts`) con T-2559, «En curso · Terminada · Con error», en reanudar una conciliación.
+
+   Los tres leen el orden de `enumValues` del esquema y no de una copia, y el estado va en minúscula, como en las asistencias. Las entregas y los premios siguen respondiendo T-676. La conciliación responde un texto propio, T-3268 («Esa conciliación no se puede reanudar: está {estado}.»): su lista está en femenino y «el registro está terminada» no concuerda. Un premio revertido se nombra «anulado», que es como lo llama la pantalla que lo revierte (T-2529, T-2586).
+
+   **Lo que se conserva.** `rereserveReward` responde ese mismo error cuando el premio sí está liberado y lo que no coincide es la persona o el semestre: ahí el estado no es la causa. Sigue igual, con el estado traducido, porque ningún llamador llega así: los dos leen el premio de la misma entrega o asistencia que reservan. No cambia qué se rechaza, ni en qué orden, ni ningún dato.
+
 ## Consecuencias
 
 - `npm run test:e2e` sin más pasa entera en un worktree nuevo: con `.next` borrado entero, 249 de 249 en 5,3 minutos (335 s contando la base, el build y la suite), la prueba de SEO en 0,7 s y las cinco del Sudoku entre 0,4 y 3,2 s. La misma suite, forzada a dev con `E2E_SERVER=dev` y `.next/dev` borrado, dio 248 de 249 en 9,1 minutos (550 s), con la firma de DT-338: la de SEO en 27 s, la primera del Sudoku sin tiempo (6 s contra 5) y la segunda en 23,2 s contra 30.
@@ -145,3 +156,8 @@ Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre ante
 - Quien está en licencia con la prueba guardada no recibe un reconocimiento de ningún término mientras no vuelva: tampoco el de un semestre anterior a su prueba, que a un activo en prueba sí se le puede registrar, porque para él solo cuenta la fila de ese término. Es la misma medida de la suspensión, que también es de hoy. Queda fijado con su prueba y sin confirmar: es la decisión abierta 72 (DT-342).
 - `blockedBenefits` hace una lectura más, las membresías en licencia de las personas por las que se pregunta, y por cada licencia anterior a la migración, la de su salida. Las hace una tras otra y no a la vez: dentro de la transacción de un comando comparten una sola conexión (DT-343). La regla 7 no trae migración ni texto nuevo.
 - Prueba de la regla 7: `tests/integration/normativa-regressions.test.ts` («los beneficios de quien está en licencia»), un caso por beneficio, los tres en rojo sobre el código anterior: el reconocimiento se registraba, el aval se creaba y la persona salía en el exporte. El cuarto caso fija lo que no se elige y nombra la decisión abierta 71. El quinto fija la medida por término, la de quien está en licencia y la de un activo en prueba, y nombra la decisión abierta 72; se comprobó que muerde en sus dos mitades, con la prueba guardada contando solo para el término vigente y con la de un activo contando para cualquiera.
+- Quien decide desde el admin y llega segundo, o sobre un estado que ya cambió, lee el estado en español: «el registro está completado.». Solo cambia el texto del error.
+- Hay tres textos nuevos: T-3266 y T-3267, las listas de estados de una entrega y de un premio, y T-3268, el error de reanudar una conciliación que no quedó con error. La regla 8 no trae migración.
+- Tres pruebas fijaban el texto con el valor del enum y ahora lo esperan con la palabra de T-3266: las de concurrencia de la revisión (`tests/integration/gamification-review-concurrency.test.ts`) y dos de `tests/integration/gamification-challenges.test.ts`. Es su único cambio.
+- Prueba de la regla 8: `tests/integration/gamification-not-applicable-status.test.ts`. Ocho casos en rojo sobre el código anterior, que respondía «COMPLETED», «PENDING», «RELEASED», «GRANTED», «RESERVED» y «RUNNING»: uno por comando, con cada estado que lo hace responder, y el del premio liberado que llega a nombre de otra persona o en otro semestre. El noveno compara el orden de las tres listas con el de los enums del esquema.
+- Las tablas del admin que listan entregas siguen nombrando el estado con la lista del miembro (T-2410), que no tiene «anulado». Queda anotado como DT-344.

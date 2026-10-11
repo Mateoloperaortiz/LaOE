@@ -857,7 +857,7 @@ describe("retos: presencial con check-in", () => {
           { personId: adminId, ip: null },
           { participationId: pending.id, decision, reason: "Ya está decidida" },
         ),
-      ).rejects.toThrow(t("T-676", { estado: "COMPLETED" }));
+      ).rejects.toThrow(t("T-676", { estado: (tList("T-3266")[1] ?? "").toLowerCase() }));
     }
   });
 
@@ -879,7 +879,7 @@ describe("retos: presencial con check-in", () => {
           { personId: adminId, ip: null },
           { participationId: result.participation.id, decision, reason: "No es una evidencia" },
         ),
-      ).rejects.toThrow(t("T-676", { estado: "COMPLETED" }));
+      ).rejects.toThrow(t("T-676", { estado: (tList("T-3266")[1] ?? "").toLowerCase() }));
     }
 
     const reviewed = await db()

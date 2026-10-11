@@ -4,10 +4,10 @@ import { type CommandContext, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { gamificationReconcile } from "@/domain-events/participation";
 import { listMembershipPersonIds } from "@/modules/people";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { withoutQueryValues } from "@/shared/log";
-import { badgeReconciliationRun } from "../schema";
+import { badgeReconciliationRun, reconciliationStatus } from "../schema";
 import { recomputeBadgesFor } from "./badges";
 
 // Conciliación histórica (ADR-067 reglas 11 y 13): reconoce insignias por hechos de cualquier
@@ -16,6 +16,14 @@ import { recomputeBadgesFor } from "./badges";
 // cada lote es idempotente y una corrida FAILED reanuda desde donde quedó.
 
 export type ReconciliationRunRow = typeof badgeReconciliationRun.$inferSelect;
+
+/**
+ * El estado de una corrida con la palabra del catálogo (T-2559, en el orden del enum): es lo que
+ * nombra el error de reanudar una que no quedó con error (ADR-123 regla 8).
+ */
+function reconciliationStatusLabel(status: ReconciliationRunRow["status"]): string {
+  return tList("T-2559")[reconciliationStatus.enumValues.indexOf(status)] ?? status;
+}
 
 export const RECONCILE_BATCH = 100;
 const REPORT_SAMPLE_MAX = 50;
@@ -81,7 +89,9 @@ export async function resumeReconciliation(ctx: CommandContext, runId: string): 
     throw new DomainError(t("T-032"));
   }
   if (row.status !== "FAILED") {
-    throw new DomainError(t("T-676", { estado: row.status }));
+    throw new DomainError(
+      t("T-3268", { estado: reconciliationStatusLabel(row.status).toLowerCase() }),
+    );
   }
   await ctx.tx
     .update(badgeReconciliationRun)

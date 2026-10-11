@@ -2222,6 +2222,9 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-3261 | Evidencia: el texto no tiene el largo pedido (ADR-122) | Tu texto debe tener entre {min} y {max} caracteres. Ajustalo y enviá de nuevo. | MATEO | Propuesta |
 | T-3262 | Evidencia: la casa no aceptó el contenido del envío (ADR-122) | No pudimos recibir tu evidencia así. Revisá el texto y las imágenes, y enviala de nuevo. | MATEO | Propuesta |
 | T-3264 | Evidencia: imagen de menos de 5 KB (ADR-122) | Esa imagen pesa menos de 5 KB. Subí una de entre 5 KB y 5 MB. | MATEO | Propuesta |
+| T-3266 | Retos: estados de una entrega (en el orden del modelo; ADR-123) | Pendiente · Completado · Rechazado · Anulado | MATEO | Propuesta |
+| T-3267 | Retos y asistencias: estados de un premio (en el orden del modelo; ADR-123) | Reservado · Entregado · Liberado · Anulado | MATEO | Propuesta |
+| T-3268 | Admin panel: reanudar una conciliación que no quedó con error (ADR-123) | Esa conciliación no se puede reanudar: está {estado}. | MATEO | Propuesta |
 
 ## Directorio de comités de Mi OE
 

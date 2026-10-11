@@ -10,7 +10,7 @@ import {
 import { challenge, challengeParticipation, reward } from "@/modules/participation/schema";
 import { setConfigAs } from "@/modules/system";
 import { auditLog } from "@/modules/system/schema";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
 import { warmPool } from "../helpers/pool";
@@ -24,9 +24,12 @@ import { seedChallenge, seedMember, seedTerm } from "./factories";
 const POINTS = 5;
 const db = () => getDb();
 
-/** El estado como lo nombra hoy el error (T-676 con el valor del enum). */
+/** Los estados de una entrega en el orden de su enum, que es el de la lista T-3266. */
+const STATUSES = ["PENDING", "COMPLETED", "REJECTED", "ANNULLED"] as const;
+
+/** El estado como lo nombra el error: T-676 con la palabra de T-3266 (ADR-123 regla 8). */
 function notApplicable(status: "COMPLETED" | "ANNULLED"): string {
-  return t("T-676", { estado: status });
+  return t("T-676", { estado: (tList("T-3266")[STATUSES.indexOf(status)] ?? "").toLowerCase() });
 }
 
 async function pendingDelivery() {

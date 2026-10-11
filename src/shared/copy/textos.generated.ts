@@ -10739,6 +10739,24 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3266": {
+    where: "Retos: estados de una entrega (en el orden del modelo; ADR-123)",
+    text: "Pendiente · Completado · Rechazado · Anulado",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3267": {
+    where: "Retos y asistencias: estados de un premio (en el orden del modelo; ADR-123)",
+    text: "Reservado · Entregado · Liberado · Anulado",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3268": {
+    where: "Admin panel: reanudar una conciliación que no quedó con error (ADR-123)",
+    text: "Esa conciliación no se puede reanudar: está {estado}.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

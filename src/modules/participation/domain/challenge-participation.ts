@@ -9,7 +9,7 @@ import {
   evidenceProcess,
 } from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import type {
   BoosterKind,
@@ -22,6 +22,7 @@ import {
   challenge,
   challengeEvidenceFile,
   challengeParticipation,
+  challengeParticipationStatus,
   challengeQuestion,
   type checkIn,
   reward,
@@ -784,6 +785,15 @@ async function auditParticipation(
   });
 }
 
+/**
+ * El estado de una entrega con la palabra del catálogo (T-3266, en el orden del enum), como
+ * `checkInStatusLabel` con las asistencias: es lo que nombra el error de una decisión que ya no
+ * aplica (ADR-123 regla 8).
+ */
+function participationStatusLabel(status: ParticipationStatus): string {
+  return tList("T-3266")[challengeParticipationStatus.enumValues.indexOf(status)] ?? status;
+}
+
 /** Revisión de GH sobre una entrega pendiente: aprobar entrega el premio; rechazar lo libera. */
 export async function reviewParticipation(
   ctx: CommandContext,
@@ -806,7 +816,9 @@ export async function reviewParticipation(
     throw new DomainError(t("T-032"));
   }
   if (participation.status !== "PENDING") {
-    throw new DomainError(t("T-676", { estado: participation.status }));
+    throw new DomainError(
+      t("T-676", { estado: participationStatusLabel(participation.status).toLowerCase() }),
+    );
   }
   const [row] = await ctx.tx
     .select()
@@ -898,7 +910,9 @@ export async function annulParticipation(
     throw new DomainError(t("T-032"));
   }
   if (participation.status !== "COMPLETED") {
-    throw new DomainError(t("T-676", { estado: participation.status }));
+    throw new DomainError(
+      t("T-676", { estado: participationStatusLabel(participation.status).toLowerCase() }),
+    );
   }
   const cleanReason = reason.trim();
   if (!cleanReason) {
