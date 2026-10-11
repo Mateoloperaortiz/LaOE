@@ -401,6 +401,42 @@ describe("retos: trivia", () => {
     expect(await balanceFor(personId, termId)).toBe(5);
   });
 
+  it("el mismo requestId con otro contenido se rechaza como conflicto, en la trivia y en la evidencia", async () => {
+    const termId = await seedTerm();
+    const personId = await seedMember("retos.conflicto@eafit.edu.co");
+    await enableGamification(personId);
+    const trivia = { challengeId: await seedTrivia(termId), requestId: "req-conflict-1" };
+    expect((await submitTriviaAs({ personId, ip: null }, { ...trivia, answers: [0] })).ok).toBe(
+      true,
+    );
+    expect(await submitTriviaAs({ personId, ip: null }, { ...trivia, answers: [1] })).toEqual({
+      ok: false,
+      reason: "REQUEST_CONFLICT",
+    });
+
+    const evidence = {
+      challengeId: await seedChallenge(termId, { kind: "EVIDENCE", passPercent: null }),
+      requestId: "req-conflict-2",
+      keys: [],
+    };
+    expect(
+      (
+        await submitEvidenceAs(
+          { personId, ip: null },
+          { ...evidence, text: "Evidencia de prueba con suficiente texto." },
+        )
+      ).ok,
+    ).toBe(true);
+    expect(
+      await submitEvidenceAs(
+        { personId, ip: null },
+        { ...evidence, text: "Otra evidencia de prueba, con otro texto." },
+      ),
+    ).toEqual({ ok: false, reason: "REQUEST_CONFLICT" });
+    // El conflicto no acredita ni cambia lo guardado: la trivia sumó una sola vez.
+    expect(await balanceFor(personId, termId)).toBe(5);
+  });
+
   it("dos personas entregan el mismo reto con el mismo requestId y cada una repite lo suyo (ADR-118 regla 18)", async () => {
     const termId = await seedTerm();
     const ana = await seedMember("retos.pestana.ana@eafit.edu.co");

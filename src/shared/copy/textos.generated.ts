@@ -10708,6 +10708,18 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3261": {
+    where: "Evidencia: el texto no tiene el largo pedido (ADR-122)",
+    text: "Tu texto debe tener entre {min} y {max} caracteres. Ajustalo y enviá de nuevo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3262": {
+    where: "Evidencia: la casa no aceptó el contenido del envío (ADR-122)",
+    text: "No pudimos recibir tu evidencia así. Revisá el texto y las imágenes, y enviala de nuevo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

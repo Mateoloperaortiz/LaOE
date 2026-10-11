@@ -2217,6 +2217,8 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2594 | Admin cierre: estadísticas de gamificación del standing | Retos completados · Puntos de boosters | MATEO | Propuesta |
 | T-3205 | Reto presencial: asistencia excusada (motivo automático, ADR-111) | Tu asistencia en {actividad} quedó excusada. | MATEO | Propuesta |
 | T-3253 | Reto: el envío de la trivia o de la evidencia no tuvo respuesta (ADR-118) | No recibimos la confirmación. Reintentá el envío tal como está: si ya se guardó, no contará dos veces. | MATEO | Propuesta |
+| T-3261 | Evidencia: el texto no tiene el largo pedido (ADR-122) | Tu texto debe tener entre {min} y {max} caracteres. Ajustalo y enviá de nuevo. | MATEO | Propuesta |
+| T-3262 | Evidencia: la casa no aceptó el contenido del envío (ADR-122) | No pudimos recibir tu evidencia así. Revisá el texto y las imágenes, y enviala de nuevo. | MATEO | Propuesta |
 
 ## Directorio de comités de Mi OE
 

@@ -18,9 +18,11 @@ const ERROR_COPY: Record<SubmitDenial, ClientCopyCode> = {
   NOT_ELIGIBLE: "T-2440",
   ALREADY: "T-2439",
   TERM_CLOSED: "T-2443",
-  INVALID_INPUT: "T-2426",
+  // El formulario no tiene preguntas: ninguno de sus rechazos pinta el texto de la trivia (ADR-122
+  // regla 16). `INCOMPLETE` es de la trivia y acá no llega; el tipo pide todas las razones.
+  INVALID_INPUT: "T-3262",
   REQUEST_CONFLICT: "T-2444",
-  INCOMPLETE: "T-2426",
+  INCOMPLETE: "T-3262",
 };
 
 interface UploadedFile {
@@ -131,7 +133,7 @@ export function EvidenceUploader({
       return;
     }
     if (!textValid) {
-      setMessage(t("T-2426"));
+      setMessage(t("T-3261", { min: textMin, max: textMax }));
       return;
     }
     setMessage("");

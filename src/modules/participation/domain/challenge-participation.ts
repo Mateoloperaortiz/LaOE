@@ -313,7 +313,9 @@ export async function replaySubmission(
       JSON.stringify(files.map((file) => file.key)) ===
         JSON.stringify([...new Set(input.keys ?? [])]);
   }
-  return matches ? replayResult(ctx, existing) : { ok: false, reason: "INVALID_INPUT" };
+  // Con otro contenido se rechaza (ADR-067 regla 6) diciendo que es eso, no que el envío vino mal
+  // armado: la pantalla pide recargar, no volver a responder (ADR-122 regla 16).
+  return matches ? replayResult(ctx, existing) : { ok: false, reason: "REQUEST_CONFLICT" };
 }
 
 async function lockSubmission(
