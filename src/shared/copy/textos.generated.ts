@@ -10732,6 +10732,13 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3265": {
+    where:
+      "Importación del roster: error de la fila que pasa a honorario a quien está en prueba o con los derechos suspendidos (ADR-123)",
+    text: "{nombre} está en periodo de prueba o con derechos suspendidos y no puede pasar a honorario (Reglamento, art. 73). Esta fila no se importa: corregí su estado.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

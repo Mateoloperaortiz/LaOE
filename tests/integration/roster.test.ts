@@ -1,8 +1,15 @@
 import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { personImported } from "@/domain-events/people";
-import { endMembershipAs, lockWalletMember, setProbationAs } from "@/modules/people";
+import {
+  endMembershipAs,
+  lockWalletMember,
+  recordSanctionAs,
+  setProbationAs,
+} from "@/modules/people";
+import { changeMembershipStatus } from "@/modules/people/domain/membership";
 import { getPerson360 } from "@/modules/people/domain/person-360";
 import { listPeople } from "@/modules/people/domain/persons";
 import {
@@ -26,11 +33,19 @@ import { appConfig, auditLog, importJob, outbox } from "@/modules/system/schema"
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
+import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { copyPattern, itemPattern } from "../helpers/copy";
 import { holdTransaction, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
-import { currentTermCode, seedCommittee, seedMember, seedPerson, seedTerm } from "./factories";
+import {
+  currentTermCode,
+  seedCommittee,
+  seedMember,
+  seedMembershipTerm,
+  seedPerson,
+  seedTerm,
+} from "./factories";
 
 const db = () => getDb();
 
@@ -697,6 +712,159 @@ describe("importación del roster", () => {
     expect(otra.rows[0]?.changes).toContain("status");
     expect(applied).toMatchObject({ updated: 1, unchanged: 0 });
     expect((await estadoYComites(juan)).status).toBe("ACTIVE");
+  });
+
+  // ADR-123 regla 5: el paso a honorario de quien está en prueba o con los derechos suspendidos lo
+  // rechaza el comando (T-2331; ADR-061 regla 2 y ADR-120 regla 4). El roster lo dice en la vista
+  // previa como error de esa fila, con el nombre, y el resto del archivo se aplica (DT-300).
+  describe("la fila que pasa a honorario a quien no puede serlo", () => {
+    /** Ana y Juan activos en A3 y PIXEL; después, un archivo que le suma PIXEL a Ana y trae a Juan como honorario. */
+    async function rosterConHonorario(bloquear: (juan: string, adminId: string) => Promise<void>) {
+      const termId = await seedTerm();
+      const code = currentTermCode();
+      await Promise.all(["a3", "pixel"].map((slug) => seedCommittee(slug)));
+      const adminId = await seedMember("admin@eafit.edu.co");
+      const base = await preview(
+        adminId,
+        termId,
+        csv([
+          `Ana;Pérez;prueba.ana@eafit.edu.co;;Derecho;A3;${code};Activo;`,
+          `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Activo;`,
+        ]),
+      );
+      await applyRosterImportAs({ personId: adminId, ip: null }, base.jobId);
+      const ana = await personaDe("prueba.ana@eafit.edu.co");
+      const juan = await personaDe("prueba.juan@eafit.edu.co");
+      await bloquear(juan, adminId);
+      const antes = await estadoYComites(juan);
+      const otra = await preview(
+        adminId,
+        termId,
+        csv([
+          `Ana;Pérez;prueba.ana@eafit.edu.co;;Derecho;A3, PIXEL;${code};Activo;`,
+          `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Honorario;`,
+        ]),
+      );
+      const applied = await applyRosterImportAs({ personId: adminId, ip: null }, otra.jobId);
+      const fila = otra.rows.find((row) => row.email === "prueba.juan@eafit.edu.co");
+      return { adminId, ana, juan, antes, otra, applied, fila };
+    }
+
+    const esErrorDeLaFila = async (caso: Awaited<ReturnType<typeof rosterConHonorario>>) => {
+      const { ana, juan, antes, otra, applied, fila } = caso;
+      // La vista previa nombra la fila y a la persona; no anuncia ningún cambio para ella.
+      expect(fila).toMatchObject({ group: "ERROR", changes: [] });
+      expect(fila?.errors).toEqual([
+        expect.stringMatching(copyPattern("T-3265", { nombre: "Juan Gómez" })),
+      ]);
+      expect(otra.counts).toMatchObject({ ERROR: 1, CHANGED: 1 });
+      // Al aplicar, esa fila se salta y la otra entra: a Juan no se le escribe nada.
+      expect(applied).toMatchObject({ updated: 1, skipped: 1 });
+      expect(await estadoYComites(juan)).toEqual(antes);
+      expect((await estadoYComites(ana)).comites).toEqual(["a3", "pixel"]);
+      expect(await importacionesDe(juan, otra.jobId)).toEqual({ audits: [], events: [] });
+    };
+
+    it("en periodo de prueba en el semestre vigente: es un error de esa fila y el resto del archivo se aplica", async () => {
+      const caso = await rosterConHonorario(async (juan, adminId) => {
+        const termId = await seedTerm();
+        await setProbationAs({ personId: adminId, ip: null }, juan, termId, {
+          probation: true,
+          reason: "Bajo desempeño el semestre pasado",
+        });
+      });
+
+      await esErrorDeLaFila(caso);
+      expect(caso.antes.status).toBe("ACTIVE");
+    });
+
+    it("en licencia con la prueba guardada de un semestre anterior: es un error de esa fila y el resto del archivo se aplica", async () => {
+      const caso = await rosterConHonorario(async (juan) => {
+        // Sale a licencia en 2026-1 con la prueba de ese semestre: en el vigente no tiene fila y la
+        // prueba vive solo en la condición guardada (ADR-120 regla 4). El reloj se le pasa al comando.
+        const previo = await seedTerm("2026-1");
+        await seedMembershipTerm(juan, previo, true);
+        await runCommand(SYSTEM_ACTOR, (ctx) =>
+          changeMembershipStatus(
+            ctx,
+            juan,
+            { to: "ON_LEAVE", reason: "Intercambio", leaveUntil: "2027-06-01" },
+            new Date("2026-06-01T15:00:00Z"),
+          ),
+        );
+      });
+
+      await esErrorDeLaFila(caso);
+      expect(caso.antes.status).toBe("ON_LEAVE");
+    });
+
+    it("con los derechos suspendidos por una sanción: es un error de esa fila y el resto del archivo se aplica", async () => {
+      const caso = await rosterConHonorario(async (juan, adminId) => {
+        const termId = await seedTerm();
+        await recordSanctionAs(
+          { personId: adminId, ip: null },
+          juan,
+          {
+            termId,
+            kind: "SUSPENSION",
+            cause: "Uso indebido de la oficina, con descargos",
+            occurredOn: todayKey(),
+            suspendedUntil: todayKey(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)),
+          },
+          { by: "ADMIN" },
+        );
+      });
+
+      await esErrorDeLaFila(caso);
+    });
+
+    it("de baja por renuncia y en prueba en el semestre vigente: es un error de esa fila y el roster no la reactiva", async () => {
+      const caso = await rosterConHonorario(async (juan, adminId) => {
+        const termId = await seedTerm();
+        await setProbationAs({ personId: adminId, ip: null }, juan, termId, {
+          probation: true,
+          reason: "Bajo desempeño el semestre pasado",
+        });
+        await endMembershipAs({ personId: adminId, ip: null }, juan, {
+          endReason: "RESIGNATION",
+          memorialConsent: false,
+          contactConsent: false,
+        });
+      });
+
+      await esErrorDeLaFila(caso);
+      expect(caso.antes).toMatchObject({ status: "INACTIVE", endReason: "RESIGNATION" });
+    });
+
+    it("a quien fue expulsado y figura como honorario le sigue avisando que no vuelve, sin error: esa fila no pasa por el cambio de estado", async () => {
+      const caso = await rosterConHonorario(async (juan, adminId) => {
+        const termId = await seedTerm();
+        await setProbationAs({ personId: adminId, ip: null }, juan, termId, {
+          probation: true,
+          reason: "Bajo desempeño el semestre pasado",
+        });
+        await endMembershipAs({ personId: adminId, ip: null }, juan, {
+          endReason: "EXPULSION",
+          memorialConsent: false,
+          contactConsent: false,
+        });
+      });
+
+      expect(caso.fila).toMatchObject({ group: "UNCHANGED", errors: [] });
+      expect(caso.fila?.warnings).toEqual([
+        expect.stringMatching(copyPattern("T-2208", { nombre: "Juan Gómez" })),
+      ]);
+      expect(caso.applied).toMatchObject({ updated: 1, unchanged: 1, skipped: 0 });
+      expect(await estadoYComites(caso.juan)).toEqual(caso.antes);
+    });
+
+    it("quien no está en prueba ni suspendido pasa a honorario por el roster, como siempre", async () => {
+      const caso = await rosterConHonorario(async () => {});
+
+      expect(caso.fila).toMatchObject({ group: "CHANGED", errors: [] });
+      expect(caso.applied).toMatchObject({ updated: 2, skipped: 0 });
+      expect((await estadoYComites(caso.juan)).status).toBe("HONORARY");
+    });
   });
 
   it("un archivo sin ESTADO avisa de quien está de baja y no le cambia los comités ni lo reactiva", async () => {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   detectMapping,
   diffRoster,
+  type ExistingPerson,
   normalizeHeader,
   parseCsv,
   parseEntryTerm,
@@ -46,6 +47,7 @@ const catalog: RosterCatalog = {
         personalEmail: null,
         status: "ACTIVE" as const,
         probation: false,
+        honoraryBlocked: false,
         committees: [{ slug: "a3", roleCode: "GENERAL", transferredIn: false }],
       },
     ],
@@ -353,6 +355,7 @@ describe("validación por fila", () => {
           personalEmail: null,
           status: "ACTIVE" as const,
           probation: false,
+          honoraryBlocked: false,
           committees: [{ slug: "a3", roleCode: "GENERAL", transferredIn: false }],
         },
       ],
@@ -365,6 +368,53 @@ describe("validación por fila", () => {
     expect(diffRoster(changed.rows, existing)[0]).toMatchObject({
       group: "CHANGED",
       changes: ["phone", "status", "committees"],
+    });
+  });
+  // ADR-123 regla 5: la fila que pasa a honorario a quien el comando se lo rechaza (T-2331) es un
+  // error de esa fila. Solo cuenta la que de verdad pasaría por el cambio de estado.
+  describe("la fila que trae como honoraria a quien no puede pasar a honorario", () => {
+    type Held = Pick<ExistingPerson, "status" | "endReason" | "honoraryBlocked">;
+    const errorsFor = (held: Held, estado = "Honorario") => {
+      const original = catalog.existing.get("ana@eafit.edu.co");
+      if (!original) throw new Error("Falta la persona sintética");
+      const existing = new Map([["ana@eafit.edu.co", { ...original, ...held }]]);
+      const cells = parseCsv(
+        [HEADER, `Ana;Arango;ana@eafit.edu.co;;Derecho;A3;2026-2;${estado};`].join("\n"),
+      );
+      const mapping = detectMapping(cells[0] ?? []);
+      const rows = validateRoster(rowsFromCells(cells, mapping), mapping, { ...catalog, existing });
+      return { errors: rows.rows[0]?.errors, group: diffRoster(rows.rows, existing)[0]?.group };
+    };
+    const rejected = [fillCopy(t("T-3265"), { nombre: "Ana Arango" })];
+
+    it.each<[string, Held]>([
+      ["está activa", { status: "ACTIVE", honoraryBlocked: true }],
+      ["está en licencia", { status: "ON_LEAVE", honoraryBlocked: true }],
+      [
+        "renunció y el roster la reactivaría",
+        { status: "INACTIVE", endReason: "RESIGNATION", honoraryBlocked: true },
+      ],
+    ])("es un error de la fila, con su nombre, si %s", (_caso, held) => {
+      expect(errorsFor(held)).toEqual({ errors: rejected, group: "ERROR" });
+    });
+
+    it.each<[string, Held]>([
+      [
+        "ya es honoraria: la fila no le cambia el estado",
+        { status: "HONORARY", honoraryBlocked: true },
+      ],
+      [
+        "fue expulsada: el roster no la reactiva",
+        { status: "INACTIVE", endReason: "EXPULSION", honoraryBlocked: true },
+      ],
+      ["no tiene membresía: el roster se la crea", { status: null, honoraryBlocked: true }],
+      ["nada le impide el paso a honorario", { status: "ACTIVE", honoraryBlocked: false }],
+    ])("no es un error si %s", (_caso, held) => {
+      expect(errorsFor(held).errors).toEqual([]);
+    });
+
+    it("no es un error si la fila la trae en otro estado, aunque no pueda pasar a honorario", () => {
+      expect(errorsFor({ status: "ACTIVE", honoraryBlocked: true }, "Licencia").errors).toEqual([]);
     });
   });
 });

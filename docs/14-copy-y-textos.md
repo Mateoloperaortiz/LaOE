@@ -2003,6 +2003,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-3246 | Comités de la persona: está de baja o no tiene membresía (ADR-118) | No se pueden cambiar los comités de quien está de baja o no tiene membresía. | MATEO | Propuesta |
 | T-3247 | Importación del roster: aviso por persona de baja con comités en un archivo sin ESTADO (ADR-118) | {nombre} está de baja y este archivo no trae la columna ESTADO: el roster no la reactiva ni le cambia los comités. | GH | Propuesta |
 | T-3258 | Membresía: se pide cambiar el estado de quien ya está de baja (ADR-120) | Esa persona ya está de baja: no se cambió nada. Para que vuelva, reactivala. | MATEO | Propuesta |
+| T-3265 | Importación del roster: error de la fila que pasa a honorario a quien está en prueba o con los derechos suspendidos (ADR-123) | {nombre} está en periodo de prueba o con derechos suspendidos y no puede pasar a honorario (Reglamento, art. 73). Esta fila no se importa: corregí su estado. | MATEO | Propuesta |
 
 ### Cargos vigentes e historial (14/09/2026)
 

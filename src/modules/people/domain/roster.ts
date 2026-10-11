@@ -40,7 +40,12 @@ import { listAllCommittees } from "./committees";
 import { leadershipContext } from "./inhabilities";
 import { type HeldRole, inhabilities, inhabilityLabels } from "./inhabilities-pure";
 import { leaveWindow } from "./leave-pure";
-import { changeMembershipStatus, endMembership, reactivateMembership } from "./membership";
+import {
+  changeMembershipStatus,
+  endMembership,
+  honoraryBlockedAmong,
+  reactivateMembership,
+} from "./membership";
 import { createCommitteeRole } from "./roles";
 import { ROSTER_MAX_BYTES, readRosterCells, rosterFormat } from "./roster-file";
 import {
@@ -180,7 +185,7 @@ async function existingByEmail(
   if (ids.length === 0) {
     return map;
   }
-  const [committees, probations, terms] = await Promise.all([
+  const [committees, probations, terms, honoraryBlocked] = await Promise.all([
     db
       .select({
         personId: committeeMembership.personId,
@@ -205,6 +210,9 @@ async function existingByEmail(
         ),
       ),
     listAllTerms(),
+    // A quién el comando le rechazaría el paso a honorario: la fila que lo pida es un error de la
+    // vista previa y no tumba la importación (ADR-123 regla 5).
+    honoraryBlockedAmong(ids),
   ]);
   const assignments = await db
     .select({
@@ -238,6 +246,7 @@ async function existingByEmail(
       status: row.status,
       endReason: row.endReason,
       probation: probations.some((item) => item.personId === row.id && item.probation),
+      honoraryBlocked: honoraryBlocked.has(row.id),
       committees: committees
         .filter((item) => item.personId === row.id && item.leftAt === null)
         .map((item) => ({

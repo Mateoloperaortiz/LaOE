@@ -479,6 +479,14 @@ export function validateRoster(
       } else {
         result.status = status.status;
         result.probation = status.probation;
+        if (status.status === "HONORARY" && honoraryRejected(current)) {
+          errors.push(
+            t("T-3265", {
+              nombre:
+                `${result.firstName || current?.firstName || ""} ${result.lastName || current?.lastName || ""}`.trim(),
+            }),
+          );
+        }
         if (
           status.status !== "INACTIVE" &&
           current?.status === "INACTIVE" &&
@@ -670,6 +678,12 @@ export interface ExistingPerson {
   endReason?: string | null;
   status: RosterStatus | null;
   probation: boolean;
+  /**
+   * El comando le rechazaría hoy el paso a honorario: en prueba, con los derechos suspendidos o con
+   * la prueba guardada al salir a licencia (ADR-061 regla 2; ADR-120 regla 4). No es `probation`, que
+   * es la prueba general del término del roster.
+   */
+  honoraryBlocked: boolean;
   committees: Array<{
     slug: string;
     roleCode: string;
@@ -703,6 +717,21 @@ export function staysInactive(
     return false;
   }
   return wanted === undefined || wanted === "INACTIVE" || current.endReason === "EXPULSION";
+}
+
+/**
+ * La fila que trae como honorario a alguien a quien el comando se lo rechaza (T-2331): es un error de
+ * esa fila y no de la importación entera (ADR-123 regla 5). Solo cuenta la fila que de verdad pasaría
+ * por el cambio de estado: quien ya es honorario no cambia, a quien no tiene membresía el roster se la
+ * crea ya en ese estado y a quien fue expulsado no lo reactiva (T-2208).
+ */
+function honoraryRejected(current: ExistingPerson | undefined): boolean {
+  if (!current?.honoraryBlocked) {
+    return false;
+  }
+  return (
+    current.status !== null && current.status !== "HONORARY" && !staysInactive(current, "HONORARY")
+  );
 }
 
 export type DiffGroup = "NEW" | "CHANGED" | "UNCHANGED" | "ERROR";

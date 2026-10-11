@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -19,7 +19,7 @@ import {
   membershipTerm,
   person,
 } from "../schema";
-import { assertBenefitsAvailable } from "./benefits";
+import { blockedBenefits } from "./benefits";
 import { closeCommitteeMembership } from "./committee-membership-closing";
 import { endRolesForPerson } from "./committee-role-assignments";
 import { revokeAllConsents, syncConsent } from "./consents";
@@ -197,6 +197,43 @@ export async function leftOnProbationOf(personId: string): Promise<boolean> {
 }
 
 /**
+ * De estas membresías, las que no pueden pasar a honorario (ADR-061 regla 2): en prueba en el término
+ * vigente o con los derechos suspendidos (`blockedBenefits`), o con la prueba guardada al salir a
+ * licencia (ADR-120 regla 4). Es la regla de `changeMembershipStatus`, y la vista previa del roster
+ * marca la fila con esta misma (ADR-123 regla 5): si acá cambia, cambia en los dos.
+ */
+async function honoraryBlocked(
+  exec: Executor,
+  rows: MembershipRecord[],
+  now: Date,
+): Promise<Set<string>> {
+  const term = await getCurrentTerm(now);
+  const blocked = term
+    ? await blockedBenefits(
+        rows.map((row) => row.personId),
+        term.id,
+        now,
+        exec,
+      )
+    : new Set<string>();
+  for (const row of rows) {
+    if (await leftOnProbation(exec, row)) blocked.add(row.personId);
+  }
+  return blocked;
+}
+
+/** La misma regla para una lectura de varias personas: la vista previa del roster. */
+export async function honoraryBlockedAmong(
+  personIds: string[],
+  now = new Date(),
+): Promise<Set<string>> {
+  if (personIds.length === 0) return new Set();
+  const db = getDb();
+  const rows = await db.select().from(membership).where(inArray(membership.personId, personIds));
+  return honoraryBlocked(db, rows, now);
+}
+
+/**
  * La condición que queda guardada tras el cambio (ADR-118 regla 8): se toma al salir a licencia, el
  * paso por honorario la conserva y solo el regreso a activo la gasta.
  */
@@ -257,14 +294,10 @@ export async function changeMembershipStatus(
     throw new DomainError(t("T-3245"), "to");
   }
   const today = todayKey(now);
-  if (input.to === "HONORARY") {
-    const term = await getCurrentTerm(now);
-    if (term) await assertBenefitsAvailable(ctx.tx, personId, term.id, now);
-    // Quien salió a licencia en prueba no tiene fila en el término vigente: la prueba que bloquea
-    // el paso a honorario (ADR-061 regla 2) es la que quedó guardada (ADR-120 regla 4).
-    if (await leftOnProbation(ctx.tx, current)) {
-      throw new DomainError(t("T-2331"), "personId");
-    }
+  // La prueba o la suspensión del término vigente y, para quien salió a licencia en prueba y no tiene
+  // fila en él, la prueba que quedó guardada (ADR-061 regla 2; ADR-120 regla 4).
+  if (input.to === "HONORARY" && (await honoraryBlocked(ctx.tx, [current], now)).has(personId)) {
+    throw new DomainError(t("T-2331"), "personId");
   }
   let leaveUntil: string | null = null;
   if (input.to === "ON_LEAVE") {
