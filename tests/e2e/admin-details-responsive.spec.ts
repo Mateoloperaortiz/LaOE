@@ -12,7 +12,7 @@ import { committee, person, segment } from "@/modules/people/schema";
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
-import { seedSegment } from "../factories";
+import { seedDocument, seedSegment } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -133,17 +133,7 @@ test.beforeEach(async () => {
     })
     .returning()
     .then(first);
-  const pdf = await db
-    .insert(documentTable)
-    .values({
-      title: prefix,
-      version: "Versión de prueba, texto libre",
-      fileKey: `documents/${prefix}.pdf`,
-      originalFilename: `${prefix}.pdf`,
-      byteSize: 2048,
-    })
-    .returning()
-    .then(first);
+  const pdf = { id: await seedDocument(prefix, { version: "Versión de prueba, texto libre" }) };
   routes = [
     `/admin/campanas/${mail.id}`,
     `/admin/comites/${pixel.slug}`,

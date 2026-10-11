@@ -5,7 +5,7 @@ import { page as contentPage } from "@/modules/content/schema";
 import { consent, person } from "@/modules/people/schema";
 import { appConfig } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { seedConfig, seedConsent } from "../factories";
+import { seedConfig, seedConsent, seedPage } from "../factories";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
@@ -21,19 +21,11 @@ let originalConfig: typeof appConfig.$inferSelect | undefined;
 let memberId: string;
 
 async function publicar(status: "PUBLISHED" | "DRAFT"): Promise<void> {
-  await getDb()
-    .insert(contentPage)
-    .values({
-      slug: "privacidad",
-      title: "Tratamiento de datos personales",
-      body: CUERPO,
-      status,
-      audience: "PUBLIC",
-    })
-    .onConflictDoUpdate({
-      target: contentPage.slug,
-      set: { body: CUERPO, status, audience: "PUBLIC" },
-    });
+  await seedPage("privacidad", "Tratamiento de datos personales", {
+    body: CUERPO,
+    status,
+    audience: "PUBLIC",
+  });
 }
 
 test.beforeEach(async () => {

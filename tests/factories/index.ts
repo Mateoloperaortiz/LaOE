@@ -3,7 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { message } from "@/modules/comms/schema";
 import { competitionSupport } from "@/modules/competition/schema";
-import { mediaAsset } from "@/modules/content/schema";
+import { document, mediaAsset, page } from "@/modules/content/schema";
 import {
   card,
   interaction,
@@ -1222,6 +1222,57 @@ export async function seedMediaAsset(
     })
     .returning({ id: mediaAsset.id });
   if (!row) throw new Error("seed media asset");
+  return row.id;
+}
+
+type PageContent = Required<Pick<typeof page.$inferInsert, "body" | "status" | "audience">>;
+
+/**
+ * La página de ese slug: en borrador, pública y sin texto, salvo overrides. Si ya existe, como las
+ * que dejan las migraciones, conserva su título y cambia lo demás.
+ */
+export async function seedPage(
+  slug: string,
+  title: string,
+  overrides: Partial<PageContent> = {},
+): Promise<string> {
+  const content: PageContent = {
+    body: overrides.body ?? "",
+    status: overrides.status ?? "DRAFT",
+    audience: overrides.audience ?? "PUBLIC",
+  };
+  const [row] = await db()
+    .insert(page)
+    .values({ slug, title, ...content })
+    .onConflictDoUpdate({ target: page.slug, set: content })
+    .returning({ id: page.id });
+  if (!row) throw new Error("seed page");
+  return row.id;
+}
+
+type DocumentOverrides = Partial<Omit<typeof document.$inferInsert, "title">>;
+
+/**
+ * Documento como lo deja la base si nadie dice más: en borrador, para miembros y de tipo OTRO, con un
+ * PDF de 2 kB que lleva su título por nombre. Escribe la fila y nada más: no sube el archivo ni
+ * guarda sus artículos.
+ */
+export async function seedDocument(
+  title: string,
+  overrides: DocumentOverrides = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(document)
+    .values({
+      title,
+      version: "Versión de prueba",
+      fileKey: `documents/${title}.pdf`,
+      originalFilename: `${title}.pdf`,
+      byteSize: 2048,
+      ...overrides,
+    })
+    .returning({ id: document.id });
+  if (!row) throw new Error("seed document");
   return row.id;
 }
 

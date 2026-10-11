@@ -6,7 +6,7 @@ import { session } from "@/modules/identity/schema";
 import { person } from "@/modules/people/schema";
 import { appConfig } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
-import { seedConfig } from "../factories";
+import { seedConfig, seedPage } from "../factories";
 import { test } from "./fixtures";
 import { E2E_EMAIL } from "./global-setup";
 import { drenarOutbox } from "./outbox";
@@ -51,22 +51,11 @@ test.beforeEach(async () => {
     .set({ otpVerifiedAt: new Date() })
     .where(eq(session.personId, admin.id));
   await seedConfig("privacy.policyVersion", "pendiente");
-  const [created] = await getDb()
-    .insert(contentPage)
-    .values({
-      slug: "privacidad",
-      title: "Privacidad de prueba",
-      body: "",
-      status: "DRAFT",
-      audience: "PUBLIC",
-    })
-    .onConflictDoUpdate({
-      target: contentPage.slug,
-      set: { body: "", status: "DRAFT", audience: "PUBLIC" },
-    })
-    .returning({ id: contentPage.id });
-  if (!created) throw new Error("Página sintética ausente");
-  policyId = created.id;
+  policyId = await seedPage("privacidad", "Privacidad de prueba", {
+    body: "",
+    status: "DRAFT",
+    audience: "PUBLIC",
+  });
 });
 
 test.afterEach(async () => {
