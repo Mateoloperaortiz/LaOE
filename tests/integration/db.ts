@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Tx } from "@/db/tx";
 import { clearConfigCache } from "@/modules/system/domain/config";
+import { errorCode } from "@/shared/log";
 import { TEST_POLICY_VERSION } from "../factories/policy-version";
 
 // Deja la base de pruebas como recién migrada entre una prueba y la siguiente: las tablas de `public`
@@ -61,17 +62,41 @@ const REFILL_SQL = `with ${CATALOGS.map(
     `c${index} as (insert into public.${table} select * from ${BASELINE_SCHEMA}.${table})`,
 ).join(", ")} select 1`;
 
+// Cuánto espera el vaciado un candado antes de soltar los que ya tomó y volver a pedirlos, y cuántas
+// veces lo intenta: cerca de un minuto en total, lo que antes le daba el `statement_timeout`.
+const LOCK_WAIT_MS = 250;
+const LOCK_ATTEMPTS = 240;
+
+// Lo que dice PostgreSQL cuando el vaciado no consiguió su candado: se cansó de esperarlo (`55P03`) o
+// lo eligió a él para romper un interbloqueo (`40P01`).
+const LOCK_NOT_TAKEN = new Set<unknown>(["55P03", "40P01"]);
+
 /**
  * Corre `work` en una transacción que tiene `tables` bajo `ACCESS EXCLUSIVE`, el candado que tomaba
  * `TRUNCATE`, y sin los disparadores de las claves foráneas (el PostgreSQL de pruebas usa un
- * superusuario, como la E2E). El candado espera a quien todavía escribe en ellas.
+ * superusuario, como la E2E). Espera a quien todavía escribe en ellas, pero no retiene nada mientras
+ * espera (ADR-124 regla 7): pide los candados en orden y, si uno tarda, suelta los que ya tenía y
+ * vuelve a empezar. Quien escribe puede necesitar, para terminar, leer por otra conexión una tabla que
+ * el vaciado ya tomó, y esa espera cruzada PostgreSQL no la ve.
  */
-function underLock<T>(tables: string[], work: (tx: Tx) => Promise<T>): Promise<T> {
-  return getDb().transaction(async (tx) => {
-    await tx.execute(sql`select set_config('session_replication_role', 'replica', true)`);
-    await tx.execute(sql.raw(`lock table ${tables.join(", ")} in access exclusive mode`));
-    return work(tx);
-  });
+async function underLock<T>(tables: string[], work: (tx: Tx) => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await getDb().transaction(async (tx) => {
+        await tx.execute(sql`
+          select set_config('session_replication_role', 'replica', true),
+                 set_config('lock_timeout', ${`${LOCK_WAIT_MS}ms`}, true)
+        `);
+        await tx.execute(sql.raw(`lock table ${tables.join(", ")} in access exclusive mode`));
+        return work(tx);
+      });
+    } catch (error) {
+      const gaveUpItsTurn = error instanceof Error && LOCK_NOT_TAKEN.has(errorCode(error));
+      if (!gaveUpItsTurn || attempt === LOCK_ATTEMPTS) {
+        throw error;
+      }
+    }
+  }
 }
 
 /**

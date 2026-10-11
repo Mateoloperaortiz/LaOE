@@ -1,9 +1,9 @@
 import { sql } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
 import { getConfig } from "@/modules/system";
-import { heldThenSettled, holdTransaction } from "../helpers/locks";
+import { heldThenSettled, holdTransaction, waitingOn } from "../helpers/locks";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
@@ -432,6 +432,34 @@ describe("el vaciado de la base entre pruebas", () => {
 
     expect(emptying.during).toBe("hizo cola");
     expect(emptying.after.status).toBe("fulfilled");
+    expect(await tablesWithRows()).toEqual(CATALOGS);
+    expect(await catalogsOf("public")).toEqual(photographed);
+  });
+
+  it("no se traba con una transacción en vuelo que, con el vaciado ya en cola, lee la configuración por otra conexión (DT-350)", async () => {
+    // Lo que hace un comando real: escribe en su transacción y, sin confirmarla, lee la configuración
+    // por el pool. El vaciado en cola ya tiene el candado de `app_config` y espera el de `tag`: si no
+    // suelta lo que tomó, la lectura lo espera a él y él a la transacción, que no termina sin la lectura.
+    const writing = await holdTransaction((tx) => fill(tx, ["tag"]));
+    const emptying = truncateAll();
+    const reading: Promise<unknown>[] = [];
+    try {
+      await vi.waitFor(async () => expect(await waitingOn(writing.pid)).toBeGreaterThan(0), {
+        timeout: 5_000,
+      });
+      const read = query("select value from app_config limit 1").then(() => "respondió");
+      reading.push(read);
+      // El plazo solo corre si la lectura quedó trabada: sin él la prueba colgaría hasta el
+      // `statement_timeout` del vaciado en vez de fallar acá.
+      const stuck = new Promise<string>((resolve) => setTimeout(() => resolve("se trabó"), 3_000));
+
+      expect(await Promise.race([read, stuck])).toBe("respondió");
+    } finally {
+      writing.release();
+      await Promise.allSettled([writing.done, emptying, ...reading]);
+    }
+
+    await expect(emptying).resolves.toBeUndefined();
     expect(await tablesWithRows()).toEqual(CATALOGS);
     expect(await catalogsOf("public")).toEqual(photographed);
   });
