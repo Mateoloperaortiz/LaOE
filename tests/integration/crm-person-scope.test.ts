@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { addNoteAs, completeTaskAs, createTaskAs, editNoteAs } from "@/modules/crm";
+import { addNoteAs, completePersonTaskAs, createTaskAs, editNoteAs } from "@/modules/crm";
 import { interaction, task } from "@/modules/crm/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
@@ -85,7 +85,7 @@ describe("la nota y la tarea desde la ficha de su persona", () => {
     const f = await setup();
     const before = await audits();
 
-    await expect(completeTaskAs(f.author, f.taskId, { personId: f.pageId })).rejects.toThrow(
+    await expect(completePersonTaskAs(f.author, f.taskId, { personId: f.pageId })).rejects.toThrow(
       t("T-032"),
     );
 
@@ -97,7 +97,9 @@ describe("la nota y la tarea desde la ficha de su persona", () => {
     const f = await setup();
 
     for (const scope of [undefined, null, {}, { personId: "" }]) {
-      await expect(completeTaskAs(f.author, f.taskId, scope as never)).rejects.toThrow(t("T-032"));
+      await expect(completePersonTaskAs(f.author, f.taskId, scope as never)).rejects.toThrow(
+        t("T-032"),
+      );
     }
 
     expect(await taskStatus(f.taskId)).toBe("OPEN");
@@ -106,7 +108,7 @@ describe("la nota y la tarea desde la ficha de su persona", () => {
   it("desde la ficha de su persona, la tarea se completa", async () => {
     const f = await setup();
 
-    await completeTaskAs(f.author, f.taskId, { personId: f.otherId });
+    await completePersonTaskAs(f.author, f.taskId, { personId: f.otherId });
 
     expect(await taskStatus(f.taskId)).toBe("DONE");
   });

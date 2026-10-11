@@ -55,6 +55,6 @@ export function markOnboardingStepAs(
 }
 
 /** `scope` es la ficha desde la que se completa la tarea (ADR-122 regla 1). */
-export function completeTaskAs(actor: Actor, id: string, scope: PersonScope): Promise<void> {
+export function completePersonTaskAs(actor: Actor, id: string, scope: PersonScope): Promise<void> {
   return runCommand(actor, (ctx) => completePersonTask(ctx, id, scope));
 }

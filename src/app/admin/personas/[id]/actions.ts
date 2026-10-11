@@ -8,7 +8,7 @@ import { actorContext, sessionActorContext } from "@/app/_lib/actor";
 import { formOptional, formText } from "@/app/_lib/form";
 import {
   addNoteAs,
-  completeTaskAs,
+  completePersonTaskAs,
   createTaskAs,
   editNoteAs,
   grantRecognitionAs,
@@ -409,7 +409,7 @@ export async function completeTaskAction(formData: FormData): Promise<void> {
   const taskId = idSchema.parse(formData.get("taskId"));
   const actor = await requireAdminActor(await personUrl(id, "tareas"));
   await run(id, "tareas", "", async () =>
-    completeTaskAs(await actorContext(actor), taskId, { personId: id }),
+    completePersonTaskAs(await actorContext(actor), taskId, { personId: id }),
   );
 }
 

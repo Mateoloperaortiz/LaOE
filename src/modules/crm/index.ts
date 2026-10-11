@@ -51,7 +51,7 @@ export {
 export {
   addNoteAs,
   addOrganizationNoteAs,
-  completeTaskAs,
+  completePersonTaskAs,
   createTaskAs,
   editNoteAs,
   markOnboardingStepAs,
