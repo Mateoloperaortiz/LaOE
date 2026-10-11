@@ -73,6 +73,7 @@ import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { outcome } from "../helpers/locks";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedForm, seedMember, seedSubmission, seedTerm, seedVeteran } from "./factories";
 
@@ -750,6 +751,7 @@ describe("The Games", () => {
         stake: 200,
         code: code(t1),
       });
+      await warmPool();
       const results = await Promise.allSettled([
         resolveMarketAs(actor, id, marketId, t1),
         resolveMarketAs(actor, id, marketId, t2),
@@ -797,6 +799,7 @@ describe("The Games", () => {
       await setMarketOpenAs(actor, id, other.id, true);
       const markets = await createMarketAs(actor, id, { title: "Tercera", teamIds: [t1, t2] });
       await setMarketOpenAs(actor, id, markets.id, true);
+      await warmPool();
       const results = await Promise.allSettled([
         placeBetAs(actor, id, {
           marketId: other.id,

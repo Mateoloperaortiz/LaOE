@@ -45,6 +45,7 @@ import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
 
@@ -473,6 +474,7 @@ describe("poderes de The Games (ADR-098)", () => {
     await startRotationAs(actor, id, first.id);
     const m = await matchupAt(first.id, bases[0] ?? "");
 
+    await warmPool();
     const same = await Promise.allSettled([
       declarePowerAs(judge, id, { matchupId: m.id, teamId: team(1), power: "DOUBLE_POINTS" }),
       declarePowerAs(actor, id, { matchupId: m.id, teamId: team(1), power: "DOUBLE_POINTS" }),
