@@ -23,6 +23,7 @@ import {
 import { auditLog, importJob, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { currentTermCode, seedCommittee, seedMember, seedTerm } from "./factories";
 
@@ -214,6 +215,7 @@ describe("una importación del roster se aplica o se descarta una sola vez", () 
     const { admin, jobId } = await previewOf([row("Ana", ANA), row("Juan", JUAN)]);
     await warmUp(jobId);
 
+    await warmPool();
     const results = await Promise.allSettled([
       applyRosterImportAs(admin, jobId),
       applyRosterImportAs(admin, jobId),
@@ -234,6 +236,7 @@ describe("una importación del roster se aplica o se descarta una sola vez", () 
     const { admin, jobId } = await previewOf([row("Ana", ANA), row("Juan", JUAN)]);
     await warmUp(jobId);
 
+    await warmPool();
     const results = await Promise.allSettled([
       applyRosterImportAs(admin, jobId),
       applyRosterImportAs(admin, jobId),
@@ -298,6 +301,7 @@ describe("una importación del roster se aplica o se descarta una sola vez", () 
     const { admin, jobId } = await previewOf([row("Ana", ANA)]);
     await warmUp(jobId);
 
+    await warmPool();
     const [applying, discarding] = await Promise.allSettled([
       applyRosterImportAs(admin, jobId),
       discardRosterImportAs(admin, jobId),
@@ -521,6 +525,7 @@ describe("los permisos de líder se registran sobre la importación ya aplicada"
       failed: [`Persona ${index} · A3: motivo de prueba`],
     }));
 
+    await warmPool(8);
     const results = await Promise.allSettled(
       each.map((result) => recordLeaderGrantsAs(admin, jobId, result)),
     );

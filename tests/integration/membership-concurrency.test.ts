@@ -7,6 +7,7 @@ import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { holdTransaction, waitingOn } from "../helpers/locks";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedCommittee, seedMember, seedPerson, seedTerm } from "./factories";
 
@@ -53,6 +54,7 @@ describe("dar de alta y dar de baja a la misma persona a la vez", () => {
     });
     const admit = () => admitPersonAs(admin, personId, { termId, committeeIds: [a3] });
 
+    await warmPool();
     const outcomes = await Promise.allSettled([admit(), admit()]);
 
     expect(outcomes.filter((result) => result.status === "fulfilled")).toHaveLength(1);
@@ -87,6 +89,7 @@ describe("dar de alta y dar de baja a la misma persona a la vez", () => {
         contactConsent: false,
       });
 
+    await warmPool();
     const results = await Promise.all([end(), end()]);
 
     // `true` es «la di de baja»; `false`, «ya lo estaba»: ninguna de las dos falla.

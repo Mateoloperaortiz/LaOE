@@ -627,6 +627,7 @@ describe("faltas y sanciones", () => {
   it("revocaciones simultáneas desde la ficha propia y desde una ajena dejan una sola, la de la propia", async () => {
     const { actor, sanctioned, bystander, id } = await sanctionedAndBystander();
 
+    await warmPool(8);
     const attempts = await Promise.allSettled(
       Array.from({ length: 8 }, (_, index) =>
         revokeSanctionAs(
