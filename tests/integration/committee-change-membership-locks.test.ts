@@ -1,6 +1,7 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import type { Tx } from "@/db/tx";
 import { createRequestAs, decideRequestAs } from "@/modules/crm";
 import {
   addCommitteeMemberAs,
@@ -9,9 +10,15 @@ import {
   reactivateMembershipAs,
   requestDeletionAs,
   setCommitteeMembershipsAs,
+  setRepresentativeAs,
 } from "@/modules/people";
 import { anonymizePerson } from "@/modules/people/domain/membership";
-import { committeeMembership, membership, person } from "@/modules/people/schema";
+import {
+  committeeMembership,
+  committeeRepresentative,
+  membership,
+  person,
+} from "@/modules/people/schema";
 import { t } from "@/shared/copy";
 import {
   firstThenSecond,
@@ -36,6 +43,9 @@ import {
 // `person`; `anonymizePerson` toma `person` y después la membresía, y las dos se quedaban esperándose
 // (DT-328). `reactivateMembership` con correo nuevo va al revés que la anonimización, membresía y
 // después `person`: por eso el remedio es el consultivo y no tomar antes la fila de `person`.
+//
+// El cuarto es nombrar a la persona representante de su comité (DT-341): tomaba la membresía con
+// `for share` y después escribía la representación, que también referencia la fila de `person`.
 
 const db = () => getDb();
 
@@ -65,9 +75,34 @@ type Escenario = Awaited<ReturnType<typeof escenario>>;
 interface Caso {
   nombre: string;
   run: (s: Escenario) => Promise<unknown>;
+  /**
+   * Lo que, retenido por otro, detiene al comando con la fila de la membresía ya tomada y antes de
+   * escribir lo que referencia la fila de `person`.
+   */
+  seDetieneEn: (tx: Tx, s: Escenario) => Promise<unknown>;
   /** Qué responde si llega cuando la persona ya fue anonimizada, y con eso dada de baja. */
   deBaja: string;
+  /** Qué responde si llega detrás de la reactivación de quien estaba de baja. */
+  reactivada: string;
 }
+
+/** El consultivo de las inhabilidades, que los tres cambios de comités piden después de la membresía. */
+const enLasInhabilidades = (tx: Tx, s: Escenario) =>
+  tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`leadership:${s.persona}`}, 0))`);
+
+/** La pertenencia a A3, que el nombramiento lee bajo candado después de la membresía. */
+const enSuPertenencia = (tx: Tx, s: Escenario) =>
+  tx
+    .select({ id: committeeMembership.id })
+    .from(committeeMembership)
+    .where(
+      and(
+        eq(committeeMembership.personId, s.persona),
+        eq(committeeMembership.committeeId, s.a3),
+        eq(committeeMembership.termId, s.termId),
+      ),
+    )
+    .for("update");
 
 const CASOS: Caso[] = [
   {
@@ -77,8 +112,10 @@ const CASOS: Caso[] = [
         personId: s.persona,
         roles: [],
       }),
+    seDetieneEn: enLasInhabilidades,
     // A quien ya fue anonimizado el «Agregar» no lo encuentra: no llega a mirar su estado.
     deBaja: t("T-032"),
+    reactivada: "ok",
   },
   {
     nombre: "el cambio de comités desde la Persona 360",
@@ -87,12 +124,31 @@ const CASOS: Caso[] = [
         { committeeId: s.a3 },
         { committeeId: s.pixel },
       ]),
+    seDetieneEn: enLasInhabilidades,
     deBaja: t("T-3246"),
+    reactivada: "ok",
   },
   {
     nombre: "la aprobación de un cambio de comité",
     run: (s) => decideRequestAs(s.gh, s.requestId, { decision: "APPROVED" }),
+    seDetieneEn: enLasInhabilidades,
     deBaja: t("T-3246"),
+    reactivada: "ok",
+  },
+  {
+    nombre: "el nombramiento como representante de su comité",
+    run: (s) =>
+      setRepresentativeAs(s.gh, {
+        committeeId: s.a3,
+        termId: s.termId,
+        role: "TITULAR",
+        personId: s.persona,
+      }),
+    seDetieneEn: enSuPertenencia,
+    // Quien no está activa no es elegible, y a quien vuelve de una baja no le queda pertenencia: la
+    // baja las cerró y la reactivación no las reabre. En los dos casos hace cola y después se niega.
+    deBaja: t("T-2255"),
+    reactivada: t("T-2255"),
   },
 ];
 
@@ -106,8 +162,20 @@ async function comoQuedo(personId: string) {
     .select({ id: committeeMembership.id })
     .from(committeeMembership)
     .where(and(eq(committeeMembership.personId, personId), isNull(committeeMembership.leftAt)));
-  return { anonimizada: row?.anonymizedAt != null, estado: row?.status, vivas: vivas.length };
+  const representa = await db()
+    .select({ id: committeeRepresentative.id })
+    .from(committeeRepresentative)
+    .where(eq(committeeRepresentative.personId, personId));
+  return {
+    anonimizada: row?.anonymizedAt != null,
+    estado: row?.status,
+    vivas: vivas.length,
+    representa: representa.length,
+  };
 }
+
+/** Anonimizada y de baja: sin pertenencia viva y sin representar a ningún comité. */
+const ANONIMIZADA = { anonimizada: true, estado: "INACTIVE", vivas: 0, representa: 0 };
 
 /** Lanza `command` detrás de lo retenido, espera a que haga cola, suelta y dice cómo terminó. */
 async function detrasDe(held: Held, command: () => Promise<unknown>): Promise<string> {
@@ -122,20 +190,21 @@ async function detrasDe(held: Held, command: () => Promise<unknown>): Promise<st
   return result ? outcome(result) : "no corrió";
 }
 
-describe.each(CASOS)("$nombre y el ciclo de membresía de la misma persona", ({ run, deBaja }) => {
+describe.each(CASOS)("$nombre y el ciclo de membresía de la misma persona", ({
+  run,
+  seDetieneEn,
+  deBaja,
+  reactivada,
+}) => {
   beforeEach(truncateAll);
   afterAll(closeDb);
 
   it("si anonimizan a la persona cuando el comando ya tomó su membresía, la anonimización hace cola y los dos terminan, sin interbloqueo", async () => {
     const s = await escenario();
     await requestDeletionAs({ personId: s.persona, ip: null });
-    // El comando ya tomó la fila de la membresía y se detiene en el consultivo de las inhabilidades,
-    // antes de escribir la pertenencia, que es lo que referencia la fila de `person`.
-    const held = await holdTransaction((tx) =>
-      tx.execute(
-        sql`select pg_advisory_xact_lock(hashtextextended(${`leadership:${s.persona}`}, 0))`,
-      ),
-    );
+    // El comando ya tomó la fila de la membresía y se detiene antes de escribir la pertenencia o la
+    // representación, que es lo que referencia la fila de `person`.
+    const held = await holdTransaction((tx) => seDetieneEn(tx, s));
 
     const [changed, anonymized] = await firstThenSecond(
       held,
@@ -144,8 +213,9 @@ describe.each(CASOS)("$nombre y el ciclo de membresía de la misma persona", ({ 
     );
 
     expect([outcome(changed), outcome(anonymized)]).toEqual(["ok", "ok"]);
-    // La anonimización entró después: cierra también la pertenencia recién escrita.
-    expect(await comoQuedo(s.persona)).toEqual({ anonimizada: true, estado: "INACTIVE", vivas: 0 });
+    // La anonimización entró después: cierra también la pertenencia recién escrita y retira la
+    // representación recién nombrada.
+    expect(await comoQuedo(s.persona)).toEqual(ANONIMIZADA);
   });
 
   it("si la anonimización ya está escrita, el comando hace cola y después se niega, sin escribir", async () => {
@@ -154,7 +224,7 @@ describe.each(CASOS)("$nombre y el ciclo de membresía de la misma persona", ({ 
     const held = await holdCommand(s.gh, (ctx) => anonymizePerson(ctx, s.persona));
 
     expect(await detrasDe(held, () => run(s))).toBe(deBaja);
-    expect(await comoQuedo(s.persona)).toEqual({ anonimizada: true, estado: "INACTIVE", vivas: 0 });
+    expect(await comoQuedo(s.persona)).toEqual(ANONIMIZADA);
   });
 
   it("si reactivan a la persona con correo nuevo y la reactivación ya tomó su membresía, el comando hace cola y los dos terminan, sin interbloqueo", async () => {
@@ -174,7 +244,7 @@ describe.each(CASOS)("$nombre y el ciclo de membresía de la misma persona", ({ 
       () => run(s),
     );
 
-    expect([outcome(reactivated), outcome(changed)]).toEqual(["ok", "ok"]);
+    expect([outcome(reactivated), outcome(changed)]).toEqual(["ok", reactivada]);
     expect(await comoQuedo(s.persona)).toMatchObject({ anonimizada: false, estado: "ACTIVE" });
   });
 });

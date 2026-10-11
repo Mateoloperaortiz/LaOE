@@ -12,6 +12,7 @@ import {
   membership,
   person,
 } from "../schema";
+import { lockWalletMember } from "./wallet-member";
 
 // Representación de los comités ante la Asamblea Directiva (Est. art. 16.2 y 33.3; Regl. art. 14;
 // ADR-060 regla 7): un titular y un suplente por comité y término, miembros activos del comité. Quien
@@ -72,6 +73,12 @@ export async function setRepresentative(
     // primero la membresía, que la baja y el cambio de comités toman antes de cerrar nada, y después
     // la pertenencia, que todo cierre actualiza. Es el orden de ellos. Quien llega segundo espera: el
     // nombramiento ve la salida confirmada y responde T-2255, o el cierre ve el nombramiento y lo retira.
+    //
+    // Antes que la membresía, el consultivo del ciclo de membresía (ADR-123 regla 6): la representación
+    // que se escribe abajo referencia la fila de `person`, que una anonimización toma antes que la
+    // membresía. Sin él, el nombramiento y la anonimización de la misma persona se quedaban
+    // esperándose (DT-341).
+    await lockWalletMember(ctx.tx, input.personId);
     const [member] = await ctx.tx
       .select({ status: membership.status })
       .from(membership)
