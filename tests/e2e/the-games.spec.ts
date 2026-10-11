@@ -23,11 +23,11 @@ import {
 } from "@/modules/competition";
 import { HUB_TERMS_VERSION } from "@/modules/competition/domain/hub-pure";
 import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
-import { event, eventEdition } from "@/modules/events/schema";
+import { event } from "@/modules/events/schema";
 import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
-import { seedMembership, seedPerson } from "../factories";
+import { seedEdition, seedMembership, seedPerson } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM, withinTermInput } from "./calendar";
 import { test } from "./fixtures";
@@ -49,16 +49,11 @@ async function seedCompetition(slug: string) {
   const db = getDb();
   const [dias] = await db.select().from(event).where(eq(event.slug, "dias-eafit"));
   if (!dias) throw new Error("Falta el evento dias-eafit");
-  const [edition] = await db
-    .insert(eventEdition)
-    .values({
-      eventId: dias.id,
-      slug: `edicion-${slug}`,
-      name: `Edición ${slug}`,
+  const edition = {
+    id: await seedEdition(dias.id, `edicion-${slug}`, `Edición ${slug}`, {
       startsAt: new Date(`${withinTermInput()}-05:00`),
-    })
-    .returning({ id: eventEdition.id });
-  if (!edition) throw new Error("No se creó la edición");
+    }),
+  };
   const admin: CompetitionActor = { personId: await personId(E2E_EMAIL), isAdmin: true, ip: null };
   const { id } = await createCompetitionAs(admin, {
     editionId: edition.id,

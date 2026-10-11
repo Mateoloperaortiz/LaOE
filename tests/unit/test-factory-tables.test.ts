@@ -346,12 +346,10 @@ const EXCEPTIONS: Exception[] = [
 // El total de `PENDING`. Se edita solo hacia abajo, en el mismo commit que muda o justifica un
 // pendiente. La prueba no sabe cuánto valía ayer: es una convención, y lo que la sostiene es que
 // subir este número se ve en el diff.
-const PENDING_CEILING = 37;
+const PENDING_CEILING = 31;
 
 // Lo que queda por mudar o por justificar (DT-013). Ordenada por archivo y destino.
 const PENDING: Pending[] = [
-  ["tests/e2e/admin-details-responsive.spec.ts", "event", 1],
-  ["tests/e2e/admin-details-responsive.spec.ts", "eventEdition", 1],
   ["tests/e2e/admin-details-responsive.spec.ts", "occasion", 1],
   ["tests/e2e/admin-details-responsive.spec.ts", "workGroup", 1],
   ["tests/e2e/admin-navigation-roles.spec.ts", "workGroup", 1],
@@ -365,9 +363,6 @@ const PENDING: Pending[] = [
   ["tests/e2e/consola.spec.ts", "occasion", 1],
   ["tests/e2e/gamificacion.spec.ts", "occasion", 2],
   ["tests/e2e/gamificacion.spec.ts", "wordleGame", 2],
-  ["tests/e2e/macroeventos.spec.ts", "eventEdition", 1],
-  ["tests/e2e/member-experience.spec.ts", "event", 1],
-  ["tests/e2e/member-experience.spec.ts", "eventEdition", 1],
   ["tests/e2e/member-experience.spec.ts", "occasion", 1],
   ["tests/e2e/permanencia-admin.spec.ts", "workGroup", 1],
   ["tests/e2e/permanencia-avisos.spec.ts", "occasion", 1],
@@ -381,7 +376,6 @@ const PENDING: Pending[] = [
   ["tests/e2e/permanencia.spec.ts", "workGroup", 1],
   ["tests/e2e/permanencia.spec.ts", "workGroupMembership", 1],
   ["tests/e2e/solicitudes-ux.spec.ts", "occasion", 1],
-  ["tests/e2e/the-games.spec.ts", "eventEdition", 1],
 ];
 
 /** Los archivos de código de una carpeta de pruebas: los casos, su preparación y sus ayudantes. */

@@ -1,9 +1,10 @@
 import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { event, eventEdition } from "@/modules/events/schema";
+import { event } from "@/modules/events/schema";
 import { person } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
+import { seedEdition } from "../factories";
 import { sinViolaciones } from "./axe";
 import { withinTermInput } from "./calendar";
 import { test } from "./fixtures";
@@ -16,10 +17,7 @@ test("mesa, GT y evaluación del macroevento desde una ficha", async ({ page }) 
   const [macro] = await db.select().from(event).where(eq(event.slug, "enfemenino"));
   const [member] = await db.select().from(person).where(eq(person.email, E2E_MEMBER_EMAIL));
   if (!macro || !member) throw new Error("Faltan datos sintéticos");
-  await db.insert(eventEdition).values({
-    eventId: macro.id,
-    slug: "equipo-prueba",
-    name: "Edición del equipo de prueba",
+  await seedEdition(macro.id, "equipo-prueba", "Edición del equipo de prueba", {
     startsAt: new Date(`${withinTermInput()}-05:00`),
   });
   await page.goto("/admin/macroeventos");

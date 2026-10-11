@@ -5,7 +5,7 @@ import { closeDb, getDb } from "@/db/client";
 import { campaign, emailTemplate } from "@/modules/comms/schema";
 import { document as documentTable } from "@/modules/content/schema";
 import { card, organization, pipeline } from "@/modules/crm/schema";
-import { event, eventEdition } from "@/modules/events/schema";
+import { event } from "@/modules/events/schema";
 import { form } from "@/modules/forms/schema";
 import { occasion } from "@/modules/participation/schema";
 import { committee, person, segment } from "@/modules/people/schema";
@@ -17,7 +17,9 @@ import {
   seedCampaign,
   seedCard,
   seedDocument,
+  seedEdition,
   seedEmailTemplate,
+  seedEvent,
   seedForm,
   seedOrganization,
   seedPipeline,
@@ -102,21 +104,12 @@ test.beforeEach(async () => {
       ],
     }),
   };
-  const permanent = await db
-    .insert(event)
-    .values({ slug: prefix, name: prefix })
-    .returning()
-    .then(first);
-  const edition = await db
-    .insert(eventEdition)
-    .values({
-      eventId: permanent.id,
-      slug: prefix,
-      name: prefix,
+  const permanent = { id: await seedEvent(prefix, prefix) };
+  const edition = {
+    id: await seedEdition(permanent.id, prefix, prefix, {
       startsAt: new Date(Date.now() + 86_400_000),
-    })
-    .returning()
-    .then(first);
+    }),
+  };
   const activity = await db
     .insert(occasion)
     .values({
