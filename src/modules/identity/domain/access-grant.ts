@@ -3,7 +3,13 @@ import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { accessGrantIssued } from "@/domain-events/identity";
-import { canParticipate, getMemberSummary, lockWalletMember } from "@/modules/people";
+import {
+  canParticipate,
+  getMemberSummary,
+  lockWalletMember,
+  SIGN_IN_STATUSES,
+  type WalletMemberState,
+} from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
@@ -37,6 +43,11 @@ export interface IssuedAccessGrant {
 /**
  * Emite el enlace y consume los que la persona tuviera vivos: hay uno solo a la vez, así que ante
  * la duda de si el anterior llegó bien, se emite otro y el viejo deja de servir.
+ *
+ * Todo lo que decide se lee en la transacción y con su candado tomado, en este orden (ADR-122 regla
+ * 5): `access-grant:<destinatario>`, que frena una concesión; después los consultivos del ciclo de
+ * membresía (`wallet-member`) del destinatario y, si la regla de privilegio aplica, de quien emite,
+ * de menor a mayor `id`; y recién ahí el estado de los dos y los permisos.
  */
 export async function issueAccessGrant(
   ctx: CommandContext,
@@ -46,16 +57,23 @@ export async function issueAccessGrant(
   if (ctx.actor.personId === input.personId) {
     throw new DomainError(t("T-2126"));
   }
-  const member = await getMemberSummary(input.personId);
-  if (!member?.canSignIn) {
-    throw new DomainError(t("T-2127"));
-  }
   // La concesión de un permiso toma el mismo candado: la comparación de abajo no lee los permisos
   // de antes de una concesión que ya está escribiendo (ADR-119 regla 17).
   await lockAccessGrantsOf(ctx.tx, input.personId);
-  // Sin emisor es el arranque del sistema (ADR-051 regla 16): el camino de vuelta de un ADMIN.
-  if (ctx.actor.personId !== null) {
-    await assertNoPrivilegeGain(ctx, ctx.actor.personId, input.personId);
+  // Sin emisor es el arranque del sistema (ADR-051 regla 16): el camino de vuelta de un ADMIN. Y con
+  // ese candado nadie le concede nada al destinatario: si no tiene permisos, la regla de privilegio
+  // no aplica y a quien emite no se lo espera, como antes.
+  const issuerId = ctx.actor.personId;
+  const guarded = issuerId !== null && (await hasPermissions(ctx.tx, input.personId));
+  const states = await lockMembers(ctx.tx, guarded ? [input.personId, issuerId] : [input.personId]);
+  // El destinatario se lee con el candado de su ciclo de membresía: una baja que va en vuelo termina
+  // primero y esto responde T-2127; una que llega después espera, y lo que depura borra este enlace.
+  const recipient = states.get(input.personId);
+  if (!recipient || !SIGN_IN_STATUSES.includes(recipient.status)) {
+    throw new DomainError(t("T-2127"));
+  }
+  if (guarded) {
+    await assertNoPrivilegeGain(ctx, issuerId, states.get(issuerId) ?? null, input.personId);
   }
   await ctx.tx
     .update(accessGrant)
@@ -112,14 +130,16 @@ export function issueAccessGrantAs(
  * quien llama. De quien emite cuentan los que hoy operan (en licencia, ninguno, como en
  * `resolveActor`); del destinatario, todos los guardados, porque vuelven a operar con él.
  *
- * El estado de quien emite se lee también acá, con el candado de su ciclo de membresía tomado
- * (ADR-120 regla 5): la emisión que llega mientras sale a licencia o lo dan de baja espera y decide
- * con lo que quedó confirmado. Va después del candado del destinatario (`lockAccessGrantsOf`), y
- * ningún camino toma los dos en el otro orden.
+ * El estado de quien emite llega leído con el candado de su ciclo de membresía tomado (ADR-120 regla
+ * 5): la emisión que llega mientras sale a licencia o lo dan de baja espera y decide con lo que quedó
+ * confirmado. Sus permisos se leen acá, después de ese candado, que es el que toma revocarle uno
+ * (ADR-122 regla 5): una revocación que va en vuelo termina primero. Va después del candado del
+ * destinatario (`lockAccessGrantsOf`), y ningún camino toma los dos en el otro orden.
  */
 async function assertNoPrivilegeGain(
   ctx: CommandContext,
   issuerId: string,
+  issuer: WalletMemberState | null,
   recipientId: string,
 ): Promise<void> {
   const rows = await ctx.tx
@@ -134,7 +154,6 @@ async function assertNoPrivilegeGain(
   if (wanted.length === 0) {
     return;
   }
-  const issuer = await lockWalletMember(ctx.tx, issuerId);
   const held = canParticipate(issuer?.status)
     ? rows.filter((row) => row.personId === issuerId)
     : [];
@@ -147,6 +166,31 @@ async function assertNoPrivilegeGain(
   if (!covered) {
     throw new DomainError(t("T-3206"));
   }
+}
+
+async function hasPermissions(tx: Tx, personId: string): Promise<boolean> {
+  const [row] = await tx
+    .select({ id: permission.id })
+    .from(permission)
+    .where(eq(permission.personId, personId))
+    .limit(1);
+  return row !== undefined;
+}
+
+/**
+ * Toma el consultivo del ciclo de membresía de cada persona y devuelve su estado, leído con el candado
+ * ya tomado. De menor a mayor `id`: dos emisiones cruzadas (cada uno para el otro) los piden en el
+ * mismo orden y no se interbloquean.
+ */
+async function lockMembers(
+  tx: Tx,
+  personIds: readonly string[],
+): Promise<Map<string, WalletMemberState | null>> {
+  const states = new Map<string, WalletMemberState | null>();
+  for (const personId of [...personIds].sort()) {
+    states.set(personId, await lockWalletMember(tx, personId));
+  }
+  return states;
 }
 
 /**

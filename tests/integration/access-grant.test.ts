@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { grantPermission, grantPermissionAs } from "@/modules/identity";
+import { grantPermission, grantPermissionAs, revokePermission } from "@/modules/identity";
 import {
   consumeAccessGrant,
   issueAccessGrant,
@@ -12,14 +12,16 @@ import {
 import { findPasswordHash, signInWithPassword } from "@/modules/identity/domain/password";
 import { hashPassword, hashToken, verifyPassword } from "@/modules/identity/domain/pure";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
-import { accessGrant, credential, session } from "@/modules/identity/schema";
-import { changeMembershipStatus } from "@/modules/people";
+import { accessGrant, credential, permission, session } from "@/modules/identity/schema";
+import { changeMembershipStatus, endMembershipAs } from "@/modules/people";
+import { endMembership } from "@/modules/people/domain/membership";
 import { committee, membership, person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { backendPid, deferred, holdCommand, waitingOn } from "../helpers/locks";
+import { backendPid, deferred, holdCommand, waitingOn, whileHeld } from "../helpers/locks";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
 // Enlace de un solo uso que emite la junta (ADR-051).
@@ -610,6 +612,132 @@ describe("enlace de acceso", () => {
       expect(token).not.toBe("");
       expect(await resolveAccessGrant(token)).toBeNull();
       expect(await linksOf(destino)).toBe(0);
+    });
+  });
+
+  // DT-302: la emisión leía por otra conexión si el destinatario puede entrar, y los permisos de quien
+  // emite antes de esperar su candado; revocar un permiso no tomaba ninguno. Cada cruce se fuerza en
+  // los dos órdenes de llegada, con uno de los dos comandos escrito y sin confirmar (ADR-122 regla 5).
+  describe("mientras dan de baja al destinatario o le revocan un permiso a quien emite", () => {
+    const DESTINO = "destino.carrera@eafit.edu.co";
+    const BAJA = {
+      endReason: "RESIGNATION",
+      memorialConsent: false,
+      contactConsent: false,
+    } as const;
+    const system = SYSTEM_ACTOR;
+
+    async function linksOf(personId: string): Promise<number> {
+      const rows = await db().select().from(accessGrant).where(eq(accessGrant.personId, personId));
+      return rows.length;
+    }
+
+    async function statusOf(personId: string) {
+      const [row] = await db()
+        .select({ status: membership.status })
+        .from(membership)
+        .where(eq(membership.personId, personId));
+      return row?.status;
+    }
+
+    async function boardPermissionOf(personId: string): Promise<string> {
+      const [row] = await db()
+        .select({ id: permission.id })
+        .from(permission)
+        .where(eq(permission.personId, personId));
+      if (!row) throw new Error("permiso");
+      return row.id;
+    }
+
+    /** La emisión de la junta para esa persona: «emitió» o el error con que se rechazó. */
+    function issuing(issuerId: string, recipientId: string) {
+      const answer: { value: unknown } = { value: null };
+      const run = async () => {
+        answer.value = await issueAccessGrantAs(
+          { personId: issuerId, ip: null },
+          { personId: recipientId, kind: "RECOVERY" },
+        ).then(
+          () => "emitió",
+          (error: unknown) => error,
+        );
+      };
+      return { answer, run };
+    }
+
+    it("la emisión que llega mientras dan de baja al destinatario espera, y se rechaza con la baja ya puesta", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const destino = await seedMember(DESTINO);
+      const held = await holdCommand(system, (ctx) => endMembership(ctx, destino, BAJA));
+      const emision = issuing(junta, destino);
+
+      const how = await whileHeld(held, emision.run);
+
+      expect(emision.answer.value).toEqual(new DomainError(t("T-2127")));
+      expect(await linksOf(destino)).toBe(0);
+      expect(how).toBe("hizo cola");
+    });
+
+    it("la baja que llega mientras se emite espera, y lo que depura borra el enlace recién emitido", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const destino = await seedMember(DESTINO);
+      const held = await holdCommand({ personId: junta, ip: null }, (ctx) =>
+        issueAccessGrant(ctx, { personId: destino, kind: "RECOVERY" }),
+      );
+
+      const how = await whileHeld(held, async () => {
+        await endMembershipAs(system, destino, BAJA);
+        await drainOutbox();
+      });
+
+      expect(await statusOf(destino)).toBe("INACTIVE");
+      expect(await linksOf(destino)).toBe(0);
+      expect(how).toBe("hizo cola");
+    });
+
+    it("la emisión que llega mientras le revocan el permiso a quien emite espera, y se rechaza sin ese permiso", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const colega = await seedMemberWith("colega@eafit.edu.co", "BOARD");
+      const permissionId = await boardPermissionOf(junta);
+      const held = await holdCommand(system, (ctx) => revokePermission(ctx, permissionId));
+      const emision = issuing(junta, colega);
+
+      const how = await whileHeld(held, emision.run);
+
+      expect(emision.answer.value).toEqual(new DomainError(t("T-3206")));
+      expect(await linksOf(colega)).toBe(0);
+      expect(how).toBe("hizo cola");
+    });
+
+    it("la revocación que llega mientras quien pierde el permiso emite espera, y el enlace que ya había emitido sigue", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const colega = await seedMemberWith("colega@eafit.edu.co", "BOARD");
+      const permissionId = await boardPermissionOf(junta);
+      const held = await holdCommand({ personId: junta, ip: null }, (ctx) =>
+        issueAccessGrant(ctx, { personId: colega, kind: "RECOVERY" }),
+      );
+
+      const how = await whileHeld(held, () =>
+        runCommand(system, (ctx) => revokePermission(ctx, permissionId)),
+      );
+
+      expect(how).toBe("hizo cola");
+      expect(await db().select().from(permission).where(eq(permission.personId, junta))).toEqual(
+        [],
+      );
+      // Es lo que queda si la revocación llega un instante después de emitir: no borra lo emitido.
+      expect(await linksOf(colega)).toBe(1);
+    });
+
+    it("dos de la junta que se emiten enlace el uno al otro a la vez terminan los dos, sin cruzarse", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const colega = await seedMemberWith("colega@eafit.edu.co", "BOARD");
+      for (let round = 0; round < 10; round += 1) {
+        const [a, b] = await Promise.allSettled([
+          issueAccessGrantAs({ personId: junta, ip: null }, { personId: colega, kind: "RECOVERY" }),
+          issueAccessGrantAs({ personId: colega, ip: null }, { personId: junta, kind: "RECOVERY" }),
+        ]);
+        expect([a.status, b.status]).toEqual(["fulfilled", "fulfilled"]);
+      }
     });
   });
 });

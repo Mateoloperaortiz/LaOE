@@ -9,6 +9,7 @@ import {
   findMemberByEmail,
   getPeopleByIds,
   listAllCommittees,
+  lockWalletMember,
   searchPeople,
 } from "@/modules/people";
 import { t } from "@/shared/copy";
@@ -188,6 +189,18 @@ export function grantPermissionAs(actor: Actor, input: PermissionInput): Promise
 
 /** No se puede retirar el último ADMIN (05-acceso.md). */
 export async function revokePermission(ctx: CommandContext, id: string): Promise<void> {
+  const [found] = await ctx.tx
+    .select({ personId: permission.personId })
+    .from(permission)
+    .where(eq(permission.id, id));
+  if (!found) {
+    return;
+  }
+  // El consultivo del ciclo de membresía de quien pierde el permiso, que la emisión de un enlace toma
+  // para quien emite antes de leer sus permisos (ADR-122 regla 5): la emisión que llega espera y
+  // decide sin este permiso, y esta espera a una emisión que va en vuelo. La fila se vuelve a leer
+  // con el candado tomado: otra revocación o la baja pudieron borrarla mientras tanto.
+  await lockWalletMember(ctx.tx, found.personId);
   const [row] = await ctx.tx.select().from(permission).where(eq(permission.id, id));
   if (!row) {
     return;
