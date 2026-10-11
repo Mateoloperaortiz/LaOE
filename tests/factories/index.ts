@@ -32,6 +32,7 @@ import {
   membershipTerm,
   person,
   segment,
+  tag,
 } from "@/modules/people/schema";
 import {
   permanenceRule,
@@ -333,7 +334,11 @@ export async function seedConsent(
   await db()
     .insert(consent)
     .values({ personId, purpose, source, policyVersion: "prueba-v1" })
-    .onConflictDoNothing();
+    // Solo calla el choque con la autorización viva (`consent_live_unique`), no otro.
+    .onConflictDoNothing({
+      target: [consent.personId, consent.purpose],
+      where: isNull(consent.revokedAt),
+    });
 }
 
 /** Un segmento sin creador; sin filtro alcanza a todas las personas. */
@@ -346,14 +351,27 @@ export async function seedSegment(
   return row.id;
 }
 
+/** Una etiqueta sin color. */
+export async function seedTag(name: string): Promise<string> {
+  const [row] = await db().insert(tag).values({ name }).returning({ id: tag.id });
+  if (!row) throw new Error("seed tag");
+  return row.id;
+}
+
 /**
  * Correos que el proveedor ya había enviado antes de la prueba, que es lo que cuenta contra el cupo:
- * ningún comando deja un envío hecho sin pasar por el proveedor.
+ * ningún comando deja un envío hecho sin pasar por el proveedor. Llevan un asunto numerado, salvo
+ * que se diga uno.
  */
 export async function seedSentEmails(
   personId: string,
   amount: number,
-  sent: { provider: string; sentAt: Date; kind?: (typeof message.$inferInsert)["kind"] },
+  sent: {
+    provider: string;
+    sentAt: Date;
+    kind?: (typeof message.$inferInsert)["kind"];
+    subject?: string;
+  },
 ): Promise<void> {
   await db()
     .insert(message)
@@ -362,7 +380,7 @@ export async function seedSentEmails(
         personId,
         channel: "EMAIL" as const,
         kind: sent.kind ?? "TRANSACTIONAL",
-        subject: `Previo ${index}`,
+        subject: sent.subject ?? `Previo ${index}`,
         status: "SENT" as const,
         provider: sent.provider,
         sentAt: sent.sentAt,
@@ -474,19 +492,23 @@ export async function seedAppointment(
   return row.id;
 }
 
-/** Condición de prueba en un término (ADR-027). */
+/**
+ * Condición de prueba en un término (ADR-027). `flags` dice además si la persona se reporta como
+ * activa o si retomó la condición de nuevo; sin ellos quedan como los deja la base, en falso.
+ */
 export async function seedMembershipTerm(
   personId: string,
   termId: string,
   probation = true,
+  flags: Partial<{ reportAsVeteran: boolean; resumedNew: boolean }> = {},
 ): Promise<void> {
   await db()
     .insert(membershipTerm)
-    .values({ personId, termId, probation, reason: "prueba de integración" })
+    .values({ personId, termId, probation, reason: "prueba de integración", ...flags })
     .onConflictDoUpdate({
       target: [membershipTerm.personId, membershipTerm.termId],
       targetWhere: isNull(membershipTerm.committeeId),
-      set: { probation },
+      set: { probation, ...flags },
     });
 }
 

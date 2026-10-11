@@ -12,7 +12,6 @@ import {
   setMemberRolesAs,
 } from "@/modules/people";
 import { leadershipContext } from "@/modules/people/domain/inhabilities";
-import { membershipTerm } from "@/modules/people/schema";
 import { loadPeopleFacts, loadTermFacts } from "@/modules/permanence";
 import { auditLog } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
@@ -23,6 +22,7 @@ import {
   seedCommitteeMembership,
   seedMember,
   seedMembership,
+  seedMembershipTerm,
   seedPerson,
   seedTerm,
 } from "../factories";
@@ -153,9 +153,7 @@ describe("inhabilidades y topes de cargos", () => {
       ]),
     ).rejects.toThrow(motivos[2] ?? "x");
     // La mesa de un comité nuevo se reporta como activa: deja de ser nuevo para la guarda.
-    await getDb()
-      .insert(membershipTerm)
-      .values({ personId: nuevo, termId, probation: false, reportAsVeteran: true });
+    await seedMembershipTerm(nuevo, termId, false, { reportAsVeteran: true });
     await setCommitteeMembershipsAs(admin, nuevo, termId, [
       { committeeId: a3, roles: [{ roleCode: "LOGISTICA", coDirector: false }] },
     ]);
@@ -278,9 +276,7 @@ describe("quién es nuevo en el término, para la guarda de cargos y para la per
         : await veteran("persona@eafit.edu.co");
     await seedCommitteeMembership(personId, a3, termId);
     if (scene.generalRow) {
-      await getDb()
-        .insert(membershipTerm)
-        .values({ personId, termId, probation: false, ...scene.generalRow });
+      await seedMembershipTerm(personId, termId, false, scene.generalRow);
     }
 
     // La permanencia: con qué condición llega la persona al cálculo.

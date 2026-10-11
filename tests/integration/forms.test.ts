@@ -17,9 +17,9 @@ import {
 } from "@/modules/forms";
 import { editionRegistration, formSubmission } from "@/modules/forms/schema";
 import { endMembershipAs, hasLiveConsent } from "@/modules/people";
-import { consent, person, personTag, tag } from "@/modules/people/schema";
+import { consent, person, personTag } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
-import { seedForm, seedMember, seedSubmission, seedTerm } from "../factories";
+import { seedForm, seedMember, seedSubmission, seedTag, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
@@ -46,10 +46,9 @@ describe("envío de un formulario público", () => {
   afterAll(() => closeDb());
 
   it("crea la persona como prospecto, registra el consentimiento y etiqueta en una transacción", async () => {
-    const [etiqueta] = await getDb().insert(tag).values({ name: "Convocatoria" }).returning();
-    if (!etiqueta) throw new Error("tag");
+    const etiqueta = await seedTag("Convocatoria");
     const { view } = await publicForm("admision", {
-      actions: { createPerson: true, tagIds: [etiqueta.id] },
+      actions: { createPerson: true, tagIds: [etiqueta] },
     });
     const result = await submitFormAs(null, view, {
       identity,

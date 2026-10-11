@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test";
 import { and, eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
+import { adjustPointsAs } from "@/modules/participation";
 import { pointEntry } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
@@ -9,7 +10,7 @@ import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
-import { E2E_MEMBER_EMAIL } from "./global-setup";
+import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
 
 // GH Points en Mi OE como miembro (ADR-035 reglas 9 y 10): saldo, nivel, movimientos y rankings.
 test.use({ storageState: "tests/e2e/.auth/member.json" });
@@ -21,10 +22,17 @@ test.beforeEach(async () => {
     .select({ id: person.id })
     .from(person)
     .where(eq(person.email, E2E_MEMBER_EMAIL));
-  if (!current || !member) throw new Error("sin término o miembro");
-  // El worker puede reintentar la prueba; el ajuste sintético sigue siendo uno solo.
-  await db
-    .delete(pointEntry)
+  const [admin] = await db
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.email, E2E_EMAIL));
+  if (!current || !member || !admin) throw new Error("sin término, miembro o admin");
+  // El worker puede reintentar la prueba; el ajuste sintético sigue siendo uno solo. Lo escribe el
+  // libro, que es el único escritor de los puntos (ADR-119 regla 8), y por eso no se borra y se
+  // vuelve a escribir: si ya está, se deja.
+  const [adjusted] = await db
+    .select({ id: pointEntry.id })
+    .from(pointEntry)
     .where(
       and(
         eq(pointEntry.personId, member.id),
@@ -32,13 +40,12 @@ test.beforeEach(async () => {
         eq(pointEntry.reason, "e2e-Ajuste de prueba"),
       ),
     );
-  await db.insert(pointEntry).values({
-    personId: member.id,
-    termId: current.id,
-    kind: "ADJUSTMENT",
-    points: 15,
-    reason: "e2e-Ajuste de prueba",
-  });
+  if (!adjusted) {
+    await adjustPointsAs(
+      { personId: admin.id, ip: null },
+      { personId: member.id, termId: current.id, points: 15, reason: "e2e-Ajuste de prueba" },
+    );
+  }
   await closeDb();
 });
 

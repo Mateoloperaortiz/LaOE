@@ -1,7 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
-import { getDb } from "@/db/client";
-import { message } from "@/modules/comms/schema";
 import { t } from "@/shared/copy";
+import { seedSentEmails } from "../factories";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 
@@ -108,13 +107,10 @@ for (const width of [375, 768, 1440]) {
 
       const exported = await (await page.request.get("/api/mis-datos")).json();
       // La región accesible se renderiza cuando hay mensajes: este caso prepara el suyo.
-      await getDb().insert(message).values({
-        personId: exported.person.id,
-        channel: "EMAIL",
-        subject: "Mensaje sintético E2E para comprobar el foco y el reflujo",
-        status: "SENT",
+      await seedSentEmails(exported.person.id, 1, {
         provider: "console",
         sentAt: new Date(),
+        subject: "Mensaje sintético E2E para comprobar el foco y el reflujo",
       });
       const admin = await browser.newContext({
         storageState: "tests/e2e/.auth/admin.json",

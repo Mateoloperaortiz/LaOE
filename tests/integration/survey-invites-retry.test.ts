@@ -15,7 +15,7 @@ import {
   createSurveyInvites,
   getSurveyInviteForActor,
 } from "@/modules/participation";
-import { checkIn, occasion, occasionSurveyInvite } from "@/modules/participation/schema";
+import { occasion, occasionSurveyInvite } from "@/modules/participation/schema";
 import { outbox } from "@/modules/system/schema";
 import {
   seedCheckIn,
@@ -165,16 +165,11 @@ describe("las invitaciones a la encuesta toleran el reintento", () => {
         lastName: `Sintética ${index}`,
       })),
     );
-    await db()
-      .insert(checkIn)
-      .values(
-        attendees.map((personId) => ({
-          occasionId,
-          personId,
-          status: "APPROVED" as const,
-          source: "ADMIN" as const,
-        })),
-      );
+    // Todas con la misma hora, como las dejaba una sola sentencia.
+    const at = new Date();
+    await Promise.all(
+      attendees.map((personId) => seedCheckIn(occasionId, personId, "APPROVED", { at })),
+    );
     await db().update(occasion).set({ status: "CLOSED" }).where(eq(occasion.id, occasionId));
 
     await rejectSurveyNotices("partial-batch");

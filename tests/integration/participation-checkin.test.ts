@@ -15,7 +15,7 @@ import { getOccasion } from "@/modules/participation/domain/occasions";
 import { rotatingCodeAt } from "@/modules/participation/domain/rotating-code-pure";
 import { listOccasionScores } from "@/modules/participation/domain/scores";
 import { checkIn, committeeParticipation, pointEntry } from "@/modules/participation/schema";
-import { committeeMembership, membership } from "@/modules/people/schema";
+import { membership } from "@/modules/people/schema";
 import { setConfig } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
@@ -55,17 +55,15 @@ async function seedMembersBulk(
     })),
   );
   await seedMemberships(ids, termId);
-  await db()
-    .insert(committeeMembership)
-    .values(
-      ids.map((personId, index) => ({
+  await Promise.all(
+    ids.map((personId, index) =>
+      seedCommitteeMembership(
         personId,
-        committeeId: committeeIds[index % committeeIds.length] ?? committeeIds[0] ?? "",
+        committeeIds[index % committeeIds.length] ?? committeeIds[0] ?? "",
         termId,
-        roleCode: "MIEMBRO",
-        joinedAt: new Date(),
-      })),
-    );
+      ),
+    ),
+  );
   return ids;
 }
 
