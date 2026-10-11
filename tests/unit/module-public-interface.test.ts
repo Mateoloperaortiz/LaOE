@@ -22,6 +22,8 @@ import {
 //
 // - `nadie`: no lo importa nadie de afuera, ni las pruebas. Es lo que poda el ciclo 13, módulo por
 //   módulo (tickets 2 a 6 de la spec): sale del `index.ts` y de acá en el mismo commit.
+//   El módulo que se queda sin ninguno sale también, en ese commit, de `entry` en `knip.ts`: desde
+//   ahí knip analiza sus exports (ADR-125 regla 3).
 // - `solo-pruebas`: lo importa algún archivo de `tests/` y nadie más de afuera. Se queda en el
 //   `index.ts` hasta la decisión abierta 73, que dice por dónde entran las pruebas a esos nombres.
 // - `competition`: es de `competition` y no lo importa nadie de afuera. El módulo está quieto hasta
@@ -807,6 +809,71 @@ function mismatches(modules: ModuleInterface[], exceptions: Exceptions): string[
   return problems;
 }
 
+/**
+ * Las entradas que `knip.ts` escribe en `entry`, leídas del texto. Falla si `entry` no es una lista
+ * de textos escritos ahí: lo que se arme de otro modo no se puede comparar con la lista.
+ */
+function knipEntries(text: string): string[] {
+  const body = /\bentry:\s*\[([^\]]*)\]/.exec(text)?.[1];
+  if (body === undefined) {
+    throw new Error("No se puede leer `entry` en knip.ts: no es una lista escrita ahí");
+  }
+  const written = body.replace(/^\s*\/\/.*$/gm, "");
+  const rest = written.replace(/"[^"\n]*"/g, "").replace(/[\s,]/g, "");
+  if (rest !== "") {
+    throw new Error(
+      `No se puede leer \`entry\` en knip.ts: tiene algo que no es un texto (${rest})`,
+    );
+  }
+  return [...written.matchAll(/"([^"\n]*)"/g)].map((match) => match[1] ?? "");
+}
+
+const MODULE_ENTRY = /^src\/modules\/([a-z0-9-]+)\/index\.ts$/;
+/** Una entrada de knip que alcanza `src`: lo nombra o empieza por un comodín. */
+const REACHES_SRC = /^(\.\/)?(src\b|[*{?[!])/;
+
+/**
+ * Lo que separa a `entry` de `knip.ts` de la lista, una frase por caso; vacío cuando coinciden.
+ * knip no analiza los exports de una entrada, así que el `index.ts` de un módulo es entrada solo
+ * mientras le quede algo en `nadie` o en `competition` (ADR-125 regla 3).
+ */
+function entryMismatches(entry: string[], modules: string[], exceptions: Exceptions): string[] {
+  const problems: string[] = [];
+  const named: string[] = [];
+  for (const pattern of entry) {
+    const module = MODULE_ENTRY.exec(pattern)?.[1];
+    if (module && named.includes(module)) {
+      problems.push(`${module}: su \`index.ts\` está dos veces en \`entry\` de knip`);
+    } else if (module) {
+      named.push(module);
+    } else if (REACHES_SRC.test(pattern)) {
+      problems.push(
+        `\`${pattern}\`: una entrada de knip que alcanza \`src\` nombra el \`index.ts\` de un módulo, no un patrón ni otro archivo`,
+      );
+    }
+  }
+  for (const module of modules) {
+    const pending = (["nadie", "competition"] as const).some(
+      (kind) => namesOf(exceptions[module]?.[kind]).length > 0,
+    );
+    if (pending && !named.includes(module)) {
+      problems.push(
+        `${module}: le queda algo por podar y su \`index.ts\` no está en \`entry\` de knip`,
+      );
+    } else if (!pending && named.includes(module)) {
+      problems.push(
+        `${module}: no le queda nada por podar y su \`index.ts\` sigue en \`entry\` de knip, que así no analiza sus exports`,
+      );
+    }
+  }
+  for (const module of named) {
+    if (!modules.includes(module)) {
+      problems.push(`${module}: está en \`entry\` de knip y no es un módulo de \`src/modules\``);
+    }
+  }
+  return problems;
+}
+
 /** Los `vi.mock` de un `index.ts` que no se dejan leer o sobrescriben un nombre que no se exporta. */
 function staleMocks(found: ModuleInterfaces): string[] {
   const exported = new Map(found.modules.map((each) => [each.module, new Set(each.exported)]));
@@ -897,6 +964,16 @@ describe("la interfaz pública de los módulos, sobre el código de hoy", () => 
       .sort();
     expect(today.modules.map((found) => found.module)).toEqual(folders);
     expect(today.modules.filter((found) => found.exported.length === 0)).toEqual([]);
+  });
+
+  it("knip toma de entrada el index.ts de un módulo solo mientras le queda algo por podar, y los nombra uno por uno: el que vacía su clase «nadie» sale de la lista", () => {
+    expect(
+      entryMismatches(
+        knipEntries(readFileSync("knip.ts", "utf8")),
+        today.modules.map((found) => found.module),
+        EXCEPTIONS,
+      ),
+    ).toEqual([]);
   });
 
   it("cada nombre de la lista está una sola vez en su módulo y en orden", () => {
@@ -1028,6 +1105,75 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
       "alpha: `gone` sobra en «nadie»: el `index.ts` ya no lo exporta",
       "gamma: está en la lista y no es un módulo de `src/modules`",
     ]);
+  });
+
+  it("la entrada de knip sigue a la lista: un patrón, un módulo podado que sigue de entrada, uno con nombres por podar que falta, uno repetido y uno que no existe la ponen en rojo", () => {
+    const modules = ["alpha", "beta", "competition", "gamma"];
+    const exceptions: Exceptions = {
+      alpha: { nadie: "nobody", "solo-pruebas": "onlyTests" },
+      beta: { "solo-pruebas": "tested" },
+      competition: { competition: "quiet" },
+    };
+    const index = (module: string) => `src/modules/${module}/index.ts`;
+    const elsewhere = ["scripts/bench.ts", "tests/e2e/auth.setup.ts", ".railway/**/*.ts"];
+    expect(
+      entryMismatches([...elsewhere, index("alpha"), index("competition")], modules, exceptions),
+    ).toEqual([]);
+    expect(entryMismatches([], ["beta", "gamma"], exceptions)).toEqual([]);
+
+    expect(entryMismatches(["src/modules/*/index.ts"], modules, exceptions)).toEqual([
+      "`src/modules/*/index.ts`: una entrada de knip que alcanza `src` nombra el `index.ts` de un módulo, no un patrón ni otro archivo",
+      "alpha: le queda algo por podar y su `index.ts` no está en `entry` de knip",
+      "competition: le queda algo por podar y su `index.ts` no está en `entry` de knip",
+    ]);
+    for (const pattern of ["**/index.ts", "{src,scripts}/**/*.ts", "src/modules/alpha/admin.ts"]) {
+      expect(
+        entryMismatches([pattern, index("alpha"), index("competition")], modules, exceptions),
+      ).toEqual([
+        `\`${pattern}\`: una entrada de knip que alcanza \`src\` nombra el \`index.ts\` de un módulo, no un patrón ni otro archivo`,
+      ]);
+    }
+    expect(
+      entryMismatches(
+        [index("alpha"), index("beta"), index("gamma"), index("alpha"), index("delta")],
+        modules,
+        exceptions,
+      ),
+    ).toEqual([
+      "alpha: su `index.ts` está dos veces en `entry` de knip",
+      "beta: no le queda nada por podar y su `index.ts` sigue en `entry` de knip, que así no analiza sus exports",
+      "competition: le queda algo por podar y su `index.ts` no está en `entry` de knip",
+      "gamma: no le queda nada por podar y su `index.ts` sigue en `entry` de knip, que así no analiza sus exports",
+      "delta: está en `entry` de knip y no es un módulo de `src/modules`",
+    ]);
+  });
+
+  it("lee las entradas de knip del texto de knip.ts, sin los comentarios, y falla si entry no es una lista de textos escritos ahí", () => {
+    const config = (entry: string) =>
+      lines("const config: KnipConfig = {", entry, '  project: ["src/**/*.ts"],', "};");
+    expect(
+      knipEntries(
+        config(
+          lines(
+            "  entry: [",
+            '    // Un comentario que nombra "src/modules/*/index.ts" no es una entrada.',
+            '    "scripts/bench.ts",',
+            '    "src/modules/alpha/index.ts",',
+            '    ".railway/**/*.ts",',
+            "  ],",
+          ),
+        ),
+      ),
+    ).toEqual(["scripts/bench.ts", "src/modules/alpha/index.ts", ".railway/**/*.ts"]);
+    expect(knipEntries(config("  entry: [],"))).toEqual([]);
+    expect(() =>
+      knipEntries(config('  entry: [...MODULES.map(index), "scripts/bench.ts"],')),
+    ).toThrow("tiene algo que no es un texto");
+    expect(() =>
+      knipEntries(config('  entry: ["scripts/bench.ts", `src/modules/alpha/index.ts`],')),
+    ).toThrow("tiene algo que no es un texto");
+    expect(() => knipEntries(config("  entry: ENTRIES,"))).toThrow("no es una lista escrita ahí");
+    expect(() => knipEntries(config(""))).toThrow("no es una lista escrita ahí");
   });
 
   it("lo de competition que nadie importa va en su propia clase, y lo que solo importa una prueba, en solo-pruebas", () => {

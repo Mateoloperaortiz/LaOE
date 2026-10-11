@@ -7,7 +7,24 @@ const config: KnipConfig = {
   entry: [
     // Medición del generador que cita ADR-078; se corre a mano.
     "scripts/sudoku-bench.ts",
-    "src/modules/*/index.ts",
+    // El `index.ts` de un módulo es entrada solo mientras le quede algo por podar o sea el de
+    // `competition`, que está quieto (ADR-125 regla 3): knip no analiza los exports de una entrada.
+    // Van uno por uno, sin patrón: el módulo que vacía su clase `nadie` en
+    // `tests/unit/module-public-interface.test.ts` sale de acá en el mismo commit, y esa prueba lo exige.
+    "src/modules/comms/index.ts",
+    "src/modules/competition/index.ts",
+    "src/modules/content/index.ts",
+    "src/modules/crm/index.ts",
+    "src/modules/events/index.ts",
+    "src/modules/finance/index.ts",
+    "src/modules/forms/index.ts",
+    "src/modules/identity/index.ts",
+    "src/modules/participation/index.ts",
+    "src/modules/people/index.ts",
+    "src/modules/permanence/index.ts",
+    "src/modules/system/index.ts",
+    "src/modules/terms/index.ts",
+    "src/modules/wallet/index.ts",
     "tests/e2e/auth.setup.ts",
     ".railway/**/*.ts",
   ],
