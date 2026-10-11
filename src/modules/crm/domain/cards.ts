@@ -223,17 +223,37 @@ async function requirePipeline(ctx: CommandContext, pipelineId: string) {
   return own;
 }
 
-async function firstStage(ctx: CommandContext, pipelineId: string) {
+const isOpenStage = (stage: { isWon: boolean; isLost: boolean }) => !stage.isWon && !stage.isLost;
+
+/**
+ * La primera etapa abierta del pipeline, o la primera si todas cierran, ya tomada con candado
+ * compartido, el mismo de `moveCard` sobre su destino (ADR-118 regla 16; ADR-122 regla 3): guardar su
+ * marca espera a que esta tarjeta confirme, y esta espera a una marca sin confirmar. Se toma solo la
+ * elegida, y compartida: dos tarjetas nuevas no se esperan entre sí. Si mientras esperaba la etapa
+ * cambió de marca o se borró, se elige de nuevo sobre lo ya confirmado.
+ */
+async function firstStage(
+  ctx: CommandContext,
+  pipelineId: string,
+): Promise<typeof pipelineStage.$inferSelect> {
   const stages = await ctx.tx
     .select()
     .from(pipelineStage)
     .where(eq(pipelineStage.pipelineId, pipelineId))
     .orderBy(asc(pipelineStage.sortOrder), asc(pipelineStage.createdAt));
-  const open = stages.find((stage) => !stage.isWon && !stage.isLost) ?? stages[0];
-  if (!open) {
+  const chosen = stages.find(isOpenStage) ?? stages[0];
+  if (!chosen) {
     throw new DomainError(t("T-032"));
   }
-  return open;
+  const [taken] = await ctx.tx
+    .select()
+    .from(pipelineStage)
+    .where(eq(pipelineStage.id, chosen.id))
+    .for("share");
+  if (!taken || isOpenStage(taken) !== isOpenStage(chosen)) {
+    return firstStage(ctx, pipelineId);
+  }
+  return taken;
 }
 
 interface CreateCardOptions {

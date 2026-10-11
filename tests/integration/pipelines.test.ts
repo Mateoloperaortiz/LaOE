@@ -16,7 +16,7 @@ import {
   saveStageAs,
 } from "@/modules/crm";
 import { pipelinesResource } from "@/modules/crm/admin";
-import { moveCard } from "@/modules/crm/domain/cards";
+import { createCard, moveCard } from "@/modules/crm/domain/cards";
 import { saveStage } from "@/modules/crm/domain/pipelines";
 import { card, interaction, task } from "@/modules/crm/schema";
 import { getPublicForm, submitFormAs } from "@/modules/forms";
@@ -26,7 +26,7 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import type { MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { copyPattern, itemPattern } from "../helpers/copy";
-import { holdCommand, waitingOn } from "../helpers/locks";
+import { holdCommand, waitingOn, whileHeld } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
@@ -255,6 +255,81 @@ describe("pipelines y tarjetas", () => {
     }
     expect(await closedAtOf(other)).toBeNull();
     expect(await closedAtOf(arriving)).toBeNull();
+  });
+
+  // DT-251 (c): crear una tarjeta elegía su etapa sin tomarla. Las tres pruebas dejan a uno de los dos
+  // escrito y sin confirmar y miran dónde y cómo queda la tarjeta: nunca abierta en una etapa ganada.
+  const cardsIn = (pipelineId: string) =>
+    getDb()
+      .select({ stageId: card.stageId, closedAt: card.closedAt })
+      .from(card)
+      .where(eq(card.pipelineId, pipelineId));
+
+  it("una tarjeta nueva espera a la marca sin confirmar de su primera etapa y entra a la siguiente abierta", async () => {
+    const pipe = await seedPipeline("Convenios", "CUSTOM", [
+      { name: "Contacto" },
+      { name: "Propuesta" },
+    ]);
+    const personId = await seedPerson("nueva.tarjeta@example.com");
+    const marking = await holdCommand(admin, (ctx) =>
+      saveStage(ctx, pipe.id, stageOf(pipe, 0), { name: "Contacto", isWon: true, isLost: false }),
+    );
+
+    const how = await whileHeld(marking, () => createCardAs(admin, pipe.id, { personId }));
+
+    expect(await cardsIn(pipe.id)).toEqual([{ stageId: stageOf(pipe, 1), closedAt: null }]);
+    expect(how).toBe("hizo cola");
+  });
+
+  it("la marca de una etapa espera a la tarjeta que se está creando en ella y la cierra también", async () => {
+    const pipe = await seedPipeline("Aliados", "CUSTOM", [
+      { name: "Contacto" },
+      { name: "Propuesta" },
+    ]);
+    const personId = await seedPerson("creando.tarjeta@example.com");
+    const creating = await holdCommand(admin, (ctx) => createCard(ctx, pipe.id, { personId }));
+
+    const how = await whileHeld(creating, () =>
+      saveStageAs(admin, pipe.id, stageOf(pipe, 0), {
+        name: "Contacto",
+        isWon: true,
+        isLost: false,
+      }),
+    );
+
+    expect(await cardsIn(pipe.id)).toEqual([
+      { stageId: stageOf(pipe, 0), closedAt: expect.any(Date) },
+    ]);
+    expect(how).toBe("hizo cola");
+  });
+
+  it("la tarjeta de una respuesta también espera a la marca sin confirmar de su primera etapa", async () => {
+    const { id, stages } = await pipelineWithTemplate("ADMISSION", "Admisión en carrera");
+    await seedForm("admision-carrera", {
+      fields: [{ key: "motivo", label: "Motivo", type: "TEXTAREA", required: true }],
+      actions: { createPerson: true, pipelineId: id },
+    });
+    const view = await getPublicForm("admision-carrera");
+    if (!view) throw new Error("form");
+    const result = await submitFormAs(null, view, {
+      identity: { firstName: "Ana", lastName: "Ruiz", email: "ana.ruiz@eafit.edu.co" },
+      answers: { motivo: "Quiero aportar" },
+      consent: true,
+      ip: "10.0.0.9",
+    });
+    expect(result.ok).toBe(true);
+    const marking = await holdCommand(admin, (ctx) =>
+      saveStage(ctx, id, stageOf({ stages }, 0), {
+        name: stages[0]?.name ?? "",
+        isWon: false,
+        isLost: true,
+      }),
+    );
+
+    const how = await whileHeld(marking, () => drainOutbox());
+
+    expect(await cardsIn(id)).toEqual([{ stageId: stageOf({ stages }, 1), closedAt: null }]);
+    expect(how).toBe("hizo cola");
   });
 
   it("una tarjeta tiene un sujeto, entra a la primera etapa abierta y mover cierra y reabre", async () => {
