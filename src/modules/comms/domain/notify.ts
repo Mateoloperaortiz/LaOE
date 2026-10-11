@@ -101,16 +101,9 @@ export interface DeliveryStats {
   deviceFailures: Record<string, number>;
 }
 
-/** El motivo que queda en `message.error`: el código del servicio adelante, si respondió. */
-function failureText(outcome: Extract<PushOutcome, { ok: false }>): string {
-  return outcome.statusCode === null
-    ? outcome.error
-    : `HTTP ${outcome.statusCode}: ${outcome.error}`;
-}
-
-export async function deliverNotification(raw: unknown, now = new Date()): Promise<DeliveryStats> {
-  const request: NotificationRequested = notificationRequestedSchema.parse(raw);
-  const stats: DeliveryStats = {
+/** Las cuentas de una entrega en cero: de donde parte toda entrega, y lo que da un aviso sin nadie. */
+export function emptyDeliveryStats(): DeliveryStats {
+  return {
     sent: 0,
     failed: 0,
     alreadySent: 0,
@@ -120,6 +113,18 @@ export async function deliverNotification(raw: unknown, now = new Date()): Promi
     expired: 0,
     deviceFailures: {},
   };
+}
+
+/** El motivo que queda en `message.error`: el código del servicio adelante, si respondió. */
+function failureText(outcome: Extract<PushOutcome, { ok: false }>): string {
+  return outcome.statusCode === null
+    ? outcome.error
+    : `HTTP ${outcome.statusCode}: ${outcome.error}`;
+}
+
+export async function deliverNotification(raw: unknown, now = new Date()): Promise<DeliveryStats> {
+  const request: NotificationRequested = notificationRequestedSchema.parse(raw);
+  const stats = emptyDeliveryStats();
   // Un aviso con vencimiento no sale desde ese instante (ADR-122 regla 9): la cola pudo atrasarse o el
   // evento reintentarse, y avisar de lo que ya empezó confunde. No lee a nadie ni deja `message`: no
   // hubo envío que registrar, y el rastro lo deja quien llama. Se mira una vez, acá: un pedido que

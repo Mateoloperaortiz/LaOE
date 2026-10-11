@@ -19,7 +19,7 @@ import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { committeeAudience, membersAudience } from "./audiences";
-import { type DeliveryStats, deliverNotification } from "./notify";
+import { type DeliveryStats, deliverNotification, emptyDeliveryStats } from "./notify";
 import { type NotificationKind, splitPush } from "./pure";
 import { type SendReceipt, sendTransactionalEmail } from "./send";
 import { unlessAnonymized } from "./unless-anonymized";
@@ -36,16 +36,7 @@ async function notify(
   tag?: string,
 ): Promise<DeliveryStats> {
   if (personIds.length === 0) {
-    return {
-      sent: 0,
-      failed: 0,
-      alreadySent: 0,
-      skippedByPreference: 0,
-      withoutDevice: 0,
-      removedDevices: 0,
-      expired: 0,
-      deviceFailures: {},
-    };
+    return emptyDeliveryStats();
   }
   const { title, body } = splitPush(text);
   return deliverNotification({
