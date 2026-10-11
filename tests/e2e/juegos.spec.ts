@@ -262,6 +262,40 @@ test("seguir un tablero retomado que ya terminó cierra la partida en vez de dej
   expect(await partidas()).toHaveLength(1);
 });
 
+test("un cierre que la casa responde «ya terminó» suelta el tablero y deja empezar otra partida", async ({
+  page,
+}) => {
+  await page.goto("/app/juegos/2048");
+  const game = page.locator("#game2048");
+  await empezarPartida(page);
+  // La persona recargó con un tablero al que no le queda jugada, guardado en el navegador...
+  const open = await ultimaPartida();
+  await page.evaluate(
+    ([runId, moves]) => window.localStorage.setItem("oe-2048", JSON.stringify({ runId, moves })),
+    [open.id, movesUntilFinished(open.seed)],
+  );
+  await page.reload();
+  await expect(game.getByRole("button", { name: t("T-2647") })).toBeVisible();
+  // ...y antes de decidir, cierra esa misma partida desde otra pestaña.
+  const other = await page.context().newPage();
+  await other.goto("/app/juegos/2048");
+  const otherGame = other.locator("#game2048");
+  await otherGame.getByRole("button", { name: t("T-2648") }).click();
+  await expect(otherGame.getByRole("button", { name: t("T-2633") })).toBeVisible();
+  await other.close();
+  expect((await ultimaPartida()).status).toBe("FINISHED");
+
+  // «Seguir» en la primera pestaña manda el cierre de su tablero terminado y la casa responde que
+  // esa partida ya terminó. Qué responde la casa no cambia (decisión abierta 50).
+  await game.getByRole("button", { name: t("T-2647") }).click();
+  await expect(game.getByText(t("T-2656"))).toBeVisible();
+  // La salida: el tablero suelta la partida, deja de estar en juego y se puede empezar otra.
+  await expect(game.getByRole("button", { name: t("T-2633") })).toBeVisible();
+  await expect(game.getByRole("button", { name: tList("T-2639")[0] })).toHaveCount(0);
+  await empezarPartida(page);
+  expect(await partidas()).toHaveLength(2);
+});
+
 test("en móvil se juega con los botones de dirección y sin desbordar", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/app/juegos/2048");

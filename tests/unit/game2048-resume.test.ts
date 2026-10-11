@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { game2048Finished } from "@/modules/participation/components/game2048-resume";
+import {
+  game2048Finished,
+  game2048ReleasedBy,
+} from "@/modules/participation/components/game2048-resume";
 import {
   applyGame2048Move,
   GAME2048_MAX_MOVES,
   newGame2048,
 } from "@/modules/participation/game2048-engine";
-import type { Game2048Move, Game2048State } from "@/modules/participation/game2048-types";
+import type {
+  Game2048Denial,
+  Game2048Move,
+  Game2048State,
+} from "@/modules/participation/game2048-types";
 
 // A qué tablero ya no le queda jugada (ADR-122 regla 15): el que la pantalla cierra en vez de dejarlo
 // «en juego».
@@ -46,5 +53,42 @@ describe("tablero del 2048 sin jugada", () => {
     expect(next({ ...capped, moves: GAME2048_MAX_MOVES - 1 })).not.toBeNull();
     expect(next(capped)).toBeNull();
     expect(game2048Finished(capped)).toBe(true);
+  });
+});
+
+// Qué hace el tablero con su partida cuando la casa niega empezar o cerrar (ADR-123 regla 10). Una
+// partida que se queda en el tablero después de una negativa no tiene salida: ninguna jugada la
+// cierra y no hay botón que la suelte.
+
+describe("partida del 2048 que la casa niega", () => {
+  // Escrita como `Record` para que una negativa nueva no compile sin pasar por acá.
+  const EVERY: Record<Game2048Denial, true> = {
+    INVALID_INPUT: true,
+    INVALID_MOVES: true,
+    NOT_FOUND: true,
+    NOT_ELIGIBLE: true,
+    NO_TERM: true,
+    TERM_CLOSED: true,
+    EXPIRED: true,
+    FINISHED: true,
+    REQUEST_CONFLICT: true,
+  };
+  const denials = Object.keys(EVERY) as Game2048Denial[];
+  const kept = () => denials.filter((reason) => !game2048ReleasedBy(reason));
+
+  it("el día vencido, el semestre sin puntos, la persona que dejó de ser elegible y una partida ilegible sueltan la partida", () => {
+    for (const reason of ["EXPIRED", "NO_TERM", "TERM_CLOSED", "NOT_ELIGIBLE", "INVALID_MOVES"]) {
+      expect(game2048ReleasedBy(reason as Game2048Denial), reason).toBe(true);
+    }
+  });
+
+  it("un cierre que la casa responde «ya terminó», «no existe», con un conflicto o como solicitud inválida también la suelta", () => {
+    for (const reason of ["FINISHED", "NOT_FOUND", "REQUEST_CONFLICT", "INVALID_INPUT"]) {
+      expect(game2048ReleasedBy(reason as Game2048Denial), reason).toBe(true);
+    }
+  });
+
+  it("ninguna negativa deja la partida en el tablero: siempre queda empezar otra", () => {
+    expect(kept()).toEqual([]);
   });
 });

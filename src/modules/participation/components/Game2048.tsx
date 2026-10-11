@@ -26,7 +26,7 @@ import type {
   Game2048State,
   TodayGame2048,
 } from "../game2048-types";
-import { game2048Finished } from "./game2048-resume";
+import { game2048Finished, game2048ReleasedBy } from "./game2048-resume";
 
 // Tablero del 2048 (ADR-075). El juego corre entero en el navegador con el motor puro; al terminar
 // manda solo la lista de movimientos y el servidor la rejuega. Cada ficha lleva su número, así que
@@ -151,9 +151,11 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
     setResuming(true);
   }, [initial.open]);
 
+  // Una negativa de la casa suelta la partida del tablero y deja «Empezar una partida». Cuál la
+  // suelta lo decide `game2048ReleasedBy`: hoy, todas (ADR-123 regla 10).
   function fail(reason: Game2048Denial) {
     setMessage(t(ERROR_COPY[reason]));
-    if (["EXPIRED", "NO_TERM", "TERM_CLOSED", "NOT_ELIGIBLE", "INVALID_MOVES"].includes(reason)) {
+    if (game2048ReleasedBy(reason)) {
       setLive(null);
       clearStored();
       router.refresh();
