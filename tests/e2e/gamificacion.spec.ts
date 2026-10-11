@@ -303,12 +303,15 @@ test("evidencia: un archivo rechazado o una subida fallida se avisan con su text
   await page.goto(`/app/gh-points/retos/${id}`);
   const form = page.locator("form").filter({ has: page.locator('input[type="file"]') });
   const picker = form.locator('input[type="file"]');
+  /** Un selector que conserva el archivo rechazado no avisa si se vuelve a elegir ese mismo. */
+  const pickedFiles = () => picker.evaluate((input: HTMLInputElement) => input.files?.length);
   await picker.setInputFiles({
     name: "e2e-notas.txt",
     mimeType: "text/plain",
     buffer: Buffer.from("No es una imagen"),
   });
   await expect(form.getByRole("alert")).toHaveText(tList("T-2430")[0]);
+  expect(await pickedFiles()).toBe(0);
   const tiny = await sharp({
     create: { width: 80, height: 80, channels: 3, background: "#001f3e" },
   })
@@ -316,7 +319,15 @@ test("evidencia: un archivo rechazado o una subida fallida se avisan con su text
     .toBuffer();
   expect(tiny.byteLength).toBeLessThan(5 * 1024);
   await picker.setInputFiles({ name: "e2e-diminuta.png", mimeType: "image/png", buffer: tiny });
+  await expect(form.getByRole("alert")).toHaveText(t("T-3264"));
+  expect(await pickedFiles()).toBe(0);
+  await picker.setInputFiles({
+    name: "e2e-enorme.png",
+    mimeType: "image/png",
+    buffer: Buffer.alloc(5 * 1024 * 1024 + 1),
+  });
   await expect(form.getByRole("alert")).toHaveText(tList("T-2430")[1]);
+  expect(await pickedFiles()).toBe(0);
   expect(presigns).toBe(0);
 
   const png = await sharp(randomBytes(320 * 180 * 3), {

@@ -10726,6 +10726,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3264": {
+    where: "Evidencia: imagen de menos de 5 KB (ADR-122)",
+    text: "Esa imagen pesa menos de 5 KB. Subí una de entre 5 KB y 5 MB.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

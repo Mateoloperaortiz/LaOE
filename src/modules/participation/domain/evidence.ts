@@ -9,7 +9,7 @@ import {
   presignUpload,
   putObject,
 } from "@/shared/adapters/storage";
-import { tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { decodeImage, ImageRejectedError } from "@/shared/lib/image-decoder";
 import { logger } from "@/shared/log";
@@ -60,7 +60,11 @@ export async function prepareEvidenceUpload(
   if (!(input.contentType in EVIDENCE_TYPES)) {
     throw new DomainError(errors[0] ?? "", "file");
   }
-  if (input.byteSize < EVIDENCE_MIN_BYTES || input.byteSize > EVIDENCE_MAX_BYTES) {
+  // Cada borde dice el suyo (ADR-122 regla 18): la imagen diminuta no «pesa más de 5 MB».
+  if (input.byteSize < EVIDENCE_MIN_BYTES) {
+    throw new DomainError(t("T-3264"), "file");
+  }
+  if (input.byteSize > EVIDENCE_MAX_BYTES) {
     throw new DomainError(errors[1] ?? "", "file");
   }
   const key = evidenceKey(owner.personId, input.contentType, createId());
@@ -104,7 +108,10 @@ export async function verifyEvidenceObjects(
     }
     if (info.byteSize < EVIDENCE_MIN_BYTES || info.byteSize > EVIDENCE_MAX_BYTES) {
       await deleteObject(key).catch(() => undefined);
-      throw new DomainError(errors[1] ?? "", "files");
+      throw new DomainError(
+        info.byteSize < EVIDENCE_MIN_BYTES ? t("T-3264") : (errors[1] ?? ""),
+        "files",
+      );
     }
     verified.push({ key, contentType, byteSize: info.byteSize });
   }

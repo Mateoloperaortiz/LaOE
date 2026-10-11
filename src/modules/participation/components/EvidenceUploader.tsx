@@ -92,18 +92,27 @@ export function EvidenceUploader({
     };
   }, [files]);
 
+  /** Por qué ese archivo no se sube, o `null` si entra. Cada borde del tamaño dice el suyo. */
+  function rejectionOf(file: File): string | null {
+    if (files.length >= maxFiles) return errors[2] ?? "";
+    if (!allowedTypes.includes(file.type)) return errors[0] ?? "";
+    if (file.size < minBytes) return t("T-3264");
+    if (file.size > maxBytes) return errors[1] ?? "";
+    return null;
+  }
+
+  // El selector queda vacío también al rechazar (ADR-122 regla 18): con el archivo puesto, volver a
+  // elegir ese mismo no dispara `change` y no avisa.
+  function clearPicker() {
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
   async function addFile(file: File) {
     setMessage("");
-    if (files.length >= maxFiles) {
-      setMessage(errors[2] ?? "");
-      return;
-    }
-    if (!allowedTypes.includes(file.type)) {
-      setMessage(errors[0] ?? "");
-      return;
-    }
-    if (file.size < minBytes || file.size > maxBytes) {
-      setMessage(errors[1] ?? "");
+    const rejection = rejectionOf(file);
+    if (rejection !== null) {
+      setMessage(rejection);
+      clearPicker();
       return;
     }
     setUploading(true);
@@ -124,7 +133,7 @@ export function EvidenceUploader({
       setMessage(errors[3] ?? "");
     } finally {
       setUploading(false);
-      if (fileInput.current) fileInput.current.value = "";
+      clearPicker();
     }
   }
 

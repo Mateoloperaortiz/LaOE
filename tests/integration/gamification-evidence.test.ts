@@ -26,7 +26,7 @@ import {
 import { setConfigAs } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
-import { tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
@@ -134,20 +134,31 @@ describe("evidencias de retos", () => {
     await Promise.all(keys.map((key) => deleteObject(key).catch(() => undefined)));
   });
 
-  it("rechaza un tipo no admitido y un tamaño fuera de rango", async () => {
+  it("rechaza un tipo no admitido y un tamaño fuera de rango, y dice de qué lado se pasó", async () => {
     const personId = await seedMember("evidencia.tipo@eafit.edu.co");
     await expect(
       prepareEvidenceUpload({ contentType: "application/pdf", byteSize: 10_000 }, { personId }),
     ).rejects.toSatisfy((error) => error instanceof DomainError && error.message === errors[0]);
     await expect(
       prepareEvidenceUpload({ contentType: "image/png", byteSize: 100 }, { personId }),
-    ).rejects.toSatisfy((error) => error instanceof DomainError && error.message === errors[1]);
+    ).rejects.toSatisfy((error) => error instanceof DomainError && error.message === t("T-3264"));
     await expect(
       prepareEvidenceUpload(
         { contentType: "image/png", byteSize: EVIDENCE_MAX_BYTES + 1 },
         { personId },
       ),
     ).rejects.toSatisfy((error) => error instanceof DomainError && error.message === errors[1]);
+  });
+
+  it("un objeto propio de menos de 5 KB se rechaza diciendo que pesa poco, y se borra", async () => {
+    const personId = await seedMember("evidencia.liviana@eafit.edu.co");
+    const key = evidenceKey(personId, "image/png", "archivolivianoprueba");
+    keys.push(key);
+    await putObject(key, await flatImage(40, 40, "png"), "image/png");
+    await expect(verifyEvidenceObjects(personId, [key])).rejects.toSatisfy(
+      (error) => error instanceof DomainError && error.message === t("T-3264"),
+    );
+    expect(await headObject(key)).toBeNull();
   });
 
   it("verifica objetos del propio miembro y rechaza claves ajenas", async () => {
