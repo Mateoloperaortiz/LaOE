@@ -6,17 +6,16 @@ import { getConfig } from "@/modules/system";
 import { heldThenSettled, holdTransaction } from "../helpers/locks";
 import { truncateAll } from "./db";
 
-// Lo que el vaciado de la base de pruebas deja hoy, antes de cambiar de dónde saca su lista y cómo
-// restaura los catálogos (spec #244, DT-030 y DT-149 inciso e). Varias de estas pruebas fijan un
-// defecto conocido, que una prueba le hereda la configuración o un cargo a la siguiente: el ticket que
-// lo corrija las cambia a propósito.
+// Lo que el vaciado de la base de pruebas deja entre una prueba y la siguiente (spec #244, ADR-124):
+// cada tabla de `public` sin filas y los cuatro catálogos de migración como en la foto que tomó la
+// preparación de la suite. Nació como caracterización del vaciado anterior (DT-030 y DT-149 inciso e):
+// las celdas que fijaban que una prueba le heredaba la configuración o un cargo a la siguiente
+// cambiaron con #300 y llevan «DT-149 e» en el título.
 
-// Los catálogos que llenan las migraciones y sobreviven al vaciado. Los dos primeros se borran y se
-// vuelven a escribir; a los de cargos el vaciado no llega. Las migraciones también llenan `page` y
-// `event`, y esas sí quedan vacías.
-const REWRITTEN = ["app_config", "badge_definition"];
-const UNTOUCHED = ["committee_role", "macroevent_role"];
-const CATALOGS = [...REWRITTEN, ...UNTOUCHED];
+// Los catálogos que llenan las migraciones y vuelven a su foto. Las migraciones también llenan `page`
+// y `event`, y esas quedan vacías.
+const ROLE_CATALOGS = ["committee_role", "macroevent_role"];
+const CATALOGS = ["app_config", "badge_definition", ...ROLE_CATALOGS];
 
 // Dónde deja la preparación de la suite la foto de los catálogos (ADR-124 regla 2): escrito acá y no
 // leído del vaciado.
@@ -225,28 +224,40 @@ async function writeKey(key: string, value: unknown): Promise<void> {
   });
 }
 
-let found: Record<string, unknown[]>;
-
-beforeAll(async () => {
-  await truncateAll();
-  found = Object.fromEntries(
-    await Promise.all(CATALOGS.map(async (table) => [table, await rowsOf(table)] as const)),
+/** Las filas de los cuatro catálogos de un esquema. */
+async function catalogsOf(schema: string): Promise<Record<string, unknown[]>> {
+  return Object.fromEntries(
+    await Promise.all(CATALOGS.map(async (table) => [table, await rowsOf(table, schema)] as const)),
   );
-});
+}
 
-// Este archivo cambia a propósito lo que el vaciado no devuelve a su valor: sin esto, el cargo y la
-// configuración de sus pruebas les quedarían a todos los archivos que corran después.
-afterEach(async () => {
+/** Las filas de una tabla como salen sin pedir orden: el orden en que quedaron escritas. */
+async function asStored(table: string, schema = "public"): Promise<unknown[]> {
+  const rows = await query<{ row: unknown }>(
+    `select to_jsonb(t) as row from "${schema}"."${table}" t`,
+  );
+  return rows.map(({ row }) => row);
+}
+
+/** Corre sin claves foráneas: un cargo del catálogo puede nombrar a otro como su reemplazo. */
+async function unchecked(...statements: string[]): Promise<void> {
   await getDb().transaction(async (tx) => {
     await tx.execute(sql`select set_config('session_replication_role', 'replica', true)`);
-    for (const table of CATALOGS) {
-      const name = sql.identifier(table);
-      await tx.execute(sql`delete from ${name}`);
-      await tx.execute(
-        sql`insert into ${name} select * from jsonb_populate_recordset(null::${name}, ${JSON.stringify(found[table])}::jsonb)`,
-      );
+    for (const statement of statements) {
+      await query(statement, tx);
     }
   });
+}
+
+let photographed: Record<string, unknown[]>;
+
+beforeAll(async () => {
+  photographed = await catalogsOf(BASELINE);
+  await truncateAll();
+});
+
+// Si una prueba falla antes de vaciar, lo que dejó no le llega a la que sigue en este archivo.
+afterEach(async () => {
   await truncateAll();
 });
 
@@ -264,32 +275,42 @@ describe("el vaciado de la base entre pruebas", () => {
     expect(await tablesWithRows()).toEqual(CATALOGS);
   });
 
-  it("no toca los catálogos de cargos: el cargo que una prueba creó le queda a la siguiente (DT-149 e)", async () => {
-    await getDb().transaction((tx) => fill(tx, UNTOUCHED));
-    const committee = await rowsOf("committee_role");
-    const macroevent = await rowsOf("macroevent_role");
-    expect(committee).toHaveLength((found.committee_role?.length ?? 0) + 1);
-    expect(macroevent).toHaveLength((found.macroevent_role?.length ?? 0) + 1);
+  it("devuelve los cuatro catálogos a la foto, también si la prueba anterior los dejó sin filas", async () => {
+    await unchecked(...CATALOGS.map((table) => `delete from "${table}"`));
+    expect(await tablesWithRows()).toEqual([]);
 
     await truncateAll();
 
-    expect(await rowsOf("committee_role")).toEqual(committee);
-    expect(await rowsOf("macroevent_role")).toEqual(macroevent);
+    expect(await catalogsOf("public")).toEqual(photographed);
   });
 
-  it("vuelve a escribir la configuración con el valor que dejó la prueba anterior, sin su autor ni su fecha (DT-149 e)", async () => {
-    const before = await config();
-    await writeKey("score.shrinkK", 9);
+  it("devuelve los catálogos de cargos a la foto: el cargo que una prueba creó no le queda a la siguiente, y el que borró vuelve (DT-149 e)", async () => {
+    await getDb().transaction((tx) => fill(tx, ROLE_CATALOGS));
+    await unchecked(
+      ...ROLE_CATALOGS.map(
+        (table) => `delete from "${table}" where code = (select min(code) from "${table}")`,
+      ),
+    );
+    for (const table of ROLE_CATALOGS) {
+      expect(await rowsOf(table), table).toHaveLength(photographed[table]?.length ?? 0);
+      expect(await rowsOf(table), table).not.toEqual(photographed[table]);
+    }
 
     await truncateAll();
 
-    expect(await config()).toEqual({ ...before, "score.shrinkK": 9 });
-    expect(
-      await query(
-        `select updated_by_id as author, updated_at > timestamptz '2020-01-02' as rewritten
-         from app_config where key = 'score.shrinkK'`,
-      ),
-    ).toEqual([{ author: null, rewritten: true }]);
+    expect(await rowsOf("committee_role")).toEqual(photographed.committee_role);
+    expect(await rowsOf("macroevent_role")).toEqual(photographed.macroevent_role);
+  });
+
+  it("devuelve la configuración a la foto: la clave que una prueba cambió vuelve a su valor, sin el autor ni la fecha que le dejó (DT-149 e)", async () => {
+    const before = await config();
+    await writeKey("score.shrinkK", 9);
+    expect(await config()).not.toEqual(before);
+
+    await truncateAll();
+
+    expect(await config()).toEqual(before);
+    expect(await rowsOf("app_config")).toEqual(photographed.app_config);
   });
 
   it("deja la versión de la política de privacidad en su valor de prueba, traiga el que traiga", async () => {
@@ -315,36 +336,37 @@ describe("el vaciado de la base entre pruebas", () => {
     expect(await config()).toMatchObject(GAMIFICATION_AT_MIGRATION);
   });
 
-  it("no vuelve a escribir las tres claves de campañas que ninguna migración siembra", async () => {
+  it("saca las claves que ninguna migración siembra: las tres de campañas y cualquier otra que una prueba escriba", async () => {
     const before = await config();
-    for (const [key, value] of Object.entries(CAMPAIGNS_UNSEEDED)) {
+    const unseeded = { ...CAMPAIGNS_UNSEEDED, "prueba.inventada": "de la prueba anterior" };
+    for (const [key, value] of Object.entries(unseeded)) {
       await writeKey(key, value);
     }
-    expect(await config()).toEqual({ ...before, ...CAMPAIGNS_UNSEEDED });
+    expect(await config()).toEqual({ ...before, ...unseeded });
 
     await truncateAll();
 
-    expect(Object.keys(await config()).filter((key) => key in CAMPAIGNS_UNSEEDED)).toEqual([]);
     expect(await config()).toEqual(before);
   });
 
-  it("no repone la clave que una prueba borró, ni siquiera las que vuelve a su valor", async () => {
+  it("repone la clave que una prueba borró", async () => {
+    const before = await config();
     const deleted = ["privacy.policyVersion", "gamification.enabled", "score.shrinkK"];
-    const kept = Object.entries(await config()).filter(([key]) => !deleted.includes(key));
-    expect(kept).toHaveLength(Object.keys(await config()).length - deleted.length);
     await query(`delete from app_config where key in ('${deleted.join("', '")}')`);
+    expect(Object.keys(await config())).toHaveLength(Object.keys(before).length - deleted.length);
 
     await truncateAll();
 
-    expect(await config()).toEqual(Object.fromEntries(kept));
+    expect(await config()).toEqual(before);
   });
 
-  it("conserva las insignias que no son edición especial como la prueba las dejó, y saca las ediciones especiales", async () => {
+  it("devuelve las insignias a la foto: la que una prueba cambió vuelve a su valor, la que borró vuelve y salen las ediciones especiales", async () => {
     await query(
       "update badge_definition set active = false where code = (select min(code) from badge_definition)",
     );
-    const left = await rowsOf("badge_definition");
-    expect(left.length).toBeGreaterThan(0);
+    await query(
+      "delete from badge_definition where code = (select max(code) from badge_definition)",
+    );
     await getDb().transaction(async (tx) => {
       const special = { family: "'SPECIAL'" };
       await fill(tx, ["badge_definition"], {
@@ -360,31 +382,57 @@ describe("el vaciado de la base entre pruebas", () => {
         special_occasion_id: "'x'",
       });
     });
-    expect(await rowsOf("badge_definition")).toHaveLength(left.length + 2);
+    expect(await rowsOf("badge_definition")).toHaveLength(
+      (photographed.badge_definition?.length ?? 0) + 1,
+    );
 
     await truncateAll();
 
-    expect(await rowsOf("badge_definition")).toEqual(left);
+    expect(await rowsOf("badge_definition")).toEqual(photographed.badge_definition);
   });
 
-  it("limpia la caché de configuración: la lectura siguiente sale de la base", async () => {
-    const cached = await getConfig("score.shrinkK");
-    await writeKey("score.shrinkK", (cached ?? 0) + 4);
-    expect(await getConfig("score.shrinkK")).toBe(cached);
+  it("deja cada catálogo escrito en el orden de la foto, también el que la prueba anterior reescribió al revés", async () => {
+    await unchecked(
+      ...CATALOGS.map(
+        (table) =>
+          `with gone as (delete from "${table}" returning *)
+           insert into "${table}" select * from gone order by to_jsonb(gone)::text desc`,
+      ),
+    );
+    for (const table of CATALOGS) {
+      expect(await asStored(table), table).not.toEqual(await asStored(table, BASELINE));
+    }
 
     await truncateAll();
 
-    expect(await getConfig("score.shrinkK")).toBe((cached ?? 0) + 4);
+    for (const table of CATALOGS) {
+      expect(await asStored(table), table).toEqual(await asStored(table, BASELINE));
+    }
   });
 
-  it("espera a la transacción que todavía escribe en una de sus tablas, en vez de fallar, y no deja su fila", async () => {
-    const writing = await holdTransaction((tx) => fill(tx, ["tag"]));
+  it("limpia la caché de configuración: la lectura siguiente sale de la base, que ya volvió a la foto", async () => {
+    const migrated = (await getConfig("score.shrinkK")) ?? 0;
+    await truncateAll();
+    await writeKey("score.shrinkK", migrated + 4);
+    expect(await getConfig("score.shrinkK")).toBe(migrated + 4);
+
+    await truncateAll();
+
+    expect(await getConfig("score.shrinkK")).toBe(migrated);
+  });
+
+  it.each([
+    "tag",
+    "committee_role",
+  ])("espera a la transacción que todavía escribe en %s, en vez de fallar, y no deja su fila", async (table) => {
+    const writing = await holdTransaction((tx) => fill(tx, [table]));
 
     const emptying = await heldThenSettled(writing, () => truncateAll());
 
     expect(emptying.during).toBe("hizo cola");
     expect(emptying.after.status).toBe("fulfilled");
     expect(await tablesWithRows()).toEqual(CATALOGS);
+    expect(await catalogsOf("public")).toEqual(photographed);
   });
 
   it("no le estrena archivo a ninguna tabla, índice ni TOAST, y deja sin páginas las tablas que tenían filas (ADR-119 regla 23)", async () => {
@@ -420,7 +468,7 @@ describe("la foto de los catálogos que toma la preparación de la suite", () =>
   });
 
   it("guarda los cargos y las insignias de las migraciones, sin ninguna edición especial", async () => {
-    for (const table of ["badge_definition", ...UNTOUCHED]) {
+    for (const table of ["badge_definition", ...ROLE_CATALOGS]) {
       expect(await rowsOf(table, BASELINE), table).not.toEqual([]);
     }
     expect(

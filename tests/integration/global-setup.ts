@@ -27,7 +27,7 @@ export default async function globalSetup(): Promise<void> {
   }
   await admin.end();
 
-  // Esquema desde cero en cada corrida: las pruebas truncan tablas pero no los catálogos.
+  // Esquema desde cero en cada corrida: la foto de los catálogos sale de lo que dejan las migraciones.
   const test = new Client({ connectionString: testUrl });
   await test.connect();
   await test.query("drop schema if exists public cascade");

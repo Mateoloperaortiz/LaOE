@@ -1,36 +1,16 @@
-import { and, isNull, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { badgeDefinition } from "@/modules/participation/schema";
 import { clearConfigCache } from "@/modules/system/domain/config";
-import { appConfig } from "@/modules/system/schema";
 
-// Deja las tablas vacías entre pruebas. El vaciado alcanza a app_config y badge_definition, como a toda
-// tabla de `public` que no sea un catálogo de cargos, así que esos dos catálogos de las migraciones se
-// restauran después.
-// Los valores de la migración 0030: una prueba que activa gamificación no debe filtrarlo a la siguiente.
-const GAMIFICATION_SEED: Record<string, unknown> = {
-  "gamification.enabled": false,
-  "gamification.caps": { daily: 20, weekly: 60 },
-  "gamification.defaults": { trivia: 5, presential: 10, evidence: 10, passPercent: 80 },
-};
-
-// Claves que ninguna migración siembra y que una prueba puede dejar escritas (ADR-115 reglas 5 y 6):
-// no se restauran, o el margen o el corte por cuota de una prueba le quedarían a la siguiente.
-const UNSEEDED = new Set([
-  "campaigns.transactionalReserve",
-  "campaigns.quotaCut",
-  "campaigns.quotaExhaustedAt",
-]);
+// Deja la base de pruebas como recién migrada entre una prueba y la siguiente: las tablas de `public`
+// sin filas y los catálogos de migración como en la foto que tomó la preparación de la suite (ADR-124).
 
 // Los catálogos que llenan las migraciones y que las pruebas necesitan. Son los únicos nombres de tabla
 // escritos en este archivo, y `tests/unit/test-emptying-table-names.test.ts` no admite otros. No se
-// pueden deducir: las migraciones también llenan `page` y `event` con filas literales, y esas sí se
-// vacían. Un catálogo nuevo que una migración llene se suma acá; si no, queda vacío y su prueba falla
+// pueden deducir: las migraciones también llenan `page` y `event` con filas literales, y esas quedan
+// vacías. Un catálogo nuevo que una migración llene se suma acá; si no, queda vacío y su prueba falla
 // a la vista.
 const CATALOGS = ["app_config", "badge_definition", "committee_role", "macroevent_role"];
-
-// Los de cargos, que el vaciado no toca.
-const KEPT = ["committee_role", "macroevent_role"];
 
 // Dónde queda la foto de los catálogos: un esquema de la base de pruebas que no es `public`, así el
 // vaciado no la alcanza, ni es de los que crea `e2e-baseline.test.ts`.
@@ -67,22 +47,25 @@ export async function saveCatalogBaseline(): Promise<void> {
   });
 }
 
+// Una sola sentencia vuelve a llenar los cuatro catálogos con las filas de la foto, en el orden en que
+// la foto las guarda. Las claves foráneas se revisan al terminar la sentencia, así que el cargo que
+// nombra a otro como su reemplazo no depende del orden.
+const REFILL = `with ${CATALOGS.map(
+  (table, index) => `c${index} as (insert into public.${table} select * from ${BASELINE}.${table})`,
+).join(", ")} select 1`;
+
 /**
- * Las tablas que se vacían: las de `public` menos los catálogos de cargos (ADR-124 regla 1). La lista
- * sale de PostgreSQL en cada vaciado, así que una tabla nueva entra sola, referencie o no a otra. El
- * filtro por esquema importa: en la misma base viven `drizzle`, con el registro de migraciones, y los
- * esquemas que crea `e2e-baseline.test.ts`. Los nombres salen con su esquema, para que las sentencias
- * alcancen lo mismo que el filtro.
+ * Las tablas que se vacían: todas las de `public` (ADR-124 reglas 1 y 3). La lista sale de PostgreSQL
+ * en cada vaciado, así que una tabla nueva entra sola, referencie o no a otra. El filtro por esquema
+ * importa: en la misma base viven `drizzle`, con el registro de migraciones, la foto de los catálogos
+ * y los esquemas que crea `e2e-baseline.test.ts`. Los nombres salen con su esquema, para que las
+ * sentencias alcancen lo mismo que el filtro.
  */
 async function tablesToEmpty(): Promise<string[]> {
   const { rows } = await getDb().execute<{ name: string }>(sql`
     select format('%I.%I', schemaname, tablename) as name
     from pg_tables
     where schemaname = 'public'
-      and tablename not in (${sql.join(
-        KEPT.map((table) => sql`${table}`),
-        sql`, `,
-      )})
     order by 1
   `);
   return rows.map((row) => row.name);
@@ -90,15 +73,6 @@ async function tablesToEmpty(): Promise<string[]> {
 
 export async function truncateAll(): Promise<void> {
   const db = getDb();
-  const config = (await db.select().from(appConfig)).filter((row) => !UNSEEDED.has(row.key));
-  // Solo el catálogo sembrado: las ediciones especiales de una prueba referencian
-  // ocasiones/retos que el vaciado borra y no deben sobrevivir.
-  const badges = await db
-    .select()
-    .from(badgeDefinition)
-    .where(
-      and(isNull(badgeDefinition.specialChallengeId), isNull(badgeDefinition.specialOccasionId)),
-    );
   const tables = await tablesToEmpty();
   // Borrar y no truncar: `TRUNCATE` le crea a PostgreSQL un archivo nuevo por tabla, por TOAST y por
   // índice en cada prueba, y la suite le dejaba al checkpoint siguiente cerca de un millón (DT-188).
@@ -122,22 +96,9 @@ export async function truncateAll(): Promise<void> {
   if (used.length > 0) {
     await db.execute(sql.raw(`vacuum ${used.join(", ")}`));
   }
-  if (config.length > 0) {
-    await db
-      .insert(appConfig)
-      .values(
-        config.map((row) => ({
-          key: row.key,
-          value:
-            row.key === "privacy.policyVersion"
-              ? "prueba-v1"
-              : (GAMIFICATION_SEED[row.key] ?? row.value),
-        })),
-      )
-      .onConflictDoNothing();
-  }
-  if (badges.length > 0) {
-    await db.insert(badgeDefinition).values(badges).onConflictDoNothing();
-  }
+  // Los catálogos se borraron con las demás tablas y vuelven de la foto, no de lo que dejó la prueba
+  // anterior (ADR-124 regla 3). Van después del `VACUUM`, sobre páginas en blanco: así quedan en el
+  // orden de la foto. Si un vaciado falla antes de llegar acá, el siguiente los repone igual.
+  await db.execute(sql.raw(REFILL));
   clearConfigCache();
 }
