@@ -41,7 +41,7 @@ type Lend = (
 /**
  * Todo fallo al abrir o prestar una conexión sale del pool marcado con a dónde iba (ADR-123 regla
  * 16): solo acá se sabe que el error es de una conexión y contra qué host, y con esa marca el
- * registro le quita el host configurado, esté escrito como esté. `pool.query` y Drizzle piden la
+ * registro le quita el host configurado, vaya o no entre comillas. `pool.query` y Drizzle piden la
  * conexión por `connect`, con callback o con promesa, así que basta envolverlo. El error es el
  * mismo: quien lo recibe lo sigue leyendo igual.
  */

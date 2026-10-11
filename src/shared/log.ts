@@ -224,8 +224,10 @@ const failedConnections = new WeakMap<Error, string[]>();
 
 /**
  * Marca `error` como un fallo al conectar con `connectionString` (ADR-123 regla 16). De un error
- * marcado el registro quita ese host, con su puerto y solo, esté escrito como esté en el mensaje, y
- * los campos donde un error de red repite su destino. La marca la pone quien abre la conexión
+ * marcado el registro quita ese host, con su puerto y solo, vaya o no entre comillas en el mensaje, y
+ * los campos donde un error de red repite su destino. El host es el de la parte de autoridad de la
+ * conexión, tal cual: por parámetro, IPv6 entre corchetes o con otras mayúsculas no se reconoce
+ * (DT-307). La marca la pone quien abre la conexión
  * (`src/db/client.ts`): solo ahí se sabe que el error es de una conexión y a dónde iba. Sin ella un
  * host corto (`db`, `localhost`) no se puede quitar por texto: se borraría de mensajes que no son de
  * una conexión. Una conexión que no se deja leer marca igual, sin texto que quitar.
