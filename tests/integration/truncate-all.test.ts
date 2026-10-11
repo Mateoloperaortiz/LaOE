@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import { closeDb, getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
 import { getConfig } from "@/modules/system";
-import { heldThenSettled, holdTransaction, waitingOn } from "../helpers/locks";
+import { deferred, heldThenSettled, holdTransaction, waitingOn } from "../helpers/locks";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
@@ -274,6 +274,27 @@ async function settingOnEveryConnection(name: string) {
   }
 }
 
+/** Corre una sentencia en cada conexión que el pool tiene abierta, pidiéndolas todas antes de devolver ninguna. */
+async function onEveryConnection(statement: string): Promise<void> {
+  const pool = getDb().$client;
+  const clients = await Promise.all(Array.from({ length: pool.totalCount }, () => pool.connect()));
+  try {
+    await Promise.all(clients.map((client) => client.query(statement)));
+  } finally {
+    for (const client of clients) {
+      client.release();
+    }
+  }
+}
+
+/** Cuántos interbloqueos lleva contados PostgreSQL en esta base. */
+async function deadlocks(): Promise<number> {
+  const [row] = await query<{ n: number }>(
+    "select deadlocks::int as n from pg_stat_database where datname = current_database()",
+  );
+  return row?.n ?? 0;
+}
+
 let photographed: Record<string, unknown[]>;
 
 beforeAll(async () => {
@@ -498,6 +519,55 @@ describe("el vaciado de la base entre pruebas", () => {
     const timeouts = await settingOnEveryConnection("lock_timeout");
     expect(timeouts.length).toBeGreaterThanOrEqual(4);
     expect(timeouts.filter((timeout) => timeout?.now !== timeout?.atStart)).toEqual([]);
+  });
+
+  it("vuelve a intentar cuando PostgreSQL lo elige a él para romper un interbloqueo, con la revisión de interbloqueos bajada a 100 ms (ADR-124 regla 7)", async () => {
+    // Con el `deadlock_timeout` de siempre (1 s) esta rama no se alcanza: el plazo de 250 ms del
+    // vaciado vence antes de que PostgreSQL revise el ciclo, y el vaciado suelta con `55P03`. Para
+    // llegar a ella la prueba baja la revisión a 100 ms en las conexiones del pool y la sube en la
+    // transacción que cruza, así el elegido es el vaciado y no ella. Esa transacción retiene `tag` y
+    // pide `app_config` una y otra vez: cada intento del vaciado toma `app_config`, espera `tag` y
+    // cierra el ciclo. La prueba espera a que PostgreSQL cuente un interbloqueo y recién ahí la suelta.
+    await warmPool();
+    await onEveryConnection("set deadlock_timeout = '100ms'");
+    const holding = deferred<void>();
+    let crossing = true;
+    const crosser = getDb().transaction(async (tx) => {
+      await query("set local deadlock_timeout = '30s'", tx);
+      await query("lock table public.tag in row exclusive mode", tx);
+      holding.resolve();
+      while (crossing) {
+        await query("savepoint crossing", tx);
+        await query("lock table public.app_config in access share mode", tx);
+        await query("rollback to savepoint crossing", tx);
+      }
+    });
+    void crosser.catch(holding.reject);
+    let emptying: Promise<void> | undefined;
+    try {
+      await holding.promise;
+      const counted = await deadlocks();
+      emptying = truncateAll();
+      void emptying.catch(() => undefined);
+
+      await vi.waitFor(async () => expect(await deadlocks()).toBeGreaterThan(counted), {
+        timeout: 15_000,
+        interval: 100,
+      });
+    } finally {
+      crossing = false;
+      await Promise.allSettled([crosser, emptying]);
+      await onEveryConnection("reset deadlock_timeout");
+    }
+
+    await expect(emptying).resolves.toBeUndefined();
+    await expect(crosser).resolves.toBeUndefined();
+    expect(await tablesWithRows()).toEqual(CATALOGS);
+    expect(await catalogsOf("public")).toEqual(photographed);
+    expect(await settingOnEveryConnection("deadlock_timeout")).toSatisfy(
+      (timeouts: { now: string; atStart: string }[]) =>
+        timeouts.every((timeout) => timeout.now === timeout.atStart),
+    );
   });
 
   it("dos vaciados a la vez terminan los dos y dejan los catálogos como en la foto (DT-349)", async () => {
