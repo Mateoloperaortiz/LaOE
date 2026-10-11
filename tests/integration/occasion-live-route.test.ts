@@ -8,7 +8,15 @@ import {
 } from "@/modules/participation";
 import { countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
-import { currentTermCode, seedCheckIn, seedMember, seedOccasion, seedTerm } from "./factories";
+import {
+  currentTermCode,
+  seedCheckIn,
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMember,
+  seedOccasion,
+  seedTerm,
+} from "./factories";
 
 // El sondeo de la consola en vivo (ADR-035 regla 16): la ruta que la consola pide cada 4 segundos, con
 // el dominio de verdad contra Postgres. Solo se simula quién tiene sesión, que la ruta lee de las
@@ -97,6 +105,28 @@ describe("sondeo de la consola en vivo: lo que responde la ruta", () => {
     expect(await response.json()).toEqual({ error: "sin permiso" });
   });
 
+  it("a quien la opera por su cargo en el comité de la ocasión le responde el snapshot, y a quien solo es miembro de ese comité, 403", async () => {
+    const termId = await seedTerm(currentTermCode());
+    const committeeId = await seedCommittee("c1");
+    const { id } = await seedOccasion(termId, { committeeId });
+    const operator = await seedMember("logistica@test.dev");
+    const member = await seedMember("miembro@test.dev");
+    // Logística trae la capacidad OCCASIONS (ADR-058); ser miembro del comité no trae ninguna.
+    await seedCommitteeMembership(operator, committeeId, termId, "LOGISTICA");
+    await seedCommitteeMembership(member, committeeId, termId);
+
+    signedIn = { personId: operator, isAdmin: false };
+    const allowed = await poll(id);
+    expect(allowed.status).toBe(200);
+    expect(allowed.headers.get("cache-control")).toBe("no-store");
+    expect((await allowed.json()).status).toBe((await getOccasion(id))?.status);
+
+    signedIn = { personId: member, isAdmin: false };
+    const denied = await poll(id);
+    expect(denied.status).toBe(403);
+    expect(Object.keys(await denied.json())).toEqual(["error"]);
+  });
+
   it("a quien la opera le responde el snapshot sin caché: estado, conteos, últimos registros y el código vigente en el enlace y el QR", async () => {
     const termId = await seedTerm(currentTermCode());
     const secret = "secreto-de-prueba";
@@ -181,5 +211,22 @@ describe("sondeo de la consola en vivo: cuánto lee la ruta (DT-308)", () => {
     ).toHaveLength(1);
     // La ocasión, los conteos por estado, los últimos registros y sus personas. Eran 5.
     expect(queries.length).toBeLessThanOrEqual(4);
+  });
+
+  it("a quien la opera por su cargo, y no por ser admin, también le lee la ocasión una sola vez", async () => {
+    const termId = await seedTerm(currentTermCode());
+    const committeeId = await seedCommittee("c1");
+    const { id } = await seedOccasion(termId, { committeeId });
+    const operator = await seedMember("logistica@test.dev");
+    await seedCommitteeMembership(operator, committeeId, termId, "LOGISTICA");
+    signedIn = { personId: operator, isAdmin: false };
+
+    const { result, queries } = await countQueries(() => poll(id));
+
+    expect(result.status).toBe(200);
+    // Decidir el permiso por el cargo suma sus lecturas de `people`; ninguna vuelve por la ocasión.
+    expect(
+      queries.map((query) => query.text).filter((text) => text.includes('from "occasion"')),
+    ).toHaveLength(1);
   });
 });
