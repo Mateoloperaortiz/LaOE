@@ -17,7 +17,7 @@ export const metadata: Metadata = paginaMetadata({
 export default async function ComitesPage({ searchParams }: PageProps<"/comites">) {
   const [comites, params] = await Promise.all([listPublishedCommittees(), searchParams]);
   const q = (typeof params.q === "string" ? params.q : "").trim().slice(0, 120);
-  const normalize = (value: string) => stripAccents(value, "MARKS").toLocaleLowerCase("es");
+  const normalize = (value: string) => stripAccents(value).toLocaleLowerCase("es");
   const matching = comites
     .map((comite, index) => ({ comite, index }))
     .filter(({ comite }) => normalize(`${comite.name} ${comite.slug}`).includes(normalize(q)));

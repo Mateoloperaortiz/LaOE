@@ -171,7 +171,7 @@ export const kindFor = (type: GhActivity["type"]) =>
   type === "ASAMBLEA" ? "ASSEMBLY" : "ACTIVITY";
 export const legacyKey = (m: GhManifest, a: GhActivity) => `gh-import:${m.batchId}:${a.key}`;
 const normalize = (value: string) =>
-  stripAccents(value, "MARKS")
+  stripAccents(value)
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, " ")
     .trim();

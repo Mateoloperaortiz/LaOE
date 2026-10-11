@@ -22,7 +22,7 @@ export function ResourceMultiSelect({ field, value, error, editing, onChange }: 
   const selected = value ? value.split(MULTI_SEPARATOR) : [];
   const locked = editing && (field.lockedOnEdit ?? false);
   const options = field.options ?? [];
-  const normalize = (text: string) => stripAccents(text, "DIACRITICS").toLocaleLowerCase("es");
+  const normalize = (text: string) => stripAccents(text).toLocaleLowerCase("es");
   const matches = (label: string) => normalize(label).includes(normalize(query.trim()));
   return (
     <fieldset

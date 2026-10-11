@@ -7,7 +7,7 @@ import { parseCsv } from "@/shared/lib/csv";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeHeader(value: string): string {
-  return stripAccents(value, "BLOCK").trim().toLowerCase();
+  return stripAccents(value).trim().toLowerCase();
 }
 
 export function parseGroupCsv(text: string): string[] {

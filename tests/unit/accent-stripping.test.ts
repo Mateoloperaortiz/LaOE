@@ -12,15 +12,18 @@ import { type GhSnapshot, ghManifestSchema, planGhImport } from "../../scripts/l
 // DT-074: «quitar acentos» estaba escrito en ocho sitios fuera de `competition`. Acá queda lo que
 // responde hoy cada uno por su función pública, con tildes, eñes, diéresis, mayúsculas y espacios.
 //
-// Los ocho pliegan igual el español: la ñ sale como n en todos. Lo que no es igual es qué marcas
-// quitan después de descomponer, y por eso cada sitio lleva además tres textos que lo delatan:
+// Los ocho pliegan igual el español: la ñ sale como n en todos. Hasta el ciclo 10 no quitaban las
+// mismas marcas después de descomponer (cuatro el bloque U+0300 a U+036F, tres toda marca y uno los
+// diacríticos), y por eso cada sitio lleva además tres textos que delataban la diferencia:
 //   - una flecha combinante (U+20D7) o el selector de variante de un emoji (U+FE0F): son marcas, pero
 //     no del bloque U+0300 a U+036F;
 //   - un acento suelto (´, U+00B4), el que deja una tecla muerta: es un diacrítico, pero no una marca;
 //   - un unidor de grafemas (U+034F): es del bloque y es marca, pero no es un diacrítico.
-// El bloque solo lo quitan la contraseña, el roster (dos veces) y los grupos de permanencia; toda
-// marca, la importación de GH Points y los dos buscadores de comités; los diacríticos, el selector
-// múltiple del admin. Esa diferencia es conducta y esta prueba la fija.
+// Desde DT-332 (ADR-123 regla 18) los ocho quitan lo mismo, toda marca: los dos primeros y el tercero
+// salen en todos, y el acento suelto no sale en ninguno. Las celdas que cambiaron son las de la
+// contraseña, el roster (dos veces) y los grupos, que quitaban solo el bloque, y las del selector
+// múltiple del admin, que quitaba los diacríticos. Qué texto cambia y cuál no, por la función que
+// comparten, está en `accents.test.ts`.
 
 const ARROW = "\u20d7";
 const VARIANT = "\ufe0f";
@@ -130,10 +133,10 @@ describe("quitar acentos, sitio por sitio", () => {
     ]);
   });
 
-  it("la contraseña solo pierde las marcas del bloque: una marca de fuera o un acento suelto en medio del nombre la deja pasar", () => {
+  it("la contraseña pierde toda marca: una de fuera del bloque en medio del nombre no la deja pasar, y un acento suelto sí", () => {
     const context = { email: "otra@eafit.edu.co", names: ["Maria"] };
-    expect(checkPassword(`mari${VARIANT}a-clave-2026`, context)).toBeNull();
-    expect(checkPassword(`mari${ARROW}a-clave-2026`, context)).toBeNull();
+    expect(checkPassword(`mari${VARIANT}a-clave-2026`, context)).toBe("PERSONAL");
+    expect(checkPassword(`mari${ARROW}a-clave-2026`, context)).toBe("PERSONAL");
     expect(checkPassword(`mari${LOOSE_ACUTE}a-clave-2026`, context)).toBeNull();
     expect(checkPassword(`mari${JOINER}a-clave-2026`, context)).toBe("PERSONAL");
   });
@@ -154,9 +157,9 @@ describe("quitar acentos, sitio por sitio", () => {
       "ANO DE INGRESO CUAL",
       "PINGUINO-NAME",
       "NANDU",
-      // Lo que no es del bloque no se quita: cae en «signo» y deja un espacio.
-      "A B",
-      "A B",
+      // Toda marca se quita; el acento suelto no es una marca: cae en «signo» y deja un espacio.
+      "AB",
+      "AB",
       "A B",
       "AB",
     ]);
@@ -176,14 +179,7 @@ describe("quitar acentos, sitio por sitio", () => {
       `A${LOOSE_ACUTE}B`,
       `A${JOINER}B`,
     ].map(normalizeText);
-    expect(texts).toEqual([
-      "nandu guiro",
-      "graduado a",
-      `a${ARROW}b`,
-      `a${VARIANT}b`,
-      `a${LOOSE_ACUTE}b`,
-      "ab",
-    ]);
+    expect(texts).toEqual(["nandu guiro", "graduado a", "ab", "ab", `a${LOOSE_ACUTE}b`, "ab"]);
   });
 
   it("la cabecera de correos de un grupo se reconoce con tildes, mayúsculas y espacios a los lados, y los correos no se pliegan", () => {
@@ -194,11 +190,11 @@ describe("quitar acentos, sitio por sitio", () => {
     expect(read("  CORREO INSTITUCIONÁL  ")).toEqual(emails);
     expect(read("É-mail")).toEqual(emails);
     expect(read(`co${JOINER}rreo`)).toEqual(emails);
-    // Los espacios de adentro no se juntan, y lo que no es del bloque no se quita: sin cabecera
+    expect(read(`correo${VARIANT}`)).toEqual(emails);
+    expect(read(`co${ARROW}rreo`)).toEqual(emails);
+    // Los espacios de adentro no se juntan, y un acento suelto no es una marca: sin cabecera
     // reconocida ni un correo en la primera fila, no hay columna.
     expect(read("correo  institucional")).toEqual([]);
-    expect(read(`correo${VARIANT}`)).toEqual([]);
-    expect(read(`co${ARROW}rreo`)).toEqual([]);
     expect(read(`corr${LOOSE_ACUTE}eo`)).toEqual([]);
   });
 
@@ -301,7 +297,7 @@ describe("quitar acentos, sitio por sitio", () => {
     ]);
   });
 
-  it("el selector múltiple del admin filtra sus opciones sin tildes ni mayúsculas, y además ignora los acentos sueltos", () => {
+  it("el selector múltiple del admin filtra sus opciones sin tildes ni mayúsculas, y con las mismas marcas que los buscadores de comités", () => {
     const labels = [
       ...COMMITTEES.map((committee) => committee.name),
       ...Array.from({ length: 7 }, (_, index) => `Mesa ${index + 1}`),
@@ -342,11 +338,11 @@ describe("quitar acentos, sitio por sitio", () => {
         ["gemís", ["GEMIS"]],
         ["niños oe", []],
         ["niños  oe", ["Niños  OE"]],
-        // Se quitan los diacríticos: el acento suelto sí, y una marca que no lo es, no.
-        [`caf${LOOSE_ACUTE}e`, ["Café Ágora"]],
-        [LOOSE_ACUTE, labels],
-        [`cafe${VARIANT}`, []],
-        [`ca${JOINER}fe`, []],
+        // Toda marca se quita, también la que no es un diacrítico; un acento suelto no es una marca.
+        [`caf${LOOSE_ACUTE}e`, []],
+        [LOOSE_ACUTE, []],
+        [`cafe${VARIANT}`, ["Café Ágora"]],
+        [`ca${JOINER}fe`, ["Café Ágora"]],
       ] as Array<[string, string[]]>
     ).map(([query, expected]) => ({ query, expected, got: visible(query) }));
     for (const { query, expected, got } of found) {

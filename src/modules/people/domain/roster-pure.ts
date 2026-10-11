@@ -63,7 +63,7 @@ export const REQUIRED_FOR_NEW: readonly RosterColumn[] = [
 ];
 
 export function normalizeHeader(raw: string): string {
-  return stripAccents(raw, "BLOCK")
+  return stripAccents(raw)
     .replace(/[^A-Za-z0-9 -]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -71,7 +71,7 @@ export function normalizeHeader(raw: string): string {
 }
 
 export function normalizeText(raw: string): string {
-  return stripAccents(raw, "BLOCK").replace(/\s+/g, " ").trim().toLowerCase();
+  return stripAccents(raw).replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 export function detectMapping(headers: string[]): Array<RosterColumn | null> {

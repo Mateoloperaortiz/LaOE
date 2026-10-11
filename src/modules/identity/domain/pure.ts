@@ -175,7 +175,7 @@ export interface PasswordContext {
 
 /** Quita tildes y baja a minúsculas para comparar contra la lista y contra los datos propios. */
 function fold(value: string): string {
-  return stripAccents(value, "BLOCK").toLowerCase();
+  return stripAccents(value).toLowerCase();
 }
 
 /**

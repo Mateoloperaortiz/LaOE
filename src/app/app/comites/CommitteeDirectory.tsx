@@ -18,7 +18,7 @@ type Committee = {
 };
 
 function normalize(value: string) {
-  return stripAccents(value, "MARKS").toLocaleLowerCase("es");
+  return stripAccents(value).toLocaleLowerCase("es");
 }
 
 function CommitteeCard({ item, own = false }: { item: Committee; own?: boolean }) {
