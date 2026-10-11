@@ -257,19 +257,6 @@ const EXCEPTIONS: Exceptions = {
       updateOrganizationAs
     `,
   },
-  events: {
-    nadie: `
-      EditionRef
-      EditionRow
-      EventRow
-      IcsEvent
-      createEvent
-      listAllEvents
-      listEvents
-      updateEdition
-      updateEvent
-    `,
-  },
   forms: {
     nadie: `
       AnswerValue
