@@ -11,9 +11,9 @@ import { seedCommittee, seedMember } from "./factories";
 
 // Caracterización de `updateBudgetAs` (DT-147) por su única puerta, el recurso Presupuestos del kit
 // (`budgetsResource.update`): en borrador se edita todo; abierto o cerrado, solo notas, actividad y
-// «presentado el». Dos conductas quedan fijadas como están hoy porque esperan la decisión abierta 58
-// (DT-149 inciso d): la auditoría no guarda el valor anterior de lo que cambia y un presupuesto cerrado
-// sigue aceptando cambios.
+// «presentado el». La auditoría guarda en su antes todo lo que una edición puede cambiar (ADR-122 regla
+// 8). Una conducta queda fijada como está hoy porque espera la decisión abierta 58 (DT-149 inciso d):
+// un presupuesto cerrado sigue aceptando cambios.
 
 type BudgetInput = Parameters<NonNullable<typeof budgetsResource.update>>[2];
 
@@ -265,7 +265,7 @@ describe("la edición de un presupuesto (updateBudgetAs)", () => {
     expect(await updatesOf(id)).toHaveLength(1);
   });
 
-  it("hoy la auditoría de una edición no guarda el valor anterior de «presentado el», del año ni del comité (DT-149 d, decisión abierta 58)", async () => {
+  it("la auditoría de una edición guarda en su antes el comité, el año, el tipo y «presentado el» que había, también con el presupuesto cerrado (DT-149 d)", async () => {
     const f = await fixture();
     const borrador = await draft(f);
     const cerrado = await closed({ ...f, a3: f.pixel });
@@ -283,12 +283,33 @@ describe("la edición de un presupuesto (updateBudgetAs)", () => {
       submittedOn: "2026-04-15",
     });
 
-    // El antes trae estado, notas y actividad: con él no se reconstruye qué fecha, año o comité había.
+    // El antes trae lo que había en cada dato que la edición puede cambiar: con él se reconstruye qué
+    // fecha de presentación, qué año y qué comité tenía el presupuesto antes de tocarlo.
     expect((await updatesOf(borrador)).map((row) => row.before)).toEqual([
-      { status: "DRAFT", notes: "Nota inicial", title: "" },
+      {
+        status: "DRAFT",
+        committeeId: f.a3,
+        year: 2026,
+        kind: "ORDINARY",
+        title: "",
+        notes: "Nota inicial",
+        submittedOn: "2026-01-05",
+      },
     ]);
     expect((await updatesOf(cerrado)).map((row) => row.before)).toEqual([
-      { status: "CLOSED", notes: "Nota inicial", title: "" },
+      {
+        status: "CLOSED",
+        committeeId: f.pixel,
+        year: 2026,
+        kind: "ORDINARY",
+        title: "",
+        notes: "Nota inicial",
+        submittedOn: "2026-01-05",
+      },
+    ]);
+    // Y el después de la del cerrado dice a qué fecha pasó: las dos puntas del cambio quedan escritas.
+    expect((await updatesOf(cerrado)).map((row) => row.after)).toEqual([
+      { title: "", notes: "Nota inicial", submittedOn: "2026-04-15" },
     ]);
   });
 

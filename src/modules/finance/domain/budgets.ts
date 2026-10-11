@@ -268,7 +268,17 @@ export async function updateBudget(
     action: "budget.updated",
     entityType: "committee_budget",
     entityId: id,
-    before: { status: current.status, notes: current.notes, title: current.title },
+    // El antes lleva todo lo que una edición puede cambiar, también lo que este estado no deja tocar:
+    // con las dos puntas se reconstruye qué fecha de presentación, año o comité había (ADR-122 regla 8).
+    before: {
+      status: current.status,
+      committeeId: current.committeeId,
+      year: current.year,
+      kind: current.kind,
+      title: current.title,
+      notes: current.notes,
+      submittedOn: current.submittedOn,
+    },
     after: patch,
   });
 }
