@@ -7,6 +7,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { promisify } from "node:util";
+import { stripAccents } from "@/shared/lib/accents";
 import { APP_SCREEN, internalPath } from "@/shared/lib/internal-path";
 import { COMMON_PASSWORDS } from "../data/common-passwords";
 
@@ -174,10 +175,7 @@ export interface PasswordContext {
 
 /** Quita tildes y baja a minúsculas para comparar contra la lista y contra los datos propios. */
 function fold(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+  return stripAccents(value, "BLOCK").toLowerCase();
 }
 
 /**

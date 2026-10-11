@@ -1,4 +1,5 @@
 import { t, tList } from "@/shared/copy";
+import { stripAccents } from "@/shared/lib/accents";
 import { parseCsv } from "@/shared/lib/csv";
 import {
   documentTypeSchema,
@@ -62,9 +63,7 @@ export const REQUIRED_FOR_NEW: readonly RosterColumn[] = [
 ];
 
 export function normalizeHeader(raw: string): string {
-  return raw
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+  return stripAccents(raw, "BLOCK")
     .replace(/[^A-Za-z0-9 -]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -72,7 +71,7 @@ export function normalizeHeader(raw: string): string {
 }
 
 export function normalizeText(raw: string): string {
-  return raw.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+  return stripAccents(raw, "BLOCK").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 export function detectMapping(headers: string[]): Array<RosterColumn | null> {

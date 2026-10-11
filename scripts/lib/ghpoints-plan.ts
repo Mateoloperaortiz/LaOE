@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { parseParams, ruleInputSchema } from "@/modules/permanence/domain/params";
+import { stripAccents } from "@/shared/lib/accents";
 
 export class GhImportError extends Error {}
 const key = z.string().regex(/^[A-Za-z0-9-]{2,80}$/);
@@ -170,9 +171,7 @@ export const kindFor = (type: GhActivity["type"]) =>
   type === "ASAMBLEA" ? "ASSEMBLY" : "ACTIVITY";
 export const legacyKey = (m: GhManifest, a: GhActivity) => `gh-import:${m.batchId}:${a.key}`;
 const normalize = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
+  stripAccents(value, "MARKS")
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, " ")
     .trim();

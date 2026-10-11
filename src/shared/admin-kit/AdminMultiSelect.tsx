@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { t } from "@/shared/copy/client";
+import { stripAccents } from "@/shared/lib/accents";
 import { type FieldDefinition, MULTI_SEPARATOR } from "./types";
 
 const inputClass =
@@ -21,11 +22,7 @@ export function ResourceMultiSelect({ field, value, error, editing, onChange }: 
   const selected = value ? value.split(MULTI_SEPARATOR) : [];
   const locked = editing && (field.lockedOnEdit ?? false);
   const options = field.options ?? [];
-  const normalize = (text: string) =>
-    text
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .toLocaleLowerCase("es");
+  const normalize = (text: string) => stripAccents(text, "DIACRITICS").toLocaleLowerCase("es");
   const matches = (label: string) => normalize(label).includes(normalize(query.trim()));
   return (
     <fieldset
