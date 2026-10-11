@@ -1,6 +1,11 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import ts from "typescript";
+import {
+  looseInserts,
+  tableNamesWritten,
+  unguardedConcurrencyTests,
+} from "./lib/test-suite-metrics";
 
 // Línea base de la auditoría de código (docs/auditoria-codigo-2026-09-19.md, tramo V0). Solo lee: imprime
 // una tabla Markdown con las métricas que cada tramo de refactor debe mover. Se corre al cerrar un tramo
@@ -9,6 +14,9 @@ import ts from "typescript";
 const GENERATED = "src/shared/copy/textos.generated.ts";
 const ACTION_HELPERS = ["requireAdmin", "text", "withQuery", "safeBack", "back", "single"];
 const RAW_ELEMENTS = ["input", "select", "table", "button"];
+// La base de pruebas (spec #244): dónde se vacía y dónde vive la fábrica que siembra.
+const TEST_EMPTYING = "tests/integration/db.ts";
+const TEST_FACTORY = "tests/integration/factories.ts";
 
 interface SourceFile {
   path: string;
@@ -165,6 +173,22 @@ const helperCopies = ACTION_HELPERS.map((name) => {
   return `${name} ${owners.length}`;
 }).join(" · ");
 
+const integration = load("tests/integration");
+const emptying = integration.find((file) => file.path === TEST_EMPTYING);
+if (!emptying) {
+  throw new Error(`No está ${TEST_EMPTYING}: el vaciado de la base de pruebas se mudó`);
+}
+const schemaTables = new Set(
+  src.flatMap((file) =>
+    [...file.text.matchAll(/pgTable\(\s*"([a-z0-9_]+)"/g)].map((match) => match[1] ?? ""),
+  ),
+);
+const insertsInIntegration = looseInserts(integration.filter((file) => file.path !== TEST_FACTORY));
+const insertsInE2e = looseInserts(load("tests/e2e"));
+const unguarded = unguardedConcurrencyTests(
+  integration.filter((file) => file.path.endsWith(".test.ts")),
+);
+
 const rows: [string, string | number][] = [
   [
     "Archivos y líneas en `src` (sin el catálogo de textos)",
@@ -217,6 +241,18 @@ const rows: [string, string | number][] = [
   [
     `Elementos crudos en \`src\` (${RAW_ELEMENTS.join(" · ")})`,
     RAW_ELEMENTS.map((tag) => count(src, new RegExp(`<${tag}[\\s>]`, "g"))).join(" · "),
+  ],
+  [
+    `Tablas del esquema nombradas en el vaciado de pruebas (\`${TEST_EMPTYING}\`)`,
+    tableNamesWritten(emptying, schemaTables).length,
+  ],
+  [
+    "Insert sueltos, `.insert(` · `insert into`: en `tests/integration` sin la fábrica · en `tests/e2e`",
+    `${insertsInIntegration.calls} · ${insertsInIntegration.raw} · ${insertsInE2e.calls} · ${insertsInE2e.raw}`,
+  ],
+  [
+    "Pruebas que nombran una simultaneidad en el título sin `warmPool` ni `helpers/locks` en su archivo · archivos",
+    `${unguarded.tests} · ${unguarded.files}`,
   ],
 ];
 
