@@ -708,7 +708,7 @@ describe("enlace de acceso", () => {
       expect(how).toBe("hizo cola");
     });
 
-    it("la revocación que llega mientras quien pierde el permiso emite espera, y el enlace que ya había emitido sigue", async () => {
+    it("la revocación que llega mientras quien pierde el permiso emite espera, y el enlace que ya había emitido sigue (decisión abierta 68)", async () => {
       const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
       const colega = await seedMemberWith("colega@eafit.edu.co", "BOARD");
       const permissionId = await boardPermissionOf(junta);
@@ -725,6 +725,7 @@ describe("enlace de acceso", () => {
         [],
       );
       // Es lo que queda si la revocación llega un instante después de emitir: no borra lo emitido.
+      // Si debe borrarlo es la decisión abierta 68 (DT-329); acá se conserva la conducta de hoy.
       expect(await linksOf(colega)).toBe(1);
     });
 

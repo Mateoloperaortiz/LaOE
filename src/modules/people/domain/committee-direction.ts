@@ -37,6 +37,7 @@ import {
 } from "./committee-role-assignments";
 import type { CommitteeRef } from "./committees";
 import { assertNoInhabilities, leadershipRolesOf } from "./inhabilities";
+import { lockWalletMember } from "./wallet-member";
 
 // La dirección del comité (ADR-058): qué comités dirige una persona y con qué capacidades, qué comités
 // quedaron sin un cargo obligatorio, quién puede entrar a un comité y los comandos con eje comité
@@ -398,8 +399,8 @@ async function targetPerson(exec: Executor, personId: string): Promise<TargetPer
 /**
  * Toma la fila de la membresía de la persona: el candado de todo el que cambia sus comités o sus
  * cargos (`setCommitteeMemberships`, la baja y la aprobación de un cambio de comité). En el orden del
- * ciclo de membresía va después del consultivo `wallet-member` y de la fila de `person`, que acá no
- * se toman, y antes de lo que cuelga de ella (ADR-120 regla 3).
+ * ciclo de membresía va después del consultivo `wallet-member`, que toma antes quien la llama para
+ * cambiar cargos y todavía no el «Agregar» (DT-328), y antes de lo que cuelga de ella (ADR-120 regla 3).
  */
 async function lockMembership(tx: Tx, personId: string): Promise<void> {
   await tx
@@ -538,6 +539,11 @@ export async function setMemberRoles(
   now = new Date(),
 ): Promise<{ changed: boolean }> {
   const { direction } = await requireDirection(ctx, scope, actor, "ROSTER");
+  // El consultivo del ciclo de membresía primero (ADR-120 regla 3; ADR-122 regla 4): escribir un cargo
+  // referencia la fila de `person`, que quien anonimiza toma antes que la de la membresía y quien
+  // reactiva con correo nuevo toma después. Con este candado los tres corren de a uno por persona y el
+  // orden en que cada uno toma esas dos filas no los cruza.
+  await lockWalletMember(ctx.tx, input.personId);
   // La pertenencia y sus cargos se leen con la fila de la membresía tomada (ADR-122 regla 4), como en
   // «Agregar»: el que saca a la persona del comité o la da de baja termina primero y esto responde
   // T-2173, y la aprobación de un cambio de comité, que copia estos cargos al término siguiente con

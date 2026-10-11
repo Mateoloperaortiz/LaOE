@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { closeDb, getDb } from "@/db/client";
@@ -6,10 +6,12 @@ import { interaction, task } from "@/modules/crm/schema";
 import type { Actor } from "@/modules/identity";
 import {
   addCommitteeMemberAs,
+  anonymizePersonAs,
   endMembershipAs,
   listCommitteesMissingRequiredRoles,
   listMyCommitteeCapabilities,
   requestCommitteeRemovalAs,
+  requestDeletionAs,
   searchEligibleMembers,
   setCommitteeMemberships,
   setMemberRolesAs,
@@ -22,7 +24,13 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { copyPattern } from "../helpers/copy";
-import { holdCommand, waitingOn } from "../helpers/locks";
+import {
+  firstThenSecond,
+  holdCommand,
+  holdTransaction,
+  outcome,
+  waitingOn,
+} from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
@@ -283,6 +291,43 @@ describe("agregar, cargos y pedido de retiro", () => {
         and(
           eq(committeeRoleAssignment.personId, f.member),
           eq(committeeRoleAssignment.committeeId, f.a3),
+          isNull(committeeRoleAssignment.endedAt),
+        ),
+      );
+    expect(live).toEqual([]);
+  });
+
+  it("si anonimizan a la persona mientras la dirección le cambia los cargos, la anonimización hace cola y los dos terminan, sin interbloqueo (DT-325)", async () => {
+    const f = await fixture();
+    const scope = { committeeId: f.a3, termId: f.termId };
+    await requestDeletionAs(actor(f.member));
+    // El cambio de cargos ya tomó la fila de la membresía de Mila y se detiene en el consultivo de las
+    // inhabilidades, antes de escribir el cargo, que es lo que referencia su fila de `person`.
+    const held = await holdTransaction((tx) =>
+      tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`leadership:${f.member}`}, 0))`,
+      ),
+    );
+
+    const [changed, anonymized] = await firstThenSecond(
+      held,
+      () =>
+        setMemberRolesAs(actor(f.gh), scope, admin, {
+          personId: f.member,
+          roles: [{ roleCode: "MERCADEO", coDirector: false }],
+        }),
+      () => anonymizePersonAs(actor(f.gh), f.member),
+    );
+
+    expect([outcome(changed), outcome(anonymized)]).toEqual(["ok", "ok"]);
+    // La anonimización entró después: cierra las pertenencias y, con ellas, el cargo recién puesto.
+    expect(await vivasDe(f.member)).toEqual([]);
+    const live = await db()
+      .select({ roleCode: committeeRoleAssignment.roleCode })
+      .from(committeeRoleAssignment)
+      .where(
+        and(
+          eq(committeeRoleAssignment.personId, f.member),
           isNull(committeeRoleAssignment.endedAt),
         ),
       );
