@@ -469,6 +469,31 @@ describe("el lote de una campaña, tal como es hoy", () => {
     expect(addresses(delivered.overflow)).toEqual(emails(roster));
     // Los contadores y el cierre no se afirman acá: con dos lotes a la vez quedan a medias (DT-112).
   });
+
+  it("la cancelación que llega antes que el arranque gana: el tick espera la fila de la campaña, la vuelve a leer cancelada y no arranca ni le manda a nadie", async () => {
+    await seedRoster(3);
+    const id = await scheduleCampaign(3);
+
+    // La cancelación no toma el consultivo del arranque: lo único que pone al arranque detrás de ella es
+    // el `for update` de la fila en `startCampaign`. La prueba retiene la fila hasta que los dos la
+    // esperan, la cancelación primero (DT-335).
+    const row = await holdLock(sql`select id from campaign where id = ${id} for update`);
+    const cancel = cancelCampaignAs(SYSTEM_ACTOR, id);
+    await untilLockWaiters(1, cancel);
+    const tick = runCampaignTick(minute(0));
+    await untilLockWaiters(2, tick);
+    const waiting = (await lockWaiters()).length;
+    await row.release();
+    await cancel;
+
+    expect(waiting).toBe(2);
+    // Sin la fila bajo candado el arranque lee «programada», congela la audiencia, espera recién en su
+    // escritura y pisa la cancelación: la campaña sale.
+    expect(await tick).toEqual({ started: 0, sent: 0 });
+    expect(await getCampaign(id)).toMatchObject({ status: "CANCELLED", startedAt: null });
+    expect(await recipientStatuses(id)).toEqual({});
+    expect(delivered.overflow).toHaveLength(0);
+  });
 });
 
 /** El motivo de un rechazo en una línea: el de Postgres si viene, que el de Drizzle repite la consulta. */
