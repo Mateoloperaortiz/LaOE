@@ -9,7 +9,6 @@ import {
   verifyStepUpPassword,
 } from "@/modules/identity/domain/password";
 import {
-  hashPassword,
   LOGIN_MAX_PER_EMAIL,
   LOGIN_MAX_PER_IP,
   PERSON_PASSWORD_MAX_FAILED,
@@ -18,8 +17,8 @@ import {
   verifyPassword,
 } from "@/modules/identity/domain/pure";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
-import { credential, loginAttempt, session } from "@/modules/identity/schema";
-import { seedMembership, seedPerson, seedTerm } from "../factories";
+import { loginAttempt, session } from "@/modules/identity/schema";
+import { seedCredential, seedMembership, seedPerson, seedTerm } from "../factories";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
@@ -39,9 +38,7 @@ async function seedMember(email: string): Promise<string> {
 
 async function conClave(email = EMAIL): Promise<string> {
   const personId = await seedMember(email);
-  await db()
-    .insert(credential)
-    .values({ personId, passwordHash: await hashPassword(CLAVE) });
+  await seedCredential(personId, CLAVE);
   return personId;
 }
 

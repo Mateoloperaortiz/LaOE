@@ -11,7 +11,8 @@ import {
   request,
 } from "@/modules/crm/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
-import { permission } from "@/modules/identity/schema";
+import { hashPassword } from "@/modules/identity/domain/pure";
+import { credential, permission } from "@/modules/identity/schema";
 import {
   boosterItem,
   challenge,
@@ -216,6 +217,18 @@ export async function seedPermission(
     );
   if (!existing) throw new Error("seed permission");
   return existing.id;
+}
+
+/**
+ * Deja a la persona con esa contraseña. Si ya tenía credencial, se la cambia: la preparación de la
+ * E2E vuelve a pasar por identidades que ya traen la suya.
+ */
+export async function seedCredential(personId: string, password: string): Promise<void> {
+  const passwordHash = await hashPassword(password);
+  await db()
+    .insert(credential)
+    .values({ personId, passwordHash })
+    .onConflictDoUpdate({ target: credential.personId, set: { passwordHash } });
 }
 
 export async function seedCommittee(

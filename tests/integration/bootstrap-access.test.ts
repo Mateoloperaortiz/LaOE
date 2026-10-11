@@ -5,11 +5,11 @@ import { SYSTEM_ACTOR } from "@/db/tx";
 import { grantPermissionAs } from "@/modules/identity";
 import { consumeAccessGrant } from "@/modules/identity/domain/access-grant";
 import { findPasswordHash } from "@/modules/identity/domain/password";
-import { hashPassword, verifyPassword } from "@/modules/identity/domain/pure";
-import { accessGrant, credential } from "@/modules/identity/schema";
+import { verifyPassword } from "@/modules/identity/domain/pure";
+import { accessGrant } from "@/modules/identity/schema";
 import { auditLog } from "@/modules/system/schema";
 import { BootstrapAccessError, bootstrapAccess } from "../../scripts/lib/bootstrap-access";
-import { seedMembership, seedPerson, seedTerm } from "../factories";
+import { seedCredential, seedMembership, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
 
 // Arranque del acceso (ADR-051, regla 16): el único camino de vuelta cuando nadie puede entrar.
@@ -77,9 +77,7 @@ describe("bootstrapAccess", () => {
   it("acepta RECOVERY para quien ya tiene contraseña", async () => {
     const personId = await seedMember("arranque@eafit.edu.co");
     const previous = "caracol anterior 91";
-    await db()
-      .insert(credential)
-      .values({ personId, passwordHash: await hashPassword(previous) });
+    await seedCredential(personId, previous);
 
     const result = await bootstrapAccess({ email: "arranque@eafit.edu.co", kind: "RECOVERY" });
 

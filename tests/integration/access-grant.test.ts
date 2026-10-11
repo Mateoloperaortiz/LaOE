@@ -10,7 +10,7 @@ import {
   resolveAccessGrant,
 } from "@/modules/identity/domain/access-grant";
 import { findPasswordHash, signInWithPassword } from "@/modules/identity/domain/password";
-import { hashPassword, hashToken, verifyPassword } from "@/modules/identity/domain/pure";
+import { hashToken, verifyPassword } from "@/modules/identity/domain/pure";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
 import { accessGrant, credential, permission, session } from "@/modules/identity/schema";
 import {
@@ -25,7 +25,7 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { seedMembership, seedPerson, seedTerm } from "../factories";
+import { seedCredential, seedMembership, seedPerson, seedTerm } from "../factories";
 import {
   backendPid,
   deferred,
@@ -293,9 +293,7 @@ describe("enlace de acceso", () => {
   it("reemplaza la contraseña anterior cuando es una recuperación", async () => {
     const emisor = await seedMember("junta@eafit.edu.co");
     const destino = await seedMember("destino@eafit.edu.co");
-    await db()
-      .insert(credential)
-      .values({ personId: destino, passwordHash: await hashPassword("la vieja larga") });
+    await seedCredential(destino, "la vieja larga");
     const { token } = await issueAccessGrantAs(
       { personId: emisor, ip: null },
       { personId: destino, kind: "RECOVERY" },

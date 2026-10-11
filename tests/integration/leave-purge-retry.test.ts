@@ -19,7 +19,6 @@ import {
   issueAccessGrantAs,
   listPermissionsFor,
 } from "@/modules/identity";
-import { hashPassword } from "@/modules/identity/domain/pure";
 import { createSession } from "@/modules/identity/domain/session";
 import { accessGrant, calendarToken, credential, session } from "@/modules/identity/schema";
 import { createSurveyInvites } from "@/modules/participation";
@@ -34,6 +33,7 @@ import {
   leaveUntilSoon,
   seedCheckIn,
   seedCommittee,
+  seedCredential,
   seedForm,
   seedMember,
   seedOccasion,
@@ -83,9 +83,7 @@ async function scene(): Promise<Scene> {
 /** Todo lo que una baja se lleva, recién creado: lo que la persona tiene mientras está adentro. */
 async function equip({ board, personId, termId, committeeId }: Scene): Promise<void> {
   sequence += 1;
-  await db()
-    .insert(credential)
-    .values({ personId, passwordHash: await hashPassword("trapecio verde 41") });
+  await seedCredential(personId, "trapecio verde 41");
   await grantPermissionAs(
     { personId: board, ip: null },
     { email: EMAIL, code: "COMMITTEE_LEADER", committeeId },

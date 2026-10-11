@@ -10,11 +10,10 @@ import { announcement, document, mediaAsset } from "@/modules/content/schema";
 import { internalCall, organization, pipeline, recognition, task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { editionRegistration, form } from "@/modules/forms/schema";
-import { hashPassword, personAttemptKey } from "@/modules/identity/domain/pure";
+import { personAttemptKey } from "@/modules/identity/domain/pure";
 import {
   accessGrant,
   carnetToken,
-  credential,
   loginAttempt,
   otpChallenge,
   permission,
@@ -41,7 +40,7 @@ import {
 import { appConfig, importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { walletPass } from "@/modules/wallet/schema";
-import { seedMembership, seedPermission, seedPerson, seedTerm } from "../factories";
+import { seedCredential, seedMembership, seedPermission, seedPerson, seedTerm } from "../factories";
 import { E2E_TERM } from "./calendar";
 import { alignSeedCalendar } from "./calendar-seed";
 import { assertOwnedDatabase } from "./environment";
@@ -71,13 +70,7 @@ async function setE2ePassword(personId: string, email: string): Promise<void> {
     .delete(loginAttempt)
     .where(inArray(loginAttempt.email, [email, personAttemptKey(personId)]));
   await db.delete(accessGrant).where(eq(accessGrant.personId, personId));
-  await db
-    .insert(credential)
-    .values({ personId, passwordHash: await hashPassword(E2E_PASSWORD) })
-    .onConflictDoUpdate({
-      target: credential.personId,
-      set: { passwordHash: await hashPassword(E2E_PASSWORD) },
-    });
+  await seedCredential(personId, E2E_PASSWORD);
 }
 
 /** La membresía activa de una identidad sintética, si la base no se la trae ya. */

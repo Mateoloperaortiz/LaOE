@@ -6,11 +6,10 @@ import { eventOf } from "@/domain-events/define";
 import { membershipChanged, personAnonymized } from "@/domain-events/people";
 import { issueAccessGrantAs } from "@/modules/identity/domain/access-grant";
 import { findPasswordHash } from "@/modules/identity/domain/password";
-import { hashPassword } from "@/modules/identity/domain/pure";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
-import { accessGrant, credential, session } from "@/modules/identity/schema";
+import { accessGrant, session } from "@/modules/identity/schema";
 import { endMembershipAs } from "@/modules/people";
-import { seedMembership, seedPerson, seedTerm } from "../factories";
+import { seedCredential, seedMembership, seedPerson, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
@@ -26,9 +25,7 @@ async function seedMember(email: string): Promise<string> {
   const termId = await seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
   const personId = await seedPerson(email, { firstName: "Salida" });
   await seedMembership(personId, termId);
-  await db()
-    .insert(credential)
-    .values({ personId, passwordHash: await hashPassword(CLAVE) });
+  await seedCredential(personId, CLAVE);
   return personId;
 }
 

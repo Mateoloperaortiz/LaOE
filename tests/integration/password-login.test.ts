@@ -5,13 +5,12 @@ import { getEnv } from "@/env";
 import { findPasswordHash, signInWithPassword } from "@/modules/identity/domain/password";
 import {
   emailLogDigest,
-  hashPassword,
   LOGIN_MAX_PER_EMAIL,
   LOGIN_MAX_PER_IP,
 } from "@/modules/identity/domain/pure";
 import { resolveActor } from "@/modules/identity/domain/session";
-import { credential, loginAttempt } from "@/modules/identity/schema";
-import { seedMembership, seedPerson, seedTerm } from "../factories";
+import { loginAttempt } from "@/modules/identity/schema";
+import { seedCredential, seedMembership, seedPerson, seedTerm } from "../factories";
 import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { truncateAll } from "./db";
 
@@ -33,9 +32,7 @@ async function seedMember(
 
 async function withPassword(email: string, status?: "ACTIVE" | "INACTIVE"): Promise<string> {
   const personId = await seedMember(email, status);
-  await db()
-    .insert(credential)
-    .values({ personId, passwordHash: await hashPassword(CLAVE) });
+  await seedCredential(personId, CLAVE);
   return personId;
 }
 
