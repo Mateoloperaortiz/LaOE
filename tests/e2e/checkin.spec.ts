@@ -6,7 +6,7 @@ import { person } from "@/modules/people/schema";
 import { legacyAlias } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
-import { seedCheckIn } from "../factories";
+import { seedAlias, seedCheckIn } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -43,7 +43,7 @@ test.beforeEach(async () => {
     .returning({ id: occasion.id });
   if (!row) throw new Error("sin ocasión");
   await db.delete(legacyAlias).where(eq(legacyAlias.path, `/asamblea/${LEGACY_ID}`));
-  await db.insert(legacyAlias).values({ path: `/asamblea/${LEGACY_ID}`, targetId: row.id });
+  await seedAlias(`/asamblea/${LEGACY_ID}`, row.id);
 });
 
 test.afterEach(async () => {

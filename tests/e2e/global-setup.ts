@@ -37,11 +37,12 @@ import {
   permanenceTable,
   workGroup,
 } from "@/modules/permanence/schema";
-import { appConfig, importJob } from "@/modules/system/schema";
+import { importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { walletPass } from "@/modules/wallet/schema";
 import {
   seedCommitteeMembership,
+  seedConfig,
   seedConsent,
   seedCredential,
   seedMembership,
@@ -108,13 +109,7 @@ export default async function globalSetup(): Promise<void> {
   // El seed compartido conserva sus ejemplos históricos. Solo la base E2E adapta sus dos
   // términos al calendario vigente, preservando IDs y relaciones de las fixtures.
   await alignSeedCalendar(new Date());
-  await db
-    .insert(appConfig)
-    .values({ key: "privacy.policyVersion", value: TEST_POLICY_VERSION })
-    .onConflictDoUpdate({
-      target: appConfig.key,
-      set: { value: TEST_POLICY_VERSION, updatedAt: new Date() },
-    });
+  await seedConfig("privacy.policyVersion", TEST_POLICY_VERSION);
   const current = {
     id: await seedTerm(E2E_TERM.code, { startsOn: E2E_TERM.startsOn, endsOn: E2E_TERM.endsOn }),
   };

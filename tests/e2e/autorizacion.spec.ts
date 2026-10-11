@@ -5,7 +5,7 @@ import { page as contentPage } from "@/modules/content/schema";
 import { consent, person } from "@/modules/people/schema";
 import { appConfig } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { seedConsent } from "../factories";
+import { seedConfig, seedConsent } from "../factories";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
@@ -51,10 +51,7 @@ test.beforeEach(async () => {
     .where(eq(person.email, E2E_MEMBER_EMAIL));
   if (!member) throw new Error("miembro sintético ausente");
   memberId = member.id;
-  await getDb()
-    .insert(appConfig)
-    .values({ key: "privacy.policyVersion", value: '"prueba-v1"' })
-    .onConflictDoUpdate({ target: appConfig.key, set: { value: '"prueba-v1"' } });
+  await seedConfig("privacy.policyVersion", '"prueba-v1"');
   await getDb()
     .delete(consent)
     .where(and(eq(consent.personId, memberId), eq(consent.purpose, "MEMBERSHIP")));

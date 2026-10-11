@@ -6,7 +6,7 @@ import { person, segment } from "@/modules/people/schema";
 import { appConfig, auditLog } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
-import { seedSegment } from "../factories";
+import { seedConfig, seedSegment } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
@@ -80,10 +80,7 @@ async function sembrar(): Promise<Sembrado> {
     until: until.toISOString(),
   };
   await db.delete(appConfig).where(eq(appConfig.key, RESERVE_KEY));
-  await db
-    .insert(appConfig)
-    .values({ key: CUT_KEY, value: cut })
-    .onConflictDoUpdate({ target: appConfig.key, set: { value: cut } });
+  await seedConfig(CUT_KEY, cut);
   return {
     campaignId: row.id,
     templateId: template.id,

@@ -54,7 +54,7 @@ import {
   workGroupEvaluator,
   workGroupMembership,
 } from "@/modules/permanence/schema";
-import { appConfig } from "@/modules/system/schema";
+import { appConfig, legacyAlias } from "@/modules/system/schema";
 import { conventionalTermDates } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { walletPass } from "@/modules/wallet/schema";
@@ -1324,4 +1324,12 @@ export async function seedCompetitionSupport(
   role: (typeof competitionSupport.$inferInsert)["role"],
 ): Promise<void> {
   await db().insert(competitionSupport).values({ competitionId, baseId, personId, role });
+}
+
+/**
+ * Alias de una ruta del sitio anterior hacia una ocasión (ADR-018), con la fila que deja `createAlias`.
+ * No valida la forma de la ruta ni audita.
+ */
+export async function seedAlias(path: string, targetId: string): Promise<void> {
+  await db().insert(legacyAlias).values({ path, targetId });
 }

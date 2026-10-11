@@ -6,6 +6,7 @@ import { session } from "@/modules/identity/schema";
 import { person } from "@/modules/people/schema";
 import { appConfig } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
+import { seedConfig } from "../factories";
 import { test } from "./fixtures";
 import { E2E_EMAIL } from "./global-setup";
 import { drenarOutbox } from "./outbox";
@@ -49,10 +50,7 @@ test.beforeEach(async () => {
     .update(session)
     .set({ otpVerifiedAt: new Date() })
     .where(eq(session.personId, admin.id));
-  await getDb()
-    .insert(appConfig)
-    .values({ key: "privacy.policyVersion", value: "pendiente" })
-    .onConflictDoUpdate({ target: appConfig.key, set: { value: "pendiente" } });
+  await seedConfig("privacy.policyVersion", "pendiente");
   const [created] = await getDb()
     .insert(contentPage)
     .values({
