@@ -1,7 +1,12 @@
 import { expect, type Page } from "@playwright/test";
 import { desc, eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { applyGame2048Move, game2048Reward } from "@/modules/participation/game2048-engine";
+import {
+  applyGame2048Move,
+  GAME2048_MAX_MOVES,
+  game2048Reward,
+  newGame2048,
+} from "@/modules/participation/game2048-engine";
 import type { Game2048Move } from "@/modules/participation/game2048-types";
 import { game2048Run, pointEntry } from "@/modules/participation/schema";
 import { t, tList } from "@/shared/copy";
@@ -218,6 +223,42 @@ test("recargar a mitad de partida la retoma donde iba", async ({ page }) => {
   expect(await tablero(page)).toEqual(antes);
   await expect(juego.getByText(puntaje, { exact: true })).toBeVisible();
   // Sigue siendo la misma partida: nunca hay dos abiertas.
+  expect(await partidas()).toHaveLength(1);
+});
+
+/** Los movimientos que llevan la semilla a un tablero al que no le queda jugada. */
+function movesUntilFinished(seed: string): string {
+  let state = newGame2048(seed);
+  let moves = "";
+  while (!state.over && moves.length < GAME2048_MAX_MOVES) {
+    const step = ORDER.map((move) => ({ move, next: applyGame2048Move(state, move) })).find(
+      (candidate) => candidate.next !== null,
+    );
+    if (!step?.next) break;
+    state = step.next;
+    moves += step.move;
+  }
+  return moves;
+}
+
+test("seguir un tablero retomado que ya terminó cierra la partida en vez de dejarla sin salida", async ({
+  page,
+}) => {
+  await page.goto("/app/juegos/2048");
+  const game = page.locator("#game2048");
+  await empezarPartida(page);
+  // El cierre de una partida terminada no llegó a la casa y la persona recargó: la partida sigue
+  // abierta allá y el navegador guarda los movimientos de un tablero al que no le queda jugada.
+  const open = await ultimaPartida();
+  await page.evaluate(
+    ([runId, moves]) => window.localStorage.setItem("oe-2048", JSON.stringify({ runId, moves })),
+    [open.id, movesUntilFinished(open.seed)],
+  );
+  await page.reload();
+  await game.getByRole("button", { name: t("T-2647") }).click();
+  // La salida: la partida se cierra con lo jugado, como la habría cerrado su última jugada.
+  await expect(game.getByRole("button", { name: t("T-2633") })).toBeVisible();
+  await cierreSegunPuntaje(page, 0);
   expect(await partidas()).toHaveLength(1);
 });
 
