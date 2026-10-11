@@ -21,6 +21,7 @@ import { getPrivacyPolicyState, PrivacyPolicyPendingError, requireConfig } from 
 import { appConfig, auditLog, outbox } from "@/modules/system/schema";
 import {
   seedCommittee,
+  seedConfig,
   seedForm,
   seedMember,
   seedOccasion,
@@ -33,10 +34,7 @@ import { truncateAll } from "./db";
 const db = () => getDb();
 
 async function setPolicy(version: string): Promise<void> {
-  await db()
-    .insert(appConfig)
-    .values({ key: "privacy.policyVersion", value: version })
-    .onConflictDoUpdate({ target: appConfig.key, set: { value: version } });
+  await seedConfig("privacy.policyVersion", version);
 }
 
 describe("política pendiente (ADR-039)", () => {

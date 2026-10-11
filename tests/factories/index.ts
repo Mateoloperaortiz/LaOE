@@ -53,6 +53,7 @@ import {
   workGroupEvaluator,
   workGroupMembership,
 } from "@/modules/permanence/schema";
+import { appConfig } from "@/modules/system/schema";
 import { conventionalTermDates } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { walletPass } from "@/modules/wallet/schema";
@@ -1300,4 +1301,16 @@ export async function seedWalletPasses(
         tokenRevision: 1,
       })),
     );
+}
+
+/**
+ * Una clave de configuración escrita directo en la base, pisando la que haya. No pasa por `setConfig`:
+ * no audita ni emite, y tampoco le avisa a la caché de configuración de este proceso, que sigue con lo
+ * que ya había leído hasta que alguien la limpie.
+ */
+export async function seedConfig(key: string, value: unknown): Promise<void> {
+  await db()
+    .insert(appConfig)
+    .values({ key, value })
+    .onConflictDoUpdate({ target: appConfig.key, set: { value } });
 }

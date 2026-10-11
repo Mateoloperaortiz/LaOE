@@ -3,8 +3,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { hasLiveConsent, recordConsentAs } from "@/modules/people";
 import { consent } from "@/modules/people/schema";
-import { appConfig, auditLog, outbox } from "@/modules/system/schema";
-import { seedMember } from "../factories";
+import { auditLog, outbox } from "@/modules/system/schema";
+import { seedConfig, seedMember } from "../factories";
 import { truncateAll } from "./db";
 
 // ADR-048: la autorización de membresía la da el titular en su primer ingreso.
@@ -12,10 +12,7 @@ import { truncateAll } from "./db";
 const db = () => getDb();
 
 async function setPolicy(version: string): Promise<void> {
-  await db()
-    .insert(appConfig)
-    .values({ key: "privacy.policyVersion", value: version })
-    .onConflictDoUpdate({ target: appConfig.key, set: { value: version } });
+  await seedConfig("privacy.policyVersion", version);
 }
 
 describe("autorización en el primer ingreso (ADR-048)", () => {
