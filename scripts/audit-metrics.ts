@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import ts from "typescript";
+import { moduleInterfaces } from "./lib/module-interface-metrics";
 import {
   looseInserts,
   schemaTables,
@@ -132,32 +133,6 @@ function analyze(files: SourceFile[]): Analysis {
   return { functions, topLevelNames };
 }
 
-function exportsOf(path: string): number {
-  const source = ts.createSourceFile(
-    path,
-    readFileSync(path, "utf8"),
-    ts.ScriptTarget.ES2022,
-    true,
-  );
-  let total = 0;
-  for (const statement of source.statements) {
-    if (ts.isExportDeclaration(statement)) {
-      total +=
-        statement.exportClause && ts.isNamedExports(statement.exportClause)
-          ? statement.exportClause.elements.length
-          : 1;
-    } else if (
-      ts.canHaveModifiers(statement) &&
-      ts.getModifiers(statement)?.some((mod) => mod.kind === ts.SyntaxKind.ExportKeyword)
-    ) {
-      total += ts.isVariableStatement(statement)
-        ? statement.declarationList.declarations.length
-        : 1;
-    }
-  }
-  return total;
-}
-
 const src = load("src");
 const scripts = load("scripts");
 const app = src.filter((file) => file.path.startsWith("src/app/"));
@@ -173,6 +148,22 @@ const helperCopies = ACTION_HELPERS.map((name) => {
   );
   return `${name} ${owners.length}`;
 }).join(" · ");
+
+// La interfaz pública de los módulos (spec #238): la misma cuenta que la prueba
+// `tests/unit/module-public-interface.test.ts` compara con su lista de excepciones.
+const interfaces = moduleInterfaces(
+  [...src, ...scripts, ...load(".railway")],
+  load("tests"),
+).modules;
+const exportsOf = (name: string) => {
+  const found = interfaces.find((candidate) => candidate.module === name);
+  if (!found) {
+    throw new Error(`No está src/modules/${name}/index.ts: el módulo se mudó o cambió de nombre`);
+  }
+  return found.exported.length;
+};
+const sumOf = (pick: (found: (typeof interfaces)[number]) => string[]) =>
+  interfaces.reduce((total, found) => total + pick(found).length, 0);
 
 const integration = load("tests/integration");
 const emptying = integration.find((file) => file.path === TEST_EMPTYING);
@@ -202,9 +193,11 @@ const rows: [string, string | number][] = [
   ["Archivos de más de 500 · 1000 líneas", `${bigger(500)} · ${bigger(1000)}`],
   [
     "Exports de `participation` · `people` · `crm` (`index.ts`)",
-    ["participation", "people", "crm"]
-      .map((name) => exportsOf(`src/modules/${name}/index.ts`))
-      .join(" · "),
+    ["participation", "people", "crm"].map(exportsOf).join(" · "),
+  ],
+  [
+    "Exports de los `index.ts` de los módulos: todos · sin consumidor de producción fuera del módulo · de esos, los que importa alguna prueba",
+    `${sumOf((found) => found.exported)} · ${sumOf((found) => found.unused)} · ${sumOf((found) => found.testOnly)}`,
   ],
   [
     "Nombres de función de nivel superior declarados en 2 o más archivos de `src`",
