@@ -1,8 +1,10 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { listCommitteeAnnouncements } from "@/modules/content";
 import { grantRecognitionAs } from "@/modules/crm";
 import { recognition } from "@/modules/crm/schema";
+import { setProbation } from "@/modules/people/domain/term-outcomes";
 import { consent } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
@@ -66,6 +68,59 @@ describe("el reconocimiento de un comité es de alguien de ese comité", () => {
 
     expect(await listCommitteeAnnouncements(f.a3)).toEqual([]);
     expect(await written()).toEqual(before);
+  });
+
+  // El alcance va antes que el bloqueo de beneficios: si no, T-2331 le diría a quien llama que una
+  // persona que no es de su comité está en periodo de prueba o con los derechos suspendidos.
+  it("una persona de otro comité en periodo de prueba responde lo mismo que cualquier ajena, sin delatar su condición", async () => {
+    const f = await setup();
+    const outsider = await memberWithConsent("otro.en.prueba@eafit.edu.co");
+    await seedCommitteeMembership(outsider, f.pixel, f.termId);
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      setProbation(ctx, outsider, f.termId, {
+        committeeId: f.pixel,
+        probation: true,
+        reason: "Prueba sintética",
+      }),
+    );
+    const before = await written();
+
+    await expect(
+      grantRecognitionAs(leader, {
+        personId: outsider,
+        kind: "MEMBER_OF_MONTH",
+        committeeId: f.a3,
+        termId: f.termId,
+        month: 8,
+        title: "",
+      }),
+    ).rejects.toThrow(t("T-032"));
+
+    expect(await written()).toEqual(before);
+  });
+
+  it("alguien del comité en periodo de prueba sigue respondiendo que tiene los beneficios bloqueados", async () => {
+    const f = await setup();
+    const member = await memberWithConsent("propio.en.prueba@eafit.edu.co");
+    await seedCommitteeMembership(member, f.a3, f.termId);
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      setProbation(ctx, member, f.termId, {
+        committeeId: f.a3,
+        probation: true,
+        reason: "Prueba sintética",
+      }),
+    );
+
+    await expect(
+      grantRecognitionAs(leader, {
+        personId: member,
+        kind: "MEMBER_OF_MONTH",
+        committeeId: f.a3,
+        termId: f.termId,
+        month: 8,
+        title: "",
+      }),
+    ).rejects.toThrow(t("T-2331"));
   });
 
   it("con alguien que está vivo en el comité, el destacado se publica en su cartelera", async () => {

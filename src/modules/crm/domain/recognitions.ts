@@ -100,9 +100,10 @@ export async function grantRecognition(
   input: RecognitionInput,
   context: RecognitionContext,
 ): Promise<RecognitionResult> {
-  await assertBenefitsAvailable(ctx.tx, input.personId, input.termId);
   // ADR-122 regla 2: un reconocimiento que llega con comité es de alguien que está en el roster de
-  // ese comité en ese término. Lo lee el comando; quien no está responde como uno que no existe.
+  // ese comité en ese término. Lo lee el comando; quien no está responde como uno que no existe. Va
+  // antes que el bloqueo de beneficios: T-2331 de una persona ajena le diría a quien llama que está
+  // en periodo de prueba o con los derechos suspendidos.
   if (
     input.committeeId &&
     !(await isInInternalRoster(ctx.tx, input.personId, {
@@ -112,6 +113,7 @@ export async function grantRecognition(
   ) {
     throw new DomainError(t("T-032"));
   }
+  await assertBenefitsAvailable(ctx.tx, input.personId, input.termId);
   const mes = monthName(input.month ?? null);
   const title =
     input.title ||
