@@ -54,10 +54,6 @@ export function dayKeyOf(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-// La suma de días es la de toda la casa (ADR-121 regla 6). Sigue saliendo por acá para quien ya la
-// tomaba de este archivo: las licencias y el `addDaysToKey` de `people`.
-export { addDays };
-
 export function addMonths(key: string, months: number): string {
   const date = fromKey(key);
   const day = date.getUTCDate();

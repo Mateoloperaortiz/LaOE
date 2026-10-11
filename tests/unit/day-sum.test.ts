@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { providerDayEnd } from "@/modules/comms/domain/pure";
 import { nextDayAt, weekKeyFor } from "@/modules/participation/domain/gamification-pure";
@@ -135,6 +136,18 @@ describe("un día más n días", () => {
       }
     }
     expect(different).toEqual([]);
+  });
+
+  it("la suma de días tiene una sola puerta: nadie más la define, la reexporta ni le pone otro nombre", () => {
+    // DT-322: `sanction-pure.ts` la reexportaba y `people` la publicaba como `addDaysToKey`.
+    const again =
+      /\bfunction\s+addDays\b|\bconst\s+addDays\b|\bexport\s*\{[^}]*\baddDays\b|\baddDays\s+as\s+\w+/;
+    const doors = (readdirSync("src", { recursive: true }) as string[])
+      .filter((file) => /\.tsx?$/.test(file))
+      .map((file) => `src/${file}`)
+      .filter((file) => again.test(readFileSync(file, "utf8")))
+      .sort();
+    expect(doors).toEqual(["src/shared/lib/dates-pure.ts"]);
   });
 
   it("la ventana de evaluación de permanencia abre los mismos días antes del fin del término", () => {
