@@ -11,6 +11,7 @@ import {
   listMyCommitteeCapabilities,
   requestCommitteeRemovalAs,
   searchEligibleMembers,
+  setCommitteeMemberships,
   setMemberRolesAs,
 } from "@/modules/people";
 import { addCommitteeMember } from "@/modules/people/domain/committee-direction";
@@ -256,6 +257,36 @@ describe("agregar, cargos y pedido de retiro", () => {
     await baja;
 
     expect(await vivasDe(f.newbie)).toEqual([]);
+  });
+
+  it("si GH saca a la persona del comité primero, el cambio de cargos que hacía cola responde que ya no es del comité (DT-325)", async () => {
+    const f = await fixture();
+    const scope = { committeeId: f.a3, termId: f.termId };
+    // Mila está en A3 y PIXEL. GH la deja solo en PIXEL: queda escrito y sin confirmar.
+    const held = await holdCommand(actor(f.gh), (ctx) =>
+      setCommitteeMemberships(ctx, f.member, f.termId, [{ committeeId: f.pixel }]),
+    );
+    const cambio = setMemberRolesAs(actor(f.gh), scope, admin, {
+      personId: f.member,
+      roles: [{ roleCode: "MERCADEO", coDirector: false }],
+    }).then(
+      () => "cambiados",
+      (error: unknown) => error,
+    );
+    await enCola(held);
+
+    expect(await cambio).toEqual(new DomainError(t("T-2173"), "personId"));
+    const live = await db()
+      .select({ roleCode: committeeRoleAssignment.roleCode })
+      .from(committeeRoleAssignment)
+      .where(
+        and(
+          eq(committeeRoleAssignment.personId, f.member),
+          eq(committeeRoleAssignment.committeeId, f.a3),
+          isNull(committeeRoleAssignment.endedAt),
+        ),
+      );
+    expect(live).toEqual([]);
   });
 
   it("dos «Agregar» a la vez de la misma persona no la dejan con un comité de más (DT-209 c)", async () => {

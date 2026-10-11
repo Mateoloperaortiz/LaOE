@@ -4,8 +4,15 @@ import { closeDb, getDb } from "@/db/client";
 import { requestDecided, requestWithdrawn } from "@/domain-events/crm";
 import { createRequestAs, decideRequestAs, getRequest, withdrawRequestAs } from "@/modules/crm";
 import { request, task } from "@/modules/crm/schema";
-import { getMembershipRef, setCommitteeMemberships } from "@/modules/people";
-import { committeeMembership, membership, membershipEvent } from "@/modules/people/schema";
+import { getMembershipRef, setCommitteeMemberships, setMemberRolesAs } from "@/modules/people";
+import { setMemberRoles } from "@/modules/people/domain/committee-direction";
+import {
+  committee,
+  committeeMembership,
+  committeeRoleAssignment,
+  membership,
+  membershipEvent,
+} from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { findTermByCode, nextTermCode } from "@/modules/terms";
 import { t } from "@/shared/copy";
@@ -16,6 +23,7 @@ import {
   holdTransaction,
   outcome,
   waitingOn,
+  whileHeld,
 } from "../helpers/locks";
 import { truncateAll } from "./db";
 import {
@@ -24,6 +32,7 @@ import {
   seedCommitteeMembership,
   seedMember,
   seedTerm,
+  seedVeteran,
 } from "./factories";
 
 // DT-148: decidir y retirar una solicitud toman su fila con candado y recién después miran si sigue
@@ -218,5 +227,96 @@ describe("aprobar un cambio de comité mientras otro comando cambia los comités
       ["CIGMA", true],
       ["PIXEL", false],
     ]);
+  });
+});
+
+// DT-325: la dirección de un comité cambiaba los cargos de un miembro sin tomar la fila de su
+// membresía, que es lo que toma la aprobación antes de leer los cargos que copia al término siguiente
+// (ADR-121 regla 15). Un cambio de cargos ya escrito y sin confirmar no pasaba al término siguiente.
+describe("aprobar un cambio de comité mientras la dirección cambia los cargos de la persona", () => {
+  beforeEach(truncateAll);
+  afterAll(closeDb);
+
+  const direction = { isAdmin: true, allCapabilities: true };
+  const logistica = [{ roleCode: "LOGISTICA", coDirector: false }];
+
+  async function transfer(email: string) {
+    const termId = await seedTerm();
+    const personId = await seedVeteran(email);
+    const a3 = await seedCommittee("a3", "A3");
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    await seedCommitteeMembership(personId, a3, termId);
+    const { id: requestId } = await createRequestAs({ personId, ip: null }, "TRANSFER", {
+      reason: "Quiero sumar un comité",
+      leaveCommitteeIds: [],
+      joinCommitteeIds: [cigma],
+    });
+    return { termId, personId, a3, cigma, requestId, scope: { committeeId: a3, termId } };
+  }
+
+  /** Los cargos vivos de la persona en A3, en el término vigente y en el siguiente. */
+  async function rolesInA3(personId: string, a3: string, termId: string) {
+    const next = await findTermByCode(nextTermCode(currentTermCode()));
+    const rows = await db()
+      .select({
+        termId: committeeRoleAssignment.termId,
+        roleCode: committeeRoleAssignment.roleCode,
+      })
+      .from(committeeRoleAssignment)
+      .where(
+        and(
+          eq(committeeRoleAssignment.personId, personId),
+          eq(committeeRoleAssignment.committeeId, a3),
+          isNull(committeeRoleAssignment.endedAt),
+        ),
+      );
+    const of = (id: string | undefined) =>
+      rows.filter((row) => row.termId === id).map((row) => row.roleCode);
+    return { current: of(termId), next: of(next?.id) };
+  }
+
+  it("si el cambio de cargos entra primero, la aprobación espera y lleva el cargo nuevo al término siguiente", async () => {
+    const f = await transfer("cargo.en.vuelo@eafit.edu.co");
+    const gh = await reviewer("gh.cargo@eafit.edu.co");
+    // La dirección le da Logística en A3: queda escrito y sin confirmar.
+    const held = await holdCommand(gh, (ctx) =>
+      setMemberRoles(ctx, f.scope, direction, { personId: f.personId, roles: logistica }),
+    );
+
+    const how = await whileHeld(held, () =>
+      decideRequestAs(gh, f.requestId, { decision: "APPROVED" }),
+    );
+
+    expect(await rolesInA3(f.personId, f.a3, f.termId)).toEqual({
+      current: ["LOGISTICA"],
+      next: ["LOGISTICA"],
+    });
+    expect(how).toBe("hizo cola");
+    expect((await getRequest(f.requestId))?.status).toBe("APPROVED");
+  });
+
+  it("si la aprobación entra primero, el cambio de cargos espera y queda solo en el término vigente", async () => {
+    const f = await transfer("aprobacion.en.vuelo@eafit.edu.co");
+    const gh = await reviewer("gh.aprueba@eafit.edu.co");
+    // La aprobación ya leyó los cargos y se detiene al escribir el comité que la persona pidió sumar.
+    const held = await holdTransaction((tx) =>
+      tx
+        .select({ id: committee.id })
+        .from(committee)
+        .where(eq(committee.id, f.cigma))
+        .for("update"),
+    );
+
+    const [approved, changed] = await firstThenSecond(
+      held,
+      () => decideRequestAs(gh, f.requestId, { decision: "APPROVED" }),
+      () => setMemberRolesAs(gh, f.scope, direction, { personId: f.personId, roles: logistica }),
+    );
+
+    expect([outcome(approved), outcome(changed)]).toEqual(["ok", "ok"]);
+    expect(await rolesInA3(f.personId, f.a3, f.termId)).toEqual({
+      current: ["LOGISTICA"],
+      next: [],
+    });
   });
 });
