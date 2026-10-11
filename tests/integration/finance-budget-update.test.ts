@@ -11,9 +11,10 @@ import { seedCommittee, seedMember } from "./factories";
 
 // Caracterización de `updateBudgetAs` (DT-147) por su única puerta, el recurso Presupuestos del kit
 // (`budgetsResource.update`): en borrador se edita todo; abierto o cerrado, solo notas, actividad y
-// «presentado el». La auditoría guarda en su antes todo lo que una edición puede cambiar (ADR-122 regla
-// 8). Una conducta queda fijada como está hoy porque espera la decisión abierta 58 (DT-149 inciso d):
-// un presupuesto cerrado sigue aceptando cambios.
+// «presentado el», y si lleva actividad lo decide el tipo guardado, no el que llega (ADR-123 regla 4).
+// La auditoría guarda en su antes todo lo que una edición puede cambiar (ADR-122 regla 8). Una conducta
+// queda fijada como está hoy porque espera la decisión abierta 58 (DT-149 inciso d): un presupuesto
+// cerrado sigue aceptando cambios.
 
 type BudgetInput = Parameters<NonNullable<typeof budgetsResource.update>>[2];
 
@@ -222,7 +223,7 @@ describe("la edición de un presupuesto (updateBudgetAs)", () => {
     });
   });
 
-  it("hoy un ordinario abierto recibe actividad si la edición llega como extraordinaria, aunque un ordinario no la lleva (DT-317)", async () => {
+  it("un ordinario abierto no recibe actividad aunque la edición llegue como extraordinaria: fuera de borrador decide el tipo guardado", async () => {
     const f = await fixture();
     const id = await opened(f);
 
@@ -231,14 +232,66 @@ describe("la edición de un presupuesto (updateBudgetAs)", () => {
       year: 2026,
       kind: "EXTRAORDINARY",
       title: "Actividad en un ordinario",
-      notes: "Nota inicial",
+      notes: "Nota con el presupuesto abierto",
       submittedOn: "2026-01-05",
+    });
+
+    // Las notas de esa misma edición sí entran: lo único que no pasa es la actividad.
+    expect(await budgetsResource.get(id)).toMatchObject({
+      kind: "ORDINARY",
+      status: "OPEN",
+      title: "",
+      notes: "Nota con el presupuesto abierto",
+    });
+    expect((await updatesOf(id)).map((row) => row.after)).toEqual([
+      { title: "", notes: "Nota con el presupuesto abierto", submittedOn: "2026-01-05" },
+    ]);
+
+    // La entrada se sigue validando con el tipo que llega: extraordinaria y sin actividad no pasa.
+    await expect(
+      update(f.admin, id, { committeeId: f.a3, year: 2026, kind: "EXTRAORDINARY" }),
+    ).rejects.toThrow();
+    expect(await updatesOf(id)).toHaveLength(1);
+  });
+
+  it("un ordinario cerrado tampoco recibe actividad, mientras un cerrado siga aceptando ediciones (decisión abierta 58)", async () => {
+    const f = await fixture();
+    const id = await closed(f);
+
+    await update(f.admin, id, {
+      committeeId: f.a3,
+      year: 2026,
+      kind: "EXTRAORDINARY",
+      title: "Actividad en un ordinario cerrado",
     });
 
     expect(await budgetsResource.get(id)).toMatchObject({
       kind: "ORDINARY",
-      status: "OPEN",
-      title: "Actividad en un ordinario",
+      status: "CLOSED",
+      title: "",
+    });
+  });
+
+  it("un extraordinario abierto toma la actividad que llega aunque la edición llegue como ordinaria o sin tipo", async () => {
+    const f = await fixture();
+    const id = await opened(f, { kind: "EXTRAORDINARY", title: "Feria de proyectos" });
+
+    await update(f.admin, id, {
+      committeeId: f.a3,
+      year: 2026,
+      kind: "ORDINARY",
+      title: "Feria de emprendimiento",
+    });
+    expect(await budgetsResource.get(id)).toMatchObject({
+      kind: "EXTRAORDINARY",
+      title: "Feria de emprendimiento",
+    });
+
+    // Sin tipo, la entrada vale por ordinaria: tampoco decide.
+    await update(f.admin, id, { committeeId: f.a3, year: 2026, title: "Feria de ciencia" });
+    expect(await budgetsResource.get(id)).toMatchObject({
+      kind: "EXTRAORDINARY",
+      title: "Feria de ciencia",
     });
   });
 

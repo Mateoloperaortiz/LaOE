@@ -2,7 +2,7 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-11
-- Relacionadas: ADR-038, ADR-053, ADR-054, ADR-077, ADR-082, ADR-109, ADR-119, ADR-121, ADR-122
+- Relacionadas: ADR-038, ADR-053, ADR-054, ADR-059, ADR-077, ADR-082, ADR-109, ADR-119, ADR-121, ADR-122
 - Enmienda: ADR-121 (regla 1: la baja de campañas por el token del correo ya no audita sin IP, la recibe de sus dos puertas; y la evidencia automática del onboarding que agenda una puerta con request tampoco, mientras la que marca un trabajo sigue sin ella)
 
 ## Contexto
@@ -16,6 +16,8 @@ El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` ele
 **La baja de campañas por el token del correo se auditaba sin IP (DT-313).** [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) regla 1 hizo obligatoria la IP del actor en el tipo y dejó anotado un `null` que no era de ninguna de sus tres clases: `unsubscribeByToken` tiene request, por sus dos puertas, y armaba su actor con el dueño del token y la IP en nulo. La fila `notification-preference.unsubscribed` decía a quién se le apagaron las campañas y no desde dónde. El ciclo 9 no lo resolvió porque antes había que decir si esa IP sirve: el clic único de RFC 8058 lo hace el cliente de correo, no la persona.
 
 **La evidencia automática del onboarding que nace de un request se auditaba sin IP (DT-314).** La misma regla contó a `recordOnboardingEvidence` como «el sistema a nombre de la persona» y la dejó con la IP en nulo para sus cuatro llamadores. Dos son trabajos del poller, sin request. Los otros dos son puertas que la agendan con `after()`: `POST /api/push/subscribe` y la página `/app/normativa/[id]`. Ahí el mismo request dejaba la fila `push-subscription.created` con su IP y la fila `onboarding.step-done` sin ella.
+
+**Fuera de borrador, la actividad de un presupuesto la decidía el tipo que llegaba en la edición (DT-317).** Un presupuesto ordinario no lleva actividad; el extraordinario sí, porque es de una actividad no prevista ([ADR-059](ADR-059-presupuesto-del-comite.md)). Al crear y en borrador eso lo decide el tipo que llega, que es el que se guarda. Abierto o cerrado, el tipo ya no se edita, pero `updateBudget` seguía decidiendo la actividad con el que llegaba: con `kind: "EXTRAORDINARY"` y una actividad en la entrada, un ordinario abierto o cerrado quedaba con actividad; y al revés, un extraordinario cuya edición llegara como ordinaria, o sin tipo, perdía la actividad nueva sin aviso. La pantalla no llega a ninguno de los dos casos, porque el kit devuelve el tipo al valor guardado (`lockedOnEdit`): la regla la sostenía quien llama y no el dominio. El ciclo 9 lo fijó como estaba en la caracterización del comando.
 
 ## Decisión
 
@@ -49,6 +51,14 @@ El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` ele
 
    El actor no cambia: sigue siendo la persona, «el sistema a nombre de la persona» de ADR-121 regla 1. Lo que cambia es que esa clase ya no trae la IP en nulo por serlo: la lleva si hay request. Tampoco cambian la acción, la entidad ni el `after` de la fila, ni cuándo se marca un paso. De dónde se lee la IP del cliente no cambia (DT-033), y las filas ya escritas conservan su `ip` nula.
 
+4. **Fuera de borrador, si un presupuesto lleva actividad lo decide su tipo guardado, no el que llega en la edición.** En `updateBudget` (`src/modules/finance/domain/budgets.ts`), con el presupuesto abierto o cerrado y su fila tomada con candado:
+   - **Un extraordinario** toma la actividad que llega, y si llega vacía conserva la suya. No importa el tipo de la entrada, que puede venir como ordinaria o sin tipo.
+   - **Un ordinario** queda sin actividad, llegue lo que llegue.
+
+   Al crear y en borrador no cambia nada: el tipo que llega es el del presupuesto y decide él.
+
+   **Lo que no cambia.** Lo demás que se edita fuera de borrador, las notas y «presentado el», y que el comité, el año y el tipo que lleguen se ignoran. La validación de la entrada, que sigue mirando el tipo que llega: una edición que llega como extraordinaria y sin actividad se niega, también sobre un ordinario. La auditoría `budget.updated`, con su antes completo ([ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 8) y en `after` lo que la edición escribió. Que un presupuesto cerrado acepte ediciones, que es la decisión abierta 58: la prueba del ordinario cerrado la nombra y vale mientras las acepte.
+
 ## Consecuencias
 
 - `npm run test:e2e` sin más pasa entera en un worktree nuevo: con `.next` borrado entero, 249 de 249 en 5,3 minutos (335 s contando la base, el build y la suite), la prueba de SEO en 0,7 s y las cinco del Sudoku entre 0,4 y 3,2 s. La misma suite, forzada a dev con `E2E_SERVER=dev` y `.next/dev` borrado, dio 248 de 249 en 9,1 minutos (550 s), con la firma de DT-338: la de SEO en 27 s, la primera del Sudoku sin tiempo (6 s contra 5) y la segunda en 23,2 s contra 30.
@@ -65,3 +75,6 @@ El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` ele
 - Prueba de la regla 2: `tests/integration/command-actor-ip.test.ts`, por las dos puertas y contra `audit_log`, con la cabecera del proxy simulada. Las dos en rojo sobre el código anterior: la fila salía con `ip` nula.
 - La firma de `recordOnboardingEvidence` cambia: su tercer parámetro es la IP. La página del lector de normativa lee una cabecera más; ya era dinámica por la sesión.
 - Prueba de la regla 3: `tests/integration/command-actor-ip.test.ts`, por las dos puertas, con lo que cada una agenda corrido a mano; las dos en rojo sobre el código anterior. La del lector llama a la página con el documento puesto por la prueba. Que un trabajo la marque sin IP queda en `tests/integration/permanence-evaluations.test.ts`, que no cambia de conducta.
+- Por la pantalla no cambia ninguna edición de un presupuesto: el kit ya entregaba el tipo guardado. La regla alcanza a quien llame a `updateBudgetAs` sin pasar por el kit, que hoy no existe.
+- Un ordinario que tuviera una actividad guardada la pierde en su siguiente edición fuera de borrador. No debería haber ninguno: solo se llegaba ahí con un llamador que no fuera la pantalla.
+- Prueba de la regla 4: `tests/integration/finance-budget-update.test.ts`, con tres casos en rojo sobre el código anterior: el ordinario abierto, que es la prueba del ciclo 9 invertida, el ordinario cerrado y el extraordinario cuya edición llega como ordinaria o sin tipo.
