@@ -300,6 +300,7 @@ export default async function ConsolaPage({
           qrAlt: t("T-586"),
           link: t("T-611", { url: "{url}" }),
           code: t("T-587", { codigo: "{codigo}", s: "{s}" }),
+          stale: t("T-3260"),
           counters: tList("T-585"),
           recentTitle: t("T-603"),
           recentEmpty: t("T-671"),

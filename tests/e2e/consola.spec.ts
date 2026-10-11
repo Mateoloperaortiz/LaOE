@@ -87,3 +87,30 @@ test("la consola muestra el QR y el contador, y el modo anfitrión registra por 
   await expect(page.getByText(copyPattern("T-587"))).toBeVisible();
   await expect(page.getByRole("button", { name: tList("T-588")[1] })).toBeVisible();
 });
+
+test("la consola avisa cuando el sondeo responde con error y deja de mostrar el QR y el código como vigentes", async ({
+  page,
+}) => {
+  await page.goto(`/admin/ocasiones/${occasionId}`);
+  await page.getByRole("button", { name: tList("T-588")[0] }).click();
+  const code = page.getByText(copyPattern("T-587"));
+  const qr = page.getByRole("img", { name: t("T-586") });
+  await expect(code).toBeVisible();
+  await expect(qr).toBeVisible();
+
+  // La sesión del anfitrión vence a mitad del evento: cada sondeo responde 401.
+  await page.route("**/api/ocasiones/*/live", (route) =>
+    route.fulfill({ status: 401, json: { error: "sin sesión" } }),
+  );
+  const notice = page.getByText(t("T-3260"));
+  await expect(notice).toBeVisible({ timeout: 15_000 });
+  await expect(qr).toHaveCount(0);
+  await expect(code).toHaveCount(0);
+  await sinViolaciones(page);
+
+  // La casa vuelve a responder: la consola se recupera sola en el siguiente sondeo.
+  await page.unroute("**/api/ocasiones/*/live");
+  await expect(qr).toBeVisible({ timeout: 15_000 });
+  await expect(code).toBeVisible();
+  await expect(notice).toHaveCount(0);
+});

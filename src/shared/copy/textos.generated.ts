@@ -10702,6 +10702,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3260": {
+    where: "Consola: el sondeo falló y lo que muestra dejó de valer (ADR-122)",
+    text: "Esta pantalla dejó de actualizarse: el QR y el código que mostraba ya no valen. Recargá la página y, si te pide ingresar, entrá de nuevo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

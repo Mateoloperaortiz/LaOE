@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { afterPoll, type LiveStatus, showsAsCurrent } from "./console-live";
 
 // Contador en vivo (ADR-035 regla 16): pide el JSON de la ocasión cada pocos segundos, se pausa con
-// la pestaña oculta y redibuja el QR con el código rotativo vigente. Sin websockets.
+// la pestaña oculta y redibuja el QR con el código rotativo vigente. Sin websockets. Si un sondeo
+// responde con error, avisa y deja de mostrar el QR y el código como vigentes hasta que la casa
+// vuelva a responder (ADR-122 regla 14, `console-live.ts`).
 
 export interface LiveData {
   status: string;
@@ -20,6 +23,7 @@ type Labels = {
   qrAlt: string;
   link: string; // con {url}
   code: string; // con {codigo} y {s}
+  stale: string; // lo que se mostraba dejó de valer
   counters: string[]; // Registrados · Pendientes · Rechazados · Anulados
   recentTitle: string;
   recentEmpty: string;
@@ -55,6 +59,7 @@ export function ConsolaEnVivo({
 }: Props) {
   const [data, setData] = useState<LiveData>(initial);
   const [secondsLeft, setSecondsLeft] = useState(initial.code?.secondsLeft ?? 0);
+  const [status, setStatus] = useState<LiveStatus>("live");
 
   useEffect(() => {
     let cancelled = false;
@@ -64,22 +69,30 @@ export function ConsolaEnVivo({
         return;
       }
       controller?.abort();
-      controller = new AbortController();
+      const request = new AbortController();
+      controller = request;
       try {
         const response = await fetch(`/api/ocasiones/${occasionId}/live`, {
           cache: "no-store",
-          signal: controller.signal,
+          signal: request.signal,
         });
         if (!response.ok) {
+          // Sesión vencida o revocada, permiso retirado, ocasión borrada o un fallo de la casa.
+          if (!cancelled) setStatus((previous) => afterPoll(previous, "rejected"));
           return;
         }
         const next = (await response.json()) as LiveData;
         if (!cancelled) {
           setData(next);
           setSecondsLeft(next.code?.secondsLeft ?? 0);
+          setStatus((previous) => afterPoll(previous, "fresh"));
         }
       } catch {
-        // Sin red o abortado: el próximo tick lo intenta de nuevo.
+        // Abortado por el sondeo siguiente o al desmontar: no dice nada de la casa. Sin red: el
+        // próximo tick lo intenta de nuevo y el código vale lo que le quede a su cuenta.
+        if (!cancelled && !request.signal.aborted) {
+          setStatus((previous) => afterPoll(previous, "unreachable"));
+        }
       }
     }
     const poll = setInterval(refresh, intervalMs);
@@ -95,6 +108,7 @@ export function ConsolaEnVivo({
   }, [occasionId, intervalMs]);
 
   const time = new Intl.DateTimeFormat(locale, { timeZone, timeStyle: "short" });
+  const current = showsAsCurrent(status, data.code ? { secondsLeft } : null);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -103,19 +117,30 @@ export function ConsolaEnVivo({
         className="flex flex-col items-center gap-4 rounded-[var(--radius-cartel)] border border-borde bg-white p-6 text-oe-navy"
       >
         <h2 className="text-display-md text-center">{labels.qrTitle}</h2>
-        <div
-          role="img"
-          aria-label={labels.qrAlt}
-          className="w-full max-w-md [&_svg]:size-full"
-          data-link={data.link}
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG generado en servidor por `qrcode`, sin datos externos
-          dangerouslySetInnerHTML={{ __html: data.qrSvg }}
-        />
-        {data.code ? (
-          <p className="font-display text-display-md tabular-nums" aria-live="polite">
-            {fill(labels.code, { codigo: data.code.value, s: String(secondsLeft) })}
+        {current ? (
+          <>
+            <div
+              role="img"
+              aria-label={labels.qrAlt}
+              className="w-full max-w-md [&_svg]:size-full"
+              data-link={data.link}
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG generado en servidor por `qrcode`, sin datos externos
+              dangerouslySetInnerHTML={{ __html: data.qrSvg }}
+            />
+            {data.code ? (
+              <p className="font-display text-display-md tabular-nums" aria-live="polite">
+                {fill(labels.code, { codigo: data.code.value, s: String(secondsLeft) })}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <p
+            role="alert"
+            className="rounded-lg bg-oe-orange px-3 py-2 text-center font-semibold text-oe-navy"
+          >
+            {labels.stale}
           </p>
-        ) : null}
+        )}
         <p className="break-all text-center text-sm text-oe-navy/70">
           {fill(labels.link, { url: data.link })}
         </p>
