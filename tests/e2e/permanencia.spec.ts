@@ -2,10 +2,9 @@ import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { person } from "@/modules/people/schema";
-import { workGroup, workGroupMembership } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
-import { seedOccasion } from "../factories";
+import { seedOccasion, seedWorkGroup, seedWorkGroupMembership } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -92,18 +91,10 @@ test.describe("miembro", () => {
       .from(term)
       .where(eq(term.code, E2E_TERM.code));
     if (!member || !current) throw new Error("sin miembro o término");
-    const [grupo] = await db
-      .insert(workGroup)
-      .values({ termId: current.id, kind: "GT_MACROEVENT", name: "e2e-GT que cumple el GAP" })
-      .returning({ id: workGroup.id });
-    if (!grupo) throw new Error("sin grupo");
-    await db.insert(workGroupMembership).values({
-      groupId: grupo.id,
-      personId: member.id,
-      evaluation: "GOOD",
-      evaluatedById: member.id,
-      evaluatedAt: new Date(),
-    });
+    const grupo = {
+      id: await seedWorkGroup(current.id, "e2e-GT que cumple el GAP", { kind: "GT_MACROEVENT" }),
+    };
+    await seedWorkGroupMembership(grupo.id, member.id, "GOOD", member.id);
     await closeDb();
 
     await page.goto("/app/permanencia");

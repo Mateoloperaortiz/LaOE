@@ -25,6 +25,7 @@ import {
   seedOrganization,
   seedPipeline,
   seedSegment,
+  seedWorkGroup,
 } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -75,11 +76,7 @@ test.beforeEach(async () => {
     { organizationId: org.id },
     { title: "Tarjeta de prueba con un título largo para revisar el ajuste de líneas" },
   );
-  const group = await db
-    .insert(workGroup)
-    .values({ termId: current.id, kind: "GAP", name: prefix })
-    .returning()
-    .then(first);
+  const group = { id: await seedWorkGroup(current.id, prefix, { kind: "GAP" }) };
   const call = {
     id: await seedCall(current.id, group.id, {
       title: prefix,
