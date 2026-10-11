@@ -25,6 +25,7 @@ import {
   waitingOn,
   whileHeld,
 } from "../helpers/locks";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -90,6 +91,7 @@ describe("decidir y retirar la misma solicitud a la vez", () => {
     const gh = await reviewer("gh.uno@eafit.edu.co");
     const otra = await reviewer("gh.dos@eafit.edu.co");
 
+    await warmPool();
     const outcomes = await Promise.allSettled([
       decideRequestAs(gh, requestId, { decision: "APPROVED" }),
       decideRequestAs(otra, requestId, { decision: "APPROVED" }),

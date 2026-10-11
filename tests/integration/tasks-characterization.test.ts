@@ -25,6 +25,7 @@ import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays, bogotaInputToUtc, todayKey } from "@/shared/lib/dates";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -418,6 +419,7 @@ describe("una sola tarea abierta por motivo", () => {
 
   it("cuatro revisiones de licencias a la vez abren una sola tarea por persona", async () => {
     const personId = await expiredLeave();
+    await warmPool();
     await Promise.all(
       [1, 2, 3, 4].map((n) => handle("membership.leave-check", {}, `revision-${n}`)),
     );
@@ -427,6 +429,7 @@ describe("una sola tarea abierta por motivo", () => {
 
   it("cuatro avisos del término siguiente a la vez abren una sola tarea", async () => {
     const { termId, code, next, endsOn } = await endingTerm();
+    await warmPool();
     await Promise.all(
       [1, 2, 3, 4].map((n) =>
         handle("term.successor-missing", { termId, code, next, endsOn }, `aviso-${n}`),
@@ -600,6 +603,7 @@ describe("abrir una tarea por motivo", () => {
 
   it("seis aperturas a la vez de la misma tarea dejan una sola, auditada una vez, y solo una dice que la creó", async () => {
     const personId = await seedMember("a-la-vez@eafit.edu.co");
+    await warmPool(6);
     const results = await Promise.all(
       Array.from({ length: 6 }, () =>
         openTaskForReasonAs(SYSTEM_ACTOR, {
@@ -621,6 +625,7 @@ describe("abrir una tarea por motivo", () => {
     for (let index = 0; index < BURST; index += 1) {
       people.push(await seedMember(`rafaga-${index}@eafit.edu.co`));
     }
+    await warmPool(10);
     clearConfigCache();
     const results = await Promise.allSettled(
       people.map((personId) =>
@@ -645,6 +650,7 @@ describe("abrir una tarea por motivo", () => {
       await seedCommitteeMembership(personId, committeeId, termId);
       actors.push({ personId, ip: null });
     }
+    await warmPool(10);
     clearConfigCache();
     const results = await Promise.allSettled(
       actors.map((actor) => createRequestAs(actor, "LEAVE", { reason: "Intercambio", until })),

@@ -17,6 +17,7 @@ import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { copyPattern } from "../helpers/copy";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import {
   seedCall,
@@ -81,6 +82,7 @@ describe("convocatorias internas", () => {
     const people = await Promise.all(
       Array.from({ length: 8 }, (_, index) => member(`gap${index}@eafit.edu.co`)),
     );
+    await warmPool(8);
     const results = await Promise.all(
       people.map((p) => applyToCallAs(p.actor, callId, {}, notInGroup)),
     );
