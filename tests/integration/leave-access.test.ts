@@ -27,6 +27,7 @@ import {
   seedForm,
   seedMember,
   seedOccasion,
+  seedPermission,
   seedTerm,
   seedWorkGroup,
 } from "../factories";
@@ -52,13 +53,9 @@ describe("consulta de Mi OE en licencia", () => {
     const personId = await seedMember("consulta@eafit.edu.co");
     const committeeId = await seedCommittee("prueba");
     const termId = await seedTerm();
-    await db()
-      .insert(permission)
-      .values([
-        { personId, code: "ADMIN" },
-        { personId, code: "BOARD" },
-        { personId, code: "COMMITTEE_LEADER", committeeId },
-      ]);
+    await seedPermission(personId, "ADMIN");
+    await seedPermission(personId, "BOARD");
+    await seedPermission(personId, "COMMITTEE_LEADER", committeeId);
     await seedWorkGroup(termId, "Grupo sintético", {
       leaderPersonId: personId,
       evaluatorIds: [personId],

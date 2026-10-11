@@ -17,6 +17,7 @@ import {
 } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { seedPermission } from "../factories";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -73,11 +74,11 @@ describe("restricciones que no negocia el esquema", () => {
   it("no duplica permisos globales ni por comité, y exige comité solo al líder", async () => {
     const personId = await createPerson("p@eafit.edu.co");
     const committeeId = await createCommittee("a3");
-    await db().insert(permission).values({ personId, code: "ADMIN" });
+    await seedPermission(personId, "ADMIN");
     await expect(db().insert(permission).values({ personId, code: "ADMIN" })).rejects.toSatisfy(
       (error) => isUniqueViolation(error, "permission_global_unique"),
     );
-    await db().insert(permission).values({ personId, code: "COMMITTEE_LEADER", committeeId });
+    await seedPermission(personId, "COMMITTEE_LEADER", committeeId);
     await expect(
       db().insert(permission).values({ personId, code: "COMMITTEE_LEADER", committeeId }),
     ).rejects.toSatisfy((error) => isUniqueViolation(error, "permission_committee_unique"));

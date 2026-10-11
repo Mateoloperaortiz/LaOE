@@ -21,13 +21,7 @@ import {
 } from "@/modules/identity";
 import { hashPassword } from "@/modules/identity/domain/pure";
 import { createSession } from "@/modules/identity/domain/session";
-import {
-  accessGrant,
-  calendarToken,
-  credential,
-  permission,
-  session,
-} from "@/modules/identity/schema";
+import { accessGrant, calendarToken, credential, session } from "@/modules/identity/schema";
 import { createSurveyInvites } from "@/modules/participation";
 import { occasion, occasionSurveyInvite } from "@/modules/participation/schema";
 import {
@@ -43,6 +37,7 @@ import {
   seedForm,
   seedMember,
   seedOccasion,
+  seedPermission,
   seedSubmission,
   seedTerm,
 } from "../factories";
@@ -80,7 +75,7 @@ async function scene(): Promise<Scene> {
   const termId = await seedTerm();
   const committeeId = await seedCommittee("a3", "A3");
   const board = await seedMember("junta-baja@eafit.edu.co");
-  await db().insert(permission).values({ personId: board, code: "ADMIN" });
+  await seedPermission(board, "ADMIN");
   const personId = await seedMember(EMAIL, { firstName: "Nora" });
   return { board, personId, termId, committeeId };
 }

@@ -17,11 +17,10 @@ import {
 import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
 import { eventEdition } from "@/modules/events/schema";
-import { permission } from "@/modules/identity/schema";
 import { person } from "@/modules/people/schema";
 import { seedTheGames, THE_GAMES_REHEARSAL_SLUG } from "../../scripts/lib/seed-the-games";
 import { prepareTheGamesRehearsal, RehearsalError } from "../../scripts/lib/the-games-ensayo";
-import { seedMember } from "../factories";
+import { seedMember, seedPermission } from "../factories";
 import { truncateAll } from "./db";
 
 // El ensayo sintético de The Games que siembra `npm run db:seed` (desarrollo y staging).
@@ -121,7 +120,7 @@ describe("ensayo sintético de The Games", () => {
       }),
     );
     const adminId = await seedMember("admin.real@eafit.edu.co");
-    await getDb().insert(permission).values({ personId: adminId, code: "ADMIN" });
+    await seedPermission(adminId, "ADMIN");
     const plainId = await seedMember("sin.permiso@eafit.edu.co");
     void plainId;
     await expect(

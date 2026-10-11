@@ -27,7 +27,7 @@ import {
   listSessionsFor,
   resolveActor,
 } from "@/modules/identity/domain/session";
-import { otpChallenge, permission, session } from "@/modules/identity/schema";
+import { otpChallenge, session } from "@/modules/identity/schema";
 import { membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import {
@@ -37,6 +37,7 @@ import {
   QuotaExceededError,
 } from "@/shared/adapters/mail";
 import { tList } from "@/shared/copy";
+import { seedPermission } from "../factories";
 import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
@@ -279,7 +280,7 @@ describe("verifyOtp y sesiones", () => {
 
   it("con el código correcto consume el reto, abre la sesión y resuelve el actor con sus permisos", async () => {
     const personId = await seedMember("ok@eafit.edu.co", "HONORARY");
-    await db().insert(permission).values({ personId, code: "ADMIN" });
+    await seedPermission(personId, "ADMIN");
     await requestOtp({ email: "ok@eafit.edu.co", ip: "2.2.2.2" });
     const result = await verifyOtp({
       email: "ok@eafit.edu.co",

@@ -8,7 +8,6 @@ import { request, task } from "@/modules/crm/schema";
 import { createSubmission, getFormView, getPublicForm, submitFormAs } from "@/modules/forms";
 import { editionRegistration, formSubmission } from "@/modules/forms/schema";
 import { requestOtp, resolveActor, verifyOtp } from "@/modules/identity";
-import { permission } from "@/modules/identity/schema";
 import { checkInSelfAs } from "@/modules/participation";
 import { admitPersonAs, endMembershipAs, recordConsent, revokeConsentAs } from "@/modules/people";
 import {
@@ -25,6 +24,7 @@ import {
   seedForm,
   seedMember,
   seedOccasion,
+  seedPermission,
   seedPerson,
   seedTerm,
 } from "../factories";
@@ -235,7 +235,7 @@ describe("política pendiente (ADR-039)", () => {
     const personId = await seedMember(email);
     const termId = await seedTerm();
     const occasion = await seedOccasion(termId);
-    await db().insert(permission).values({ personId, code: "ADMIN" });
+    await seedPermission(personId, "ADMIN");
     setMailTransportsForTests({
       primary: { name: "console", send: async () => ({ id: null }) },
       overflow: null,

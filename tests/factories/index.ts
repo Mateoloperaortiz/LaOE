@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   card,
@@ -11,6 +11,7 @@ import {
   request,
 } from "@/modules/crm/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
+import { permission } from "@/modules/identity/schema";
 import {
   boosterItem,
   challenge,
@@ -125,6 +126,37 @@ export async function seedMember(email: string, overrides: PersonOverrides = {})
 /** Un activo veterano: entró en un término anterior, así que puede recibir cargos de mesa. */
 export async function seedVeteran(email: string, overrides: PersonOverrides = {}): Promise<string> {
   return seedMember(email, { entryTermCode: "2025-1", ...overrides });
+}
+
+/**
+ * Permiso global (ADMIN, BOARD) o de líder de un comité. Deja la fila que deja `grantPermission`
+ * (`tests/integration/factory-parity.test.ts`) y nada más de lo que hace el comando: no audita, no
+ * emite el evento ni retira los enlaces de acceso de la persona. Si ya lo tiene, devuelve el que hay.
+ */
+export async function seedPermission(
+  personId: string,
+  code: "ADMIN" | "BOARD" | "COMMITTEE_LEADER",
+  committeeId: string | null = null,
+  grantedById: string | null = null,
+): Promise<string> {
+  const [row] = await db()
+    .insert(permission)
+    .values({ personId, code, committeeId, grantedById })
+    .onConflictDoNothing()
+    .returning({ id: permission.id });
+  if (row) return row.id;
+  const [existing] = await db()
+    .select({ id: permission.id })
+    .from(permission)
+    .where(
+      and(
+        eq(permission.personId, personId),
+        eq(permission.code, code),
+        committeeId ? eq(permission.committeeId, committeeId) : isNull(permission.committeeId),
+      ),
+    );
+  if (!existing) throw new Error("seed permission");
+  return existing.id;
 }
 
 export async function seedCommittee(

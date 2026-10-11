@@ -2,7 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { pushPointsCredited } from "@/modules/comms/domain/events";
-import { permission } from "@/modules/identity/schema";
 import * as ledger from "@/modules/participation/domain/ledger";
 import { checkIn, occasion, pointEntry } from "@/modules/participation/schema";
 import { membership } from "@/modules/people/schema";
@@ -16,6 +15,7 @@ import {
   seedCommittee,
   seedCommitteeMembership,
   seedMembership,
+  seedPermission,
   seedPerson,
   seedTerm,
 } from "../factories";
@@ -28,7 +28,7 @@ beforeEach(async () => {
   termId = await seedTerm("2025-2");
   actorId = await seedPerson("admin@example.test");
   await seedMembership(actorId, termId);
-  await getDb().insert(permission).values({ personId: actorId, code: "ADMIN" });
+  await seedPermission(actorId, "ADMIN");
   personId = await seedPerson("person@example.test");
   await seedMembership(personId, termId, "ON_LEAVE");
   m = ghManifestSchema.parse({
