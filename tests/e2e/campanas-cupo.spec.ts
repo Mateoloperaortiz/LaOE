@@ -1,12 +1,18 @@
 import { expect } from "@playwright/test";
 import { and, eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { campaign, campaignRecipient, emailTemplate } from "@/modules/comms/schema";
+import { campaign, emailTemplate } from "@/modules/comms/schema";
 import { person, segment } from "@/modules/people/schema";
 import { appConfig, auditLog } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
-import { seedConfig, seedSegment } from "../factories";
+import {
+  seedCampaign,
+  seedCampaignRecipients,
+  seedConfig,
+  seedEmailTemplate,
+  seedSegment,
+} from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
@@ -46,32 +52,29 @@ async function sembrar(): Promise<Sembrado> {
   const adminId = people.find((row) => row.email === E2E_EMAIL)?.id;
   const memberId = people.find((row) => row.email === E2E_MEMBER_EMAIL)?.id;
   if (!adminId || !memberId) throw new Error("Faltan las personas de la suite");
-  const [template] = await db
-    .insert(emailTemplate)
-    .values({ slug: NOMBRE, name: NOMBRE, subject: "Prueba del cupo", body: "Texto sintético." })
-    .returning({ id: emailTemplate.id });
+  const template = {
+    id: await seedEmailTemplate(NOMBRE, {
+      name: NOMBRE,
+      subject: "Prueba del cupo",
+      body: "Texto sintético.",
+    }),
+  };
   const audience = { id: await seedSegment(NOMBRE) };
-  if (!template) throw new Error("No se sembró la plantilla");
   const at = new Date(Date.now() - 10 * 60_000);
   at.setUTCSeconds(0, 0);
   const until = new Date(at.getTime() + 6 * 3_600_000);
-  const [row] = await db
-    .insert(campaign)
-    .values({
-      name: NOMBRE,
-      templateId: template.id,
-      segmentId: audience.id,
+  const row = {
+    id: await seedCampaign(NOMBRE, template.id, audience.id, {
       status: "SENDING",
       scheduledAt: at,
       startedAt: at,
       totalCount: 2,
       sentCount: 1,
-    })
-    .returning({ id: campaign.id });
-  if (!row) throw new Error("No se sembró la campaña");
-  await db.insert(campaignRecipient).values([
-    { campaignId: row.id, personId: adminId, status: "SENT", sentAt: at },
-    { campaignId: row.id, personId: memberId, status: "PENDING" },
+    }),
+  };
+  await seedCampaignRecipients(row.id, [
+    { personId: adminId, status: "SENT", sentAt: at },
+    { personId: memberId, status: "PENDING" },
   ]);
   const cut = {
     provider: "console",

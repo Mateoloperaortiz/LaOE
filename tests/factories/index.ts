@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { message } from "@/modules/comms/schema";
+import { campaign, campaignRecipient, emailTemplate, message } from "@/modules/comms/schema";
 import { competitionSupport } from "@/modules/competition/schema";
 import { document, mediaAsset, page } from "@/modules/content/schema";
 import {
@@ -1383,4 +1383,62 @@ export async function seedCompetitionSupport(
  */
 export async function seedAlias(path: string, targetId: string): Promise<void> {
   await db().insert(legacyAlias).values({ path, targetId });
+}
+
+type EmailTemplateOverrides = Partial<{ name: string; subject: string; body: string }>;
+
+/** Plantilla de correo con el slug por nombre, un asunto de prueba y sin texto, salvo overrides. */
+export async function seedEmailTemplate(
+  slug: string,
+  overrides: EmailTemplateOverrides = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(emailTemplate)
+    .values({
+      slug,
+      name: overrides.name ?? slug,
+      subject: overrides.subject ?? "Asunto de prueba",
+      body: overrides.body ?? "",
+    })
+    .returning({ id: emailTemplate.id });
+  if (!row) throw new Error("seed email template");
+  return row.id;
+}
+
+type CampaignOverrides = Partial<
+  Omit<typeof campaign.$inferInsert, "name" | "templateId" | "segmentId">
+>;
+
+/**
+ * Campaña como la deja la base si nadie dice más: en borrador, sin programar y con los contadores en
+ * cero. Una en curso dice su estado, sus horas y sus contadores: no reparte destinatarios ni envía.
+ */
+export async function seedCampaign(
+  name: string,
+  templateId: string,
+  segmentId: string,
+  overrides: CampaignOverrides = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(campaign)
+    .values({ name, templateId, segmentId, ...overrides })
+    .returning({ id: campaign.id });
+  if (!row) throw new Error("seed campaign");
+  return row.id;
+}
+
+type CampaignRecipientSeed = Omit<typeof campaignRecipient.$inferInsert, "campaignId">;
+
+/**
+ * Destinatarios de una campaña, en una sola sentencia y en el orden dado: pendientes, salvo que cada
+ * uno diga su estado. No toca los contadores de la campaña.
+ */
+export async function seedCampaignRecipients(
+  campaignId: string,
+  recipients: CampaignRecipientSeed[],
+): Promise<void> {
+  if (recipients.length === 0) return;
+  await db()
+    .insert(campaignRecipient)
+    .values(recipients.map((recipient) => ({ campaignId, ...recipient })));
 }

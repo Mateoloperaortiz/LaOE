@@ -12,7 +12,7 @@ import { committee, person, segment } from "@/modules/people/schema";
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
-import { seedDocument, seedSegment } from "../factories";
+import { seedCampaign, seedDocument, seedEmailTemplate, seedSegment } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -39,22 +39,15 @@ test.beforeEach(async () => {
   const [admin] = await db.select().from(person).where(eq(person.email, E2E_EMAIL));
   const [pixel] = await db.select().from(committee).where(eq(committee.slug, "pixel"));
   if (!current || !admin || !pixel) throw new Error("Faltan las referencias sintéticas del E2E");
-  const template = await db
-    .insert(emailTemplate)
-    .values({
-      slug: prefix,
+  const template = {
+    id: await seedEmailTemplate(prefix, {
       name: prefix,
       subject: "Prueba de diseño",
       body: "Texto sintético de la plantilla.",
-    })
-    .returning()
-    .then(first);
+    }),
+  };
   const audience = { id: await seedSegment(prefix) };
-  const mail = await db
-    .insert(campaign)
-    .values({ name: prefix, templateId: template.id, segmentId: audience.id })
-    .returning()
-    .then(first);
+  const mail = { id: await seedCampaign(prefix, template.id, audience.id) };
   const org = await db.insert(organization).values({ name: prefix }).returning().then(first);
   const flow = await db.insert(pipeline).values({ name: prefix }).returning().then(first);
   const stages = await db
