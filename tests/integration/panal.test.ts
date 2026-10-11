@@ -20,6 +20,7 @@ import { panalGame, panalWord, pointEntry } from "@/modules/participation/schema
 import { membership } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { heldThenSettled, holdTransaction } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
@@ -84,6 +85,33 @@ describe("Panal diario persistido", () => {
       score: panalWordScore(first) + panalWordScore(second),
     });
     expect(await db().select().from(panalWord)).toHaveLength(2);
+  });
+
+  it("una palabra que encuentra la partida tomada por otro escritor la espera y la vuelve a leer: ya estaba, no la guarda dos veces", async () => {
+    const id = await seedMember("panal.espera@eafit.edu.co");
+    const game = await start(id);
+    const [word = ""] = panalPuzzleForDay(game.day).words;
+    // El otro escritor es sintético: guarda la misma palabra con la fila de la partida tomada y sin el
+    // consultivo de la persona, que hoy toman todos los comandos del Panal y por eso cubre a la prueba
+    // de arriba. Así lo único que hace esperar al envío es el `for update` de la partida (DT-335).
+    const held = await holdTransaction(async (tx) => {
+      await tx
+        .select({ id: panalGame.id })
+        .from(panalGame)
+        .where(eq(panalGame.id, game.id))
+        .for("update");
+      await tx.insert(panalWord).values({ gameId: game.id, word });
+    });
+    const { during, after } = await heldThenSettled(held, () => submit(id, game.id, word));
+
+    // Sin la partida bajo candado el envío no ve la palabra, la guarda encima y choca con el índice
+    // único: falla en vez de responder que ya estaba.
+    expect(during).toBe("hizo cola");
+    expect(after).toMatchObject({ status: "fulfilled", value: { ok: true, added: false } });
+    expect(await db().select().from(panalWord)).toHaveLength(1);
+    expect(
+      await db().select().from(auditLog).where(eq(auditLog.action, "panal.word-found")),
+    ).toHaveLength(0);
   });
 
   it("rechaza reglas inválidas, palabras desconocidas y partidas ajenas", async () => {

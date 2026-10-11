@@ -28,6 +28,7 @@ import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { itemPattern } from "../helpers/copy";
+import { heldThenSettled, holdTransaction } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
@@ -437,6 +438,34 @@ describe("Sudoku con la solución en el servidor", () => {
         .every((result) => !result.ok && result.reason === "FINISHED"),
     ).toBe(true);
     expect(await db().select().from(pointEntry)).toHaveLength(1);
+  });
+
+  it("un cierre que encuentra la partida tomada por otro escritor la espera y la vuelve a leer: ya terminó, no la premia", async () => {
+    const personId = await seedMember("sudoku.espera-cierre@eafit.edu.co");
+    const run = await openRun(personId, { difficulty: "MEDIUM" });
+    const { solution } = await rowOf(run.id);
+    // El otro escritor es sintético: da la partida por vencida sin tomar el consultivo de la persona,
+    // que hoy toman todos los comandos del Sudoku y por eso cubre a la prueba de arriba. Así lo único
+    // que hace esperar al cierre es el `for update` de la partida (DT-335).
+    const held = await holdTransaction((tx) =>
+      tx
+        .update(sudokuRun)
+        .set({ status: "EXPIRED", finishedAt: new Date() })
+        .where(eq(sudokuRun.id, run.id)),
+    );
+    const { during, after } = await heldThenSettled(held, () =>
+      finishSudokuAs(
+        { personId, ip: null },
+        { runId: run.id, grid: solution, requestId: randomUUID() },
+      ),
+    );
+
+    // Sin la partida bajo candado el cierre la lee en curso, espera recién en su escritura y premia
+    // encima una partida vencida.
+    expect(during).toBe("hizo cola");
+    expect(after).toMatchObject({ status: "fulfilled", value: { ok: false, reason: "FINISHED" } });
+    expect((await rowOf(run.id)).status).toBe("EXPIRED");
+    expect(await db().select().from(pointEntry)).toHaveLength(0);
   });
 
   it("el primer tablero resuelto es el del día: un Fácil con ayudas primero, y el Difícil da 0", async () => {

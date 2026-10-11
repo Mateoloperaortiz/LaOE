@@ -396,6 +396,55 @@ describe("boosters: economía del impulso en retos", () => {
       .where(eq(challengeParticipation.personId, personId));
     expect(participations.filter((p) => p.status === "COMPLETED")).toHaveLength(2);
   });
+
+  it("el re-apunte que llega antes que la entrega gana: la entrega espera el booster, lo vuelve a leer apuntado a otro reto y sigue sin él", async () => {
+    const termId = await seedTerm();
+    const personId = await seedMember("boost.reapunte@eafit.edu.co");
+    await enableGamification(personId);
+    const challengeA = await seedTrivia(termId, { title: "Reto A" });
+    const challengeB = await seedTrivia(termId, { title: "Reto B" });
+    const boosterId = await seedBooster(personId, termId, "PLUS_50");
+    await setBoosterTargetAs(
+      { personId, ip: null },
+      { boosterId, target: { challengeId: challengeA } },
+    );
+
+    // El orden inverso al de la prueba de arriba: el re-apunte a B llega primero y la entrega de A hace
+    // cola detrás. Acá la escritura condicionada al estado no alcanza, porque el re-apunte deja el
+    // booster disponible: lo único que le muestra a la entrega que ya no apunta a su reto es el
+    // `for update` de la reserva (`lockConsumableBooster`). Sin él entra con lo que leyó antes y
+    // gasta en A un booster apuntado a B (DT-335).
+    const held = await holdTransaction((tx) =>
+      tx
+        .select({ id: boosterItem.id })
+        .from(boosterItem)
+        .where(eq(boosterItem.id, boosterId))
+        .for("update"),
+    );
+    const [retarget, submitA] = await firstThenSecond(
+      held,
+      () =>
+        setBoosterTargetAs(
+          { personId, ip: null },
+          { boosterId, target: { challengeId: challengeB } },
+        ),
+      () => answerTrivia(personId, challengeA),
+    );
+    expect(outcome(retarget)).toBe("ok");
+    expect(submitA).toMatchObject({ status: "fulfilled", value: { ok: true } });
+
+    // El booster sigue disponible y apuntado a B; el premio de A salió sin la parte personal.
+    expect(await boosterOf(boosterId)).toMatchObject({
+      status: "AVAILABLE",
+      targetChallengeId: challengeB,
+      consumedRewardId: null,
+    });
+    const { reward: row } = await rewardOfParticipation(challengeA, personId);
+    expect(row).toMatchObject({ personalPercent: 0, boosterItemId: null });
+    expect(
+      await db().select().from(reward).where(eq(reward.boosterItemId, boosterId)),
+    ).toHaveLength(0);
+  });
 });
 
 describe("boosters: asistencia impulsada (check-in)", () => {
