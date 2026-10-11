@@ -29,11 +29,37 @@ const HIDDEN_KEYS = ["password", "token", "code", "secret"];
 /** Una línea trae alguna de esas claves solo si trae su nombre escrito así: JSON no escapa letras. */
 const NAMES_A_HIDDEN_KEY = new RegExp(`"(?:${HIDDEN_KEYS.join("|")})":`);
 
-/** Oculta las cuatro claves en `value` y en todo lo que cuelga de él, sin tope de profundidad. */
-function hideKeys(value: unknown): void {
+/**
+ * Dónde está lo que se recorre. Es lo único que cambia de un lugar a otro: qué clave se perdona.
+ *  - `line`: lo que una línea trae suelto. Su `err` es un error.
+ *  - `error`: un error registrado como `err`. Deja leer su código (ADR-118 regla 23), y lo que
+ *    agrupa en `aggregateErrors` son errores igual: pino los lista ahí.
+ *  - `errors`: esa lista.
+ *  - `data`: todo lo demás. Ahí no se perdona nada.
+ */
+type Place = "line" | "error" | "errors" | "data";
+
+/** Dónde queda lo que cuelga de `key`. */
+function placeUnder(place: Place, key: string, inner: unknown): Place {
+  if (place === "line" && key === "err") {
+    return "error";
+  }
+  if (place === "error" && key === "aggregateErrors" && Array.isArray(inner)) {
+    return "errors";
+  }
+  return "data";
+}
+
+/**
+ * Oculta las cuatro claves en `value` y en todo lo que cuelga de él, sin tope de profundidad. Es el
+ * único recorrido de la redacción (ADR-123 regla 17): una clave oculta más se escribe en
+ * `HIDDEN_KEYS` y en ningún otro lado.
+ */
+function hideKeys(value: unknown, place: Place): void {
   if (Array.isArray(value)) {
+    // Solo la lista de errores agrupados trae errores; cualquier otra, datos.
     for (const item of value) {
-      hideKeys(item);
+      hideKeys(item, place === "errors" ? "error" : "data");
     }
     return;
   }
@@ -42,53 +68,14 @@ function hideKeys(value: unknown): void {
   }
   const record = value as Record<string, unknown>;
   for (const key of Object.keys(record)) {
+    const inner = record[key];
+    if (place === "error" && key === "code" && isErrorCode(inner)) {
+      continue;
+    }
     if (HIDDEN_KEYS.includes(key)) {
       record[key] = REDACTED;
     } else {
-      hideKeys(record[key]);
-    }
-  }
-}
-
-/**
- * Lo mismo dentro de un error registrado como `err`, que deja leer su código (ADR-118 regla 23) y el
- * de cada error que agrupa: pino los lista en `aggregateErrors`, y son códigos de error igual.
- */
-function hideKeysInError(value: unknown): void {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    hideKeys(value);
-    return;
-  }
-  const record = value as Record<string, unknown>;
-  for (const key of Object.keys(record)) {
-    const inner = record[key];
-    if (key === "code") {
-      if (!isErrorCode(inner)) {
-        record[key] = REDACTED;
-      }
-      continue;
-    }
-    if (key === "aggregateErrors" && Array.isArray(inner)) {
-      for (const grouped of inner) {
-        hideKeysInError(grouped);
-      }
-    } else if (HIDDEN_KEYS.includes(key)) {
-      record[key] = REDACTED;
-    } else {
-      hideKeys(inner);
-    }
-  }
-}
-
-/** Oculta las cuatro claves en lo que una línea trae: solo su `err` deja leer un código. */
-function hideKeysInLine(record: Record<string, unknown>): void {
-  for (const key of Object.keys(record)) {
-    if (key === "err") {
-      hideKeysInError(record[key]);
-    } else if (HIDDEN_KEYS.includes(key)) {
-      record[key] = REDACTED;
-    } else {
-      hideKeys(record[key]);
+      hideKeys(inner, placeUnder(place, key, inner));
     }
   }
 }
@@ -108,7 +95,7 @@ function withoutHiddenKeys(line: string): string {
   }
   try {
     const record = JSON.parse(line) as Record<string, unknown>;
-    hideKeysInLine(record);
+    hideKeys(record, "line");
     return `${JSON.stringify(record)}\n`;
   } catch {
     return `${JSON.stringify({ level: 50, time: Date.now(), msg: "registro: una línea no se pudo revisar y no se escribió" })}\n`;
@@ -133,7 +120,7 @@ function withoutHiddenKeysInMessage(value: unknown): unknown {
       return value;
     }
     const copy = JSON.parse(written) as Record<string, unknown>;
-    hideKeysInLine(copy);
+    hideKeys(copy, "line");
     return copy;
   } catch {
     return REDACTED;
