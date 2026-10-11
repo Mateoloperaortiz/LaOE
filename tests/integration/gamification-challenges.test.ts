@@ -299,38 +299,27 @@ describe("retos: lecturas del miembro", () => {
     });
     await seedChallenge(termId, { title: "Borrador", status: "DRAFT" });
 
-    const memberNuevo = await resolveMemberContext(nuevo, termId);
-    const memberVeterano = await resolveMemberContext(veterano, termId);
-    const memberComite = await resolveMemberContext(deComite, termId);
+    const titles = async (personId: string) =>
+      (await listChallengesForMember(personId, termId)).map((row) => row.title).sort();
 
-    const titles = async (
-      personId: string,
-      member: Awaited<ReturnType<typeof resolveMemberContext>>,
-    ) => (await listChallengesForMember(personId, termId, member)).map((row) => row.title).sort();
-
-    expect(await titles(nuevo, memberNuevo)).toEqual(["Para nuevos", "Para todos"]);
-    expect(await titles(veterano, memberVeterano)).toEqual(["Para todos", "Para veteranos"]);
-    expect(await titles(deComite, memberComite)).toEqual([
-      "Para comité",
-      "Para todos",
-      "Para veteranos",
-    ]);
+    expect(await titles(nuevo)).toEqual(["Para nuevos", "Para todos"]);
+    expect(await titles(veterano)).toEqual(["Para todos", "Para veteranos"]);
+    expect(await titles(deComite)).toEqual(["Para comité", "Para todos", "Para veteranos"]);
   });
 
   it("oculta correctIndex hasta que el reto cierra", async () => {
     const termId = await seedTerm();
     const personId = await seedMember("retos.oculta@eafit.edu.co");
     const challengeId = await seedTrivia(termId);
-    const member = await resolveMemberContext(personId, termId);
 
-    const open = await getChallengeForMember(challengeId, personId, member);
+    const open = await getChallengeForMember(challengeId, personId);
     expect(open?.questions[0]?.correctIndex).toBeNull();
 
     await db()
       .update(challenge)
       .set({ closesAt: new Date(Date.now() - 60_000) })
       .where(eq(challenge.id, challengeId));
-    const closed = await getChallengeForMember(challengeId, personId, member);
+    const closed = await getChallengeForMember(challengeId, personId);
     expect(closed?.state).toBe("CLOSED");
     expect(closed?.questions[0]?.correctIndex).toBe(0);
   });

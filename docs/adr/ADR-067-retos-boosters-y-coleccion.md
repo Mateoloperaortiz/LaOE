@@ -1,6 +1,6 @@
 # ADR-067: Retos relámpago, boosters y colección de insignias
 
-- Estado: Aceptada (enmendada por ADR-068, ADR-075, ADR-078, ADR-087, ADR-111, ADR-113 y ADR-118)
+- Estado: Aceptada (enmendada por ADR-068, ADR-075, ADR-078, ADR-087, ADR-111, ADR-113, ADR-118 y ADR-122)
 - Fecha: 2026-09-14
 - Relacionadas: ADR-004, ADR-007, ADR-008, ADR-011, ADR-012, ADR-014, ADR-020, ADR-022, ADR-030, ADR-032, ADR-035, ADR-038, ADR-041, ADR-062
 - Enmienda: ADR-007 (tipos `CHALLENGE` y `BOOST` del ledger), ADR-022 (evidencias con almacenamiento y autorización propios, fuera de `/api/media`), ADR-035 (participación en retos, boosters sobre asistencias, cierre de puntos que exige resolver pendientes), ADR-041 (el Wordle alimenta insignias y no admite boosters)
@@ -85,3 +85,7 @@ La regla 12 decía que el job de evidencias re-codifica con `sharp`, y no decía
 ## Enmienda (2026-10-08, ADR-118)
 
 La regla 6 dice «un `requestId` por participación» y el índice único que lo sostiene es `(challenge_id, request_id)`, sin persona. El navegador guarda ese identificador por pestaña y no por sesión, así que el de una persona le cerraba el reto a la siguiente en la misma pestaña. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 18 lo corrige sin tocar el esquema: el `requestId` se guarda con su persona. El reintento de la misma persona sigue devolviendo lo guardado, también para las entregas anteriores, que quedaron con el identificador tal como llegó.
+
+## Enmienda (2026-10-10, ADR-122)
+
+Regla 2: decía cómo se evalúa el público al participar y que las lecturas de `people` se resuelven antes de `runCommand`. De lo que el miembro ve no decía quién lo resuelve, y lo armaba cada página con el término que tuviera a mano: el detalle de un reto por comités de un término anterior le daba un 404 a quien había participado y cambiado de comité, y se le mostraba a quien entró a ese comité después (DT-031). Ahora la lista, «el siguiente reto», los destinos de un booster y el detalle resuelven el público en el dominio, con el término del reto, como los comandos. Ver [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 6.

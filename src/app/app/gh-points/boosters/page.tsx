@@ -12,7 +12,6 @@ import {
   listBoostersFor,
   listBoosterTargetsForMember,
   loadGamificationSettings,
-  resolveMemberContext,
 } from "@/modules/participation";
 import { getCurrentTerm } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
@@ -180,10 +179,9 @@ export default async function BoostersPage({ searchParams }: PageProps<"/app/gh-
       </div>
     );
   }
-  const member = await resolveMemberContext(actor.personId, term.id);
   const [boosters, targets, campaigns] = await Promise.all([
     listBoostersFor(actor.personId),
-    listBoosterTargetsForMember(actor.personId, term.id, member),
+    listBoosterTargetsForMember(actor.personId, term.id),
     listActiveCampaignsForMember(term.id),
   ]);
   const names = tList("T-2451");

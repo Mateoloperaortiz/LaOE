@@ -29,7 +29,7 @@ import {
   reward,
 } from "../schema";
 import { audienceIncludes, challengeState, memberChallengeStatus } from "./gamification-pure";
-import type { MemberContext } from "./member-context";
+import { resolveMemberContext } from "./member-context";
 import type { RewardRow } from "./rewards";
 import { releaseReward } from "./rewards";
 
@@ -956,14 +956,18 @@ async function boosterKindsFor(
 /**
  * Los retos del término que la persona puede ver: publicados (programados, abiertos o cerrados),
  * de su público. Los cerrados se conservan solo si participó o cerraron hace menos de 30 días.
+ * El público se resuelve acá, con el término de los retos (ADR-122 regla 6): quien llama no lo arma.
  */
 export async function listChallengesForMember(
   personId: string,
   termId: string,
-  member: MemberContext | null,
   now = new Date(),
 ): Promise<MemberChallengeCard[]> {
   const db = getDb();
+  const member = await resolveMemberContext(personId, termId, db);
+  if (!member) {
+    return [];
+  }
   const rows = (await memberSelect(db, personId).where(
     and(eq(challenge.termId, termId), eq(challenge.status, "PUBLISHED")),
   )) as MemberReadRow[];
@@ -992,17 +996,25 @@ export async function listChallengesForMember(
     .sort((a, b) => a.closesAt.getTime() - b.closesAt.getTime());
 }
 
+/**
+ * El detalle de un reto publicado, o null si no existe o la persona no es de su público. El público
+ * se resuelve con el término del reto, como en los comandos, y no con el vigente (ADR-067 regla 2,
+ * ADR-122 regla 6): un reto por comités de otro término es de quien era de esos comités entonces.
+ */
 export async function getChallengeForMember(
   id: string,
   personId: string,
-  member: MemberContext | null,
   now = new Date(),
 ): Promise<MemberChallengeDetail | null> {
   const db = getDb();
   const [item] = (await memberSelect(db, personId).where(
     and(eq(challenge.id, id), eq(challenge.status, "PUBLISHED")),
   )) as MemberReadRow[];
-  if (!item || !audienceIncludes(item.row, member)) {
+  if (!item) {
+    return null;
+  }
+  const member = await resolveMemberContext(personId, item.row.termId, db);
+  if (!audienceIncludes(item.row, member)) {
     return null;
   }
   const state = challengeState(item.row, now);
@@ -1072,10 +1084,9 @@ export async function getChallengeForMember(
 export async function nextChallengeForMember(
   personId: string,
   termId: string,
-  member: MemberContext | null,
   now = new Date(),
 ): Promise<MemberChallengeCard | null> {
-  const cards = await listChallengesForMember(personId, termId, member, now);
+  const cards = await listChallengesForMember(personId, termId, now);
   return cards.find((card) => card.state === "OPEN" && card.status === "AVAILABLE") ?? null;
 }
 

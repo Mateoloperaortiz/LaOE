@@ -13,7 +13,6 @@ import {
   POINT_ENTRY_KINDS,
   peopleBoards,
   rankCommittees,
-  resolveMemberContext,
   unseenBadgesFor,
 } from "@/modules/participation";
 import { BadgeUnlock } from "@/modules/participation/components/BadgeUnlock";
@@ -93,9 +92,10 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
     (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended ? 1 : 0);
   const level = levelFor(total, cutoffs);
   const nextLabel = level.next === null ? null : (levelLabels[level.index + 1] ?? "");
-  const member = gamification.enabled ? await resolveMemberContext(actor.personId, term.id) : null;
-  const nextChallenge = member
-    ? await nextChallengeForMember(actor.personId, term.id, member)
+  // «Tu próximo reto» es de quien tiene membresía, con la gamificación encendida.
+  const showNextChallenge = gamification.enabled && membership !== null;
+  const nextChallenge = showNextChallenge
+    ? await nextChallengeForMember(actor.personId, term.id)
     : null;
   const unseen = gamification.enabled ? await unseenBadgesFor(actor.personId) : [];
   let board: Array<{ rank: number; name: string; total: string; mine: boolean }> = [];
@@ -216,7 +216,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
         </p>
       </Cartel>
 
-      {member ? (
+      {showNextChallenge ? (
         <section aria-labelledby="proximo-reto" className="flex flex-col items-start gap-4">
           <h2 id="proximo-reto" className="text-display-md">
             {t("T-2445")}

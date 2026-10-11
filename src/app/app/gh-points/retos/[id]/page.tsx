@@ -14,7 +14,6 @@ import {
   listBoostersFor,
   loadGamificationSettings,
   type MemberChallengeDetail,
-  resolveMemberContext,
 } from "@/modules/participation";
 import { EvidenceUploader } from "@/modules/participation/components/EvidenceUploader";
 import { RewardBreakdown } from "@/modules/participation/components/RewardBreakdown";
@@ -231,8 +230,7 @@ export default async function RetoDetallePage({
       </div>
     );
   }
-  const member = await resolveMemberContext(actor.personId, term.id);
-  const challenge = await getChallengeForMember(id, actor.personId, member);
+  const challenge = await getChallengeForMember(id, actor.personId);
   if (!challenge) {
     notFound();
   }

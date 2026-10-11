@@ -368,13 +368,12 @@ export async function setBoosterTarget(
 export async function listBoosterTargetsForMember(
   personId: string,
   termId: string,
-  member: MemberContext | null,
   now = new Date(),
 ): Promise<{
   challenges: MemberChallengeCard[];
   occasions: Array<{ id: string; publicId: string; title: string; startsAt: Date; points: number }>;
 }> {
-  const cards = await listChallengesForMember(personId, termId, member, now);
+  const cards = await listChallengesForMember(personId, termId, now);
   const challenges = cards.filter(
     (card) =>
       (card.state === "OPEN" || card.state === "SCHEDULED") &&

@@ -258,12 +258,7 @@ export {
   type Ranked,
 } from "./domain/ledger-pure";
 export { buildLiveSnapshot, checkInLink, type LiveCheckIn, type LiveSnapshot } from "./domain/live";
-export {
-  type GamificationSettings,
-  loadGamificationSettings,
-  type MemberContext,
-  resolveMemberContext,
-} from "./domain/member-context";
+export { type GamificationSettings, loadGamificationSettings } from "./domain/member-context";
 export {
   ASSEMBLY_KINDS,
   type AssemblyKind,

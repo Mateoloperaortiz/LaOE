@@ -10,7 +10,6 @@ import {
   listMemberAgenda,
   loadGamificationSettings,
   nextChallengeForMember,
-  resolveMemberContext,
 } from "@/modules/participation";
 import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
 import { canParticipate, getMyMembership } from "@/modules/people";
@@ -55,12 +54,11 @@ export default async function AppHome() {
     : new Map();
   const allDone = steps.length > 0 && steps.every((step) => step.doneAt);
   const agenda = agendaItems(ocasiones, editions);
-  const member =
-    gamification.enabled && participationAllowed && mine.term
-      ? await resolveMemberContext(actor.personId, mine.term.id)
-      : null;
-  const nextChallenge =
-    member && mine.term ? await nextChallengeForMember(actor.personId, mine.term.id, member) : null;
+  // «Tu próximo reto» es de quien puede participar (y por eso tiene membresía), con término vigente.
+  const nextChallengeTerm = gamification.enabled && participationAllowed ? mine.term : null;
+  const nextChallenge = nextChallengeTerm
+    ? await nextChallengeForMember(actor.personId, nextChallengeTerm.id)
+    : null;
   return (
     <div className="member-home">
       <header className="member-home-header">
@@ -110,7 +108,7 @@ export default async function AppHome() {
           ) : null}
         </aside>
       </div>
-      {member ? (
+      {nextChallengeTerm ? (
         <section aria-labelledby="proximo-reto" className="flex flex-col items-start gap-4">
           <BarraTitulo color="azul" className="self-start">
             <span id="proximo-reto">{t("T-2445")}</span>

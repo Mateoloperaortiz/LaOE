@@ -7,7 +7,6 @@ import {
   listChallengesForMember,
   loadGamificationSettings,
   type MemberChallengeCard,
-  resolveMemberContext,
 } from "@/modules/participation";
 import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
 import { getCurrentTerm } from "@/modules/terms";
@@ -55,8 +54,7 @@ export default async function RetosPage({ searchParams }: PageProps<"/app/gh-poi
       </div>
     );
   }
-  const member = await resolveMemberContext(actor.personId, term.id);
-  const cards = await listChallengesForMember(actor.personId, term.id, member);
+  const cards = await listChallengesForMember(actor.personId, term.id);
   const filtered = cards.filter((card) => matches(card, filtro));
   const labels = tList("T-2448");
 
