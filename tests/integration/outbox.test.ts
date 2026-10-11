@@ -5,6 +5,7 @@ import { type CommandContext, enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/d
 import { BACKOFF_MS } from "@/jobs/backoff";
 import { drain, processOne, restoreTakenKeys, startPoller } from "@/jobs/poller";
 import { getHandlers, registerHandler, resetHandlersForTests } from "@/jobs/registry";
+import type { ScheduleEntry } from "@/jobs/schedule";
 import { enqueueScheduled } from "@/jobs/scheduler";
 import { listOutbox, retryDeadLetter } from "@/modules/system/domain/outbox";
 import { auditLog, outbox } from "@/modules/system/schema";
@@ -838,17 +839,28 @@ describe("poller del outbox", () => {
     ]);
   });
 
-  it("los handlers de los módulos quedan registrados al cargar handlers.ts", async () => {
+  it("cada programado del calendario tiene su handler al cargar handlers.ts", async () => {
+    const { SCHEDULE } = await import("@/jobs/schedule");
     resetHandlersForTests();
     await import("@/jobs/handlers");
-    for (const type of [
-      "identity.prune",
-      "people.prune",
-      "system.prune",
-      "system.backup-check",
-      "media.process",
-    ]) {
-      expect(getHandlers(type).length, type).toBeGreaterThan(0);
-    }
+    /** Los programados que nadie atiende, con su entrada del calendario. */
+    const withoutHandler = (schedule: readonly ScheduleEntry[]) =>
+      schedule.flatMap((entry) =>
+        entry.events
+          .filter((type) => getHandlers(type).length === 0)
+          .map((type) => `${entry.name}: ${type}`),
+      );
+    // La lista sale del calendario (DT-018): un programado nuevo entra solo a esta prueba.
+    expect(SCHEDULE.flatMap((entry) => entry.events).length).toBeGreaterThan(0);
+    expect(withoutHandler(SCHEDULE)).toEqual([]);
+    // Y muerde: el programado que nadie atiende queda señalado, y solo ese.
+    const seeded = {
+      name: "sembrado",
+      cron: "0 0 * * *",
+      events: ["system.prune", "sembrado.nadie"],
+    };
+    expect(withoutHandler([...SCHEDULE, seeded])).toEqual(["sembrado: sembrado.nadie"]);
+    // `media.process` no es un programado: lo encola la subida de un medio.
+    expect(getHandlers("media.process").length).toBeGreaterThan(0);
   });
 });
