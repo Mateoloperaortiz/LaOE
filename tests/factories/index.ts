@@ -15,8 +15,9 @@ import {
 } from "@/modules/crm/schema";
 import { event, eventEdition } from "@/modules/events/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
+import { createWalletCarnetToken } from "@/modules/identity/domain/carnet-pure";
 import { hashPassword } from "@/modules/identity/domain/pure";
-import { credential, permission } from "@/modules/identity/schema";
+import { carnetToken, credential, permission } from "@/modules/identity/schema";
 import { dayKeyFor, weekKeyFor } from "@/modules/participation/domain/gamification-pure";
 import {
   achievement,
@@ -54,6 +55,7 @@ import {
 } from "@/modules/permanence/schema";
 import { conventionalTermDates } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
+import { walletPass } from "@/modules/wallet/schema";
 import { todayKey } from "@/shared/lib/dates";
 import { TEST_POLICY_VERSION } from "./policy-version";
 
@@ -1263,4 +1265,39 @@ export async function seedInteractions(personId: string, items: InteractionSeed[
   await db()
     .insert(interaction)
     .values(items.map((item) => ({ personId, ...item })));
+}
+
+/** El carné de cada persona, en una sola sentencia: un token nuevo, en la época 0 y la revisión 1. */
+export async function seedCarnetTokens(personIds: string[]): Promise<void> {
+  if (personIds.length === 0) return;
+  await db()
+    .insert(carnetToken)
+    .values(
+      personIds.map((personId) => ({
+        personId,
+        token: createWalletCarnetToken(),
+        walletEpoch: 0,
+        revision: 1,
+      })),
+    );
+}
+
+/**
+ * El pase de Google Wallet de cada persona, en una sola sentencia: en la época 0 y la revisión 1 de
+ * su token, todavía sin emitir. El objeto del proveedor lo arma la prueba que lo necesite.
+ */
+export async function seedWalletPasses(
+  passes: { personId: string; externalId: string }[],
+): Promise<void> {
+  if (passes.length === 0) return;
+  await db()
+    .insert(walletPass)
+    .values(
+      passes.map((pass) => ({
+        ...pass,
+        platform: "GOOGLE" as const,
+        walletEpoch: 0,
+        tokenRevision: 1,
+      })),
+    );
 }

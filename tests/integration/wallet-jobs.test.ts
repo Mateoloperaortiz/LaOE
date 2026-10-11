@@ -7,10 +7,8 @@ import { type Env, getEnv } from "@/env";
 import { processOne } from "@/jobs/poller";
 import { SCHEDULE } from "@/jobs/schedule";
 import { getCarnetCredential, readCarnet } from "@/modules/identity";
-import { createWalletCarnetToken } from "@/modules/identity/domain/carnet-pure";
 import { drainOutbox } from "../helpers/outbox";
 import "@/modules/identity/jobs";
-import { carnetToken } from "@/modules/identity/schema";
 import { setCommitteeMembershipsAs, updatePersonAs } from "@/modules/people";
 import {
   anonymizePerson,
@@ -33,16 +31,17 @@ import {
   personUpdated,
 } from "@/domain-events/people";
 import { walletReconcile, walletSync } from "@/domain-events/wallet";
-import { walletPass } from "@/modules/wallet/schema";
 import { t } from "@/shared/copy";
 import {
   currentTermCode,
+  seedCarnetTokens,
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedMemberships,
   seedPeople,
   seedTerm,
+  seedWalletPasses,
 } from "../factories";
 import { truncateAll } from "./db";
 import { FakeGoogleWallet } from "./wallet-fixtures";
@@ -306,27 +305,10 @@ describe("wallet por outbox y reconciliación diaria", () => {
     );
     const people = personIds.map((id) => ({ id }));
     await seedMemberships(personIds, termId);
-    await getDb()
-      .insert(carnetToken)
-      .values(
-        people.map(({ id }) => ({
-          personId: id,
-          token: createWalletCarnetToken(),
-          walletEpoch: 0,
-          revision: 1,
-        })),
-      );
-    await getDb()
-      .insert(walletPass)
-      .values(
-        people.map(({ id }) => ({
-          personId: id,
-          platform: "GOOGLE" as const,
-          externalId: `1234567890.carnet-oe-test.${id}`,
-          walletEpoch: 0,
-          tokenRevision: 1,
-        })),
-      );
+    await seedCarnetTokens(personIds);
+    await seedWalletPasses(
+      personIds.map((id) => ({ personId: id, externalId: `1234567890.carnet-oe-test.${id}` })),
+    );
     for (const { id } of people) {
       const externalId = `1234567890.carnet-oe-test.${id}`;
       server.objects.set(externalId, {
