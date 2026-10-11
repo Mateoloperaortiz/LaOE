@@ -22,32 +22,32 @@ export async function blockedBenefits(
 ): Promise<Set<string>> {
   if (personIds.length === 0) return new Set();
   const day = todayKey(now);
-  const [probations, sanctions, onLeave] = await Promise.all([
-    exec
-      .select({ personId: membershipTerm.personId })
-      .from(membershipTerm)
-      .where(
-        and(
-          inArray(membershipTerm.personId, personIds),
-          eq(membershipTerm.termId, termId),
-          eq(membershipTerm.probation, true),
-        ),
+  // Una consulta tras otra y no `Promise.all`: `exec` puede ser la transacción de un comando, que es
+  // una sola conexión, y pg avisa que desde su versión 9 no acepta una consulta con otra en vuelo.
+  const probations = await exec
+    .select({ personId: membershipTerm.personId })
+    .from(membershipTerm)
+    .where(
+      and(
+        inArray(membershipTerm.personId, personIds),
+        eq(membershipTerm.termId, termId),
+        eq(membershipTerm.probation, true),
       ),
-    exec
-      .select()
-      .from(sanction)
-      .where(
-        and(
-          inArray(sanction.personId, personIds),
-          isNull(sanction.revokedAt),
-          gte(sanction.expiresOn, day),
-        ),
+    );
+  const sanctions = await exec
+    .select()
+    .from(sanction)
+    .where(
+      and(
+        inArray(sanction.personId, personIds),
+        isNull(sanction.revokedAt),
+        gte(sanction.expiresOn, day),
       ),
-    exec
-      .select()
-      .from(membership)
-      .where(and(inArray(membership.personId, personIds), eq(membership.status, "ON_LEAVE"))),
-  ]);
+    );
+  const onLeave = await exec
+    .select()
+    .from(membership)
+    .where(and(inArray(membership.personId, personIds), eq(membership.status, "ON_LEAVE")));
   const blocked = new Set(probations.map((row) => row.personId));
   for (const item of sanctions) {
     if (suspendedUntil([item], day)) blocked.add(item.personId);
