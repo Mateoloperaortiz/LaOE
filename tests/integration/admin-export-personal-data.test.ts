@@ -275,12 +275,48 @@ type RowHandedTo = Record<string, readonly RowReader[]>;
 
 const IDENTIFIER = "[A-Za-z_$][\\w$]*";
 const WHOLE_ROW = "@ROW@";
+/**
+ * Una función suelta llamada por su nombre: `nombre(…)`, o `(0, nombre)(…)`, que es como Vitest deja
+ * la llamada a una importada. No lo es lo que cuelga de otra cosa (`lista.map(…)`), que ya sale como
+ * lectura suelta; sí lo que viene detrás de `...`. Se busca en el texto entero, cadenas incluidas: un
+ * nombre pegado a un paréntesis adentro de un literal también pide revisión.
+ */
+const FREE_CALL = new RegExp(
+  `(?<![\\w$])(?<!(?<!\\.\\.)\\.)(${IDENTIFIER})\\)?\\s*(?:\\?\\.\\s*)?\\(`,
+  "g",
+);
+/** Palabras del lenguaje que van pegadas a un paréntesis sin ser una llamada. */
+const NOT_A_FUNCTION = new Set([
+  "async",
+  "await",
+  "case",
+  "catch",
+  "delete",
+  "do",
+  "else",
+  "for",
+  "function",
+  "if",
+  "in",
+  "instanceof",
+  "new",
+  "of",
+  "return",
+  "switch",
+  "throw",
+  "typeof",
+  "void",
+  "while",
+  "yield",
+]);
 
 interface RowText {
   /** Las rutas que el texto escribe desde la fila, tramo por tramo: `person`, `person.fullName`. */
   paths: string[];
   /** Lo que lee de otra cosa, sea el elemento de una lista o una variable: `fullName` en `member.fullName`. */
   loose: string[];
+  /** Las funciones sueltas que llama por su nombre: `fullNameOf` en `fullNameOf(row.person)`. */
+  calls: string[];
   /** El cuerpo, con `@ROW@` donde nombra la fila sin leerle un campo: ahí la entrega entera. */
   rest: string;
 }
@@ -290,6 +326,8 @@ interface RowText {
  * texto que Vitest ejecuta, sin los prefijos que les pone a los imports. Falla cerrado: si no reconoce
  * cómo la función llama a su fila, lanza; y la fila nombrada sin un campo detrás (pasada a otra
  * función, copiada con `...`, desarmada, o leída con una clave calculada) cuenta como entregada entera.
+ * De lo que pasa adentro de otra función este texto no dice nada: por eso anota cada función suelta
+ * que llama, reciba un campo, una variable o nada.
  */
 function rowText(reader: RowReader): RowText {
   const source = Function.prototype.toString
@@ -324,7 +362,11 @@ function rowText(reader: RowReader): RowText {
   for (const [, name] of rest.matchAll(new RegExp(`(?<!\\.)\\.\\s*(${IDENTIFIER})`, "g"))) {
     if (name) loose.add(name);
   }
-  return { paths: [...paths], loose: [...loose], rest };
+  const calls = new Set<string>();
+  for (const [, name] of rest.matchAll(FREE_CALL)) {
+    if (name && !NOT_A_FUNCTION.has(name)) calls.add(name);
+  }
+  return { paths: [...paths], loose: [...loose], calls: [...calls], rest };
 }
 
 /** Cuántas veces el texto le entrega la fila entera a `reader`, llamándola por su nombre. */
@@ -342,20 +384,24 @@ function handoversTo(text: RowText, reader: RowReader): number {
 /**
  * Todo lo que el exporte lee de la fila: lo que la sonda alcanza y lo que nombra su texto, que es como
  * se ve la rama que depende del valor de un campo (DT-303, ADR-123 regla 14). Del texto salen las rutas
- * escritas desde la fila y, como `*.campo`, lo que se lee de otra cosa y la sonda no vio leer con ese
- * nombre. Va también el texto de las funciones de `handedTo`, que reciben la fila entera.
+ * escritas desde la fila; como `*.campo`, lo que se lee de otra cosa y la sonda no vio leer con ese
+ * nombre; y, como `función()`, cada función suelta que llama: lo que esa función lee de un campo que
+ * recibe no está en este texto, así que la llamada pasa por lo revisado como una ruta más. Va también
+ * el texto de las funciones de `handedTo`, que reciben la fila entera y no se cuentan como llamada.
  */
 function pathsReadByExport(resource: Exportable, handedTo: RowHandedTo = {}): string[] {
   const probed = pathsProbed(resource);
   const seenByName = new Set(probed.map((path) => path.slice(path.lastIndexOf(".") + 1)));
   const readers = handedTo[resource.key] ?? [];
+  const declared = (name: string) => readers.some((reader) => reader.name === name);
   const named = [resource.exportRow as RowReader, ...readers]
     .map(rowText)
     .flatMap((text) => [
       ...text.paths,
       ...text.loose
-        .filter((name) => !seenByName.has(name) && !readers.some((reader) => reader.name === name))
+        .filter((name) => !seenByName.has(name) && !declared(name))
         .map((name) => `*.${name}`),
+      ...text.calls.filter((name) => !declared(name)).map((name) => `${name}()`),
     ]);
   return [...new Set([...probed, ...named])].sort();
 }
@@ -406,12 +452,16 @@ function unmarkedPersonColumns(
  * nada de una persona y lo sume acá. Va también lo que el exporte le hace al campo
  * (`createdAt.toISOString`), que es como la sonda lo anota, y con `*.` lo que el texto del exporte lee
  * de algo que no es la fila y la sonda no vio leer con ese nombre (`*.key`, de `field.key`; ADR-123
- * regla 14). Si lo que se suma es de una persona, lo que corresponde es marcar el recurso con
- * `personalData: true`, no esta lista.
+ * regla 14). Y con `()` cada función suelta que el exporte llama (`parseFields()`): lo que esa función
+ * hace con el campo que recibe no está en el texto del exporte, así que sumarla acá es haberla leído.
+ * Hoy son cinco y ninguna lee nada de una persona: cuatro cambian un código por su etiqueta y
+ * `parseFields` valida la definición de los campos de un formulario. Si lo que se suma es de una
+ * persona, lo que corresponde es marcar el recurso con `personalData: true`, no esta lista.
  */
 const REVIEWED_PATHS: Record<string, readonly string[]> = {
   alias: ["createdAt", "createdAt.toISOString", "occasionTitle", "path"],
   campanas: [
+    "campaignStatusLabel()",
     "failedCount",
     "name",
     "scheduledAt",
@@ -426,6 +476,7 @@ const REVIEWED_PATHS: Record<string, readonly string[]> = {
   cargos: [
     "capabilities",
     "capabilities.includes",
+    "capabilityLabels()",
     "code",
     "isLeadership",
     "label",
@@ -495,6 +546,7 @@ const REVIEWED_PATHS: Record<string, readonly string[]> = {
     "maxSubmissions",
     "opensAt",
     "opensAt.toISOString",
+    "parseFields()",
     "slug",
     "status",
     "submissionCount",
@@ -529,6 +581,8 @@ const REVIEWED_PATHS: Record<string, readonly string[]> = {
   plantillas: ["name", "slug", "subject", "updatedAt", "updatedAt.toISOString"],
   presupuestos: [
     "assignedTotal",
+    "budgetKindLabel()",
+    "budgetStatusLabel()",
     "committeeName",
     "kind",
     "sanctionPercent",
@@ -868,13 +922,14 @@ describe("marca de datos personales en el registro del admin", () => {
     const drift = reviewDrift(
       resources,
       {
-        entrega: ["kind", "slug"],
+        // Con la fila entera no alcanza con revisar la llamada: hay que declarar la función.
+        entrega: ["kind", "quien()", "slug"],
         "entrega-declarada": ["kind", "name", "slug"],
-        "entrega-a-dos": ["*.keys", "*.length", "kind", "name", "slug"],
-        "clave-calculada": ["phone"],
+        "entrega-a-dos": ["*.keys", "*.length", "String()", "kind", "name", "slug"],
+        "clave-calculada": ["String()", "phone"],
         desarmada: ["title"],
         "ya-no-entrega": ["kind", "name", "slug", "title"],
-        "entrega-en-cadena": ["title"],
+        "entrega-en-cadena": ["String()", "title"],
       },
       handedTo,
     );
@@ -896,6 +951,84 @@ describe("marca de datos personales en el registro del admin", () => {
       "clave-calculada: phone",
       "ya-no-entrega: name",
     ]);
+  });
+
+  // Revisión de #292: lo que lee una función que recibe un campo de la fila no está en el texto del
+  // exporte, y detrás de un valor tampoco lo alcanza la sonda. La llamada sí está en el texto.
+  it("un exporte que le pasa un campo de la fila a otra función no pasa hasta que alguien revise esa llamada, vaya el campo detrás de un valor, en una lista o por una variable", () => {
+    const fullNameOf = (who: { fullName: string }) => who.fullName;
+    const namesOf = (who: Array<{ fullName: string }>) =>
+      who.map((member) => member.fullName).join(", ");
+    const kindOf = occasionKindLabel as unknown as (who: object) => string;
+    const resources = [
+      unmarked("campo-entregado", (row) => ({
+        quien: row.kind === "PERSON" ? fullNameOf(row.person) : String(row.slug),
+      })),
+      unmarked("lista-entregada", (row) => ({
+        quienes: row.kind === "GROUP" ? namesOf(row.members) : String(row.members.length),
+      })),
+      unmarked("variable-entregada", (row) => {
+        const who = row.person;
+        return { quien: row.kind === "PERSON" ? fullNameOf(who) : "" };
+      }),
+      unmarked("copia-entregada", (row) => ({
+        ...(row.kind === "PERSON" ? { quien: fullNameOf(row.person) } : {}),
+      })),
+      // Una función importada llega al texto como `(0, módulo.función)(…)`.
+      unmarked("a-una-importada", (row) => ({
+        que: row.kind === "PERSON" ? occasionKindLabel(row.person as never) : "",
+      })),
+      // Con otro nombre es otra llamada: revisar una no deja pasar la otra.
+      unmarked("con-otro-nombre", (row) => ({
+        que: row.kind === "PERSON" ? kindOf(row.person) : "",
+      })),
+    ];
+
+    // Del sub-objeto se ve que se lee y a quién se le pasa, no qué le lee esa función.
+    expect(pathsReadByExport(resources[0] as Exportable)).toEqual([
+      "String()",
+      "fullNameOf()",
+      "kind",
+      "person",
+      "slug",
+    ]);
+    expect(
+      reviewDrift(resources, {
+        "campo-entregado": ["kind", "person", "slug"],
+        "lista-entregada": ["String()", "kind", "members", "members.length"],
+        "variable-entregada": ["kind", "person"],
+        "copia-entregada": ["kind", "person"],
+        "a-una-importada": ["kind", "person"],
+        "con-otro-nombre": ["kind", "occasionKindLabel()", "person"],
+      }),
+    ).toEqual([
+      "campo-entregado: sin revisar String(), fullNameOf()",
+      "lista-entregada: sin revisar namesOf()",
+      "variable-entregada: sin revisar fullNameOf()",
+      "copia-entregada: sin revisar fullNameOf()",
+      "a-una-importada: sin revisar occasionKindLabel()",
+      "con-otro-nombre: sin revisar kindOf()",
+      "con-otro-nombre: ya no lee occasionKindLabel()",
+    ]);
+  });
+
+  // DT-346: lo que la lectura por texto no alcanza. Cerrarlo es invertir este caso.
+  it("de una función que el exporte pasa por referencia, sin llamarla, se ve solo lo que la sonda alcanza al correrla (DT-346)", () => {
+    const labelOf = (who: { kind?: string; fullName: string; label: string }) =>
+      who.kind === "PERSON" ? who.fullName : who.label;
+    const byReference = unmarked("por-referencia", (row) => ({
+      quienes: row.members.map(labelOf).join(", "),
+    }));
+
+    // Ni `labelOf()` ni el `fullName` que lee detrás de un valor: el texto no la llama.
+    expect(pathsReadByExport(byReference)).toEqual([
+      "members",
+      "members.map",
+      "members.map.join",
+      "members.map.kind",
+      "members.map.label",
+    ]);
+    expect(unmarkedPersonColumns([byReference])).toEqual([]);
   });
 
   it("un exporte cuyo texto no deja ver cómo llama a su fila no pasa", () => {
