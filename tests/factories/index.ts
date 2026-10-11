@@ -723,7 +723,7 @@ export async function seedOrganization(
   return row.id;
 }
 
-/** Pipeline con sus etapas; devuelve el id y las etapas en orden. */
+/** Pipeline con sus etapas; devuelve el id y las etapas en orden. Con una lista vacía nace sin etapas. */
 export async function seedPipeline(
   name: string,
   kind: "ADMISSION" | "SPONSORSHIP" | "CUSTOM" = "ADMISSION",
@@ -736,6 +736,7 @@ export async function seedPipeline(
 ): Promise<{ id: string; stages: Array<{ id: string; name: string }> }> {
   const [row] = await db().insert(pipeline).values({ name, kind }).returning({ id: pipeline.id });
   if (!row) throw new Error("seed pipeline");
+  if (stages.length === 0) return { id: row.id, stages: [] };
   const created = await db()
     .insert(pipelineStage)
     .values(

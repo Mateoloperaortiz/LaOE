@@ -6,7 +6,7 @@ import { pipeline } from "@/modules/crm/schema";
 import { form } from "@/modules/forms/schema";
 import { committee } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
-import { seedCommittee } from "../factories";
+import { seedCommittee, seedPipeline } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
@@ -141,12 +141,7 @@ test("el hero y Unirse reflejan convocatoria cerrada, prospecto y admisión vige
       "href",
       `/f/${prospect.slug}`,
     );
-    const [flow] = await db
-      .insert(pipeline)
-      .values({ name: prefix, kind: "ADMISSION" })
-      .returning();
-    if (!flow) throw new Error("No se creó el pipeline de admisión");
-    pipelineId = flow.id;
+    pipelineId = (await seedPipeline(prefix, "ADMISSION", [])).id;
     const [admission] = await db
       .insert(form)
       .values({

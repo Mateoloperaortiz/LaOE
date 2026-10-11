@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { campaign, emailTemplate } from "@/modules/comms/schema";
 import { document as documentTable } from "@/modules/content/schema";
-import { card, internalCall, organization, pipeline, pipelineStage } from "@/modules/crm/schema";
+import { card, organization, pipeline } from "@/modules/crm/schema";
 import { event, eventEdition } from "@/modules/events/schema";
 import { form } from "@/modules/forms/schema";
 import { occasion } from "@/modules/participation/schema";
@@ -12,7 +12,16 @@ import { committee, person, segment } from "@/modules/people/schema";
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
-import { seedCampaign, seedDocument, seedEmailTemplate, seedSegment } from "../factories";
+import {
+  seedCall,
+  seedCampaign,
+  seedCard,
+  seedDocument,
+  seedEmailTemplate,
+  seedOrganization,
+  seedPipeline,
+  seedSegment,
+} from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -48,38 +57,33 @@ test.beforeEach(async () => {
   };
   const audience = { id: await seedSegment(prefix) };
   const mail = { id: await seedCampaign(prefix, template.id, audience.id) };
-  const org = await db.insert(organization).values({ name: prefix }).returning().then(first);
-  const flow = await db.insert(pipeline).values({ name: prefix }).returning().then(first);
-  const stages = await db
-    .insert(pipelineStage)
-    .values(
-      ["Pendiente de revisar", "En conversación", "Confirmación", "Finalizado"].map(
-        (name, sortOrder) => ({ name, sortOrder, pipelineId: flow.id }),
-      ),
-    )
-    .returning();
-  await db.insert(card).values({
-    pipelineId: flow.id,
-    stageId: first(stages).id,
-    organizationId: org.id,
-    title: "Tarjeta de prueba con un título largo para revisar el ajuste de líneas",
-  });
+  const org = { id: await seedOrganization(prefix, "OTHER") };
+  const flow = await seedPipeline(
+    prefix,
+    "CUSTOM",
+    ["Pendiente de revisar", "En conversación", "Confirmación", "Finalizado"].map((name) => ({
+      name,
+    })),
+  );
+  await seedCard(
+    flow.id,
+    first(flow.stages).id,
+    { organizationId: org.id },
+    { title: "Tarjeta de prueba con un título largo para revisar el ajuste de líneas" },
+  );
   const group = await db
     .insert(workGroup)
     .values({ termId: current.id, kind: "GAP", name: prefix })
     .returning()
     .then(first);
-  const call = await db
-    .insert(internalCall)
-    .values({
-      termId: current.id,
-      groupId: group.id,
+  const call = {
+    id: await seedCall(current.id, group.id, {
       title: prefix,
       opensAt: new Date(Date.now() - 86_400_000),
       closesAt: new Date(Date.now() + 7 * 86_400_000),
-    })
-    .returning()
-    .then(first);
+      status: "DRAFT",
+    }),
+  };
   const questionnaire = await db
     .insert(form)
     .values({
