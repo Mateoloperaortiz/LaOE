@@ -40,6 +40,15 @@ function stringsOf(file: TextFile): string[] {
   return found;
 }
 
+/** Las tablas que declaran los `schema.ts` de los módulos, por su nombre en PostgreSQL. */
+export function schemaTables(files: TextFile[]): Set<string> {
+  return new Set(
+    files.flatMap((file) =>
+      [...file.text.matchAll(/pgTable\(\s*"([a-z0-9_]+)"/g)].map((match) => match[1] ?? ""),
+    ),
+  );
+}
+
 /** Las tablas del esquema que el archivo nombra en una cadena, sea una lista o una consulta. */
 export function tableNamesWritten(file: TextFile, tables: ReadonlySet<string>): string[] {
   const written = new Set<string>();

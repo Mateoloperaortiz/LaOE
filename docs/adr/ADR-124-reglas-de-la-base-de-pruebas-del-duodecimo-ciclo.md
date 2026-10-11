@@ -1,0 +1,31 @@
+# ADR-124: Reglas de la base de pruebas del duodécimo ciclo del refactor
+
+- Estado: Aceptada
+- Fecha: 2026-10-11
+- Relacionadas: ADR-109, ADR-116, ADR-119
+- Enmienda: ADR-119 (regla 23: las tablas que borra el vaciado de la suite de integración ya no son una lista escrita más lo que la referencia por clave foránea; salen de `pg_tables` del esquema `public`, menos los catálogos de cargos, y se leen en cada vaciado)
+
+## Contexto
+
+El duodécimo ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-con-ledger-de-deuda.md)) implementa la spec [#244](https://github.com/Mateoloperaortiz/LaOE/issues/244), que quedó escrita al cierre y diferida: la base de las pruebas de integración, cómo se vacía entre pruebas y cómo se siembra. Es un ciclo de pruebas y herramientas, y `src` no cambia. Esta ADR reúne las reglas que cambian en el ciclo: cada ticket suma la suya.
+
+**El vaciado dependía de una lista escrita de 104 tablas (DT-030).** `truncateAll` (`tests/integration/db.ts`) traía escritas 104 de las 122 tablas de `public` y, al correr, les sumaba las que las referencian por clave foránea, leyendo `pg_constraint`: otras 16, entre ellas `app_config` y `badge_definition`. Era lo que arrastraba el `cascade` del truncado que [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) regla 23 cambió por un borrado. A `committee_role` y `macroevent_role` no llegaba, y eso era lo que las pruebas de cargos necesitaban, pero ningún renglón lo decía: salía de que ninguno de los dos referencia a una tabla de la lista. Una tabla nueva sin clave foránea hacia las listadas tampoco entraba. Sus filas pasaban de una prueba a la siguiente y el fallo aparecía en otro archivo. Las cifras son del 2026-10-11 sobre `refactor/ciclo-12`.
+
+## Decisión
+
+1. **La lista de tablas del vaciado de la suite de integración sale de PostgreSQL.** `truncateAll` vacía las tablas de `pg_tables` con `schemaname = 'public'`, menos los catálogos de cargos, `committee_role` y `macroevent_role`, que no toca.
+   - **Por qué se nombran catálogos.** Las migraciones llenan cuatro catálogos que las pruebas necesitan: `app_config`, `badge_definition`, `committee_role` y `macroevent_role`. No se pueden deducir de la base, porque las migraciones también llenan `page` y `event` con filas literales, y esas sí se vacían. Un catálogo nuevo que una migración llene se suma a los que el vaciado conserva; si no, queda vacío y su prueba falla a la vista.
+   - **Por qué el archivo nombra dos y no los cuatro.** `app_config` y `badge_definition` siguen entrando al vaciado: los borra con las demás tablas y los vuelve a escribir con lo que tenían, como antes, y los conoce por su tabla de Drizzle, no por un nombre escrito. Es la conducta que fija `tests/integration/truncate-all.test.ts`, incluido lo que una prueba le hereda a la siguiente, y cambia con DT-149 inciso (e) ([#300](https://github.com/Mateoloperaortiz/LaOE/issues/300)), no acá.
+   - **El filtro por esquema.** En la misma base viven el esquema `drizzle`, con el registro de migraciones, y los que crea `tests/integration/e2e-baseline.test.ts`. Los nombres salen con su esquema (`public.tabla`), así el candado, el borrado y el `VACUUM` alcanzan lo mismo que el filtro, sin depender del `search_path`.
+   - **Se lee en cada vaciado.** El cierre por claves foráneas se calculaba una vez por archivo. La lista de ahora es una consulta al catálogo y no se guarda: una tabla que nace a mitad de un archivo también queda vacía.
+   - **Lo que no cambia.** Lo demás de ADR-119 regla 23: una sola transacción, el candado `ACCESS EXCLUSIVE`, `session_replication_role = replica` puesto solo para esa transacción y `VACUUM` a las tablas que tenían filas. El permiso va con `set_config(…, true)` porque el vaciado usa el pool de la aplicación: a nivel de sesión, la prueba siguiente correría sin claves foráneas. `truncateAll` conserva nombre y firma.
+   - **Una prueba lee el código.** `tests/unit/test-emptying-table-names.test.ts` no admite en `tests/integration/db.ts` más nombres de tabla del esquema que los cuatro catálogos de migración. Una tabla escrita a mano funcionaría igual y ninguna prueba de conducta lo notaría, hasta que la lista se desfasara. Cuenta con `tableNamesWritten`, la misma función de la fila de `npm run audit:metrics`, y las tablas del esquema las lee `schemaTables` (`scripts/lib/test-suite-metrics.ts`) para las dos.
+
+## Consecuencias
+
+- El vaciado alcanza las mismas tablas que antes: 120 de las 122 de `public`. La caracterización de `tests/integration/truncate-all.test.ts` pasa sin tocarla.
+- Una tabla nueva de `public` queda vacía y sin páginas entre pruebas sin que nadie la anote, referencie o no a otra, y lo que vive fuera de `public` no se toca: `tests/integration/truncate-all-tables.test.ts`.
+- La fila «Tablas del esquema nombradas en el vaciado de pruebas» de `npm run audit:metrics` baja de 104 a 2. La spec la esperaba en 4, contando los cuatro catálogos. Marca 2 porque `app_config` y `badge_definition` no están escritos por su nombre. La prueba que lee el código ya admite los cuatro, por si #300 los nombra.
+- El vaciado hace una consulta más al catálogo por prueba. La suite de integración completa, tres corridas seguidas el 2026-10-11: 266,2 s, 267,7 s y 265,0 s, cada una con 190 archivos y 1.673 pruebas en verde. Son unos 3 s más que la única corrida de la línea base del ciclo, con la lista escrita (263,1 s, 189 archivos y 1.671 pruebas), y con un archivo y dos pruebas más; con una sola corrida de base no se separa la consulta de lo que varía una corrida de otra.
+- Si una migración renombra un catálogo de cargos, el nombre escrito deja de coincidir, el catálogo se vacía y las pruebas de cargos fallan a la vista (`macroevent-board.test.ts`, `roster.test.ts` y `schema-constraints.test.ts`). El vaciado no avisa por su cuenta.
+- Sigue a mano lo que el vaciado vuelve a escribir en `app_config` y `badge_definition`: los valores de gamificación de la migración 0030 y las tres claves de campañas que no se restauran. Es DT-149 inciso (e), de #300.
