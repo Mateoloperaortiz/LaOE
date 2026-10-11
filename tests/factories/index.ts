@@ -5,6 +5,7 @@ import { message } from "@/modules/comms/schema";
 import { mediaAsset } from "@/modules/content/schema";
 import {
   card,
+  interaction,
   internalCall,
   internalCallEntry,
   organization,
@@ -1248,4 +1249,18 @@ export async function seedManualCredit(
       reason: overrides.reason ?? "Crédito de prueba",
       grantedById: overrides.grantedById ?? null,
     });
+}
+
+type InteractionSeed = {
+  kind: (typeof interaction.$inferInsert)["kind"];
+  summary: string;
+  occurredAt: Date;
+};
+
+/** Interacciones de una persona en su línea de tiempo, en una sola sentencia y en el orden dado. */
+export async function seedInteractions(personId: string, items: InteractionSeed[]): Promise<void> {
+  if (items.length === 0) return;
+  await db()
+    .insert(interaction)
+    .values(items.map((item) => ({ personId, ...item })));
 }

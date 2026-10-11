@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getDb } from "@/db/client";
 import { type InteractionView, listInteractions } from "@/modules/crm";
-import { type InteractionKind, interaction } from "@/modules/crm/schema";
-import { seedMember } from "../factories";
+import type { InteractionKind } from "@/modules/crm/schema";
+import { seedInteractions as seedInteractionRows, seedMember } from "../factories";
 import { elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
 
@@ -49,16 +48,14 @@ async function seedInteractions(
   amount: number,
   firstMinute: number,
 ): Promise<void> {
-  await getDb()
-    .insert(interaction)
-    .values(
-      Array.from({ length: amount }, (_, index) => ({
-        personId,
-        kind,
-        summary: `${kind} ${index + 1}`,
-        occurredAt: minutesAfterStart(firstMinute + index),
-      })),
-    );
+  await seedInteractionRows(
+    personId,
+    Array.from({ length: amount }, (_, index) => ({
+      kind,
+      summary: `${kind} ${index + 1}`,
+      occurredAt: minutesAfterStart(firstMinute + index),
+    })),
+  );
 }
 
 /** Lo que la pestaña «Línea de tiempo» recibe para pintar con ese filtro en la URL. */
