@@ -353,15 +353,13 @@ const EXCEPTIONS: Exception[] = [
 // El total de `PENDING`. Se edita solo hacia abajo, en el mismo commit que muda o justifica un
 // pendiente. La prueba no sabe cuánto valía ayer: es una convención, y lo que la sostiene es que
 // subir este número se ve en el diff.
-const PENDING_CEILING = 17;
+const PENDING_CEILING = 15;
 
 // Lo que queda por mudar o por justificar (DT-013). Ordenada por archivo y destino.
 const PENDING: Pending[] = [
   ["tests/e2e/admin-details-responsive.spec.ts", "workGroup", 1],
   ["tests/e2e/admin-navigation-roles.spec.ts", "workGroup", 1],
   ["tests/e2e/admin-navigation-roles.spec.ts", "workGroupEvaluator", 1],
-  ["tests/e2e/comite-areas.spec.ts", "committeeRoleAssignment", 1],
-  ["tests/e2e/comite-faltas.spec.ts", "committeeRoleAssignment", 1],
   ["tests/e2e/permanencia-admin.spec.ts", "workGroup", 1],
   ["tests/e2e/permanencia-evaluaciones.spec.ts", "permanenceRule", 2],
   ["tests/e2e/permanencia-evaluaciones.spec.ts", "workGroup", 2],

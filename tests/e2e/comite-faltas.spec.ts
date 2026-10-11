@@ -1,15 +1,10 @@
 import { expect } from "@playwright/test";
 import { and, asc, eq, isNull, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import {
-  committee,
-  committeeMembership,
-  committeeRoleAssignment,
-  person,
-  sanction,
-} from "@/modules/people/schema";
+import { committee, committeeMembership, person, sanction } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedCommitteeRole } from "../factories";
 import { E2E_CALENDAR, E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
 import { E2E_LEAVE_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
@@ -65,18 +60,7 @@ async function seedDirector(): Promise<Scenario> {
       ),
     );
   if (!seat) throw new Error("El miembro de pruebas no está en su comité base");
-  await db.insert(committeeRoleAssignment).values({
-    membershipId: seat.id,
-    personId: director.id,
-    committeeId: home.id,
-    termId: current.id,
-    roleCode: "GESTION_HUMANA",
-    coDirector: false,
-  });
-  await db
-    .update(committeeMembership)
-    .set({ roleCode: "GESTION_HUMANA" })
-    .where(eq(committeeMembership.id, seat.id));
+  await seedCommitteeRole(seat.id, "GESTION_HUMANA");
   await closeDb();
   return {
     slug: home.slug,

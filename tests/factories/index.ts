@@ -342,6 +342,34 @@ export async function seedCommitteeMembership(
 }
 
 /**
+ * Cargo asignado a una pertenencia que ya existe (ADR-058), para la prueba que le da un cargo a quien
+ * ya está en el comité. Deja `roleCode` como cargo principal, o MIEMBRO si el cargo es una
+ * codirección.
+ */
+export async function seedCommitteeRole(
+  membershipId: string,
+  roleCode: string,
+  coDirector = false,
+): Promise<void> {
+  const [seat] = await db()
+    .select({
+      personId: committeeMembership.personId,
+      committeeId: committeeMembership.committeeId,
+      termId: committeeMembership.termId,
+    })
+    .from(committeeMembership)
+    .where(eq(committeeMembership.id, membershipId));
+  if (!seat) throw new Error("seed committee role");
+  await db()
+    .insert(committeeRoleAssignment)
+    .values({ membershipId, ...seat, roleCode, coDirector });
+  await db()
+    .update(committeeMembership)
+    .set({ roleCode: coDirector ? "MIEMBRO" : roleCode })
+    .where(eq(committeeMembership.id, membershipId));
+}
+
+/**
  * Autorización viva de una persona para una finalidad, con la versión de la política que traen las
  * bases de prueba. Si ya tiene una viva no choca: queda la que había, como con `recordConsent`.
  */
