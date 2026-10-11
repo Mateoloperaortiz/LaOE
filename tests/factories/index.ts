@@ -343,8 +343,8 @@ export async function seedCommitteeMembership(
 
 /**
  * Cargo asignado a una pertenencia que ya existe (ADR-058), para la prueba que le da un cargo a quien
- * ya está en el comité. Deja `roleCode` como cargo principal, o MIEMBRO si el cargo es una
- * codirección.
+ * ya está en el comité. Deja `roleCode` como cargo principal, salvo en una codirección, que deja
+ * MIEMBRO: es lo que sembraban las specs y no lo que deja el dominio, que pone el cargo (DT-354).
  */
 export async function seedCommitteeRole(
   membershipId: string,

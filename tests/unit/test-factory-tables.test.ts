@@ -6,22 +6,20 @@ import { insertTargets, looseInserts } from "../../scripts/lib/test-suite-metric
 // La siembra de las pruebas pasa por la fábrica de `tests/factories`, que comparten integración y
 // E2E (DT-013, ADR-124 reglas 5 y 6). Una fila escrita a mano en una prueba puede armar un estado que
 // ningún comando deja, y la prueba queda en verde sobre algo imposible. Por eso esta prueba lee el
-// código: fuera de la fábrica no admite un `.insert(` ni un `insert into` que no esté en una de sus
-// dos listas.
+// código: fuera de la fábrica no admite un `.insert(` ni un `insert into` que no esté en su lista de
+// excepciones.
 //
-// - `EXCEPTIONS`: el estado que ningún comando produce y que la prueba arma a propósito, o la
-//   escritura que no es siembra. Cada una con su razón.
-// - `PENDING`: lo que todavía no pasó por la fábrica ni tiene su razón escrita. No es una excepción:
-//   es lo que queda de DT-013. Quien toque uno lo muda a la fábrica o, si arma a propósito un estado
-//   que ningún comando produce, lo pasa a `EXCEPTIONS` con su razón. Su total está escrito en
-//   `PENDING_CEILING` y la prueba lo exige: una línea nueva no entra sin subir ese número a la vista.
+// `EXCEPTIONS` es para el estado que ningún comando produce y que la prueba arma a propósito, y para
+// la escritura que no es siembra. Cada una lleva su razón. No hay otra lista ni un techo: la de
+// pendientes, que guardaba lo que faltaba mudar, quedó vacía y salió (#305). Un insert nuevo pasa por
+// la fábrica o entra acá con su razón escrita.
 //
 // Lee todo `tests/` menos la fábrica, que es la que escribe, y las unitarias, que no tocan la base y
 // traen insert de muestra en sus cadenas.
 //
-// Entre las dos suman la fila «Insert sueltos» de `npm run audit:metrics`. El destino es el nombre
-// que el archivo le pasa a `.insert(`, o `into` y lo que sigue a `insert into` en un SQL crudo: una
-// tabla importada con otro nombre figura con ese nombre, y un SQL que arma el nombre, con `<…>`.
+// La lista iguala la fila «Insert sueltos» de `npm run audit:metrics`. El destino es el nombre que
+// el archivo le pasa a `.insert(`, o `into` y lo que sigue a `insert into` en un SQL crudo: una tabla
+// importada con otro nombre figura con ese nombre, y un SQL que arma el nombre, con `<…>`.
 
 const FACTORY_TABLES = ["person", "permission", "membership", "term"];
 const SUITES = ["tests/integration", "tests/e2e"];
@@ -36,8 +34,6 @@ interface Exception {
   /** Por qué no pasan por la fábrica, en una frase. */
   reason: string;
 }
-
-type Pending = [path: string, target: string, inserts: number];
 
 const PROBE_SCHEMA =
   "Son filas del esquema de sondeo que la prueba crea para ejercitar la foto y la restauración de la E2E: no son tablas de la casa y la fábrica no las conoce.";
@@ -350,14 +346,6 @@ const EXCEPTIONS: Exception[] = [
   },
 ];
 
-// El total de `PENDING`. Se edita solo hacia abajo, en el mismo commit que muda o justifica un
-// pendiente. La prueba no sabe cuánto valía ayer: es una convención, y lo que la sostiene es que
-// subir este número se ve en el diff.
-const PENDING_CEILING = 0;
-
-// Lo que queda por mudar o por justificar (DT-013). Ordenada por archivo y destino.
-const PENDING: Pending[] = [];
-
 /** Los archivos de código de una carpeta de pruebas: los casos, su preparación y sus ayudantes. */
 function sources(dir: string) {
   return readdirSync(dir, { recursive: true, encoding: "utf8" })
@@ -375,12 +363,6 @@ function seedingSources() {
 
 const named = (path: string, target: string) => `${path} › ${target}`;
 
-/** Lo que dicen las dos listas: cuántos insert sueltos de cada destino quedan en cada archivo. */
-const LISTED: Pending[] = [
-  ...EXCEPTIONS.map(({ path, target, inserts }): Pending => [path, target, inserts]),
-  ...PENDING,
-];
-
 /** Cuántos insert sueltos de cada destino hay de verdad en cada archivo. */
 function looseInsertCounts(): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -391,14 +373,18 @@ function looseInsertCounts(): Record<string, number> {
 }
 
 describe("la siembra de las pruebas", () => {
-  it("pasa por la fábrica: fuera de ella quedan solo los insert de las dos listas, ni uno más ni uno menos", () => {
+  it("pasa por la fábrica: fuera de ella quedan solo los insert de la lista de excepciones, ni uno más ni uno menos", () => {
     expect(looseInsertCounts()).toEqual(
-      Object.fromEntries(LISTED.map(([path, target, inserts]) => [named(path, target), inserts])),
+      Object.fromEntries(
+        EXCEPTIONS.map(({ path, target, inserts }) => [named(path, target), inserts]),
+      ),
     );
   });
 
-  it("cada destino de un archivo está una sola vez entre las dos listas, y cada excepción trae su razón en una frase", () => {
-    expect(new Set(LISTED.map(([path, target]) => named(path, target))).size).toBe(LISTED.length);
+  it("cada destino de un archivo está una sola vez en la lista, y cada excepción trae su razón en una frase", () => {
+    expect(new Set(EXCEPTIONS.map(({ path, target }) => named(path, target))).size).toBe(
+      EXCEPTIONS.length,
+    );
     for (const exception of EXCEPTIONS) {
       expect(exception.reason, named(exception.path, exception.target)).toMatch(
         /^\p{Lu}[^\n]{40,}\.$/u,
@@ -408,21 +394,13 @@ describe("la siembra de las pruebas", () => {
 
   it.each(
     SUITES,
-  )("las dos listas suman la fila de insert sueltos de audit:metrics en %s", (dir) => {
+  )("la lista de excepciones iguala la fila de insert sueltos de audit:metrics en %s", (dir) => {
     const listed = (raw: boolean) =>
-      LISTED.filter(
-        ([path, target]) => path.startsWith(`${dir}/`) && target.startsWith("into ") === raw,
-      ).reduce((total, [, , inserts]) => total + inserts, 0);
+      EXCEPTIONS.filter(
+        ({ path, target }) => path.startsWith(`${dir}/`) && target.startsWith("into ") === raw,
+      ).reduce((total, { inserts }) => total + inserts, 0);
 
     expect({ calls: listed(false), raw: listed(true) }).toEqual(looseInserts(sources(dir)));
-  });
-
-  it("la lista de pendientes suma su techo escrito, que solo se edita hacia abajo", () => {
-    expect(PENDING.reduce((total, [, , inserts]) => total + inserts, 0)).toBe(PENDING_CEILING);
-  });
-
-  it("las cuatro tablas de partida no tienen pendientes: lo suyo ya pasó por la fábrica", () => {
-    expect(PENDING.filter(([, target]) => FACTORY_TABLES.includes(target))).toEqual([]);
   });
 
   it("la fábrica es la que escribe las cuatro tablas", () => {
