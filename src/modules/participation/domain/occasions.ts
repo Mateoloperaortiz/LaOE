@@ -11,6 +11,7 @@ import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { checkIn, occasion } from "../schema";
 import {
+  canOpenOccasion,
   canTransitionOccasion,
   defaultWindow,
   OCCASION_STATUSES,
@@ -299,8 +300,25 @@ async function transition(
   return before;
 }
 
-export async function openOccasion(ctx: CommandContext, id: string): Promise<void> {
+/** Quién abre una ocasión: ADMIN, o un líder que la opera (ADR-035). */
+export interface OccasionOpener {
+  isAdmin: boolean;
+}
+
+/**
+ * Un líder abre por sí mismo solo la ocasión sin puntos (T-653). Lo decide el comando, con la fila ya
+ * tomada, y no la pantalla con la ocasión que leyó antes (ADR-122 regla 2): unos puntos que cambian
+ * entre esa lectura y el comando ya no pasan. Falla cerrado: quien no llega como ADMIN es líder.
+ */
+export async function openOccasion(
+  ctx: CommandContext,
+  id: string,
+  opener: OccasionOpener,
+): Promise<void> {
   const before = await transition(ctx, id, "OPEN");
+  if (!canOpenOccasion({ isAdmin: opener?.isAdmin === true }, before)) {
+    throw new DomainError(t("T-653"));
+  }
   const rotatingSecret =
     before.requireRotatingCode && !before.rotatingSecret
       ? newRotatingSecret()

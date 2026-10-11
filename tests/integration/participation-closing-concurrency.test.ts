@@ -156,7 +156,9 @@ describe("cierre transaccional de participación", () => {
     const termId = await seedTerm();
     const personId = await seedMember("cierre-apertura@eafit.edu.co");
     const draft = await seedOccasion(termId, { status: "DRAFT", points: 0 });
-    const held = await holdCommand(personId, (ctx) => openOccasion(ctx, draft.id));
+    const held = await holdCommand(personId, (ctx) =>
+      openOccasion(ctx, draft.id, { isAdmin: true }),
+    );
     const closing = closeTermPointsAs({ personId, ip: null }, termId);
     const rejection = expect(closing).rejects.toThrow(t("T-646", { n: 1 }));
     try {
@@ -186,7 +188,9 @@ describe("cierre transaccional de participación", () => {
     const draft = await seedOccasion(termId, { status: "DRAFT", points: 0 });
     const pendingId = await seedCheckIn(closed.id, personId, "PENDING");
     await closeTermPointsAs({ personId, ip: null }, termId);
-    await expect(openOccasionAs({ personId, ip: null }, draft.id)).rejects.toThrow(t("T-579"));
+    await expect(
+      openOccasionAs({ personId, ip: null }, draft.id, { isAdmin: true }),
+    ).rejects.toThrow(t("T-579"));
     for (const operation of [
       () =>
         decideInOwnOccasion({ personId, ip: null }, { checkInId: pendingId, decision: "APPROVE" }),

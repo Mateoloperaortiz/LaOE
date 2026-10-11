@@ -73,10 +73,12 @@ export async function lifecycleAction(formData: FormData): Promise<void> {
   const who = await actorContext(actor);
   await run(id, "consola", async () => {
     if (op === "open") {
+      // La comprobación previa conserva el orden de las respuestas de la pantalla; la que protege la
+      // regla es la del comando, con la fila tomada (ADR-122 regla 2).
       if (!canOpenOccasion(actor, occasion)) {
         throw new DomainError(t("T-653"));
       }
-      await openOccasionAs(who, id);
+      await openOccasionAs(who, id, { isAdmin: actor.isAdmin });
     } else if (op === "close") {
       await closeOccasionAs(who, id);
     }

@@ -273,7 +273,8 @@ export const occasionsResource: ResourceDefinition<OccasionListRow, OccasionInpu
   ],
   runRowAction: async (actor, actionKey, id) => {
     if (actionKey === "open") {
-      await openOccasionAs(actor, id);
+      // El kit es de ADMIN: sus acciones pasan por `requireAdminForAction` (src/app/admin/_kit).
+      await openOccasionAs(actor, id, { isAdmin: true });
     } else if (actionKey === "close") {
       await closeOccasionAs(actor, id);
     }

@@ -30,6 +30,7 @@ import {
   getOccasionByPublicId,
   type OccasionContext,
   type OccasionInput,
+  type OccasionOpener,
   openOccasion,
   rotateSecret,
   type SeriesInput,
@@ -74,8 +75,9 @@ export async function updateOccasionAs(
   return runCommand(actor, (ctx) => updateOccasion(ctx, id, input, context));
 }
 
-export function openOccasionAs(actor: Actor, id: string): Promise<void> {
-  return runCommand(actor, (ctx) => openOccasion(ctx, id));
+/** `opener` dice si quien abre es ADMIN: un líder abre solo la ocasión sin puntos (ADR-122 regla 2). */
+export function openOccasionAs(actor: Actor, id: string, opener: OccasionOpener): Promise<void> {
+  return runCommand(actor, (ctx) => openOccasion(ctx, id, opener));
 }
 
 export function closeOccasionAs(actor: Actor, id: string): Promise<void> {
