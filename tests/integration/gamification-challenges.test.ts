@@ -31,12 +31,14 @@ import {
   challenge,
   challengeParticipation,
   challengeQuestion,
+  checkIn,
   pointEntry,
   reward,
 } from "@/modules/participation/schema";
 import { setConfigAs } from "@/modules/system";
-import { outbox } from "@/modules/system/schema";
+import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { decideInOwnOccasion } from "../helpers/check-ins";
 import { truncateAll } from "./db";
 import {
@@ -731,6 +733,84 @@ describe("retos: presencial con check-in", () => {
       .where(eq(reward.id, rejected?.rewardId ?? ""));
     expect(released?.status).toBe("RELEASED");
     expect(await balanceFor(person2, termId)).toBe(0);
+  });
+
+  it("la revisión no decide una entrega presencial: sigue pendiente hasta que se decide su asistencia (DT-195 d)", async () => {
+    const termId = await seedTerm();
+    const adminId = await seedMember("retos.revisa.presencial@eafit.edu.co");
+    const personId = await seedMember("retos.presencial.pendiente@eafit.edu.co");
+    await enableGamification(adminId);
+    const occasion = await seedOccasion(termId, { points: 10, approval: "MANUAL" });
+    const challengeId = await seedChallenge(termId, {
+      kind: "PRESENTIAL",
+      occasionId: occasion.id,
+      passPercent: null,
+      basePoints: 5,
+    });
+    const registered = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
+    if (!registered.ok) throw new Error("check-in manual falló");
+    const pending = await participationOf(challengeId, personId);
+    if (!pending) throw new Error("sin entrega presencial");
+
+    /** La entrega, su premio, el saldo y la asistencia, que es la que la decide. */
+    const snapshot = async () => {
+      const delivery = await participationOf(challengeId, personId);
+      const [prize] = await db()
+        .select({ status: reward.status })
+        .from(reward)
+        .where(eq(reward.id, delivery?.rewardId ?? ""));
+      const [attendance] = await db()
+        .select({ status: checkIn.status })
+        .from(checkIn)
+        .where(eq(checkIn.id, registered.checkInId));
+      return {
+        participation: delivery?.status,
+        reward: prize?.status,
+        balance: await balanceFor(personId, termId),
+        checkIn: attendance?.status,
+      };
+    };
+    const untouched = {
+      participation: "PENDING",
+      reward: "RESERVED",
+      balance: 0,
+      checkIn: "PENDING",
+    };
+    expect(await snapshot()).toEqual(untouched);
+
+    for (const decision of ["APPROVE", "REJECT"] as const) {
+      const error: unknown = await reviewParticipationAs(
+        { personId: adminId, ip: null },
+        { participationId: pending.id, decision, reason: "No es una evidencia" },
+      ).then(
+        () => null,
+        (reason: unknown) => reason,
+      );
+      // Sin la guarda, aprobar confirmaba el premio con la asistencia todavía pendiente.
+      expect(await snapshot()).toEqual(untouched);
+      expect(error).toBeInstanceOf(DomainError);
+      expect((error as DomainError).message).toBe(t("T-032"));
+    }
+    const reviewed = await db()
+      .select({ id: auditLog.id })
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "challenge.reviewed"), eq(auditLog.entityId, pending.id)));
+    expect(reviewed).toHaveLength(0);
+    const emitted = await outboxTypes();
+    expect(emitted).not.toContain("challenge.completed");
+    expect(emitted).not.toContain("challenge.rejected");
+
+    // La asistencia sigue siendo la que decide la entrega.
+    await decideInOwnOccasion(
+      { personId: adminId, ip: null },
+      { checkInId: registered.checkInId, decision: "APPROVE" },
+    );
+    expect(await snapshot()).toEqual({
+      participation: "COMPLETED",
+      reward: "GRANTED",
+      balance: 15,
+      checkIn: "APPROVED",
+    });
   });
 
   it("anular un check-in aprobado revierte el premio del reto", async () => {

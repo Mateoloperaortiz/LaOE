@@ -815,6 +815,11 @@ export async function reviewParticipation(
   if (!row) {
     throw new DomainError(t("T-032"));
   }
+  // La revisión decide entregas de evidencia, las de su bandeja (ADR-122 regla 7): la guarda del
+  // envío. La presencial pendiente la decide su asistencia; acá se trata como inexistente.
+  if (row.kind !== "EVIDENCE") {
+    throw new DomainError(t("T-032"));
+  }
   if (input.decision === "APPROVE") {
     let granted: RewardRow | null = null;
     if (participation.rewardId) {
