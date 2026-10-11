@@ -2,8 +2,8 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-11
-- Relacionadas: ADR-034, ADR-038, ADR-053, ADR-054, ADR-059, ADR-060, ADR-061, ADR-077, ADR-082, ADR-109, ADR-119, ADR-120, ADR-121, ADR-122
-- Enmienda: ADR-121 (regla 1: la baja de campañas por el token del correo ya no audita sin IP, la recibe de sus dos puertas; y la evidencia automática del onboarding que agenda una puerta con request tampoco, mientras la que marca un trabajo sigue sin ella)
+- Relacionadas: ADR-034, ADR-037, ADR-038, ADR-053, ADR-054, ADR-058, ADR-059, ADR-060, ADR-061, ADR-077, ADR-082, ADR-109, ADR-118, ADR-119, ADR-120, ADR-121, ADR-122
+- Enmienda: ADR-121 (regla 1: la baja de campañas por el token del correo ya no audita sin IP, la recibe de sus dos puertas; y la evidencia automática del onboarding que agenda una puerta con request tampoco, mientras la que marca un trabajo sigue sin ella; y regla 15: la aprobación de un cambio de comité toma el consultivo del ciclo de membresía antes que la fila de la membresía), ADR-120 (regla 3: el orden del ciclo de membresía lo siguen también el «Agregar» de la dirección, el cambio de comités desde la Persona 360 y la aprobación de un cambio de comité), ADR-122 (regla 4: lo que su «Lo que queda» dejaba abierto, DT-328, queda cerrado)
 
 ## Contexto
 
@@ -20,6 +20,8 @@ El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` ele
 **Fuera de borrador, la actividad de un presupuesto la decidía el tipo que llegaba en la edición (DT-317).** Un presupuesto ordinario no lleva actividad; el extraordinario sí, porque es de una actividad no prevista ([ADR-059](ADR-059-presupuesto-del-comite.md)). Al crear y en borrador eso lo decide el tipo que llega, que es el que se guarda. Abierto o cerrado, el tipo ya no se edita, pero `updateBudget` seguía decidiendo la actividad con el que llegaba: con `kind: "EXTRAORDINARY"` y una actividad en la entrada, un ordinario abierto o cerrado quedaba con actividad; y al revés, un extraordinario cuya edición llegara como ordinaria, o sin tipo, perdía la actividad nueva sin aviso. La pantalla no llega a ninguno de los dos casos, porque el kit devuelve el tipo al valor guardado (`lockedOnEdit`): la regla la sostenía quien llama y no el dominio. El ciclo 9 lo fijó como estaba en la caracterización del comando.
 
 **Un roster que pasaba a honorario a alguien en prueba fallaba entero y no decía de quién era la fila (DT-300).** El paso a honorario de quien está en periodo de prueba o con los derechos suspendidos lo rechaza el comando con T-2331 ([ADR-061](ADR-061-verificacion-y-correcciones-de-normativa-2026.md) regla 2), y desde [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) regla 4 también el de quien salió a licencia con la prueba guardada. La importación del roster aplica todo en una transacción ([ADR-034](ADR-034-personas-y-mi-oe-fase-2.md)) y cambia el estado con ese mismo comando: una sola fila así tumbaba la importación entera, con un texto que habla de beneficios y avales y no nombra a nadie. La vista previa no lo avisaba: mostraba la fila como un cambio más. Ejecutado en los cuatro caminos que llegan al comando: en prueba en el semestre vigente, en licencia con la prueba guardada, con una suspensión vigente, y de baja por renuncia con la prueba del semestre, a quien el roster reactiva antes de cambiarle el estado.
+
+**El «Agregar» de la dirección, el cambio de comités desde la Persona 360 y la aprobación de un cambio de comité se interbloqueaban con una anonimización de la misma persona (DT-328).** Los tres tomaban la fila de `membership` con `for update` y después escribían una pertenencia o un cargo, cuya llave foránea toma la fila de `person` con `for key share`. `anonymizePerson` va al revés: `person` con `for update` y después la membresía. [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 4 lo cerró para el cambio de cargos y dejó anotados estos tres. Ejecutado en los tres, la aprobación incluida, que estaba solo leída: con el comando detenido después de tomar la membresía y la anonimización lanzada detrás, el comando responde bien y la anonimización termina en «deadlock detected».
 
 ## Decisión
 
@@ -68,6 +70,28 @@ El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` ele
 
    **Lo que no cambia.** El comando sigue decidiendo, con sus candados: la vista previa avisa y no reemplaza a T-2331. Si la prueba o la suspensión se confirma entre esa validación y la fila, la importación falla entera como antes, sin escribir nada, y al reintentarla la fila ya sale marcada (DT-339). Tampoco cambia qué se le escribe a quien el roster reactiva (decisiones abiertas 28 y 29): a esa persona la fila en error no la reactiva.
 
+6. **El «Agregar» de la dirección, el cambio de comités desde la Persona 360 y la aprobación de un cambio de comité toman el consultivo del ciclo de membresía antes que la fila de la membresía.** Es el remedio de ADR-122 regla 4 para los tres que dejó anotados, y cada uno lo toma en su puerta, con `lockWalletMember`:
+   - **El «Agregar»**, `addCommitteeMember` (`src/modules/people/domain/committee-direction.ts`), después de comprobar la capacidad de quien actúa, que solo lee, y antes de `lockMembership`.
+   - **El cambio de comités desde la Persona 360**, `setCommitteeMembershipsAs` (`src/modules/people/domain/commands.ts`), al empezar su comando y antes de `setCommitteeMemberships`.
+   - **La aprobación de un cambio de comité**, en `getMyMembershipForUpdate` (`src/modules/people/domain/committee-memberships.ts`), que es lo que llama `decideRequestAs` para leer los comités bajo candado ([ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) regla 15). Llega ahí con la fila de la solicitud tomada y, si tuvo que crear el término siguiente, con el candado del calendario; ninguna fila de la persona.
+
+   **Por qué el consultivo y no la fila de `person`.** Lo dice ADR-122 regla 4 y acá se volvió a ejecutar: quien anonimiza toma `person` antes que la membresía, y quien reactiva con correo nuevo la escribe después de tomar la membresía. Un comando que tome solo filas no puede ir de acuerdo con los dos. Los dos toman antes `wallet-member:<persona>`: con él tomado corren de a uno por persona y el orden en que cada uno toma después esas filas no los cruza.
+
+   **`setCommitteeMemberships` no lo toma: lo trae quien la llama.** Tiene cuatro llamadores. La Persona 360, el roster ([ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) regla 3) y la aprobación llegan con el consultivo tomado. La admisión (`admitPerson`) no: llega con la fila de `person` tomada con `for update` y la membresía recién creada en su misma transacción. Pedir el consultivo adentro, después de esa fila, sería el orden al revés del de la anonimización, y por eso va en la puerta de cada uno y no en la función común. La admisión no se cruza con la anonimización: las dos toman `person` primero.
+
+   **El orden completo del ciclo de membresía**, que junta el de ADR-120 regla 3 con lo que le sumaron ADR-121 regla 15 y ADR-122 reglas 4 y 5. Nadie toma uno de estos con uno de más abajo en la mano:
+   1. La fila de lo que se decide o se importa: la solicitud (`decideRequestAs`) o el trabajo de importación (el roster).
+   2. El candado del calendario de términos, `term-calendar`, solo si hay que crear un término: lo piden la aprobación y el roster, los dos antes que cualquier consultivo de una persona.
+   3. `wallet-member:<persona>`. Quien retiene más de uno los toma de menor a mayor `id` (`lockWalletMembers`, ADR-122 regla 5).
+   4. La fila de `person`: `for update` quien anonimiza, `for no key update` el roster.
+   5. La fila de `membership`, `for update`.
+   6. El consultivo `leadership:<persona>` de las inhabilidades.
+   7. Lo que cuelga: pertenencias y cargos, que al escribirse referencian la fila de `person` y la de la pertenencia, `membership_term`, permisos y sesiones.
+
+   Lo siguen cambiar el estado, dar de baja, reactivar, anonimizar, el roster, emitir o rotar el carnet y el token del calendario, lo que la baja depura, el cambio de cargos y, desde esta regla, el «Agregar», el cambio de comités desde la Persona 360 y la aprobación de un cambio de comité. La fila de quien actúa es de otra persona y va aparte, como en ADR-120 regla 3.
+
+   **Lo que no cambia.** Qué valida y qué escribe cada uno, y qué responde el que llega segundo: detrás de una anonimización ya escrita, el «Agregar» responde T-032 y los otros dos T-3246, sin escribir, como antes. Aprobar una licencia o un retiro ya tomaba ese consultivo con la fila de la solicitud en la mano; el cambio de comité queda igual que ellos.
+
 ## Consecuencias
 
 - `npm run test:e2e` sin más pasa entera en un worktree nuevo: con `.next` borrado entero, 249 de 249 en 5,3 minutos (335 s contando la base, el build y la suite), la prueba de SEO en 0,7 s y las cinco del Sudoku entre 0,4 y 3,2 s. La misma suite, forzada a dev con `E2E_SERVER=dev` y `.next/dev` borrado, dio 248 de 249 en 9,1 minutos (550 s), con la firma de DT-338: la de SEO en 27 s, la primera del Sudoku sin tiempo (6 s contra 5) y la segunda en 23,2 s contra 30.
@@ -91,3 +115,7 @@ El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` ele
 - Hay un texto nuevo, T-3265. La vista previa hace una lectura más por archivo: las membresías de las personas que ya existen, y por cada licencia anterior a la migración de la condición guardada, la de su salida.
 - `ExistingPerson` gana `honoraryBlocked`, obligatorio: quien arme una vista previa sin leerlo no compila.
 - Prueba de la regla 5: `tests/integration/roster.test.ts` («la fila que pasa a honorario a quien no puede serlo»), con cuatro casos en rojo sobre el código anterior, donde `applyRosterImportAs` respondía T-2331 para todo el archivo, y dos que fijan lo que no cambia: el expulsado sigue con su aviso y sin error, y quien no está bloqueado pasa a honorario. La decisión pura, caso por caso, en `tests/unit/roster-pure.test.ts`. La regla del comando sigue en `tests/integration/people-membership.test.ts`.
+- El «Agregar», el cambio de comités desde la Persona 360 y la aprobación de un cambio de comité hacen cola, por persona, con todo el ciclo de membresía: también con la emisión o la rotación de su carnet, que antes no los frenaba. Son transacciones cortas y ninguna cubre una llamada a Google.
+- Una anonimización que llega mientras alguno de los tres cambia los comités de la persona espera y, al seguir, cierra también la pertenencia recién escrita. Antes PostgreSQL cortaba a una de las dos con un error sin traducir.
+- La regla 6 no trae migración ni texto nuevo.
+- Prueba de la regla 6: `tests/integration/committee-change-membership-locks.test.ts`, tres casos por cada comando. El primero, la anonimización lanzada cuando el comando ya tomó la membresía, en rojo sobre el código anterior en los tres: «deadlock detected». El segundo fija el otro orden, que no se cruzaba: detrás de una anonimización ya escrita, el comando hace cola y se niega. El tercero es la guarda de «el consultivo y no `person`»: una reactivación con correo nuevo detenida después de tomar la membresía, y el comando detrás. Pasa con el código anterior y con este, y se comprobó que muerde: con el «Agregar» tomando `person` con `for key share` en vez del consultivo, termina en «deadlock detected».

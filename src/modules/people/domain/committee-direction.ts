@@ -399,8 +399,9 @@ async function targetPerson(exec: Executor, personId: string): Promise<TargetPer
 /**
  * Toma la fila de la membresía de la persona: el candado de todo el que cambia sus comités o sus
  * cargos (`setCommitteeMemberships`, la baja y la aprobación de un cambio de comité). En el orden del
- * ciclo de membresía va después del consultivo `wallet-member`, que toma antes quien la llama para
- * cambiar cargos y todavía no el «Agregar» (DT-328), y antes de lo que cuelga de ella (ADR-120 regla 3).
+ * ciclo de membresía va después del consultivo `wallet-member`, que toman antes los dos que la llaman
+ * (el «Agregar» y el cambio de cargos; ADR-122 regla 4 y ADR-123 regla 6), y antes de lo que cuelga
+ * de ella (ADR-120 regla 3).
  */
 async function lockMembership(tx: Tx, personId: string): Promise<void> {
   await tx
@@ -436,6 +437,11 @@ export async function addCommitteeMember(
   now = new Date(),
 ): Promise<{ membershipId: string; revived: boolean }> {
   const { direction } = await requireDirection(ctx, scope, actor, "ROSTER");
+  // El consultivo del ciclo de membresía primero, como el cambio de cargos (ADR-123 regla 6): escribir
+  // la pertenencia referencia la fila de `person`, que quien anonimiza toma antes que la de la
+  // membresía y quien reactiva con correo nuevo toma después. Con solo la fila, el «Agregar» y una
+  // anonimización de la misma persona se quedaban esperándose (DT-328).
+  await lockWalletMember(ctx.tx, input.personId);
   // La fila de la membresía, con el candado de `setCommitteeMemberships` y de la baja (ADR-118 regla
   // 11): el estado y el cupo se leen después de tomarla. Una baja que llega a la vez no deja una
   // pertenencia viva, y dos «Agregar» de la misma persona cuentan su cupo uno después del otro.

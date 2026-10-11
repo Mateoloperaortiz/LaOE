@@ -37,6 +37,7 @@ import type { SanctionScope } from "./sanction-pure";
 import { recordSanction, revokeSanction, type SanctionInput } from "./sanctions";
 import { setPersonTags } from "./tags";
 import { leaveCommittee, type ProbationInput, setProbation } from "./term-outcomes";
+import { lockWalletMember } from "./wallet-member";
 
 // Los comandos abren su transacción aquí, para que las acciones de página (src/app) los usen sin
 // tocar src/db: cada uno es `runCommand` con auditoría y eventos en la misma transacción (ADR-012).
@@ -92,9 +93,12 @@ export function setCommitteeMembershipsAs(
   rows: CommitteeMembershipInput[],
   override?: Override,
 ): Promise<void> {
-  return runCommand(actor, (ctx) =>
-    setCommitteeMemberships(ctx, personId, termId, rows, new Date(), override),
-  );
+  return runCommand(actor, async (ctx) => {
+    // El consultivo del ciclo de membresía antes que la fila de la membresía (ADR-123 regla 6): sin
+    // él, este cambio y una anonimización de la misma persona se quedaban esperándose (DT-328).
+    await lockWalletMember(ctx.tx, personId);
+    await setCommitteeMemberships(ctx, personId, termId, rows, new Date(), override);
+  });
 }
 
 export function addAppointmentAs(

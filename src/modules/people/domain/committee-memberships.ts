@@ -22,6 +22,7 @@ import {
 import { assertNoInhabilities, leadershipRolesOf, type Override } from "./inhabilities";
 import type { HeldRole } from "./inhabilities-pure";
 import type { MembershipStatus } from "./reads";
+import { lockWalletMember } from "./wallet-member";
 
 // Pertenencia a comité por término (ADR-005): de 1 a 3 para activos. Los cargos viven en
 // `committee_role_assignment` (ADR-058), con un titular y una codirección por cargo, comité y término;
@@ -164,12 +165,17 @@ export async function getMyMembership(
  * (`setCommitteeMemberships`, el roster de la dirección y la baja; ADR-118 regla 11): uno que va en
  * vuelo termina primero, y lo que esto devuelve no cambia hasta que la transacción confirme (ADR-121
  * regla 15).
+ *
+ * Y antes que esa fila, el consultivo del ciclo de membresía (ADR-123 regla 6): quien llama va a
+ * escribir pertenencias, que referencian la fila de `person`, y sin él se cruzaba con una
+ * anonimización de la misma persona (DT-328). Quien llama no trae tomada ninguna fila de esa persona.
  */
 export async function getMyMembershipForUpdate(
   tx: Tx,
   personId: string,
   now = new Date(),
 ): Promise<MyMembership> {
+  await lockWalletMember(tx, personId);
   await tx
     .select({ personId: membership.personId })
     .from(membership)
@@ -238,6 +244,12 @@ export function canHoldCommittees(status: MembershipStatus | undefined): boolean
  * (con sus cargos), actualiza transferencia y cargos en las que siguen y crea las nuevas. Exige una
  * membresía que no esté de baja; los activos necesitan entre `committees.min` y `committees.max` comités. Los cargos se validan y escriben en
  * `replaceRoles`, que traduce a T-452 el choque con un titular o una codirección que ya existe.
+ *
+ * No toma el consultivo del ciclo de membresía: lo trae quien la llama (ADR-123 regla 6). La Persona
+ * 360 (`setCommitteeMembershipsAs`), el roster y la aprobación de un cambio de comité
+ * (`getMyMembershipForUpdate`) llegan con `wallet-member:<persona>` tomado. La admisión no: llega con
+ * la fila de `person` tomada y la membresía recién creada en su transacción, y pedirlo acá, después
+ * de esa fila, sería el orden al revés del de la anonimización.
  */
 export async function setCommitteeMemberships(
   ctx: CommandContext,
