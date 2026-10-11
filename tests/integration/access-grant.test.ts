@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -741,6 +741,107 @@ describe("enlace de acceso", () => {
         ]);
         expect([a.status, b.status]).toEqual(["fulfilled", "fulfilled"]);
       }
+    });
+  });
+
+  // ADR-122 regla 5, «Revocar un permiso»: la fila se vuelve a leer con el candado tomado, y el
+  // último ADMIN se cuenta con las revocaciones de ADMIN de a una (05-acceso.md, T-266).
+  describe("revocar un permiso a la vez que otra revocación o que la baja", () => {
+    const BAJA = {
+      endReason: "RESIGNATION",
+      memorialConsent: false,
+      contactConsent: false,
+    } as const;
+    const system = SYSTEM_ACTOR;
+
+    async function permissionOf(personId: string): Promise<string> {
+      const [row] = await db()
+        .select({ id: permission.id })
+        .from(permission)
+        .where(eq(permission.personId, personId));
+      if (!row) throw new Error("permiso");
+      return row.id;
+    }
+
+    /** Cuántas veces quedó dicho que ese permiso se revocó: en la auditoría y en los eventos. */
+    async function revocations(permissionId: string) {
+      const audits = await db()
+        .select({ id: auditLog.id })
+        .from(auditLog)
+        .where(and(eq(auditLog.action, "permission.revoked"), eq(auditLog.entityId, permissionId)));
+      const events = await db()
+        .select({ id: outbox.id })
+        .from(outbox)
+        .where(eq(outbox.eventType, "permission.revoked"));
+      return { audits: audits.length, events: events.length };
+    }
+
+    const admins = () =>
+      db().select({ id: permission.id }).from(permission).where(eq(permission.code, "ADMIN"));
+
+    it("la segunda revocación del mismo permiso espera a la primera y termina sin auditar ni emitir otra vez", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const permissionId = await permissionOf(junta);
+      const held = await holdCommand(system, (ctx) => revokePermission(ctx, permissionId));
+
+      const how = await whileHeld(held, () =>
+        runCommand(system, (ctx) => revokePermission(ctx, permissionId)),
+      );
+
+      expect(how).toBe("hizo cola");
+      expect(await revocations(permissionId)).toEqual({ audits: 1, events: 1 });
+    });
+
+    it("la revocación que llega mientras dan de baja a quien lo pierde espera, y el permiso queda revocado una sola vez", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const permissionId = await permissionOf(junta);
+      const held = await holdCommand(system, (ctx) => endMembership(ctx, junta, BAJA));
+
+      const how = await whileHeld(held, () =>
+        runCommand(system, (ctx) => revokePermission(ctx, permissionId)),
+      );
+      await drainOutbox();
+
+      expect(how).toBe("hizo cola");
+      expect(await db().select().from(permission).where(eq(permission.personId, junta))).toEqual(
+        [],
+      );
+      expect(await revocations(permissionId)).toEqual({ audits: 1, events: 1 });
+    });
+
+    it("dos revocaciones de ADMIN a la vez no dejan la casa sin ADMIN: la segunda espera y se rechaza", async () => {
+      const uno = await seedMemberWith("admin.uno@eafit.edu.co", "ADMIN");
+      const dos = await seedMemberWith("admin.dos@eafit.edu.co", "ADMIN");
+      const first = await permissionOf(uno);
+      const second = await permissionOf(dos);
+      const held = await holdCommand(system, (ctx) => revokePermission(ctx, first));
+      const answer: { error: unknown } = { error: null };
+
+      const how = await whileHeld(held, () =>
+        runCommand(system, (ctx) => revokePermission(ctx, second)).catch((error: unknown) => {
+          answer.error = error;
+        }),
+      );
+
+      expect(how).toBe("hizo cola");
+      expect(answer.error).toEqual(new DomainError(t("T-266")));
+      expect(await admins()).toEqual([{ id: second }]);
+    });
+
+    it("la baja de un ADMIN a la vez que la revocación del otro conserva el último ADMIN", async () => {
+      const uno = await seedMemberWith("admin.uno@eafit.edu.co", "ADMIN");
+      const dos = await seedMemberWith("admin.dos@eafit.edu.co", "ADMIN");
+      const first = await permissionOf(uno);
+      const second = await permissionOf(dos);
+      const held = await holdCommand(system, (ctx) => revokePermission(ctx, first));
+
+      const how = await whileHeld(held, async () => {
+        await endMembershipAs(system, dos, BAJA);
+        await drainOutbox();
+      });
+
+      expect(how).toBe("hizo cola");
+      expect(await admins()).toEqual([{ id: second }]);
     });
   });
 });

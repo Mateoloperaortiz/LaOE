@@ -1,8 +1,8 @@
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { permissionGranted, permissionRevoked } from "@/domain-events/identity";
 import {
@@ -187,6 +187,21 @@ export function grantPermissionAs(actor: Actor, input: PermissionInput): Promise
   return runCommand(actor, (ctx) => grantPermission(ctx, input));
 }
 
+/**
+ * Cuántos ADMIN hay, contados con las revocaciones de ADMIN de a una (ADR-122 regla 5). «No se puede
+ * retirar el último» es contar y después borrar: sin un candado común, dos revocaciones de dos ADMIN
+ * distintos contaban dos cada una y borraban las dos. El consultivo se toma al final, después del
+ * `wallet-member` de quien pierde el permiso, y quien lo tiene no toma después ningún otro candado.
+ */
+async function countAdminsToRevoke(tx: Tx): Promise<number> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended('permission:last-admin', 0))`);
+  const [admins] = await tx
+    .select({ n: count() })
+    .from(permission)
+    .where(eq(permission.code, "ADMIN"));
+  return admins?.n ?? 0;
+}
+
 /** No se puede retirar el último ADMIN (05-acceso.md). */
 export async function revokePermission(ctx: CommandContext, id: string): Promise<void> {
   const [found] = await ctx.tx
@@ -205,14 +220,8 @@ export async function revokePermission(ctx: CommandContext, id: string): Promise
   if (!row) {
     return;
   }
-  if (row.code === "ADMIN") {
-    const [admins] = await ctx.tx
-      .select({ n: count() })
-      .from(permission)
-      .where(eq(permission.code, "ADMIN"));
-    if ((admins?.n ?? 0) <= 1) {
-      throw new DomainError(t("T-266"));
-    }
+  if (row.code === "ADMIN" && (await countAdminsToRevoke(ctx.tx)) <= 1) {
+    throw new DomainError(t("T-266"));
   }
   await ctx.tx.delete(permission).where(eq(permission.id, id));
   await ctx.audit({
@@ -243,15 +252,9 @@ export async function revokeAllPermissionsFor(
   let keptLastAdmin = false;
   let revoked = 0;
   for (const row of rows) {
-    if (row.code === "ADMIN") {
-      const [admins] = await ctx.tx
-        .select({ n: count() })
-        .from(permission)
-        .where(eq(permission.code, "ADMIN"));
-      if ((admins?.n ?? 0) <= 1) {
-        keptLastAdmin = true;
-        continue;
-      }
+    if (row.code === "ADMIN" && (await countAdminsToRevoke(ctx.tx)) <= 1) {
+      keptLastAdmin = true;
+      continue;
     }
     await ctx.tx.delete(permission).where(eq(permission.id, row.id));
     await ctx.audit({
