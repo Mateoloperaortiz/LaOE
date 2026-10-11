@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   insertsInto,
+  insertTargets,
   looseInserts,
   tableNamesWritten,
   unguardedConcurrencyTests,
@@ -276,5 +277,45 @@ describe("las pruebas de simultaneidad sin ayudante", () => {
       tests: 0,
       files: 0,
     });
+  });
+});
+
+describe("insertTargets", () => {
+  // El nombre que un SQL arma: va aparte para que la cadena del caso no parezca una plantilla rota.
+  const TABLE = "$".concat("{table}");
+  const files = [
+    {
+      path: "tests/integration/a.test.ts",
+      text: [
+        "await db().insert(person).values({});",
+        "await tx",
+        "  .insert(",
+        "    pointEntry,",
+        "  )",
+        "  .values(entry);",
+        "await db().execute(sql`insert into point_entry (id) values ('a')`);",
+        'await client.query(`INSERT INTO probe."Tabla Rara" VALUES (1)`);',
+        `await db().execute(sql.raw(\`insert into public.${TABLE} select 1\`));`,
+        `await db().execute(sql.raw(\`insert into "${TABLE}" (id) values (1)\`));`,
+      ].join("\n"),
+    },
+  ];
+
+  it("nombra lo que escribe cada insert: la tabla de un .insert( y, con «into», la de un SQL crudo, sin comillas y con <…> donde el SQL arma el nombre", () => {
+    expect(insertTargets(files)).toEqual([
+      { path: "tests/integration/a.test.ts", target: "person", line: 1 },
+      { path: "tests/integration/a.test.ts", target: "pointEntry", line: 3 },
+      { path: "tests/integration/a.test.ts", target: "into point_entry", line: 7 },
+      { path: "tests/integration/a.test.ts", target: "into probe.Tabla Rara", line: 8 },
+      { path: "tests/integration/a.test.ts", target: "into public.<table>", line: 9 },
+      { path: "tests/integration/a.test.ts", target: "into <table>", line: 10 },
+    ]);
+  });
+
+  it("son las mismas escrituras que cuenta looseInserts, una por una", () => {
+    const targets = insertTargets(files);
+    const raw = targets.filter(({ target }) => target.startsWith("into ")).length;
+
+    expect({ calls: targets.length - raw, raw }).toEqual(looseInserts(files));
   });
 });

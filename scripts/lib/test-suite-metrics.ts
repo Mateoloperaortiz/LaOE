@@ -70,7 +70,33 @@ export function looseInserts(files: TextFile[]): { calls: number; raw: number } 
   return { calls: count(/\.insert\(/g), raw: count(/\binsert\s+into\b/gi) };
 }
 
-/** `it` o `test`, solos o con lo que cuelgue de ellos: `it.each(casos)`, `test.each` con plantilla. */
+/**
+ * Cada escritura de filas de los archivos, con lo que escribe y su línea: la tabla que recibe
+ * `.insert(` o, con `into ` delante, el nombre que sigue a `insert into` en SQL crudo, sin comillas y
+ * con `<nombre>` donde el SQL lo arma (`into public.<table>`). Son las que cuenta `looseInserts`, una
+ * por una: quien lleva una lista de excepciones la compara con esto.
+ */
+export function insertTargets(files: TextFile[]): { path: string; target: string; line: number }[] {
+  const patterns: [RegExp, (written: string) => string][] = [
+    [/\.insert\(\s*([A-Za-z0-9_$.]*)/g, (written) => written],
+    [
+      /\binsert\s+into\b[ \t]*((?:"[^"\n]*"|[^\s("])*)/gi,
+      (written) => `into ${written.replaceAll('"', "").replace(/\$\{([^}]*)\}/g, "<$1>")}`,
+    ],
+  ];
+  return files.flatMap((file) =>
+    patterns
+      .flatMap(([pattern, target]) =>
+        [...file.text.matchAll(pattern)].map((match) => ({
+          path: file.path,
+          target: target(match[1] ?? ""),
+          line: file.text.slice(0, match.index).split("\n").length,
+        })),
+      )
+      .sort((a, b) => a.line - b.line),
+  );
+}
+
 /**
  * Dónde escribe a mano un archivo una fila de una de `tables`: `.insert(tabla)` de Drizzle o `insert
  * into tabla` en SQL crudo, con su línea. Mira el nombre que el archivo le pasa a `insert`: no ve una
@@ -97,6 +123,7 @@ export function insertsInto(
   );
 }
 
+/** `it` o `test`, solos o con lo que cuelgue de ellos: `it.each(casos)`, `test.each` con plantilla. */
 function isTestCall(callee: ts.Expression): boolean {
   let root = callee;
   for (;;) {

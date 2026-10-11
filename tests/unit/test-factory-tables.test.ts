@@ -1,53 +1,425 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { insertsInto } from "../../scripts/lib/test-suite-metrics";
+import { insertsInto, insertTargets, looseInserts } from "../../scripts/lib/test-suite-metrics";
 
-// La siembra de `person`, `permission`, `membership` y `term` pasa por la fábrica de
-// `tests/factories`, que comparten integración y E2E (DT-013, ADR-124 regla 5). Una fila de esas
-// tablas escrita a mano en una prueba puede armar un estado que ningún comando deja, y la prueba
-// queda en verde sobre algo imposible. Por eso esta prueba lee el código.
+// La siembra de las pruebas pasa por la fábrica de `tests/factories`, que comparten integración y
+// E2E (DT-013, ADR-124 reglas 5 y 6). Una fila escrita a mano en una prueba puede armar un estado que
+// ningún comando deja, y la prueba queda en verde sobre algo imposible. Por eso esta prueba lee el
+// código: fuera de la fábrica no admite un `.insert(` ni un `insert into` que no esté en una de sus
+// dos listas.
 //
-// Es el primer corte: cuatro tablas. Las demás y el `insert into` de cualquier tabla son del
-// trinquete general (#303). Mira el nombre que el archivo le pasa a `insert`, así que no ve una
-// tabla importada con otro nombre ni un SQL que arma el nombre.
+// - `EXCEPTIONS`: el estado que ningún comando produce y que la prueba arma a propósito, o la
+//   escritura que no es siembra. Cada una con su razón.
+// - `PENDING`: lo que todavía no pasó por la fábrica ni tiene su razón escrita. No es una excepción:
+//   es lo que queda de DT-013, y solo baja. Quien toque uno lo muda a la fábrica o, si arma a
+//   propósito un estado que ningún comando produce, lo pasa a `EXCEPTIONS` con su razón.
+//
+// Entre las dos suman la fila «Insert sueltos» de `npm run audit:metrics`. El destino es el nombre
+// que el archivo le pasa a `.insert(`, o `into` y lo que sigue a `insert into` en un SQL crudo: una
+// tabla importada con otro nombre figura con ese nombre, y un SQL que arma el nombre, con `<…>`.
 
 const FACTORY_TABLES = ["person", "permission", "membership", "term"];
-const SEEDED = ["tests/integration", "tests/e2e", "tests/helpers"];
+const SUITES = ["tests/integration", "tests/e2e"];
+const SEEDED = [...SUITES, "tests/helpers"];
 
 interface Exception {
   path: string;
-  table: string;
-  /** Cuántos insert sueltos de esa tabla quedan en el archivo. */
+  /** La tabla que recibe `.insert(`, o `into` y el nombre que sigue a `insert into`. */
+  target: string;
+  /** Cuántos insert sueltos de ese destino quedan en el archivo. */
   inserts: number;
   /** Por qué no pasan por la fábrica, en una frase. */
   reason: string;
 }
 
-// Los únicos insert sueltos de las cuatro tablas. Antes de sumar uno acá, sembralo con la fábrica:
-// la lista es para el estado que ningún comando produce y que la prueba arma a propósito.
+type Pending = [path: string, target: string, inserts: number];
+
+const PROBE_SCHEMA =
+  "Son filas del esquema de sondeo que la prueba crea para ejercitar la foto y la restauración de la E2E: no son tablas de la casa y la fábrica no las conoce.";
+
+// Antes de sumar uno acá, sembralo con la fábrica: la lista es para el estado que ningún comando
+// produce y que la prueba arma a propósito, y para la escritura que no es siembra.
 const EXCEPTIONS: Exception[] = [
   {
+    path: "tests/e2e/database.ts",
+    target: "into <tables[index]>",
+    inserts: 1,
+    reason:
+      "Es la restauración de la E2E, que vuelve a llenar cada tabla desde la foto (ADR-116 regla 21): copia filas, no siembra un estado.",
+  },
+  {
+    path: "tests/e2e/sistema-jobs.spec.ts",
+    target: "outbox",
+    inserts: 1,
+    reason:
+      "Es un evento en letra muerta con su último error, para ver la pantalla de trabajos: solo el poller lo deja así, después de agotar los reintentos.",
+  },
+  {
+    path: "tests/integration/admin-export-truncated.test.ts",
+    target: "into point_entry",
+    inserts: 1,
+    reason:
+      "Son los movimientos de un punto que pasan el tope del exporte, escritos en una sola sentencia con `generate_series` y con la fecha escalonada: es volumen con fechas elegidas, y por el único escritor del libro haría falta un comando por fila (ADR-119 regla 8).",
+  },
+  {
+    path: "tests/integration/calendar-token-withdrawal.test.ts",
+    target: "calendarToken",
+    inserts: 3,
+    reason:
+      "Son tokens de calendario que quedaron de antes de la regla, en manos de quien ya salió o fue borrado, y el que la prueba retiene dentro de una transacción ajena: el comando no le deja un token a quien ya no está.",
+  },
+  {
+    path: "tests/integration/crm.test.ts",
+    target: "interaction",
+    inserts: 1,
+    reason:
+      "Es la segunda interacción con la misma referencia, que la prueba escribe para afirmar que el índice de la línea de tiempo la descarta.",
+  },
+  {
+    path: "tests/integration/dashboard.test.ts",
+    target: "outbox",
+    inserts: 1,
+    reason:
+      "Son eventos sintéticos en cada estado del outbox (pendiente, en letra muerta y despachado) para contar el tablero: a letra muerta solo llega el poller, después de agotar los reintentos.",
+  },
+  {
+    path: "tests/integration/db.ts",
+    target: "into public.<table>",
+    inserts: 1,
+    reason:
+      "Es el vaciado, que devuelve los catálogos de migración a la foto (ADR-124 regla 3): copia filas de la foto, no siembra un estado.",
+  },
+  {
+    path: "tests/integration/e2e-baseline.test.ts",
+    target: "into e2e_probe.Préstamo Raro",
+    inserts: 1,
+    reason: PROBE_SCHEMA,
+  },
+  {
+    path: "tests/integration/e2e-baseline.test.ts",
+    target: "into e2e_probe.author",
+    inserts: 3,
+    reason: PROBE_SCHEMA,
+  },
+  {
+    path: "tests/integration/e2e-baseline.test.ts",
+    target: "into e2e_probe.book",
+    inserts: 4,
+    reason: PROBE_SCHEMA,
+  },
+  {
+    path: "tests/integration/e2e-baseline.test.ts",
+    target: "into e2e_probe.shelf",
+    inserts: 3,
+    reason: PROBE_SCHEMA,
+  },
+  {
+    path: "tests/integration/e2e-baseline.test.ts",
+    target: "into e2e_probe_baseline.book",
+    inserts: 1,
+    reason: PROBE_SCHEMA,
+  },
+  {
+    path: "tests/integration/gamification-rewards.test.ts",
+    target: "pointEntry",
+    inserts: 3,
+    reason:
+      "Son entradas del libro fuera del rango de puntos, sin su premio o con un premio que no les toca, que la prueba espera ver rechazadas por los checks de `point_entry`: el único escritor del libro no llega a armarlas (ADR-119 regla 8).",
+  },
+  {
+    path: "tests/integration/identity-prune.test.ts",
+    target: "accessGrant",
+    inserts: 1,
+    reason:
+      "Son enlaces de acceso ya vencidos, que es lo que la poda tiene que borrar: ningún comando escribe un enlace viejo.",
+  },
+  {
+    path: "tests/integration/identity-prune.test.ts",
+    target: "loginAttempt",
+    inserts: 1,
+    reason:
+      "Son intentos de ingreso de hace días, que es lo que la poda tiene que borrar: ningún comando escribe un intento viejo.",
+  },
+  {
+    path: "tests/integration/identity-prune.test.ts",
+    target: "session",
+    inserts: 1,
+    reason:
+      "Son sesiones ya vencidas, que es lo que la poda tiene que borrar: ningún comando escribe una sesión vieja.",
+  },
+  {
+    path: "tests/integration/media.test.ts",
+    target: "mediaAsset",
+    inserts: 1,
+    reason:
+      "Es un medio de un tipo que hoy la subida no admite, cargado antes de la regla: la prueba necesita que ya esté para ver qué hace la casa con él.",
+  },
+  {
+    path: "tests/integration/notifications.test.ts",
+    target: "pushSubscription",
+    inserts: 1,
+    reason:
+      "Son suscripciones de antes de que se validara el destino, una hacia una dirección interna: el comando de hoy la rechaza, y la prueba necesita que ya esté para ver que no se le envía.",
+  },
+  {
+    path: "tests/integration/otp.test.ts",
+    target: "otpChallenge",
+    inserts: 1,
+    reason:
+      "Es un código de ingreso ya vencido, que la prueba espera ver rechazado: pedir un código siempre deja uno vigente.",
+  },
+  {
+    path: "tests/integration/outbox.test.ts",
+    target: "outbox",
+    inserts: 1,
+    reason:
+      "Es el evento que deja un poller caído a mitad de un despacho, con su intento contado y su clave tomada: ningún comando deja esa fila.",
+  },
+  {
+    path: "tests/integration/panal.test.ts",
+    target: "pointEntry",
+    inserts: 5,
+    reason:
+      "Son un premio histórico del Panal sin meta, de antes de las metas, y las entradas de importe incorrecto o de meta repetida que la prueba espera ver rechazadas por la base: el único escritor del libro no arma ninguna (ADR-119 regla 8).",
+  },
+  {
     path: "tests/integration/schema-constraints.test.ts",
-    table: "membership",
+    target: "committeeMembership",
+    inserts: 2,
+    reason:
+      "Son la pertenencia con cargo GENERAL que la prueba deja sin su cargo asignado, para escribirlo ella y verlo chocar con los índices, y la de un cargo fuera del catálogo que espera ver rechazada: la fábrica escribe el cargo asignado y no llega a ninguna de las dos.",
+  },
+  {
+    path: "tests/integration/schema-constraints.test.ts",
+    target: "committeeRoleAssignment",
+    inserts: 3,
+    reason:
+      "Son los cargos asignados que la prueba escribe uno por uno para ver chocar el titular repetido y el cargo repetido de una pertenencia con sus índices únicos: ningún comando llega a escribirlos.",
+  },
+  {
+    path: "tests/integration/schema-constraints.test.ts",
+    target: "membership",
     inserts: 1,
     reason:
       "Es la segunda membresía de una misma persona, que la prueba espera ver rechazada por `membership_person_unique`: ningún comando llega a escribirla.",
   },
   {
     path: "tests/integration/schema-constraints.test.ts",
-    table: "permission",
+    target: "membershipTerm",
+    inserts: 4,
+    reason:
+      "Son las condiciones repetidas de una persona en un término y en un comité que la prueba espera ver rechazadas por los índices únicos: la fábrica actualiza la que ya está en vez de chocar.",
+  },
+  {
+    path: "tests/integration/schema-constraints.test.ts",
+    target: "permission",
     inserts: 4,
     reason:
       "Son el permiso repetido, el de líder sin comité y el ADMIN con comité que la prueba espera ver rechazados por los índices únicos y por `permission_committee_scope`: la fábrica devuelve el permiso que ya está en vez de chocar.",
   },
   {
     path: "tests/integration/schema-constraints.test.ts",
-    table: "person",
+    target: "person",
     inserts: 2,
     reason:
       "Es la mutación de un comando de prueba: tiene que ir por `ctx.tx` para afirmar que mutación, auditoría y evento se confirman y se deshacen en la misma transacción.",
   },
+  {
+    path: "tests/integration/survey-invites-retry.test.ts",
+    target: "occasionSurveyInvite",
+    inserts: 1,
+    reason:
+      "Es la invitación que deja otra corrida, escrita dentro de una transacción que la prueba retiene para forzar el cruce: tiene que ir por esa transacción, y la fábrica escribe por `getDb()`.",
+  },
+  {
+    path: "tests/integration/truncate-all-tables.test.ts",
+    target: "into <OTHER_SCHEMA>.tag",
+    inserts: 1,
+    reason:
+      "Es la fila de una tabla de otro esquema, que la prueba crea para afirmar que el vaciado no la toca: no es una tabla de la casa.",
+  },
+  {
+    path: "tests/integration/truncate-all-tables.test.ts",
+    target: "into public.<NEW_TABLE>",
+    inserts: 1,
+    reason:
+      "Es la fila de una tabla que la prueba crea en `public`, para afirmar que el vaciado la alcanza sin que nadie la anote: no es una tabla del esquema de la casa.",
+  },
+  {
+    path: "tests/integration/truncate-all.test.ts",
+    target: "into <table>",
+    inserts: 2,
+    reason:
+      "Es la caracterización del vaciado, que le pone una fila a cada tabla de `public` y vuelve a escribir las de una en otro orden físico: recorre el esquema entero, no siembra el estado de una prueba.",
+  },
+  {
+    path: "tests/integration/truncate-all.test.ts",
+    target: "into app_config",
+    inserts: 1,
+    reason:
+      "Es la clave de configuración que la caracterización del vaciado escribe sin avisarle a la caché, con un autor que no existe y una fecha vieja, para afirmar que el vaciado devuelve el catálogo a la foto: ningún comando deja esa fila.",
+  },
+];
+
+// Lo que queda por mudar o por justificar (DT-013). Ordenada por archivo y destino.
+const PENDING: Pending[] = [
+  ["tests/e2e/acceso.spec.ts", "committee", 1],
+  ["tests/e2e/acceso.spec.ts", "committeeMembership", 2],
+  ["tests/e2e/acceso.spec.ts", "consent", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "campaign", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "card", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "documentTable", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "emailTemplate", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "event", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "eventEdition", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "form", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "internalCall", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "occasion", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "organization", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "pipeline", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "pipelineStage", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "segment", 1],
+  ["tests/e2e/admin-details-responsive.spec.ts", "workGroup", 1],
+  ["tests/e2e/admin-navigation-roles.spec.ts", "workGroup", 1],
+  ["tests/e2e/admin-navigation-roles.spec.ts", "workGroupEvaluator", 1],
+  ["tests/e2e/area-error.spec.ts", "occasion", 1],
+  ["tests/e2e/autorizacion.spec.ts", "appConfig", 1],
+  ["tests/e2e/autorizacion.spec.ts", "consent", 1],
+  ["tests/e2e/autorizacion.spec.ts", "contentPage", 1],
+  ["tests/e2e/campanas-cupo.spec.ts", "appConfig", 1],
+  ["tests/e2e/campanas-cupo.spec.ts", "campaign", 1],
+  ["tests/e2e/campanas-cupo.spec.ts", "campaignRecipient", 1],
+  ["tests/e2e/campanas-cupo.spec.ts", "emailTemplate", 1],
+  ["tests/e2e/campanas-cupo.spec.ts", "segment", 1],
+  ["tests/e2e/checkin.spec.ts", "checkIn", 1],
+  ["tests/e2e/checkin.spec.ts", "legacyAlias", 1],
+  ["tests/e2e/checkin.spec.ts", "occasion", 1],
+  ["tests/e2e/comite-areas.spec.ts", "committeeRoleAssignment", 1],
+  ["tests/e2e/comite-faltas.spec.ts", "committeeRoleAssignment", 1],
+  ["tests/e2e/comites-directory.spec.ts", "committee", 2],
+  ["tests/e2e/committee-podium.spec.ts", "committee", 1],
+  ["tests/e2e/committee-podium.spec.ts", "committeeParticipation", 1],
+  ["tests/e2e/committee-podium.spec.ts", "occasion", 1],
+  ["tests/e2e/consola.spec.ts", "occasion", 1],
+  ["tests/e2e/gamificacion.spec.ts", "occasion", 2],
+  ["tests/e2e/gamificacion.spec.ts", "wordleGame", 2],
+  ["tests/e2e/gh-points.spec.ts", "pointEntry", 1],
+  ["tests/e2e/global-setup.ts", "appConfig", 1],
+  ["tests/e2e/global-setup.ts", "committeeMembership", 3],
+  ["tests/e2e/global-setup.ts", "consent", 3],
+  ["tests/e2e/global-setup.ts", "credential", 1],
+  ["tests/e2e/macroeventos.spec.ts", "eventEdition", 1],
+  ["tests/e2e/member-experience.spec.ts", "event", 1],
+  ["tests/e2e/member-experience.spec.ts", "eventEdition", 1],
+  ["tests/e2e/member-experience.spec.ts", "occasion", 1],
+  ["tests/e2e/normativa-fixture.ts", "mediaAsset", 1],
+  ["tests/e2e/permanencia-admin.spec.ts", "workGroup", 1],
+  ["tests/e2e/permanencia-avisos.spec.ts", "occasion", 1],
+  ["tests/e2e/permanencia-evaluaciones.spec.ts", "permanenceRule", 2],
+  ["tests/e2e/permanencia-evaluaciones.spec.ts", "workGroup", 2],
+  ["tests/e2e/permanencia-evaluaciones.spec.ts", "workGroupEvaluator", 1],
+  ["tests/e2e/permanencia-evaluaciones.spec.ts", "workGroupMembership", 2],
+  ["tests/e2e/permanencia-reglas.spec.ts", "permanenceRule", 1],
+  ["tests/e2e/permanencia-reglas.spec.ts", "permanenceTable", 1],
+  ["tests/e2e/permanencia.spec.ts", "occasion", 1],
+  ["tests/e2e/permanencia.spec.ts", "workGroup", 1],
+  ["tests/e2e/permanencia.spec.ts", "workGroupMembership", 1],
+  ["tests/e2e/politica-datos.spec.ts", "appConfig", 1],
+  ["tests/e2e/politica-datos.spec.ts", "contentPage", 1],
+  ["tests/e2e/portal-ux.spec.ts", "committee", 1],
+  ["tests/e2e/portal-ux.spec.ts", "form", 2],
+  ["tests/e2e/portal-ux.spec.ts", "pipeline", 1],
+  ["tests/e2e/privacidad-pendiente.spec.ts", "form", 1],
+  ["tests/e2e/roster.spec.ts", "committee", 1],
+  ["tests/e2e/solicitudes-ux.spec.ts", "committee", 2],
+  ["tests/e2e/solicitudes-ux.spec.ts", "committeeMembership", 1],
+  ["tests/e2e/solicitudes-ux.spec.ts", "consent", 1],
+  ["tests/e2e/solicitudes-ux.spec.ts", "occasion", 1],
+  ["tests/e2e/the-games.spec.ts", "eventEdition", 1],
+  ["tests/e2e/wallet-visual.spec.ts", "message", 1],
+  ["tests/integration/access-grant.test.ts", "committee", 1],
+  ["tests/integration/access-grant.test.ts", "credential", 1],
+  ["tests/integration/admin-export-truncated.test.ts", "achievement", 1],
+  ["tests/integration/autorizacion.test.ts", "appConfig", 1],
+  ["tests/integration/bootstrap-access.test.ts", "credential", 1],
+  ["tests/integration/campaigns-characterization.test.ts", "message", 1],
+  ["tests/integration/campaigns-characterization.test.ts", "segment", 1],
+  ["tests/integration/campaigns-provider-day.test.ts", "message", 1],
+  ["tests/integration/campaigns-provider-day.test.ts", "segment", 1],
+  ["tests/integration/campaigns-quota-cut.test.ts", "segment", 1],
+  ["tests/integration/campaigns-quota-page.test.ts", "message", 1],
+  ["tests/integration/campaigns-quota-status.test.ts", "appConfig", 1],
+  ["tests/integration/campaigns-quota-status.test.ts", "message", 1],
+  ["tests/integration/campaigns-quota-status.test.ts", "segment", 1],
+  ["tests/integration/campaigns.test.ts", "segment", 1],
+  ["tests/integration/checkin-result-claim.test.ts", "checkIn", 1],
+  ["tests/integration/committee-assembly.test.ts", "checkIn", 1],
+  ["tests/integration/comms-campaign-code-anonymized.test.ts", "segment", 1],
+  ["tests/integration/competition-tracking.test.ts", "competitionSupport", 1],
+  ["tests/integration/crm-recognition-committee-scope.test.ts", "consent", 1],
+  ["tests/integration/documents.test.ts", "mediaAsset", 1],
+  ["tests/integration/e2e-calendar.test.ts", "committeeMembership", 1],
+  ["tests/integration/fase5-base.test.ts", "consent", 1],
+  ["tests/integration/fase5-base.test.ts", "tag", 2],
+  ["tests/integration/forms.test.ts", "into event", 1],
+  ["tests/integration/forms.test.ts", "into event_edition", 1],
+  ["tests/integration/forms.test.ts", "tag", 1],
+  ["tests/integration/game2048.test.ts", "game2048Run", 1],
+  ["tests/integration/gamification-badges.test.ts", "challengeQuestion", 1],
+  ["tests/integration/gamification-badges.test.ts", "checkIn", 1],
+  ["tests/integration/gamification-badges.test.ts", "wordleGame", 4],
+  ["tests/integration/gamification-boosters.test.ts", "achievement", 1],
+  ["tests/integration/gamification-boosters.test.ts", "challengeQuestion", 1],
+  ["tests/integration/gamification-challenges.test.ts", "challengeQuestion", 1],
+  ["tests/integration/gamification-collection-specials.test.ts", "achievement", 1],
+  ["tests/integration/gamification-collection-specials.test.ts", "badgeDefinition", 1],
+  ["tests/integration/gamification-evidence.test.ts", "challengeEvidenceFile", 2],
+  ["tests/integration/gamification-exports.test.ts", "achievement", 1],
+  ["tests/integration/gamification-member-reads.test.ts", "challengeQuestion", 1],
+  ["tests/integration/gamification-own-data.test.ts", "achievement", 1],
+  ["tests/integration/gamification-own-data.test.ts", "challengeEvidenceFile", 1],
+  ["tests/integration/gamification-own-data.test.ts", "reward", 1],
+  ["tests/integration/gamification-reconcile.test.ts", "checkIn", 1],
+  ["tests/integration/gamification-reconcile.test.ts", "wordleGame", 1],
+  ["tests/integration/gamification-regressions.test.ts", "achievement", 1],
+  ["tests/integration/gamification-regressions.test.ts", "challengeEvidenceFile", 2],
+  ["tests/integration/gamification-regressions.test.ts", "challengeQuestion", 2],
+  ["tests/integration/gh-points-view-reads.test.ts", "achievement", 1],
+  ["tests/integration/gh-points-view-reads.test.ts", "badgeDefinition", 1],
+  ["tests/integration/identity-cleanup.test.ts", "credential", 1],
+  ["tests/integration/inhabilities.test.ts", "membershipTerm", 2],
+  ["tests/integration/leave-purge-retry.test.ts", "credential", 1],
+  ["tests/integration/macroevent-board.test.ts", "appointment", 3],
+  ["tests/integration/macroevent-groups.test.ts", "event", 2],
+  ["tests/integration/macroevent-groups.test.ts", "eventEdition", 2],
+  ["tests/integration/media-metadata.test.ts", "mediaAsset", 1],
+  ["tests/integration/member-home-term-reads.test.ts", "consent", 1],
+  ["tests/integration/organizations.test.ts", "tag", 1],
+  ["tests/integration/own-data.test.ts", "mediaAsset", 2],
+  ["tests/integration/panal.test.ts", "panalWord", 2],
+  ["tests/integration/participation-checkin.test.ts", "committeeMembership", 1],
+  ["tests/integration/participation-closing-concurrency.test.ts", "reward", 1],
+  ["tests/integration/participation-live-snapshot.test.ts", "checkIn", 1],
+  ["tests/integration/password-login.test.ts", "credential", 1],
+  ["tests/integration/password-selfservice.test.ts", "credential", 1],
+  ["tests/integration/permanence-closing.test.ts", "manualCredit", 1],
+  ["tests/integration/permanence-evaluations.test.ts", "consent", 1],
+  ["tests/integration/permanence-facts.test.ts", "leaderScore", 2],
+  ["tests/integration/permanence-facts.test.ts", "permanenceDecision", 6],
+  ["tests/integration/permanence-facts.test.ts", "workGroupMembership", 1],
+  ["tests/integration/permanence-rules.test.ts", "leaderScore", 2],
+  ["tests/integration/person-360-timeline-others.test.ts", "interaction", 1],
+  ["tests/integration/privacy-policy.test.ts", "appConfig", 1],
+  ["tests/integration/sanctions.test.ts", "manualCredit", 1],
+  ["tests/integration/schema-constraints.test.ts", "committee", 1],
+  ["tests/integration/sudoku.test.ts", "sudokuRun", 1],
+  ["tests/integration/survey-invites-retry.test.ts", "checkIn", 1],
+  ["tests/integration/tasks-characterization.test.ts", "task", 1],
+  ["tests/integration/team-members.test.ts", "event", 1],
+  ["tests/integration/wallet-jobs.test.ts", "carnetToken", 1],
+  ["tests/integration/wallet-jobs.test.ts", "walletPass", 1],
+  ["tests/integration/wordle.test.ts", "wordleGame", 2],
 ];
 
 /** Los archivos TypeScript de una carpeta de pruebas: los casos, su preparación y sus ayudantes. */
@@ -58,29 +430,52 @@ function sources(dir: string) {
     .map((file) => ({ path: `${dir}/${file}`, text: readFileSync(join(dir, file), "utf8") }));
 }
 
-const named = (insert: { path: string; table: string }) => `${insert.path} › ${insert.table}`;
+const named = (path: string, target: string) => `${path} › ${target}`;
 
-/** Cuántos insert sueltos de cada tabla hay en cada archivo. */
+/** Lo que dicen las dos listas: cuántos insert sueltos de cada destino quedan en cada archivo. */
+const LISTED: Pending[] = [
+  ...EXCEPTIONS.map(({ path, target, inserts }): Pending => [path, target, inserts]),
+  ...PENDING,
+];
+
+/** Cuántos insert sueltos de cada destino hay de verdad en cada archivo. */
 function loose(): Record<string, number> {
   const counts: Record<string, number> = {};
-  for (const insert of insertsInto(SEEDED.flatMap(sources), FACTORY_TABLES)) {
-    counts[named(insert)] = (counts[named(insert)] ?? 0) + 1;
+  for (const { path, target } of insertTargets(SEEDED.flatMap(sources))) {
+    counts[named(path, target)] = (counts[named(path, target)] ?? 0) + 1;
   }
   return counts;
 }
 
-describe("la siembra de person, permission, membership y term", () => {
-  it("pasa por la fábrica: fuera de ella quedan solo los insert de la lista de excepciones, ni uno más ni uno menos", () => {
+describe("la siembra de las pruebas", () => {
+  it("pasa por la fábrica: fuera de ella quedan solo los insert de las dos listas, ni uno más ni uno menos", () => {
     expect(loose()).toEqual(
-      Object.fromEntries(EXCEPTIONS.map((exception) => [named(exception), exception.inserts])),
+      Object.fromEntries(LISTED.map(([path, target, inserts]) => [named(path, target), inserts])),
     );
   });
 
-  it("cada excepción está una vez y trae su razón en una frase", () => {
-    expect(new Set(EXCEPTIONS.map(named)).size).toBe(EXCEPTIONS.length);
+  it("cada destino de un archivo está una sola vez entre las dos listas, y cada excepción trae su razón en una frase", () => {
+    expect(new Set(LISTED.map(([path, target]) => named(path, target))).size).toBe(LISTED.length);
     for (const exception of EXCEPTIONS) {
-      expect(exception.reason, named(exception)).toMatch(/^\p{Lu}[^\n]{40,}\.$/u);
+      expect(exception.reason, named(exception.path, exception.target)).toMatch(
+        /^\p{Lu}[^\n]{40,}\.$/u,
+      );
     }
+  });
+
+  it.each(
+    SUITES,
+  )("las dos listas suman la fila de insert sueltos de audit:metrics en %s", (dir) => {
+    const listed = (raw: boolean) =>
+      LISTED.filter(
+        ([path, target]) => path.startsWith(`${dir}/`) && target.startsWith("into ") === raw,
+      ).reduce((total, [, , inserts]) => total + inserts, 0);
+
+    expect({ calls: listed(false), raw: listed(true) }).toEqual(looseInserts(sources(dir)));
+  });
+
+  it("las cuatro tablas de partida no tienen pendientes: lo suyo ya pasó por la fábrica", () => {
+    expect(PENDING.filter(([, target]) => FACTORY_TABLES.includes(target))).toEqual([]);
   });
 
   it("la fábrica es la que escribe las cuatro tablas", () => {
