@@ -103,7 +103,11 @@ export async function grantRecognition(
   // ADR-122 regla 2: un reconocimiento que llega con comité es de alguien que está en el roster de
   // ese comité en ese término. Lo lee el comando; quien no está responde como uno que no existe. Va
   // antes que el bloqueo de beneficios: T-2331 de una persona ajena le diría a quien llama que está
-  // en periodo de prueba o con los derechos suspendidos.
+  // en periodo de prueba o con los derechos suspendidos. Falla cerrado: el destacado del mes es de un
+  // comité (ADR-036 regla 7), así que sin comité no hay roster contra el que comprobarlo y no procede.
+  if (input.kind === "MEMBER_OF_MONTH" && !input.committeeId) {
+    throw new DomainError(t("T-032"));
+  }
   if (
     input.committeeId &&
     !(await isInInternalRoster(ctx.tx, input.personId, {

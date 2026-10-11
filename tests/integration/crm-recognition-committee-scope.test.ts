@@ -141,6 +141,27 @@ describe("el reconocimiento de un comité es de alguien de ese comité", () => {
     expect(await listCommitteeAnnouncements(f.a3)).toHaveLength(1);
   });
 
+  // Falla cerrado: el destacado del mes es de un comité (ADR-036 regla 7). Sin él no hay roster contra
+  // el que comprobar a la persona, así que no se registra.
+  it("un destacado del mes que llega sin comité no se registra: su alcance no es opcional", async () => {
+    const f = await setup();
+    const member = await memberWithConsent("sin.comite@eafit.edu.co");
+    await seedCommitteeMembership(member, f.a3, f.termId);
+    const before = await written();
+
+    await expect(
+      grantRecognitionAs(leader, {
+        personId: member,
+        kind: "MEMBER_OF_MONTH",
+        termId: f.termId,
+        month: 8,
+        title: "",
+      }),
+    ).rejects.toThrow(t("T-032"));
+
+    expect(await written()).toEqual(before);
+  });
+
   it("un premio OE sin comité no pide pertenencia a ninguno", async () => {
     const f = await setup();
     const personId = await seedMember("premio.oe@eafit.edu.co");
