@@ -482,8 +482,7 @@ export function validateRoster(
         if (status.status === "HONORARY" && honoraryRejected(current)) {
           errors.push(
             t("T-3265", {
-              nombre:
-                `${result.firstName || current?.firstName || ""} ${result.lastName || current?.lastName || ""}`.trim(),
+              nombre: rowDisplayName(result, current),
             }),
           );
         }
@@ -494,8 +493,7 @@ export function validateRoster(
         ) {
           warnings.push(
             t("T-2208", {
-              nombre:
-                `${result.firstName || current.firstName} ${result.lastName || current.lastName}`.trim(),
+              nombre: rowDisplayName(result, current),
             }),
           );
         }
@@ -537,8 +535,7 @@ export function validateRoster(
         if (parsed.length > 0 && !present.has("status") && staysInactive(current, undefined)) {
           warnings.push(
             t("T-3247", {
-              nombre:
-                `${result.firstName || current?.firstName || ""} ${result.lastName || current?.lastName || ""}`.trim(),
+              nombre: rowDisplayName(result, current),
             }),
           );
         }
@@ -717,6 +714,14 @@ export function staysInactive(
     return false;
   }
   return wanted === undefined || wanted === "INACTIVE" || current.endReason === "EXPULSION";
+}
+
+/**
+ * Con qué nombre un error o un aviso nombra a la persona de una fila: el del archivo y, donde no lo
+ * trae, el guardado.
+ */
+function rowDisplayName(result: ValidatedRow, current: ExistingPerson | undefined): string {
+  return `${result.firstName || current?.firstName || ""} ${result.lastName || current?.lastName || ""}`.trim();
 }
 
 /**
