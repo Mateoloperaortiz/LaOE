@@ -1,5 +1,5 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import {
@@ -13,7 +13,7 @@ import {
 } from "@/modules/comms";
 import { campaignRecipient } from "@/modules/comms/schema";
 import { segment } from "@/modules/people/schema";
-import { getConfig, requireConfig, setConfig } from "@/modules/system";
+import { getConfig, setConfig } from "@/modules/system";
 import { auditLog } from "@/modules/system/schema";
 import { type MailMessage, QuotaExceededError } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
@@ -140,11 +140,8 @@ function configAudits() {
     .orderBy(desc(auditLog.at));
 }
 
-let seededPerMinute = 0;
-
-beforeAll(async () => {
-  seededPerMinute = await requireConfig("campaigns.perMinute");
-});
+// El lote por minuto no se repone a mano al terminar: el vaciado de la prueba siguiente devuelve la
+// configuración a la foto de la migración (ADR-124 regla 3).
 beforeEach(async () => {
   await truncateAll();
   delivered.length = 0;
@@ -152,7 +149,6 @@ beforeEach(async () => {
   stubResend();
 });
 afterAll(async () => {
-  await setPerMinute(seededPerMinute);
   setMailTransportsForTests(undefined);
   await closeDb();
 });

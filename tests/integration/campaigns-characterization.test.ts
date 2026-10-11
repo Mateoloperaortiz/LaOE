@@ -1,6 +1,6 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { and, eq, inArray, type SQL, sql } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { getEnv } from "@/env";
@@ -31,7 +31,7 @@ import {
   revokeConsentAs,
 } from "@/modules/people";
 import { segment } from "@/modules/people/schema";
-import { requireConfig, setConfig } from "@/modules/system";
+import { setConfig } from "@/modules/system";
 import {
   type MailMessage,
   type MailProvider,
@@ -179,11 +179,8 @@ function campaignsEntry() {
   return entry;
 }
 
-let seededPerMinute = 0;
-
-beforeAll(async () => {
-  seededPerMinute = await requireConfig("campaigns.perMinute");
-});
+// El lote por minuto que estas pruebas cambian no se repone a mano: el vaciado de la prueba siguiente
+// devuelve la configuración a la foto de la migración (ADR-124 regla 3).
 beforeEach(async () => {
   await truncateAll();
   delivered.primary.length = 0;
@@ -191,8 +188,6 @@ beforeEach(async () => {
   useTransports();
 });
 afterAll(async () => {
-  // `truncateAll` conserva la configuración: el lote por minuto de estas pruebas no se le deja a otra.
-  await setPerMinute(seededPerMinute);
   setMailTransportsForTests(undefined);
   await closeDb();
 });

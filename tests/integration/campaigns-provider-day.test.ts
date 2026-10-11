@@ -1,5 +1,5 @@
 import { and, eq, gte, lt } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import { segment } from "@/modules/people/schema";
-import { getConfig, requireConfig, setConfig } from "@/modules/system";
+import { getConfig, setConfig } from "@/modules/system";
 import { type MailProvider, type MailTransport, QuotaExceededError } from "@/shared/adapters/mail";
 import { formatDateTime } from "@/shared/lib/dates";
 import { truncateAll } from "./db";
@@ -149,11 +149,8 @@ async function acceptedInProviderDay(from: Date, to: Date): Promise<number> {
   return rows.length;
 }
 
-let seededPerMinute = 0;
-
-beforeAll(async () => {
-  seededPerMinute = await requireConfig("campaigns.perMinute");
-});
+// El lote por minuto no se repone a mano al terminar: el vaciado de la prueba siguiente devuelve la
+// configuración a la foto de la migración (ADR-124 regla 3).
 beforeEach(async () => {
   await truncateAll();
   await setPerMinute(10);
@@ -162,7 +159,6 @@ beforeEach(async () => {
   useTransports({ overflow: false });
 });
 afterAll(async () => {
-  await setPerMinute(seededPerMinute);
   setMailTransportsForTests(undefined);
   await closeDb();
 });

@@ -1,9 +1,8 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { listMyCommitteeCapabilities } from "@/modules/people";
 import { rolesResource } from "@/modules/people/admin";
-import { committeeRole } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -23,17 +22,11 @@ import {
 
 type RoleInput = Parameters<NonNullable<typeof rolesResource.update>>[2];
 
-// `truncateAll` no vacía el catálogo de cargos (DT-149 inciso e): lo que esta prueba crea lo borra ella,
-// antes y después, para no dejarle cargos a los archivos que corran detrás.
-const OWN_CODES = ["C9_VOCERIA", "C9_ARCHIVO", "C9_ENLACE", "C9_OTRO"];
+// Los cargos que estas pruebas crean no se borran a mano: el vaciado devuelve el catálogo a la foto de
+// la migración (ADR-124 regla 3), así que no le quedan a la prueba siguiente ni a otro archivo.
 
 const db = () => getDb();
 const actor = (personId: string) => ({ personId, ip: null });
-
-async function resetCatalog(): Promise<void> {
-  await truncateAll();
-  await db().delete(committeeRole).where(inArray(committeeRole.code, OWN_CODES));
-}
 
 /** El formulario del kit pasa por el esquema del recurso antes de llegar al comando. */
 function parsed(raw: Record<string, unknown>): RoleInput {
@@ -77,11 +70,8 @@ function pendingEvents() {
 const voceria = { code: "C9_VOCERIA", label: "Vocería", sortOrder: 70 };
 
 describe("el catálogo de cargos de comité (createCommitteeRole y updateCommitteeRole)", () => {
-  beforeEach(resetCatalog);
-  afterAll(async () => {
-    await resetCatalog();
-    await closeDb();
-  });
+  beforeEach(truncateAll);
+  afterAll(closeDb);
 
   it("crear un cargo lo deja en el catálogo como salió del formulario, con su auditoría y sin evento", async () => {
     const admin = await seedMember("admin@eafit.edu.co");

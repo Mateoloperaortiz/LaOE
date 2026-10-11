@@ -1,5 +1,5 @@
 import { inArray, sql } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import {
@@ -16,7 +16,7 @@ import { requestOtp } from "@/modules/identity";
 import { anonymizePersonAs, requestDeletionAs } from "@/modules/people";
 import { anonymizePerson } from "@/modules/people/domain/membership";
 import { person, segment } from "@/modules/people/schema";
-import { requireConfig, setConfig } from "@/modules/system";
+import { setConfig } from "@/modules/system";
 import type { MailMessage } from "@/shared/adapters/mail";
 import { withTimeout } from "@/shared/lib/timeout";
 import { deferred, type Held, holdCommand, waitingForLock, waitingOn } from "../helpers/locks";
@@ -45,7 +45,6 @@ const held: MailMessage[] = [];
 let holds: (call: number) => boolean = () => false;
 let gate = deferred<void>();
 let calls = 0;
-let seededPerMinute = 0;
 
 const sentTo = () => mails.map((mail) => mail.to).sort();
 
@@ -114,9 +113,8 @@ async function anonymizeWhileInFlight(personId: string, sending: Promise<unknown
 }
 
 describe("el correo de una campaña y el del código de ingreso mientras la persona se anonimiza", () => {
-  beforeAll(async () => {
-    seededPerMinute = await requireConfig("campaigns.perMinute");
-  });
+  // El lote por minuto que `scheduleCampaign` cambia no se repone a mano: el vaciado de la prueba
+  // siguiente devuelve la configuración a la foto de la migración (ADR-124 regla 3).
   beforeEach(async () => {
     await truncateAll();
     mails.length = 0;
@@ -141,8 +139,6 @@ describe("el correo de una campaña y el del código de ingreso mientras la pers
     });
   });
   afterAll(async () => {
-    // `truncateAll` conserva la configuración: el lote por minuto de estas pruebas no se le deja a otra.
-    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "campaigns.perMinute", seededPerMinute));
     setMailTransportsForTests(undefined);
     await closeDb();
   });
