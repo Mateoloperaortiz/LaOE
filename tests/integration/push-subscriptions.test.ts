@@ -11,6 +11,7 @@ import {
 import { resolveActor, signOut } from "@/modules/identity";
 import { createSession } from "@/modules/identity/domain/session";
 import { t } from "@/shared/copy";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
 
@@ -142,7 +143,7 @@ describe("suscripciones de push", () => {
     const ana = await seedMember("ana.carrera@eafit.edu.co");
     await saveMany(ana, MAX_DEVICES - 2);
     // Conexiones ya abiertas: sin esto la primera transacción cierra antes de que las demás empiecen.
-    await Promise.all([1, 2, 3, 4, 5, 6].map(() => countSubscriptionsFor(ana)));
+    await warmPool(6);
 
     const results = await Promise.allSettled(
       [1, 2, 3, 4, 5, 6].map((index) => save(ana, `${FCM}a-la-vez-${index}`)),
@@ -159,7 +160,7 @@ describe("suscripciones de push", () => {
     const bruno = await seedMember("bruno.misma@eafit.edu.co");
     const endpoint = `${FCM}disputado`;
     // Conexiones ya abiertas, para que las dos transacciones corran de verdad a la vez.
-    await Promise.all([countSubscriptionsFor(ana), countSubscriptionsFor(bruno)]);
+    await warmPool();
 
     const results = await Promise.allSettled([save(ana, endpoint), save(bruno, endpoint)]);
 

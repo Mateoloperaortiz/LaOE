@@ -42,6 +42,7 @@ import { t } from "@/shared/copy";
 import { withTimeout } from "@/shared/lib/timeout";
 import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
 
@@ -458,6 +459,7 @@ describe("el lote de una campaña, tal como es hoy", () => {
     const roster = await seedRoster(6);
     const id = await scheduleCampaign(3);
 
+    await warmPool();
     const ticks = await Promise.all([runCampaignTick(minute(0)), runCampaignTick(minute(0))]);
 
     expect(ticks.reduce((sum, tick) => sum + tick.started, 0)).toBe(1);
@@ -2041,6 +2043,7 @@ describe("una campaña en curso que se quedó sin pendientes (ADR-116 regla 16)"
     expect(await runCampaignTick(minute(0))).toEqual({ started: 1, sent: 1 });
     expect(await dropPending(id)).toHaveLength(1);
 
+    await warmPool(6);
     const ticks = await Promise.all(Array.from({ length: 6 }, () => runCampaignTick(minute(1))));
 
     expect(ticks).toEqual(Array.from({ length: 6 }, () => ({ started: 0, sent: 0 })));
@@ -2063,8 +2066,17 @@ describe("una campaña en curso que se quedó sin pendientes (ADR-116 regla 16)"
     const id = await scheduleCampaign(1);
     expect(await runCampaignTick(minute(0))).toEqual({ started: 1, sent: 1 });
 
-    const ticks = await Promise.all([runCampaignTick(minute(1)), runCampaignTick(minute(1))]);
+    await warmPool();
+    // Suelta, la carrera se da unas veces sí y otras no. La prueba retiene la fila de la campaña hasta
+    // que los dos ticks la esperan: al soltarla entran uno tras otro, y sin ese candado ninguno espera.
+    const row = await holdLock(sql`select id from campaign where id = ${id} for update`);
+    const both = Promise.all([runCampaignTick(minute(1)), runCampaignTick(minute(1))]);
+    await untilLockWaiters(2, both);
+    const waiting = (await lockWaiters()).length;
+    await row.release();
+    const ticks = await both;
 
+    expect(waiting).toBe(2);
     expect(ticks.map((tick) => tick.started)).toEqual([0, 0]);
     expect(ticks.map((tick) => tick.sent).sort()).toEqual([0, 1]);
     // Cada destinatario recibió su correo una sola vez.
