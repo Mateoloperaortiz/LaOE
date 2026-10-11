@@ -5,8 +5,14 @@ import {
   achievementsResource,
   challengeParticipationsResource,
 } from "@/modules/participation/admin";
-import { achievement, badgeDefinition } from "@/modules/participation/schema";
-import { seedChallenge, seedMember, seedParticipation, seedTerm } from "../factories";
+import { badgeDefinition } from "@/modules/participation/schema";
+import {
+  seedAchievement,
+  seedChallenge,
+  seedMember,
+  seedParticipation,
+  seedTerm,
+} from "../factories";
 import { truncateAll } from "./db";
 
 // Exportes personales de la gamificación (ADR-067 regla 16): "retos" lista entregas con premio e
@@ -55,17 +61,12 @@ describe("exportes de gamificación", () => {
       .select()
       .from(badgeDefinition)
       .where(eq(badgeDefinition.code, "EN_PARCHE_1"));
-    await db()
-      .insert(achievement)
-      .values({
-        personId,
-        badgeId: badge?.id ?? "",
-        termId,
-        sourceKind: "CHECKIN",
-        sourceRef: "ref-test",
-        historical: true,
-        unlockedAt: new Date("2023-03-10T15:00:00Z"),
-      });
+    await seedAchievement(personId, badge?.id ?? "", termId, {
+      sourceKind: "CHECKIN",
+      sourceRef: "ref-test",
+      historical: true,
+      unlockedAt: new Date("2023-03-10T15:00:00Z"),
+    });
 
     const insignias = await achievementsResource.list({
       q: "",

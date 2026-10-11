@@ -31,7 +31,6 @@ import {
   challengeParticipation,
   challenge as challengeTable,
   checkIn,
-  wordleGame,
 } from "@/modules/participation/schema";
 import { membership } from "@/modules/people/schema";
 import { setConfig, setConfigAs } from "@/modules/system";
@@ -47,6 +46,7 @@ import {
   seedParticipation,
   seedQuestion,
   seedTerm,
+  seedWordleGame,
 } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
 import { itemPattern } from "../helpers/copy";
@@ -161,30 +161,14 @@ describe("insignias: hechos", () => {
     await seedParticipation(await seedChallenge(termId), personId, { status: "COMPLETED" });
     await seedParticipation(await seedChallenge(termId), personId, { status: "PENDING" });
     await seedParticipation(await seedChallenge(termId), personId, { status: "REJECTED" });
-    await db()
-      .insert(wordleGame)
-      .values({
-        personId,
-        day: "2024-05-10",
-        termId,
-        answer: "PRUEB",
-        dictionaryVersion: "test",
-        rulesVersion: "test",
-        status: "WON",
-        completedAt: new Date("2024-05-10T20:00:00Z"),
-      });
-    await db()
-      .insert(wordleGame)
-      .values({
-        personId,
-        day: "2024-05-11",
-        termId,
-        answer: "PRUEB",
-        dictionaryVersion: "test",
-        rulesVersion: "test",
-        status: "LOST",
-        completedAt: new Date("2024-05-11T20:00:00Z"),
-      });
+    await seedWordleGame(personId, termId, "2024-05-10", {
+      status: "WON",
+      completedAt: new Date("2024-05-10T20:00:00Z"),
+    });
+    await seedWordleGame(personId, termId, "2024-05-11", {
+      status: "LOST",
+      completedAt: new Date("2024-05-11T20:00:00Z"),
+    });
 
     const facts = await badgeFactsFor(personId);
     expect(facts.RELAMPAGO).toHaveLength(1);
@@ -375,18 +359,10 @@ describe("insignias: destacadas, vistas y colección", () => {
     await seedCheckIn((await seedOccasion(termId, { committeeId: committeeA })).id, personId);
     await seedCheckIn((await seedOccasion(termId, { committeeId: committeeB })).id, personId);
     await seedParticipation(await seedChallenge(termId), personId, { status: "COMPLETED" });
-    await db()
-      .insert(wordleGame)
-      .values({
-        personId,
-        day: "2024-07-01",
-        termId,
-        answer: "PRUEB",
-        dictionaryVersion: "test",
-        rulesVersion: "test",
-        status: "WON",
-        completedAt: new Date("2024-07-01T18:00:00Z"),
-      });
+    await seedWordleGame(personId, termId, "2024-07-01", {
+      status: "WON",
+      completedAt: new Date("2024-07-01T18:00:00Z"),
+    });
     await recomputeBadgesFor(personId, { historical: true });
     const logros = await liveAchievementsOf(personId);
     expect(logros).toHaveLength(4);
@@ -574,25 +550,16 @@ describe("flujo en vivo por el outbox", () => {
     await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "gamification.enabled", true));
     const termId = await seedTerm();
     const personId = await seedMember("flujo2@test.dev");
-    const [game] = await db()
-      .insert(wordleGame)
-      .values({
-        personId,
-        day: "2024-06-01",
-        termId,
-        answer: "PRUEB",
-        dictionaryVersion: "test",
-        rulesVersion: "test",
-        status: "WON",
-        completedAt: new Date("2024-06-01T18:00:00Z"),
-      })
-      .returning();
+    const gameId = await seedWordleGame(personId, termId, "2024-06-01", {
+      status: "WON",
+      completedAt: new Date("2024-06-01T18:00:00Z"),
+    });
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       ctx.emit(
         eventOf(wordleCompleted, {
           personId,
           termId,
-          gameId: game?.id ?? "",
+          gameId,
           day: "2024-06-01",
           attempts: 3,
           points: 5,

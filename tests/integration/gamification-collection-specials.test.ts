@@ -1,16 +1,20 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { closeDb, getDb } from "@/db/client";
+import { closeDb } from "@/db/client";
 import { collectionFor } from "@/modules/participation";
-import { achievement, badgeDefinition } from "@/modules/participation/schema";
-import { seedChallenge, seedMember, seedOccasion, seedTerm } from "../factories";
+import {
+  seedAchievement,
+  seedChallenge,
+  seedMember,
+  seedOccasion,
+  seedSpecialBadge,
+  seedTerm,
+} from "../factories";
 import { countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
 
 // Ediciones especiales en la colección (ADR-067 regla 9): cada una sale con el título de la ocasión
 // o del reto que la sostiene. Lo que la colección devuelve de ellas se fija primero, y después
 // cuántas consultas le cuesta (DT-294).
-
-const db = () => getDb();
 
 let badgeCounter = 0;
 
@@ -28,29 +32,15 @@ async function seedSpecial(
 ): Promise<string> {
   badgeCounter += 1;
   const code = `especial-${String(badgeCounter).padStart(3, "0")}`;
-  const [badge] = await db()
-    .insert(badgeDefinition)
-    .values({
-      code,
-      family: "SPECIAL",
-      threshold: null,
-      name: `Edición especial ${badgeCounter}`,
-      active: overrides.active ?? true,
-      specialOccasionId: "occasionId" in target ? target.occasionId : null,
-      specialChallengeId: "challengeId" in target ? target.challengeId : null,
-    })
-    .returning({ id: badgeDefinition.id });
+  const badgeId = await seedSpecialBadge(code, target, {
+    name: `Edición especial ${badgeCounter}`,
+    active: overrides.active ?? true,
+  });
   if (holder) {
-    await db()
-      .insert(achievement)
-      .values({
-        personId: holder.personId,
-        badgeId: badge?.id ?? "",
-        termId: holder.termId,
-        sourceKind: "MANUAL",
-        revokedAt: holder.revoked ? new Date() : null,
-        revokeReason: holder.revoked ? "Retiro de prueba" : null,
-      });
+    await seedAchievement(holder.personId, badgeId, holder.termId, {
+      revokedAt: holder.revoked ? new Date() : null,
+      revokeReason: holder.revoked ? "Retiro de prueba" : null,
+    });
   }
   return code;
 }

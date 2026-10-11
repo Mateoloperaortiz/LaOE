@@ -14,13 +14,19 @@ import {
 import { form, formSubmission } from "@/modules/forms/schema";
 import { hashPassword } from "@/modules/identity/domain/pure";
 import { credential, permission } from "@/modules/identity/schema";
+import { dayKeyFor, weekKeyFor } from "@/modules/participation/domain/gamification-pure";
 import {
+  achievement,
+  badgeDefinition,
   boosterItem,
   challenge,
+  challengeEvidenceFile,
   challengeParticipation,
   challengeQuestion,
   checkIn,
   occasion,
+  reward,
+  wordleGame,
 } from "@/modules/participation/schema";
 import {
   appointment,
@@ -986,4 +992,165 @@ export async function seedQuestion(
       options: overrides.options ?? ["Sí", "No"],
       correctIndex: 0,
     });
+}
+
+type WordleGameSeed = {
+  personId: string;
+  /** El día de la partida, `AAAA-MM-DD`. */
+  day: string;
+} & Partial<
+  Pick<
+    typeof wordleGame.$inferInsert,
+    "answer" | "status" | "completedAt" | "dictionaryVersion" | "rulesVersion"
+  >
+>;
+
+/**
+ * Partidas de Wordle de un término, en una sola sentencia y en el orden dado: en curso, con la
+ * respuesta `PRUEB` y las versiones `test`, salvo que cada una diga otra cosa. La que ya terminó
+ * lleva su hora de cierre. No escribe intentos ni acredita nada.
+ */
+export async function seedWordleGames(termId: string, games: WordleGameSeed[]): Promise<string[]> {
+  if (games.length === 0) return [];
+  const rows = await db()
+    .insert(wordleGame)
+    .values(
+      games.map((game) => {
+        const status = game.status ?? "IN_PROGRESS";
+        return {
+          personId: game.personId,
+          day: game.day,
+          termId,
+          answer: game.answer ?? "PRUEB",
+          dictionaryVersion: game.dictionaryVersion ?? "test",
+          rulesVersion: game.rulesVersion ?? "test",
+          status,
+          completedAt: status === "IN_PROGRESS" ? null : (game.completedAt ?? new Date()),
+        };
+      }),
+    )
+    .returning({ id: wordleGame.id });
+  return rows.map((row) => row.id);
+}
+
+/** Una partida de Wordle de una persona en un día: lo mismo que `seedWordleGames`, de a una. */
+export async function seedWordleGame(
+  personId: string,
+  termId: string,
+  day: string,
+  overrides: Omit<WordleGameSeed, "personId" | "day"> = {},
+): Promise<string> {
+  const [id] = await seedWordleGames(termId, [{ personId, day, ...overrides }]);
+  if (!id) throw new Error("seed wordle game");
+  return id;
+}
+
+/**
+ * Insignia de edición especial, activa y atada a una ocasión o a un reto. Las de serie no se
+ * siembran: las llenan las migraciones y el vaciado las devuelve a su foto.
+ */
+export async function seedSpecialBadge(
+  code: string,
+  target: { occasionId: string } | { challengeId: string },
+  overrides: Partial<{ name: string; active: boolean }> = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(badgeDefinition)
+    .values({
+      code,
+      family: "SPECIAL",
+      threshold: null,
+      name: overrides.name ?? `Edición especial ${code}`,
+      active: overrides.active ?? true,
+      specialOccasionId: "occasionId" in target ? target.occasionId : null,
+      specialChallengeId: "challengeId" in target ? target.challengeId : null,
+    })
+    .returning({ id: badgeDefinition.id });
+  if (!row) throw new Error("seed special badge");
+  return row.id;
+}
+
+type AchievementOverrides = Partial<
+  Omit<typeof achievement.$inferInsert, "personId" | "badgeId" | "termId">
+>;
+
+/** Logro vivo de una persona sobre una insignia: de origen manual y desbloqueado ahora, salvo overrides. */
+export async function seedAchievement(
+  personId: string,
+  badgeId: string,
+  termId: string,
+  overrides: AchievementOverrides = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(achievement)
+    .values({ personId, badgeId, termId, sourceKind: "MANUAL", ...overrides })
+    .returning({ id: achievement.id });
+  if (!row) throw new Error("seed achievement");
+  return row.id;
+}
+
+type EvidenceFileOverrides = Partial<
+  Omit<typeof challengeEvidenceFile.$inferInsert, "participationId" | "objectKey">
+>;
+
+/**
+ * Archivo de evidencia de una entrega: el primero, un JPEG de 10 kB todavía sin procesar, salvo
+ * overrides. Escribe la fila y nada más: el objeto del bucket lo sube la prueba que lo necesite.
+ */
+export async function seedChallengeEvidenceFile(
+  participationId: string,
+  objectKey: string,
+  overrides: EvidenceFileOverrides = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(challengeEvidenceFile)
+    .values({
+      participationId,
+      objectKey,
+      ordinal: 1,
+      contentType: "image/jpeg",
+      byteSize: 10_000,
+      ...overrides,
+    })
+    .returning({ id: challengeEvidenceFile.id });
+  if (!row) throw new Error("seed challenge evidence file");
+  return row.id;
+}
+
+type RewardOverrides = Partial<
+  Omit<typeof reward.$inferInsert, "personId" | "termId" | "participationId" | "source">
+>;
+
+/**
+ * Premio reservado de la entrega a un reto: 10 puntos base, todos concedidos y sin extra, con el día
+ * y la semana de hoy y los topes 20 y 60, salvo overrides. Escribe la fila del premio y nada más: los
+ * puntos son del libro, y la entrega no queda apuntando al premio.
+ */
+export async function seedReward(
+  personId: string,
+  termId: string,
+  participationId: string,
+  overrides: RewardOverrides = {},
+): Promise<string> {
+  const now = new Date();
+  const basePoints = overrides.basePoints ?? 10;
+  const [row] = await db()
+    .insert(reward)
+    .values({
+      personId,
+      termId,
+      source: "CHALLENGE",
+      participationId,
+      basePoints,
+      baseGranted: basePoints,
+      extraPoints: 0,
+      dayKey: dayKeyFor(now),
+      weekKey: weekKeyFor(now),
+      capDaily: 20,
+      capWeekly: 60,
+      ...overrides,
+    })
+    .returning({ id: reward.id });
+  if (!row) throw new Error("seed reward");
+  return row.id;
 }

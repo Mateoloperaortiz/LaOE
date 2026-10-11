@@ -139,6 +139,20 @@ const EXCEPTIONS: Exception[] = [
       "Es la segunda partida acreditada de una persona en un mismo día, que la prueba espera ver rechazada por `game2048_run_person_day_credited_unique`: ningún comando llega a escribirla.",
   },
   {
+    path: "tests/integration/gamification-regressions.test.ts",
+    target: "achievement",
+    inserts: 1,
+    reason:
+      "Es un logro retirado que todavía ocupa su posición destacada, como quedaban antes de la migración 0032, que la prueba vuelve a correr para verla soltar esa posición: retirar un logro hoy ya la suelta.",
+  },
+  {
+    path: "tests/integration/gamification-regressions.test.ts",
+    target: "challengeEvidenceFile",
+    inserts: 1,
+    reason:
+      "Es una evidencia lista que todavía sirve el archivo original, como quedaban antes de la migración 0032, que la prueba vuelve a correr para verla devolverla a la cola: hoy una evidencia solo queda lista después de procesada.",
+  },
+  {
     path: "tests/integration/gamification-rewards.test.ts",
     target: "pointEntry",
     inserts: 3,
@@ -332,7 +346,7 @@ const EXCEPTIONS: Exception[] = [
 // El total de `PENDING`. Se edita solo hacia abajo, en el mismo commit que muda o justifica un
 // pendiente. La prueba no sabe cuánto valía ayer: es una convención, y lo que la sostiene es que
 // subir este número se ve en el diff.
-const PENDING_CEILING = 105;
+const PENDING_CEILING = 82;
 
 // Lo que queda por mudar o por justificar (DT-013). Ordenada por archivo y destino.
 const PENDING: Pending[] = [
@@ -391,31 +405,15 @@ const PENDING: Pending[] = [
   ["tests/e2e/privacidad-pendiente.spec.ts", "form", 1],
   ["tests/e2e/solicitudes-ux.spec.ts", "occasion", 1],
   ["tests/e2e/the-games.spec.ts", "eventEdition", 1],
-  ["tests/integration/admin-export-truncated.test.ts", "achievement", 1],
   ["tests/integration/autorizacion.test.ts", "appConfig", 1],
   ["tests/integration/competition-tracking.test.ts", "competitionSupport", 1],
   ["tests/integration/documents.test.ts", "mediaAsset", 1],
   ["tests/integration/forms.test.ts", "into event", 1],
   ["tests/integration/forms.test.ts", "into event_edition", 1],
-  ["tests/integration/gamification-badges.test.ts", "wordleGame", 4],
-  ["tests/integration/gamification-boosters.test.ts", "achievement", 1],
-  ["tests/integration/gamification-collection-specials.test.ts", "achievement", 1],
-  ["tests/integration/gamification-collection-specials.test.ts", "badgeDefinition", 1],
-  ["tests/integration/gamification-evidence.test.ts", "challengeEvidenceFile", 2],
-  ["tests/integration/gamification-exports.test.ts", "achievement", 1],
-  ["tests/integration/gamification-own-data.test.ts", "achievement", 1],
-  ["tests/integration/gamification-own-data.test.ts", "challengeEvidenceFile", 1],
-  ["tests/integration/gamification-own-data.test.ts", "reward", 1],
-  ["tests/integration/gamification-reconcile.test.ts", "wordleGame", 1],
-  ["tests/integration/gamification-regressions.test.ts", "achievement", 1],
-  ["tests/integration/gamification-regressions.test.ts", "challengeEvidenceFile", 2],
-  ["tests/integration/gh-points-view-reads.test.ts", "achievement", 1],
-  ["tests/integration/gh-points-view-reads.test.ts", "badgeDefinition", 1],
   ["tests/integration/macroevent-groups.test.ts", "event", 2],
   ["tests/integration/macroevent-groups.test.ts", "eventEdition", 2],
   ["tests/integration/media-metadata.test.ts", "mediaAsset", 1],
   ["tests/integration/own-data.test.ts", "mediaAsset", 2],
-  ["tests/integration/participation-closing-concurrency.test.ts", "reward", 1],
   ["tests/integration/permanence-closing.test.ts", "manualCredit", 1],
   ["tests/integration/permanence-rules.test.ts", "leaderScore", 2],
   ["tests/integration/person-360-timeline-others.test.ts", "interaction", 1],
@@ -424,7 +422,6 @@ const PENDING: Pending[] = [
   ["tests/integration/team-members.test.ts", "event", 1],
   ["tests/integration/wallet-jobs.test.ts", "carnetToken", 1],
   ["tests/integration/wallet-jobs.test.ts", "walletPass", 1],
-  ["tests/integration/wordle.test.ts", "wordleGame", 2],
 ];
 
 /** Los archivos de código de una carpeta de pruebas: los casos, su preparación y sus ayudantes. */

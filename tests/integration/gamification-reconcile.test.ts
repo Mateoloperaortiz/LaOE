@@ -12,11 +12,11 @@ import {
   resumeReconciliation,
   startReconciliation,
 } from "@/modules/participation/domain/reconciliation";
-import { achievement, boosterItem, checkIn, wordleGame } from "@/modules/participation/schema";
+import { achievement, boosterItem, checkIn } from "@/modules/participation/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { seedCheckIn, seedMember, seedOccasion, seedTerm } from "../factories";
+import { seedCheckIn, seedMember, seedOccasion, seedTerm, seedWordleGame } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
@@ -39,16 +39,7 @@ async function seedImportedCheckIn(occasionId: string, personId: string, at: Dat
 }
 
 async function seedWordleWin(personId: string, termId: string, at: Date) {
-  await db().insert(wordleGame).values({
-    personId,
-    day: "2024-05-10",
-    termId,
-    answer: "PRUEB",
-    dictionaryVersion: "test",
-    rulesVersion: "test",
-    status: "WON",
-    completedAt: at,
-  });
+  await seedWordleGame(personId, termId, "2024-05-10", { status: "WON", completedAt: at });
 }
 
 /** Tres miembros: uno con una asistencia voluntaria importada de 2023-1 (más una reunión de

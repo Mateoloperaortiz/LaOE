@@ -3,11 +3,12 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getResource } from "@/app/admin/_kit/registry";
 import { GET as exportCsv } from "@/app/api/export/[tipo]/route";
 import { closeDb, getDb } from "@/db/client";
-import { achievement, badgeDefinition, checkIn } from "@/modules/participation/schema";
+import { badgeDefinition, checkIn } from "@/modules/participation/schema";
 import { auditLog } from "@/modules/system/schema";
 import { EXPORT_ROW_LIMIT } from "@/shared/admin-kit/types";
 import { t } from "@/shared/copy";
 import {
+  seedAchievement,
   seedChallenge,
   seedCheckIn,
   seedMember,
@@ -161,17 +162,12 @@ describe("exporte de un recurso del admin con más filas que el tope", () => {
     for (const who of ["uno", "dos", "tres"]) {
       const personId = await seedMember(`${who}@eafit.edu.co`);
       await seedParticipation(challengeId, personId, { status: "COMPLETED" });
-      await getDb()
-        .insert(achievement)
-        .values({
-          personId,
-          badgeId: badge?.id ?? "",
-          termId,
-          sourceKind: "CHECKIN",
-          sourceRef: `recorte-${who}`,
-          historical: true,
-          unlockedAt: new Date("2023-03-10T15:00:00Z"),
-        });
+      await seedAchievement(personId, badge?.id ?? "", termId, {
+        sourceKind: "CHECKIN",
+        sourceRef: `recorte-${who}`,
+        historical: true,
+        unlockedAt: new Date("2023-03-10T15:00:00Z"),
+      });
     }
     const params = {
       q: "",

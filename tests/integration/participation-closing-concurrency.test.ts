@@ -20,7 +20,6 @@ import {
   checkIn,
   occasion,
   pointEntry,
-  reward,
   termStanding,
 } from "@/modules/participation/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
@@ -33,6 +32,7 @@ import {
   seedMember,
   seedOccasion,
   seedParticipation,
+  seedReward,
   seedTerm,
 } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
@@ -245,26 +245,13 @@ describe("cierre transaccional de participación", () => {
       basePoints: 10,
     });
     const participationId = await seedParticipation(challengeId, member, { status: "PENDING" });
-    const [reserved] = await getDb()
-      .insert(reward)
-      .values({
-        personId: member,
-        termId,
-        source: "CHALLENGE",
-        participationId,
-        basePoints: 10,
-        baseGranted: 10,
-        extraPoints: 0,
-        status: "RESERVED",
-        dayKey: "2026-08-10",
-        weekKey: "2026-08-10",
-        capDaily: 20,
-        capWeekly: 60,
-      })
-      .returning();
+    const rewardId = await seedReward(member, termId, participationId, {
+      dayKey: "2026-08-10",
+      weekKey: "2026-08-10",
+    });
     await getDb()
       .update(challengeParticipation)
-      .set({ rewardId: reserved?.id })
+      .set({ rewardId })
       .where(eq(challengeParticipation.id, participationId));
 
     const settings = await loadGamificationSettings();

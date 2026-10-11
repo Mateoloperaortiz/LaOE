@@ -27,7 +27,14 @@ import { setConfig } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
-import { seedMember, seedMembership, seedPeople, seedPerson, seedTerm } from "../factories";
+import {
+  seedMember,
+  seedMembership,
+  seedPeople,
+  seedPerson,
+  seedTerm,
+  seedWordleGames,
+} from "../factories";
 import { itemPattern } from "../helpers/copy";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
@@ -107,18 +114,16 @@ describe("Wordle diario persistido", () => {
         stage: "PROSPECT" as const,
       })),
     );
-    await db()
-      .insert(wordleGame)
-      .values(
-        spent.map((answer, i) => ({
-          personId: others[i] ?? "",
-          day: dayKeyFor(new Date()),
-          termId,
-          answer,
-          dictionaryVersion: WORDLE_DICTIONARY_VERSION,
-          rulesVersion: WORDLE_RULES_VERSION,
-        })),
-      );
+    await seedWordleGames(
+      termId,
+      spent.map((answer, i) => ({
+        personId: others[i] ?? "",
+        day: dayKeyFor(new Date()),
+        answer,
+        dictionaryVersion: WORDLE_DICTIONARY_VERSION,
+        rulesVersion: WORDLE_RULES_VERSION,
+      })),
+    );
     await warmPool(10);
     await Promise.all(people.map(started));
     const games = (await db().select().from(wordleGame)).filter((game) =>
@@ -430,18 +435,16 @@ describe("Wordle diario persistido", () => {
         stage: "PROSPECT" as const,
       })),
     );
-    await db()
-      .insert(wordleGame)
-      .values(
-        WORDLE_ANSWERS.map((answer, i) => ({
-          personId: people[i] ?? personId,
-          day: dayKeyFor(new Date()),
-          termId,
-          answer,
-          dictionaryVersion: WORDLE_DICTIONARY_VERSION,
-          rulesVersion: WORDLE_RULES_VERSION,
-        })),
-      );
+    await seedWordleGames(
+      termId,
+      WORDLE_ANSWERS.map((answer, i) => ({
+        personId: people[i] ?? personId,
+        day: dayKeyFor(new Date()),
+        answer,
+        dictionaryVersion: WORDLE_DICTIONARY_VERSION,
+        rulesVersion: WORDLE_RULES_VERSION,
+      })),
+    );
     expect(await startWordleAs({ personId, ip: null })).toEqual({ ok: false, reason: "EXHAUSTED" });
     const [rows] = await db()
       .select({ n: count() })

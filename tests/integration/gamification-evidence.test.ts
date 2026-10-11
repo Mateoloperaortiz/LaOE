@@ -29,7 +29,13 @@ import { outbox } from "@/modules/system/schema";
 import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { seedChallenge, seedMember, seedParticipation, seedTerm } from "../factories";
+import {
+  seedChallenge,
+  seedChallengeEvidenceFile,
+  seedMember,
+  seedParticipation,
+  seedTerm,
+} from "../factories";
 import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
@@ -138,12 +144,7 @@ async function seedEvidenceFile(personId: string, key: string, contentType = "im
   const termId = await seedTerm();
   const challengeId = await seedChallenge(termId, { kind: "EVIDENCE", passPercent: null });
   const participationId = await seedParticipation(challengeId, personId);
-  const [row] = await db()
-    .insert(challengeEvidenceFile)
-    .values({ participationId, ordinal: 1, objectKey: key, contentType, byteSize: 10_000 })
-    .returning({ id: challengeEvidenceFile.id });
-  if (!row) throw new Error("seed evidence file");
-  return row.id;
+  return seedChallengeEvidenceFile(participationId, key, { contentType });
 }
 
 describe("evidencias de retos", () => {
@@ -469,13 +470,7 @@ describe("evidencias de retos", () => {
     const key = evidenceKey(personId, "image/jpeg", "archivo6prueba");
     keys.push(key);
     await putObject(key, bytes, "image/jpeg");
-    await db().insert(challengeEvidenceFile).values({
-      participationId,
-      ordinal: 1,
-      objectKey: key,
-      contentType: "image/jpeg",
-      byteSize: bytes.length,
-    });
+    await seedChallengeEvidenceFile(participationId, key, { byteSize: bytes.length });
     expect(await headObject(key)).not.toBeNull();
 
     await enqueueEvent(db(), eventOf(personAnonymized, { actorId: null, personId }));

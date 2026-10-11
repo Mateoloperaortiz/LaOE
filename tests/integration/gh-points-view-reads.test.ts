@@ -1,11 +1,19 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { closeDb, getDb } from "@/db/client";
+import { closeDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { adjustPointsAs, collectionFor, unseenBadgesFor } from "@/modules/participation";
-import { achievement, badgeDefinition } from "@/modules/participation/schema";
+import type { achievement } from "@/modules/participation/schema";
 import { setConfig } from "@/modules/system";
 import { t } from "@/shared/copy";
-import { seedBooster, seedMember, seedOccasion, seedTerm, seedVeteran } from "../factories";
+import {
+  seedBooster,
+  seedMember,
+  seedOccasion,
+  seedSpecialBadge,
+  seedTerm,
+  seedAchievement as seedUnlocked,
+  seedVeteran,
+} from "../factories";
 import { type CountedQuery, countQueries } from "../helpers/queries";
 import { type AnyElement, elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
@@ -14,7 +22,6 @@ import { truncateAll } from "./db";
 // 10 del tablero elegido y el diálogo de las insignias sin ver. Lo que la vista muestra se fija
 // primero, y después cuánto lee para armarlo (DT-224).
 
-const db = () => getDb();
 let currentPerson = "";
 
 // La vista monta componentes de marca que cargan sus fuentes con `next/font`, que fuera de Next no
@@ -149,30 +156,17 @@ async function seedAchievement(
 ) {
   badgeCounter += 1;
   const { active, ...rest } = overrides;
-  const [badge] = await db()
-    .insert(badgeDefinition)
-    .values({
-      code: `vista-${String(badgeCounter).padStart(3, "0")}`,
-      family: "SPECIAL",
-      threshold: null,
-      name: `Insignia de la vista ${badgeCounter}`,
-      active: active ?? true,
-      specialOccasionId: occasionId,
-    })
-    .returning();
-  const [row] = await db()
-    .insert(achievement)
-    .values({
-      personId,
-      badgeId: badge?.id ?? "",
-      termId,
-      sourceKind: "MANUAL",
-      unlockedAt: new Date(Date.parse("2026-03-02T19:00:00.000Z") + badgeCounter * 60_000),
-      ...rest,
-    })
-    .returning();
-  if (!badge || !row) throw new Error("seed achievement");
-  return { badge, achievement: row };
+  const name = `Insignia de la vista ${badgeCounter}`;
+  const badgeId = await seedSpecialBadge(
+    `vista-${String(badgeCounter).padStart(3, "0")}`,
+    { occasionId },
+    { name, active: active ?? true },
+  );
+  const id = await seedUnlocked(personId, badgeId, termId, {
+    unlockedAt: new Date(Date.parse("2026-03-02T19:00:00.000Z") + badgeCounter * 60_000),
+    ...rest,
+  });
+  return { badge: { id: badgeId, name }, achievement: { id } };
 }
 
 /** Dos logros sin ver (uno con booster) y los cuatro que el diálogo no muestra, más uno ajeno. */

@@ -20,7 +20,6 @@ import {
 import { boosterExpiresAt } from "@/modules/participation/domain/gamification-pure";
 import { balanceFor } from "@/modules/participation/domain/ledger";
 import {
-  achievement,
   badgeDefinition,
   boostCampaign,
   boosterItem,
@@ -34,6 +33,7 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import {
+  seedAchievement,
   seedBooster,
   seedChallenge,
   seedCheckIn,
@@ -926,11 +926,7 @@ describe("boosters: administración", () => {
     // Las insignias canónicas ya vienen sembradas por la migración: se reutiliza una.
     const [badge] = await db().select({ id: badgeDefinition.id }).from(badgeDefinition).limit(1);
     if (!badge) throw new Error("sin insignias sembradas");
-    const [unlocked] = await db()
-      .insert(achievement)
-      .values({ personId, badgeId: badge.id, termId, sourceKind: "MANUAL" })
-      .returning({ id: achievement.id });
-    if (!unlocked) throw new Error("sin logro");
+    const unlocked = { id: await seedAchievement(personId, badge.id, termId) };
 
     const first = await runCommand({ personId, ip: null }, (ctx) =>
       grantBoosterForAchievement(ctx, {

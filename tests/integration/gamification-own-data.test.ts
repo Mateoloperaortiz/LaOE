@@ -3,14 +3,17 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { finishSudokuAs, startSudokuAs } from "@/modules/participation/domain/sudoku";
+import { badgeDefinition, sudokuRun } from "@/modules/participation/schema";
 import {
-  achievement,
-  badgeDefinition,
-  challengeEvidenceFile,
-  reward,
-  sudokuRun,
-} from "@/modules/participation/schema";
-import { seedBooster, seedChallenge, seedMember, seedParticipation, seedTerm } from "../factories";
+  seedAchievement,
+  seedBooster,
+  seedChallenge,
+  seedChallengeEvidenceFile,
+  seedMember,
+  seedParticipation,
+  seedReward,
+  seedTerm,
+} from "../factories";
 import { truncateAll } from "./db";
 
 // "Mis datos" (ADR-034 regla 12, ADR-067 regla 16): el export incluye la actividad de la
@@ -60,29 +63,15 @@ describe("mis datos: gamificación", () => {
       answers: [1, 0, 2],
       score: 3,
     });
-    await db()
-      .insert(challengeEvidenceFile)
-      .values({
-        participationId,
-        ordinal: 1,
-        objectKey: `evidence/${personId}/aaaaaaaaaa.webp`,
-        contentType: "image/webp",
-        byteSize: 10_000,
-        status: "READY",
-      });
-    await db().insert(reward).values({
-      personId,
-      termId,
-      source: "CHALLENGE",
-      participationId,
-      basePoints: 10,
-      baseGranted: 10,
+    await seedChallengeEvidenceFile(participationId, `evidence/${personId}/aaaaaaaaaa.webp`, {
+      contentType: "image/webp",
+      status: "READY",
+    });
+    await seedReward(personId, termId, participationId, {
       extraPoints: 5,
       status: "GRANTED",
       dayKey: "2026-08-10",
       weekKey: "2026-08-10",
-      capDaily: 20,
-      capWeekly: 60,
       decidedAt: new Date(),
     });
     await seedBooster(personId, termId, "PLUS_50");
@@ -90,16 +79,11 @@ describe("mis datos: gamificación", () => {
       .select()
       .from(badgeDefinition)
       .where(eq(badgeDefinition.code, "EN_PARCHE_1"));
-    await db()
-      .insert(achievement)
-      .values({
-        personId,
-        badgeId: badge?.id ?? "",
-        termId,
-        sourceKind: "CHECKIN",
-        sourceRef: "ref-test",
-        historical: true,
-      });
+    await seedAchievement(personId, badge?.id ?? "", termId, {
+      sourceKind: "CHECKIN",
+      sourceRef: "ref-test",
+      historical: true,
+    });
 
     const response = await GET();
     expect(response.status).toBe(200);

@@ -34,6 +34,7 @@ import { deleteObject, getObject, headObject, putObject } from "@/shared/adapter
 import {
   seedBooster,
   seedChallenge,
+  seedChallengeEvidenceFile,
   seedMember,
   seedOccasion,
   seedParticipation,
@@ -356,17 +357,12 @@ it("revisión: una evidencia READY no puede sobrescribirse usando el POST origin
   let protectedKey = "";
   try {
     await post();
-    const [file] = await getDb()
-      .insert(challengeEvidenceFile)
-      .values({
-        participationId,
-        ordinal: 1,
-        objectKey: upload.key,
+    const file = {
+      id: await seedChallengeEvidenceFile(participationId, upload.key, {
         contentType: "image/webp",
         byteSize: bytes.byteLength,
-      })
-      .returning();
-    if (!file) throw new Error("sin archivo");
+      }),
+    };
     protectedKey = processedEvidenceKey(file.id);
     await processEvidenceFile(file.id);
     expect((await sharp(await getObject(protectedKey)).metadata()).exif).toBeUndefined();
