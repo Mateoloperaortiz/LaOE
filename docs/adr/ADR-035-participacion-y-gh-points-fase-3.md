@@ -2,7 +2,7 @@
 
 Enmienda posterior: [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) define la importación administrativa de asistencias históricas, con GH Points para miembros en licencia cuando GH lo confirma en el manifiesto.
 
-- Estado: Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116 y ADR-119)
+- Estado: Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116, ADR-119 y ADR-122)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-020, ADR-024, ADR-028, ADR-030, ADR-031, ADR-032, ADR-034
 - Enmienda: ADR-006 (transiciones del check-in), ADR-009 (filas del score solo con elegibles, congelado y transacción propia), ADR-024 (una sola ordinaria obligatoria, aclaración de redacción), ADR-034 (punto 1: el término pasa a un módulo `terms`), 03-modelo (`rotatingSecret`, columnas nuevas de la ocasión, `assembly_requirement` solo para ajustes) y 05-acceso (step-up para cancelar con créditos y para cerrar puntos; líderes en el admin)
@@ -82,3 +82,7 @@ Reglas 5 y 6: el candado compartido del término coordinaba cada escritura con e
 ## Enmienda (2026-10-09, ADR-119)
 
 Reglas 5 y 6. La regla 5 decía «sin lock del término ni de la ocasión». El del término lo sumó ADR-041; ahora el registro propio y el del organizador toman también la fila de la ocasión, `for share`, después del término, y validan contra ella. El índice único `(occasionId, personId)` sigue decidiendo los duplicados. En la regla 6, reaprobar un rechazo sigue siendo válido, salvo en una ocasión cancelada. La cancelación anula las asistencias pendientes y aprobadas y no toca las rechazadas, y decidir no miraba el estado de la ocasión: un rechazo de una ocasión cancelada se reaprobaba y acreditaba, y un registro que llegaba mientras la ocasión se cancelaba nacía aprobado (DT-161). [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) regla 1: crear y decidir leen el estado de la ocasión con su fila tomada, y la decisión que dejaría aprobada una asistencia de una ocasión cancelada responde T-578. Rechazar y anular siguen valiendo, y una ocasión cerrada sigue admitiendo decisiones. La tabla de estados de la regla 6 la valida además la transición única de una asistencia, que rompe sin escribir si el cambio no vale; `PENDING → CANCELLED`, que la regla no le da a una decisión, queda dicho como propio de cancelar la ocasión (ADR-119 regla 4).
+
+## Enmienda (2026-10-10, ADR-122)
+
+Regla 16: decía cómo sondea la consola y no qué hace cuando un sondeo falla, y el componente lo ignoraba: con la sesión del anfitrión vencida seguía mostrando el QR y el último código (DT-236, inciso b). Ahora, si un sondeo responde con error, la consola retira el QR y el código, avisa (T-3260) y sigue sondeando hasta que la casa vuelva a responder; sin respuesta, el código vale lo que le quede a su cuenta. El sondeo de 4 segundos, la pausa con la pestaña oculta y el `qrSvg` dibujado en la casa no cambian. Ver [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 14.

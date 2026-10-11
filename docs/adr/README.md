@@ -59,7 +59,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-078](ADR-078-sudoku-con-solucion-en-el-servidor.md) | Sudoku con la solución en el servidor | Aceptada; en producción |
 | [ADR-077](ADR-077-el-lanzador-e2e-suma-su-origen-al-cors-del-bucket.md) | El lanzador E2E suma su origen al CORS del bucket local | Aceptada |
 | [ADR-076](ADR-076-biblioteca-de-iconos.md) | Biblioteca de iconos detrás de una fachada propia | Aceptada; en producción |
-| [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md) | Biblioteca de juegos y 2048 con replay verificado | Aceptada; enmendada por ADR-078 y ADR-088; en producción |
+| [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md) | Biblioteca de juegos y 2048 con replay verificado | Aceptada; enmendada por ADR-078, ADR-088 y ADR-122; en producción |
 | [ADR-074](ADR-074-aviso-diario-del-wordle.md) | Aviso diario del Wordle | Aceptada; en producción |
 | [ADR-073](ADR-073-un-comite-inactivo-sale-de-la-app.md) | Un comité inactivo sale de la app | Aceptada; en producción |
 | [ADR-072](ADR-072-alcance-autorizado-en-el-dominio.md) | El alcance autorizado se verifica en el dominio | Aceptada (enmendada por ADR-112 y ADR-122); en producción |
@@ -123,7 +123,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-032](ADR-032-drizzle-y-esquema-por-modulo.md) | Drizzle como capa de datos y esquema por módulo en TypeScript | Aceptada (enmendada por ADR-079) |
 | [ADR-033](ADR-033-contenido-y-medios-fase-1.md) | Contenido editable y medios del portal público (fase 1) | Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039, ADR-113, ADR-114, ADR-116) |
 | [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) | Personas, CRM mínimo y Mi OE (fase 2) | Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113, ADR-115) |
-| [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) | Participación y GH Points (fase 3) | Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116 y ADR-119) |
+| [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) | Participación y GH Points (fase 3) | Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116, ADR-119 y ADR-122) |
 | [ADR-036](ADR-036-permanencia-fase-4.md) | Permanencia (fase 4) | Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058, ADR-116, ADR-118 y ADR-121) |
 | [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md) | Admisión, aliados y contactos (fase 5) | Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050, ADR-056, ADR-060, ADR-115, ADR-116 y ADR-118) |
 | [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md) | Comunicaciones y PWA (fase 6) | Aceptada (enmendada por ADR-039, ADR-074, ADR-113, ADR-115, ADR-116, ADR-118 y ADR-122) |
