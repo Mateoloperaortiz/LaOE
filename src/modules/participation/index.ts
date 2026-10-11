@@ -300,7 +300,6 @@ export {
   peopleBoards,
   type RankedPerson,
   rankCommittees,
-  rankPeople,
 } from "./domain/rankings";
 export {
   getReconciliationRun,

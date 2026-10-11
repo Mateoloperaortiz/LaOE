@@ -37,12 +37,10 @@ function onBoard(member: ActiveMemberRef, termId: string, board: Board): boolean
   return board === "NEW" ? member.firstTermId === termId : member.firstTermId !== termId;
 }
 
-/** Tablero completo de un término: quienes suman puntos primero; sin puntos quedan al final con 0. */
-export async function rankPeople(termId: string, board: Board): Promise<Ranked<RankedPerson>[]> {
-  return peopleBoards(termId).rank(board);
-}
-
-/** Ranking con referencias precargadas y una única conexión, también durante el cierre. */
+/**
+ * Tablero completo de un término: quienes suman puntos primero; sin puntos quedan al final con 0. Con
+ * referencias precargadas y una única conexión, también durante el cierre.
+ */
 export async function rankPeopleFromMembers(
   exec: Executor,
   termId: string,
@@ -77,7 +75,7 @@ export interface MyPosition {
 }
 
 export interface PeopleBoards {
-  /** El tablero completo, como `rankPeople`. */
+  /** El tablero completo: quienes suman puntos primero; sin puntos quedan al final con 0. */
   rank(board: Board): Promise<Ranked<RankedPerson>[]>;
   /** El puesto de la persona en el tablero que le toca por su primer término. */
   position(personId: string, firstTermId: string): Promise<MyPosition>;

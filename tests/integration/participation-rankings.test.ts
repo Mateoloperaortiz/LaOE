@@ -13,7 +13,7 @@ import {
   listEntriesForPerson,
   listLedger,
 } from "@/modules/participation/domain/ledger";
-import { peopleBoards, rankCommittees, rankPeople } from "@/modules/participation/domain/rankings";
+import { peopleBoards, rankCommittees } from "@/modules/participation/domain/rankings";
 import { membership } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
@@ -76,14 +76,14 @@ describe("tableros y ledger manual", () => {
       { personId: licencia, termId, points: 99, reason: "bono" },
     );
 
-    const nuevos = await rankPeople(termId, "NEW");
+    const nuevos = await peopleBoards(termId).rank("NEW");
     expect(nuevos.map((item) => [item.rank, item.row.name, item.total])).toEqual([
       [1, "Nueva Uno", 30],
       [1, "Nuevo Dos", 30],
       [3, "Persona Sintética", 0],
       [3, "Sin Puntos", 0],
     ]);
-    const veteranos = await rankPeople(termId, "VETERAN");
+    const veteranos = await peopleBoards(termId).rank("VETERAN");
     expect(veteranos.map((item) => item.row.name)).toEqual(["Vete Rana"]);
     const mine = await peopleBoards(termId).position(sinPuntos, termId);
     expect(mine).toEqual({ board: "NEW", rank: null, total: 0, of: 2 });

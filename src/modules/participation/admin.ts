@@ -46,7 +46,7 @@ import {
   type OccasionListRow,
   occasionInputSchema,
 } from "./domain/occasions";
-import { type Board, rankPeople } from "./domain/rankings";
+import { type Board, peopleBoards } from "./domain/rankings";
 
 // Recurso del admin para las ocasiones (ADR-017, ADR-035): listado con filtros y acciones Abrir y
 // Cerrar; la consola y el modo anfitrión son pantallas a medida.
@@ -458,8 +458,10 @@ export const rankingsResource: ResourceDefinition<RankingExportRow, Empty> = {
         ? [params.filters.board]
         : ["NEW", "VETERAN"];
     const rows: RankingExportRow[] = [];
+    // Los activos se leen una vez para los tableros que se pidan (ADR-123 regla 12).
+    const people = peopleBoards(term.id);
     for (const board of boards) {
-      for (const item of await rankPeople(term.id, board)) {
+      for (const item of await people.rank(board)) {
         rows.push({
           id: `${board}-${item.row.personId}`,
           rank: item.rank,

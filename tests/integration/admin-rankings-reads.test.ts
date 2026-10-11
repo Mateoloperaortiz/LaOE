@@ -4,8 +4,10 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { adjustPointsAs } from "@/modules/participation";
 import { rankingsResource } from "@/modules/participation/admin";
+import { listActiveMemberRefs } from "@/modules/people";
 import { person } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
+import { countQueries } from "../helpers/queries";
 import { elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
 import { currentTermCode, seedMember, seedTerm, seedVeteran } from "./factories";
@@ -217,5 +219,43 @@ describe("rankings del admin: lo que muestra la pantalla y lo que trae el export
       ["VETERAN", 2, t("T-223")],
       ["VETERAN", 3, "Admin Veterano"],
     ]);
+  });
+});
+
+describe("rankings del admin: cuánto leen para armar los dos tableros (DT-309)", () => {
+  beforeEach(truncateAll);
+  afterAll(closeDb);
+
+  /** El SQL con que la casa lee a los activos, tomado de la lectura misma y no de una copia del texto. */
+  async function activeMembersRead(): Promise<string> {
+    const { queries } = await countQueries(() => listActiveMemberRefs());
+    expect(queries).toHaveLength(1);
+    return queries[0]?.text ?? "";
+  }
+
+  it("la pantalla lee a los activos una sola vez para los dos tableros", async () => {
+    const { termId } = await seedBoards();
+    const activeRead = await activeMembersRead();
+
+    const { result, queries } = await countQueries(() => render({ termId }));
+
+    expect(Object.values(shown(result)).map((rows) => rows.length)).toEqual([3, 3, 0]);
+    expect(queries.filter((query) => query.text === activeRead)).toHaveLength(1);
+    // Eran 8: los términos, el vigente, los activos dos veces, los puntos de cada tablero y los comités.
+    expect(queries.length).toBeLessThanOrEqual(7);
+  });
+
+  it("el exporte de los dos tableros lee a los activos una sola vez", async () => {
+    const { termId } = await seedBoards();
+    const activeRead = await activeMembersRead();
+
+    const { result, queries } = await countQueries(() =>
+      rankingsResource.list({ q: "", page: 1, pageSize: 100, filters: { termId } }),
+    );
+
+    expect(result.total).toBe(6);
+    expect(queries.filter((query) => query.text === activeRead)).toHaveLength(1);
+    // Eran 5: los términos, los activos dos veces y los puntos de cada tablero.
+    expect(queries.length).toBeLessThanOrEqual(4);
   });
 });
