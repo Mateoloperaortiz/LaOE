@@ -257,4 +257,28 @@ describe("el vencimiento de un aviso", () => {
       [`reminder:ASSEMBLY_SOON:${assemblySoon.id}`]: "2026-09-15T01:30:00.000Z",
     });
   });
+
+  it.each([
+    ["no trae su hora", {}],
+    ["trae una hora que no se lee", { at: "a las siete" }],
+  ])("un tick de recordatorios que %s toma la del poller, no la del proceso", async (_case, payload) => {
+    const termId = await seedTerm();
+    const personId = await subscribed("ana@eafit.edu.co");
+    const occasion = await seedOccasion(termId, {
+      title: "Taller de marca",
+      startsAt: STARTS_AT,
+      checkInOpensAt: new Date(STARTS_AT.getTime() - 30 * MINUTE),
+      checkInClosesAt: new Date(STARTS_AT.getTime() + 3 * HOUR),
+    });
+    // El proceso va una hora antes del tick de las 07:00: con su hora no hay nada que recordar.
+    vi.setSystemTime(new Date(MORNING_TICK.getTime() - HOUR));
+    await enqueueEvent(db(), { type: "participation.reminders", payload });
+
+    await drainOutbox({ now: MORNING_TICK });
+
+    expect(delivered).toEqual([`https://fcm.googleapis.com/fcm/send/${personId}`]);
+    expect((await db().select().from(message)).map((row) => row.dedupeKey)).toEqual([
+      `reminder:TODAY:${occasion.id}`,
+    ]);
+  });
 });

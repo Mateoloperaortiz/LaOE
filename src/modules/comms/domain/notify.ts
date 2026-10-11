@@ -8,7 +8,12 @@ import {
 import { logger } from "@/shared/log";
 import { listAlreadyNotified, recordMessage } from "./messages";
 import { listPreferencesFor } from "./preferences";
-import { type NotificationRequested, notificationRequestedSchema, shouldDeliver } from "./pure";
+import {
+  type NotificationRequested,
+  notificationExpired,
+  notificationRequestedSchema,
+  shouldDeliver,
+} from "./pure";
 import { isKnownPushEndpoint } from "./push-endpoint-pure";
 import {
   deleteSubscriptionsByIds,
@@ -117,8 +122,9 @@ export async function deliverNotification(raw: unknown, now = new Date()): Promi
   };
   // Un aviso con vencimiento no sale desde ese instante (ADR-122 regla 9): la cola pudo atrasarse o el
   // evento reintentarse, y avisar de lo que ya empezó confunde. No lee a nadie ni deja `message`: no
-  // hubo envío que registrar, y el rastro lo deja quien llama.
-  if (request.expiresAt !== undefined && Date.parse(request.expiresAt) <= now.getTime()) {
+  // hubo envío que registrar, y el rastro lo deja quien llama. Se mira una vez, acá: un pedido que
+  // arranca a tiempo termina de enviarse aunque el instante llegue a mitad del recorrido.
+  if (notificationExpired(request.expiresAt, now)) {
     stats.expired = request.recipients.length;
     return stats;
   }

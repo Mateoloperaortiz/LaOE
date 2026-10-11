@@ -3,6 +3,7 @@ import {
   ADDRESS_MARK,
   DEFAULT_PREFERENCES,
   NOTIFICATION_MAX_RECIPIENTS,
+  notificationExpired,
   notificationRequestedSchema,
   shouldDeliver,
   splitPush,
@@ -250,5 +251,28 @@ describe("elegibilidad al enviar (ADR-115 regla 7)", () => {
 
   it("sin ningún correo no hay a dónde escribirle", () => {
     expect(sendEligibility({ ...member, email: null })).toEqual({ ok: false, reason: "NO_EMAIL" });
+  });
+});
+
+describe("notificationExpired (ADR-122 regla 9)", () => {
+  const now = new Date("2026-09-14T23:00:00.000Z");
+
+  it("un aviso sin vencimiento no vence nunca", () => {
+    expect(notificationExpired(undefined, now)).toBe(false);
+  });
+
+  it("vence desde su instante, incluido: un milisegundo antes todavía no", () => {
+    expect(notificationExpired("2026-09-14T23:00:00.001Z", now)).toBe(false);
+    expect(notificationExpired("2026-09-14T23:00:00.000Z", now)).toBe(true);
+    expect(notificationExpired("2026-09-14T22:59:59.999Z", now)).toBe(true);
+  });
+
+  it("un vencimiento que no se lee como instante cuenta como vencido: no se entrega", () => {
+    expect(notificationExpired("mañana a las seis", now)).toBe(true);
+    expect(notificationExpired("", now)).toBe(true);
+  });
+
+  it("con un reloj que no da la hora, un aviso con vencimiento tampoco se entrega", () => {
+    expect(notificationExpired("2026-09-14T23:00:00.001Z", new Date(Number.NaN))).toBe(true);
   });
 });

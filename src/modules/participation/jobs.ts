@@ -86,10 +86,10 @@ registerHandler("participation.auto-close", async (_payload, ctx) => {
 
 // Recordatorios a personas (ADR-038 regla 9): actividades de hoy, reuniones y asambleas de mañana,
 // asamblea en dos horas. La hora del tick viaja en `at` (el scheduler la pone); así una prueba puede
-// fijarla.
+// fijarla. Si falta o no se lee vale la del poller (`ctx.now`, ADR-118 regla 2), no la del proceso.
 registerHandler("participation.reminders", async (payload, ctx) => {
-  const at = typeof payload.at === "string" ? new Date(payload.at) : new Date();
-  const result = await runReminders(Number.isNaN(at.getTime()) ? new Date() : at);
+  const at = typeof payload.at === "string" ? new Date(payload.at) : ctx.now;
+  const result = await runReminders(Number.isNaN(at.getTime()) ? ctx.now : at);
   if (result.due > 0) {
     ctx.log.info(result, "recordatorios encolados");
   }

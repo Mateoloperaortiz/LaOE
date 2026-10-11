@@ -265,6 +265,19 @@ export function shouldDeliver(kind: NotificationKind, preferences: PreferenceFla
   }
 }
 
+/**
+ * Si un aviso ya venció (ADR-122 regla 9): desde su instante, incluido. Uno sin vencimiento no vence
+ * nunca. Falla cerrado: un vencimiento que no se lee como instante cuenta como vencido, aunque el
+ * contrato ya no lo deja llegar hasta acá.
+ */
+export function notificationExpired(expiresAt: string | undefined, now: Date): boolean {
+  if (expiresAt === undefined) {
+    return false;
+  }
+  // Negada y no con `<=`: una fecha ilegible da NaN, y con NaN toda comparación es falsa.
+  return !(Date.parse(expiresAt) > now.getTime());
+}
+
 /** "Título · cuerpo" del inventario de push (14-copy §6): la primera parte es el título. */
 export function splitPush(text: string): { title: string; body: string } {
   return splitTitleBody(text);
