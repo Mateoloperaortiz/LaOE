@@ -43,6 +43,8 @@ import {
   tag,
 } from "@/modules/people/schema";
 import {
+  leaderScore,
+  manualCredit,
   permanenceRule,
   permanenceTable,
   workGroup,
@@ -1216,4 +1218,34 @@ export async function seedMediaAsset(
     .returning({ id: mediaAsset.id });
   if (!row) throw new Error("seed media asset");
   return row.id;
+}
+
+/** Puntaje que el líder le puso a una persona en un criterio, sin nota y sin decir quién lo puso. */
+export async function seedLeaderScore(
+  termId: string,
+  ruleId: string,
+  personId: string,
+  value: number,
+): Promise<void> {
+  await db().insert(leaderScore).values({ termId, ruleId, personId, value });
+}
+
+/** Crédito manual de una persona en un criterio, sin decir quién lo concedió, salvo overrides. */
+export async function seedManualCredit(
+  termId: string,
+  ruleId: string,
+  personId: string,
+  value: number,
+  overrides: Partial<{ reason: string; grantedById: string | null }> = {},
+): Promise<void> {
+  await db()
+    .insert(manualCredit)
+    .values({
+      termId,
+      ruleId,
+      personId,
+      value,
+      reason: overrides.reason ?? "Crédito de prueba",
+      grantedById: overrides.grantedById ?? null,
+    });
 }

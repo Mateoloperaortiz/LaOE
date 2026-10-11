@@ -21,7 +21,7 @@ import {
   recomputeSnapshots,
 } from "@/modules/permanence";
 import { complianceResource } from "@/modules/permanence/admin";
-import { manualCredit, permanenceDecision, permanenceSnapshot } from "@/modules/permanence/schema";
+import { permanenceDecision, permanenceSnapshot } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { closeTermPermanence, closeTermPoints, findTermByCode, getTerm } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
@@ -30,6 +30,7 @@ import {
   seedCheckIn,
   seedCommittee,
   seedCommitteeMembership,
+  seedManualCredit,
   seedMembership,
   seedOccasion,
   seedPerson,
@@ -95,23 +96,14 @@ async function setup() {
   await seedCommitteeMembership(people.sale, pixel, termId, "MIEMBRO", {
     joinedAt: new Date("2024-07-20T12:00:00Z"),
   });
-  await getDb()
-    .insert(manualCredit)
-    .values(
-      [
-        [eventos, people.cumple, 60],
-        [eventos, people.prueba, 55],
-        [eventos, people.sale, 10],
-        [pixelRule, people.sale, 20],
-      ].map(([ruleId, personId, value]) => ({
-        termId,
-        ruleId: String(ruleId),
-        personId: String(personId),
-        value: Number(value),
-        reason: "seed",
-        grantedById: gh,
-      })),
-    );
+  for (const [ruleId, personId, value] of [
+    [eventos, people.cumple, 60],
+    [eventos, people.prueba, 55],
+    [eventos, people.sale, 10],
+    [pixelRule, people.sale, 20],
+  ] as const) {
+    await seedManualCredit(termId, ruleId, personId, value, { reason: "seed", grantedById: gh });
+  }
   const assembly = await seedOccasion(termId, {
     kind: "ASSEMBLY",
     assemblyKind: "ORDINARY",

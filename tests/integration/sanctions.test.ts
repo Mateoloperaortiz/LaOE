@@ -21,7 +21,6 @@ import {
   listClosingRows,
   recomputeSnapshots,
 } from "@/modules/permanence";
-import { manualCredit } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { closeTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
@@ -32,6 +31,7 @@ import {
   seedCheckIn,
   seedCommittee,
   seedCommitteeMembership,
+  seedManualCredit,
   seedMembership,
   seedOccasion,
   seedPerson,
@@ -261,9 +261,7 @@ describe("faltas y sanciones", () => {
       computation: "MANUAL",
       params: {},
     });
-    await db()
-      .insert(manualCredit)
-      .values({ termId, ruleId: eventos, personId, value: 60, reason: "seed", grantedById: gh });
+    await seedManualCredit(termId, eventos, personId, 60, { reason: "seed", grantedById: gh });
     const assembly = await seedOccasion(termId, {
       kind: "ASSEMBLY",
       assemblyKind: "ORDINARY",
