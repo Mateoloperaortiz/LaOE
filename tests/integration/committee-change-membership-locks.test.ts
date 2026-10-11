@@ -51,134 +51,138 @@ const db = () => getDb();
 
 const EMAIL = "prueba.cruce@eafit.edu.co";
 const ADMIN = { isAdmin: true, allCapabilities: true };
-const BAJA = { endReason: "RESIGNATION", memorialConsent: false, contactConsent: false } as const;
+const RESIGNED = {
+  endReason: "RESIGNATION",
+  memorialConsent: false,
+  contactConsent: false,
+} as const;
 
 /** Mila, veterana y en A3, con un cambio de comité pedido y sin decidir: quiere sumar CIGMA. */
-async function escenario() {
+async function scenario() {
   const termId = await seedTerm();
   const a3 = await seedCommittee("a3", "A3");
   const pixel = await seedCommittee("pixel", "PIXEL");
   const cigma = await seedCommittee("cigma", "CIGMA");
   const gh = { personId: await seedMember("gh.cruce@eafit.edu.co"), ip: null };
-  const persona = await seedVeteran(EMAIL, { firstName: "Mila", lastName: "Miembro" });
-  await seedCommitteeMembership(persona, a3, termId);
-  const { id: requestId } = await createRequestAs({ personId: persona, ip: null }, "TRANSFER", {
+  const member = await seedVeteran(EMAIL, { firstName: "Mila", lastName: "Miembro" });
+  await seedCommitteeMembership(member, a3, termId);
+  const { id: requestId } = await createRequestAs({ personId: member, ip: null }, "TRANSFER", {
     reason: "Quiero sumar un comité",
     leaveCommitteeIds: [],
     joinCommitteeIds: [cigma],
   });
-  return { termId, a3, pixel, cigma, gh, persona, requestId };
+  return { termId, a3, pixel, cigma, gh, member, requestId };
 }
 
-type Escenario = Awaited<ReturnType<typeof escenario>>;
+type Scenario = Awaited<ReturnType<typeof scenario>>;
 
-interface Caso {
-  nombre: string;
-  run: (s: Escenario) => Promise<unknown>;
+interface Case {
+  name: string;
+  run: (s: Scenario) => Promise<unknown>;
   /**
    * Lo que, retenido por otro, detiene al comando con la fila de la membresía ya tomada y antes de
    * escribir lo que referencia la fila de `person`.
    */
-  seDetieneEn: (tx: Tx, s: Escenario) => Promise<unknown>;
+  stopsAt: (tx: Tx, s: Scenario) => Promise<unknown>;
   /** Qué responde si llega cuando la persona ya fue anonimizada, y con eso dada de baja. */
-  deBaja: string;
+  whenAnonymized: string;
   /** Qué responde si llega detrás de la reactivación de quien estaba de baja. */
-  reactivada: string;
+  whenReactivated: string;
 }
 
 /** El consultivo de las inhabilidades, que los tres cambios de comités piden después de la membresía. */
-const enLasInhabilidades = (tx: Tx, s: Escenario) =>
-  tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`leadership:${s.persona}`}, 0))`);
+const atLeadershipLock = (tx: Tx, s: Scenario) =>
+  tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`leadership:${s.member}`}, 0))`);
 
 /** La pertenencia a A3, que el nombramiento lee bajo candado después de la membresía. */
-const enSuPertenencia = (tx: Tx, s: Escenario) =>
+const atOwnCommitteeMembership = (tx: Tx, s: Scenario) =>
   tx
     .select({ id: committeeMembership.id })
     .from(committeeMembership)
     .where(
       and(
-        eq(committeeMembership.personId, s.persona),
+        eq(committeeMembership.personId, s.member),
         eq(committeeMembership.committeeId, s.a3),
         eq(committeeMembership.termId, s.termId),
       ),
     )
     .for("update");
 
-const CASOS: Caso[] = [
+const CASES: Case[] = [
   {
-    nombre: "el «Agregar» de la dirección de un comité",
+    name: "el «Agregar» de la dirección de un comité",
     run: (s) =>
       addCommitteeMemberAs(s.gh, { committeeId: s.pixel, termId: s.termId }, ADMIN, {
-        personId: s.persona,
+        personId: s.member,
         roles: [],
       }),
-    seDetieneEn: enLasInhabilidades,
+    stopsAt: atLeadershipLock,
     // A quien ya fue anonimizado el «Agregar» no lo encuentra: no llega a mirar su estado.
-    deBaja: t("T-032"),
-    reactivada: "ok",
+    whenAnonymized: t("T-032"),
+    whenReactivated: "ok",
   },
   {
-    nombre: "el cambio de comités desde la Persona 360",
+    name: "el cambio de comités desde la Persona 360",
     run: (s) =>
-      setCommitteeMembershipsAs(s.gh, s.persona, s.termId, [
+      setCommitteeMembershipsAs(s.gh, s.member, s.termId, [
         { committeeId: s.a3 },
         { committeeId: s.pixel },
       ]),
-    seDetieneEn: enLasInhabilidades,
-    deBaja: t("T-3246"),
-    reactivada: "ok",
+    stopsAt: atLeadershipLock,
+    whenAnonymized: t("T-3246"),
+    whenReactivated: "ok",
   },
   {
-    nombre: "la aprobación de un cambio de comité",
+    name: "la aprobación de un cambio de comité",
     run: (s) => decideRequestAs(s.gh, s.requestId, { decision: "APPROVED" }),
-    seDetieneEn: enLasInhabilidades,
-    deBaja: t("T-3246"),
-    reactivada: "ok",
+    stopsAt: atLeadershipLock,
+    whenAnonymized: t("T-3246"),
+    whenReactivated: "ok",
   },
   {
-    nombre: "el nombramiento como representante de su comité",
+    name: "el nombramiento como representante de su comité",
     run: (s) =>
       setRepresentativeAs(s.gh, {
         committeeId: s.a3,
         termId: s.termId,
         role: "TITULAR",
-        personId: s.persona,
+        personId: s.member,
       }),
-    seDetieneEn: enSuPertenencia,
+    stopsAt: atOwnCommitteeMembership,
     // Quien no está activa no es elegible, y a quien vuelve de una baja no le queda pertenencia: la
     // baja las cerró y la reactivación no las reabre. En los dos casos hace cola y después se niega.
-    deBaja: t("T-2255"),
-    reactivada: t("T-2255"),
+    whenAnonymized: t("T-2255"),
+    whenReactivated: t("T-2255"),
   },
 ];
 
-async function comoQuedo(personId: string) {
+async function stateOf(personId: string) {
   const [row] = await db()
     .select({ anonymizedAt: person.anonymizedAt, status: membership.status })
     .from(person)
     .innerJoin(membership, eq(membership.personId, person.id))
     .where(eq(person.id, personId));
-  const vivas = await db()
+  const open = await db()
     .select({ id: committeeMembership.id })
     .from(committeeMembership)
     .where(and(eq(committeeMembership.personId, personId), isNull(committeeMembership.leftAt)));
-  const representa = await db()
+  const representing = await db()
     .select({ id: committeeRepresentative.id })
     .from(committeeRepresentative)
     .where(eq(committeeRepresentative.personId, personId));
   return {
-    anonimizada: row?.anonymizedAt != null,
-    estado: row?.status,
-    vivas: vivas.length,
-    representa: representa.length,
+    anonymized: row?.anonymizedAt != null,
+    status: row?.status,
+    open: open.length,
+    representing: representing.length,
   };
 }
 
 /** Anonimizada y de baja: sin pertenencia viva y sin representar a ningún comité. */
-const ANONIMIZADA = { anonimizada: true, estado: "INACTIVE", vivas: 0, representa: 0 };
+const ANONYMIZED = { anonymized: true, status: "INACTIVE", open: 0, representing: 0 };
 
 /** Lanza `command` detrás de lo retenido, espera a que haga cola, suelta y dice cómo terminó. */
-async function detrasDe(held: Held, command: () => Promise<unknown>): Promise<string> {
+async function behind(held: Held, command: () => Promise<unknown>): Promise<string> {
   const running = Promise.allSettled([command()]);
   try {
     await expect.poll(() => waitingOn(held.pid)).toBe(1);
@@ -190,61 +194,61 @@ async function detrasDe(held: Held, command: () => Promise<unknown>): Promise<st
   return result ? outcome(result) : "no corrió";
 }
 
-describe.each(CASOS)("$nombre y el ciclo de membresía de la misma persona", ({
+describe.each(CASES)("$name y el ciclo de membresía de la misma persona", ({
   run,
-  seDetieneEn,
-  deBaja,
-  reactivada,
+  stopsAt,
+  whenAnonymized,
+  whenReactivated,
 }) => {
   beforeEach(truncateAll);
   afterAll(closeDb);
 
   it("si anonimizan a la persona cuando el comando ya tomó su membresía, la anonimización hace cola y los dos terminan, sin interbloqueo", async () => {
-    const s = await escenario();
-    await requestDeletionAs({ personId: s.persona, ip: null });
+    const s = await scenario();
+    await requestDeletionAs({ personId: s.member, ip: null });
     // El comando ya tomó la fila de la membresía y se detiene antes de escribir la pertenencia o la
     // representación, que es lo que referencia la fila de `person`.
-    const held = await holdTransaction((tx) => seDetieneEn(tx, s));
+    const held = await holdTransaction((tx) => stopsAt(tx, s));
 
     const [changed, anonymized] = await firstThenSecond(
       held,
       () => run(s),
-      () => anonymizePersonAs(s.gh, s.persona),
+      () => anonymizePersonAs(s.gh, s.member),
     );
 
     expect([outcome(changed), outcome(anonymized)]).toEqual(["ok", "ok"]);
     // La anonimización entró después: cierra también la pertenencia recién escrita y retira la
     // representación recién nombrada.
-    expect(await comoQuedo(s.persona)).toEqual(ANONIMIZADA);
+    expect(await stateOf(s.member)).toEqual(ANONYMIZED);
   });
 
   it("si la anonimización ya está escrita, el comando hace cola y después se niega, sin escribir", async () => {
-    const s = await escenario();
-    await requestDeletionAs({ personId: s.persona, ip: null });
-    const held = await holdCommand(s.gh, (ctx) => anonymizePerson(ctx, s.persona));
+    const s = await scenario();
+    await requestDeletionAs({ personId: s.member, ip: null });
+    const held = await holdCommand(s.gh, (ctx) => anonymizePerson(ctx, s.member));
 
-    expect(await detrasDe(held, () => run(s))).toBe(deBaja);
-    expect(await comoQuedo(s.persona)).toEqual(ANONIMIZADA);
+    expect(await behind(held, () => run(s))).toBe(whenAnonymized);
+    expect(await stateOf(s.member)).toEqual(ANONYMIZED);
   });
 
   it("si reactivan a la persona con correo nuevo y la reactivación ya tomó su membresía, el comando hace cola y los dos terminan, sin interbloqueo", async () => {
-    const s = await escenario();
-    await endMembershipAs(s.gh, s.persona, BAJA);
+    const s = await scenario();
+    await endMembershipAs(s.gh, s.member, RESIGNED);
     // La reactivación ya tomó la fila de la membresía y se detiene al escribir el correo: cambiar una
     // columna única pide la fila de `person` entera, y alguien la retiene compartida. Un comando que
     // tomara `person` con `for key share` antes que la membresía la conseguiría acá, y los dos se
     // quedarían esperándose (ADR-122 regla 4).
     const held = await holdTransaction((tx) =>
-      tx.select({ id: person.id }).from(person).where(eq(person.id, s.persona)).for("key share"),
+      tx.select({ id: person.id }).from(person).where(eq(person.id, s.member)).for("key share"),
     );
 
     const [reactivated, changed] = await firstThenSecond(
       held,
-      () => reactivateMembershipAs(s.gh, s.persona, { email: "prueba.vuelve@eafit.edu.co" }),
+      () => reactivateMembershipAs(s.gh, s.member, { email: "prueba.vuelve@eafit.edu.co" }),
       () => run(s),
     );
 
-    expect([outcome(reactivated), outcome(changed)]).toEqual(["ok", reactivada]);
-    expect(await comoQuedo(s.persona)).toMatchObject({ anonimizada: false, estado: "ACTIVE" });
+    expect([outcome(reactivated), outcome(changed)]).toEqual(["ok", whenReactivated]);
+    expect(await stateOf(s.member)).toMatchObject({ anonymized: false, status: "ACTIVE" });
   });
 });

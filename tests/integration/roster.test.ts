@@ -719,7 +719,7 @@ describe("importación del roster", () => {
   // previa como error de esa fila, con el nombre, y el resto del archivo se aplica (DT-300).
   describe("la fila que pasa a honorario a quien no puede serlo", () => {
     /** Ana y Juan activos en A3 y PIXEL; después, un archivo que le suma PIXEL a Ana y trae a Juan como honorario. */
-    async function rosterConHonorario(bloquear: (juan: string, adminId: string) => Promise<void>) {
+    async function rosterWithHonorary(block: (juan: string, adminId: string) => Promise<void>) {
       const termId = await seedTerm();
       const code = currentTermCode();
       await Promise.all(["a3", "pixel"].map((slug) => seedCommittee(slug)));
@@ -735,9 +735,9 @@ describe("importación del roster", () => {
       await applyRosterImportAs({ personId: adminId, ip: null }, base.jobId);
       const ana = await personaDe("prueba.ana@eafit.edu.co");
       const juan = await personaDe("prueba.juan@eafit.edu.co");
-      await bloquear(juan, adminId);
-      const antes = await estadoYComites(juan);
-      const otra = await preview(
+      await block(juan, adminId);
+      const before = await estadoYComites(juan);
+      const second = await preview(
         adminId,
         termId,
         csv([
@@ -745,28 +745,28 @@ describe("importación del roster", () => {
           `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Honorario;`,
         ]),
       );
-      const applied = await applyRosterImportAs({ personId: adminId, ip: null }, otra.jobId);
-      const fila = otra.rows.find((row) => row.email === "prueba.juan@eafit.edu.co");
-      return { adminId, ana, juan, antes, otra, applied, fila };
+      const applied = await applyRosterImportAs({ personId: adminId, ip: null }, second.jobId);
+      const target = second.rows.find((row) => row.email === "prueba.juan@eafit.edu.co");
+      return { adminId, ana, juan, before, second, applied, target };
     }
 
-    const esErrorDeLaFila = async (caso: Awaited<ReturnType<typeof rosterConHonorario>>) => {
-      const { ana, juan, antes, otra, applied, fila } = caso;
+    const expectRowError = async (result: Awaited<ReturnType<typeof rosterWithHonorary>>) => {
+      const { ana, juan, before, second, applied, target } = result;
       // La vista previa nombra la fila y a la persona; no anuncia ningún cambio para ella.
-      expect(fila).toMatchObject({ group: "ERROR", changes: [] });
-      expect(fila?.errors).toEqual([
+      expect(target).toMatchObject({ group: "ERROR", changes: [] });
+      expect(target?.errors).toEqual([
         expect.stringMatching(copyPattern("T-3265", { nombre: "Juan Gómez" })),
       ]);
-      expect(otra.counts).toMatchObject({ ERROR: 1, CHANGED: 1 });
+      expect(second.counts).toMatchObject({ ERROR: 1, CHANGED: 1 });
       // Al aplicar, esa fila se salta y la otra entra: a Juan no se le escribe nada.
       expect(applied).toMatchObject({ updated: 1, skipped: 1 });
-      expect(await estadoYComites(juan)).toEqual(antes);
+      expect(await estadoYComites(juan)).toEqual(before);
       expect((await estadoYComites(ana)).comites).toEqual(["a3", "pixel"]);
-      expect(await importacionesDe(juan, otra.jobId)).toEqual({ audits: [], events: [] });
+      expect(await importacionesDe(juan, second.jobId)).toEqual({ audits: [], events: [] });
     };
 
     it("en periodo de prueba en el semestre vigente: es un error de esa fila y el resto del archivo se aplica", async () => {
-      const caso = await rosterConHonorario(async (juan, adminId) => {
+      const result = await rosterWithHonorary(async (juan, adminId) => {
         const termId = await seedTerm();
         await setProbationAs({ personId: adminId, ip: null }, juan, termId, {
           probation: true,
@@ -774,16 +774,16 @@ describe("importación del roster", () => {
         });
       });
 
-      await esErrorDeLaFila(caso);
-      expect(caso.antes.status).toBe("ACTIVE");
+      await expectRowError(result);
+      expect(result.before.status).toBe("ACTIVE");
     });
 
     it("en licencia con la prueba guardada de un semestre anterior: es un error de esa fila y el resto del archivo se aplica", async () => {
-      const caso = await rosterConHonorario(async (juan) => {
+      const result = await rosterWithHonorary(async (juan) => {
         // Sale a licencia en 2026-1 con la prueba de ese semestre: en el vigente no tiene fila y la
         // prueba vive solo en la condición guardada (ADR-120 regla 4). El reloj se le pasa al comando.
-        const previo = await seedTerm("2026-1");
-        await seedMembershipTerm(juan, previo, true);
+        const previous = await seedTerm("2026-1");
+        await seedMembershipTerm(juan, previous, true);
         await runCommand(SYSTEM_ACTOR, (ctx) =>
           changeMembershipStatus(
             ctx,
@@ -794,12 +794,12 @@ describe("importación del roster", () => {
         );
       });
 
-      await esErrorDeLaFila(caso);
-      expect(caso.antes.status).toBe("ON_LEAVE");
+      await expectRowError(result);
+      expect(result.before.status).toBe("ON_LEAVE");
     });
 
     it("con los derechos suspendidos por una sanción: es un error de esa fila y el resto del archivo se aplica", async () => {
-      const caso = await rosterConHonorario(async (juan, adminId) => {
+      const result = await rosterWithHonorary(async (juan, adminId) => {
         const termId = await seedTerm();
         await recordSanctionAs(
           { personId: adminId, ip: null },
@@ -815,11 +815,11 @@ describe("importación del roster", () => {
         );
       });
 
-      await esErrorDeLaFila(caso);
+      await expectRowError(result);
     });
 
     it("de baja por renuncia y en prueba en el semestre vigente: es un error de esa fila y el roster no la reactiva", async () => {
-      const caso = await rosterConHonorario(async (juan, adminId) => {
+      const result = await rosterWithHonorary(async (juan, adminId) => {
         const termId = await seedTerm();
         await setProbationAs({ personId: adminId, ip: null }, juan, termId, {
           probation: true,
@@ -832,12 +832,12 @@ describe("importación del roster", () => {
         });
       });
 
-      await esErrorDeLaFila(caso);
-      expect(caso.antes).toMatchObject({ status: "INACTIVE", endReason: "RESIGNATION" });
+      await expectRowError(result);
+      expect(result.before).toMatchObject({ status: "INACTIVE", endReason: "RESIGNATION" });
     });
 
     it("a quien fue expulsado y figura como honorario le sigue avisando que no vuelve, sin error: esa fila no pasa por el cambio de estado", async () => {
-      const caso = await rosterConHonorario(async (juan, adminId) => {
+      const result = await rosterWithHonorary(async (juan, adminId) => {
         const termId = await seedTerm();
         await setProbationAs({ personId: adminId, ip: null }, juan, termId, {
           probation: true,
@@ -850,20 +850,20 @@ describe("importación del roster", () => {
         });
       });
 
-      expect(caso.fila).toMatchObject({ group: "UNCHANGED", errors: [] });
-      expect(caso.fila?.warnings).toEqual([
+      expect(result.target).toMatchObject({ group: "UNCHANGED", errors: [] });
+      expect(result.target?.warnings).toEqual([
         expect.stringMatching(copyPattern("T-2208", { nombre: "Juan Gómez" })),
       ]);
-      expect(caso.applied).toMatchObject({ updated: 1, unchanged: 1, skipped: 0 });
-      expect(await estadoYComites(caso.juan)).toEqual(caso.antes);
+      expect(result.applied).toMatchObject({ updated: 1, unchanged: 1, skipped: 0 });
+      expect(await estadoYComites(result.juan)).toEqual(result.before);
     });
 
     it("quien no está en prueba ni suspendido pasa a honorario por el roster, como siempre", async () => {
-      const caso = await rosterConHonorario(async () => {});
+      const result = await rosterWithHonorary(async () => {});
 
-      expect(caso.fila).toMatchObject({ group: "CHANGED", errors: [] });
-      expect(caso.applied).toMatchObject({ updated: 2, skipped: 0 });
-      expect((await estadoYComites(caso.juan)).status).toBe("HONORARY");
+      expect(result.target).toMatchObject({ group: "CHANGED", errors: [] });
+      expect(result.applied).toMatchObject({ updated: 2, skipped: 0 });
+      expect((await estadoYComites(result.juan)).status).toBe("HONORARY");
     });
   });
 
