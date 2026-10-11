@@ -88,6 +88,8 @@ interface Case {
   whenAnonymized: string;
   /** Qué responde si llega detrás de la reactivación de quien estaba de baja. */
   whenReactivated: string;
+  /** Qué responde si llega con la persona de baja y sin anonimizar. */
+  whenInactive: string;
 }
 
 /** El consultivo de las inhabilidades, que los tres cambios de comités piden después de la membresía. */
@@ -120,6 +122,7 @@ const CASES: Case[] = [
     // A quien ya fue anonimizado el «Agregar» no lo encuentra: no llega a mirar su estado.
     whenAnonymized: t("T-032"),
     whenReactivated: "ok",
+    whenInactive: t("T-2164"),
   },
   {
     name: "el cambio de comités desde la Persona 360",
@@ -131,6 +134,7 @@ const CASES: Case[] = [
     stopsAt: atLeadershipLock,
     whenAnonymized: t("T-3246"),
     whenReactivated: "ok",
+    whenInactive: t("T-3246"),
   },
   {
     name: "la aprobación de un cambio de comité",
@@ -138,6 +142,7 @@ const CASES: Case[] = [
     stopsAt: atLeadershipLock,
     whenAnonymized: t("T-3246"),
     whenReactivated: "ok",
+    whenInactive: t("T-3246"),
   },
   {
     name: "el nombramiento como representante de su comité",
@@ -153,6 +158,7 @@ const CASES: Case[] = [
     // baja las cerró y la reactivación no las reabre. En los dos casos hace cola y después se niega.
     whenAnonymized: t("T-2255"),
     whenReactivated: t("T-2255"),
+    whenInactive: t("T-2255"),
   },
 ];
 
@@ -199,6 +205,7 @@ describe.each(CASES)("$name y el ciclo de membresía de la misma persona", ({
   stopsAt,
   whenAnonymized,
   whenReactivated,
+  whenInactive,
 }) => {
   beforeEach(truncateAll);
   afterAll(closeDb);
@@ -250,5 +257,36 @@ describe.each(CASES)("$name y el ciclo de membresía de la misma persona", ({
 
     expect([outcome(reactivated), outcome(changed)]).toEqual(["ok", whenReactivated]);
     expect(await stateOf(s.member)).toMatchObject({ anonymized: false, status: "ACTIVE" });
+  });
+
+  it("si la reactivación con correo nuevo llega cuando el comando ya tomó el consultivo de la persona, hace cola y los dos terminan: con ella de baja el comando se niega, sin escribir", async () => {
+    const s = await scenario();
+    await endMembershipAs(s.gh, s.member, RESIGNED);
+    // El orden inverso al del caso anterior. Reactivar pide a la persona de baja, y con ella de baja
+    // el comando se niega apenas lee la membresía, antes de escribir lo que referencia la fila de
+    // `person`: no hay dónde detenerlo con la membresía tomada y a punto de escribir. Se detiene un
+    // paso antes, en la fila de la membresía, que retiene otro, y con el consultivo ya suyo.
+    const held = await holdTransaction((tx) =>
+      tx
+        .select({ id: membership.id })
+        .from(membership)
+        .where(eq(membership.personId, s.member))
+        .for("update"),
+    );
+
+    const [changed, reactivated] = await firstThenSecond(
+      held,
+      () => run(s),
+      () => reactivateMembershipAs(s.gh, s.member, { email: "prueba.vuelve@eafit.edu.co" }),
+    );
+
+    expect([outcome(changed), outcome(reactivated)]).toEqual([whenInactive, "ok"]);
+    // La baja cerró su pertenencia, reactivar no la reabre y el comando no escribió ninguna.
+    expect(await stateOf(s.member)).toEqual({
+      anonymized: false,
+      status: "ACTIVE",
+      open: 0,
+      representing: 0,
+    });
   });
 });
