@@ -40,8 +40,25 @@ describe("servidor de la E2E", () => {
     ["--grep", {}, ["--grep", "busca un artículo"]],
     ["--grep=", {}, ["--grep=busca un artículo"]],
     ["-g", {}, ["-g", "busca un artículo"]],
+    ["un archivo después de un nombre vacío", {}, ["-g", "", "sudoku"]],
+    ["un nombre después de un argumento vacío", {}, ["", "-g", "ayudas"]],
+    ["un archivo después de -- y de un argumento vacío", {}, ["--", "", "sudoku"]],
   ])("una corrida parcial por %s sigue contra dev y no compila el build", (_filter, env, args) => {
     expect(planE2eServer(env, args)).toEqual(dev);
+  });
+
+  // Playwright no recorta nada con un filtro vacío: corre la suite entera, igual que sin argumentos.
+  // Es lo que llega con `-g "$PATRON"` y la variable sin definir.
+  it.each([
+    [[""]],
+    [["-g", ""]],
+    [["--grep", ""]],
+    [["--grep="]],
+    [["--", ""]],
+    [["--headed", "", "--workers", "1"]],
+    [["-g", "", "--grep="]],
+  ])("un filtro vacío no recorta nada y no la vuelve parcial: %j", (args) => {
+    expect(planE2eServer({}, args)).toEqual(build);
   });
 
   it("en el CI va contra el build y no lo compila: ya lo hizo su propio paso", () => {

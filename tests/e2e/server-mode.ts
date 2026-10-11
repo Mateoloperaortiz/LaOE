@@ -50,20 +50,33 @@ const VARIADIC_OPTIONS = new Set(["--project"]);
  * Un filtro de archivos o de nombre: `E2E_FILES`, un archivo posicional, `--grep` o `-g`. Lo demás
  * que recorta una corrida (`--grep-invert`, `--last-failed`, `--shard`) no cuenta: puede dejarla
  * casi entera, y equivocarse hacia el build solo cuesta compilar.
+ *
+ * Un archivo o un nombre vacío tampoco cuenta: Playwright no recorta nada con él y corre la suite
+ * entera, que es lo que llega con `-g "$PATRON"` y la variable sin definir. `E2E_FILES` vacía sí
+ * cuenta, porque la configuración de Playwright la rechaza y no corre nada.
  */
 function hasFilter(env: Source, args: readonly string[]): boolean {
   if (env.E2E_FILES !== undefined) return true;
   let taken: "none" | "next" | "rest" = "none";
   for (const [index, arg] of args.entries()) {
-    if (arg === "--") return index < args.length - 1;
-    if (arg === "-g" || arg === "--grep" || arg.startsWith("--grep=")) return true;
+    if (arg === "--") return args.slice(index + 1).some((file) => file !== "");
+    if (arg === "-g" || arg === "--grep") {
+      if (args[index + 1] !== "") return true;
+      taken = "next";
+      continue;
+    }
+    if (arg.startsWith("--grep=")) {
+      if (arg !== "--grep=") return true;
+      taken = "none";
+      continue;
+    }
     if (arg.startsWith("-")) {
       if (arg.includes("=")) taken = "none";
       else if (VARIADIC_OPTIONS.has(arg)) taken = "rest";
       else taken = VALUE_OPTIONS.has(arg) ? "next" : "none";
       continue;
     }
-    if (taken === "none") return true;
+    if (taken === "none" && arg !== "") return true;
     if (taken === "next") taken = "none";
   }
   return false;
