@@ -1,13 +1,15 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { runCommand } from "@/db/tx";
 import { grantPermissionAs } from "@/modules/identity";
 import { permission } from "@/modules/identity/schema";
 import { recordConsentAs } from "@/modules/people";
-import { consent } from "@/modules/people/schema";
+import { createTag } from "@/modules/people/domain/tags";
+import { consent, tag } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { seedCommittee, seedConsent, seedMember, seedPermission } from "../factories";
+import { seedCommittee, seedConsent, seedMember, seedPermission, seedTag } from "../factories";
 import { truncateAll } from "./db";
 
 // La fábrica escribe filas y no llama comandos: «siempre por comandos» quedó descartado (DT-013).
@@ -125,5 +127,27 @@ describe("la fábrica y recordConsent", () => {
 
     expect(again.created).toBe(false);
     expect(await consentsOf(personId)).toHaveLength(1);
+  });
+});
+
+describe("la fábrica y createTag", () => {
+  beforeEach(truncateAll);
+
+  it("dejan la misma fila de una etiqueta sin color", async () => {
+    const actor = await seedMember(GRANTOR);
+
+    const byCommand = await runCommand({ personId: actor, ip: null }, (ctx) =>
+      createTag(ctx, { name: "Por comando" }),
+    );
+    const byFactory = await seedTag("Por fábrica");
+
+    // Sin lo que es propio de cada fila: su id, su nombre y cuándo se creó.
+    const rows = await db().select().from(tag);
+    const rowOf = (id: string) =>
+      rows
+        .filter((row) => row.id === id)
+        .map((row) => ({ ...row, id: null, name: null, createdAt: null }));
+    expect(rowOf(byCommand.id)).toHaveLength(1);
+    expect(rowOf(byFactory)).toEqual(rowOf(byCommand.id));
   });
 });
