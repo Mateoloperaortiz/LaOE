@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { seedTag } from "../factories";
 import { truncateAll } from "./db";
 
 // Qué tablas alcanza el vaciado de la base de pruebas (DT-030, ADR-124 regla 1). Lo que deja en cada
@@ -43,16 +44,29 @@ afterAll(async () => {
 });
 
 describe("las tablas que alcanza el vaciado de la base entre pruebas", () => {
-  it("no toca lo que vive fuera de public: ni el registro de migraciones ni una tabla ajena que se llama como una de public", async () => {
+  it("no toca lo que vive fuera de public: ni el registro de migraciones ni una tabla ajena que se llama como una de public, aunque el search_path la ponga primero", async () => {
     await query(`create schema ${OTHER_SCHEMA}`);
     await query(`create table ${OTHER_SCHEMA}.tag (id text primary key)`);
     await query(`insert into ${OTHER_SCHEMA}.tag (id) values ('ajena')`);
+    await seedTag("De public");
     const migrations = await rowsIn("drizzle.__drizzle_migrations");
     expect(migrations).toBeGreaterThan(0);
 
-    await truncateAll();
+    // La sesión del vaciado resuelve `tag` primero en el esquema ajeno: sin el esquema escrito en cada
+    // nombre, vaciaría la ajena y dejaría la de `public`. El pool entrega la última conexión que se
+    // soltó y acá se usa una sola a la vez, así que el vaciado corre en la sesión que cambia su
+    // `search_path`; la lectura de después lo comprueba.
+    const path = `${OTHER_SCHEMA}, public`;
+    await query(`set search_path = ${path}`);
+    try {
+      await truncateAll();
+      expect(await query("show search_path")).toEqual([{ search_path: path }]);
+    } finally {
+      await query("reset search_path");
+    }
 
     expect(await rowsIn(`${OTHER_SCHEMA}.tag`)).toBe(1);
+    expect(await rowsIn("public.tag")).toBe(0);
     expect(await rowsIn("drizzle.__drizzle_migrations")).toBe(migrations);
   });
 
