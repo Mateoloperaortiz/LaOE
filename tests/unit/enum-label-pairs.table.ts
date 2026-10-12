@@ -1151,3 +1151,144 @@ export const ZIP_PAIRS: readonly { key: string; order: string; code: ListCode; o
   { key: "purposes", order: "CONSENT_PURPOSES", code: "T-516", own: false },
   { key: "fields", order: "FIELD_KEYS", code: "T-427", own: true },
 ];
+
+export type IndexPair = {
+  code: ListCode;
+  /** La constante que guarda, escrita a mano, la posición de cada valor. */
+  order: string;
+  /** El archivo que declara la constante y lee la lista con ella. */
+  file: string;
+  /** La posición que la constante le da a cada valor, como está escrita en el archivo. */
+  positions: Record<string, number>;
+  /** Cuántas piezas trae hoy la lista. */
+  pieces: number;
+  /** De dónde sale la lista, cuando la lectura pasa por una variable. */
+  list?: string;
+  /** Cada lectura del archivo, como está escrita. */
+  reads: readonly string[];
+  /** Si las posiciones son de tipo literal (`as const`): ahí la tupla de `tList` cuida el largo.
+   * Con `Record<…, number>` no lo cuida nadie. */
+  literal: boolean;
+};
+
+const CHALLENGE_CARD = "src/modules/participation/components/ChallengeCard.tsx";
+
+/** Las constantes que guardan la posición de cada valor (`lista[KIND_INDEX[valor]] ?? valor`). No
+ * llevan `indexOf`, así que no las ve ninguna expresión de la spec #242 ni las cuenta entre sus
+ * sitios: ningún ticket de la migración las toca (ADR-126 regla 1, DT-366). */
+export const INDEX_PAIRS: readonly IndexPair[] = [
+  {
+    code: "T-2409",
+    order: "KIND_INDEX",
+    file: CHALLENGE_CARD,
+    positions: { PRESENTIAL: 0, TRIVIA: 1, EVIDENCE: 2 },
+    pieces: 3,
+    list: 'const kinds = tList("T-2409");',
+    reads: ["kinds[KIND_INDEX[card.kind]] ?? card.kind"],
+    literal: false,
+  },
+  {
+    code: "T-2411",
+    order: "AUDIENCE_INDEX",
+    file: CHALLENGE_CARD,
+    positions: { ALL: 0, NEW: 1, VETERAN: 2, COMMITTEES: 3 },
+    pieces: 4,
+    list: 'const audiences = tList("T-2411");',
+    reads: ["audiences[AUDIENCE_INDEX[card.audience]] ?? card.audience"],
+    literal: false,
+  },
+  {
+    code: "T-2511",
+    order: "STATE_INDEX",
+    file: CHALLENGE_CARD,
+    positions: { DRAFT: 0, SCHEDULED: 1, OPEN: 2, CLOSED: 3, CANCELLED: 4 },
+    pieces: 5,
+    list: 'const states = tList("T-2511");',
+    reads: ["states[STATE_INDEX[card.state]] ?? card.state"],
+    literal: false,
+  },
+  {
+    code: "T-2410",
+    order: "STATUS_INDEX",
+    file: CHALLENGE_CARD,
+    positions: { AVAILABLE: 0, SENT: 1, PENDING: 2, COMPLETED: 3, REJECTED: 4, EXPIRED: 5 },
+    pieces: 6,
+    list: 'const memberStates = tList("T-2410");',
+    reads: ["memberStates[STATUS_INDEX[card.status]] ?? card.status"],
+    literal: false,
+  },
+  {
+    code: "T-2451",
+    order: "BOOSTER_INDEX",
+    file: CHALLENGE_CARD,
+    positions: { PLUS_50: 0, PLUS_100: 1 },
+    pieces: 2,
+    reads: ['tList("T-2451")[BOOSTER_INDEX[card.boosterKind]] ?? card.boosterKind'],
+    literal: false,
+  },
+  // Cuatro familias para cinco piezas: la quinta, las ediciones especiales, la lee `familyNames[4]`.
+  {
+    code: "T-2473",
+    order: "FAMILY_INDEX",
+    file: "src/app/app/gh-points/coleccion/page.tsx",
+    positions: { EN_PARCHE: 0, EXPLORADOR: 1, RELAMPAGO: 2, PALABRA_A_PALABRA: 3 },
+    pieces: 5,
+    list: 'const familyNames = tList("T-2473");',
+    reads: [
+      "{familyNames[FAMILY_INDEX[family.family]]}",
+      "nombre={familyNames[FAMILY_INDEX[family.family]] ?? family.family}",
+    ],
+    literal: false,
+  },
+  // T-493 no tiene otro par: el único orden de los estados de una importación es esta constante.
+  {
+    code: "T-493",
+    order: "STATUS_INDEX",
+    file: "src/app/admin/sistema/importaciones/page.tsx",
+    positions: { PREVIEW: 0, APPLIED: 1, DISCARDED: 2, FAILED: 3 },
+    pieces: 4,
+    list: 'const estados = tList("T-493");',
+    reads: ["estados[STATUS_INDEX[job.status]] ?? job.status"],
+    literal: false,
+  },
+  // Los cuatro estados de una campaña leen las piezas 1 a 4 de los estados de un RETO: `ACTIVE`
+  // lee la de `OPEN` y `ENDED` la de `CLOSED`.
+  {
+    code: "T-2511",
+    order: "STATE_INDEX",
+    file: "src/app/admin/gamificacion/campanas/page.tsx",
+    positions: { SCHEDULED: 1, ACTIVE: 2, ENDED: 3, CANCELLED: 4 },
+    pieces: 5,
+    list: 'const stateLabels = tList("T-2511");',
+    reads: ["stateLabels[STATE_INDEX[campaign.state]] ?? campaign.state"],
+    literal: true,
+  },
+  {
+    code: "T-2409",
+    order: "KIND_INDEX",
+    file: "src/app/app/gh-points/retos/[id]/page.tsx",
+    positions: { PRESENTIAL: 0, TRIVIA: 1, EVIDENCE: 2 },
+    pieces: 3,
+    reads: ['tList("T-2409")[KIND_INDEX[challenge.kind]] ?? challenge.kind'],
+    literal: true,
+  },
+  // T-3207 tampoco tiene otro par, y su lectura no tiene respaldo.
+  {
+    code: "T-3207",
+    order: "MOTIVES",
+    file: "src/shared/lib/image-decoder.ts",
+    positions: { unreadable: 0, format: 1, pixels: 2, encode: 3, memory: 4 },
+    pieces: 5,
+    reads: ['super(tList("T-3207")[MOTIVES[reason]], options)'],
+    literal: true,
+  },
+];
+
+/** Lo que tiene la forma de esas lecturas y no es la etiqueta de un valor. */
+export const INDEXED_BUT_NOT_LABELS: readonly { file: string; order: string; why: string }[] = [
+  {
+    file: "src/modules/participation/domain/ledger.ts",
+    order: "GAME_RUN_COLUMN",
+    why: "elige la columna de `point_entry` que guarda la partida de cada juego",
+  },
+];

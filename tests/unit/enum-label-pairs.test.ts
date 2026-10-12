@@ -1,8 +1,11 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { tList } from "@/shared/copy";
 import {
+  INDEX_PAIRS,
+  INDEXED_BUT_NOT_LABELS,
+  type IndexPair,
   type LabelPair,
   PAIRS,
   UNEVEN_PAIRS,
@@ -17,6 +20,8 @@ import {
 // etiqueta. Compara posiciones y no redacciones: lo que no puede ver es que alguien reordene las
 // piezas de una lista en docs/14-copy-y-textos.md, porque la prueba y el código leen la misma
 // lista (DT-365). La fila que una migración deja sin copia local pierde ese archivo de `copies`.
+// Las constantes que guardan a mano la posición de cada valor no llevan `indexOf` y van en su
+// propia tabla, `INDEX_PAIRS`: la migración de la spec no las toca (DT-366).
 
 const ONE_TO_ONE = [...PAIRS, ...UNSEEN_PAIRS];
 const JOBS = "src/modules/crm/jobs.ts";
@@ -41,6 +46,58 @@ function literal(values: readonly string[]): string {
   return squash(JSON.stringify(values));
 }
 
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      return sourceFiles(file);
+    }
+    return /\.tsx?$/.test(entry.name) && !entry.name.endsWith(".generated.ts") ? [file] : [];
+  });
+}
+
+/** Las listas que un archivo lee con ese orden escrito en el subíndice (`lista[["A", "B"].indexOf(`):
+ * el código de cada una, sea un `tList` en el sitio o una variable del archivo que sale de uno. Si
+ * la variable no sale de un `tList` del archivo, queda su nombre. */
+function listsReadInline(file: string, values: readonly string[]): string[] {
+  const raw = readFileSync(path.resolve(file), "utf8");
+  const quoted = values.map((value) => `"${value.replace(/[.*+?^${}()|[\]\\/-]/g, "\\$&")}"`);
+  const order = `\\[\\s*${quoted.join("\\s*,\\s*")}\\s*,?\\s*\\]`;
+  const reads = raw.matchAll(
+    new RegExp(`(?:tList\\("(T-\\d+)"\\)|\\b([\\w$]+))\\s*\\[\\s*\\(?\\s*${order}`, "g"),
+  );
+  return [...reads].flatMap(([, code, name = ""]) => {
+    if (code) {
+      return [code];
+    }
+    const sources = raw.matchAll(new RegExp(`\\b${name}\\s*=\\s*tList\\("(T-\\d+)"\\)`, "g"));
+    const codes = [...sources].map(([, source = ""]) => source);
+    return codes.length > 0 ? codes : [name];
+  });
+}
+
+/** El objeto de una constante de posiciones, leído del código, y si lo cierra un `as const`. */
+function indexConstant(file: string, name: string) {
+  const match = new RegExp(`const${name}(?::[^=]+)?=\\{([^{}]*)\\}(asconst)?;`).exec(
+    sourceOf(file),
+  );
+  if (!match) {
+    return null;
+  }
+  const entries = (match[1] ?? "")
+    .split(",")
+    .filter(Boolean)
+    .map((entry) => {
+      const [value = "", position = ""] = entry.split(":");
+      return [value, Number(position)] as const;
+    });
+  return { positions: Object.fromEntries(entries), literal: match[2] !== undefined };
+}
+
+function named(pair: IndexPair): string {
+  return `${pair.code} × ${pair.order} de ${pair.file}`;
+}
+
 const withCanonical = ONE_TO_ONE.filter(
   (pair): pair is LabelPair & { canonical: readonly string[] } => pair.canonical !== undefined,
 );
@@ -49,6 +106,10 @@ const withLabel = ONE_TO_ONE.filter(
 );
 const copies = ONE_TO_ONE.flatMap((pair) =>
   (pair.copies ?? []).map((file) => ({ file, code: pair.code, order: pair.order, pair })),
+);
+/** Las copias que están escritas en el subíndice de la lectura, y no en una constante aparte. */
+const inlineCopies = copies.filter(
+  ({ file, pair }) => listsReadInline(file, valuesOf(pair)).length > 0,
 );
 
 describe("la tabla de los pares", () => {
@@ -92,6 +153,22 @@ describe("cada valor lee una posición literal de su lista", () => {
     pair,
   }) => {
     expect(sourceOf(file)).toContain(literal(valuesOf(pair)));
+  });
+
+  // Donde el orden está escrito en el subíndice se puede fijar también el sitio: qué lista lee.
+  it.each(
+    inlineCopies,
+  )("$file lee $code, y ninguna lista sin su par, con el orden de $order escrito en el subíndice", ({
+    file,
+    pair,
+  }) => {
+    const values = valuesOf(pair);
+    const paired = ONE_TO_ONE.filter(
+      (item) => item.copies?.includes(file) && valuesOf(item).join() === values.join(),
+    ).map((item) => item.code);
+    const read = listsReadInline(file, values);
+    expect(read).toContain(pair.code);
+    expect(read.filter((code) => !paired.includes(code as never))).toEqual([]);
   });
 
   it.each(
@@ -142,6 +219,81 @@ describe("los pares que no son uno a uno", () => {
     for (const { uneven, pair } of shared) {
       expect(pair.positions).toMatchObject(uneven.positions);
     }
+  });
+});
+
+describe("las constantes que guardan la posición de cada valor", () => {
+  it("son diez en seis archivos, con once lecturas, y en siete la tupla de la lista no cuida el largo", () => {
+    expect(INDEX_PAIRS).toHaveLength(10);
+    expect(new Set(INDEX_PAIRS.map((pair) => pair.file)).size).toBe(6);
+    expect(INDEX_PAIRS.flatMap((pair) => pair.reads)).toHaveLength(11);
+    expect(INDEX_PAIRS.filter((pair) => !pair.literal)).toHaveLength(7);
+  });
+
+  it.each(
+    INDEX_PAIRS,
+  )("$order de $file le da a cada valor la posición de $code que dice la tabla", (pair) => {
+    expect(indexConstant(pair.file, pair.order)).toEqual({
+      positions: pair.positions,
+      literal: pair.literal,
+    });
+    const positions = Object.values(pair.positions);
+    expect(new Set(positions).size).toBe(positions.length);
+    expect(tList(pair.code)).toHaveLength(pair.pieces);
+    expect(Math.max(...positions)).toBeLessThan(pair.pieces);
+  });
+
+  it.each(
+    INDEX_PAIRS,
+  )("$file lee $code con $order donde dice la tabla, y en ningún otro sitio", (pair) => {
+    const source = sourceOf(pair.file);
+    for (const written of [...pair.reads, ...(pair.list ? [pair.list] : [])]) {
+      expect(source).toContain(squash(written));
+    }
+    expect(source.split(`[${pair.order}[`)).toHaveLength(pair.reads.length + 1);
+  });
+
+  // El trinquete de la forma: una lectura nueva `lista[X_INDEX[valor]]` entra a la tabla o, si no
+  // es una etiqueta, a la lista de lo ajeno con su razón. Una fila que sobra también cae.
+  it("ninguna otra lectura de src lleva de subíndice una constante indexada por un valor", () => {
+    const found = new Set<string>();
+    for (const file of sourceFiles("src")) {
+      const reads = readFileSync(file, "utf8").matchAll(/\[\s*([A-Z][A-Z0-9_]*)\[[^\]]+\]\s*\]/g);
+      for (const [, order] of reads) {
+        found.add(`${file} × ${order}`);
+      }
+    }
+    expect([...found].sort()).toEqual(
+      [...INDEX_PAIRS, ...INDEXED_BUT_NOT_LABELS]
+        .map(({ file, order }) => `${file} × ${order}`)
+        .sort(),
+    );
+  });
+
+  it("donde la lista tiene un par uno a uno con esos valores, la constante les da la misma posición", () => {
+    const twin = (index: IndexPair) =>
+      ONE_TO_ONE.find(
+        (pair) =>
+          pair.code === index.code &&
+          Object.keys(index.positions).every((value) => valuesOf(pair).includes(value)),
+      );
+    expect(INDEX_PAIRS.filter((index) => !twin(index)).map(named)).toEqual([
+      "T-493 × STATUS_INDEX de src/app/admin/sistema/importaciones/page.tsx",
+      "T-2511 × STATE_INDEX de src/app/admin/gamificacion/campanas/page.tsx",
+      "T-3207 × MOTIVES de src/shared/lib/image-decoder.ts",
+    ]);
+    for (const index of INDEX_PAIRS) {
+      expect(twin(index)?.positions ?? index.positions).toMatchObject(index.positions);
+    }
+  });
+
+  it("dos tienen menos valores que piezas trae su lista: con ellas, los pares de largo distinto son siete", () => {
+    const uneven = INDEX_PAIRS.filter((pair) => Object.keys(pair.positions).length !== pair.pieces);
+    expect(uneven.map(named)).toEqual([
+      "T-2473 × FAMILY_INDEX de src/app/app/gh-points/coleccion/page.tsx",
+      "T-2511 × STATE_INDEX de src/app/admin/gamificacion/campanas/page.tsx",
+    ]);
+    expect(UNEVEN_PAIRS.length + uneven.length).toBe(7);
   });
 });
 
