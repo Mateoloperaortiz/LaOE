@@ -136,13 +136,6 @@ const EXCEPTIONS: Exception[] = [
     reason: `${BY_HAND} el motivo por el que una imagen no se abre, T-3207; sus posiciones son literales y la tupla de \`tList\` sí cuida el largo.`,
   },
   {
-    path: "src/app/admin/comites/[slug]/_ui/Areas.tsx",
-    form: "storedIndex",
-    read: "labels[index]",
-    reason:
-      "`areaLabel` busca el área en `COMMITTEE_AREAS`, un arreglo de objetos, y no hay tupla de sus cinco claves que pasarle a `tLabels` (DT-370).",
-  },
-  {
     path: "src/app/app/ajustes/page.tsx",
     form: "storedIndex",
     read: "CONSENT_TEXTS[index]",

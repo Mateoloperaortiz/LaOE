@@ -24,7 +24,7 @@ export {
 export { assertBenefitsAvailable } from "./domain/benefits";
 export {
   areasFor,
-  COMMITTEE_AREAS,
+  COMMITTEE_AREA_KEYS,
   COMMITTEE_CAPABILITIES,
   type CommitteeArea,
   type CommitteeCapability,
