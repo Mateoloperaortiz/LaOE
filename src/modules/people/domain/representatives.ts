@@ -2,7 +2,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
-import { t, tList } from "@/shared/copy";
+import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   committeeMembership,
@@ -21,10 +21,6 @@ import { lockMembershipCycle } from "./wallet-member";
 
 export const REPRESENTATIVE_ROLES = ["TITULAR", "SUPLENTE"] as const;
 export type RepresentativeRole = (typeof REPRESENTATIVE_ROLES)[number];
-
-export function representativeRoleLabel(role: RepresentativeRole): string {
-  return tList("T-2246")[REPRESENTATIVE_ROLES.indexOf(role)] ?? role;
-}
 
 export const representativeInputSchema = z.object({
   committeeId: z.string().trim().min(1),

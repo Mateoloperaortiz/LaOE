@@ -150,7 +150,6 @@ export {
   DOCUMENT_TYPE_CODES,
   formatBirthDate,
   normalizePhone,
-  splitFullName,
 } from "./domain/person-pure";
 export {
   createPerson,
@@ -169,7 +168,6 @@ export {
   listLiveDirectionForTerm,
   listRepresentatives,
   type RepresentativeView,
-  representativeRoleLabel,
 } from "./domain/representatives";
 export {
   groupRoleHistory,

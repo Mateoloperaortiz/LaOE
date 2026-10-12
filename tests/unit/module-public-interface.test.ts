@@ -362,10 +362,6 @@ const EXCEPTIONS: Exceptions = {
     `,
   },
   people: {
-    nadie: `
-      representativeRoleLabel
-      splitFullName
-    `,
     "solo-pruebas": `
       SanctionScope
       createCommittee

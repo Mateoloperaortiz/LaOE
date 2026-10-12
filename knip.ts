@@ -13,7 +13,6 @@ const config: KnipConfig = {
     // `tests/unit/module-public-interface.test.ts` sale de acá en el mismo commit, y esa prueba lo exige.
     "src/modules/competition/index.ts",
     "src/modules/participation/index.ts",
-    "src/modules/people/index.ts",
     "tests/e2e/auth.setup.ts",
     ".railway/**/*.ts",
   ],
