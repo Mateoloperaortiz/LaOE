@@ -369,7 +369,7 @@ export const checkInsResource: ResourceDefinition<CheckInExportRow, Empty> = {
 };
 
 const [ledgerPlural, ledgerSingular] = tList("T-663");
-const kindLabelsForLedger = tList("T-085");
+const kindLabelsForLedger = tLabels("T-085", POINT_ENTRY_KINDS);
 
 interface LedgerExportRow extends LedgerListRow {
   personName: string;
@@ -388,9 +388,9 @@ export const ledgerResource: ResourceDefinition<LedgerExportRow, Empty> = {
     {
       key: "kind",
       label: tList("T-624")[2] ?? "",
-      options: POINT_ENTRY_KINDS.map((value, index) => ({
+      options: POINT_ENTRY_KINDS.map((value) => ({
         value,
-        label: kindLabelsForLedger[index] ?? value,
+        label: kindLabelsForLedger[value] ?? value,
       })),
     },
   ],
@@ -427,7 +427,7 @@ export const ledgerResource: ResourceDefinition<LedgerExportRow, Empty> = {
     nombre: row.personName,
     correo: row.email,
     semestre: row.termCode,
-    movimiento: kindLabelsForLedger[POINT_ENTRY_KINDS.indexOf(row.kind)] ?? row.kind,
+    movimiento: kindLabelsForLedger[row.kind] ?? row.kind,
     puntos: row.points,
     motivo: row.reason,
     revertida: row.reversedById ? "si" : "no",

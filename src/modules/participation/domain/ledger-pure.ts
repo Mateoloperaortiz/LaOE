@@ -11,7 +11,7 @@ export type PointEntryKind =
   | "GAME2048"
   | "SUDOKU"
   | "PANAL";
-export const POINT_ENTRY_KINDS: readonly PointEntryKind[] = [
+export const POINT_ENTRY_KINDS = [
   "CHECKIN",
   "ADJUSTMENT",
   "REVERSAL",
@@ -25,7 +25,7 @@ export const POINT_ENTRY_KINDS: readonly PointEntryKind[] = [
   // ADR-078: premio del Sudoku; cierra la lista T-085.
   "SUDOKU",
   "PANAL",
-];
+] as const satisfies readonly PointEntryKind[];
 
 /** El saldo nunca se persiste: es la suma de las entradas. */
 export function balance(entries: ReadonlyArray<{ points: number }>): number {
