@@ -19,6 +19,7 @@ import {
 import { powerName } from "@/modules/competition/domain/powers";
 import { POWER_EFFECTS, POWER_TYPES } from "@/modules/competition/domain/powers-pure";
 import { SCHEDULE_ISSUE_KINDS } from "@/modules/competition/domain/schedule-pure";
+import { COMPETITION_STATUSES } from "@/modules/competition/domain/setup";
 import { DOCUMENT_KINDS } from "@/modules/content/domain/documents-pure";
 import {
   CALL_ENTRY_STATUSES,
@@ -760,7 +761,7 @@ export const PAIRS: readonly LabelPair[] = [
     code: "T-2804",
     order: "COMPETITION_STATUSES",
     positions: { DRAFT: 0, LIVE: 1, FINISHED: 2, ARCHIVED: 3 },
-    copies: ["src/app/admin/the-games/[id]/page.tsx", "src/app/admin/the-games/[id]/_ui/Setup.tsx"],
+    canonical: COMPETITION_STATUSES,
   },
   {
     code: "T-2805",
@@ -1008,7 +1009,7 @@ export const UNSEEN_PAIRS: readonly LabelPair[] = [
     code: "T-2808",
     order: "COMPETITION_STATUSES",
     positions: { DRAFT: 0, LIVE: 1, FINISHED: 2, ARCHIVED: 3 },
-    copies: ["src/app/admin/the-games/[id]/_ui/Setup.tsx"],
+    canonical: COMPETITION_STATUSES,
   },
 ];
 
@@ -1153,7 +1154,9 @@ const DESGLOSE = "src/modules/permanence/components/Desglose.tsx";
  * subíndice la prueba fijaba también qué lista leía el archivo con él; con la constante ese caso ya
  * no aplica, y `tLabels` solo compara largos: otra lista del mismo largo compila. Ninguna prueba lee
  * el texto de estos cinco, así que acá queda, leído del código, qué lista lee cada archivo con ese
- * orden y si el orden es una constante suya (`own`) o una tupla exportada. */
+ * orden y si el orden es una constante suya (`own`) o una tupla exportada. El ticket #319 suma los
+ * sitios del admin de The Games, de permanencia y de comités que dejan el subíndice de la misma
+ * forma, y la página del cierre, que deja de leer los estados finales con un desplazamiento. */
 export const NAMED_READS: readonly { file: string; order: string; code: ListCode; own: boolean }[] =
   [
     { file: DESGLOSE, order: "ASSEMBLY_KINDS", code: "T-546", own: false },
@@ -1175,6 +1178,12 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       order: "SANCTION_STATES",
       code: "T-2243",
       own: true,
+    },
+    {
+      file: "src/app/admin/the-games/[id]/page.tsx",
+      order: "COMPETITION_STATUSES",
+      code: "T-2804",
+      own: false,
     },
   ];
 

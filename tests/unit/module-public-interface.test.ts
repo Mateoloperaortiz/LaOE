@@ -72,7 +72,6 @@ const EXCEPTIONS: Exceptions = {
     competition: `
       BASE_KINDS
       BaseKind
-      COMPETITION_STATUSES
       CompetitionStatus
       Day
       DelayRow

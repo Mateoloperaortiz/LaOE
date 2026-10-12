@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireCompetitionOperator } from "@/app/_authz/competition";
 import { single } from "@/app/_lib/search";
 import {
+  COMPETITION_STATUSES,
   creditBalances,
   getLiveRotations,
   getRecordingTracker,
@@ -29,7 +30,7 @@ import { listFormOptions } from "@/modules/forms";
 import { listPeopleWithPassword } from "@/modules/identity";
 import { isMacroeventDirector, listActiveMemberRefs } from "@/modules/people";
 import { AdminSectionSelect } from "@/shared/admin-kit/AdminSectionSelect";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { Anuncios, Apuestas } from "./_ui/Community";
 import { Extras, Posiciones, Resultados, Rotaciones } from "./_ui/Play";
 import { Poderes } from "./_ui/Powers";
@@ -72,16 +73,14 @@ export default async function CompetitionPage({
   const base = `/admin/the-games/${id}`;
   const { actor, competition } = await requireCompetitionOperator(id, `${base}?area=${area}`);
   const context = { competitionId: id, area };
-  const labels = tList("T-2805");
-  const options = AREAS.map((value, index) => ({
+  const labels = tLabels("T-2805", AREAS);
+  const options = AREAS.map((value) => ({
     value,
-    label: labels[index] ?? value,
+    label: labels[value] ?? value,
     href: `${base}?area=${value}`,
   }));
   const serverNow = new Date().toISOString();
-  const statuses = tList("T-2804");
-  const statusLabel =
-    statuses[["DRAFT", "LIVE", "FINISHED", "ARCHIVED"].indexOf(competition.status)];
+  const statusLabel = tLabels("T-2804", COMPETITION_STATUSES)[competition.status];
 
   let body: React.ReactNode = null;
   if (area === "resumen") {
