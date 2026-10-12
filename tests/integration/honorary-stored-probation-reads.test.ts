@@ -95,6 +95,20 @@ async function sinSemestreVigente(): Promise<void> {
   expect((await getCurrentTerm()) ?? null).toBeNull();
 }
 
+/**
+ * La condición con la que sale `onLeave` sin prueba, entera: es lo que el paso a honorario deja
+ * escrito en la membresía, lo traiga guardado o lo reconstruya (ADR-118 regla 8).
+ */
+const SALIO_SIN_PRUEBA = [
+  {
+    committeeId: null,
+    probation: false,
+    reportAsVeteran: false,
+    resumedNew: true,
+    resumedTransfer: false,
+  },
+];
+
 const SALIDAS = [
   { licencia: "con la condición guardada en la membresía", guardada: true },
   { licencia: "anterior a la migración, que se reconstruye desde la salida", guardada: false },
@@ -219,6 +233,10 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
       const { queries } = await countQueries(() => toHonorary(limpia));
 
       expect(medida(queries)).toEqual({ consultas: 21, reconstrucciones: 2 });
+      expect(await comoQuedo(limpia)).toEqual({
+        status: "HONORARY",
+        leaveCondition: SALIO_SIN_PRUEBA,
+      });
     });
 
     it("la ficha la reconstruye una sola vez", async () => {
@@ -251,6 +269,27 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
       const { queries } = await countQueries(() => toHonorary(limpia));
 
       expect(medida(queries)).toEqual({ consultas: 13, reconstrucciones: 0 });
+    });
+  });
+
+  // Un día sin semestre decide quien pregunta y no `blockedBenefits` (ADR-120 regla 4), así que la
+  // cuenta es otra; la repetición es la misma del día con semestre: una reconstrucción para decidir
+  // y otra de `conditionToKeep` para dejarla escrita. Que haya días así es la decisión abierta 27.
+  describe("lo que le manda a PostgreSQL una licencia anterior a la migración, sin semestre vigente (decisión abierta 27)", () => {
+    it("el paso a honorario que procede la reconstruye una vez para decidir y otra para conservarla, y guarda la de su salida", async () => {
+      const limpia = await onLeave("sin.prueba@eafit.edu.co", {
+        probation: false,
+        guardada: false,
+      });
+      await sinSemestreVigente();
+
+      const { queries } = await countQueries(() => toHonorary(limpia));
+
+      expect(medida(queries)).toEqual({ consultas: 18, reconstrucciones: 2 });
+      expect(await comoQuedo(limpia)).toEqual({
+        status: "HONORARY",
+        leaveCondition: SALIO_SIN_PRUEBA,
+      });
     });
   });
 });
