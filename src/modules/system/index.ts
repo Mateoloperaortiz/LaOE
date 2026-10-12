@@ -1,6 +1,5 @@
 // API pública del módulo system: lo que otros módulos y src/app pueden usar.
 export {
-  ALIAS_PATH,
   createAlias,
   getAlias,
   type LegacyAliasRow,
@@ -27,21 +26,14 @@ export {
   createImportJob,
   getImportJob,
   type ImportJobRow,
-  type ImportJobStatus,
   type ImportJobType,
   listImportJobs,
   takeImportJobApplied,
   takeImportJobInPreview,
   updateImportJob,
 } from "./domain/imports";
-export { type BackupStatus, checkBackup, getBackupStatus, pruneOutbox } from "./domain/maintenance";
-export {
-  countDeadLetters,
-  listOutbox,
-  type OutboxRow,
-  type OutboxState,
-  retryDeadLetterAs,
-} from "./domain/outbox";
+export { checkBackup, getBackupStatus } from "./domain/maintenance";
+export { countDeadLetters, listOutbox, type OutboxRow, retryDeadLetterAs } from "./domain/outbox";
 export {
   getPrivacyPolicyState,
   PrivacyPolicyPendingError,

@@ -20,7 +20,6 @@ const config: KnipConfig = {
     "src/modules/participation/index.ts",
     "src/modules/people/index.ts",
     "src/modules/permanence/index.ts",
-    "src/modules/system/index.ts",
     "tests/e2e/auth.setup.ts",
     ".railway/**/*.ts",
   ],

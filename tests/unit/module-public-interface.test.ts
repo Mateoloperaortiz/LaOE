@@ -687,13 +687,6 @@ const EXCEPTIONS: Exceptions = {
     `,
   },
   system: {
-    nadie: `
-      ALIAS_PATH
-      BackupStatus
-      ImportJobStatus
-      OutboxState
-      pruneOutbox
-    `,
     "solo-pruebas": `
       ConfigKey
       ConfigValue
