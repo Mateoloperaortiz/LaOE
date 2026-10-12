@@ -9,7 +9,7 @@ Registro persistente de la deuda técnica de la casa digital ([ADR-109](adr/ADR-
 
 Mientras se trabaja, una fila puede estar `OPEN`, `IN_PROGRESS` o `BLOCKED` (espera una decisión de [decisiones-abiertas.md](decisiones-abiertas.md)).
 
-Orígenes: **A19** es la [auditoría del 2026-09-19](auditoria-codigo-2026-09-19.md), con su código de hallazgo o de tramo; **R06** es la revisión de arquitectura del 2026-10-06 (37 oportunidades; «verificado» quiere decir que un segundo lector intentó tumbarla y sobrevivió, «medido» que sale de un conteo reproducible). **D07** es el descubrimiento del 2026-10-07 (seguridad, módulos chicos e importadores, `npm audit` y escaneo de guards; «leído» quiere decir camino completo leído y no ejecutado) y **C1** es lo que apareció al implementar el ciclo 1 y **C2** lo que apareció al implementar y revisar el ciclo 2; **C3**, **C4**, **C5**, **C6**, **C7**, **C8**, **C9**, **C10**, **C11**, **C12** y **C13** son lo mismo de los ciclos 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 y 13. **CF** es la clasificación final del 2026-10-09: un lector por lote leyó cada fila que seguía abierta contra el código de ese día y un segundo lector intentó tumbar lo que no quedó diferido, lo de riesgo alto y lo marcado como arreglo rápido; las filas con ese origen son lo que vieron de paso y no estaba anotado. **H07** es la auditoría de huecos del 2026-10-07: seis zonas que las revisiones anteriores no habían leído a fondo (esquema y base, datos personales, autorización, pruebas, permanencia y operación), cada una con un lector y un segundo lector que intentó tumbar los hallazgos de severidad alta y media. De sus 53 hallazgos, 24 de severidad alta o media quedaron confirmados y dos tumbados; los de severidad baja no pasaron por el segundo lector y van agrupados por zona. **H08** es la segunda ola, del 2026-10-08, con el mismo método: gamificación, crm, membresía y jobs dejaron 36 hallazgos, 20 de severidad media confirmados (el segundo lector bajó varios a baja) y ninguno tumbado; The Games, el rendimiento, los errores y la observabilidad, y el cliente dejaron 33, con 16 confirmados y uno tumbado. Con esa ola queda leído todo el repositorio. Prioridad, de mayor a menor: corrección, seguridad, integridad, simplicidad, mantenibilidad, testabilidad, observabilidad, rendimiento.
+Orígenes: **A19** es la [auditoría del 2026-09-19](auditoria-codigo-2026-09-19.md), con su código de hallazgo o de tramo; **R06** es la revisión de arquitectura del 2026-10-06 (37 oportunidades; «verificado» quiere decir que un segundo lector intentó tumbarla y sobrevivió, «medido» que sale de un conteo reproducible). **D07** es el descubrimiento del 2026-10-07 (seguridad, módulos chicos e importadores, `npm audit` y escaneo de guards; «leído» quiere decir camino completo leído y no ejecutado) y **C1** es lo que apareció al implementar el ciclo 1 y **C2** lo que apareció al implementar y revisar el ciclo 2; **C3**, **C4**, **C5**, **C6**, **C7**, **C8**, **C9**, **C10**, **C11**, **C12**, **C13** y **C14** son lo mismo de los ciclos 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 y 14. **CF** es la clasificación final del 2026-10-09: un lector por lote leyó cada fila que seguía abierta contra el código de ese día y un segundo lector intentó tumbar lo que no quedó diferido, lo de riesgo alto y lo marcado como arreglo rápido; las filas con ese origen son lo que vieron de paso y no estaba anotado. **H07** es la auditoría de huecos del 2026-10-07: seis zonas que las revisiones anteriores no habían leído a fondo (esquema y base, datos personales, autorización, pruebas, permanencia y operación), cada una con un lector y un segundo lector que intentó tumbar los hallazgos de severidad alta y media. De sus 53 hallazgos, 24 de severidad alta o media quedaron confirmados y dos tumbados; los de severidad baja no pasaron por el segundo lector y van agrupados por zona. **H08** es la segunda ola, del 2026-10-08, con el mismo método: gamificación, crm, membresía y jobs dejaron 36 hallazgos, 20 de severidad media confirmados (el segundo lector bajó varios a baja) y ninguno tumbado; The Games, el rendimiento, los errores y la observabilidad, y el cliente dejaron 33, con 16 confirmados y uno tumbado. Con esa ola queda leído todo el repositorio. Prioridad, de mayor a menor: corrección, seguridad, integridad, simplicidad, mantenibilidad, testabilidad, observabilidad, rendimiento.
 
 ## Hallazgos
 
@@ -681,24 +681,50 @@ Lo que movió el ciclo 12: el primero de los refactors de estructura que tenían
 
 Lo que movió el ciclo 13: el segundo de los refactors de estructura que tenían spec, la interfaz pública de los módulos ([#238](https://github.com/Mateoloperaortiz/LaOE/issues/238)). El `index.ts` de trece módulos dejó de exportar los 517 nombres que ningún código de producción de fuera del módulo importaba, y se borraron los 21 que quedaron sin ningún uso. Los catorce `index.ts` pasaron de 1.550 nombres a 1.033, y los que producción no importa de afuera, de 626 a 109: 67 que solo importan las pruebas y 42 de `competition`, que no se tocó. Por eso baja la fila de exports, y `src` pierde 723 líneas. La fila nueva de esta tabla es la que mide los catorce `index.ts`. No cambia ninguna conducta. En `src` cambian 31 archivos, con 49 líneas agregadas y 772 quitadas.
 
+### Tras el ciclo 14 · 2026-10-12 · `refactor/ciclo-14`
+
+| Métrica | Valor |
+| --- | --- |
+| Archivos y líneas en `src` (sin el catálogo de textos) | 784 · 124726 |
+| Líneas en `src/app` · `src/modules` | 39889 · 77024 |
+| Funciones de más de 100 · 200 · 300 líneas (`src` y `scripts`) | 188 · 58 · 23 |
+| Funciones con complejidad mayor a 30 | 68 |
+| Archivos de más de 500 · 1000 líneas | 49 · 6 |
+| Exports de `participation` · `people` · `crm` (`index.ts`) | 192 · 175 · 94 |
+| Exports de los `index.ts` de los módulos: todos · sin consumidor de producción fuera del módulo · de esos, los que importa alguna prueba | 1039 · 107 · 67 |
+| Nombres de función de nivel superior declarados en 2 o más archivos de `src` | 96 |
+| `as unknown as` en `src` | 4 |
+| `tList(` · accesos posicionales `[n] ?? ""` en `src` | 674 · 372 |
+| `throw new Error(` en `src` | 139 |
+| `getDb()` en `src/modules` | 475 |
+| Eventos de dominio: en el catálogo · todavía emitidos como cadena suelta | 68 · 0 |
+| Elementos crudos en `src` (input · select · table · button) | 564 · 125 · 51 · 134 |
+| Tablas del esquema nombradas en el vaciado de pruebas (`tests/integration/db.ts`) | 4 |
+| Insert sueltos, `.insert(` · `insert into`: en `tests/integration` sin la fábrica · en `tests/e2e` | 57 · 19 · 2 · 1 |
+| Pruebas que nombran una simultaneidad en el título sin `warmPool` ni `helpers/locks` en su archivo · archivos | 7 · 5 |
+| Etiquetas por `indexOf` · recorridos por índice · índice en constante · pares `zip` (`src`) | 1 · 3 · 4 · 0 |
+| Otras lecturas por posición de una lista del catálogo: constante de posiciones · subíndice calculado · `Record` de `tLabels` leído con un número | 11 · 17 · 0 |
+
+Lo que movió el ciclo 14: el tercero de los refactors de estructura que tenían spec, las etiquetas de un enum leídas por valor ([#242](https://github.com/Mateoloperaortiz/LaOE/issues/242)). La etiqueta de un valor dejó de leerse por la posición del valor en una lista del catálogo de textos: `tLabels(código, ENUM)` da un `Record` del valor a su etiqueta y no compila si la lista y el enum tienen distinto largo. Hay 180 llamadas en 89 archivos, cada una con el respaldo que su sitio ya tenía, y ningún texto cambia. Por eso baja `tList(` de 837 a 674. Las dos filas nuevas de esta tabla miden lo que sigue leyendo por posición: al empezar el ciclo la primera daba `126 · 50 · 11 · 12`, y las ocho lecturas que quedan son pares de largo distinto o no son la etiqueta de un enum, cada una con su excepción y su razón en la prueba que las cuenta. En `src` cambian 108 archivos, con 837 líneas agregadas y 688 quitadas.
+
 ### Cierre del refactor · 2026-10-09
 
-Todo hallazgo quedó en uno de los cuatro estados finales. Las cifras están al día tras el ciclo 13 (2026-10-11). Son 363.
+Todo hallazgo quedó en uno de los cuatro estados finales. Las cifras están al día tras el ciclo 14 (2026-10-12). Son 376.
 
 | Prioridad | Resueltos | Diferidos | Aceptados | No eran deuda |
 | --- | --- | --- | --- | --- |
-| Corrección | 61 | 69 | 1 | 0 |
+| Corrección | 61 | 70 | 1 | 0 |
 | Seguridad | 33 | 24 | 3 | 0 |
 | Privacidad | 5 | 1 | 0 | 0 |
 | Integridad | 12 | 24 | 2 | 2 |
 | Simplicidad | 8 | 8 | 0 | 0 |
-| Mantenibilidad | 16 | 38 | 2 | 0 |
+| Mantenibilidad | 21 | 45 | 2 | 0 |
 | Testabilidad | 19 | 5 | 1 | 0 |
 | Observabilidad | 10 | 6 | 0 | 0 |
 | Rendimiento | 6 | 4 | 0 | 0 |
 | Sin prioridad | 0 | 0 | 0 | 3 |
-| **Total** | **170** | **179** | **9** | **5** |
+| **Total** | **175** | **187** | **9** | **5** |
 
-De los 179 diferidos, 116 nombran una decisión abierta que los destraba; los demás esperan una medición en staging o en producción, un ticket chico o un ciclo de estructura con su spec. Cada fila dice cuál en su nota de cierre, con el riesgo de dejarla así. «Resuelto» quiere decir corregido y verificado en su rama: ninguna está mezclada todavía.
+De los 187 diferidos, 119 nombran una decisión abierta que los destraba; los demás esperan una medición en staging o en producción, un ticket chico o un ciclo de estructura con su spec. Cada fila dice cuál en su nota de cierre, con el riesgo de dejarla así. «Resuelto» quiere decir corregido y verificado en su rama: ninguna está mezclada todavía.
 
 Medidas que el script no trae y que salen de la revisión del 2026-10-06: módulos de dominio en una componente circular, 7; archivos de prueba que insertan filas a mano, 82; transacciones fuera de `runCommand`, 28 en 18 archivos.
