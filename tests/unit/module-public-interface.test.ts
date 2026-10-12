@@ -258,10 +258,6 @@ const EXCEPTIONS: Exceptions = {
     `,
   },
   forms: {
-    nadie: `
-      FieldType
-      RESERVED_KEYS
-    `,
     "solo-pruebas": `
       createForm
       setFormActions

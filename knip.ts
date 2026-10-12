@@ -15,7 +15,6 @@ const config: KnipConfig = {
     "src/modules/competition/index.ts",
     "src/modules/content/index.ts",
     "src/modules/crm/index.ts",
-    "src/modules/forms/index.ts",
     "src/modules/participation/index.ts",
     "src/modules/people/index.ts",
     "src/modules/permanence/index.ts",

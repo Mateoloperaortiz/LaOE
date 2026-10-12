@@ -17,11 +17,6 @@ export const FIELD_TYPES = [
   "RATING",
 ] as const;
 
-export type FieldType = (typeof FIELD_TYPES)[number];
-
-/** Claves que, al crear la persona, se copian a sus datos (celular y programa). */
-export const RESERVED_KEYS = ["phone", "program"] as const;
-
 /** Nombre del campo trampa del formulario público: un humano no lo ve ni lo llena. */
 export const HONEYPOT_FIELD = "sitio_web";
 

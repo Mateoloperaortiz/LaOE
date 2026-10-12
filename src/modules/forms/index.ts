@@ -20,11 +20,9 @@ export {
 export {
   answersFromFormData,
   FIELD_TYPES,
-  type FieldType,
   type FormField,
   HONEYPOT_FIELD,
   parseFields,
-  RESERVED_KEYS,
   validateAnswers,
 } from "./domain/pure";
 export {
