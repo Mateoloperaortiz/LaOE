@@ -13,7 +13,7 @@ import {
 } from "@/modules/competition";
 import { CuentaRival } from "@/modules/competition/components/CuentaRival";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { formatTime } from "@/shared/lib/dates";
 import { judgePowerAction, judgeResultAction } from "../actions";
 
@@ -26,11 +26,11 @@ const points = (value: number) => value.toLocaleString("es-CO");
 const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
 
 export function powerLabel(power: Power): string {
-  return tList("T-3040")[POWER_TYPES.indexOf(power)] ?? power;
+  return tLabels("T-3040", POWER_TYPES)[power] ?? power;
 }
 
 function effectLabel(effect: Exclude<PowerEffect, "APPLIED">): string {
-  return tList("T-3047")[POWER_EFFECTS.indexOf(effect)] ?? effect;
+  return tLabels("T-3047", POWER_EFFECTS)[effect] ?? effect;
 }
 
 export function PowerMedal({ power, size = 48 }: { power: Power; size?: number }) {

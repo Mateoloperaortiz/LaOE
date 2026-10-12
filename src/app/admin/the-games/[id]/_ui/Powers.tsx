@@ -7,7 +7,7 @@ import {
 } from "@/modules/competition";
 import { ImportarPoderes } from "@/modules/competition/components/ImportarPoderes";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatTime } from "@/shared/lib/dates";
 import { importPowersAction } from "../actions";
 import { PowerMedal, powerLabel } from "./Judge";
@@ -22,13 +22,12 @@ const GRANT_STATES = ["ASSIGNED", "DELIVERED", "USED", "EXPIRED", "VOIDED"] as c
 export function Poderes({ context, board }: { context: PanelContext; board: PowerBoard }) {
   const days = tList("T-3048");
   const dayName = (day: number) => (days[day - 1] ?? String(day)).toLowerCase();
-  const states = tList("T-3046");
-  const stateOf = (grant: PowerBoardGrant) =>
-    states[GRANT_STATES.indexOf(grant.state)] ?? grant.state;
+  const states = tLabels("T-3046", GRANT_STATES);
+  const stateOf = (grant: PowerBoardGrant) => states[grant.state] ?? grant.state;
   const columns = tList("T-3078");
   const completeness = tList("T-3086");
   const useColumns = tList("T-3088");
-  const effects = tList("T-3047");
+  const effects = tLabels("T-3047", POWER_EFFECTS);
   const fields = tList("T-3119");
   const { totals } = board;
   return (
@@ -245,7 +244,7 @@ export function Poderes({ context, board }: { context: PanelContext; board: Powe
                     {use.status === "REVERTED"
                       ? t("T-3091", { motivo: use.revertReason ?? "" })
                       : use.effect
-                        ? effects[POWER_EFFECTS.indexOf(use.effect)]
+                        ? effects[use.effect]
                         : "—"}
                   </td>
                   <td className="py-2">
