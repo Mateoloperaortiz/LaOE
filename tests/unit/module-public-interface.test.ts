@@ -46,10 +46,6 @@ type Exceptions = Record<string, Partial<Record<ExceptionClass, string>>>;
 
 const EXCEPTIONS: Exceptions = {
   comms: {
-    nadie: `
-      NOTIFICATION_KINDS
-      hasPendingRecipients
-    `,
     "solo-pruebas": `
       DEFAULT_PREFERENCES
       createCampaignAs

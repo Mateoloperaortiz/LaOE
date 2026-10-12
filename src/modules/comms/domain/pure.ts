@@ -224,7 +224,6 @@ export function withoutAddresses(text: string): string {
 
 // El contrato del pedido vive en la capa neutral de eventos (ADR-084): lo emiten otros módulos.
 export {
-  NOTIFICATION_KINDS,
   NOTIFICATION_MAX_RECIPIENTS,
   type NotificationKind,
   type NotificationRequested,

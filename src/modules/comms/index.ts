@@ -4,7 +4,6 @@ export {
   createCampaignAs,
   estimateAudience,
   getCampaign,
-  hasPendingRecipients,
   listActiveCampaigns,
   listRecipients,
   processCampaignBatch,
@@ -24,7 +23,7 @@ export {
   unsubscribeTokenExists,
   updatePreferencesAs,
 } from "./domain/preferences";
-export { DEFAULT_PREFERENCES, NOTIFICATION_KINDS, splitPush } from "./domain/pure";
+export { DEFAULT_PREFERENCES, splitPush } from "./domain/pure";
 export {
   type CampaignHold,
   getCampaignBacklog,

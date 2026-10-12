@@ -880,18 +880,3 @@ export async function listRecipients(
     total: total?.n ?? 0,
   };
 }
-
-/** Sin destinatarios pendientes ni nada por enviar: para el aviso del detalle. */
-export async function hasPendingRecipients(campaignId: string): Promise<boolean> {
-  const [row] = await getDb()
-    .select({ n: count() })
-    .from(campaignRecipient)
-    .where(
-      and(
-        eq(campaignRecipient.campaignId, campaignId),
-        eq(campaignRecipient.status, "PENDING"),
-        isNull(campaignRecipient.sentAt),
-      ),
-    );
-  return (row?.n ?? 0) > 0;
-}
