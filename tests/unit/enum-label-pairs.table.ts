@@ -1241,6 +1241,24 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       own: true,
     },
     {
+      file: "src/app/admin/sistema/importaciones/page.tsx",
+      order: "IMPORT_GROUPS",
+      code: "T-482",
+      own: true,
+    },
+    {
+      file: "src/app/app/gh-points/retos/page.tsx",
+      order: "FILTROS",
+      code: "T-2448",
+      own: true,
+    },
+    {
+      file: "src/app/app/gh-points/_ui/PointsNav.tsx",
+      order: "HREFS",
+      code: "T-2402",
+      own: true,
+    },
+    {
       file: "src/app/admin/macroeventos/[slug]/page.tsx",
       order: "MACROEVENT_TABS",
       code: "T-2375",

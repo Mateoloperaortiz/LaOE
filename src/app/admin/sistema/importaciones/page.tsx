@@ -5,12 +5,15 @@ import { getPeopleByIds } from "@/modules/people";
 import { type ImportJobRow, listImportJobs } from "@/modules/system";
 import { listAllTerms } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 
 // Importaciones del roster y ensayos de migración (06-mapa-del-sitio.md): estado y resumen de cada una.
 
 export const metadata: Metadata = { title: t("T-426") };
+
+// Los cuatro grupos de la vista previa, en el orden de T-482.
+const IMPORT_GROUPS = ["NEW", "CHANGED", "UNCHANGED", "ERROR"] as const;
 
 const STATUS_INDEX: Record<ImportJobRow["status"], number> = {
   PREVIEW: 0,
@@ -30,10 +33,10 @@ function resumen(job: ImportJobRow): string {
   if (job.status === "APPLIED") {
     return t("T-487", { n: numero(summary, "created"), m: numero(summary, "updated") });
   }
-  const grupos = tList("T-482");
-  return (["NEW", "CHANGED", "UNCHANGED", "ERROR"] as const)
-    .map((key, index) => `${numero(summary, key)} ${(grupos[index] ?? key).toLowerCase()}`)
-    .join(" · ");
+  const grupos = tLabels("T-482", IMPORT_GROUPS);
+  return IMPORT_GROUPS.map(
+    (key) => `${numero(summary, key)} ${(grupos[key] ?? key).toLowerCase()}`,
+  ).join(" · ");
 }
 
 export default async function ImportacionesPage() {
