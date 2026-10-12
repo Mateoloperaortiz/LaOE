@@ -6,43 +6,50 @@ import {
   moduleInterfaces,
 } from "../../scripts/lib/module-interface-metrics";
 
-// El `index.ts` de un módulo es su interfaz pública (ADR-080 regla 1) y exporta más de lo que se usa
-// afuera (DT-012, spec #238). knip no lo avisa: toma cada `index.ts` como entrada y no mira los
-// exports de una entrada. Por eso esta prueba lee el código: por cada módulo de `src/modules` saca
-// los nombres que su `index.ts` exporta y que nadie de producción importa por nombre, y los compara
-// con `EXCEPTIONS`. Un nombre nuevo sin consumidor la pone en rojo, y una excepción que sobra también
-// (ADR-125 regla 1).
+// El `index.ts` de un módulo es su interfaz pública (ADR-080 regla 1) y exporta lo que se usa afuera:
+// lo que importa por nombre un archivo de `src`, `scripts` o `.railway` de fuera del módulo, o un
+// componente del propio módulo, que no puede importar `domain/` (regla `componentes-sin-servidor`).
+// Los tipos siguen el mismo criterio. Esta prueba lee el código y lo vigila: por cada módulo de
+// `src/modules` saca los nombres que su `index.ts` exporta y que nadie de producción importa así, y
+// los compara con `EXCEPTIONS`. Un nombre nuevo sin consumidor la pone en rojo, y una excepción que
+// sobra también (ADR-125 reglas 1 y 5). Lo que importa una prueba no cuenta como uso: decide la clase.
 //
-// Se queda en un `index.ts`, sin pasar por la lista, lo que importa por nombre un archivo de `src`,
-// `scripts` o `.railway` de fuera del módulo, o un componente del propio módulo, que no puede
-// importar `domain/` (regla `componentes-sin-servidor`). Los tipos siguen el mismo criterio. Lo que
-// importa una prueba no cuenta como uso: decide la clase.
+// La poda del ciclo 13 cerró (spec #238, DT-012): lo que no importaba nadie de afuera, ni las
+// pruebas, salió de los `index.ts`, y la lista dejó de admitirlo. Un nombre así no se exporta: se
+// importa de `domain/` dentro del módulo. Lo vigila también knip, que analiza los exports de trece
+// `index.ts` desde que salieron de `entry` en `knip.ts`, y esta prueba no deja que vuelvan.
 //
-// Cada excepción tiene su clase, y la clase dice qué espera:
+// En la lista queda solo lo que espera una decisión del dueño. Cada excepción tiene su clase, y la
+// clase es su motivo: dice qué decisión espera, y `WAITS` la nombra con su fila del ledger.
 //
-// - `nadie`: no lo importa nadie de afuera, ni las pruebas. Es lo que poda el ciclo 13, módulo por
-//   módulo (tickets 2 a 6 de la spec): sale del `index.ts` y de acá en el mismo commit.
-//   El módulo que se queda sin ninguno sale también, en ese commit, de `entry` en `knip.ts`: desde
-//   ahí knip analiza sus exports (ADR-125 regla 3).
 // - `solo-pruebas`: lo importa algún archivo de `tests/` y nadie más de afuera. Se queda en el
 //   `index.ts` hasta la decisión abierta 73, que dice por dónde entran las pruebas a esos nombres.
 // - `competition`: es de `competition` y no lo importa nadie de afuera. El módulo está quieto hasta
-//   la decisión abierta 8 (DT-044) y no se poda.
+//   la decisión abierta 8 y no se poda; por eso su `index.ts` es el único que knip toma de entrada.
 //
-// La clase no se elige: sale del código. Si una prueba empieza a importar un nombre de `nadie`, pasa
-// a `solo-pruebas`, y la prueba lo pide. La lista va por módulo, con un nombre por renglón y en el
-// orden de `sort()` (mayúsculas primero), para que podar sea borrar renglones.
-//
-// Antes de sumar un nombre acá: lo que nadie de afuera usa no se exporta, se importa de `domain/`
-// dentro del módulo. La lista es para lo que ya estaba y para lo que espera una decisión.
+// La clase no se elige: sale del código. Si la prueba que importaba un nombre de `solo-pruebas` deja
+// de hacerlo, el nombre pasa a no importarlo nadie y sale del `index.ts`. La lista va por módulo, con
+// un nombre por renglón y en el orden de `sort()` (mayúsculas primero), para que podar sea borrar
+// renglones.
 
-type ExceptionClass = "nadie" | "solo-pruebas" | "competition";
+/** La clase de un nombre que producción no importa de afuera. Sale del código. */
+type FoundClass = "nadie" | "solo-pruebas" | "competition";
+/** Las clases que la lista admite: las que esperan una decisión. `nadie` cerró con la poda. */
+type ExceptionClass = Exclude<FoundClass, "nadie">;
 
-const CLASSES: ExceptionClass[] = ["nadie", "solo-pruebas", "competition"];
+/** El motivo de cada clase: la decisión abierta que espera y su fila del ledger. */
+const WAITS: Record<ExceptionClass, { decision: number; ledger: string }> = {
+  "solo-pruebas": { decision: 73, ledger: "DT-359" },
+  competition: { decision: 8, ledger: "DT-360" },
+};
+
+const CLASSES = Object.keys(WAITS) as ExceptionClass[];
 /** El módulo que no se poda mientras la decisión abierta 8 no diga otra cosa. */
 const QUIET_MODULE = "competition";
 
 type Exceptions = Record<string, Partial<Record<ExceptionClass, string>>>;
+/** Una lista como llega escrita, antes de comprobar que sus clases son de las que se admiten. */
+type WrittenExceptions = Record<string, Partial<Record<string, string>>>;
 
 const EXCEPTIONS: Exceptions = {
   comms: {
@@ -215,31 +222,50 @@ function namesOf(list: string | undefined): string[] {
 }
 
 /** La clase sale del código: quién importa el nombre y de qué módulo es. */
-function classOf(found: ModuleInterface, name: string): ExceptionClass {
+function classOf(found: ModuleInterface, name: string): FoundClass {
   if (found.testOnly.includes(name)) {
     return "solo-pruebas";
   }
   return found.module === QUIET_MODULE ? "competition" : "nadie";
 }
 
-/** Lo que separa a la lista del código, una frase por nombre; vacío cuando coinciden. */
-function mismatches(modules: ModuleInterface[], exceptions: Exceptions): string[] {
+/**
+ * Lo que separa a la lista del código, una frase por caso; vacío cuando coinciden. Falla cerrado:
+ * una clase que no espera una decisión se rechaza, aunque sus nombres coincidan con el código, y un
+ * nombre que no importa nadie de afuera no tiene clase donde entrar (ADR-125 regla 5).
+ */
+function mismatches(modules: ModuleInterface[], exceptions: WrittenExceptions): string[] {
   const problems: string[] = [];
+  const admitted = CLASSES.map((kind) => `«${kind}»`).join(" y ");
   for (const found of modules) {
+    const written = Object.entries(exceptions[found.module] ?? {});
+    for (const [kind] of written) {
+      if (!(kind in WAITS)) {
+        problems.push(
+          `${found.module}: la lista no admite la clase «${kind}»: solo guarda lo que espera una decisión (${admitted})`,
+        );
+      }
+    }
     const listed = new Map(
-      CLASSES.flatMap((kind) =>
-        namesOf(exceptions[found.module]?.[kind]).map((name) => [name, kind] as const),
-      ),
+      written.flatMap(([kind, names]) => namesOf(names).map((name) => [name, kind] as const)),
     );
     for (const name of found.unused) {
       const kind = classOf(found, name);
-      const written = listed.get(name);
-      if (!written) {
+      const where = listed.get(name);
+      if (where === kind) {
+        continue;
+      }
+      if (where) {
+        problems.push(`${found.module}: \`${name}\` está como «${where}» y hoy es «${kind}»`);
+      } else if (kind === "nadie") {
         problems.push(
-          `${found.module}: \`${name}\` se exporta y nadie de producción lo importa de afuera; no está en la lista (sería «${kind}»)`,
+          `${found.module}: \`${name}\` se exporta y no lo importa nadie de afuera, ni las pruebas: sale del \`index.ts\` (la lista no admite «nadie»: la poda cerró)`,
         );
-      } else if (written !== kind) {
-        problems.push(`${found.module}: \`${name}\` está como «${written}» y hoy es «${kind}»`);
+      } else {
+        const { decision, ledger } = WAITS[kind];
+        problems.push(
+          `${found.module}: \`${name}\` se exporta y nadie de producción lo importa de afuera; no está en la lista (sería «${kind}», que espera la decisión abierta ${decision}, ${ledger})`,
+        );
       }
     }
     for (const [name, kind] of listed) {
@@ -298,10 +324,15 @@ const REACHES_SRC = /^(\.\/)?(src\b|[*{?[!])/;
 
 /**
  * Lo que separa a `entry` de `knip.ts` de la lista, una frase por caso; vacío cuando coinciden.
- * knip no analiza los exports de una entrada, así que el `index.ts` de un módulo es entrada solo
- * mientras le quede algo en `nadie` o en `competition` (ADR-125 regla 3).
+ * knip no analiza los exports de una entrada, así que el `index.ts` de un módulo es entrada solo si
+ * tiene nombres en la clase `competition`: los marcaría en cuanto saliera. Ninguna otra clase deja a
+ * un módulo de entrada, tampoco una que la lista no admite (ADR-125 reglas 3 y 5).
  */
-function entryMismatches(entry: string[], modules: string[], exceptions: Exceptions): string[] {
+function entryMismatches(
+  entry: string[],
+  modules: string[],
+  exceptions: WrittenExceptions,
+): string[] {
   const problems: string[] = [];
   const named: string[] = [];
   for (const pattern of entry) {
@@ -317,16 +348,14 @@ function entryMismatches(entry: string[], modules: string[], exceptions: Excepti
     }
   }
   for (const module of modules) {
-    const pending = (["nadie", "competition"] as const).some(
-      (kind) => namesOf(exceptions[module]?.[kind]).length > 0,
-    );
-    if (pending && !named.includes(module)) {
+    const quiet = namesOf(exceptions[module]?.competition).length > 0;
+    if (quiet && !named.includes(module)) {
       problems.push(
-        `${module}: le queda algo por podar y su \`index.ts\` no está en \`entry\` de knip`,
+        `${module}: tiene nombres en «competition» y su \`index.ts\` no está en \`entry\` de knip, que así los marcaría`,
       );
-    } else if (!pending && named.includes(module)) {
+    } else if (!quiet && named.includes(module)) {
       problems.push(
-        `${module}: no le queda nada por podar y su \`index.ts\` sigue en \`entry\` de knip, que así no analiza sus exports`,
+        `${module}: no tiene nada en «competition» y su \`index.ts\` sigue en \`entry\` de knip, que así no analiza sus exports`,
       );
     }
   }
@@ -404,13 +433,30 @@ const HOUSE_TESTS = [
     ),
   ),
 ];
+// La misma casa después de la poda: el `index.ts` de `alpha` ya no exporta lo que no importaba nadie
+// de afuera, y a lo que exporta `beta` le salió un consumidor.
+const PRUNED_HOUSE = [
+  ...HOUSE.filter((source) => source.path !== "src/modules/alpha/index.ts"),
+  file(
+    "src/modules/alpha/index.ts",
+    lines(
+      'export { aliased, onlyOwn, onlyTests, reexported, used } from "./domain/things";',
+      'export type { QueriedType, UsedType } from "./domain/things";',
+      'export { fromStar, starTwo } from "./domain/star";',
+      'export type { StarType } from "./domain/star";',
+    ),
+  ),
+  file("src/app/beta/page.tsx", 'import { reexported } from "@/modules/beta";'),
+];
 const HOUSE_EXCEPTIONS: Exceptions = {
-  alpha: {
-    nadie: "UnusedType nobody onlyDomain renamed starOne",
-    "solo-pruebas": "onlyTests starTwo",
-  },
-  beta: { nadie: "reexported" },
+  alpha: { "solo-pruebas": "onlyTests starTwo" },
 };
+/** El aviso de un nombre que no importa nadie de afuera, ni las pruebas: no cabe en la lista. */
+const nobodyImports = (module: string, name: string) =>
+  `${module}: \`${name}\` se exporta y no lo importa nadie de afuera, ni las pruebas: sale del \`index.ts\` (la lista no admite «nadie»: la poda cerró)`;
+/** El aviso de una clase que la lista no admite. */
+const classRefused = (module: string, kind: string) =>
+  `${module}: la lista no admite la clase «${kind}»: solo guarda lo que espera una decisión («solo-pruebas» y «competition»)`;
 
 const production = PRODUCTION_DIRS.flatMap(sources);
 const tests = sources("tests");
@@ -430,14 +476,29 @@ describe("la interfaz pública de los módulos, sobre el código de hoy", () => 
     expect(today.modules.filter((found) => found.exported.length === 0)).toEqual([]);
   });
 
-  it("knip toma de entrada el index.ts de un módulo solo mientras le queda algo por podar, y los nombra uno por uno: el que vacía su clase «nadie» sale de la lista", () => {
+  it("de los index.ts, knip solo toma de entrada el de competition, que está quieto: los otros trece salieron con la poda y knip analiza sus exports", () => {
+    const entry = knipEntries(readFileSync("knip.ts", "utf8"));
     expect(
       entryMismatches(
-        knipEntries(readFileSync("knip.ts", "utf8")),
+        entry,
         today.modules.map((found) => found.module),
         EXCEPTIONS,
       ),
     ).toEqual([]);
+    expect(entry.filter((pattern) => MODULE_ENTRY.test(pattern))).toEqual([
+      `src/modules/${QUIET_MODULE}/index.ts`,
+    ]);
+  });
+
+  it("la poda cerró: ningún index.ts exporta un nombre que no importe nadie de afuera, ni las pruebas, y en la lista solo queda lo que espera una decisión", () => {
+    const nobody = today.modules.flatMap((found) =>
+      found.unused
+        .filter((name) => classOf(found, name) === "nadie")
+        .map((name) => `${found.module}: ${name}`),
+    );
+    expect(nobody).toEqual([]);
+    const written = new Set(Object.values(EXCEPTIONS).flatMap((classes) => Object.keys(classes)));
+    expect([...written].sort()).toEqual(["competition", "solo-pruebas"]);
   });
 
   it("cada nombre de la lista está una sola vez en su módulo y en orden", () => {
@@ -477,14 +538,27 @@ describe("la interfaz pública de los módulos, sobre el código de hoy", () => 
     expect(stale[0]).toContain("sobrescribe `seededKey`, que @/modules/competition no exporta");
   });
 
-  it("un export sembrado en un index.ts de verdad, sin tocar el archivo, cae fuera de la lista", () => {
-    const seeded = production.map((source) =>
-      source.path === "src/modules/terms/index.ts"
-        ? file(source.path, `${source.text}\nexport { seededExport } from "./domain/terms";\n`)
-        : source,
-    );
-    expect(mismatches(moduleInterfaces(seeded, tests).modules, EXCEPTIONS)).toEqual([
-      "terms: `seededExport` se exporta y nadie de producción lo importa de afuera; no está en la lista (sería «nadie»)",
+  it("un export sembrado en un index.ts de verdad, sin tocar el archivo, pone la lista en rojo, y no se tapa escribiéndolo en la lista ni devolviendo el módulo a la entrada de knip", () => {
+    const seeded = moduleInterfaces(
+      production.map((source) =>
+        source.path === "src/modules/terms/index.ts"
+          ? file(source.path, `${source.text}\nexport { seededExport } from "./domain/terms";\n`)
+          : source,
+      ),
+      tests,
+    ).modules;
+    expect(mismatches(seeded, EXCEPTIONS)).toEqual([nobodyImports("terms", "seededExport")]);
+
+    const covered = { ...EXCEPTIONS, terms: { ...EXCEPTIONS.terms, nadie: "seededExport" } };
+    expect(mismatches(seeded, covered)).toEqual([classRefused("terms", "nadie")]);
+    expect(
+      entryMismatches(
+        [...knipEntries(readFileSync("knip.ts", "utf8")), "src/modules/terms/index.ts"],
+        seeded.map((found) => found.module),
+        covered,
+      ),
+    ).toEqual([
+      "terms: no tiene nada en «competition» y su `index.ts` sigue en `entry` de knip, que así no analiza sus exports",
     ]);
   });
 });
@@ -534,15 +608,16 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
   });
 
   it("un export nuevo que nadie importa pone la lista en rojo, y deja de hacerlo cuando alguien de afuera lo importa", () => {
-    expect(mismatches(moduleInterfaces(HOUSE, HOUSE_TESTS).modules, HOUSE_EXCEPTIONS)).toEqual([]);
+    const pruned = moduleInterfaces(PRUNED_HOUSE, HOUSE_TESTS).modules;
+    expect(mismatches(pruned, HOUSE_EXCEPTIONS)).toEqual([]);
 
-    const seeded = HOUSE.map((source) =>
+    const seeded = PRUNED_HOUSE.map((source) =>
       source.path === "src/modules/alpha/index.ts"
         ? file(source.path, `${source.text}\nexport { seeded } from "./domain/things";`)
         : source,
     );
     expect(mismatches(moduleInterfaces(seeded, HOUSE_TESTS).modules, HOUSE_EXCEPTIONS)).toEqual([
-      "alpha: `seeded` se exporta y nadie de producción lo importa de afuera; no está en la lista (sería «nadie»)",
+      nobodyImports("alpha", "seeded"),
     ]);
 
     const consumed = [
@@ -554,49 +629,79 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
     );
   });
 
-  it("una excepción que sobra, una que quedó en otra clase y un módulo que no existe ponen la lista en rojo", () => {
-    const listed: Exceptions = {
-      alpha: {
-        nadie: "UnusedType nobody onlyDomain onlyTests renamed starOne used gone",
-        "solo-pruebas": "starTwo",
-      },
-      beta: { nadie: "reexported" },
-      gamma: { nadie: "anything" },
-    };
-    expect(mismatches(moduleInterfaces(HOUSE, HOUSE_TESTS).modules, listed)).toEqual([
-      "alpha: `onlyTests` está como «nadie» y hoy es «solo-pruebas»",
-      "alpha: `used` sobra en «nadie»: ya lo importa producción de afuera o un componente del módulo",
-      "alpha: `gone` sobra en «nadie»: el `index.ts` ya no lo exporta",
-      "gamma: está en la lista y no es un módulo de `src/modules`",
+  it("la lista no guarda lo que no importa nadie: la casa sin podar cae en rojo nombre por nombre, y una clase que no espera una decisión se rechaza aunque sus nombres coincidan con el código", () => {
+    const unpruned = moduleInterfaces(HOUSE, HOUSE_TESTS).modules;
+    expect(mismatches(unpruned, HOUSE_EXCEPTIONS)).toEqual([
+      nobodyImports("alpha", "UnusedType"),
+      nobodyImports("alpha", "nobody"),
+      nobodyImports("alpha", "onlyDomain"),
+      nobodyImports("alpha", "renamed"),
+      nobodyImports("alpha", "starOne"),
+      nobodyImports("beta", "reexported"),
+    ]);
+    expect(
+      mismatches(unpruned, {
+        alpha: {
+          nadie: "UnusedType nobody onlyDomain renamed starOne",
+          "solo-pruebas": "onlyTests starTwo",
+        },
+        beta: { nadie: "reexported", pendiente: "" },
+      }),
+    ).toEqual([
+      classRefused("alpha", "nadie"),
+      classRefused("beta", "nadie"),
+      classRefused("beta", "pendiente"),
     ]);
   });
 
-  it("la entrada de knip sigue a la lista: un patrón, un módulo podado que sigue de entrada, uno con nombres por podar que falta, uno repetido y uno que no existe la ponen en rojo", () => {
+  it("una excepción que sobra, una que perdió la prueba que la importaba y un módulo que no existe ponen la lista en rojo", () => {
+    const listed: Exceptions = {
+      alpha: { "solo-pruebas": "gone onlyTests starTwo used" },
+      gamma: { "solo-pruebas": "anything" },
+    };
+    expect(mismatches(moduleInterfaces(PRUNED_HOUSE, HOUSE_TESTS).modules, listed)).toEqual([
+      "alpha: `gone` sobra en «solo-pruebas»: el `index.ts` ya no lo exporta",
+      "alpha: `used` sobra en «solo-pruebas»: ya lo importa producción de afuera o un componente del módulo",
+      "gamma: está en la lista y no es un módulo de `src/modules`",
+    ]);
+    expect(mismatches(moduleInterfaces(PRUNED_HOUSE, []).modules, HOUSE_EXCEPTIONS)).toEqual([
+      "alpha: `onlyTests` está como «solo-pruebas» y hoy es «nadie»",
+      "alpha: `starTwo` está como «solo-pruebas» y hoy es «nadie»",
+    ]);
+  });
+
+  it("la entrada de knip sigue a la lista: solo entra el index.ts del módulo con nombres en «competition»; un patrón, un módulo podado que sigue de entrada, el quieto que falta, uno repetido y uno que no existe la ponen en rojo", () => {
     const modules = ["alpha", "beta", "competition", "gamma"];
     const exceptions: Exceptions = {
-      alpha: { nadie: "nobody", "solo-pruebas": "onlyTests" },
-      beta: { "solo-pruebas": "tested" },
+      alpha: { "solo-pruebas": "onlyTests" },
       competition: { competition: "quiet" },
     };
     const index = (module: string) => `src/modules/${module}/index.ts`;
     const elsewhere = ["scripts/bench.ts", "tests/e2e/auth.setup.ts", ".railway/**/*.ts"];
-    expect(
-      entryMismatches([...elsewhere, index("alpha"), index("competition")], modules, exceptions),
-    ).toEqual([]);
-    expect(entryMismatches([], ["beta", "gamma"], exceptions)).toEqual([]);
+    const stays = (module: string) =>
+      `${module}: no tiene nada en «competition» y su \`index.ts\` sigue en \`entry\` de knip, que así no analiza sus exports`;
+    const missing =
+      "competition: tiene nombres en «competition» y su `index.ts` no está en `entry` de knip, que así los marcaría";
+    const pattern = (entry: string) =>
+      `\`${entry}\`: una entrada de knip que alcanza \`src\` nombra el \`index.ts\` de un módulo, no un patrón ni otro archivo`;
+    expect(entryMismatches([...elsewhere, index("competition")], modules, exceptions)).toEqual([]);
+    expect(entryMismatches([], ["alpha", "beta", "gamma"], exceptions)).toEqual([]);
 
     expect(entryMismatches(["src/modules/*/index.ts"], modules, exceptions)).toEqual([
-      "`src/modules/*/index.ts`: una entrada de knip que alcanza `src` nombra el `index.ts` de un módulo, no un patrón ni otro archivo",
-      "alpha: le queda algo por podar y su `index.ts` no está en `entry` de knip",
-      "competition: le queda algo por podar y su `index.ts` no está en `entry` de knip",
+      pattern("src/modules/*/index.ts"),
+      missing,
     ]);
-    for (const pattern of ["**/index.ts", "{src,scripts}/**/*.ts", "src/modules/alpha/admin.ts"]) {
-      expect(
-        entryMismatches([pattern, index("alpha"), index("competition")], modules, exceptions),
-      ).toEqual([
-        `\`${pattern}\`: una entrada de knip que alcanza \`src\` nombra el \`index.ts\` de un módulo, no un patrón ni otro archivo`,
+    for (const entry of ["**/index.ts", "{src,scripts}/**/*.ts", "src/modules/alpha/admin.ts"]) {
+      expect(entryMismatches([entry, index("competition")], modules, exceptions)).toEqual([
+        pattern(entry),
       ]);
     }
+    // Lo que solo importan las pruebas no deja a un módulo de entrada, y escribirle «nadie» tampoco.
+    const both = [index("alpha"), index("competition")];
+    expect(entryMismatches(both, modules, exceptions)).toEqual([stays("alpha")]);
+    expect(entryMismatches(both, modules, { ...exceptions, alpha: { nadie: "nobody" } })).toEqual([
+      stays("alpha"),
+    ]);
     expect(
       entryMismatches(
         [index("alpha"), index("beta"), index("gamma"), index("alpha"), index("delta")],
@@ -605,9 +710,10 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
       ),
     ).toEqual([
       "alpha: su `index.ts` está dos veces en `entry` de knip",
-      "beta: no le queda nada por podar y su `index.ts` sigue en `entry` de knip, que así no analiza sus exports",
-      "competition: le queda algo por podar y su `index.ts` no está en `entry` de knip",
-      "gamma: no le queda nada por podar y su `index.ts` sigue en `entry` de knip, que así no analiza sus exports",
+      stays("alpha"),
+      stays("beta"),
+      missing,
+      stays("gamma"),
       "delta: está en `entry` de knip y no es un módulo de `src/modules`",
     ]);
   });
@@ -647,7 +753,7 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
     expect(() => knipEntries(config(""))).toThrow("no es una lista escrita ahí");
   });
 
-  it("lo de competition que nadie importa va en su propia clase, y lo que solo importa una prueba, en solo-pruebas", () => {
+  it("lo de competition que nadie importa va en su propia clase, y lo que solo importa una prueba, en solo-pruebas: el que quedó en la otra pone la lista en rojo, y el que falta sale con la decisión que espera su clase", () => {
     const { modules } = moduleInterfaces(
       [file("src/modules/competition/index.ts", 'export { quiet, tested } from "./domain/hub";')],
       [file("tests/unit/hub.test.ts", 'import { tested } from "@/modules/competition";')],
@@ -655,9 +761,15 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
     expect(
       mismatches(modules, { competition: { competition: "quiet", "solo-pruebas": "tested" } }),
     ).toEqual([]);
-    expect(mismatches(modules, { competition: { nadie: "quiet tested" } })).toEqual([
-      "competition: `quiet` está como «nadie» y hoy es «competition»",
-      "competition: `tested` está como «nadie» y hoy es «solo-pruebas»",
+    expect(
+      mismatches(modules, { competition: { competition: "tested", "solo-pruebas": "quiet" } }),
+    ).toEqual([
+      "competition: `quiet` está como «solo-pruebas» y hoy es «competition»",
+      "competition: `tested` está como «competition» y hoy es «solo-pruebas»",
+    ]);
+    expect(mismatches(modules, {})).toEqual([
+      "competition: `quiet` se exporta y nadie de producción lo importa de afuera; no está en la lista (sería «competition», que espera la decisión abierta 8, DT-360)",
+      "competition: `tested` se exporta y nadie de producción lo importa de afuera; no está en la lista (sería «solo-pruebas», que espera la decisión abierta 73, DT-359)",
     ]);
   });
 
