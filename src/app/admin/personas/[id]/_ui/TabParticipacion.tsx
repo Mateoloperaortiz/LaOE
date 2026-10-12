@@ -13,7 +13,7 @@ import {
   POINT_ENTRY_KINDS,
 } from "@/modules/participation";
 import { Bloque } from "@/shared/admin-kit/AdminFields";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 
 // Pestaña Participación de la Persona 360 (02-crm.md, ADR-035): check-ins con ocasión, fuente y
@@ -37,9 +37,11 @@ export function TabParticipacion({
   boosters: BoosterView[];
 }) {
   const [tituloCheckIns, tituloMovimientos] = tList("T-668");
-  const statusLabels = tList("T-597");
-  const sourceLabels = tList("T-596");
-  const kindLabels = tList("T-085");
+  const statusLabels = tLabels("T-597", CHECK_IN_STATUSES);
+  const sourceLabels = tLabels("T-596", CHECK_IN_SOURCES);
+  const kindLabels = tLabels("T-085", POINT_ENTRY_KINDS);
+  const boosterKinds = tLabels("T-2451", BOOSTER_KINDS);
+  const boosterStates = tLabels("T-2455", BOOSTER_STATES);
   const columns = tList("T-595");
   const ledgerColumns = tList("T-623");
   return (
@@ -99,10 +101,10 @@ export function TabParticipacion({
                         {formatDateTime(item.at)}
                       </td>
                       <td data-label={columns[3]} className="py-2 pr-4">
-                        {sourceLabels[CHECK_IN_SOURCES.indexOf(item.source)] ?? item.source}
+                        {sourceLabels[item.source] ?? item.source}
                       </td>
                       <td data-label={columns[4]} className="py-2 pr-4">
-                        {statusLabels[CHECK_IN_STATUSES.indexOf(item.status)] ?? item.status}
+                        {statusLabels[item.status] ?? item.status}
                       </td>
                     </tr>
                   );
@@ -147,7 +149,7 @@ export function TabParticipacion({
                       {termCodes.get(entry.termId) ?? ""}
                     </td>
                     <td data-label={ledgerColumns[3]} className="py-2 pr-4">
-                      {kindLabels[POINT_ENTRY_KINDS.indexOf(entry.kind)] ?? entry.kind}
+                      {kindLabels[entry.kind] ?? entry.kind}
                     </td>
                     <td
                       data-label={ledgerColumns[4]}
@@ -180,10 +182,8 @@ export function TabParticipacion({
             ))}
             {boosters.map((item) => (
               <li key={item.id} className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold">
-                  {tList("T-2451")[BOOSTER_KINDS.indexOf(item.kind)] ?? item.kind}
-                </span>
-                <span>{tList("T-2455")[BOOSTER_STATES.indexOf(item.state)] ?? item.state}</span>
+                <span className="font-semibold">{boosterKinds[item.kind] ?? item.kind}</span>
+                <span>{boosterStates[item.state] ?? item.state}</span>
                 <span className="text-tinta-suave">
                   {t("T-2456", { fecha: formatDateTime(item.expiresAt) })}
                 </span>

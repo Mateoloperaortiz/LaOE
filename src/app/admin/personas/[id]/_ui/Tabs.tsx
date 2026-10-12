@@ -17,7 +17,7 @@ import { Bloque, Dato } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, formatDateTime } from "@/shared/lib/dates";
 import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { MinusIcon } from "@/shared/ui/icons/MinusIcon";
@@ -92,12 +92,13 @@ export function TabLinea({
   actorId: string;
 }) {
   const filtros = tList("T-454");
+  const filtroLabels = tLabels("T-454", TIMELINE_FILTERS);
   const [, editar, editada] = tList("T-456");
   const base = `/admin/personas/${personId}?pestana=linea`;
   return (
     <div className="flex flex-col gap-4">
       <nav aria-label={filtros[0]} className="flex flex-wrap gap-2">
-        {TIMELINE_FILTERS.map((key, index) => (
+        {TIMELINE_FILTERS.map((key) => (
           <Link
             key={key}
             href={key === "ALL" ? base : `${base}&tipo=${key}`}
@@ -106,7 +107,7 @@ export function TabLinea({
               key === filter ? "bg-oe-navy text-oe-paper" : "border border-borde text-titulo"
             }`}
           >
-            {filtros[index] ?? key}
+            {filtroLabels[key] ?? key}
           </Link>
         ))}
       </nav>
