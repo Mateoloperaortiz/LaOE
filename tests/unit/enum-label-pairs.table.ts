@@ -2,6 +2,7 @@
 // tupla que hace sus veces) y una lista del catálogo de textos que el código empareja por posición
 // (DT-011, ADR-126 regla 1). `positions` dice qué posición LITERAL de la lista lee hoy cada valor.
 // No se compara ninguna redacción: un texto de docs/14-copy-y-textos.md cambia sin tocar esta tabla.
+import { areaLabel } from "@/app/admin/comites/[slug]/_ui/Areas";
 import { END_REASONS, TABS, TIMELINE_FILTERS } from "@/app/admin/personas/[id]/_ui/etiquetas";
 import {
   campaignStatusLabel,
@@ -71,7 +72,7 @@ import {
 import { SUDOKU_DIFFICULTIES } from "@/modules/participation/sudoku-engine";
 import { statusLabel as memberStatusLabel, stageLabel } from "@/modules/people/admin";
 import { APPOINTMENT_KINDS, appointmentLabel } from "@/modules/people/domain/appointments";
-import { COMMITTEE_CAPABILITIES } from "@/modules/people/domain/capabilities";
+import { COMMITTEE_AREAS, COMMITTEE_CAPABILITIES } from "@/modules/people/domain/capabilities";
 import { CONSENT_PURPOSES } from "@/modules/people/domain/consents";
 import { INHABILITY_CODES, inhabilityLabels } from "@/modules/people/domain/inhabilities-pure";
 import { SANCTION_KINDS } from "@/modules/people/domain/sanction-pure";
@@ -85,6 +86,7 @@ import { tLabels, type tList } from "@/shared/copy";
 
 const LABELS = {
   appointment: (value) => appointmentLabel({ kind: value as never, title: null }),
+  area: (value) => areaLabel(value as never),
   approvalStatus: (value) => approvalStatusLabel(value as never),
   award: (value) => awardLabel(value),
   budgetKind: (value) => budgetKindLabel(value as never),
@@ -904,6 +906,16 @@ export const UNSEEN_PAIRS: readonly LabelPair[] = [
     order: "IMPORT_GROUPS",
     positions: { NEW: 0, CHANGED: 1, UNCHANGED: 2, ERROR: 3 },
     copies: ["src/app/admin/sistema/importaciones/page.tsx"],
+  },
+  // El área de un comité (DT-370): `areaLabel` busca la clave en `COMMITTEE_AREAS`, un arreglo de
+  // objetos, con `findIndex`. Ninguna expresión de la spec lo ve y no hay tupla de las claves: el
+  // orden es el de ese arreglo.
+  {
+    code: "T-2174",
+    order: "COMMITTEE_AREAS",
+    positions: { personas: 0, actividades: 1, comunicacion: 2, aliados: 3, finanzas: 4 },
+    canonical: COMMITTEE_AREAS.map((area) => area.key),
+    label: LABELS.area,
   },
   {
     code: "T-567",

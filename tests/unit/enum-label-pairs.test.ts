@@ -128,12 +128,13 @@ const inlineCopies = copies.filter(
 );
 
 describe("la tabla de los pares", () => {
-  it("trae los 85 pares que salen de las expresiones de la spec y 18 que esas expresiones no ven", () => {
+  it("trae los 85 pares que salen de las expresiones de la spec y 19 que esas expresiones no ven", () => {
     expect(PAIRS).toHaveLength(81);
     expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(3);
     // El que completa los 85 es el par de largo distinto que la migración deshizo.
     expect(UNDONE_UNEVEN_PAIRS).toHaveLength(1);
-    expect(UNSEEN_PAIRS).toHaveLength(17);
+    // Dieciocho uno a uno y el de largo distinto de abajo; el de T-2174 entró con DT-370.
+    expect(UNSEEN_PAIRS).toHaveLength(18);
     expect(UNEVEN_PAIRS.filter((pair) => !pair.seen)).toHaveLength(1);
   });
 
