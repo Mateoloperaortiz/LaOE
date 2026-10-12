@@ -404,27 +404,28 @@ function usesOf(
     const module = node && ts.isStringLiteralLike(node) ? moduleBehind(file.path, node.text) : null;
     return module && modules.has(module) ? module : null;
   };
-  const take = (node: ts.Node, module: string, names: string[] | null) => {
-    const start = node.getStart(source);
-    const use = {
-      path: file.path,
-      module,
-      line: source.getLineAndCharacterOfPosition(start).line + 1,
-    };
+  /** Dónde está escrito un uso del `index.ts` de un módulo. */
+  const locate = (node: ts.Node, module: string) => ({
+    path: file.path,
+    module,
+    line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+  });
+  /** Anota un uso: con sus nombres o, si no se pueden leer (`null`), como opaco con su renglón. */
+  const record = (node: ts.Node, module: string, names: string[] | null) => {
+    const use = locate(node, module);
     if (names) {
       uses.named.push(...names.map((name) => ({ ...use, name })));
     } else {
-      const [how = ""] = source.text.slice(start, node.end).split("\n");
+      const [how = ""] = source.text.slice(node.getStart(source), node.end).split("\n");
       uses.opaque.push({ ...use, how: how.trim() });
     }
-    return use;
   };
   // `mocked` es el módulo cuya carga no cuenta en este tramo: el que simula el `vi.mock` de afuera.
   const visit = (node: ts.Node, mocked: string | null): void => {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
       const module = moduleAt(node.moduleSpecifier);
       if (module) {
-        take(node, module, namedBindings(node));
+        record(node, module, namedBindings(node));
       }
       return;
     }
@@ -437,7 +438,7 @@ function usesOf(
           : null);
       if (module) {
         const names = mockedNames(factory, { source, module, files });
-        uses.mocks.push({ ...take(node, module, []), names });
+        uses.mocks.push({ ...locate(node, module), names });
         ts.forEachChild(node, (child) => visit(child, module));
         return;
       }
@@ -445,7 +446,7 @@ function usesOf(
       const module = moduleAt(node.arguments[0]);
       if (module) {
         if (module !== mocked) {
-          take(node, module, destructured(node));
+          record(node, module, destructured(node));
         }
         // El tipo que acompaña a la carga (`vi.importActual<typeof import("…")>("…")`) no es otro uso.
         ts.forEachChild(node, (child) => visit(child, module));
@@ -459,7 +460,7 @@ function usesOf(
         while (name && ts.isQualifiedName(name)) {
           name = name.left;
         }
-        take(node, module, name ? [name.text] : null);
+        record(node, module, name ? [name.text] : null);
       }
     }
     ts.forEachChild(node, (child) => visit(child, mocked));
