@@ -299,23 +299,7 @@ const EXCEPTIONS: Exceptions = {
   },
   identity: {
     nadie: `
-      AccessGrantReading
-      CALENDAR_TOKEN
       CARNET_TOKEN
-      CarnetCredential
-      CarnetReading
-      CarnetVerification
-      IssuedAccessGrant
-      NotAuthenticatedError
-      StepUpRequiredError
-      assertLeader
-      assertStepUp
-      deleteCarnetTokenFor
-      destroySessionsFor
-      resolveCarnetToken
-      verifyCarnet
-      verifyStepUp
-      verifyStepUpPassword
     `,
     "solo-pruebas": `
       CarnetMetadata
