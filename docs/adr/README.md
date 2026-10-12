@@ -19,7 +19,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) | Reglas de alcance y corrección del décimo ciclo del refactor | Aceptada (enmendada por ADR-123) |
 | [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) | Reglas de estructura y pruebas del noveno ciclo del refactor | Aceptada (enmendada por ADR-122 y ADR-123) |
 | [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) | Reglas de corrección del octavo ciclo del refactor | Aceptada (enmendada por ADR-121, ADR-122 y ADR-123) |
-| [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) | Reglas de estructura y robustez del séptimo ciclo del refactor | Aceptada (enmendada por ADR-120, ADR-123 y ADR-124) |
+| [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) | Reglas de estructura y robustez del séptimo ciclo del refactor | Aceptada (enmendada por ADR-120, ADR-123, ADR-124 y ADR-125) |
 | [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) | Reglas de corrección del sexto ciclo del refactor | Aceptada (enmendada por ADR-119, ADR-120, ADR-121, ADR-122 y ADR-123) |
 | [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) | Reglas de corrección, privacidad y permisos del quinto ciclo del refactor | Aceptada (enmendada por ADR-118, ADR-119, ADR-120, ADR-121, ADR-123 y ADR-124) |
 | [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) | Reglas de campañas de correo y tareas de GH del cuarto ciclo del refactor | Aceptada (enmendada por ADR-116, ADR-120 y ADR-121) |
