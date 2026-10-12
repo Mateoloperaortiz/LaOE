@@ -20,7 +20,6 @@ export {
 } from "./domain/calendar-token";
 export { issueCarnet, readCarnet } from "./domain/carnet";
 export {
-  CARNET_TOKEN,
   type CarnetMetadata,
   getCarnetCredential,
   getCarnetMetadata,

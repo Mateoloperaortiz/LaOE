@@ -298,9 +298,6 @@ const EXCEPTIONS: Exceptions = {
     `,
   },
   identity: {
-    nadie: `
-      CARNET_TOKEN
-    `,
     "solo-pruebas": `
       CarnetMetadata
       getOrCreateCarnetToken

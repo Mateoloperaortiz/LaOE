@@ -15,8 +15,6 @@ import { CARNET_TOKEN, createWalletCarnetToken } from "./carnet-pure";
 import { ForbiddenError } from "./errors";
 import { assertAdmin } from "./guards";
 
-export { CARNET_TOKEN } from "./carnet-pure";
-
 export interface CarnetCredential {
   personId: string;
   token: string;
