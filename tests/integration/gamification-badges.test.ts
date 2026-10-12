@@ -90,6 +90,14 @@ async function outboxOf(type: string) {
   return db().select().from(outbox).where(eq(outbox.eventType, type));
 }
 
+/** Quién firma cada auditoría de una acción: el actor del sistema no tiene persona ni IP. */
+async function auditSignersOf(action: string) {
+  return db()
+    .select({ actorId: auditLog.actorId, ip: auditLog.ip })
+    .from(auditLog)
+    .where(eq(auditLog.action, action));
+}
+
 async function messagesOf(personId: string) {
   return db().select().from(message).where(eq(message.personId, personId));
 }
@@ -340,6 +348,24 @@ describe("insignias: desbloqueo y revocación", () => {
     const review = await listRevokedWithUsedBooster(termId);
     expect(review).toHaveLength(1);
     expect(review[0]?.personId).toBe(personId);
+  });
+
+  it("el recálculo firma como el sistema: las auditorías del desbloqueo y de la revocación quedan sin actor ni IP, no a nombre de la persona que gana o pierde el logro", async () => {
+    const termId = await seedTerm();
+    const personId = await seedMember("firma1@test.dev");
+    const adminId = await seedMember("firma1-admin@test.dev");
+    const checkInId = await seedCheckIn((await seedOccasion(termId)).id, personId);
+
+    await recomputeBadgesFor(personId, { historical: false });
+    expect(await auditSignersOf("achievement.unlocked")).toEqual([{ actorId: null, ip: null }]);
+
+    await decideInOwnOccasion(
+      { personId: adminId, ip: null },
+      { checkInId, decision: "CANCEL", reason: "error de registro" },
+    );
+    await recomputeBadgesFor(personId, { historical: false });
+    expect(await auditSignersOf("achievement.revoked")).toEqual([{ actorId: null, ip: null }]);
+    expect(await auditSignersOf("achievement.unlocked")).toEqual([{ actorId: null, ip: null }]);
   });
 });
 
