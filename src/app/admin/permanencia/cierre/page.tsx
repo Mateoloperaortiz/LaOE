@@ -7,6 +7,7 @@ import {
   CLOSING_FILTERS,
   type ClosingFilter,
   type ClosingPersonRow,
+  COMPLIANCE_STATES,
   filterClosingRows,
   listClosingRows,
 } from "@/modules/permanence";
@@ -15,7 +16,7 @@ import { ResourcePanel } from "@/shared/admin-kit";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { applyAction, confirmAction, confirmAllAction } from "./actions";
 
@@ -29,7 +30,6 @@ type Search = Record<string, string | string[] | undefined>;
 const DECISIONS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"] as const;
 const COMMITTEE_DECISIONS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE"] as const;
 const PERSON_DECISIONS = ["CONTINUES", "EXIT_OE"] as const;
-const FINAL_STATES = ["CUMPLE", "PRUEBA", "NO_CUMPLE"] as const;
 
 const selectClass = "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta";
 
@@ -52,11 +52,12 @@ export default async function CierrePermanenciaPage({
   const bloque = single(search.bloque);
   const summaryLabels = tList("T-800");
   const reasonLabels = tList("T-801");
-  const decisionLabels = tList("T-802");
+  const decisionLabels: Readonly<Record<string, string>> = tLabels("T-802", DECISIONS);
   const [confirmar, cambiar, confirmarTodas, aplicar] = tList("T-803");
   const [campoDecision, campoMotivo] = tList("T-804");
   const filterLabels = tList("T-816");
-  const stateLabels = tList("T-791");
+  const filterNames = tLabels("T-816", CLOSING_FILTERS);
+  const stateLabels = tLabels("T-791", COMPLIANCE_STATES);
   const conditionLabels = tList("T-792");
   if (!term) {
     return (
@@ -75,7 +76,7 @@ export default async function CierrePermanenciaPage({
   const { rows, summary } = await listClosingRows(term.id);
   const visible = filterClosingRows(rows, filter);
   const editing = persona ? rows.find((row) => row.personId === persona) : undefined;
-  const decisionLabel = (kind: string) => decisionLabels[DECISIONS.indexOf(kind as never)] ?? kind;
+  const decisionLabel = (kind: string) => decisionLabels[kind] ?? kind;
   const cards: Array<[string, number]> = [
     [summaryLabels[0] ?? "", summary.people],
     [summaryLabels[1] ?? "", summary.continues],
@@ -185,14 +186,14 @@ export default async function CierrePermanenciaPage({
       ) : null}
 
       <nav aria-label={filterLabels[0] ?? ""} className="flex flex-wrap gap-2">
-        {CLOSING_FILTERS.map((key, index) => (
+        {CLOSING_FILTERS.map((key) => (
           <Link
             key={key}
             href={key === "ALL" ? base : `${base}&filtro=${key}`}
             aria-current={filter === key ? "page" : undefined}
             className={`rounded-full px-3 py-1 text-sm font-semibold no-underline ${filter === key ? "bg-oe-navy text-oe-paper" : "bg-fondo-suave text-titulo"}`}
           >
-            {filterLabels[index] ?? key}
+            {filterNames[key] ?? key}
           </Link>
         ))}
       </nav>
@@ -247,7 +248,7 @@ export default async function CierrePermanenciaPage({
                           {committee.total} / {committee.threshold}
                         </span>{" "}
                         <span className="text-tinta-suave">
-                          {stateLabels[3 + FINAL_STATES.indexOf(committee.finalState)] ?? ""}
+                          {stateLabels[committee.finalState] ?? ""}
                         </span>
                       </span>
                       <span className="font-semibold">{decisionLabel(decided)}</span>

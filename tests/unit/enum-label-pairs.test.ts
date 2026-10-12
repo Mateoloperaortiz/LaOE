@@ -9,6 +9,7 @@ import {
   type LabelPair,
   NAMED_READS,
   PAIRS,
+  UNDONE_UNEVEN_PAIRS,
   UNEVEN_PAIRS,
   UNSEEN_PAIRS,
   ZIP_PAIRS,
@@ -129,7 +130,9 @@ const inlineCopies = copies.filter(
 describe("la tabla de los pares", () => {
   it("trae los 85 pares que salen de las expresiones de la spec y 18 que esas expresiones no ven", () => {
     expect(PAIRS).toHaveLength(81);
-    expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(4);
+    expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(3);
+    // El que completa los 85 es el par de largo distinto que la migración deshizo.
+    expect(UNDONE_UNEVEN_PAIRS).toHaveLength(1);
     expect(UNSEEN_PAIRS).toHaveLength(17);
     expect(UNEVEN_PAIRS.filter((pair) => !pair.seen)).toHaveLength(1);
   });
@@ -236,13 +239,35 @@ describe("los pares que no son uno a uno", () => {
       ONE_TO_ONE.filter((pair) => pair.code === uneven.code).map((pair) => ({ uneven, pair })),
     );
     expect(shared.map(({ uneven }) => `${uneven.code} × ${uneven.order}`)).toEqual([
-      "T-791 × FINAL_STATES",
       "T-597 × CONSOLE_STATUSES",
       "T-566 × CATEGORIES",
     ]);
     for (const { uneven, pair } of shared) {
       expect(pair.positions).toMatchObject(uneven.positions);
     }
+  });
+});
+
+describe("el par de largo distinto que la migración deshizo", () => {
+  it.each(
+    UNDONE_UNEVEN_PAIRS,
+  )("$file ya no lee $code con $order y un desplazamiento: cada valor lee por valor la pieza que leía", (pair) => {
+    const source = sourceOf(pair.file);
+    for (const written of pair.gone) {
+      expect(source).not.toContain(squash(written));
+    }
+    expect(source).toContain(squash(pair.read));
+    expect(NAMED_READS).toContainEqual({
+      file: pair.file,
+      order: pair.by,
+      code: pair.code,
+      own: false,
+    });
+    const twin = ONE_TO_ONE.find(
+      (item) => item.code === pair.code && item.canonical === pair.canonical,
+    );
+    expect(twin?.positions).toMatchObject(pair.positions);
+    expect(tList(pair.code)).toHaveLength(pair.canonical.length);
   });
 });
 
@@ -311,13 +336,14 @@ describe("las constantes que guardan la posición de cada valor", () => {
     }
   });
 
-  it("dos tienen menos valores que piezas trae su lista: con ellas, los pares de largo distinto son siete", () => {
+  it("dos tienen menos valores que piezas trae su lista: con ellas, los pares de largo distinto son seis, y el séptimo lo deshizo la migración", () => {
     const uneven = INDEX_PAIRS.filter((pair) => Object.keys(pair.positions).length !== pair.pieces);
     expect(uneven.map(named)).toEqual([
       "T-2473 × FAMILY_INDEX de src/app/app/gh-points/coleccion/page.tsx",
       "T-2511 × STATE_INDEX de src/app/admin/gamificacion/campanas/page.tsx",
     ]);
-    expect(UNEVEN_PAIRS.length + uneven.length).toBe(7);
+    expect(UNEVEN_PAIRS.length + uneven.length).toBe(6);
+    expect(UNDONE_UNEVEN_PAIRS).toHaveLength(1);
   });
 });
 

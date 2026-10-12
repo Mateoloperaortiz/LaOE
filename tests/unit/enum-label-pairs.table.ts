@@ -1043,17 +1043,7 @@ export const UNEVEN_PAIRS: readonly UnevenPair[] = [
     read: 'reasonLabels[decision.proposed==="EXIT_OE"?view.result.mandatory.met?3:4:DECISIONS.indexOf',
     seen: true,
   },
-  // Los tres estados finales leen las tres últimas piezas de los seis estados de cumplimiento.
-  {
-    code: "T-791",
-    order: "FINAL_STATES",
-    file: "src/app/admin/permanencia/cierre/page.tsx",
-    tuple: ["CUMPLE", "PRUEBA", "NO_CUMPLE"],
-    pieces: 6,
-    positions: { CUMPLE: 3, PRUEBA: 4, NO_CUMPLE: 5 },
-    read: "stateLabels[3+FINAL_STATES.indexOf",
-    seen: true,
-  },
+
   // La lista también da las columnas de Personas: sus tres últimas piezas no son campos del evento.
   {
     code: "T-427",
@@ -1122,6 +1112,35 @@ export const UNEVEN_PAIRS: readonly UnevenPair[] = [
     },
     read: 'categories:options(CATEGORIES,"T-566")',
     seen: false,
+  },
+];
+
+/** El par de largo distinto que la migración deshizo (ticket #319, ADR-126 regla 2). La página del
+ * cierre leía los tres estados finales con `3 + FINAL_STATES.indexOf` de subíndice: las tres
+ * últimas piezas de los seis estados de cumplimiento. Ahora lee T-791 por valor con la tupla de los
+ * seis. Acá queda la posición literal que leía cada estado final, para que siga leyendo esa. */
+export const UNDONE_UNEVEN_PAIRS: readonly {
+  code: ListCode;
+  order: string;
+  file: string;
+  /** El orden con el que el archivo lee hoy la lista por valor, y su tupla. */
+  by: string;
+  canonical: readonly string[];
+  /** La posición que leía cada valor con el desplazamiento. */
+  positions: Record<string, number>;
+  /** Cómo lee hoy el archivo, y lo que ya no escribe. */
+  read: string;
+  gone: readonly string[];
+}[] = [
+  {
+    code: "T-791",
+    order: "FINAL_STATES",
+    file: "src/app/admin/permanencia/cierre/page.tsx",
+    by: "COMPLIANCE_STATES",
+    canonical: COMPLIANCE_STATES,
+    positions: { CUMPLE: 3, PRUEBA: 4, NO_CUMPLE: 5 },
+    read: "stateLabels[committee.finalState]",
+    gone: ["FINAL_STATES", ".indexOf(committee.finalState)"],
   },
 ];
 
@@ -1207,6 +1226,12 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
     },
     {
       file: "src/app/admin/comites/[slug]/permanencia/page.tsx",
+      order: "COMPLIANCE_STATES",
+      code: "T-791",
+      own: false,
+    },
+    {
+      file: "src/app/admin/permanencia/cierre/page.tsx",
       order: "COMPLIANCE_STATES",
       code: "T-791",
       own: false,
