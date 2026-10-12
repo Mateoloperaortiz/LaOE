@@ -120,13 +120,6 @@ const EXCEPTIONS: Exceptions = {
     `,
   },
   crm: {
-    nadie: `
-      ExcuseCause
-      ResignationPayload
-      countCallsByGroup
-      getOrganizationsByIds
-      getPipelinesByIds
-    `,
     "solo-pruebas": `
       countPendingRequests
       createOrganizationAs

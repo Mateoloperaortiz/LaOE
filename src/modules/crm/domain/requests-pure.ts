@@ -42,7 +42,6 @@ export const EXCUSE_CAUSES = [
   "SAFETY",
   "FORCE_MAJEURE",
 ] as const;
-export type ExcuseCause = (typeof EXCUSE_CAUSES)[number];
 
 /** Días hábiles después de la ocasión en que todavía se presenta una excusa (Anexo 1, parágrafo 1). */
 export const EXCUSE_BUSINESS_DAYS = 3;
@@ -74,7 +73,6 @@ export const transferPayloadSchema = z
   });
 
 export type LeavePayload = z.infer<typeof leavePayloadSchema>;
-export type ResignationPayload = z.infer<typeof resignationPayloadSchema>;
 export type TransferPayload = z.infer<typeof transferPayloadSchema>;
 
 export const REQUEST_PAYLOAD_SCHEMAS = {

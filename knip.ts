@@ -12,7 +12,6 @@ const config: KnipConfig = {
     // Van uno por uno, sin patrón: el módulo que vacía su clase `nadie` en
     // `tests/unit/module-public-interface.test.ts` sale de acá en el mismo commit, y esa prueba lo exige.
     "src/modules/competition/index.ts",
-    "src/modules/crm/index.ts",
     "src/modules/participation/index.ts",
     "src/modules/people/index.ts",
     "tests/e2e/auth.setup.ts",

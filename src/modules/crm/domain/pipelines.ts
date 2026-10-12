@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
@@ -120,18 +120,6 @@ export async function listStages(pipelineId: string): Promise<StageRecord[]> {
     .from(pipelineStage)
     .where(eq(pipelineStage.pipelineId, pipelineId))
     .orderBy(asc(pipelineStage.sortOrder), asc(pipelineStage.createdAt));
-}
-
-export async function getPipelinesByIds(ids: string[]): Promise<Map<string, PipelineRecord>> {
-  const map = new Map<string, PipelineRecord>();
-  if (ids.length === 0) {
-    return map;
-  }
-  const rows = await getDb().select().from(pipeline).where(inArray(pipeline.id, ids));
-  for (const row of rows) {
-    map.set(row.id, row);
-  }
-  return map;
 }
 
 /** Nombres de la plantilla por tipo: T-965 (admisión), T-966 (patrocinio) y T-967 (personalizado). */

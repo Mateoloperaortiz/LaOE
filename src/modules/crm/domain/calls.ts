@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
@@ -572,21 +572,4 @@ export function setCallStatusAs(
   status: "OPEN" | "CLOSED",
 ): Promise<void> {
   return runCommand(actor, (ctx) => setCallStatus(ctx, id, status));
-}
-
-/** Convocatorias por grupo (detalle del grupo). */
-export async function countCallsByGroup(groupIds: string[]): Promise<Map<string, number>> {
-  const map = new Map<string, number>();
-  if (groupIds.length === 0) {
-    return map;
-  }
-  const rows = await getDb()
-    .select({ groupId: internalCall.groupId, n: count() })
-    .from(internalCall)
-    .where(inArray(internalCall.groupId, groupIds))
-    .groupBy(internalCall.groupId);
-  for (const row of rows) {
-    map.set(row.groupId, row.n);
-  }
-  return map;
 }

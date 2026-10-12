@@ -2,7 +2,6 @@
 
 export {
   applyToCallAs,
-  countCallsByGroup,
   decideEntryAs,
   getCall,
   listCallEntries,
@@ -56,7 +55,6 @@ export {
   createOrganizationAs,
   externalContactSchema,
   getOrganization,
-  getOrganizationsByIds,
   listContacts,
   listOrganizationOptions,
   listOrganizationsOfPerson,
@@ -71,7 +69,6 @@ export {
 export {
   deleteStageAs,
   getPipeline,
-  getPipelinesByIds,
   listAdmissionPipelineIds,
   listPipelineOptions,
   listStages,
@@ -111,12 +108,10 @@ export {
 } from "./domain/requests";
 export {
   EXCUSE_CAUSES,
-  type ExcuseCause,
   REQUEST_KINDS,
   REQUEST_PAYLOAD_SCHEMAS,
   REQUEST_STATUSES,
   type RequestKind,
-  type ResignationPayload,
 } from "./domain/requests-pure";
 export {
   countOpenTasksFor,

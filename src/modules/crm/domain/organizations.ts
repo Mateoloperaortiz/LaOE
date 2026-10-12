@@ -215,21 +215,6 @@ export async function searchOrganizations(q: string, limit = 8): Promise<Organiz
   return rows;
 }
 
-export async function getOrganizationsByIds(ids: string[]): Promise<Map<string, OrganizationRef>> {
-  const map = new Map<string, OrganizationRef>();
-  if (ids.length === 0) {
-    return map;
-  }
-  const rows = await getDb()
-    .select({ id: organization.id, name: organization.name, kind: organization.kind, contactCount })
-    .from(organization)
-    .where(inArray(organization.id, ids));
-  for (const row of rows) {
-    map.set(row.id, row);
-  }
-  return map;
-}
-
 /** Opciones para selectores (nueva tarjeta, filtros). */
 export async function listOrganizationOptions(): Promise<Array<{ id: string; name: string }>> {
   return getDb()
