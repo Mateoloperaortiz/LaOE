@@ -10,7 +10,7 @@ import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { annulAction, reviewAction } from "./actions";
 
@@ -18,6 +18,10 @@ import { annulAction, reviewAction } from "./actions";
 // y premio reservado; aprobar entrega, rechazar con motivo y anular con step-up.
 
 export const metadata: Metadata = { title: tList("T-2405")[2] ?? "" };
+
+// Los estados que T-2410 nombra, en su orden. Uno que no está entre ellos (una entrega anulada)
+// muestra su código: es el respaldo de siempre (decisión abierta 75).
+const MEMBER_STATES = ["AVAILABLE", "SENT", "PENDING", "COMPLETED", "REJECTED", "EXPIRED"] as const;
 
 type Search = Record<string, string | string[] | undefined>;
 
@@ -41,9 +45,7 @@ export default async function RevisionPage({
   const actions = tList("T-2525");
   const filters = tList("T-2531");
   const imageStates = tList("T-2527");
-  const states = tList("T-2410");
-  const stateIndex = (status: string) =>
-    ["AVAILABLE", "SENT", "PENDING", "COMPLETED", "REJECTED", "EXPIRED"].indexOf(status);
+  const states: Readonly<Record<string, string>> = tLabels("T-2410", MEMBER_STATES);
   const base = `/admin/gamificacion/revision?termId=${term?.id ?? ""}${all ? "&todas=1" : ""}`;
 
   // Anular un premio entregado exige step-up: la página vuelve a pedirlo antes de abrir el
@@ -117,7 +119,7 @@ export default async function RevisionPage({
                       {row.challenge.title}
                     </Link>{" "}
                     · {formatDateTime(row.participation.submittedAt)} ·{" "}
-                    {states[stateIndex(row.participation.status)] ?? row.participation.status}
+                    {states[row.participation.status] ?? row.participation.status}
                   </p>
                 </div>
                 {row.reward ? (

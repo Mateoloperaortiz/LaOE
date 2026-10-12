@@ -1241,6 +1241,24 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       code: "T-750",
       own: true,
     },
+    {
+      file: "src/app/admin/gamificacion/revision/page.tsx",
+      order: "MEMBER_STATES",
+      code: "T-2410",
+      own: true,
+    },
+    {
+      file: "src/app/admin/gamificacion/retos/[id]/page.tsx",
+      order: "MEMBER_STATES",
+      code: "T-2410",
+      own: true,
+    },
+    {
+      file: "src/app/admin/gamificacion/retos/page.tsx",
+      order: "STATES",
+      code: "T-2511",
+      own: true,
+    },
   ];
 
 export type IndexPair = {
