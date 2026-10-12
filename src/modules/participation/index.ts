@@ -11,52 +11,24 @@ export {
 export { termAssemblyRequirement } from "./domain/assembly-pure";
 export {
   type AchievementRow,
-  awardSpecialBadge,
-  awardSpecialBadgesForChallenge,
-  awardSpecialBadgesForOccasion,
-  type BadgeCollection,
-  type BadgeDelta,
-  type BadgeFact,
   type BadgeRow,
-  badgeFactsFor,
   type CollectionFamily,
-  type CollectionLevel,
   collectionFor,
-  createSpecialBadge,
   listAchievementsForPerson,
   listBadgeCatalogAdmin,
   listFeaturedBadgesFor,
   listRevokedWithUsedBooster,
-  markSeen,
-  recomputeBadgesFor,
-  type SpecialBadgeInput,
-  setFeatured,
   unseenBadgesFor,
 } from "./domain/badges";
 export {
-  type BoostCampaignRow,
-  type BoosterAdminRow,
-  type BoosterOrigin,
-  type BoosterRow,
   type BoosterTarget,
-  type BoosterTargetView,
   type BoosterView,
-  type CampaignAdminRow,
-  type CampaignAdminState,
-  type CampaignInput,
   campaignInputSchema,
-  cancelCampaign,
-  createCampaigns,
-  grantBoosterForAchievement,
-  grantBoosterManually,
   listActiveCampaignsForMember,
   listBoostersFor,
   listBoostersForTerm,
   listBoosterTargetsForMember,
   listCampaignsAdmin,
-  type MemberCampaignView,
-  revokeBooster,
-  setBoosterTarget,
 } from "./domain/boosters";
 export {
   ChallengeAlreadySubmitted,
@@ -64,19 +36,10 @@ export {
   EVIDENCE_TEXT_MIN,
   listParticipationsForPerson,
   listPendingReviews,
-  type ParticipationRow,
-  type PendingReviewRow,
   type SubmitResult,
 } from "./domain/challenge-participation";
 export {
-  type AdminParticipantRow,
-  type ChallengeAdminRow,
-  type ChallengeInput,
-  type ChallengeQuestionRow,
-  type ChallengeRow,
   challengeInputSchema,
-  type EvidenceFileRow,
-  findChallenge,
   getChallengeAdmin,
   getChallengeForMember,
   hasGrantedRewards,
@@ -134,24 +97,16 @@ export {
 export { listCommitteeViability } from "./domain/committee-viability";
 export { VIABILITY_ALERTS } from "./domain/committee-viability-pure";
 export {
-  deleteEvidenceFor,
   EVIDENCE_KEY_PATTERN,
-  EVIDENCE_KEY_PREFIX,
   EVIDENCE_MAX_BYTES,
   EVIDENCE_MAX_FILES,
   EVIDENCE_MIN_BYTES,
   EVIDENCE_TYPES,
   listEvidenceFilesFor,
-  type PreparedEvidenceUpload,
   prepareEvidenceUpload,
   resolveEvidenceRedirect,
-  verifyEvidenceObjects,
 } from "./domain/evidence";
-export {
-  type ChallengeParticipationExportRow,
-  listCheckInsForExport,
-  listParticipationsForExport,
-} from "./domain/exports";
+export { listCheckInsForExport } from "./domain/exports";
 export {
   finishGame2048As,
   getTodayGame2048,
@@ -167,11 +122,9 @@ export {
   createSpecialBadgeAs,
   discardEvidenceUploadAs,
   duplicateChallengeAs,
-  type EvidenceSubmitInput,
   grantBoosterAs,
   markSeenAs,
   publishChallengeAs,
-  type ReviewInput,
   recomputeBadgesForAs,
   resumeReconciliationAs,
   reviewParticipationAs,
@@ -181,26 +134,10 @@ export {
   startReconciliationAs,
   submitEvidenceAs,
   submitTriviaAs,
-  type TriviaSubmitInput,
   updateChallengeAs,
 } from "./domain/gamification-commands";
-export { type GamificationOverview, gamificationOverview } from "./domain/gamification-metrics";
-export {
-  audienceIncludes,
-  badgeProgress,
-  boosterExpiresAt,
-  boosterPercent,
-  boosterState,
-  challengeState,
-  computeReward,
-  dayKeyFor,
-  GAMIFICATION_TIMEZONE,
-  gradeTrivia,
-  isVoluntaryOccasion,
-  memberChallengeStatus,
-  unlockedLevel,
-  weekKeyFor,
-} from "./domain/gamification-pure";
+export { gamificationOverview } from "./domain/gamification-metrics";
+export { isVoluntaryOccasion } from "./domain/gamification-pure";
 export {
   balanceFor,
   type LedgerListRow,
@@ -238,28 +175,16 @@ export { peopleBoards, rankCommittees } from "./domain/rankings";
 export {
   getReconciliationRun,
   listReconciliationRuns,
-  processReconciliationBatch,
-  RECONCILE_BATCH,
-  type ReconciliationReport,
-  type ReconciliationRunRow,
-  type ReportSampleEntry,
   reconciliationReport,
-  resumeReconciliation,
-  startReconciliation,
 } from "./domain/reconciliation";
 export { runReminders } from "./domain/reminders";
 export {
-  countPendingGamification,
   grantReward,
   listRewardsForPerson,
-  type ReserveRewardInput,
-  type RewardRow,
   releaseReward,
   rereserveReward,
-  reserveAndGrantReward,
   reserveReward,
   reverseReward,
-  usedRewardPoints,
 } from "./domain/rewards";
 export { rotatingCodeAt, secondsUntilRotation } from "./domain/rotating-code-pure";
 export { listCommitteeScores, listOccasionScores } from "./domain/scores";
@@ -309,25 +234,12 @@ export type {
   TodayGame2048,
 } from "./game2048-types";
 export type {
-  BadgeFamily,
   BoosterKind,
   BoosterState,
-  BoosterStoredStatus,
-  CampaignPercent,
-  ChallengeAudience,
-  ChallengeKind,
   ChallengeState,
-  ChallengeStoredStatus,
   ChallengeSubmitReply,
   EvidenceFileStatus,
   MemberChallengeStatus,
-  ParticipationStatus,
-  PersonalPercent,
-  RewardBreakdown,
-  RewardCaps,
-  RewardSource,
-  RewardStatus,
-  SubmitDenial,
 } from "./gamification-types";
 export {
   BADGE_FAMILIES,

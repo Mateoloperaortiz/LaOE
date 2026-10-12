@@ -151,71 +151,23 @@ const EXCEPTIONS: Exceptions = {
   participation: {
     nadie: `
       AbandonSudokuInput
-      AdminParticipantRow
-      BadgeCollection
-      BadgeDelta
-      BadgeFact
-      BadgeFamily
-      BoostCampaignRow
-      BoosterAdminRow
-      BoosterOrigin
-      BoosterRow
-      BoosterStoredStatus
-      BoosterTargetView
       CHALLENGE_AUDIENCES
-      CampaignAdminRow
-      CampaignAdminState
-      CampaignInput
-      CampaignPercent
-      ChallengeAdminRow
-      ChallengeAudience
-      ChallengeInput
-      ChallengeKind
-      ChallengeParticipationExportRow
-      ChallengeQuestionRow
-      ChallengeRow
-      ChallengeStoredStatus
-      CollectionLevel
-      EVIDENCE_KEY_PREFIX
-      EvidenceFileRow
       EvidenceFileStatus
-      EvidenceSubmitInput
       FinishGame2048Input
       FinishSudokuInput
       GAME2048_MAX_MOVES
       GAME2048_REWARDS
       GAME2048_RULES_VERSION
-      GAMIFICATION_TIMEZONE
       Game2048Denial
       Game2048Move
       Game2048RunView
       Game2048StartedView
       Game2048State
       Game2048Status
-      GamificationOverview
       MEMBER_CHALLENGE_STATUSES
-      MemberCampaignView
       PARTICIPATION_STATUSES
-      ParticipationRow
-      ParticipationStatus
-      PendingReviewRow
-      PersonalPercent
-      PreparedEvidenceUpload
-      RECONCILE_BATCH
-      ReconciliationReport
-      ReconciliationRunRow
-      ReportSampleEntry
-      ReserveRewardInput
-      ReviewInput
-      RewardBreakdown
-      RewardCaps
-      RewardRow
-      RewardSource
-      RewardStatus
-      SpecialBadgeInput
       StartGame2048Input
       StartSudokuInput
-      SubmitDenial
       SubmitWordleInput
       SudokuDenial
       SudokuDifficulty
@@ -226,7 +178,6 @@ const EXCEPTIONS: Exceptions = {
       TodayGame2048
       TodaySudoku
       TodayWordle
-      TriviaSubmitInput
       WordleAttemptView
       WordleDenial
       WordleGameView
@@ -235,48 +186,12 @@ const EXCEPTIONS: Exceptions = {
       WordleResult
       WordleStatus
       applyGame2048Move
-      audienceIncludes
-      awardSpecialBadge
-      awardSpecialBadgesForChallenge
-      awardSpecialBadgesForOccasion
-      badgeFactsFor
-      badgeProgress
-      boosterExpiresAt
-      boosterPercent
-      boosterState
-      cancelCampaign
-      challengeState
-      computeReward
       countApproved
-      countPendingGamification
-      createCampaigns
-      createSpecialBadge
-      dayKeyFor
-      deleteEvidenceFor
-      findChallenge
       game2048Reward
-      gradeTrivia
-      grantBoosterForAchievement
-      grantBoosterManually
       isGame2048Moves
-      listParticipationsForExport
-      markSeen
-      memberChallengeStatus
       newGame2048
-      processReconciliationBatch
-      recomputeBadgesFor
       recomputeBadgesForAs
       replayGame2048
-      reserveAndGrantReward
-      resumeReconciliation
-      revokeBooster
-      setBoosterTarget
-      setFeatured
-      startReconciliation
-      unlockedLevel
-      usedRewardPoints
-      verifyEvidenceObjects
-      weekKeyFor
     `,
     "solo-pruebas": `
       CheckInSource
