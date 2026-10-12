@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { DocumentUploader } from "@/modules/content/components/DocumentUploader";
 import { DOCUMENT_KINDS } from "@/modules/content/domain/documents-pure";
-import { tList } from "@/shared/copy";
+import { tLabels, tList } from "@/shared/copy";
 
 // El selector de tipo de la subida de normativa (DT-368, ADR-126 regla 5). El componente es de
 // cliente y recibe las etiquetas por props: acá queda qué pieza de T-394 muestra cada tipo y que un
@@ -16,7 +16,7 @@ const CODES = [...DOCUMENT_KINDS, ...STRANGERS];
 
 /** Lo que `src/app/admin/documentos/page.tsx` le pasa al componente como etiquetas de los tipos. */
 function kindsProp() {
-  return [...tList("T-394")];
+  return { ...tLabels("T-394", DOCUMENT_KINDS) };
 }
 
 /** Cada opción del selector de tipo: su código y lo que muestra. */

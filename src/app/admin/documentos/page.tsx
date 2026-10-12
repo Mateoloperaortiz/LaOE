@@ -149,7 +149,7 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
             maxBytes={DOCUMENT_MAX_BYTES}
             labels={{
               fields: tList("T-494"),
-              kinds: [...tList("T-394")],
+              kinds: { ...kinds },
               audiences: [publico, soloMiembros],
               help: t("T-1465"),
               uploading: t("T-359"),

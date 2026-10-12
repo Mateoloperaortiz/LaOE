@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
+import { labelsFromProps } from "@/shared/copy/client";
 import { uploadToBucket } from "@/shared/ui/bucket-upload";
 import { uploadErrorMessage } from "@/shared/ui/upload-error";
 
@@ -12,7 +13,8 @@ import { uploadErrorMessage } from "@/shared/ui/upload-error";
 type Labels = {
   /** Título · Tipo · Versión · Audiencia · Archivo PDF (T-494). */
   fields: string[];
-  kinds: string[];
+  /** La etiqueta de cada tipo por su código, como objeto llano (ADR-126 regla 5). */
+  kinds: Readonly<Record<string, string>>;
   audiences: [string, string];
   help: string;
   uploading: string; // con {nombre}
@@ -57,6 +59,7 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
   const [audience, setAudience] = useState<"PUBLIC" | "MEMBERS">("MEMBERS");
   const [state, setState] = useState<State>({ kind: "idle" });
   const [tituloL, tipoL, versionL, audienciaL, archivoL] = labels.fields;
+  const kindLabels = labelsFromProps(labels.kinds);
 
   async function upload(file: File) {
     if (uploading.current) return;
@@ -145,9 +148,9 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
             onChange={(event) => setKind(event.target.value)}
             className={inputClass}
           >
-            {kindCodes.map((code, index) => (
+            {kindCodes.map((code) => (
               <option key={code} value={code}>
-                {labels.kinds[index] ?? code}
+                {kindLabels[code] ?? code}
               </option>
             ))}
           </select>
