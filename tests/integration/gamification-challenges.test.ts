@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
+import { getChallengeAdmin, listPendingReviews } from "@/modules/participation";
 import { submitTrivia } from "@/modules/participation/domain/challenge-participation";
 import {
   challengeInputSchema,
@@ -562,6 +563,25 @@ describe("retos: trivia", () => {
   });
 });
 
+/** Un reto de evidencia nuevo en ese término y la entrega de esa persona, que queda pendiente. */
+async function submitEvidence(termId: string, personId: string, requestId: string) {
+  const challengeId = await seedChallenge(termId, {
+    kind: "EVIDENCE",
+    passPercent: null,
+  });
+  const result = await submitEvidenceAs(
+    { personId, ip: null },
+    {
+      challengeId,
+      requestId,
+      text: "Evidencia de prueba con suficiente texto.",
+      keys: [],
+    },
+  );
+  if (!result.ok) throw new Error("La entrega falló");
+  return { challengeId, participationId: result.participation.id };
+}
+
 describe("retos: evidencia y revisión", () => {
   beforeEach(truncateAll);
   afterAll(closeDb);
@@ -594,23 +614,7 @@ describe("retos: evidencia y revisión", () => {
     const personId = await seedMember("retos.revision@eafit.edu.co");
     await enableGamification(adminId);
 
-    const submit = async (requestId: string) => {
-      const challengeId = await seedChallenge(termId, {
-        kind: "EVIDENCE",
-        passPercent: null,
-      });
-      const result = await submitEvidenceAs(
-        { personId, ip: null },
-        {
-          challengeId,
-          requestId,
-          text: "Evidencia de prueba con suficiente texto.",
-          keys: [],
-        },
-      );
-      if (!result.ok) throw new Error("La entrega falló");
-      return { challengeId, participationId: result.participation.id };
-    };
+    const submit = (requestId: string) => submitEvidence(termId, personId, requestId);
 
     // APPROVE → GRANTED + COMPLETED.
     const approved = await submit("req-ap-1");
@@ -665,6 +669,54 @@ describe("retos: evidencia y revisión", () => {
       .where(eq(reward.id, annulled?.rewardId ?? ""));
     expect(annulledReward?.status).toBe("REVERSED");
     expect(await balanceFor(personId, termId)).toBe(0);
+  });
+
+  // DT-344: las dos lecturas que alimentan las tablas del admin traen también la entrega anulada.
+  // Qué le muestra cada tabla (hoy, el código `ANNULLED`) lo fija
+  // `tests/unit/admin-participation-states.test.ts` y espera la decisión abierta 75.
+  it("una entrega anulada sigue llegando a la bandeja de revisión con «todas» y al detalle de su reto; sin «todas», la bandeja trae solo la pendiente", async () => {
+    const termId = await seedTerm();
+    const adminId = await seedMember("retos.bandeja.revisor@eafit.edu.co");
+    const personId = await seedMember("retos.bandeja@eafit.edu.co");
+    await enableGamification(adminId);
+    const reviewer = { personId: adminId, ip: null };
+
+    const pending = await submitEvidence(termId, personId, "req-ba-1");
+    const completed = await submitEvidence(termId, personId, "req-ba-2");
+    await reviewParticipationAs(reviewer, {
+      participationId: completed.participationId,
+      decision: "APPROVE",
+    });
+    const rejected = await submitEvidence(termId, personId, "req-ba-3");
+    await reviewParticipationAs(reviewer, {
+      participationId: rejected.participationId,
+      decision: "REJECT",
+      reason: "No se ve la actividad",
+    });
+    const annulled = await submitEvidence(termId, personId, "req-ba-4");
+    await reviewParticipationAs(reviewer, {
+      participationId: annulled.participationId,
+      decision: "APPROVE",
+    });
+    await annulParticipationAs(reviewer, annulled.participationId, "Anulación de prueba");
+
+    const statuses = (rows: { participation: { id: string; status: string } }[]) =>
+      Object.fromEntries(rows.map((row) => [row.participation.id, row.participation.status]));
+
+    expect(statuses(await listPendingReviews(termId))).toEqual({
+      [pending.participationId]: "PENDING",
+    });
+    expect(statuses(await listPendingReviews(termId, { all: true }))).toEqual({
+      [pending.participationId]: "PENDING",
+      [completed.participationId]: "COMPLETED",
+      [rejected.participationId]: "REJECTED",
+      [annulled.participationId]: "ANNULLED",
+    });
+
+    const detail = await getChallengeAdmin(annulled.challengeId);
+    expect(statuses(detail?.participants ?? [])).toEqual({
+      [annulled.participationId]: "ANNULLED",
+    });
   });
 });
 
