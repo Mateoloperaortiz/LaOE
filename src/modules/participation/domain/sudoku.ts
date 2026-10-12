@@ -6,7 +6,7 @@ import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { sudokuCompleted } from "@/domain-events/participation";
 import { findTermContaining } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { logger } from "@/shared/log";
 import { sudokuRun } from "../schema";
 import { SUDOKU_DIFFICULTIES, SUDOKU_RULES_VERSION, sudokuReward } from "../sudoku-engine";
@@ -261,7 +261,7 @@ export async function startSudokuAs(
 }
 
 function creditReason(row: RunRow): string {
-  const difficulty = tList("T-2681")[SUDOKU_DIFFICULTIES.indexOf(row.difficulty)] ?? "";
+  const difficulty = tLabels("T-2681", SUDOKU_DIFFICULTIES)[row.difficulty] ?? "";
   const reasons = t("T-2712", { fecha: row.day, dificultad: difficulty }).split("·");
   return (reasons[row.assisted ? 1 : 0] ?? "").trim();
 }

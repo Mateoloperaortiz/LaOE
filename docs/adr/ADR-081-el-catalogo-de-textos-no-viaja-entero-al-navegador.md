@@ -1,6 +1,6 @@
 # ADR-081: El catálogo de textos no viaja entero al navegador
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-126)
 - Fecha: 2026-09-19
 - Relacionadas: ADR-076, ADR-079, ADR-080
 - Enmienda: ninguna regla previa; fija cómo se consume `docs/14-copy-y-textos.md` desde el código
@@ -39,3 +39,9 @@ La segunda mitad del hallazgo es de tipos. `tList(code)` parte por «·» un tex
 - **Las etiquetas por posición de un enum.** Unos 98 sitios hacen `etiquetas[ENUM.indexOf(valor)] ?? valor`. El índice es un `number`, así que la tupla no protege: si el enum gana un valor y la lista no, se ve el código crudo del enum en la pantalla. Se degrada a la vista en lugar de callar, pero sigue siendo frágil. Pide un helper `tLabels(código, ENUM)` que exija en tipos el mismo largo y devuelva un `Record`, y migrar esos sitios: es el tramo R2-B.
 - **Partir el subconjunto por área** (portal, Mi OE, admin). Con 11,6 KB comprimidos y un chunk que se cachea una vez no lo justifica todavía.
 - Los 382 `?? ""` sobre índices literales ya no protegen de nada, pero quitarlos es solo limpieza y se hace al tocar cada archivo.
+
+## Enmienda (2026-10-11, ADR-126)
+
+«Lo que queda fuera» dejaba pendientes las etiquetas por posición de un enum y pedía un helper `tLabels(código, ENUM)` que exigiera en tipos el mismo largo y devolviera un `Record`: era el tramo R2-B. [ADR-126](ADR-126-reglas-de-las-etiquetas-por-valor-del-decimocuarto-ciclo.md) regla 3 lo trae. `tLabels` vive en las dos entradas del catálogo, con el emparejamiento en `format.ts` como pide la regla 5 de esta ADR, y el `Record` que devuelve no hereda de `Object.prototype`, para que un valor que el enum no trae siga cayendo al respaldo del sitio. `copy:sync` no cambia: la regla 3 de esta ADR ya recoge el literal `"T-…"` que va de primer argumento de `tLabels` en un archivo que importa la entrada de cliente.
+
+Los «unos 98 sitios» eran 126 medidos el 2026-10-11 con las expresiones de la spec [#242](https://github.com/Mateoloperaortiz/LaOE/issues/242), que también ven los que llevan un cast y los de varias líneas. La migración va por familias y el respaldo de cada sitio no se toca: qué ve la persona cuando no hay etiqueta para un valor es la decisión abierta 75. Los otros dos puntos de «Lo que queda fuera» siguen como estaban.

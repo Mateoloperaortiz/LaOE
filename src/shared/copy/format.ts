@@ -20,3 +20,43 @@ export function splitCopyList(text: string): string[] {
 export type SplitCopyList<Text extends string> = Text extends `${string}·${infer Rest}`
   ? [string, ...SplitCopyList<Rest>]
   : [string];
+
+/**
+ * Las etiquetas de un enum, por valor (ADR-126 regla 3). El objeto no hereda de `Object.prototype`:
+ * un valor que el enum no trae, `constructor` o `__proto__` incluidos, da `undefined` y entra el
+ * respaldo del sitio que lo lee.
+ */
+export type CopyLabels<Value extends string> = { readonly [Key in Value]: string };
+
+/**
+ * Lo que `tLabels` le pide a su enum: ser una tupla con tantos valores como piezas trae la lista. Si
+ * lo es no agrega nada; si no, el argumento no compila y el error trae el motivo.
+ */
+export type PairedWithList<
+  List extends readonly string[],
+  Values extends readonly string[],
+> = number extends List["length"]
+  ? "tLabels pide el código de la lista como literal: sin él no se conoce su largo"
+  : number extends Values["length"]
+    ? "tLabels pide el enum como tupla: declaralo `as const`"
+    : Values["length"] extends List["length"]
+      ? unknown
+      : "la lista y el enum no tienen el mismo largo";
+
+/**
+ * Empareja cada valor con la pieza de su posición: el único sitio que lo hace (ADR-081 regla 5). Un
+ * valor sin pieza queda sin etiqueta; los tipos de `tLabels` no dejan que pase.
+ */
+export function pairCopyLabels(
+  list: readonly string[],
+  values: readonly string[],
+): Readonly<Record<string, string>> {
+  const labels: Record<string, string> = Object.create(null);
+  values.forEach((value, index) => {
+    const label = list[index];
+    if (label !== undefined) {
+      labels[value] = label;
+    }
+  });
+  return labels;
+}

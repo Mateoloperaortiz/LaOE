@@ -3,7 +3,7 @@
 - Estado: Aceptada
 - Fecha: 2026-10-11
 - Relacionadas: ADR-081, ADR-086, ADR-109, ADR-110, ADR-125
-- Enmienda: ninguna regla previa todavía. La spec pide enmendar ADR-081 en «Lo que queda fuera» cuando entre `tLabels`: esa enmienda la trae el ticket que lo agrega
+- Enmienda: ADR-081, «Lo que queda fuera»: las etiquetas por posición de un enum dejan de quedar fuera, porque el helper que pedía ya existe (reglas 3 y 4)
 
 ## Contexto
 
@@ -76,6 +76,17 @@ Dos de los sitios nuevos nacieron con DT-315 (`916d2313`): el nombre del estado 
    | T-2511 | 5 | `STATE_INDEX` | 4 | `src/app/admin/gamificacion/campanas/page.tsx` | Los cuatro estados de una campaña (`CampaignAdminState`) leen las piezas 1 a 4 de la lista de los estados de un reto: `ACTIVE` lee la de `OPEN` y `ENDED` la de `CLOSED`. No es el enum de esa lista, así que no hay par con el que leerla por valor |
 
    La spec nombraba los dos primeros; los otros cinco los encontró la tabla. El de T-566 es de los 18 pares que las expresiones de la spec no ven, y los dos últimos se leen con una constante de posiciones y van en `INDEX_PAIRS`.
+
+3. **La etiqueta de un valor de un enum se lee con `tLabels(código, ENUM)[valor]`, y el par no compila si la lista y el enum no tienen el mismo largo.** `tLabels` vive en las dos entradas del catálogo, `@/shared/copy` y `@/shared/copy/client`, y el emparejamiento en un solo sitio: `pairCopyLabels` de `src/shared/copy/format.ts` ([ADR-081](ADR-081-el-catalogo-de-textos-no-viaja-entero-al-navegador.md) regla 5). `tests/unit/copy-labels.test.ts` lo fija:
+
+   - **Tipos.** El segundo parámetro es `Values & PairedWithList<lista, Values>`. Si el enum es una tupla con tantos valores como piezas trae la lista, `PairedWithList` no agrega nada. Si no, es un texto, el argumento no es asignable y el error de `tsc` lo trae: que el código de la lista no es un literal (sin él `tList` devuelve `string[]` y no hay largo que comparar), que el enum no es una tupla (una constante `string[]` o `X[]` no dice cuántos valores trae) o que los largos no coinciden, sea la lista más corta o más larga. Los cuatro casos tienen su `@ts-expect-error` en las dos entradas.
+   - **El `Record` no hereda de `Object.prototype`.** Se arma con `Object.create(null)`. Un valor que el enum no trae da `undefined`, también si se llama `constructor`, `toString`, `hasOwnProperty`, `valueOf` o `__proto__`, que en un objeto literal devolverían una función o el prototipo y no dejarían entrar el respaldo. Es lo que hacía `lista[ENUM.indexOf(valor)]` con un `-1`.
+   - **El respaldo no se toca.** Cada sitio conserva el que tiene: su `?? valor`, su `?? ""` o ninguno. El tipo ya no lo pide donde el valor es del enum, y se queda igual: quitarlo o unificarlo espera la decisión abierta 75.
+   - **Verifica el largo, no el orden.** La pieza de cada valor es la de su posición: reordenar la lista o el enum sigue cambiando etiquetas sin que nada compile distinto. Lo cuidan la tabla de la regla 1 y la nota «en el orden del modelo» del inventario (DT-365).
+
+   `copy:sync` no cambia. Comprobado: su escaneo ([ADR-081](ADR-081-el-catalogo-de-textos-no-viaja-entero-al-navegador.md) regla 3) recoge todo literal `"T-…"` de un archivo que importa la entrada de cliente, esté donde esté. `Sudoku.tsx` ya no llama a `tList("T-2681")`, solo a `tLabels("T-2681", SUDOKU_DIFFICULTIES)`, y el código sigue en el subconjunto; si faltara, `tsc` lo rechazaría porque no sería una clave del mapa.
+
+4. **El enum que recibe `tLabels` es una tupla, y la constante de un enum se declara como tal.** Una constante anotada `readonly X[]` pierde su largo en el tipo. Las de `participation` que entran a un `tLabels` pasan a `[…] as const satisfies readonly X[]`: los mismos valores en el mismo orden, con el tipo `X` declarado aparte como estaba, y `satisfies` sigue rechazando un valor que no sea de `X`. Los `enumValues` de un `pgEnum` ya son una tupla. Donde el orden estaba copiado como arreglo literal se importa la tupla canónica si existe y `MODULE_DEPS` lo admite; si no, la copia se declara `as const` en su sitio y la sigue cuidando la tabla de la regla 1.
 
 ## Consecuencias
 

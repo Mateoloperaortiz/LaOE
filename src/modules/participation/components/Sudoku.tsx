@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent, useEffect, useRef, useState, useTransition } from "react";
-import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
+import { type ClientCopyCode, t, tLabels, tList } from "@/shared/copy/client";
 import {
   looksSolved,
   SUDOKU_DIFFICULTIES,
@@ -114,7 +114,7 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
   const [creditedToday, setCreditedToday] = useState(initial.credited !== null);
   const [pending, startTransition] = useTransition();
   const available = initial.availability === "AVAILABLE";
-  const difficulties = tList("T-2681");
+  const difficulties = tLabels("T-2681", SUDOKU_DIFFICULTIES);
   const modes = tList("T-2683");
   const modeNotes = tList("T-2684");
   const headers = tList("T-2690");
@@ -310,8 +310,7 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
 
   const conflicts = live ? sudokuConflicts(live.play.values) : NONE;
   const mistakes = live?.run.solution ? sudokuMistakes(live.play.values, live.run.solution) : NONE;
-  const difficultyName = (value: SudokuDifficulty) =>
-    difficulties[SUDOKU_DIFFICULTIES.indexOf(value)] ?? value;
+  const difficultyName = (value: SudokuDifficulty) => difficulties[value] ?? value;
   const solvedTotal = SUDOKU_DIFFICULTIES.reduce((sum, value) => sum + initial.solved[value], 0);
 
   return (
