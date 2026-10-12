@@ -131,11 +131,13 @@ describe("la tabla de los pares", () => {
   it("trae los 85 pares que salen de las expresiones de la spec y 19 que esas expresiones no ven", () => {
     expect(PAIRS).toHaveLength(81);
     expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(3);
-    // El que completa los 85 es el par de largo distinto que la migración deshizo.
-    expect(UNDONE_UNEVEN_PAIRS).toHaveLength(1);
-    // Dieciocho uno a uno y el de largo distinto de abajo; el de T-2174 entró con DT-370.
+    // El que completa los 85 es el par de largo distinto de T-791, que la migración deshizo.
+    expect(UNDONE_UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(1);
+    // Dieciocho uno a uno y el de largo distinto de T-566, también deshecho; el de T-2174 entró
+    // con DT-370.
     expect(UNSEEN_PAIRS).toHaveLength(18);
-    expect(UNEVEN_PAIRS.filter((pair) => !pair.seen)).toHaveLength(1);
+    expect(UNEVEN_PAIRS.filter((pair) => !pair.seen)).toHaveLength(0);
+    expect(UNDONE_UNEVEN_PAIRS.filter((pair) => !pair.seen)).toHaveLength(1);
   });
 
   it("no repite un par", () => {
@@ -241,7 +243,6 @@ describe("los pares que no son uno a uno", () => {
     );
     expect(shared.map(({ uneven }) => `${uneven.code} × ${uneven.order}`)).toEqual([
       "T-597 × CONSOLE_STATUSES",
-      "T-566 × CATEGORIES",
     ]);
     for (const { uneven, pair } of shared) {
       expect(pair.positions).toMatchObject(uneven.positions);
@@ -249,10 +250,10 @@ describe("los pares que no son uno a uno", () => {
   });
 });
 
-describe("el par de largo distinto que la migración deshizo", () => {
+describe("los pares de largo distinto que la migración deshizo", () => {
   it.each(
     UNDONE_UNEVEN_PAIRS,
-  )("$file ya no lee $code con $order y un desplazamiento: cada valor lee por valor la pieza que leía", (pair) => {
+  )("$file ya no lee $code por la posición de $order: cada valor lee por valor la pieza que leía", (pair) => {
     const source = sourceOf(pair.file);
     for (const written of pair.gone) {
       expect(source).not.toContain(squash(written));
@@ -337,14 +338,14 @@ describe("las constantes que guardan la posición de cada valor", () => {
     }
   });
 
-  it("dos tienen menos valores que piezas trae su lista: con ellas, los pares de largo distinto son seis, y el séptimo lo deshizo la migración", () => {
+  it("dos tienen menos valores que piezas trae su lista: con ellas se cuentan los pares de largo distinto que quedan y los que la migración deshizo", () => {
     const uneven = INDEX_PAIRS.filter((pair) => Object.keys(pair.positions).length !== pair.pieces);
     expect(uneven.map(named)).toEqual([
       "T-2473 × FAMILY_INDEX de src/app/app/gh-points/coleccion/page.tsx",
       "T-2511 × STATE_INDEX de src/app/admin/gamificacion/campanas/page.tsx",
     ]);
-    expect(UNEVEN_PAIRS.length + uneven.length).toBe(6);
-    expect(UNDONE_UNEVEN_PAIRS).toHaveLength(1);
+    expect(UNEVEN_PAIRS.length + uneven.length).toBe(5);
+    expect(UNDONE_UNEVEN_PAIRS).toHaveLength(2);
   });
 });
 

@@ -1091,40 +1091,16 @@ export const UNEVEN_PAIRS: readonly UnevenPair[] = [
     read: "CONSOLE_STATUSES.map((status) => [status, statuses[status]])",
     seen: true,
   },
-  // El formulario de reglas ofrece las siete categorías que admite el dominio de permanencia
-  // (permanence/domain/params.ts), sin INDUCTION.
-  {
-    code: "T-566",
-    order: "CATEGORIES",
-    file: "src/app/admin/permanencia/_ui/reglas.ts",
-    tuple: [
-      "INTEGRATION",
-      "ATHLETIC_MATCH",
-      "COMMITTEE_MEETING",
-      "TALK",
-      "WORKSHOP",
-      "SOCIAL",
-      "OTHER",
-    ],
-    pieces: 8,
-    positions: {
-      INTEGRATION: 0,
-      ATHLETIC_MATCH: 1,
-      COMMITTEE_MEETING: 2,
-      TALK: 3,
-      WORKSHOP: 4,
-      SOCIAL: 5,
-      OTHER: 6,
-    },
-    read: 'categories:options(CATEGORIES,"T-566")',
-    seen: false,
-  },
 ];
 
-/** El par de largo distinto que la migración deshizo (ticket #319, ADR-126 regla 2). La página del
+/** Los pares de largo distinto que la migración deshizo (ADR-126 reglas 2 y 9): sus valores son
+ * parte de los de un par uno a uno de la misma lista y leen en él la misma pieza. La página del
  * cierre leía los tres estados finales con `3 + FINAL_STATES.indexOf` de subíndice: las tres
  * últimas piezas de los seis estados de cumplimiento. Ahora lee T-791 por valor con la tupla de los
- * seis. Acá queda la posición literal que leía cada estado final, para que siga leyendo esa. */
+ * seis (ticket #319). El formulario de reglas recorría por índice las siete categorías que admite
+ * una regla, las ocho de una ocasión menos `INDUCTION`: ahora lee T-566 por valor con la tupla de
+ * las ocho (revisión de la rama). Acá queda la posición literal que leía cada valor, para que siga
+ * leyendo esa. */
 export const UNDONE_UNEVEN_PAIRS: readonly {
   code: ListCode;
   order: string;
@@ -1137,6 +1113,8 @@ export const UNDONE_UNEVEN_PAIRS: readonly {
   /** Cómo lee hoy el archivo, y lo que ya no escribe. */
   read: string;
   gone: readonly string[];
+  /** Si lo veía alguna de las expresiones de la spec. */
+  seen: boolean;
 }[] = [
   {
     code: "T-791",
@@ -1147,6 +1125,26 @@ export const UNDONE_UNEVEN_PAIRS: readonly {
     positions: { CUMPLE: 3, PRUEBA: 4, NO_CUMPLE: 5 },
     read: "stateLabels[committee.finalState]",
     gone: ["FINAL_STATES", ".indexOf(committee.finalState)"],
+    seen: true,
+  },
+  {
+    code: "T-566",
+    order: "CATEGORIES",
+    file: "src/app/admin/permanencia/_ui/reglas.ts",
+    by: "OCCASION_CATEGORIES",
+    canonical: OCCASION_CATEGORIES,
+    positions: {
+      INTEGRATION: 0,
+      ATHLETIC_MATCH: 1,
+      COMMITTEE_MEETING: 2,
+      TALK: 3,
+      WORKSHOP: 4,
+      SOCIAL: 5,
+      OTHER: 6,
+    },
+    read: 'categories: labeled(CATEGORIES, tLabels("T-566", OCCASION_CATEGORIES))',
+    gone: ["function options(", "labels[index]"],
+    seen: false,
   },
 ];
 
@@ -1262,6 +1260,13 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       order: "DIRECTIONS",
       code: "T-2639",
       own: true,
+    },
+    // Las categorías del formulario de reglas: un par de largo distinto que la migración deshizo.
+    {
+      file: "src/app/admin/permanencia/_ui/reglas.ts",
+      order: "OCCASION_CATEGORIES",
+      code: "T-566",
+      own: false,
     },
     // Los contadores de la consola en vivo: recibían la lista por props y la recorrían por índice.
     {

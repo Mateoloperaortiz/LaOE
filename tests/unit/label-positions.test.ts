@@ -63,12 +63,6 @@ const EXCEPTIONS: Exception[] = [
     reason: `${UNEVEN} T-801 trae seis motivos para cuatro decisiones, y \`EXIT_OE\` lee el 3 o el 4 según la asamblea obligatoria.`,
   },
   {
-    path: "src/app/admin/permanencia/_ui/reglas.ts",
-    form: "traversal",
-    read: "labels[index]",
-    reason: `${UNEVEN} el formulario de reglas ofrece siete categorías y T-566 trae ocho piezas.`,
-  },
-  {
     path: "src/modules/crm/jobs.ts",
     form: "zip",
     read: 'zip(FIELD_KEYS,tList("T-427"))',

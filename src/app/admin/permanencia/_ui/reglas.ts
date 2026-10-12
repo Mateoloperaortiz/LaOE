@@ -1,5 +1,6 @@
 import "server-only";
 import { formText } from "@/app/_lib/form";
+import { OCCASION_CATEGORIES } from "@/modules/participation";
 import {
   APPLIES_TO,
   COMPUTATIONS,
@@ -15,6 +16,8 @@ import { t, tLabels, tList } from "@/shared/copy";
 // (/admin/comites/[slug]/permanencia): textos del formulario, valores desde una regla y el
 // armado de `params` desde el formulario según el cálculo.
 
+// Las siete categorías que admite una regla (`src/modules/permanence/domain/params.ts`): las de una
+// ocasión menos `INDUCTION`. Su etiqueta se lee por valor con el par de las ocho (ADR-126 regla 9).
 const CATEGORIES = [
   "INTEGRATION",
   "ATHLETIC_MATCH",
@@ -23,7 +26,7 @@ const CATEGORIES = [
   "WORKSHOP",
   "SOCIAL",
   "OTHER",
-];
+] as const;
 const KINDS = ["ACTIVITY", "ASSEMBLY", "EDITION_SESSION"] as const;
 const NEW_MEMBERS_FILTERS = ["ANY", "ONLY", "EXCLUDE"] as const;
 const COMMITTEE_FILTERS = ["ANY", "OWN"] as const;
@@ -35,13 +38,6 @@ function labeled<Value extends string>(
   labels: Readonly<Record<Value, string>>,
 ) {
   return values.map((value) => ({ value, label: labels[value] ?? value }));
-}
-
-/** Las opciones por posición. Solo las usan las categorías: son siete para las ocho piezas de
- * T-566, un par de largo distinto que queda fuera de `tLabels` (ADR-126 regla 2). */
-function options(values: string[], code: Parameters<typeof tList>[0]) {
-  const labels = tList(code);
-  return values.map((value, index) => ({ value, label: labels[index] ?? value }));
 }
 
 export function reglaFormLabels(): ReglaFormLabels {
@@ -58,7 +54,7 @@ export function reglaFormLabels(): ReglaFormLabels {
     occasionParams: tList("T-720"),
     newMembersFilters: labeled(NEW_MEMBERS_FILTERS, tLabels("T-721", NEW_MEMBERS_FILTERS)),
     committeeFilters: labeled(COMMITTEE_FILTERS, tLabels("T-722", COMMITTEE_FILTERS)),
-    categories: options(CATEGORIES, "T-566"),
+    categories: labeled(CATEGORIES, tLabels("T-566", OCCASION_CATEGORIES)),
     kinds: labeled(KINDS, tLabels("T-564", KINDS)),
     any: t("T-740"),
     groupParams: tList("T-723"),
