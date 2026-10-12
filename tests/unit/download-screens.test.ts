@@ -71,6 +71,7 @@ vi.mock("@/modules/terms", () => {
 });
 vi.mock("@/modules/permanence", () => ({
   COMPLIANCE_FILTERS: ["todos"],
+  COMPLIANCE_STATES: ["EN_CAMINO", "EN_RIESGO", "NO_ALCANZA", "CUMPLE", "PRUEBA", "NO_CUMPLE"],
   complianceSummary: async () => ({ computedAt: null }),
   listCompliance: async () => fake.complianceRows,
   boardExportRows: () => fake.boardExportRows,

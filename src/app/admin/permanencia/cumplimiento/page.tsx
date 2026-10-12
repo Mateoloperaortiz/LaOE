@@ -4,8 +4,10 @@ import { single } from "@/app/_lib/search";
 import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import { exportLimitNotice } from "@/app/admin/_kit/export-limit-notice";
 import { requireAdminActor } from "@/modules/identity";
+import { statusLabel } from "@/modules/people/admin";
 import {
   COMPLIANCE_FILTERS,
+  COMPLIANCE_STATES,
   type ComplianceFilter,
   complianceSummary,
   listCompliance,
@@ -15,7 +17,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { recomputeAction } from "./actions";
 
@@ -26,9 +28,7 @@ export const metadata: Metadata = { title: t("T-788") };
 
 type Search = Record<string, string | string[] | undefined>;
 
-const STATES = ["EN_CAMINO", "EN_RIESGO", "NO_ALCANZA", "CUMPLE", "PRUEBA", "NO_CUMPLE"];
-const CONDITIONS = ["ACTIVE", "NEW", "PROBATION", "TRANSFER"];
-const STATUSES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"];
+const CONDITIONS = ["ACTIVE", "NEW", "PROBATION", "TRANSFER"] as const;
 
 export default async function CumplimientoPage({
   searchParams,
@@ -43,10 +43,10 @@ export default async function CumplimientoPage({
     : "todos";
   const recalculando = single(search.recalculando) === "1";
   const filterLabels = tList("T-789");
+  const filterNames = tLabels("T-789", COMPLIANCE_FILTERS);
   const columns = tList("T-790");
-  const stateLabels = tList("T-791");
-  const conditionLabels = tList("T-792");
-  const statusLabels = tList("T-381");
+  const stateLabels: Readonly<Record<string, string>> = tLabels("T-791", COMPLIANCE_STATES);
+  const conditionLabels: Readonly<Record<string, string>> = tLabels("T-792", CONDITIONS);
   if (!term) {
     return (
       <div className="flex flex-col gap-6">
@@ -121,14 +121,14 @@ export default async function CumplimientoPage({
       <DownloadNotice searchParams={search} />
       {exportLimitNotice(rows.length)}
       <nav aria-label={filterLabels[0] ?? ""} className="flex flex-wrap gap-2">
-        {COMPLIANCE_FILTERS.map((key, index) => (
+        {COMPLIANCE_FILTERS.map((key) => (
           <Link
             key={key}
             href={`${base}&filtro=${key}`}
             aria-current={filter === key ? "page" : undefined}
             className={`rounded-full px-3 py-1 text-sm font-semibold no-underline ${filter === key ? "bg-oe-navy text-oe-paper" : "bg-fondo-suave text-titulo"}`}
           >
-            {filterLabels[index] ?? key}
+            {filterNames[key] ?? key}
           </Link>
         ))}
       </nav>
@@ -160,10 +160,8 @@ export default async function CumplimientoPage({
                   </td>
                   <td className="py-2 pr-3">
                     {row.condition
-                      ? (conditionLabels[CONDITIONS.indexOf(row.condition)] ?? "")
-                      : t("T-793", {
-                          estado: statusLabels[STATUSES.indexOf(row.status)] ?? row.status,
-                        })}
+                      ? (conditionLabels[row.condition] ?? "")
+                      : t("T-793", { estado: statusLabel(row.status) })}
                   </td>
                   <td className="py-2 pr-3">{row.committeeName}</td>
                   <td className="py-2 pr-3 tabular-nums">{row.generalTotal}</td>
@@ -181,7 +179,7 @@ export default async function CumplimientoPage({
                               : "sky"
                         }
                       >
-                        {stateLabels[STATES.indexOf(row.state)] ?? row.state}
+                        {stateLabels[row.state] ?? row.state}
                       </Insignia>
                     ) : null}
                   </td>

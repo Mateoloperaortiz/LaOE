@@ -172,7 +172,6 @@ export const PAIRS: readonly LabelPair[] = [
     copies: [
       "src/modules/people/admin.ts",
       "src/modules/permanence/components/Desglose.tsx",
-      "src/app/admin/permanencia/cumplimiento/page.tsx",
       "src/app/app/_ui/PersonaTarjeta.tsx",
       "src/modules/crm/jobs.ts",
     ],
@@ -402,11 +401,7 @@ export const PAIRS: readonly LabelPair[] = [
     order: "STATES",
     positions: { EN_CAMINO: 0, EN_RIESGO: 1, NO_ALCANZA: 2, CUMPLE: 3, PRUEBA: 4, NO_CUMPLE: 5 },
     canonical: COMPLIANCE_STATES,
-    copies: [
-      "src/app/admin/permanencia/cumplimiento/page.tsx",
-      "src/app/admin/comites/[slug]/permanencia/page.tsx",
-      "src/modules/permanence/domain/snapshot-pure.ts",
-    ],
+    copies: ["src/modules/permanence/domain/snapshot-pure.ts"],
   },
   {
     code: "T-792",
@@ -1202,6 +1197,18 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       file: "src/app/admin/the-games/[id]/_ui/Community.tsx",
       order: "MARKET_STATUSES",
       code: "T-2867",
+      own: false,
+    },
+    {
+      file: "src/app/admin/comites/[slug]/permanencia/page.tsx",
+      order: "CONDITIONS",
+      code: "T-792",
+      own: true,
+    },
+    {
+      file: "src/app/admin/comites/[slug]/permanencia/page.tsx",
+      order: "COMPLIANCE_STATES",
+      code: "T-791",
       own: false,
     },
   ];
