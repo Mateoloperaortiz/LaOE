@@ -42,7 +42,6 @@ function consoleHtml(recent: Recent[]): string {
         link: "",
         code: "",
         stale: "",
-        counters: [...tList("T-585")],
         recentTitle: "",
         recentEmpty: "",
         ...liveConsoleLabels(),

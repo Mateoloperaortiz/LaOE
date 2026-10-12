@@ -338,6 +338,7 @@ export const textosCliente = {
   "T-404": "Celular",
   "T-405": "Correo personal",
   "T-406": "Correo institucional",
+  "T-585": "Registrados · Pendientes · Rechazados · Anulados",
   "T-878": "Retirar solicitud",
   "T-880": "Contanos por qué",
   "T-881": "Hasta cuándo volvés",

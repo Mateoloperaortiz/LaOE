@@ -1263,6 +1263,13 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       code: "T-2639",
       own: true,
     },
+    // Los contadores de la consola en vivo: recibían la lista por props y la recorrían por índice.
+    {
+      file: "src/modules/participation/components/ConsolaEnVivo.tsx",
+      order: "COUNTER_ORDER",
+      code: "T-585",
+      own: true,
+    },
     {
       file: "src/app/admin/sistema/importaciones/page.tsx",
       order: "IMPORT_GROUPS",

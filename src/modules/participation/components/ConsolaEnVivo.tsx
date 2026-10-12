@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { labelsFromProps } from "@/shared/copy/client";
+import { labelsFromProps, tLabels } from "@/shared/copy/client";
 import { afterPoll, type LiveStatus, showsAsCurrent } from "./console-live";
 
 // Contador en vivo (ADR-035 regla 16): pide el JSON de la ocasión cada pocos segundos, se pausa con
@@ -25,7 +25,6 @@ type Labels = {
   link: string; // con {url}
   code: string; // con {codigo} y {s}
   stale: string; // lo que se mostraba dejó de valer
-  counters: string[]; // Registrados · Pendientes · Rechazados · Anulados
   recentTitle: string;
   recentEmpty: string;
   sources: Record<string, string>; // la etiqueta de cada fuente, por valor (T-596)
@@ -41,8 +40,11 @@ type Props = {
   timeZone: string;
 };
 
-// Orden de los contadores (T-585). Las etiquetas de estado y de fuente llegan por valor.
-const COUNTER_ORDER = ["APPROVED", "PENDING", "REJECTED", "CANCELLED"];
+// Los contadores, en el orden de la pantalla, y el título de cada uno por valor (T-585: Registrados ·
+// Pendientes · Rechazados · Anulados). El componente conoce ese orden, así que arma su par acá y no
+// lo recibe por props (ADR-126 regla 5). Las etiquetas de estado y de fuente sí llegan por props.
+const COUNTER_ORDER = ["APPROVED", "PENDING", "REJECTED", "CANCELLED"] as const;
+const COUNTER_LABELS = tLabels("T-585", COUNTER_ORDER);
 
 function fill(text: string, values: Record<string, string>): string {
   return text.replace(/\{([a-z]+)\}/g, (match, key: string) => values[key] ?? match);
@@ -150,12 +152,12 @@ export function ConsolaEnVivo({
       </section>
       <div className="flex flex-col gap-6">
         <dl className="grid grid-cols-2 gap-4" aria-live="polite">
-          {COUNTER_ORDER.map((status, index) => (
+          {COUNTER_ORDER.map((status) => (
             <div
               key={status}
               className="flex flex-col gap-1 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
             >
-              <dt className="eyebrow text-xs">{labels.counters[index] ?? status}</dt>
+              <dt className="eyebrow text-xs">{COUNTER_LABELS[status] ?? status}</dt>
               <dd className="font-display text-display-lg leading-none" data-contador={status}>
                 {data.counts[status] ?? 0}
               </dd>
