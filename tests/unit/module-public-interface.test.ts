@@ -121,65 +121,11 @@ const EXCEPTIONS: Exceptions = {
   },
   crm: {
     nadie: `
-      AdminDashboard
-      ApplyContext
-      ApplyResult
-      BoardColumn
-      BoardSummary
-      CallEntryStatus
-      CallEntryView
-      CallInput
-      CallListRow
-      CallSelection
-      CallStatus
-      CardInput
-      CardUpdateInput
-      CardView
-      CommitteeChange
-      ContactInput
-      ContactView
-      DASHBOARD_ROWS
-      DecisionInput
-      EXCUSE_BUSINESS_DAYS
       ExcuseCause
-      ExcusePayload
-      ExternalContactInput
-      LeavePayload
-      OnboardingEvidence
-      OnboardingStep
-      OrganizationInput
-      OrganizationKind
-      OrganizationListRow
-      OrganizationRef
-      PipelineKind
-      PipelineListRow
-      RecognitionInput
-      RequestStatus
       ResignationPayload
-      StageInput
-      StageRecord
-      StageTemplate
-      TaskInput
-      TransferPayload
-      callInputSchema
-      closedAtForStage
-      contactInputSchema
       countCallsByGroup
-      daysInStage
-      excuseCauseLabel
       getOrganizationsByIds
       getPipelinesByIds
-      hasRoom
-      initialEntryStatus
-      isCallOpen
-      leavePayloadSchema
-      listBoardSummaries
-      listCalls
-      organizationInputSchema
-      requestStatusLabel
-      resignationPayloadSchema
-      resultingCommittees
-      transferPayloadSchema
     `,
     "solo-pruebas": `
       countPendingRequests

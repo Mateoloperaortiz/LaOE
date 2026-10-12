@@ -1,18 +1,11 @@
 // API pública del módulo crm.
 
 export {
-  type ApplyContext,
-  type ApplyResult,
   applyToCallAs,
-  type CallEntryView,
-  type CallInput,
-  type CallListRow,
-  callInputSchema,
   countCallsByGroup,
   decideEntryAs,
   getCall,
   listCallEntries,
-  listCalls,
   listMyEntries,
   listOpenCalls,
   setCallStatusAs,
@@ -21,20 +14,10 @@ export {
   CALL_ENTRY_STATUSES,
   CALL_SELECTIONS,
   CALL_STATUSES,
-  type CallEntryStatus,
-  type CallSelection,
-  type CallStatus,
-  hasRoom,
-  initialEntryStatus,
-  isCallOpen,
 } from "./domain/calls-pure";
 export {
   addCardNoteAs,
   admitFromCardAs,
-  type BoardColumn,
-  type CardInput,
-  type CardUpdateInput,
-  type CardView,
   cardInputSchema,
   cardTaskInputSchema,
   cardUpdateSchema,
@@ -42,7 +25,6 @@ export {
   createCardTaskAs,
   getBoard,
   getCard,
-  listBoardSummaries,
   listCardsByOrganization,
   listCardsByPerson,
   moveCardAs,
@@ -56,12 +38,7 @@ export {
   editNoteAs,
   markOnboardingStepAs,
 } from "./domain/commands";
-export {
-  type AdminDashboard,
-  type BoardSummary,
-  DASHBOARD_ROWS,
-  dashboardForAdmin,
-} from "./domain/dashboard";
+export { dashboardForAdmin } from "./domain/dashboard";
 export {
   type InteractionView,
   latestContact,
@@ -71,18 +48,12 @@ export {
 } from "./domain/interactions";
 export {
   getOnboarding,
-  type OnboardingEvidence,
-  type OnboardingStep,
   recordOnboardingEvidence,
 } from "./domain/onboarding";
 export {
   addContactAs,
-  type ContactInput,
-  type ContactView,
-  contactInputSchema,
   createExternalContactAs,
   createOrganizationAs,
-  type ExternalContactInput,
   externalContactSchema,
   getOrganization,
   getOrganizationsByIds,
@@ -91,11 +62,6 @@ export {
   listOrganizationsOfPerson,
   listOrganizationTagIds,
   ORGANIZATION_KINDS,
-  type OrganizationInput,
-  type OrganizationKind,
-  type OrganizationListRow,
-  type OrganizationRef,
-  organizationInputSchema,
   removeContactAs,
   searchOrganizations,
   setOrganizationTagsAs,
@@ -110,18 +76,11 @@ export {
   listPipelineOptions,
   listStages,
   moveStageAs,
-  type PipelineListRow,
-  type StageInput,
-  type StageRecord,
   saveStageAs,
   stageInputSchema,
 } from "./domain/pipelines";
 export {
-  closedAtForStage,
-  daysInStage,
   PIPELINE_KINDS,
-  type PipelineKind,
-  type StageTemplate,
   templateStages,
 } from "./domain/pipelines-pure";
 export {
@@ -132,17 +91,14 @@ export {
   MONTHS,
   monthName,
   OE_AWARDS,
-  type RecognitionInput,
   type RecognitionView,
   recognitionInputSchema,
 } from "./domain/recognitions";
 export {
   countPendingRequests,
   createRequestAs,
-  type DecisionInput,
   decideExcuseForCommitteeAs,
   decideRequestAs,
-  excuseCauseLabel,
   excuseDeadline,
   getRequest,
   getRequestByTask,
@@ -151,32 +107,20 @@ export {
   listRequestsByPerson,
   type RequestView,
   requestKindLabel,
-  requestStatusLabel,
   withdrawRequestAs,
 } from "./domain/requests";
 export {
-  type CommitteeChange,
-  EXCUSE_BUSINESS_DAYS,
   EXCUSE_CAUSES,
   type ExcuseCause,
-  type ExcusePayload,
-  type LeavePayload,
-  leavePayloadSchema,
   REQUEST_KINDS,
   REQUEST_PAYLOAD_SCHEMAS,
   REQUEST_STATUSES,
   type RequestKind,
-  type RequestStatus,
   type ResignationPayload,
-  resignationPayloadSchema,
-  resultingCommittees,
-  type TransferPayload,
-  transferPayloadSchema,
 } from "./domain/requests-pure";
 export {
   countOpenTasksFor,
   listTasks,
-  type TaskInput,
   type TaskRow,
   taskInputSchema,
 } from "./domain/tasks";
