@@ -333,8 +333,8 @@ describe("cámara del lector del carnet", () => {
   });
 
   it("un permiso que se niega después de detener el lector pinta igual el error de la cámara", async () => {
-    // Conducta de hoy, conservada: qué se le muestra a quien sube una foto y después niega el permiso no
-    // lo elige este arreglo (DT-254, inciso f).
+    // Conducta de hoy, conservada: qué ve quien sube una foto y después niega el permiso espera la
+    // decisión abierta 76 (DT-254, inciso f).
     const permission = held<FakeStream>();
     const camera = createCamera<FakeStream>();
     const { steps, shown } = wiring(() => permission.promise);
@@ -349,7 +349,8 @@ describe("cámara del lector del carnet", () => {
 
   it("si el video no arranca, el arranque falla sin pintar nada y la cámara sigue encendida hasta que detienen el lector", async () => {
     // Conducta de hoy, conservada (DT-254, inciso g): el flujo queda guardado, y lo apaga el siguiente
-    // toque a «Escanear» o salir de la pantalla.
+    // toque a «Escanear» o salir de la pantalla. No espera una decisión: apagar el flujo y pintar el error
+    // de la cámara que ya existe es otro ticket, que invierte esta prueba.
     const stream = fakeStream();
     const camera = createCamera<FakeStream>();
     const { steps, shown } = wiring(
@@ -398,6 +399,37 @@ describe("cámara del lector del carnet", () => {
 
     const off = { live: false, shown: [], attached: 0, polls: 0 };
     expect(left).toEqual([off, off]);
+  });
+
+  it("después de una foto que detuvo el lector, otro toque a «Escanear» con el permiso todavía pendiente no arranca nada, y cuando el permiso llega la cámara no enciende: arranca con el toque siguiente", async () => {
+    // Lo que ve el anfitrión desde el arreglo (ADR-127 regla 5): tiene que tocar «Escanear» otra vez.
+    // Antes la cámara arrancaba sola al llegar el permiso, encima de lo que la foto había dejado, que
+    // era el defecto (DT-254, inciso e).
+    const permission = held<FakeStream>();
+    const first = fakeStream();
+    const second = fakeStream();
+    const camera = createCamera<FakeStream>();
+    const start = createStartGate();
+    const ask = vi.fn(() => permission.promise);
+    const pending = wiring(ask);
+    const starting = start(() => camera.start(pending.steps), camera.stop);
+    await readPhoto(broken, PHOTO, camera.stop);
+
+    // La guardia sigue cerrada: el primer arranque no terminó, porque el navegador no ha contestado.
+    const refused = start(() => camera.start(pending.steps), camera.stop);
+    expect(ask).toHaveBeenCalledTimes(1);
+    expect(await refused).toBe(false);
+    permission.resolve(first);
+    expect(await starting).toBe(true);
+
+    expect(first.live()).toBe(false);
+    expect(pending.shown).toEqual([]);
+    expect(pending.steps.poll).not.toHaveBeenCalled();
+
+    const again = wiring(async () => second);
+    expect(await start(() => camera.start(again.steps), camera.stop)).toBe(true);
+    expect(again.shown).toEqual([{ kind: "scanning" }]);
+    expect(second.live()).toBe(true);
   });
 
   it("si lo detienen mientras el video arranca, la cámara queda apagada y el lector no pinta «Detener» ni arranca el sondeo", async () => {

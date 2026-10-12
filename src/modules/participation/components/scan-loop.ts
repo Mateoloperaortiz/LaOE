@@ -162,7 +162,11 @@ export type CameraSteps<Stream> = {
  * encendido sin un botón que lo detenga.
  *
  * Detener no deja la cámara inservible: cancela el arranque de ese momento, y el siguiente arranca como
- * siempre. El permiso que se niega pinta su error aunque el lector ya se haya detenido, como antes.
+ * siempre. El permiso que se niega pinta su error aunque el lector ya se haya detenido, como antes: qué
+ * ve ahí el anfitrión espera la decisión abierta 76.
+ *
+ * `start` no se defiende de dos arranques en la misma tanda: el segundo pisaría el flujo guardado del
+ * primero y lo dejaría encendido. Lo impide `createStartGate`, por donde pasa el único llamador.
  */
 export function createCamera<Stream extends VideoStream>(): {
   start: (steps: CameraSteps<Stream>) => Promise<void>;
