@@ -13,7 +13,7 @@ import {
   isInInternalRoster,
   listCommitteesByIds,
 } from "@/modules/people";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { interaction, recognition } from "../schema";
 
@@ -42,9 +42,8 @@ export const OE_AWARDS = [
 ] as const;
 
 export function awardLabel(award: string | null): string {
-  return award
-    ? (tList("T-2320")[OE_AWARDS.indexOf(award as (typeof OE_AWARDS)[number])] ?? award)
-    : "";
+  const labels: Readonly<Record<string, string>> = tLabels("T-2320", OE_AWARDS);
+  return award ? (labels[award] ?? award) : "";
 }
 
 export const recognitionInputSchema = z

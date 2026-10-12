@@ -27,7 +27,7 @@ import {
 } from "@/modules/people";
 import { requireConfig, requirePrivacyPolicyVersion } from "@/modules/system";
 import { ensureNextTerm, getCurrentTerm, type TermRow } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { request } from "../schema";
@@ -63,17 +63,17 @@ export interface RequestView extends RequestRecord {
 }
 
 export function requestKindLabel(kind: RequestKind): string {
-  return tList("T-894")[REQUEST_KINDS.indexOf(kind)] ?? kind;
+  return tLabels("T-894", REQUEST_KINDS)[kind] ?? kind;
 }
 
 export function requestStatusLabel(status: RequestStatus): string {
-  return tList("T-876")[REQUEST_STATUSES.indexOf(status)] ?? status;
+  return tLabels("T-876", REQUEST_STATUSES)[status] ?? status;
 }
 
 /** Causal del Anexo 1 en el orden de T-2215 (ADR-060 regla 5). */
 export function excuseCauseLabel(cause: string): string {
-  const index = (EXCUSE_CAUSES as readonly string[]).indexOf(cause);
-  return index >= 0 ? (tList("T-2215")[index] ?? cause) : cause;
+  const causes: Readonly<Record<string, string>> = tLabels("T-2215", EXCUSE_CAUSES);
+  return causes[cause] ?? cause;
 }
 
 /** Hasta cuándo se presenta la excusa de una ocasión: tres días hábiles después (Anexo 1, par. 1). */
