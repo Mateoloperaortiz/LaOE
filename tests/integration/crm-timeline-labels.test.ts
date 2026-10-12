@@ -272,4 +272,26 @@ describe("las etiquetas que labels() de crm/jobs.ts le da a la línea de tiempo"
     const label = item?.fallback ? item.fallback(tList(code), stranger) : stranger;
     expect(stored).toEqual({ [stranger]: item?.summary(label, stranger) });
   });
+  // El `zip` armaba un objeto literal, que hereda de `Object.prototype`: un valor llamado como una de
+  // sus propiedades no caía al respaldo, leía una función, y el resumen guardaba su código fuente o
+  // el handler fallaba al pasarla a minúsculas (ADR-126 regla 6). Leído por valor cae al respaldo
+  // como cualquier otro valor sin etiqueta.
+  it.each(
+    KEYS,
+  )("un valor que se llama como una propiedad de Object queda en $key como cualquier otro sin etiqueta", async ({
+    key,
+    code,
+  }) => {
+    const item = CASES[key];
+    const strangers = ["constructor", "toString", "hasOwnProperty", "valueOf", "__proto__"];
+
+    const stored = await storedSummaries(key, strangers);
+
+    expect(strangers.map((value) => [value, stored[value]])).toEqual(
+      strangers.map((value) => [
+        value,
+        item?.summary(item.fallback ? item.fallback(tList(code), value) : value, value),
+      ]),
+    );
+  });
 });

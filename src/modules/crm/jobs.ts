@@ -10,6 +10,7 @@ import {
 } from "@/domain-events/people";
 import { evaluationRecorded, groupAdmissionFailed } from "@/domain-events/permanence";
 import { onEvent, registerHandler } from "@/jobs/registry";
+import { BOOSTER_KINDS } from "@/modules/participation";
 import {
   APPOINTMENT_KINDS,
   CONSENT_PURPOSES,
@@ -22,12 +23,14 @@ import {
   SANCTION_KINDS,
 } from "@/modules/people";
 import { listAllTerms } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { atHourIn, bogotaHourToUtc, formatDate, todayKey } from "@/shared/lib/dates";
+import { CALL_ENTRY_STATUSES } from "./domain/calls-pure";
 import { createCardFromSubmission } from "./domain/cards";
 import { openTaskForReasonAs } from "./domain/commands";
 import { deleteNotesFor, recordAutomaticInteraction } from "./domain/interactions";
 import { recordOnboardingEvidence } from "./domain/onboarding";
+import { REQUEST_STATUSES } from "./domain/requests-pure";
 import { deleteTasksFor } from "./domain/tasks";
 import {
   entryFor,
@@ -41,8 +44,6 @@ import {
 
 const STATUS_CODES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"] as const;
 const STAGE_CODES = ["PROSPECT", "APPLICANT", "MEMBER", "ALUMNI"] as const;
-const REQUEST_STATUS_CODES = ["PENDING", "APPROVED", "REJECTED", "WITHDRAWN"] as const;
-const CALL_ENTRY_CODES = ["APPLIED", "ACCEPTED", "WAITLISTED", "REJECTED"] as const;
 const PERMISSION_CODES = ["ADMIN", "COMMITTEE_LEADER", "BOARD"] as const;
 const DECISION_KINDS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"] as const;
 const FIELD_KEYS = [
@@ -56,28 +57,34 @@ const FIELD_KEYS = [
   "kind",
 ] as const;
 
+// El único par que sigue emparejado por posición: T-427 trae once piezas (también da las columnas de
+// Personas) y los campos del evento son ocho, así que no entra a `tLabels` (ADR-126 regla 2). Sin
+// prototipo, como el `Record` de `tLabels`: un campo que la lista no trae cae al respaldo de `label`.
 function zip(keys: readonly string[], values: string[]): Record<string, string> {
-  return Object.fromEntries(keys.map((key, index) => [key, values[index] ?? key]));
+  return Object.assign(
+    Object.create(null),
+    Object.fromEntries(keys.map((key, index) => [key, values[index] ?? key])),
+  );
 }
 
 function labels(): TimelineLabels {
   return {
     texts: tList("T-458"),
     participationTexts: tList("T-667"),
-    boosterNames: tList("T-2451"),
+    boosterNames: tLabels("T-2451", BOOSTER_KINDS),
     permanenceTexts: tList("T-832"),
     crmTexts: tList("T-1046"),
     directionTexts: tList("T-2171"),
     sanctionTexts: tList("T-2234"),
-    sanctionKinds: zip(SANCTION_KINDS, tList("T-2229")),
-    stages: zip(STAGE_CODES, tList("T-1047")),
-    requestStatuses: zip(REQUEST_STATUS_CODES, tList("T-876")),
-    callEntryStatuses: zip(CALL_ENTRY_CODES, tList("T-899")),
-    decisions: zip(DECISION_KINDS, tList("T-802")),
-    statuses: zip(STATUS_CODES, tList("T-381")),
-    appointmentKinds: zip(APPOINTMENT_KINDS, tList("T-444")),
-    permissions: zip(PERMISSION_CODES, tList("T-289")),
-    purposes: zip(CONSENT_PURPOSES, tList("T-516")),
+    sanctionKinds: tLabels("T-2229", SANCTION_KINDS),
+    stages: tLabels("T-1047", STAGE_CODES),
+    requestStatuses: tLabels("T-876", REQUEST_STATUSES),
+    callEntryStatuses: tLabels("T-899", CALL_ENTRY_STATUSES),
+    decisions: tLabels("T-802", DECISION_KINDS),
+    statuses: tLabels("T-381", STATUS_CODES),
+    appointmentKinds: tLabels("T-444", APPOINTMENT_KINDS),
+    permissions: tLabels("T-289", PERMISSION_CODES),
+    purposes: tLabels("T-516", CONSENT_PURPOSES),
     fields: zip(FIELD_KEYS, tList("T-427")),
   };
 }

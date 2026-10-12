@@ -297,25 +297,33 @@ describe("las constantes que guardan la posición de cada valor", () => {
   });
 });
 
-describe("el zip de crm/jobs.ts", () => {
-  it("arma diez pares con siete órdenes propios", () => {
-    const source = readFileSync(path.resolve(JOBS), "utf8");
-    expect(source.match(/: zip\(/g)).toHaveLength(ZIP_PAIRS.length);
-    expect(source.match(/^const [A-Z_]+ = \[/gm)).toHaveLength(
-      ZIP_PAIRS.filter((pair) => pair.own).length,
-    );
+describe("las etiquetas de la línea de tiempo en crm/jobs.ts", () => {
+  // Qué etiqueta le toca a cada valor lo fija tests/integration/crm-timeline-labels.test.ts, que pasa
+  // por `labels()` y lee el resumen guardado. Acá queda lo que solo se ve en el texto: que el `zip`
+  // ya arma un solo par, el de largo distinto, y que cada orden propio sigue escrito como en la tabla.
+  it("nueve de los diez pares se leen por valor y el zip solo arma el de largo distinto", () => {
+    const source = sourceOf(JOBS);
+    expect(readFileSync(path.resolve(JOBS), "utf8").match(/: zip\(/g)).toHaveLength(1);
     expect(ZIP_PAIRS).toHaveLength(10);
-    expect(ZIP_PAIRS.filter((pair) => pair.own)).toHaveLength(7);
+    expect(ZIP_PAIRS.filter((pair) => pair.own)).toHaveLength(5);
+    for (const { key, order, code } of ZIP_PAIRS) {
+      const uneven = UNEVEN_PAIRS.some((pair) => pair.code === code && pair.file === JOBS);
+      expect(source).toContain(
+        squash(
+          uneven
+            ? `${key}: zip(${order}, tList("${code}"))`
+            : `${key}: tLabels("${code}", ${order})`,
+        ),
+      );
+    }
   });
 
-  it.each(ZIP_PAIRS)("$key empareja $order con $code, en el orden de la tabla", ({
-    key,
+  it.each(ZIP_PAIRS)("$key lee $code con $order, en el orden de la tabla", ({
     order,
     code,
     own,
   }) => {
     const source = sourceOf(JOBS);
-    expect(source).toContain(squash(`${key}: zip(${order}, tList("${code}"))`));
     const uneven = UNEVEN_PAIRS.find((pair) => pair.code === code && pair.file === JOBS);
     const pair = ONE_TO_ONE.find((item) => item.code === code);
     const values = uneven ? [...uneven.tuple] : pair ? valuesOf(pair) : [];
@@ -323,7 +331,8 @@ describe("el zip de crm/jobs.ts", () => {
     if (own) {
       expect(source).toContain(`const${order}=${literal(values)}asconst;`);
     } else {
-      // El orden es la tupla que exporta `people`: la fila de la tabla lo compara con ella.
+      // El orden es una tupla exportada, de `people` o del propio `crm`: la fila de la tabla lo
+      // compara con ella.
       expect(pair?.canonical).toBeDefined();
       expect(source).not.toContain(`const${order}=`);
     }

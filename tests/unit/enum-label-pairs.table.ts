@@ -439,7 +439,6 @@ export const PAIRS: readonly LabelPair[] = [
     positions: { PENDING: 0, APPROVED: 1, REJECTED: 2, WITHDRAWN: 3 },
     canonical: REQUEST_STATUSES,
     label: LABELS.requestStatus,
-    copies: ["src/modules/crm/jobs.ts"],
   },
   {
     code: "T-894",
@@ -453,7 +452,6 @@ export const PAIRS: readonly LabelPair[] = [
     order: "CALL_ENTRY_STATUSES",
     positions: { APPLIED: 0, ACCEPTED: 1, WAITLISTED: 2, REJECTED: 3 },
     canonical: CALL_ENTRY_STATUSES,
-    copies: ["src/modules/crm/jobs.ts"],
   },
   {
     code: "T-924",
@@ -733,7 +731,6 @@ export const PAIRS: readonly LabelPair[] = [
     order: "BOOSTER_KINDS",
     positions: { PLUS_50: 0, PLUS_100: 1 },
     canonical: BOOSTER_KINDS,
-    copies: ["src/modules/crm/domain/timeline/participation.ts"],
   },
   {
     code: "T-2455",
@@ -1137,13 +1134,16 @@ export const UNEVEN_PAIRS: readonly UnevenPair[] = [
   },
 ];
 
-/** Los diez pares que `labels()` de crm/jobs.ts arma con su `zip`: la clave de las etiquetas de
- * la línea de tiempo, el orden que usa y si ese orden es uno de los siete que el archivo declara. */
+/** Los diez pares que `labels()` de crm/jobs.ts armaba con su `zip`: la clave de las etiquetas de
+ * la línea de tiempo, el orden que usa y si ese orden es uno de los cinco que el archivo declara.
+ * Desde el ticket #318 nueve se leen por valor con `tLabels` y el `zip` solo arma `fields`, el de
+ * largo distinto. Qué etiqueta le toca a cada valor lo fija, pasando por `labels()`,
+ * tests/integration/crm-timeline-labels.test.ts. */
 export const ZIP_PAIRS: readonly { key: string; order: string; code: ListCode; own: boolean }[] = [
   { key: "sanctionKinds", order: "SANCTION_KINDS", code: "T-2229", own: false },
   { key: "stages", order: "STAGE_CODES", code: "T-1047", own: true },
-  { key: "requestStatuses", order: "REQUEST_STATUS_CODES", code: "T-876", own: true },
-  { key: "callEntryStatuses", order: "CALL_ENTRY_CODES", code: "T-899", own: true },
+  { key: "requestStatuses", order: "REQUEST_STATUSES", code: "T-876", own: false },
+  { key: "callEntryStatuses", order: "CALL_ENTRY_STATUSES", code: "T-899", own: false },
   { key: "decisions", order: "DECISION_KINDS", code: "T-802", own: true },
   { key: "statuses", order: "STATUS_CODES", code: "T-381", own: true },
   { key: "appointmentKinds", order: "APPOINTMENT_KINDS", code: "T-444", own: false },
