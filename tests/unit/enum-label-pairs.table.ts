@@ -335,7 +335,6 @@ export const PAIRS: readonly LabelPair[] = [
     order: "APPLIES_TO",
     positions: { ALL: 0, NEW: 1, VETERAN: 2 },
     canonical: APPLIES_TO,
-    copies: ["src/app/admin/permanencia/_ui/reglas.ts"],
   },
   {
     code: "T-718",
@@ -350,7 +349,6 @@ export const PAIRS: readonly LabelPair[] = [
       MANUAL: 6,
     },
     canonical: COMPUTATIONS,
-    copies: ["src/app/admin/permanencia/_ui/reglas.ts"],
   },
   {
     code: "T-719",
@@ -364,7 +362,7 @@ export const PAIRS: readonly LabelPair[] = [
       LEADER_SCORE: 5,
       MANUAL: 6,
     },
-    copies: ["src/app/admin/permanencia/_ui/reglas.ts"],
+    canonical: COMPUTATIONS,
   },
   {
     code: "T-725",
@@ -378,11 +376,6 @@ export const PAIRS: readonly LabelPair[] = [
       NEW_MEMBER_TASK: 5,
     },
     canonical: WORK_GROUP_KINDS,
-    copies: [
-      "src/app/admin/permanencia/evaluaciones/page.tsx",
-      "src/app/admin/permanencia/grupos/[id]/page.tsx",
-      "src/app/admin/permanencia/_ui/reglas.ts",
-    ],
   },
   {
     code: "T-750",
@@ -1235,6 +1228,18 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       order: "COMPLIANCE_STATES",
       code: "T-791",
       own: false,
+    },
+    {
+      file: "src/app/admin/permanencia/evaluaciones/page.tsx",
+      order: "EVALUATIONS",
+      code: "T-750",
+      own: true,
+    },
+    {
+      file: "src/app/admin/permanencia/grupos/[id]/page.tsx",
+      order: "EVALUATIONS",
+      code: "T-750",
+      own: true,
     },
   ];
 

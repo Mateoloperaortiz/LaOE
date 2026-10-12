@@ -1,22 +1,20 @@
 import "server-only";
 import { formText } from "@/app/_lib/form";
-import type { Computation, Rule, RuleInputValues } from "@/modules/permanence";
+import {
+  APPLIES_TO,
+  COMPUTATIONS,
+  type Computation,
+  type Rule,
+  type RuleInputValues,
+  WORK_GROUP_KINDS,
+} from "@/modules/permanence";
 import type { ReglaFormLabels, ReglaFormValues } from "@/modules/permanence/components/ReglaForm";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 
 // Ayudas del editor de reglas compartidas por GH (/admin/permanencia/reglas) y el líder
 // (/admin/comites/[slug]/permanencia): textos del formulario, valores desde una regla y el
 // armado de `params` desde el formulario según el cálculo.
 
-const COMPUTATIONS: Computation[] = [
-  "CHECKIN_COUNT",
-  "CHECKIN_THRESHOLD",
-  "CHECKIN_RATE",
-  "GROUP_EVALUATED",
-  "COMPOSITE",
-  "LEADER_SCORE",
-  "MANUAL",
-];
 const CATEGORIES = [
   "INTEGRATION",
   "ATHLETIC_MATCH",
@@ -26,41 +24,46 @@ const CATEGORIES = [
   "SOCIAL",
   "OTHER",
 ];
-const KINDS = ["ACTIVITY", "ASSEMBLY", "EDITION_SESSION"];
-const GROUP_KINDS = [
-  "WORK_COMMITTEE",
-  "GT_MACROEVENT",
-  "GAP",
-  "GAP_OE",
-  "BARRA_BRAVA",
-  "NEW_MEMBER_TASK",
-];
+const KINDS = ["ACTIVITY", "ASSEMBLY", "EDITION_SESSION"] as const;
+const NEW_MEMBERS_FILTERS = ["ANY", "ONLY", "EXCLUDE"] as const;
+const COMMITTEE_FILTERS = ["ANY", "OWN"] as const;
+const GROUP_MODES = ["FIXED", "PER_GROUP", "TIERS"] as const;
 
+/** Las opciones de un select, con la etiqueta de cada valor leída por valor (ADR-126 regla 3). */
+function labeled<Value extends string>(
+  values: readonly Value[],
+  labels: Readonly<Record<Value, string>>,
+) {
+  return values.map((value) => ({ value, label: labels[value] ?? value }));
+}
+
+/** Las opciones por posición. Solo las usan las categorías: son siete para las ocho piezas de
+ * T-566, un par de largo distinto que queda fuera de `tLabels` (ADR-126 regla 2). */
 function options(values: string[], code: Parameters<typeof tList>[0]) {
   const labels = tList(code);
   return values.map((value, index) => ({ value, label: labels[index] ?? value }));
 }
 
 export function reglaFormLabels(): ReglaFormLabels {
-  const names = tList("T-718");
-  const helps = tList("T-719");
+  const names = tLabels("T-718", COMPUTATIONS);
+  const helps = tLabels("T-719", COMPUTATIONS);
   return {
     fields: tList("T-716"),
-    appliesTo: options(["ALL", "NEW", "VETERAN"], "T-717"),
-    computations: COMPUTATIONS.map((value, index) => ({
+    appliesTo: labeled(APPLIES_TO, tLabels("T-717", APPLIES_TO)),
+    computations: COMPUTATIONS.map((value) => ({
       value,
-      label: names[index] ?? value,
-      help: helps[index] ?? "",
+      label: names[value] ?? value,
+      help: helps[value] ?? "",
     })),
     occasionParams: tList("T-720"),
-    newMembersFilters: options(["ANY", "ONLY", "EXCLUDE"], "T-721"),
-    committeeFilters: options(["ANY", "OWN"], "T-722"),
+    newMembersFilters: labeled(NEW_MEMBERS_FILTERS, tLabels("T-721", NEW_MEMBERS_FILTERS)),
+    committeeFilters: labeled(COMMITTEE_FILTERS, tLabels("T-722", COMMITTEE_FILTERS)),
     categories: options(CATEGORIES, "T-566"),
-    kinds: options(KINDS, "T-564"),
+    kinds: labeled(KINDS, tLabels("T-564", KINDS)),
     any: t("T-740"),
     groupParams: tList("T-723"),
-    groupModes: options(["FIXED", "PER_GROUP", "TIERS"], "T-724"),
-    groupKinds: options(GROUP_KINDS, "T-725"),
+    groupModes: labeled(GROUP_MODES, tLabels("T-724", GROUP_MODES)),
+    groupKinds: labeled(WORK_GROUP_KINDS, tLabels("T-725", WORK_GROUP_KINDS)),
     alsoCounts: t("T-2615"),
     alsoCountsHelp: t("T-2616"),
     mandatory: t("T-726"),

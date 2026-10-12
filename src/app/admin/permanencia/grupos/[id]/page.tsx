@@ -4,13 +4,13 @@ import { notFound } from "next/navigation";
 import { requireGroupOperator } from "@/app/_authz/group";
 import { single } from "@/app/_lib/search";
 import { searchMembersByName } from "@/modules/people";
-import { getGroupDetail } from "@/modules/permanence";
+import { getGroupDetail, WORK_GROUP_KINDS } from "@/modules/permanence";
 import { ImportadorGrupo } from "@/modules/permanence/components/ImportadorGrupo";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { addMemberAction, importAction, removeMemberAction, setEvaluatorsAction } from "./actions";
 import { altaNotice } from "./alta";
@@ -22,14 +22,7 @@ type Search = Record<string, string | string[] | undefined>;
 
 const inputClass =
   "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";
-const GROUP_KINDS = [
-  "WORK_COMMITTEE",
-  "GT_MACROEVENT",
-  "GAP",
-  "GAP_OE",
-  "BARRA_BRAVA",
-  "NEW_MEMBER_TASK",
-];
+const EVALUATIONS = ["PENDING", "GOOD", "INSUFFICIENT"] as const;
 
 export async function generateMetadata({
   params,
@@ -60,8 +53,8 @@ export default async function GrupoPage({
   const [miembros, evaluadores, importar] = tList("T-747");
   const [agregar, quitar, guardarEvaluadores, cargar, confirmar] = tList("T-748");
   const columns = tList("T-749");
-  const evaluationLabels = tList("T-750");
-  const kindLabels = tList("T-725");
+  const evaluationLabels: Readonly<Record<string, string>> = tLabels("T-750", EVALUATIONS);
+  const kindLabels: Readonly<Record<string, string>> = tLabels("T-725", WORK_GROUP_KINDS);
   const live = detail.members.filter((member) => member.leftAt === null);
   const currentIds = new Set(live.map((member) => member.personId));
   const outcomeLabels = tList("T-846");
@@ -70,9 +63,7 @@ export default async function GrupoPage({
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Insignia fondo="sky">
-            {kindLabels[GROUP_KINDS.indexOf(detail.group.kind)] ?? ""}
-          </Insignia>
+          <Insignia fondo="sky">{kindLabels[detail.group.kind] ?? ""}</Insignia>
           {detail.group.code ? <Insignia fondo="paper">{detail.group.code}</Insignia> : null}
         </div>
         <h1 className="text-display-lg">{detail.group.name}</h1>
@@ -136,9 +127,7 @@ export default async function GrupoPage({
                               : "paper"
                         }
                       >
-                        {evaluationLabels[
-                          ["PENDING", "GOOD", "INSUFFICIENT"].indexOf(member.evaluation)
-                        ] ?? ""}
+                        {evaluationLabels[member.evaluation] ?? ""}
                       </Insignia>
                     </td>
                     <td className="py-2 pr-3">
