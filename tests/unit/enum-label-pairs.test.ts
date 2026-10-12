@@ -57,6 +57,19 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
+/** Cada arreglo literal de textos del archivo que trae justo esos valores, en el orden que sea. Un
+ * archivo puede escribir el mismo orden más de una vez (`Setup.tsx` de The Games lo escribía dos:
+ * una para el índice y otra para el recorrido), y basta una copia cruzada para cambiar una etiqueta. */
+function copiesWritten(file: string, values: readonly string[]): string[] {
+  const arrays = sourceOf(file).matchAll(/\[(?:"[^"\]\\]*",?)+\]/g);
+  return [...arrays]
+    .map(([text]) => text)
+    .filter((text) => {
+      const items: string[] = JSON.parse(text);
+      return items.length === values.length && values.every((value) => items.includes(value));
+    });
+}
+
 /** Las listas que un archivo lee con ese orden escrito en el subíndice (`lista[["A", "B"].indexOf(`):
  * el código de cada una, sea un `tList` en el sitio o una variable del archivo que sale de uno. Si
  * la variable no sale de un `tList` del archivo, queda su nombre. */
@@ -154,6 +167,16 @@ describe("cada valor lee una posición literal de su lista", () => {
     pair,
   }) => {
     expect(sourceOf(file)).toContain(literal(valuesOf(pair)));
+  });
+
+  it.each(copies)("$file no escribe en otro orden ninguna de sus copias de $order ($code)", ({
+    file,
+    pair,
+  }) => {
+    const values = valuesOf(pair);
+    const written = copiesWritten(file, values);
+    expect(written.length).toBeGreaterThan(0);
+    expect(written.filter((text) => text !== literal(values))).toEqual([]);
   });
 
   // Donde el orden está escrito en el subíndice se puede fijar también el sitio: qué lista lee.
