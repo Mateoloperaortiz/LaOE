@@ -47,53 +47,8 @@ type Exceptions = Record<string, Partial<Record<ExceptionClass, string>>>;
 const EXCEPTIONS: Exceptions = {
   comms: {
     nadie: `
-      AudienceEstimate
-      CAMPAIGN_STATUSES
-      CampaignBacklog
-      CampaignInput
-      CampaignListRow
-      CampaignQuotaStatus
-      CampaignStatus
-      DeliveryStats
-      MessageChannel
-      MessageKind
-      MessageStatus
       NOTIFICATION_KINDS
-      NotificationKind
-      NotificationRequested
-      PreferenceFlags
-      PreferencesInput
-      QuotaScope
-      RecipientView
-      RenderedEmail
-      SendReceipt
-      SubscriptionInput
-      SubscriptionView
-      TEMPLATE_VARIABLES
-      TemplateInput
-      TemplateRow
-      TemplateValues
-      TransactionalEmail
-      campaignEligibility
-      campaignInputSchema
-      chooseRoute
-      deleteMessagesFor
       hasPendingRecipients
-      listCampaignOptions
-      listCampaigns
-      listPreferencesFor
-      listTemplateOptions
-      listTemplates
-      markdownToMailHtml
-      markdownToPlain
-      notificationRequestedSchema
-      preferencesInputSchema
-      recordMessage
-      renderEmail
-      renderTemplate
-      shouldDeliver
-      templateInputSchema
-      updateTemplate
     `,
     "solo-pruebas": `
       DEFAULT_PREFERENCES

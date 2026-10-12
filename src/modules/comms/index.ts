@@ -1,85 +1,45 @@
 // API pública del módulo comms (ADR-015, ADR-023, ADR-038).
 export {
-  type AudienceEstimate,
-  CAMPAIGN_STATUSES,
-  type CampaignInput,
-  type CampaignListRow,
-  type CampaignStatus,
-  campaignInputSchema,
   cancelCampaignAs,
   createCampaignAs,
   estimateAudience,
   getCampaign,
   hasPendingRecipients,
   listActiveCampaigns,
-  listCampaignOptions,
-  listCampaigns,
   listRecipients,
   processCampaignBatch,
   RECIPIENT_STATUSES,
-  type RecipientView,
   runCampaignTick,
   SKIP_REASONS,
   scheduleCampaignAs,
   startDueCampaigns,
   updateCampaignAs,
 } from "./domain/campaigns";
-export {
-  deleteMessagesFor,
-  listMessagesFor,
-  type MessageChannel,
-  type MessageKind,
-  type MessageStatus,
-  type MessageView,
-  recordMessage,
-} from "./domain/messages";
-export { type DeliveryStats, deliverNotification, setPushSenderForTests } from "./domain/notify";
+export { listMessagesFor, type MessageView } from "./domain/messages";
+export { deliverNotification, setPushSenderForTests } from "./domain/notify";
 export {
   getPreferences,
-  listPreferencesFor,
-  type PreferencesInput,
   type PreferencesView,
-  preferencesInputSchema,
   unsubscribeByToken,
   unsubscribeTokenExists,
   updatePreferencesAs,
 } from "./domain/preferences";
+export { DEFAULT_PREFERENCES, NOTIFICATION_KINDS, splitPush } from "./domain/pure";
 export {
-  chooseRoute,
-  DEFAULT_PREFERENCES,
-  NOTIFICATION_KINDS,
-  type NotificationKind,
-  type NotificationRequested,
-  notificationRequestedSchema,
-  type PreferenceFlags,
-  shouldDeliver,
-  splitPush,
-} from "./domain/pure";
-export {
-  type CampaignBacklog,
   type CampaignHold,
-  type CampaignQuotaStatus,
   getCampaignBacklog,
   getCampaignQuotaStatus,
   liftCampaignQuotaCutAs,
-  type QuotaScope,
   resetTransactionalReserveAs,
   setTransactionalReserveAs,
 } from "./domain/quota";
-export {
-  type SendReceipt,
-  sendTransactionalEmail,
-  setMailTransportsForTests,
-  type TransactionalEmail,
-} from "./domain/send";
+export { sendTransactionalEmail, setMailTransportsForTests } from "./domain/send";
 export {
   countSubscriptionsFor,
   listSubscriptionsFor,
   releaseSubscriptionOnSignOut,
   removeSubscriptionAs,
-  type SubscriptionInput,
   SubscriptionTakenError,
-  type SubscriptionView,
   saveSubscriptionAs,
   subscriptionInputSchema,
   subscriptionSummaryFor,
@@ -87,23 +47,7 @@ export {
 export {
   createTemplate,
   getTemplate,
-  listTemplateOptions,
-  listTemplates,
   previewTemplateFor,
-  type RenderedEmail,
-  renderEmail,
   sendTemplateTestAs,
-  type TemplateInput,
-  type TemplateRow,
-  templateInputSchema,
-  updateTemplate,
 } from "./domain/templates";
-export {
-  campaignEligibility,
-  markdownToMailHtml,
-  markdownToPlain,
-  renderTemplate,
-  TEMPLATE_VARIABLES,
-  type TemplateValues,
-  wrapEmail,
-} from "./domain/templates-pure";
+export { wrapEmail } from "./domain/templates-pure";
