@@ -37,6 +37,12 @@ Dos de los sitios nuevos nacieron con DT-315 (`916d2313`): el nombre del estado 
 
 **El helper que ADR-081 dejó pedido no existía, y la spec daba por sentadas tres cosas de él.** El ticket [#317](https://github.com/Mateoloperaortiz/LaOE/issues/317) lo trae y las comprobó antes de que los demás tickets dependieran de ellas. Dos son como la spec decía: `copy:sync` recoge el literal `"T-…"` que va de primer argumento de `tLabels` en un archivo de cliente (regla 3), y el tipo que compara los largos no alarga `tsc` de forma que se note (consecuencias). La tercera no: la spec pedía que `ConsolaEnVivo.tsx` recibiera el `Record` por props, y React no deja pasar del servidor al navegador un objeto sin prototipo, que es justo lo que el `Record` tiene que ser para que un valor ajeno caiga al respaldo (regla 5).
 
+**La migración de los demás módulos encontró tres cosas que la spec no traía.** El ticket [#318](https://github.com/Mateoloperaortiz/LaOE/issues/318) migró todo `src/modules` menos `participation`, y el `zip` de `crm/jobs.ts`:
+
+- El `zip` devolvía un objeto literal, que hereda de `Object.prototype`. La spec pedía que un valor ajeno diera «lo mismo que hoy» y daba por hecho que hoy caía al respaldo; en la línea de tiempo no era así para un valor llamado `constructor` o `toString` (regla 6).
+- La spec decía que faltaban dos pruebas, la del `zip` leído por `labels()` y la del CSV de presupuestos. Faltaban tres más de textos que quedan guardados o salen de la casa: el título de un Premio OE y las columnas de condición, estado y tipo de los CSV de cumplimiento y de grupos de trabajo. Ninguna prueba los leía.
+- Los seis estados de cumplimiento no tenían tupla que importar, como la spec decía (regla 7).
+
 ## Decisión
 
 1. **Antes de migrar un par, una tabla fija qué posición literal de su lista lee cada valor, y la migración no la cambia.** `tests/unit/enum-label-pairs.test.ts` recorre la tabla de `tests/unit/enum-label-pairs.table.ts`. Un par es una lista del catálogo de textos y el orden de valores con el que el código la lee por posición: un enum, o la tupla que hace sus veces (pestañas, filtros). De cada par uno a uno la prueba comprueba, sin comparar ninguna redacción:
@@ -141,3 +147,33 @@ Dos de los sitios nuevos nacieron con DT-315 (`916d2313`): el nombre del estado 
 - **La red del Sudoku es más floja de lo que parece.** Con la pieza de la posición siguiente, `tests/integration/sudoku.test.ts` solo cae en la dificultad `HARD`, porque compara el motivo con un patrón que admite cualquier dificultad; la etiqueta exacta la fija `game-ledger-credit.test.ts` y solo para `HARD`. Que `EASY` y `MEDIUM` lleven la suya lo cuidan `copy-labels.test.ts` y la fila de T-2681 de la tabla.
 - **Nada rechaza al compilar que un `Record` de `tLabels` se pase por props** (regla 5): el tipo no distingue un objeto sin prototipo y React lanza al dibujar la página. Falla a la vista y no en silencio, pero solo lo ve quien abre esa pantalla o corre su E2E. Queda como DT-367.
 - **La lista de lo revisado en el exporte de ocasiones pierde `*.indexOf`.** `tests/integration/admin-export-personal-data.test.ts` lleva, ruta por ruta, lo que lee el exporte de cada recurso sin datos personales ([ADR-123](ADR-123-reglas-de-verificacion-y-correccion-del-undecimo-ciclo.md) regla 14), y una ruta revisada que ya no se lee también la pone en rojo. `occasionKindLabel` ya no llama a `indexOf`, así que esa entrada sale de `ocasiones`; el exporte no lee nada nuevo. Es lo único que la migración de `participation` movió fuera de sus propias pruebas, y solo lo mostró la corrida completa de integración: quien migre una función que un exporte llama tiene que correr ese archivo.
+- **Lo que queda después de los demás módulos**, medido el 2026-10-12 con los mismos comandos, al lado de lo que había al terminar `participation`:
+
+  | Medida | Antes | Después |
+  | --- | --- | --- |
+  | Sitios con el `indexOf` en el subíndice, y archivos | 111 en 59 | 68 en 38 |
+  | De esos, en `src/modules` y en `src/app` | 43 y 68 | 0 y 68 |
+  | Con respaldo, a una cadena vacía y sin respaldo | 106, 17 y 5 | 64, 15 y 4 |
+  | La expresión vieja del ledger | 88 | 56 |
+  | `.indexOf(` en `src`, y archivos | 127 en 68 | 82 en 48 |
+  | Arreglos literales dentro del subíndice, y sitios con cast | 15 y 15 | 10 y 5 |
+  | Recorridos por índice de una constante en mayúsculas, y archivos | 23 en 14 | 14 en 11 |
+  | Los mismos recorridos sin exigir mayúsculas, y archivos | 36 en 26 | 27 en 23 |
+  | Índice guardado en una constante o función | 6 | 4 |
+  | Pares del `zip` de `crm/jobs.ts` y órdenes propios | 10 y 7 | 1 y 5 |
+  | Archivos que escriben los seis estados de cumplimiento | 5 | 3 |
+  | Sitios por ticket: `participation`, los demás módulos, admin I y el resto de `src/app` | 0, 43, 35 y 33 | 0, 0, 35 y 33 |
+  | Recorridos por ticket, en el mismo orden | 0, 9, 7 y 7 | 0, 0, 7 y 7 |
+  | Llamadas a `tLabels` fuera de `src/shared/copy`, y archivos | 21 en 12 | 78 en 35 |
+  | Exports de `participation` · `people` · `crm` (`index.ts`, fila de `audit:metrics`) | 192 · 175 · 94 | 192 · 175 · 94 |
+  | `tsc` completo (`--incremental false`), mediana de tres corridas | 9,17 s | 9,10 s |
+
+  Los sitios y las aserciones de largo de `tests` (7 y 18) no cambian. `tsc` midió 9,10, 9,05 y 9,15 s: con 57 llamadas más a `tLabels` no se alarga. El único `index.ts` que gana exports es el de `permanence`, tres (`COMPLIANCE_STATES`, `APPLIES_TO` y `COMPUTATIONS`), cada uno con un componente del módulo que lo lee en el mismo commit; el de `competition` no cambia.
+- **En `src/modules` no queda ningún sitio, ningún recorrido de una constante en mayúsculas ni ningún índice guardado en constante, y del `zip` queda un par.** Lo que sigue leyendo una etiqueta por posición ahí, y por qué:
+  - `fields: zip(FIELD_KEYS, tList("T-427"))` en `src/modules/crm/jobs.ts`: es de largo distinto y queda fuera de `tLabels` (regla 2). Por eso la medida del `zip` no llega a cero.
+  - `src/modules/content/components/DocumentUploader.tsx`: es de cliente y recibe por props los códigos y la lista de T-394, que empareja con `kindCodes.map((code, index) => …)`. Ninguna expresión de la spec lo ve (la constante no va en mayúsculas) y pasarle el `Record` cambia `src/app/admin/documentos/page.tsx`, que es del ticket [#320](https://github.com/Mateoloperaortiz/LaOE/issues/320) (regla 5). Queda como DT-368.
+  - Lo que ya dejó `participation`: las cinco constantes de posiciones de `ChallengeCard.tsx` (DT-366), los contadores de la consola y los modos de aprobación.
+  - Las otras cinco coincidencias de la expresión sin mayúsculas no son etiquetas: emparejan dos arreglos paralelos (`boosters.ts`, `editions.ts`, `powers-reads.ts`), los encabezados de una tabla de un documento (`documents-pure.ts`) y los puntajes de un jurado (`jury-pure.ts`).
+- **La tabla de la regla 1 después del ticket [#318](https://github.com/Mateoloperaortiz/LaOE/issues/318):** 67 copias en 37 archivos (eran 76 en 39), 56 pares con tupla exportada (53) y 10 sitios con el orden escrito en el subíndice (15). La prueba pasa de 332 a 319 casos: pierde los de las nueve copias que ya no se escriben y los de los cinco sitios que dejan el subíndice, y gana los de las tres tuplas. Las filas del `zip` dejan de leer el texto de `crm/jobs.ts` par por par: qué etiqueta le toca a cada valor lo fija la prueba de integración de la regla 6, y de la lectura del texto queda que el `zip` arma un solo par y que los cinco órdenes propios siguen escritos como en la tabla.
+- **Cada familia se migró con su prueba nombrada, y cinco textos la ganaron antes.** Pasan sin tocar una aserción las redes que la spec nombraba: `competition-powers.test.ts`, `permanence-closing.test.ts`, `calls.test.ts`, `requests.test.ts` y `crm.test.ts`. Se escribieron en verde sobre el código de antes, cada una con una mutación que la tumba: `tests/integration/crm-timeline-labels.test.ts` (dos etapas cruzadas en `STAGE_CODES`), `tests/integration/admin-export-budgets.test.ts` (el estado leído una posición más allá) y `tests/unit/permanence-admin-labels.test.ts` (dos condiciones y dos tipos de grupo cruzados). `tests/integration/crm-recognition-award-title.test.ts` se escribió después de migrar `awardLabel`, cuando se vio que la prueba que el commit de esa familia nombra no lee el título; se comprobó contra el archivo de antes de la migración, en verde, y en rojo con la pieza siguiente. Las dos llamadas de prueba a `inhabilityLabels` cambian lo que le pasan (el `Record` en vez de la lista), no lo que esperan.
+- **Tres textos migrados no tienen más red que su fila de la tabla o su pantalla.** El aviso de un cruce del horario importado de The Games (T-2841) lo fija una sola de sus piezas en `tests/integration/competition.test.ts`; el rol de la hoja de staff (T-3155), una E2E; y el estado de una sanción (T-2243), la copia del orden. Ninguno queda guardado ni sale de la casa.
