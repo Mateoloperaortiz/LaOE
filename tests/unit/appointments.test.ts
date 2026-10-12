@@ -7,18 +7,19 @@ import {
   MACROEVENT_ROLE_CODES,
   macroeventDirectorInputSchema,
 } from "@/modules/people/domain/appointments";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 
 // Cargos de junta y de GH (ADR-034 regla 13, ADR-057) y de macroevento (ADR-060 regla 9): las
-// etiquetas de T-444 se resuelven por índice.
+// etiquetas de T-444 se leen por valor (ADR-126 regla 3).
 
 describe("cargos de junta y de GH", () => {
   it("tiene una etiqueta de T-444 por cada tipo, en el mismo orden", () => {
     const labels = tList("T-444");
     expect(labels).toHaveLength(APPOINTMENT_KINDS.length);
-    expect(labels[APPOINTMENT_KINDS.indexOf("VP_COMMUNICATIONS")]).toBe(tList("T-444")[5]);
-    expect(labels[APPOINTMENT_KINDS.indexOf("MACROEVENT_DIRECTOR")]).toBe(tList("T-444")[8]);
-    expect(labels[APPOINTMENT_KINDS.indexOf("OTHER")]).toBe(tList("T-444")[9]);
+    const byKind = tLabels("T-444", APPOINTMENT_KINDS);
+    expect(byKind.VP_COMMUNICATIONS).toBe(tList("T-444")[5]);
+    expect(byKind.MACROEVENT_DIRECTOR).toBe(tList("T-444")[8]);
+    expect(byKind.OTHER).toBe(tList("T-444")[9]);
   });
 
   it("acepta la vicepresidencia nueva sin título y sigue exigiéndolo para Otro", () => {

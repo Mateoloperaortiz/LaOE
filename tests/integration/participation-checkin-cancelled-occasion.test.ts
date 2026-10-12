@@ -11,7 +11,7 @@ import {
 } from "@/modules/participation";
 import { OCCASION_STATUSES } from "@/modules/participation/domain/occasion-pure";
 import { challenge } from "@/modules/participation/schema";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { seedChallenge, seedMember, seedOccasion, seedTerm } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
 import { holdTransaction, waitingForLock, waitingOn } from "../helpers/locks";
@@ -26,7 +26,7 @@ const NAME = "Persona Sintética";
 
 /** La ocasión cancelada como la nombra el error de transición (T-578). */
 const cancelled = t("T-578", {
-  estado: (tList("T-568")[OCCASION_STATUSES.indexOf("CANCELLED")] ?? "").toLowerCase(),
+  estado: (tLabels("T-568", OCCASION_STATUSES).CANCELLED ?? "").toLowerCase(),
 });
 
 async function setup(approval: "AUTO" | "MANUAL") {

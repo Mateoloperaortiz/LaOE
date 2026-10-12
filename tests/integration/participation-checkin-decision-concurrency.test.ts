@@ -30,7 +30,7 @@ import { person } from "@/modules/people/schema";
 import { setConfigAs } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { seedChallenge, seedMember, seedOccasion, seedTerm } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
 import { drainOutbox } from "../helpers/outbox";
@@ -47,7 +47,7 @@ const STATUSES = ["PENDING", "APPROVED", "REJECTED", "CANCELLED", "EXCUSED"] as 
 
 /** El estado como lo nombra el error de transición (T-676). */
 function notApplicable(status: (typeof STATUSES)[number]): string {
-  return t("T-676", { estado: (tList("T-597")[STATUSES.indexOf(status)] ?? "").toLowerCase() });
+  return t("T-676", { estado: (tLabels("T-597", STATUSES)[status] ?? "").toLowerCase() });
 }
 
 function deferred<T>() {

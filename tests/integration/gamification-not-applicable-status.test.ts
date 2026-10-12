@@ -20,7 +20,7 @@ import {
   rewardStatus,
 } from "@/modules/participation/schema";
 import { setConfigAs } from "@/modules/system";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { seedChallenge, seedMember, seedParticipation, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
@@ -42,16 +42,23 @@ type Prize = (typeof PRIZE)[number];
 const CAPS = { daily: 1_000, weekly: 1_000 };
 const REASONS = { base: "Reto sintético", extra: "Impulso sintético" };
 
-function word(code: "T-3266" | "T-3267" | "T-2559", order: readonly string[], status: string) {
-  const label = tList(code)[order.indexOf(status)];
+/** La palabra de cada estado, por valor: la lista de su enum con el orden escrito arriba. */
+const WORDS = {
+  "T-3266": tLabels("T-3266", DELIVERY),
+  "T-3267": tLabels("T-3267", PRIZE),
+  "T-2559": tLabels("T-2559", RUN),
+};
+
+function word(code: keyof typeof WORDS, status: string) {
+  const labels: Readonly<Record<string, string>> = WORDS[code];
+  const label = labels[status];
   if (!label) throw new Error(`El catálogo no nombra ${status} en ${code}`);
   return label.toLowerCase();
 }
 
-const deliveryIs = (status: Delivery) => t("T-676", { estado: word("T-3266", DELIVERY, status) });
-const prizeIs = (status: Prize) => t("T-676", { estado: word("T-3267", PRIZE, status) });
-const runIs = (status: (typeof RUN)[number]) =>
-  t("T-3268", { estado: word("T-2559", RUN, status) });
+const deliveryIs = (status: Delivery) => t("T-676", { estado: word("T-3266", status) });
+const prizeIs = (status: Prize) => t("T-676", { estado: word("T-3267", status) });
+const runIs = (status: (typeof RUN)[number]) => t("T-3268", { estado: word("T-2559", status) });
 
 /** El texto con el que el dominio se niega. */
 async function refusal(run: Promise<unknown>): Promise<string> {

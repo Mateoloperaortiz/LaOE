@@ -10,7 +10,7 @@ import {
 import { challenge, challengeParticipation, reward } from "@/modules/participation/schema";
 import { setConfigAs } from "@/modules/system";
 import { auditLog } from "@/modules/system/schema";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { seedChallenge, seedMember, seedTerm } from "../factories";
 import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
@@ -29,7 +29,7 @@ const STATUSES = ["PENDING", "COMPLETED", "REJECTED", "ANNULLED"] as const;
 
 /** El estado como lo nombra el error: T-676 con la palabra de T-3266 (ADR-123 regla 8). */
 function notApplicable(status: "COMPLETED" | "ANNULLED"): string {
-  return t("T-676", { estado: (tList("T-3266")[STATUSES.indexOf(status)] ?? "").toLowerCase() });
+  return t("T-676", { estado: (tLabels("T-3266", STATUSES)[status] ?? "").toLowerCase() });
 }
 
 async function pendingDelivery() {
