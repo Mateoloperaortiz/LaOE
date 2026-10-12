@@ -499,58 +499,6 @@ const EXCEPTIONS: Exceptions = {
     `,
   },
   permanence: {
-    nadie: `
-      APPLIES_TO
-      AppliesTo
-      BoardExportRow
-      BoardIndicators
-      COMPUTATIONS
-      ClosingCommitteeRow
-      ClosingSummary
-      ClosingView
-      CommitteeIndicators
-      ComplianceRow
-      Condition
-      DecisionInput
-      DecisionRow
-      EditorContext
-      EvaluationInput
-      FinalState
-      GROUP_MODES
-      GroupDetail
-      GroupInput
-      GroupListRow
-      ImpactPreview
-      LeaderScoreInput
-      LeaderScoreView
-      ManualCreditInput
-      ManualCreditView
-      MyGroupRoles
-      NoticePush
-      NoticesResult
-      PermanenceState
-      PersonDecisionView
-      PersonPermanenceView
-      Proposal
-      RetentionRow
-      RuleInput
-      SCOPES
-      SnapshotView
-      TeamParticipation
-      TrayGroup
-      distribution
-      groupInputSchema
-      isoWeek
-      listDecisions
-      noticePush
-      noticesFor
-      parseGeneral
-      parseMandatory
-      proposeDecisions
-      snapshotToResult
-      tableSums
-      updateGroupAs
-    `,
     "solo-pruebas": `
       applyDecisions
       computePerson
