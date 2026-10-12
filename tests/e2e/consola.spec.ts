@@ -1,4 +1,4 @@
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { term } from "@/modules/terms/schema";
@@ -7,13 +7,27 @@ import { seedOccasion } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
+import { cameraRequests, cameraTracks, grantCamera, holdCamera } from "./camera";
 import { test } from "./fixtures";
 
 // Consola de la ocasión y modo anfitrión como ADMIN (ADR-035): QR, contador, alta manual y el
-// anfitrión que registra a una persona sin sesión por nombre.
+// anfitrión que registra a una persona sin sesión por nombre. Y el lector del carnet montado, por el
+// camino de la cámara, con un permiso que la prueba contesta cuando quiere (ADR-127 regla 5).
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
 let occasionId = "";
+
+/** Abre el modo anfitrión con el permiso de la cámara pendiente y toca «Escanear». */
+async function scanWithPermissionPending(page: Page): Promise<void> {
+  await holdCamera(page);
+  await page.goto(`/admin/ocasiones/${occasionId}/anfitrion`);
+  // El toque que cae antes de que la página hidrate se pierde: se repite hasta que el lector pide la cámara.
+  // Un toque de más no pide otra: mientras el permiso sigue pendiente, la guardia del arranque lo frena.
+  await expect(async () => {
+    await page.getByRole("button", { name: tList("T-616")[0], exact: true }).click();
+    expect(await cameraRequests(page)).toBe(1);
+  }).toPass();
+}
 
 test.beforeEach(async () => {
   const db = getDb();
@@ -115,4 +129,34 @@ test("la consola avisa cuando el sondeo responde con error y deja de mostrar el 
   await expect(code).toBeVisible();
   await expect(link).toContainText("?c=");
   await expect(notice).toHaveCount(0);
+});
+
+test("el lector del carnet enciende la cámara cuando llega el permiso, y «Detener» la apaga", async ({
+  page,
+}) => {
+  await scanWithPermissionPending(page);
+  const scan = page.getByRole("button", { name: tList("T-616")[0], exact: true });
+  const stop = page.getByRole("button", { name: tList("T-616")[1], exact: true });
+  const video = page.locator("video");
+  // Mientras el navegador pregunta, nada cambia: sigue «Escanear» y el video oculto.
+  await expect(scan).toBeEnabled();
+  await expect(video).toBeHidden();
+  expect(await cameraTracks(page)).toEqual([]);
+
+  await grantCamera(page);
+  await expect(stop).toBeVisible();
+  await expect(scan).toHaveCount(0);
+  await expect(video).toBeVisible();
+  expect(await cameraTracks(page)).toEqual(["live"]);
+
+  await stop.click();
+  await expect(scan).toBeEnabled();
+  await expect(video).toBeHidden();
+  expect(await cameraTracks(page)).toEqual(["ended"]);
+  // Otro toque abre una cámara nueva, y la anterior sigue apagada.
+  await scan.click();
+  await expect.poll(() => cameraRequests(page)).toBe(2);
+  await grantCamera(page);
+  await expect(stop).toBeVisible();
+  expect(await cameraTracks(page)).toEqual(["ended", "live"]);
 });
