@@ -6,7 +6,7 @@ import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { occasionClosed, scoreRecompute } from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { occasion } from "../schema";
@@ -102,7 +102,7 @@ export interface OccasionContext {
  * registrar o decidir una asistencia (check-ins.ts): es el único sitio que arma ese texto.
  */
 export function occasionStateError(status: OccasionStatus): DomainError {
-  const label = tList("T-568")[OCCASION_STATUSES.indexOf(status)] ?? status;
+  const label = tLabels("T-568", OCCASION_STATUSES)[status] ?? status;
   return new DomainError(t("T-578", { estado: label.toLowerCase() }));
 }
 

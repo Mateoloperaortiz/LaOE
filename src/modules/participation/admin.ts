@@ -54,36 +54,36 @@ import { type Board, peopleBoards } from "./domain/rankings";
 
 const [plural, singular] = tList("T-562");
 const fieldLabels = tList("T-563");
-const kindLabels = tList("T-564");
-const assemblyLabels = tList("T-565");
-const categoryLabels = tList("T-566");
+const kindLabels = tLabels("T-564", OCCASION_KINDS);
+const assemblyLabels = tLabels("T-565", ASSEMBLY_KINDS);
+const categoryLabels = tLabels("T-566", OCCASION_CATEGORIES);
 const approvalLabels = tList("T-567");
-const statusLabels = tList("T-568");
+const statusLabels = tLabels("T-568", OCCASION_STATUSES);
 const [abrir, cerrar, consola] = tList("T-569");
 const filterLabels = tList("T-570");
 const columnLabels = tList("T-571");
-const shortCategoryLabels = tList("T-521");
+const shortCategoryLabels = tLabels("T-521", OCCASION_CATEGORIES);
 const shortKindLabels = tList("T-522");
 
-const kindOptions = OCCASION_KINDS.map((value, index) => ({
+const kindOptions = OCCASION_KINDS.map((value) => ({
   value,
-  label: kindLabels[index] ?? value,
+  label: kindLabels[value] ?? value,
 }));
-const assemblyOptions = ASSEMBLY_KINDS.map((value, index) => ({
+const assemblyOptions = ASSEMBLY_KINDS.map((value) => ({
   value,
-  label: assemblyLabels[index] ?? value,
+  label: assemblyLabels[value] ?? value,
 }));
-const categoryOptions = OCCASION_CATEGORIES.map((value, index) => ({
+const categoryOptions = OCCASION_CATEGORIES.map((value) => ({
   value,
-  label: categoryLabels[index] ?? value,
+  label: categoryLabels[value] ?? value,
 }));
 const approvalOptions = ["AUTO", "MANUAL"].map((value, index) => ({
   value,
   label: approvalLabels[index] ?? value,
 }));
-const statusOptions = OCCASION_STATUSES.map((value, index) => ({
+const statusOptions = OCCASION_STATUSES.map((value) => ({
   value,
-  label: statusLabels[index] ?? value,
+  label: statusLabels[value] ?? value,
 }));
 
 const STATUS_BADGE: Record<OccasionStatus, Badge> = {
@@ -95,7 +95,7 @@ const STATUS_BADGE: Record<OccasionStatus, Badge> = {
 
 export function occasionStatusCell(status: OccasionStatus): { text: string; badge: Badge } {
   return {
-    text: statusLabels[OCCASION_STATUSES.indexOf(status)] ?? status,
+    text: statusLabels[status] ?? status,
     badge: STATUS_BADGE[status],
   };
 }
@@ -129,15 +129,13 @@ export function occasionKindLabel(row: {
   category: (typeof OCCASION_CATEGORIES)[number];
 }): string {
   if (row.kind === "ASSEMBLY") {
-    const kind = row.assemblyKind
-      ? (assemblyLabels[ASSEMBLY_KINDS.indexOf(row.assemblyKind)] ?? "")
-      : "";
+    const kind = row.assemblyKind ? (assemblyLabels[row.assemblyKind] ?? "") : "";
     return `${shortKindLabels[1] ?? ""}${kind ? ` · ${kind}` : ""}`;
   }
   if (row.kind === "EDITION_SESSION") {
     return shortKindLabels[2] ?? "";
   }
-  return shortCategoryLabels[OCCASION_CATEGORIES.indexOf(row.category)] ?? "";
+  return shortCategoryLabels[row.category] ?? "";
 }
 
 async function filters(): Promise<FilterDefinition[]> {

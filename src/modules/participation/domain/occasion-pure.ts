@@ -14,9 +14,17 @@ export type OccasionCategory =
   | "OTHER"
   | "INDUCTION";
 
-export const OCCASION_KINDS: readonly OccasionKind[] = ["ACTIVITY", "ASSEMBLY", "EDITION_SESSION"];
-export const ASSEMBLY_KINDS: readonly AssemblyKind[] = ["ORDINARY", "BOARD_ELECTION", "RUNOFF"];
-export const OCCASION_CATEGORIES: readonly OccasionCategory[] = [
+export const OCCASION_KINDS = [
+  "ACTIVITY",
+  "ASSEMBLY",
+  "EDITION_SESSION",
+] as const satisfies readonly OccasionKind[];
+export const ASSEMBLY_KINDS = [
+  "ORDINARY",
+  "BOARD_ELECTION",
+  "RUNOFF",
+] as const satisfies readonly AssemblyKind[];
+export const OCCASION_CATEGORIES = [
   "INTEGRATION",
   "ATHLETIC_MATCH",
   "COMMITTEE_MEETING",
@@ -25,7 +33,7 @@ export const OCCASION_CATEGORIES: readonly OccasionCategory[] = [
   "SOCIAL",
   "OTHER",
   "INDUCTION",
-];
+] as const satisfies readonly OccasionCategory[];
 
 /** Una asamblea citada con menos de tres días hábiles (Regl. art. 15 par. 1; ADR-060 regla 13). */
 export function isShortNotice(createdAt: Date, startsAt: Date, businessDays = 3): boolean {
@@ -40,12 +48,12 @@ export function isShortNotice(createdAt: Date, startsAt: Date, businessDays = 3)
   }
   return startsAt < cursor;
 }
-export const OCCASION_STATUSES: readonly OccasionStatus[] = [
+export const OCCASION_STATUSES = [
   "DRAFT",
   "OPEN",
   "CLOSED",
   "CANCELLED",
-];
+] as const satisfies readonly OccasionStatus[];
 
 const TRANSITIONS: Record<OccasionStatus, readonly OccasionStatus[]> = {
   DRAFT: ["OPEN", "CANCELLED"],

@@ -554,7 +554,6 @@ const REVIEWED_PATHS: Record<string, readonly string[]> = {
   ],
   junta: ["committee", "indicator", "term", "value"],
   ocasiones: [
-    "*.indexOf",
     "approval",
     "approvedCount",
     "assemblyKind",
