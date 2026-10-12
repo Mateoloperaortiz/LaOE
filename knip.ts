@@ -10,12 +10,11 @@ const config: KnipConfig = {
     // De los `index.ts` de los módulos solo es entrada el de `competition`, que está quieto hasta la
     // decisión abierta 8: knip no analiza los exports de una entrada, y los otros trece salieron de acá
     // al cerrar la poda (ADR-125 reglas 3 y 5). `tests/unit/module-public-interface.test.ts` importa
-    // este archivo y no deja que vuelva ninguno por un patrón de `entry` ni por un `project` que lo
-    // niegue: lee cada patrón como knip (sin el `!` del final, la ruta absoluta como relativa) y lo
-    // expande. Tampoco por otra opción: este archivo trae solo las de la lista `KNIP_OPTIONS` de esa
-    // prueba, y una nueva (`ignore`, `exclude`, `rules`, un plugin) la pone en rojo hasta que entre
-    // ahí con su razón. No ve un patrón que el glob de knip expande y el de Node no, como
-    // `!src/modules/(terms|x)/**` en `project`, ni un `project` que deja de incluir un módulo (DT-363).
+    // este archivo y no deja que vuelva ninguno por un patrón de `entry`: lee cada patrón como knip
+    // (sin el `!` del final, la ruta absoluta como relativa) y lo expande. Tampoco por otra opción:
+    // este archivo trae solo las de la lista `KNIP_OPTIONS` de esa prueba, y una nueva (`ignore`,
+    // `exclude`, `rules`, un plugin) la pone en rojo hasta que entre ahí con su razón. Y `project`,
+    // más abajo, es el de su lista `KNIP_PROJECT`, entero: cambia acá y allá en el mismo diff.
     "src/modules/competition/index.ts",
     "tests/e2e/auth.setup.ts",
     ".railway/**/*.ts",

@@ -320,7 +320,7 @@ const KNIP_OPTIONS: Record<string, string> = {
   entry:
     "Lo que knip no descubre solo. De los `index.ts` de los módulos solo entra el de `competition`: lo comprueba `entryMismatches`.",
   project:
-    "Los archivos que knip analiza. `entryMismatches` comprueba que ningún patrón le niegue un `index.ts`; que alguno lo siga incluyendo no lo comprueba nadie (DT-363).",
+    "Los archivos que knip analiza. Es la única opción que alcanza un `index.ts` sin taparlo, y por eso no se interpreta: `projectMismatches` la compara entera con `KNIP_PROJECT`.",
   compilers: "knip no lee CSS: lleva un compilador por extensión, y cada extensión entra acá.",
   "compilers › css":
     "Saca los `@import` de Tailwind para que cuenten como uso. Solo recibe archivos `.css`.",
@@ -329,6 +329,35 @@ const KNIP_OPTIONS: Record<string, string> = {
   ignoreExportsUsedInFile:
     "Calla el export que se usa en el archivo que lo define. Un `index.ts` reexporta y no usa lo que exporta: knip sigue marcando ahí el nombre sin uso (ADR-125 regla 3, «Podar no es borrar»).",
 };
+
+/**
+ * Los archivos que knip analiza, tal como los trae `knip.ts`. A un `index.ts` se lo puede sacar de
+ * ahí sin que expandir el patrón lo muestre: negando su carpeta (`!src/modules/terms`), con una
+ * sintaxis que el glob de knip expande y el de Node no (`!src/modules/(terms|zz)/**`), o dejando de
+ * incluirlo (`src/modules/!(terms)/**`). Por eso `project` no se interpreta: se compara entero con
+ * esta lista. Quien lo cambie cambia la lista en el mismo diff, y ahí lo lee quien revisa (ADR-125
+ * regla 3).
+ */
+const KNIP_PROJECT = [
+  "src/**/*.{ts,tsx,css}",
+  "scripts/**/*.{ts,mjs}",
+  "tests/**/*.ts",
+  ".railway/**/*.ts",
+];
+
+/** Lo que separa al `project` de `knip.ts` de la lista; vacío cuando son el mismo, en el mismo orden. */
+function projectMismatches(config: unknown, pinned: string[]): string[] {
+  const { project } = knipObject(config);
+  const same =
+    Array.isArray(project) &&
+    project.length === pinned.length &&
+    project.every((pattern, index) => pattern === pinned[index]);
+  return same
+    ? []
+    : [
+        "`project`: knip.ts no trae los patrones de la lista `KNIP_PROJECT`; si knip tiene que analizar otros archivos, la lista cambia en el mismo diff, después de comprobar que sigue marcando un export sembrado en el `index.ts` de un módulo",
+      ];
+}
 
 /** Las claves de la configuración de knip, a cualquier profundidad, con la ruta de las que las contienen. */
 function knipKeys(value: unknown, where: string[] = []): string[] {
@@ -394,8 +423,6 @@ function knipTexts(value: unknown, where: string[] = [], inProject = false): Kni
 }
 
 const MODULE_ENTRY = /^src\/modules\/([a-z0-9-]+)\/index\.ts$/;
-/** Una entrada de knip que alcanza `src` por su forma: lo nombra o empieza por un comodín. */
-const REACHES_SRC = /^(\.\/)?(src\b|[*{?[!])/;
 
 /**
  * Si un patrón de knip alcanza un archivo. Se expande contra la ruta y no se mira su forma, que es lo
@@ -416,6 +443,18 @@ function reaches(pattern: string, path: string): boolean {
 function asKnipReadsIt(pattern: string): string {
   const bare = pattern.replace(/^!/, "").replace(/!$/, "");
   return posix.isAbsolute(bare) ? posix.relative(process.cwd(), bare) : posix.normalize(bare);
+}
+
+/**
+ * Si una entrada de knip no puede alcanzar `src`, por cómo está escrita: su primera carpeta es un
+ * nombre literal que no es `src` y en ninguna parte sube con `..`. Así, la expanda el glob que la
+ * expanda, se queda bajo esa carpeta. Todo lo demás se trata como si alcanzara `src`: falla cerrado
+ * ante una sintaxis que el glob de knip expande y el de Node no, como `(src)/modules/terms/index.ts`.
+ */
+function staysOutOfSrc(pattern: string): boolean {
+  const bare = asKnipReadsIt(pattern);
+  const first = bare.split("/")[0] ?? "";
+  return /^[\w.-]+$/.test(first) && first !== "src" && first !== "." && !bare.includes("..");
 }
 
 /**
@@ -443,7 +482,7 @@ function entryMismatches(
       problems.push(`${module}: su \`index.ts\` está dos veces en \`entry\` de knip`);
     } else if (module) {
       named.push(module);
-    } else if (REACHES_SRC.test(pattern) || reached(pattern).length > 0) {
+    } else if (!staysOutOfSrc(pattern) || reached(pattern).length > 0) {
       problems.push(
         `\`${pattern}\`: una entrada de knip que alcanza \`src\` nombra el \`index.ts\` de un módulo, no un patrón ni otro archivo`,
       );
@@ -618,6 +657,26 @@ describe("la interfaz pública de los módulos, sobre el código de hoy", () => 
       unlisted("rules"),
       unlisted("rules › exports"),
     ]);
+  });
+
+  it("knip analiza los archivos de la lista: project no cambia sin que cambie ella, niegue un módulo, lo deje de incluir o lo escriba con otra sintaxis", () => {
+    expect(projectMismatches(knipConfig, KNIP_PROJECT)).toEqual([]);
+    const changed = [
+      "`project`: knip.ts no trae los patrones de la lista `KNIP_PROJECT`; si knip tiene que analizar otros archivos, la lista cambia en el mismo diff, después de comprobar que sigue marcando un export sembrado en el `index.ts` de un módulo",
+    ];
+    for (const project of [
+      [...KNIP_PROJECT, "!src/modules/terms"],
+      [...KNIP_PROJECT, "!src/modules/terms/"],
+      [...KNIP_PROJECT, "!src/modules/{terms,zz}"],
+      [...KNIP_PROJECT, "!src/modules/(terms|zz)/**"],
+      ["src/modules/!(terms)/**/*.{ts,tsx,css}", ...KNIP_PROJECT.slice(1)],
+      KNIP_PROJECT.slice(1),
+      [...KNIP_PROJECT].reverse(),
+      KNIP_PROJECT[0],
+      undefined,
+    ]) {
+      expect(projectMismatches({ ...knipConfig, project }, KNIP_PROJECT)).toEqual(changed);
+    }
   });
 
   it("la poda cerró: ningún index.ts exporta un nombre que no importe nadie de afuera, ni las pruebas, y en la lista solo queda lo que espera una decisión", () => {
@@ -845,6 +904,13 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
       `${process.cwd()}/src/modules/alpha/index.ts`,
       `${process.cwd()}/src/modules/*/index.ts!`,
       "scripts/../src/modules/alpha/index.ts",
+      // Y falla cerrado ante lo que el glob de knip expande y el de Node no: la primera carpeta de
+      // una entrada es un nombre literal que no es `src`, y no sube con `..`.
+      "(src)/modules/alpha/index.ts",
+      "+(src)/modules/alpha/index.ts",
+      "(scripts|src)/**/*.ts",
+      "tests/{..,e2e}/src/modules/alpha/index.ts",
+      ".",
     ]) {
       expect(entryMismatches(knip(entry, index("competition")), modules, exceptions)).toEqual([
         pattern(entry),
