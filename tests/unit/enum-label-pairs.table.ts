@@ -1163,7 +1163,10 @@ const DESGLOSE = "src/modules/permanence/components/Desglose.tsx";
  * el texto de estos cinco, así que acá queda, leído del código, qué lista lee cada archivo con ese
  * orden y si el orden es una constante suya (`own`) o una tupla exportada. El ticket #319 suma los
  * sitios del admin de The Games, de permanencia y de comités que dejan el subíndice de la misma
- * forma, y la página del cierre, que deja de leer los estados finales con un desplazamiento. */
+ * forma, y la página del cierre, que deja de leer los estados finales con un desplazamiento. El
+ * ticket #320 suma los dos sitios que quedaban con el orden en el subíndice (`Team.tsx` del
+ * macroevento y la ruta de búsqueda), las dos páginas de retos que guardaban el índice en una
+ * función y nueve archivos que leen su lista con un orden propio, que antes recorrían por índice. */
 export const NAMED_READS: readonly { file: string; order: string; code: ListCode; own: boolean }[] =
   [
     { file: DESGLOSE, order: "ASSEMBLY_KINDS", code: "T-546", own: false },
