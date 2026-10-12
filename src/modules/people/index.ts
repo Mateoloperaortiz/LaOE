@@ -7,12 +7,10 @@ export {
   admitPerson,
   isInstitutionalEmail,
 } from "./domain/admission";
-export { type AlumniEntry, type AlumniYear, listAlumniByYear } from "./domain/alumni";
+export { listAlumniByYear } from "./domain/alumni";
 export {
   APPOINTMENT_KINDS,
-  type AppointmentKind,
   type AppointmentLabelInput,
-  type AppointmentView,
   appointmentInputSchema,
   appointmentLabel,
   BOARD_APPOINTMENT_KINDS,
@@ -30,7 +28,6 @@ export {
   COMMITTEE_CAPABILITIES,
   type CommitteeArea,
   type CommitteeCapability,
-  hasCapability,
 } from "./domain/capabilities";
 export {
   addAppointmentAs,
@@ -61,15 +58,10 @@ export {
   updatePersonAs,
 } from "./domain/commands";
 export {
-  type DirectedCommittee,
   type EligibleMember,
   listCommitteesMissingRequiredRoles,
   listMyCommitteeCapabilities,
-  type MissingRequiredRoles,
-  type RemovalRequestInput,
   type RosterActorContext,
-  type RosterChangeInput,
-  type RosterScope,
   removalRequestSchema,
   rosterChangeSchema,
   searchEligibleMembers,
@@ -77,7 +69,6 @@ export {
 export { committeeRolesLabel, type RoleView } from "./domain/committee-direction-pure";
 export {
   type CommitteeMembershipInput,
-  type CommitteeMembershipView,
   type CommitteeRoleRow,
   committeeMembershipInputSchema,
   getMyMembership,
@@ -85,29 +76,21 @@ export {
   listCommitteeRoles,
   type MyMembership as MyMembershipView,
   setCommitteeMemberships,
-  type TermCommittees,
 } from "./domain/committee-memberships";
 export {
-  type CommitteeProfileInput,
   type CommitteeRef,
   committeeProfileSchema,
   createCommittee,
-  getCommittee,
   getPublishedCommittee,
   listAllCommittees,
-  listCommittees,
   listCommitteesByIds,
   listCommitteesForSelection,
   listLiveCommitteeIds,
   listPublishedCommittees,
-  type PublicCommittee,
   searchCommittees,
-  updateCommittee,
 } from "./domain/committees";
 export {
   CONSENT_PURPOSES,
-  type ConsentPurpose,
-  type ConsentState,
   hasLiveConsent,
   listConsents,
   listLiveConsentHolders,
@@ -115,8 +98,6 @@ export {
   SELF_MANAGED_PURPOSES,
 } from "./domain/consents";
 export {
-  type DirectoryEntry,
-  type DirectoryPage,
   type InternalCommittee,
   type InternalRoster,
   isInInternalRoster,
@@ -127,30 +108,21 @@ export {
 } from "./domain/directory";
 export { honoraryFacts } from "./domain/honorary";
 export {
-  HONORARY_REQUIREMENTS,
   type HonoraryEligibility,
-  type HonoraryFacts,
   honoraryEligibility,
-  MIN_HONORARY_REQUIREMENTS,
 } from "./domain/honorary-pure";
 export { leaveUntilError, leaveWindow } from "./domain/leave-pure";
 export {
-  type ChangeStatusInput,
   changeMembershipStatus,
   changeStatusSchema,
-  type EndMembershipInput,
-  type ExpiredLeave,
   endMembership,
   endMembershipSchema,
   listExpiredLeaves,
-  type MembershipEventView,
   reactivateSchema,
 } from "./domain/membership";
 export {
   collectPersonalData,
-  type OwnContactInput,
   ownContactSchema,
-  type PersonalData,
 } from "./domain/own-data";
 export {
   type ActiveMemberRef,
@@ -169,16 +141,8 @@ export {
   listSignInMemberIds,
   listTermCommitteeMembers,
   listTermRoster,
-  type MailingRef,
-  type MemberByEmail,
-  type MemberRef,
-  type MembershipRef,
-  type MembershipStatusRef,
-  type PersonRef,
   searchMembersByName,
   searchPeople,
-  type TermAppointment,
-  type TermCommitteeMember,
   type TermRosterRow,
 } from "./domain/people-reads";
 export { getPerson360, type Person360 } from "./domain/person-360";
@@ -190,38 +154,21 @@ export {
 } from "./domain/person-pure";
 export {
   createPerson,
-  type FormPersonInput,
   findOrCreatePersonFromForm,
-  formPersonSchema,
   getPersonRecord,
-  listPeople,
   lockPersonAnonymization,
-  type PersonInput,
-  type PersonRecord,
-  type PersonRow,
   personInputSchema,
 } from "./domain/persons";
 export {
-  listPreferentialSchedule,
-  type PreferentialRow,
-  preferentialKindLabel,
-} from "./domain/preferential-schedule";
-export {
   findEligibleMemberByEmail,
   getMemberSummary,
-  type MemberSummary,
   type MembershipStatus,
   SIGN_IN_STATUSES,
 } from "./domain/reads";
 export {
-  type DirectionRef,
   listLiveDirectionForTerm,
   listRepresentatives,
-  REPRESENTATIVE_ROLES,
-  type RepresentativeInput,
-  type RepresentativeRole,
   type RepresentativeView,
-  representativeInputSchema,
   representativeRoleLabel,
 } from "./domain/representatives";
 export {
@@ -234,7 +181,6 @@ export {
   createRosterPreviewAs,
   discardRosterImportAs,
   getRosterPreview,
-  type LeaderProposal,
   type PreviewRow,
   type RosterPreview,
   recordLeaderGrantsAs,
@@ -244,31 +190,20 @@ export { ROSTER_MAX_BYTES } from "./domain/roster-file";
 export { HEADER_ALIASES, ROSTER_COLUMNS, type RosterColumn } from "./domain/roster-pure";
 export {
   COMMITTEE_SANCTION_KINDS,
-  dayKeyOf,
-  expulsionWarning,
   SANCTION_KINDS,
-  type SanctionKind,
-  type SanctionLike,
   type SanctionScope,
-  type SanctionState,
 } from "./domain/sanction-pure";
 export {
   listExpulsionWarnings,
   listSanctionsForPerson,
-  type SanctionInput,
-  type SanctionStateView,
   type SanctionView,
   sanctionInputSchema,
-  sanctionKindLabel,
   sanctionStateFor,
 } from "./domain/sanctions";
 export {
   findPeopleByFilter,
   getSegment,
   listAllSegments,
-  type SegmentFilter,
-  type SegmentRow,
-  segmentFilterSchema,
 } from "./domain/segments";
 export { markApplicant } from "./domain/stage";
 export { addPersonTags, listAllTags, listPersonTags, type TagRow } from "./domain/tags";
