@@ -1,5 +1,5 @@
 import type { Actor, ActorPermission } from "./actor";
-import { ForbiddenError, StepUpRequiredError } from "./errors";
+import { ForbiddenError } from "./errors";
 import { STEP_UP_WINDOW_MS } from "./pure";
 
 // Guards puros (ADR-011, enmendada por ADR-119 regla 22). La capacidad del actor la comprueba quien
@@ -52,10 +52,4 @@ export function assertBoard(actor: Actor): void {
 
 export function hasRecentStepUp(actor: Actor, now = new Date()): boolean {
   return now.getTime() - actor.otpVerifiedAt.getTime() < STEP_UP_WINDOW_MS;
-}
-
-export function assertStepUp(actor: Actor, now = new Date()): void {
-  if (!hasRecentStepUp(actor, now)) {
-    throw new StepUpRequiredError();
-  }
 }

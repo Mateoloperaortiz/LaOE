@@ -11,10 +11,3 @@ export class ForbiddenError extends Error {
     this.name = "ForbiddenError";
   }
 }
-
-export class StepUpRequiredError extends Error {
-  constructor() {
-    super("Esta acción pide un código nuevo");
-    this.name = "StepUpRequiredError";
-  }
-}
