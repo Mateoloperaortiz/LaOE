@@ -13,7 +13,9 @@ import { captureLogs, type LoggedLine, recordsOf } from "../helpers/logs";
 // Un fallo al conectar con la base, como lo registran el poller y el programador (DT-295 inciso k,
 // ADR-120 regla 10). Los errores son los de verdad: un pool contra un puerto cerrado y contra el
 // PostgreSQL de las pruebas con una base y un usuario que no existen. Por una consulta suelta llegan
-// envueltos por Drizzle; por una transacción, crudos, con lo que Node les cuelga.
+// envueltos por Drizzle; por una transacción, crudos, con lo que Node les cuelga. Lo que PostgreSQL
+// le responde a una conexión que ya se autenticó (un tope, una base cerrada, un rol sin permiso) pide
+// roles y bases propios: `log-connection-refusals.test.ts`.
 
 const USER = "usuario_sintetico_c8";
 const DATABASE = "base_sintetica_c8";

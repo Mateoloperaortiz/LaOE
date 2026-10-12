@@ -165,7 +165,8 @@ describe("a dónde iba una conexión que no abrió", () => {
 
 // Lo que PostgreSQL cita de la conexión configurada no depende de reconocer el error: el usuario y
 // la base de `DATABASE_URL` se quitan, entre comillas como él los escribe, de cualquier mensaje. Los
-// mensajes llevan la redacción y el SQLSTATE de PostgreSQL; no se provocaron contra un servidor.
+// mensajes llevan la redacción y el SQLSTATE de PostgreSQL, escritos a mano. Provocados contra el
+// servidor de las pruebas: `tests/integration/log-connection-refusals.test.ts`.
 describe("con quién iba la conexión configurada", () => {
   const USER = "usuario_sintetico";
   const DATABASE = "base_sintetica";
