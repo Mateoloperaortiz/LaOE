@@ -1,4 +1,6 @@
+import { ASSEMBLY_KINDS } from "@/modules/participation";
 import {
+  COMPLIANCE_STATES,
   type CommitteeResult,
   type CriterionResult,
   type MandatoryView,
@@ -7,7 +9,7 @@ import {
   type WorkGroupKind,
 } from "@/modules/permanence";
 import { Insignia, Progreso } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 
 // Desglose de permanencia compartido por /app/permanencia, la Persona 360 y la vista del líder:
@@ -27,20 +29,20 @@ type Props = {
   voice: "self" | "admin";
 };
 
-const STATES = ["EN_CAMINO", "EN_RIESGO", "NO_ALCANZA", "CUMPLE", "PRUEBA", "NO_CUMPLE"] as const;
 const CONDITIONS = ["ACTIVE", "NEW", "PROBATION", "TRANSFER"] as const;
 const EVALUATIONS = ["PENDING", "GOOD", "INSUFFICIENT"] as const;
+const MEMBER_STATUSES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"] as const;
 
 function stateLabel(state: CommitteeResult["state"]): string {
-  return tList("T-791")[STATES.indexOf(state)] ?? state;
+  return tLabels("T-791", COMPLIANCE_STATES)[state] ?? state;
 }
 
 function conditionLabel(condition: CommitteeResult["condition"]): string {
-  return tList("T-792")[CONDITIONS.indexOf(condition)] ?? condition;
+  return tLabels("T-792", CONDITIONS)[condition] ?? condition;
 }
 
 function kindLabel(kind: WorkGroupKind): string {
-  return tList("T-725")[WORK_GROUP_KINDS.indexOf(kind)] ?? kind;
+  return tLabels("T-725", WORK_GROUP_KINDS)[kind] ?? kind;
 }
 
 function stateText(item: CommitteeResult, committee: string, closed: boolean): string {
@@ -77,7 +79,7 @@ function Detalle({
   closed: boolean;
 }) {
   const d = criterion.detail;
-  const evaluationLabels = tList("T-750");
+  const evaluationLabels = tLabels("T-750", EVALUATIONS);
   switch (d.type) {
     case "CHECKIN_COUNT":
     case "CHECKIN_THRESHOLD": {
@@ -167,7 +169,7 @@ function Grupo({
     evaluation: "PENDING" | "GOOD" | "INSUFFICIENT";
     evaluatorIds: string[];
   };
-  labels: string[];
+  labels: Readonly<Record<string, string>>;
   personNames: Names;
 }) {
   const evaluators = group.evaluatorIds.map((id) => personNames.get(id) ?? "").filter(Boolean);
@@ -176,7 +178,7 @@ function Grupo({
       <span>
         {t("T-689", {
           grupo: group.name,
-          evaluacion: labels[EVALUATIONS.indexOf(group.evaluation)] ?? "",
+          evaluacion: labels[group.evaluation] ?? "",
         })}
       </span>
       {group.equivalentKind ? (
@@ -231,7 +233,7 @@ function Criterios({
 }
 
 function Obligatorias({ mandatory }: { mandatory: MandatoryView }) {
-  const kinds = tList("T-546");
+  const kinds = tLabels("T-546", ASSEMBLY_KINDS);
   const total =
     mandatory.required.ordinary +
     (mandatory.required.boardElection ? 1 : 0) +
@@ -240,8 +242,7 @@ function Obligatorias({ mandatory }: { mandatory: MandatoryView }) {
     Math.min(mandatory.attended.ordinary, mandatory.required.ordinary) +
     (mandatory.required.boardElection && mandatory.attended.boardElection ? 1 : 0) +
     (mandatory.required.runoff && mandatory.attended.runoff ? 1 : 0);
-  const kindLabel = (kind: "ORDINARY" | "BOARD_ELECTION" | "RUNOFF") =>
-    kinds[["ORDINARY", "BOARD_ELECTION", "RUNOFF"].indexOf(kind)] ?? kind;
+  const kindLabel = (kind: "ORDINARY" | "BOARD_ELECTION" | "RUNOFF") => kinds[kind] ?? kind;
   const next = mandatory.upcoming[0];
   return (
     <div className="flex flex-col gap-1 rounded-xl border border-borde bg-fondo p-3">
@@ -282,11 +283,9 @@ export function Desglose({
   generalMissing,
   voice,
 }: Props) {
-  const statusLabels = tList("T-381");
+  const statusLabels: Readonly<Record<string, string>> = tLabels("T-381", MEMBER_STATUSES);
   if (!result.evaluated) {
-    const estado =
-      statusLabels[["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"].indexOf(result.status)] ??
-      result.status;
+    const estado = statusLabels[result.status] ?? result.status;
     return (
       <p className="text-tinta-suave">
         {voice === "self" ? t("T-680", { estado }) : t("T-830", { estado })}

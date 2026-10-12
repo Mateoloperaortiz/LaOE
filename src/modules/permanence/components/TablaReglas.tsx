@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { APPLIES_TO, COMPUTATIONS } from "@/modules/permanence";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 
 // Una tabla de permanencia (general o de un comité) con sus sumas frente al nominal, su estado y sus
@@ -49,17 +50,9 @@ export function TablaReglas({
   acciones,
 }: Props) {
   const [sinCriterios, abierta] = tList("T-738");
-  const appliesLabels = tList("T-717");
-  const computationLabels = tList("T-718");
-  const computationKeys = [
-    "CHECKIN_COUNT",
-    "CHECKIN_THRESHOLD",
-    "CHECKIN_RATE",
-    "GROUP_EVALUATED",
-    "COMPOSITE",
-    "LEADER_SCORE",
-    "MANUAL",
-  ];
+  const appliesLabels = tLabels("T-717", APPLIES_TO);
+  // El cálculo de una regla llega como texto: uno que el modelo no trae cae al respaldo.
+  const computationLabels: Readonly<Record<string, string>> = tLabels("T-718", COMPUTATIONS);
   const [clave, nombre, , peso, aplicaA, calculo, orden] = tList("T-716");
   const estado = lockedAt
     ? t("T-738").split(" · ")[2]?.replace("{fecha}", formatDateTime(lockedAt))
@@ -124,12 +117,9 @@ export function TablaReglas({
                   <td className="py-2 pr-3 font-semibold">{rule.label}</td>
                   <td className="py-2 pr-3 font-mono text-xs">{rule.key}</td>
                   <td className="py-2 pr-3 tabular-nums">{rule.weight}</td>
+                  <td className="py-2 pr-3">{appliesLabels[rule.appliesTo] ?? ""}</td>
                   <td className="py-2 pr-3">
-                    {appliesLabels[["ALL", "NEW", "VETERAN"].indexOf(rule.appliesTo)] ?? ""}
-                  </td>
-                  <td className="py-2 pr-3">
-                    {computationLabels[computationKeys.indexOf(rule.computation)] ??
-                      rule.computation}
+                    {computationLabels[rule.computation] ?? rule.computation}
                   </td>
                   {editHref ? (
                     <td className="py-2 text-right whitespace-nowrap">

@@ -63,6 +63,8 @@ export {
 export { getPersonPermanence } from "./domain/my-permanence";
 export { runNotices } from "./domain/notices";
 export {
+  APPLIES_TO,
+  COMPUTATIONS,
   type Computation,
   type Rule,
   type RuleInputValues,
@@ -95,7 +97,7 @@ export {
   type TableView,
   updateRuleAs,
 } from "./domain/rules";
-export { parseResults } from "./domain/snapshot-pure";
+export { COMPLIANCE_STATES, parseResults } from "./domain/snapshot-pure";
 export {
   freezeSnapshots,
   getSnapshot,

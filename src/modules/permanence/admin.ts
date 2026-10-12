@@ -3,7 +3,7 @@ import { listEditionOptions } from "@/modules/events";
 import { findMembersByEmails } from "@/modules/people";
 import { listAllTerms } from "@/modules/terms";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { type BoardExportRow, boardExportRows, boardIndicators } from "./domain/board";
 import {
@@ -22,6 +22,7 @@ import {
   updateGroupAs,
 } from "./domain/groups";
 import { WORK_GROUP_KINDS } from "./domain/params";
+import { COMPLIANCE_STATES } from "./domain/snapshot-pure";
 
 // Recursos del kit de permanencia (ADR-017, ADR-036): el exporte de cumplimiento con datos
 // personales (step-up), los grupos de trabajo y el exporte agregado de la junta (ADMIN o BOARD).
@@ -29,15 +30,14 @@ import { WORK_GROUP_KINDS } from "./domain/params";
 type Empty = Record<string, never>;
 const emptySchema = z.object({}) as unknown as z.ZodType<Empty, unknown>;
 
-const STATES = ["EN_CAMINO", "EN_RIESGO", "NO_ALCANZA", "CUMPLE", "PRUEBA", "NO_CUMPLE"];
-const CONDITIONS = ["ACTIVE", "NEW", "PROBATION", "TRANSFER"];
+const CONDITIONS = ["ACTIVE", "NEW", "PROBATION", "TRANSFER"] as const;
 
 function stateLabel(state: ComplianceRow["state"]): string {
-  return state ? (tList("T-791")[STATES.indexOf(state)] ?? state) : (tList("T-789")[5] ?? "");
+  return state ? (tLabels("T-791", COMPLIANCE_STATES)[state] ?? state) : (tList("T-789")[5] ?? "");
 }
 
 function conditionLabel(condition: ComplianceRow["condition"]): string {
-  return condition ? (tList("T-792")[CONDITIONS.indexOf(condition)] ?? condition) : "";
+  return condition ? (tLabels("T-792", CONDITIONS)[condition] ?? condition) : "";
 }
 
 const [title] = [tList("T-788")[0] ?? ""];
@@ -112,19 +112,11 @@ const [groupsPlural, groupsSingular] = tList("T-742");
 const groupFieldLabels = tList("T-743");
 const groupColumnLabels = tList("T-744");
 const groupFilterLabels = tList("T-745");
-const groupKindLabels = tList("T-725");
-const GROUP_KINDS = [
-  "WORK_COMMITTEE",
-  "GT_MACROEVENT",
-  "GAP",
-  "GAP_OE",
-  "BARRA_BRAVA",
-  "NEW_MEMBER_TASK",
-];
+const groupKindLabels = tLabels("T-725", WORK_GROUP_KINDS);
 
-const kindOptions = GROUP_KINDS.map((value, index) => ({
+const kindOptions = WORK_GROUP_KINDS.map((value) => ({
   value,
-  label: groupKindLabels[index] ?? value,
+  label: groupKindLabels[value] ?? value,
 }));
 
 /** Lo que llega del formulario del kit: el líder viene por correo y se resuelve al guardar. */
@@ -197,7 +189,7 @@ export const workGroupsResource: ResourceDefinition<GroupListRow, GroupForm> = {
     {
       key: "kind",
       label: groupColumnLabels[1] ?? "",
-      render: (row) => groupKindLabels[GROUP_KINDS.indexOf(row.kind)] ?? row.kind,
+      render: (row) => groupKindLabels[row.kind] ?? row.kind,
     },
     { key: "code", label: groupColumnLabels[2] ?? "", render: (row) => row.code },
     {
@@ -273,7 +265,7 @@ export const workGroupsResource: ResourceDefinition<GroupListRow, GroupForm> = {
   personalData: true,
   exportRow: (row) => ({
     nombre: row.name,
-    tipo: groupKindLabels[GROUP_KINDS.indexOf(row.kind)] ?? row.kind,
+    tipo: groupKindLabels[row.kind] ?? row.kind,
     codigo: row.code ?? "",
     lider: row.leaderName,
     miembros: row.members,

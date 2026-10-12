@@ -90,7 +90,18 @@ export const criterionSchema: z.ZodType<CriterionResult> = z.object({
   detail,
 });
 
-const state = z.enum(["EN_CAMINO", "EN_RIESGO", "NO_ALCANZA", "CUMPLE", "PRUEBA", "NO_CUMPLE"]);
+/** Los seis estados de cumplimiento en el orden de T-791: la tupla que comparten el esquema del
+ * snapshot y quien lee sus etiquetas (ADR-126 regla 7). */
+export const COMPLIANCE_STATES = [
+  "EN_CAMINO",
+  "EN_RIESGO",
+  "NO_ALCANZA",
+  "CUMPLE",
+  "PRUEBA",
+  "NO_CUMPLE",
+] as const;
+
+const state = z.enum(COMPLIANCE_STATES);
 
 export const committeeResultSchema: z.ZodType<CommitteeResult> = z.object({
   committeeId: z.string(),

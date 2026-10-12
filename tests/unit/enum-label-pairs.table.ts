@@ -75,7 +75,8 @@ import { SANCTION_KINDS } from "@/modules/people/domain/sanction-pure";
 import { sanctionKindLabel } from "@/modules/people/domain/sanctions";
 import { CLOSING_FILTERS } from "@/modules/permanence/domain/closing";
 import { COMPLIANCE_FILTERS } from "@/modules/permanence/domain/compliance";
-import { WORK_GROUP_KINDS } from "@/modules/permanence/domain/params";
+import { APPLIES_TO, COMPUTATIONS, WORK_GROUP_KINDS } from "@/modules/permanence/domain/params";
+import { COMPLIANCE_STATES } from "@/modules/permanence/domain/snapshot-pure";
 import { TEAM_AREA_CODES, teamAreaLabel } from "@/modules/permanence/domain/team-areas";
 import { tLabels, type tList } from "@/shared/copy";
 
@@ -279,7 +280,6 @@ export const PAIRS: readonly LabelPair[] = [
     order: "ASSEMBLY_KINDS",
     positions: { ORDINARY: 0, BOARD_ELECTION: 1, RUNOFF: 2 },
     canonical: ASSEMBLY_KINDS,
-    copies: ["src/modules/permanence/components/Desglose.tsx"],
   },
   {
     code: "T-564",
@@ -333,10 +333,8 @@ export const PAIRS: readonly LabelPair[] = [
     code: "T-717",
     order: "APPLIES_TO",
     positions: { ALL: 0, NEW: 1, VETERAN: 2 },
-    copies: [
-      "src/modules/permanence/components/TablaReglas.tsx",
-      "src/app/admin/permanencia/_ui/reglas.ts",
-    ],
+    canonical: APPLIES_TO,
+    copies: ["src/app/admin/permanencia/_ui/reglas.ts"],
   },
   {
     code: "T-718",
@@ -350,10 +348,8 @@ export const PAIRS: readonly LabelPair[] = [
       LEADER_SCORE: 5,
       MANUAL: 6,
     },
-    copies: [
-      "src/modules/permanence/components/TablaReglas.tsx",
-      "src/app/admin/permanencia/_ui/reglas.ts",
-    ],
+    canonical: COMPUTATIONS,
+    copies: ["src/app/admin/permanencia/_ui/reglas.ts"],
   },
   {
     code: "T-719",
@@ -382,7 +378,6 @@ export const PAIRS: readonly LabelPair[] = [
     },
     canonical: WORK_GROUP_KINDS,
     copies: [
-      "src/modules/permanence/admin.ts",
       "src/app/admin/permanencia/evaluaciones/page.tsx",
       "src/app/admin/permanencia/grupos/[id]/page.tsx",
       "src/app/admin/permanencia/_ui/reglas.ts",
@@ -404,9 +399,8 @@ export const PAIRS: readonly LabelPair[] = [
     code: "T-791",
     order: "STATES",
     positions: { EN_CAMINO: 0, EN_RIESGO: 1, NO_ALCANZA: 2, CUMPLE: 3, PRUEBA: 4, NO_CUMPLE: 5 },
+    canonical: COMPLIANCE_STATES,
     copies: [
-      "src/modules/permanence/components/Desglose.tsx",
-      "src/modules/permanence/admin.ts",
       "src/app/admin/permanencia/cumplimiento/page.tsx",
       "src/app/admin/comites/[slug]/permanencia/page.tsx",
       "src/modules/permanence/domain/snapshot-pure.ts",
