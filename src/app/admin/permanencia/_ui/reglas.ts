@@ -3,8 +3,11 @@ import { formText } from "@/app/_lib/form";
 import { OCCASION_CATEGORIES } from "@/modules/participation";
 import {
   APPLIES_TO,
+  COMMITTEE_FILTERS,
   COMPUTATIONS,
   type Computation,
+  GROUP_MODES,
+  NEW_MEMBERS_FILTERS,
   type Rule,
   type RuleInputValues,
   WORK_GROUP_KINDS,
@@ -28,9 +31,6 @@ const CATEGORIES = [
   "OTHER",
 ] as const;
 const KINDS = ["ACTIVITY", "ASSEMBLY", "EDITION_SESSION"] as const;
-const NEW_MEMBERS_FILTERS = ["ANY", "ONLY", "EXCLUDE"] as const;
-const COMMITTEE_FILTERS = ["ANY", "OWN"] as const;
-const GROUP_MODES = ["FIXED", "PER_GROUP", "TIERS"] as const;
 
 /** Las opciones de un select, con la etiqueta de cada valor leída por valor (ADR-126 regla 3). */
 function labeled<Value extends string>(

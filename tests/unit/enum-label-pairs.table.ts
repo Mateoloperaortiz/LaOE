@@ -80,7 +80,14 @@ import { SANCTION_KINDS } from "@/modules/people/domain/sanction-pure";
 import { sanctionKindLabel } from "@/modules/people/domain/sanctions";
 import { CLOSING_FILTERS } from "@/modules/permanence/domain/closing";
 import { COMPLIANCE_FILTERS } from "@/modules/permanence/domain/compliance";
-import { APPLIES_TO, COMPUTATIONS, WORK_GROUP_KINDS } from "@/modules/permanence/domain/params";
+import {
+  APPLIES_TO,
+  COMMITTEE_FILTERS,
+  COMPUTATIONS,
+  GROUP_MODES,
+  NEW_MEMBERS_FILTERS,
+  WORK_GROUP_KINDS,
+} from "@/modules/permanence/domain/params";
 import { COMPLIANCE_STATES } from "@/modules/permanence/domain/snapshot-pure";
 import { TEAM_AREA_CODES, teamAreaLabel } from "@/modules/permanence/domain/team-areas";
 import { tLabels, type tList } from "@/shared/copy";
@@ -940,19 +947,19 @@ export const UNSEEN_PAIRS: readonly LabelPair[] = [
     code: "T-721",
     order: "NEW_MEMBERS_FILTERS",
     positions: { ANY: 0, ONLY: 1, EXCLUDE: 2 },
-    copies: ["src/app/admin/permanencia/_ui/reglas.ts"],
+    canonical: NEW_MEMBERS_FILTERS,
   },
   {
     code: "T-722",
     order: "COMMITTEE_FILTERS",
     positions: { ANY: 0, OWN: 1 },
-    copies: ["src/app/admin/permanencia/_ui/reglas.ts"],
+    canonical: COMMITTEE_FILTERS,
   },
   {
     code: "T-724",
     order: "GROUP_MODES",
     positions: { FIXED: 0, PER_GROUP: 1, TIERS: 2 },
-    copies: ["src/app/admin/permanencia/_ui/reglas.ts"],
+    canonical: GROUP_MODES,
   },
   {
     code: "T-789",

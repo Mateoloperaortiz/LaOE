@@ -64,8 +64,11 @@ export { getPersonPermanence } from "./domain/my-permanence";
 export { runNotices } from "./domain/notices";
 export {
   APPLIES_TO,
+  COMMITTEE_FILTERS,
   COMPUTATIONS,
   type Computation,
+  GROUP_MODES,
+  NEW_MEMBERS_FILTERS,
   type Rule,
   type RuleInputValues,
   ruleInputSchema,
