@@ -267,3 +267,125 @@ describe("lo que se interpola en el mensaje, a cualquier profundidad", () => {
     expect(lines[1]?.record).toMatchObject({ evento: "ev-1", msg: "van 3 de cinco, null" });
   });
 });
+
+// DT-347: las dos cabeceras de sesión llegan al registro por tres caminos, y solo el de la línea
+// tenía prueba (arriba, «las cabeceras de sesión de un request»). Los otros dos quedaron fijados en el
+// ciclo 15 sobre las rutas `req.headers.cookie` y `req.headers.authorization` de pino, antes de
+// pasarle esa parte al paso propio (ADR-127 regla 9).
+describe("las dos cabeceras de sesión, por cada camino por donde llegan al registro", () => {
+  const sessionHeaders = () => ({ cookie: SECRET, authorization: SECRET, accept: "text/html" });
+  const HIDDEN_HEADERS = { cookie: "[oculto]", authorization: "[oculto]", accept: "text/html" };
+
+  it("en el `req` que fija un logger hijo, y en el que fija el hijo de un hijo", async () => {
+    const lines = await written(() => {
+      logger.child({ req: { headers: sessionHeaders() } }).info("hijo");
+      logger
+        .child({ pedido: "p-1" })
+        .child({ req: { headers: sessionHeaders() } })
+        .info("nieto");
+    });
+
+    expect(lines).toHaveLength(2);
+    for (const { line, record } of lines) {
+      expect(line).not.toContain(SECRET);
+      expect(record.req).toEqual({ headers: HIDDEN_HEADERS });
+    }
+    expect(lines[1]?.record.pedido).toBe("p-1");
+  });
+
+  it.each([
+    "%o",
+    "%O",
+    "%j",
+  ])("en el `req` de un objeto que se interpola en el mensaje con %s, con objeto de línea o sin él", async (placeholder) => {
+    const lines = await written(() => {
+      info(`request ${placeholder}`, { req: { headers: sessionHeaders() } });
+      info({ evento: "ev-1" }, `request ${placeholder}`, { req: { headers: sessionHeaders() } });
+    });
+
+    expect(lines).toHaveLength(2);
+    for (const { line, record } of lines) {
+      expect(line).not.toContain(SECRET);
+      expect(record.msg).toBe(`request ${JSON.stringify({ req: { headers: HIDDEN_HEADERS } })}`);
+    }
+    expect(lines[1]?.record.evento).toBe("ev-1");
+  });
+
+  it("valgan lo que valgan: un nulo, un texto vacío, un objeto o una lista", async () => {
+    const lines = await written(() => {
+      logger.info(
+        { req: { headers: { cookie: null, authorization: "", accept: "*/*" } } },
+        "vacías",
+      );
+      logger.info(
+        {
+          req: { headers: { cookie: { sesion: SECRET }, authorization: [SECRET], accept: "*/*" } },
+        },
+        "con forma",
+      );
+    });
+
+    expect(lines).toHaveLength(2);
+    for (const { line, record } of lines) {
+      expect(line).not.toContain(SECRET);
+      expect(record.req).toEqual({
+        headers: { cookie: "[oculto]", authorization: "[oculto]", accept: "*/*" },
+      });
+    }
+  });
+
+  // El límite de hoy, no un deseo: las dos cabeceras se ocultan donde las ocultaban las rutas de pino,
+  // con `req` suelto en la línea, en lo que fija un logger hijo o en la raíz de lo que se interpola.
+  // Ampliarlo es cambiar una regla y va con su ADR.
+  it("solo bajo `req.headers` y con `req` suelto: en cualquier otro lugar `cookie` y `authorization` no son claves ocultas", async () => {
+    const ELSEWHERE = "fuera-de-req-headers";
+    const headers = () => ({ cookie: ELSEWHERE, authorization: ELSEWHERE });
+    const lines = await written(() => {
+      logger.info(headers(), "sueltas en la línea");
+      logger.info({ headers: headers() }, "unas cabeceras sin req");
+      logger.info({ req: headers() }, "en un req, fuera de sus cabeceras");
+      logger.info({ pedido: { req: { headers: headers() } } }, "un req más abajo");
+      logger.info({ req: [{ headers: headers() }] }, "una lista donde va el req");
+      logger.info({ req: { headers: [headers()] } }, "una lista donde van las cabeceras");
+      logger.info({ err: { req: { headers: headers() } } }, "un req colgado de err");
+      logger.child({ pedido: { req: { headers: headers() } } }).info("un req más abajo en un hijo");
+      logger.info("sin req %o", { headers: headers() });
+      logger.info("un req más abajo %o", { pedido: { req: { headers: headers() } } });
+      logger.info("una lista %o", [{ req: { headers: headers() } }]);
+    });
+
+    expect(lines).toHaveLength(11);
+    for (const { line } of lines) {
+      expect(line.split(ELSEWHERE)).toHaveLength(3);
+      expect(line).not.toContain("[oculto]");
+    }
+  });
+});
+
+// DT-347: lo que sale de un `Error` que se interpola en el mensaje, con cada marcador. Quedó fijado en
+// el ciclo 15 antes de cambiar el error por lo que dice de sí mismo (ADR-127 regla 8): como texto, su
+// nombre y su mensaje; como objeto, nada, porque un error no trae campos propios que se enumeren.
+describe("un `Error` que se interpola en el mensaje", () => {
+  it.each([
+    ["%s", "Error: mensaje", "TypeError: mensaje", "Error: fuera"],
+    ["%o", "{}", "{}", "{}"],
+    ["%O", "{}", "{}", "{}"],
+    ["%j", "{}", "{}", "{}"],
+    ["%d", "NaN", "NaN", "NaN"],
+  ])("con %s sale su nombre y su mensaje donde va un texto, y vacío donde va un objeto", async (placeholder, plain, typed, wrapping) => {
+    const lines = await written(() => {
+      info(`falló ${placeholder}`, new Error("mensaje"));
+      info(`falló ${placeholder}`, new TypeError("mensaje"));
+      info(`falló ${placeholder}`, new Error("fuera", { cause: new Error("dentro") }));
+      info({ evento: "ev-1" }, `falló ${placeholder}`, new Error("mensaje"));
+    });
+
+    expect(lines.map(({ record }) => record.msg)).toEqual([
+      `falló ${plain}`,
+      `falló ${typed}`,
+      `falló ${wrapping}`,
+      `falló ${plain}`,
+    ]);
+    expect(lines[3]?.record.evento).toBe("ev-1");
+  });
+});
