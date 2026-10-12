@@ -1,28 +1,14 @@
 // API pública del módulo participation (ADR-035, ADR-038).
 
-export { listAgendaForPerson, type PersonAgendaContext } from "./domain/agenda";
+export { listAgendaForPerson } from "./domain/agenda";
+export { agendaEntries } from "./domain/agenda-pure";
 export {
-  type AgendaEdition,
-  type AgendaEntry,
-  type AgendaOccasion,
-  agendaEntries,
-} from "./domain/agenda-pure";
-export {
-  type AdjustRequirementInput,
-  type AssemblyOverviewRow,
   assemblyAdjustmentsFor,
   assemblyOverview,
   assemblyStatusFor,
   listTermAssemblies,
-  type PersonAssemblyStatus,
 } from "./domain/assemblies";
-export {
-  type AssemblyCompliance,
-  type AssemblyRequirementView,
-  assemblyCompliance,
-  requiredTotal,
-  termAssemblyRequirement,
-} from "./domain/assembly-pure";
+export { termAssemblyRequirement } from "./domain/assembly-pure";
 export {
   type AchievementRow,
   awardSpecialBadge,
@@ -103,8 +89,6 @@ export {
 export {
   CHECK_IN_SOURCES,
   CHECK_IN_STATUSES,
-  type CheckInDecision,
-  type CheckInOutcome,
   type CheckInSource,
   type CheckInStatus,
   type SelfCheckInEligibilityDenial,
@@ -112,9 +96,7 @@ export {
   selfCheckInEligibilityDenial,
 } from "./domain/check-in-pure";
 export {
-  type ApprovedCheckIn,
   type CheckInRow,
-  type ExcuseInput,
   excuseCheckIn,
   findCheckIn,
   listApprovedCheckInsForPersonInTerm,
@@ -123,7 +105,6 @@ export {
   listCheckInsForPerson,
   listExcusedCheckInsForPersonInTerm,
   listExcusedCheckInsForTerm,
-  type SelfCheckInDenial,
   type SelfCheckInResult,
 } from "./domain/check-ins";
 export {
@@ -146,29 +127,18 @@ export {
   decideManyAs,
   hostCheckInAs,
   openOccasionAs,
-  resolveOccasionContext,
   reverseEntryAs,
   rotateSecretAs,
   setRotatingCodeAs,
-  updateOccasionAs,
 } from "./domain/commands";
 export {
-  type AssemblyRepresentation,
   type CommitteeRepresentationSummary,
   listAssemblyRepresentation,
   listCommitteeRepresentation,
-  MAX_EXCUSED_ABSENCES,
-  type RepresentationLadder,
   recomputeCommitteeAssembly,
-  representationLadder,
 } from "./domain/committee-assembly";
-export { type CommitteeViability, listCommitteeViability } from "./domain/committee-viability";
-export {
-  VIABILITY_ALERTS,
-  type ViabilityAlert,
-  type ViabilityInput,
-  viabilityAlerts,
-} from "./domain/committee-viability-pure";
+export { listCommitteeViability } from "./domain/committee-viability";
+export { VIABILITY_ALERTS } from "./domain/committee-viability-pure";
 export {
   deleteEvidenceFor,
   EVIDENCE_KEY_PATTERN,
@@ -185,7 +155,6 @@ export {
 } from "./domain/evidence";
 export {
   type ChallengeParticipationExportRow,
-  type CheckInExportRow,
   listCheckInsForExport,
   listParticipationsForExport,
 } from "./domain/exports";
@@ -221,10 +190,7 @@ export {
   type TriviaSubmitInput,
   updateChallengeAs,
 } from "./domain/gamification-commands";
-export {
-  type GamificationOverview,
-  gamificationOverview,
-} from "./domain/gamification-metrics";
+export { type GamificationOverview, gamificationOverview } from "./domain/gamification-metrics";
 export {
   audienceIncludes,
   badgeProgress,
@@ -258,41 +224,31 @@ export {
   type PointEntryKind,
   type Ranked,
 } from "./domain/ledger-pure";
-export { buildLiveSnapshot, checkInLink, type LiveCheckIn, type LiveSnapshot } from "./domain/live";
+export { buildLiveSnapshot, checkInLink } from "./domain/live";
 export { type GamificationSettings, loadGamificationSettings } from "./domain/member-context";
 export {
   ASSEMBLY_KINDS,
-  type AssemblyKind,
   canOpenOccasion,
   OCCASION_CATEGORIES,
-  OCCASION_KINDS,
-  OCCASION_STATUSES,
   type OccasionCategory,
   type OccasionKind,
-  type OccasionStatus,
-  type WindowState,
   windowState,
 } from "./domain/occasion-pure";
 export {
   countApproved,
-  countOpenOccasions,
   getOccasion,
   getOccasionByPublicId,
   getOccasionsByIds,
   listMemberAgenda,
   listOccasions,
   listOccasionsForTerm,
-  type OccasionInput,
   type OccasionListRow,
-  type OccasionRef,
   type OccasionRow,
   occasionInputSchema,
-  type SeriesInput,
   searchOccasions,
-  weeklyDates,
 } from "./domain/occasions";
 export { getTodayPanal, listPanalGamesFor, startPanalAs, submitPanalWordAs } from "./domain/panal";
-export { isPublicId, PUBLIC_ID } from "./domain/public-id-pure";
+export { isPublicId } from "./domain/public-id-pure";
 export {
   type Board,
   type CommitteeScore,
@@ -313,14 +269,7 @@ export {
   resumeReconciliation,
   startReconciliation,
 } from "./domain/reconciliation";
-export { type RemindersResult, runReminders } from "./domain/reminders";
-export {
-  type DueReminder,
-  type ReminderHours,
-  type ReminderOccasion,
-  type ReminderSlot,
-  reminderSlots,
-} from "./domain/reminders-pure";
+export { runReminders } from "./domain/reminders";
 export {
   countPendingGamification,
   grantReward,
@@ -349,23 +298,13 @@ export {
   startSudokuAs,
 } from "./domain/sudoku";
 export {
-  type AnswerSurveyResult,
   answerSurveyAs,
-  type CommitteeSurveys,
-  type CreatedInvite,
   createSurveyInvites,
   getSurveyInviteForActor,
-  type OccasionSurveySummary,
-  type SurveyInviteState,
   surveySummary,
   surveySummaryForCommittee,
 } from "./domain/surveys";
-export {
-  type QuestionSummary,
-  SURVEY_TEXT_MIN,
-  type SurveySummary,
-  summarizeAnswers,
-} from "./domain/surveys-pure";
+export { SURVEY_TEXT_MIN } from "./domain/surveys-pure";
 export {
   getTodayWordle,
   listWordleGamesFor,

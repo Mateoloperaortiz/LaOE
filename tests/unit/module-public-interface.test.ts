@@ -151,18 +151,7 @@ const EXCEPTIONS: Exceptions = {
   participation: {
     nadie: `
       AbandonSudokuInput
-      AdjustRequirementInput
       AdminParticipantRow
-      AgendaEdition
-      AgendaEntry
-      AgendaOccasion
-      AnswerSurveyResult
-      ApprovedCheckIn
-      AssemblyCompliance
-      AssemblyKind
-      AssemblyOverviewRow
-      AssemblyRepresentation
-      AssemblyRequirementView
       BadgeCollection
       BadgeDelta
       BadgeFact
@@ -187,22 +176,14 @@ const EXCEPTIONS: Exceptions = {
       ChallengeQuestionRow
       ChallengeRow
       ChallengeStoredStatus
-      CheckInDecision
-      CheckInExportRow
-      CheckInOutcome
       CollectionLevel
       CommitteeOccasionScore
       CommitteeParticipationRow
       CommitteeScore
-      CommitteeSurveys
-      CommitteeViability
-      CreatedInvite
-      DueReminder
       EVIDENCE_KEY_PREFIX
       EvidenceFileRow
       EvidenceFileStatus
       EvidenceSubmitInput
-      ExcuseInput
       FinishGame2048Input
       FinishSudokuInput
       GAME2048_MAX_MOVES
@@ -217,40 +198,22 @@ const EXCEPTIONS: Exceptions = {
       Game2048Status
       GamificationOverview
       Level
-      LiveCheckIn
-      LiveSnapshot
-      MAX_EXCUSED_ABSENCES
       MEMBER_CHALLENGE_STATUSES
       MemberCampaignView
       MyPosition
-      OCCASION_KINDS
-      OCCASION_STATUSES
-      OccasionInput
-      OccasionRef
-      OccasionStatus
-      OccasionSurveySummary
       PARTICIPATION_STATUSES
-      PUBLIC_ID
       ParticipationRow
       ParticipationStatus
       PendingReviewRow
-      PersonAgendaContext
-      PersonAssemblyStatus
       PersonalPercent
       PointEntryRow
       PreparedEvidenceUpload
-      QuestionSummary
       RECONCILE_BATCH
       Ranked
       RankedPerson
       ReconciliationReport
       ReconciliationRunRow
-      ReminderHours
-      ReminderOccasion
-      ReminderSlot
-      RemindersResult
       ReportSampleEntry
-      RepresentationLadder
       ReserveRewardInput
       ReviewInput
       RewardBreakdown
@@ -258,8 +221,6 @@ const EXCEPTIONS: Exceptions = {
       RewardRow
       RewardSource
       RewardStatus
-      SelfCheckInDenial
-      SeriesInput
       SpecialBadgeInput
       StandingCommittee
       StandingPerson
@@ -273,16 +234,11 @@ const EXCEPTIONS: Exceptions = {
       SudokuRunView
       SudokuStartedView
       SudokuStatus
-      SurveyInviteState
-      SurveySummary
       TermStandingView
       TodayGame2048
       TodaySudoku
       TodayWordle
       TriviaSubmitInput
-      ViabilityAlert
-      ViabilityInput
-      WindowState
       WordleAttemptView
       WordleDenial
       WordleGameView
@@ -291,7 +247,6 @@ const EXCEPTIONS: Exceptions = {
       WordleResult
       WordleStatus
       applyGame2048Move
-      assemblyCompliance
       audienceIncludes
       awardSpecialBadge
       awardSpecialBadgesForChallenge
@@ -307,7 +262,6 @@ const EXCEPTIONS: Exceptions = {
       competitionRanks
       computeReward
       countApproved
-      countOpenOccasions
       countPendingGamification
       createCampaigns
       createSpecialBadge
@@ -326,25 +280,17 @@ const EXCEPTIONS: Exceptions = {
       processReconciliationBatch
       recomputeBadgesFor
       recomputeBadgesForAs
-      reminderSlots
       replayGame2048
-      representationLadder
-      requiredTotal
       reserveAndGrantReward
-      resolveOccasionContext
       resumeReconciliation
       revokeBooster
       setBoosterTarget
       setFeatured
       startReconciliation
-      summarizeAnswers
       unlockedLevel
-      updateOccasionAs
       usedRewardPoints
       verifyEvidenceObjects
-      viabilityAlerts
       weekKeyFor
-      weeklyDates
     `,
     "solo-pruebas": `
       CheckInSource
