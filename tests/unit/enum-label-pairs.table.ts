@@ -1241,6 +1241,18 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       own: true,
     },
     {
+      file: "src/app/admin/macroeventos/[slug]/page.tsx",
+      order: "MACROEVENT_TABS",
+      code: "T-2375",
+      own: true,
+    },
+    {
+      file: "src/app/admin/macroeventos/[slug]/_ui/Team.tsx",
+      order: "EVALUATIONS",
+      code: "T-750",
+      own: true,
+    },
+    {
       file: "src/app/app/ajustes/page.tsx",
       order: "SECCIONES",
       code: "T-133",

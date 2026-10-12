@@ -7,10 +7,13 @@ import { findMacroeventGroup, getGroupDetail } from "@/modules/permanence";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminSectionSelect } from "@/shared/admin-kit/AdminSectionSelect";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { Board } from "./_ui/Board";
 import { Team } from "./_ui/Team";
+
+// Las áreas de la vista, en el orden de T-2375.
+const MACROEVENT_TABS = ["mesa", "equipo", "gap", "ediciones"] as const;
 
 const single = (value: string | string[] | undefined) =>
   Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
@@ -49,9 +52,10 @@ export default async function MacroeventPage({
   const href = (target: string, editionId = edition?.id ?? "") =>
     `${base}?${new URLSearchParams({ termId: term.id, area: target, ...(editionId ? { editionId } : {}) })}`;
   const labels = tList("T-2375");
-  const options = ["mesa", "equipo", "gap", "ediciones"].map((value, index) => ({
+  const tabLabels = tLabels("T-2375", MACROEVENT_TABS);
+  const options = MACROEVENT_TABS.map((value) => ({
     value,
-    label: labels[index] ?? "",
+    label: tabLabels[value] ?? "",
     href: href(value),
   }));
   const [board, group] = await Promise.all([

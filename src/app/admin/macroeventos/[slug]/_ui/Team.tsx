@@ -4,11 +4,14 @@ import { Campo, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { macroeventAction } from "../actions";
 import { Areas } from "./Areas";
 import { Fields, type MacroContext, MemberSelect } from "./Fields";
+
+// Las tres evaluaciones de un integrante, en el orden de T-750.
+const EVALUATIONS = ["PENDING", "GOOD", "INSUFFICIENT"] as const;
 
 export function Team({
   context,
@@ -43,9 +46,8 @@ export function Team({
   const live = detail.members.filter((row) => !row.leftAt);
   const former = detail.members.filter((row) => row.leftAt);
   const [agregar, quitar] = tList("T-748");
-  const labels = tList("T-750");
-  const labelFor = (value: string) =>
-    labels[["PENDING", "GOOD", "INSUFFICIENT"].indexOf(value)] ?? value;
+  const labels: Readonly<Record<string, string>> = tLabels("T-750", EVALUATIONS);
+  const labelFor = (value: string) => labels[value] ?? value;
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
