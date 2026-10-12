@@ -209,30 +209,8 @@ export {
   startWordleAs,
   submitWordleGuessAs,
 } from "./domain/wordle";
-export { runWordleReminder, type WordleReminderResult } from "./domain/wordle-reminder";
-export {
-  applyGame2048Move,
-  GAME2048_MAX_MOVES,
-  GAME2048_REWARDS,
-  GAME2048_RULES_VERSION,
-  game2048Reward,
-  isGame2048Moves,
-  newGame2048,
-  replayGame2048,
-} from "./game2048-engine";
-export type {
-  FinishGame2048Input,
-  Game2048Denial,
-  Game2048Move,
-  Game2048Result,
-  Game2048RunView,
-  Game2048StartedView,
-  Game2048StartResult,
-  Game2048State,
-  Game2048Status,
-  StartGame2048Input,
-  TodayGame2048,
-} from "./game2048-types";
+export { runWordleReminder } from "./domain/wordle-reminder";
+export type { Game2048Result, Game2048StartResult, StartGame2048Input } from "./game2048-types";
 export type {
   BoosterKind,
   BoosterState,
@@ -250,27 +228,4 @@ export {
   MEMBER_CHALLENGE_STATUSES,
   PARTICIPATION_STATUSES,
 } from "./gamification-types";
-export type {
-  AbandonSudokuInput,
-  FinishSudokuInput,
-  StartSudokuInput,
-  SudokuDenial,
-  SudokuDifficulty,
-  SudokuPlay,
-  SudokuResult,
-  SudokuRunView,
-  SudokuStartedView,
-  SudokuStartResult,
-  SudokuStatus,
-  TodaySudoku,
-} from "./sudoku-types";
-export type {
-  SubmitWordleInput,
-  TodayWordle,
-  WordleAttemptView,
-  WordleDenial,
-  WordleGameView,
-  WordleLetterState,
-  WordleResult,
-  WordleStatus,
-} from "./wordle-types";
+export type { SudokuResult, SudokuStartResult } from "./sudoku-types";

@@ -150,48 +150,13 @@ const EXCEPTIONS: Exceptions = {
   },
   participation: {
     nadie: `
-      AbandonSudokuInput
       CHALLENGE_AUDIENCES
       EvidenceFileStatus
-      FinishGame2048Input
-      FinishSudokuInput
-      GAME2048_MAX_MOVES
-      GAME2048_REWARDS
-      GAME2048_RULES_VERSION
-      Game2048Denial
-      Game2048Move
-      Game2048RunView
-      Game2048StartedView
-      Game2048State
-      Game2048Status
       MEMBER_CHALLENGE_STATUSES
       PARTICIPATION_STATUSES
       StartGame2048Input
-      StartSudokuInput
-      SubmitWordleInput
-      SudokuDenial
-      SudokuDifficulty
-      SudokuPlay
-      SudokuRunView
-      SudokuStartedView
-      SudokuStatus
-      TodayGame2048
-      TodaySudoku
-      TodayWordle
-      WordleAttemptView
-      WordleDenial
-      WordleGameView
-      WordleLetterState
-      WordleReminderResult
-      WordleResult
-      WordleStatus
-      applyGame2048Move
       countApproved
-      game2048Reward
-      isGame2048Moves
-      newGame2048
       recomputeBadgesForAs
-      replayGame2048
     `,
     "solo-pruebas": `
       CheckInSource
