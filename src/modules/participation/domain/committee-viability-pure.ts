@@ -14,7 +14,7 @@ export type ViabilityAlert =
   | "TRIAL_LOW_ATTENDANCE"
   | "TRIAL_ENDING";
 
-export const VIABILITY_ALERTS: readonly ViabilityAlert[] = [
+export const VIABILITY_ALERTS = [
   "FEW_DIRECTIONS",
   "MISSING_REQUIRED",
   "FEW_MEMBERS",
@@ -23,7 +23,7 @@ export const VIABILITY_ALERTS: readonly ViabilityAlert[] = [
   "TRIAL_FEW_MEMBERS",
   "TRIAL_LOW_ATTENDANCE",
   "TRIAL_ENDING",
-];
+] as const satisfies readonly ViabilityAlert[];
 
 /** Regl. art. 26: tres direcciones, seis miembros fuera de la mesa, tres faltas; art. 25: diez miembros y 90 %. */
 export const MIN_DIRECTIONS = 3;
