@@ -4,7 +4,9 @@
 // `tests/unit/label-positions.test.ts` con lo que lee del código. La migración de la spec #242 no
 // cambió ninguno, y qué ve la persona cuando un valor no tiene etiqueta espera la decisión abierta
 // 75: hasta entonces una fila de acá solo cambia porque el archivo gana o pierde una lectura, nunca
-// porque una lectura cambie de respaldo.
+// porque una lectura cambie de respaldo. La cuenta es por archivo: no ve dos lecturas del mismo
+// archivo que intercambien sus respaldos, ni un respaldo escrito con `||` en vez de `??`, que hoy
+// no hay ninguno y contaría como lectura sin respaldo.
 export const FALLBACKS_BY_FILE: Record<
   string,
   readonly [raw: number, empty: number, other: number, none: number]

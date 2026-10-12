@@ -493,6 +493,24 @@ const SEEDED: { title: string; form: PositionalForm; path: string; text: string 
     text: `${HEAD}const labels = tList("T-444").toReversed();\nexport const options = KINDS.map((value, index) => ({ value, label: labels[index] ?? value }));\n`,
   },
   {
+    title: "un recorrido sobre la lista ordenada con toSorted",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}const labels = tList("T-444").toSorted();\nexport const options = KINDS.map((value, index) => ({ value, label: labels[index] ?? value }));\n`,
+  },
+  {
+    title: "un recorrido sobre la lista ordenada con sort",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}const labels = [...tList("T-444")].sort();\nexport const options = KINDS.map((value, index) => ({ value, label: labels[index] ?? value }));\n`,
+  },
+  {
+    title: "un recorrido sobre la lista invertida con reverse",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}const labels = [...tList("T-444")].reverse();\nexport const options = KINDS.map((value, index) => ({ value, label: labels[index] ?? value }));\n`,
+  },
+  {
     title: "un recorrido sobre una lista asignada después de declarada",
     form: "traversal",
     path: "src/app/sembrado/page.ts",
