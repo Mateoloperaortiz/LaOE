@@ -72,14 +72,14 @@ export interface RewardBreakdown {
 }
 
 export const CHALLENGE_KINDS: readonly ChallengeKind[] = ["PRESENTIAL", "TRIVIA", "EVIDENCE"];
-export const BOOSTER_KINDS: readonly BoosterKind[] = ["PLUS_50", "PLUS_100"];
-export const BOOSTER_STATES: readonly BoosterState[] = [
+export const BOOSTER_KINDS = ["PLUS_50", "PLUS_100"] as const satisfies readonly BoosterKind[];
+export const BOOSTER_STATES = [
   "AVAILABLE",
   "RESERVED",
   "CONSUMED",
   "EXPIRED",
   "REVOKED",
-];
+] as const satisfies readonly BoosterState[];
 export const BADGE_FAMILIES: readonly BadgeFamily[] = [
   "EN_PARCHE",
   "EXPLORADOR",

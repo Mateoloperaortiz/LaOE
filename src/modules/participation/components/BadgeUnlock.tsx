@@ -2,7 +2,7 @@
 
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { t, tList } from "@/shared/copy/client";
+import { t, tLabels } from "@/shared/copy/client";
 import { BOOSTER_KINDS, type BoosterKind } from "../gamification-types";
 import { BadgeArt } from "./BadgeArt";
 
@@ -30,7 +30,7 @@ export function BadgeUnlock({ unseen, onSeen }: Props) {
   const marked = useRef(false);
   const [pending, startTransition] = useTransition();
   const [reduced, setReduced] = useState(false);
-  const boosterNames = tList("T-2451");
+  const boosterNames = tLabels("T-2451", BOOSTER_KINDS);
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -95,7 +95,7 @@ export function BadgeUnlock({ unseen, onSeen }: Props) {
         <ul className="m-0 flex list-none flex-col gap-4 p-0">
           {unseen.map((item) => {
             const booster = item.boosterKind
-              ? (boosterNames[BOOSTER_KINDS.indexOf(item.boosterKind)] ?? item.boosterKind)
+              ? (boosterNames[item.boosterKind] ?? item.boosterKind)
               : null;
             return (
               <li key={item.achievementId} className="flex items-start gap-4">

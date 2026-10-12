@@ -6,7 +6,7 @@ import type { CommandContext } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { boosterGranted } from "@/domain-events/participation";
 import { getTerm } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   BOOSTER_STATES,
@@ -65,7 +65,7 @@ export interface BoosterView {
 const boosterErrors = () => tList("T-2466");
 
 function stateLabel(state: BoosterState): string {
-  return tList("T-2455")[BOOSTER_STATES.indexOf(state)] ?? state;
+  return tLabels("T-2455", BOOSTER_STATES)[state] ?? state;
 }
 
 interface BoosterFetchRow {
