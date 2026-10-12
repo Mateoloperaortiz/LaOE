@@ -7,6 +7,7 @@ import {
   INDEXED_BUT_NOT_LABELS,
   type IndexPair,
   type LabelPair,
+  NAMED_READS,
   PAIRS,
   UNEVEN_PAIRS,
   UNSEEN_PAIRS,
@@ -333,6 +334,31 @@ describe("las etiquetas de la línea de tiempo en crm/jobs.ts", () => {
     } else {
       // El orden es una tupla exportada, de `people` o del propio `crm`: la fila de la tabla lo
       // compara con ella.
+      expect(pair?.canonical).toBeDefined();
+      expect(source).not.toContain(`const${order}=`);
+    }
+  });
+});
+
+describe("los sitios que dejaron el orden del subíndice por una constante con nombre", () => {
+  // Con el orden escrito en el subíndice, la prueba de arriba fijaba qué lista leía el archivo con
+  // él. `tLabels` solo compara largos, así que `tLabels("T-750", ASSEMBLY_KINDS)` compila: acá
+  // queda que cada archivo lee con ese orden la lista de su par, y que el orden es el de la tabla.
+  it.each(NAMED_READS)("$file lee $code, y ninguna otra lista, por valor con $order", ({
+    file,
+    order,
+    code,
+    own,
+  }) => {
+    const source = sourceOf(file);
+    const reads = [...source.matchAll(new RegExp(`tLabels\\("(T-\\d+)",${order}\\)`, "g"))];
+    const pair = ONE_TO_ONE.find((item) => item.code === code);
+    expect(reads.map(([, read]) => read)).toEqual([code]);
+    expect(pair).toBeDefined();
+    if (own) {
+      expect(source).toContain(`const${order}=${literal(pair ? valuesOf(pair) : [])}asconst`);
+    } else {
+      // El orden es una tupla exportada: la fila de la tabla lo compara con ella.
       expect(pair?.canonical).toBeDefined();
       expect(source).not.toContain(`const${order}=`);
     }

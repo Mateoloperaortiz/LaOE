@@ -1146,6 +1146,38 @@ export const ZIP_PAIRS: readonly { key: string; order: string; code: ListCode; o
   { key: "fields", order: "FIELD_KEYS", code: "T-427", own: true },
 ];
 
+const DESGLOSE = "src/modules/permanence/components/Desglose.tsx";
+
+/** Los cinco sitios que escribían el orden en el subíndice de la lectura (`lista[["A", "B"].indexOf(`)
+ * y que el ticket #318 pasó a leer por valor con una constante con nombre. Con el orden en el
+ * subíndice la prueba fijaba también qué lista leía el archivo con él; con la constante ese caso ya
+ * no aplica, y `tLabels` solo compara largos: otra lista del mismo largo compila. Ninguna prueba lee
+ * el texto de estos cinco, así que acá queda, leído del código, qué lista lee cada archivo con ese
+ * orden y si el orden es una constante suya (`own`) o una tupla exportada. */
+export const NAMED_READS: readonly { file: string; order: string; code: ListCode; own: boolean }[] =
+  [
+    { file: DESGLOSE, order: "ASSEMBLY_KINDS", code: "T-546", own: false },
+    { file: DESGLOSE, order: "MEMBER_STATUSES", code: "T-381", own: true },
+    {
+      file: "src/modules/permanence/components/TablaReglas.tsx",
+      order: "APPLIES_TO",
+      code: "T-717",
+      own: false,
+    },
+    {
+      file: "src/modules/permanence/components/TeamParticipations.tsx",
+      order: "EVALUATIONS",
+      code: "T-750",
+      own: true,
+    },
+    {
+      file: "src/modules/people/domain/sanctions.ts",
+      order: "SANCTION_STATES",
+      code: "T-2243",
+      own: true,
+    },
+  ];
+
 export type IndexPair = {
   code: ListCode;
   /** La constante que guarda, escrita a mano, la posición de cada valor. */
