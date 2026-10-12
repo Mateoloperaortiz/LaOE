@@ -18,7 +18,7 @@ import { inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo, Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { cancelAction, scheduleAction, sendNowAction, sendTestFromCampaignAction } from "./actions";
 
@@ -93,15 +93,10 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
   const [campoProgramar, botonProgramar] = tList("T-1129");
   const [, colPlantilla, colSegmento, , colProgramada, colEnviados] = tList("T-1125");
   const [colPersona, colEstado, colMotivo, colEnviado] = tList("T-1134");
-  const recipientLabels = tList("T-1135");
-  const reasonLabels = tList("T-1136");
-  const recipientLabel = (status: string) =>
-    recipientLabels[RECIPIENT_STATUSES.indexOf(status as (typeof RECIPIENT_STATUSES)[number])] ??
-    status;
-  const reasonLabel = (reason: string | null) =>
-    reason
-      ? (reasonLabels[SKIP_REASONS.indexOf(reason as (typeof SKIP_REASONS)[number])] ?? reason)
-      : "";
+  const recipientLabels: Readonly<Record<string, string>> = tLabels("T-1135", RECIPIENT_STATUSES);
+  const reasonLabels: Readonly<Record<string, string>> = tLabels("T-1136", SKIP_REASONS);
+  const recipientLabel = (status: string) => recipientLabels[status] ?? status;
+  const reasonLabel = (reason: string | null) => (reason ? (reasonLabels[reason] ?? reason) : "");
   const defaultSchedule = utcToBogotaInput(new Date(Date.now() + 60 * 60_000));
   const aviso =
     guardado === "programada" && campaign.scheduledAt

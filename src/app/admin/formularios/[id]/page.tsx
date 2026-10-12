@@ -13,7 +13,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminMultiSelect } from "@/shared/admin-kit/AdminMultiSelect";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { deleteFieldAction, moveFieldAction, saveActionsAction, saveFieldAction } from "./actions";
 
 // Constructor de un formulario (ADR-037 regla 3): campos tipados con orden y panel por URL, acciones
@@ -46,7 +46,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
   const [borrador, abierto, cerrado] = tList("T-912");
   const [enlacePublico, verComoLaGente] = tList("T-920");
   const [clave, etiqueta, tipo, obligatorio, ayuda, opciones] = tList("T-923");
-  const tipos = tList("T-924");
+  const tipos = tLabels("T-924", FIELD_TYPES);
   const [subir, bajar, borrar] = tList("T-929");
   const [crearPersona, entrarPipeline, inscribirEdicion, etiquetarCon] = tList("T-930");
   const [ninguno, ninguna] = tList("T-932");
@@ -155,7 +155,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
                       <code>{field.key}</code>
                     </td>
                     <td data-label={tipo} className="py-2 pr-4">
-                      {tipos[FIELD_TYPES.indexOf(field.type)] ?? field.type}
+                      {tipos[field.type] ?? field.type}
                     </td>
                     <td data-label={obligatorio} className="py-2 pr-4">
                       {field.required ? tList("T-1058")[0] : tList("T-1058")[1]}
@@ -319,9 +319,9 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
                   defaultValue={editing?.type ?? "TEXT"}
                   className={inputClass}
                 >
-                  {FIELD_TYPES.map((value, index) => (
+                  {FIELD_TYPES.map((value) => (
                     <option key={value} value={value}>
-                      {tipos[index] ?? value}
+                      {tipos[value] ?? value}
                     </option>
                   ))}
                 </select>
