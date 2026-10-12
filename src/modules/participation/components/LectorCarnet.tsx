@@ -67,7 +67,8 @@ export function LectorCarnet({ labels, onScan }: Props) {
   const [startOnce] = useState(createStartGate);
   const [state, setState] = useState<ScanState>({ kind: "idle" });
 
-  // Salir de la pantalla detiene el lector, como «Detener».
+  // Salir de la pantalla detiene el lector, como «Detener»: apaga la cámara y cancela el arranque que
+  // siga esperando el permiso, que es cuando todavía no hay un flujo que apagar (ADR-127 regla 5).
   useEffect(() => camera.stop, [camera]);
 
   async function handleToken(token: string) {

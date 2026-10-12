@@ -367,4 +367,99 @@ describe("cámara del lector del carnet", () => {
     camera.stop();
     expect(stream.live()).toBe(false);
   });
+
+  it("si el lector se detuvo mientras el navegador pedía el permiso, el flujo que llega se apaga y no arranca el sondeo: al salir de la pantalla y con una foto", async () => {
+    // Lo que detiene el lector durante la espera: la limpieza del componente y la foto, que apaga la cámara
+    // antes de responder (ADR-120 regla 15).
+    const interruptions = [
+      async (stop: () => void) => stop(),
+      async (stop: () => void) => void (await readPhoto(broken, PHOTO, stop)),
+    ];
+    const left: { live: boolean; shown: ScanState[]; attached: number; polls: number }[] = [];
+    for (const interrupt of interruptions) {
+      const permission = held<FakeStream>();
+      const stream = fakeStream();
+      const camera = createCamera<FakeStream>();
+      const { steps, shown } = wiring(() => permission.promise);
+      // Como en el componente: el toque pasa por la guardia, que apaga lo que hubiera antes de arrancar.
+      const starting = createStartGate()(() => camera.start(steps), camera.stop);
+
+      await interrupt(camera.stop);
+      permission.resolve(stream);
+      await starting;
+
+      left.push({
+        live: stream.live(),
+        shown,
+        attached: steps.attach.mock.calls.length,
+        polls: steps.poll.mock.calls.length,
+      });
+    }
+
+    const off = { live: false, shown: [], attached: 0, polls: 0 };
+    expect(left).toEqual([off, off]);
+  });
+
+  it("si lo detienen mientras el video arranca, la cámara queda apagada y el lector no pinta «Detener» ni arranca el sondeo", async () => {
+    const attaching = held<void>();
+    const playing = held<boolean>();
+    const stream = fakeStream();
+    const camera = createCamera<FakeStream>();
+    const { steps, shown } = wiring(
+      async () => stream,
+      () => {
+        attaching.resolve();
+        return playing.promise;
+      },
+    );
+    const starting = camera.start(steps);
+    await attaching.promise;
+
+    camera.stop();
+    playing.resolve(true);
+    await starting;
+
+    expect(stream.live()).toBe(false);
+    expect(shown).toEqual([]);
+    expect(steps.poll).not.toHaveBeenCalled();
+  });
+
+  it("un flujo que llega sin video donde engancharlo se apaga", async () => {
+    const stream = fakeStream();
+    const { steps, shown } = wiring(
+      async () => stream,
+      async () => false,
+    );
+
+    await createCamera<FakeStream>().start(steps);
+
+    expect(stream.live()).toBe(false);
+    expect(shown).toEqual([]);
+    expect(steps.poll).not.toHaveBeenCalled();
+  });
+
+  it("el flujo de un arranque detenido que llega tarde no toca la cámara del arranque siguiente", async () => {
+    const late = held<FakeStream>();
+    const first = fakeStream();
+    const second = fakeStream();
+    const camera = createCamera<FakeStream>();
+    const stale = wiring(() => late.promise);
+    const fresh = wiring(async () => second);
+    const starting = camera.start(stale.steps);
+    camera.stop();
+    await camera.start(fresh.steps);
+
+    late.resolve(first);
+    await starting;
+
+    expect([first.live(), second.live()]).toEqual([false, true]);
+    expect(stale.shown).toEqual([]);
+    expect(stale.steps.attach).not.toHaveBeenCalled();
+    expect(fresh.shown).toEqual([{ kind: "scanning" }]);
+    expect(fresh.stopPoll).not.toHaveBeenCalled();
+    // Y detener sigue apagando la que quedó encendida, con su sondeo.
+    camera.stop();
+    expect(second.live()).toBe(false);
+    expect(fresh.stopPoll).toHaveBeenCalledTimes(1);
+  });
 });

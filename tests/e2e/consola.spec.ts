@@ -29,6 +29,15 @@ async function scanWithPermissionPending(page: Page): Promise<void> {
   }).toPass();
 }
 
+/** Sale del modo anfitrión por su enlace a la consola: la navegación desmonta el lector sin recargar. */
+async function leaveToConsole(page: Page): Promise<void> {
+  const title = t("T-584", { título: "e2e-Consola de prueba" });
+  await page.getByRole("link", { name: title, exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+  // Es la misma página y el mismo pedido: si se hubiera recargado, la cuenta habría vuelto a cero.
+  expect(await cameraRequests(page)).toBe(1);
+}
+
 test.beforeEach(async () => {
   const db = getDb();
   const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
@@ -159,4 +168,52 @@ test("el lector del carnet enciende la cámara cuando llega el permiso, y «Dete
   await grantCamera(page);
   await expect(stop).toBeVisible();
   expect(await cameraTracks(page)).toEqual(["ended", "live"]);
+});
+
+test("salir de la pantalla del anfitrión con la cámara encendida la apaga", async ({ page }) => {
+  await scanWithPermissionPending(page);
+  await grantCamera(page);
+  await expect(page.getByRole("button", { name: tList("T-616")[1], exact: true })).toBeVisible();
+  expect(await cameraTracks(page)).toEqual(["live"]);
+
+  await leaveToConsole(page);
+
+  await expect.poll(() => cameraTracks(page)).toEqual(["ended"]);
+});
+
+test("salir de la pantalla del anfitrión mientras el navegador pide el permiso deja la cámara apagada", async ({
+  page,
+}) => {
+  await scanWithPermissionPending(page);
+
+  await leaveToConsole(page);
+  await grantCamera(page);
+
+  // El flujo llega a un lector que ya no está: nadie más lo puede apagar.
+  await expect.poll(() => cameraTracks(page)).toEqual(["ended"]);
+});
+
+test("una foto que llega mientras el navegador pide el permiso deja la cámara sin arrancar", async ({
+  page,
+}) => {
+  await scanWithPermissionPending(page);
+  const scan = page.getByRole("button", { name: tList("T-616")[0], exact: true });
+  const stop = page.getByRole("button", { name: tList("T-616")[1], exact: true });
+
+  // Una foto apaga la cámara antes de responder (ADR-120 regla 15), traiga lo que traiga. Esta no abre.
+  await page.getByLabel(tList("T-616")[2] ?? "").setInputFiles({
+    name: "e2e-foto-que-no-abre.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("e2e: esto no es una imagen"),
+  });
+  const unreadable = page.getByRole("alert").filter({ hasText: t("T-3256") });
+  await expect(unreadable).toBeVisible();
+
+  await grantCamera(page);
+
+  await expect.poll(() => cameraTracks(page)).toEqual(["ended"]);
+  await expect(scan).toBeEnabled();
+  await expect(stop).toHaveCount(0);
+  await expect(page.locator("video")).toBeHidden();
+  await expect(unreadable).toBeVisible();
 });

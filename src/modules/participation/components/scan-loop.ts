@@ -151,8 +151,18 @@ export type CameraSteps<Stream> = {
 };
 
 /**
- * La cámara del lector: el flujo de video encendido y su sondeo. `start` pide el flujo, lo engancha al
- * video, pinta «Detener» y arranca el sondeo; `stop` apaga el sondeo y el flujo.
+ * La cámara del lector (ADR-127 regla 5): el flujo de video encendido y su sondeo. `start` pide el flujo,
+ * lo engancha al video, pinta «Detener» y arranca el sondeo; `stop` apaga el sondeo y el flujo.
+ *
+ * `stop` cancela también el arranque que siga en vuelo. Pedir el flujo espera a que la persona conteste
+ * el permiso, y mientras tanto el lector se puede detener: la pantalla se desmonta, o llega una foto, que
+ * apaga la cámara antes de responder (ADR-120 regla 15). En ese momento todavía no hay flujo que apagar,
+ * así que el arranque lo mira al volver de cada espera: el flujo que llega a un lector detenido se apaga
+ * ahí mismo, sin engancharlo, sin pintar «Detener» y sin arrancar el sondeo. Si nadie lo apagara, quedaría
+ * encendido sin un botón que lo detenga.
+ *
+ * Detener no deja la cámara inservible: cancela el arranque de ese momento, y el siguiente arranca como
+ * siempre. El permiso que se niega pinta su error aunque el lector ya se haya detenido, como antes.
  */
 export function createCamera<Stream extends VideoStream>(): {
   start: (steps: CameraSteps<Stream>) => Promise<void>;
@@ -160,28 +170,49 @@ export function createCamera<Stream extends VideoStream>(): {
 } {
   let stream: Stream | null = null;
   let stopPoll: (() => void) | null = null;
+  // Cada `stop` abre una tanda. El arranque guarda la suya al empezar y la compara al volver de una espera.
+  let round = 0;
 
-  function stop(): void {
-    stopPoll?.();
-    stopPoll = null;
-    for (const track of stream?.getTracks() ?? []) {
+  function turnOff(video: Stream | null): void {
+    for (const track of video?.getTracks() ?? []) {
       track.stop();
     }
+  }
+
+  function stop(): void {
+    round += 1;
+    stopPoll?.();
+    stopPoll = null;
+    turnOff(stream);
     stream = null;
   }
 
   async function start({ open, attach, poll, show, cameraError }: CameraSteps<Stream>) {
+    const mine = round;
     if (!open) {
       show({ kind: "error", message: cameraError });
       return;
     }
+    let opened: Stream;
     try {
-      stream = await open();
+      opened = await open();
     } catch {
       show({ kind: "error", message: cameraError });
       return;
     }
-    if (!(await attach(stream))) {
+    if (mine !== round) {
+      // Lo detuvieron mientras el navegador pedía el permiso: este flujo no llegó a guardarse.
+      turnOff(opened);
+      return;
+    }
+    stream = opened;
+    const attached = await attach(opened);
+    if (mine !== round) {
+      // Lo detuvieron mientras el video arrancaba: `stop` ya apagó este flujo.
+      return;
+    }
+    if (!attached) {
+      stop();
       return;
     }
     show({ kind: "scanning" });
