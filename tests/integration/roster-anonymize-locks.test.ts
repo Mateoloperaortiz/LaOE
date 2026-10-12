@@ -130,7 +130,11 @@ describe("importar el roster y anonimizar a la misma persona", () => {
     }
 
     expect(outcome(result)).toBe("ok");
-    expect(result).toMatchObject({ value: { created: 0, updated: 0, unchanged: 1 } });
+    // La importación vuelve a validar con el consultivo tomado (ADR-127 regla 1): ya no hay nadie con
+    // ese correo y el archivo no trae las columnas de una persona nueva, así que la fila se salta.
+    expect(result).toMatchObject({
+      value: { created: 0, updated: 0, unchanged: 0, skipped: 1 },
+    });
     expect(await comoQuedo(sale)).toEqual({ anonimizada: true, estado: "INACTIVE" });
     expect(await conEseCorreo()).toEqual([]);
   });
@@ -219,9 +223,12 @@ describe("importar el roster mientras actúa alguien que figura antes en el arch
     const results = await cruzadas(sale, () => anonymizePersonAs(actua, sale), jobId, importa);
 
     expect(results.map(outcome)).toEqual(["ok", "ok"]);
-    // Entró primero la anonimización: el roster ya no encuentra a nadie con ese correo. A las otras
-    // dos, que figuran activas, les escribe por primera vez la fila del término (ADR-120 regla 2).
-    expect(results[1]).toMatchObject({ value: { created: 0, updated: 2, unchanged: 1 } });
+    // Entró primero la anonimización: el roster ya no encuentra a nadie con ese correo y, al validar
+    // de nuevo con los consultivos tomados, salta esa fila (ADR-127 regla 1). A las otras dos, que
+    // figuran activas, les escribe por primera vez la fila del término (ADR-120 regla 2).
+    expect(results[1]).toMatchObject({
+      value: { created: 0, updated: 2, unchanged: 0, skipped: 1 },
+    });
     expect(await comoQuedo(sale)).toEqual({ anonimizada: true, estado: "INACTIVE" });
     expect(await conEseCorreo()).toEqual([]);
   });

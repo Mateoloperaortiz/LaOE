@@ -417,4 +417,45 @@ describe("validación por fila", () => {
       expect(errorsFor({ status: "ACTIVE", honoraryBlocked: true }, "Licencia").errors).toEqual([]);
     });
   });
+
+  // ADR-127 regla 1: la importación valida dos veces, antes y después de tomar los candados de las
+  // personas. La segunda pasada puede sacar una fila, nunca sumar una que la primera ya rechazó.
+  describe("la fila que una validación anterior del mismo archivo ya dejó en error", () => {
+    const again = (lines: string[], rejected: ReadonlyMap<number, readonly string[]>) => {
+      const cells = parseCsv([HEADER, ...lines].join("\n"));
+      const mapping = detectMapping(cells[0] ?? []);
+      return validateRoster(rowsFromCells(cells, mapping), mapping, { ...catalog, rejected });
+    };
+
+    it("sigue en error con lo que se le dijo entonces, aunque esta pasada no le encuentre ninguno, y ya no pide su término de ingreso", () => {
+      const lines = [
+        "Ana;Arango;ana@eafit.edu.co;;Derecho;A3;2026-2;Activo;",
+        "Beto;Nuevo;beto@eafit.edu.co;;Derecho;A3;2019-1;Activo;",
+      ];
+      const clean = again(lines, new Map());
+      expect(clean.rows.map((row) => row.errors)).toEqual([[], []]);
+      expect(clean.missingTerms).toEqual(["2019-1"]);
+
+      const said = [fillCopy(t("T-3265"), { nombre: "Beto Nuevo" })];
+      const carried = again(lines, new Map([[clean.rows[1]?.row ?? -1, said]]));
+
+      expect(carried.rows.map((row) => row.errors)).toEqual([[], said]);
+      expect(carried.missingTerms).toEqual([]);
+      expect(diffRoster(carried.rows, catalog.existing)[1]?.group).toBe("ERROR");
+    });
+
+    it("la que esta pasada también rechaza queda con sus errores de ahora, sin repetir los de antes", () => {
+      // Dos titulares del mismo cargo: el error se le pone a cada fila después de leerlas todas.
+      const lines = [
+        "Ana;Arango;ana@eafit.edu.co;;Derecho;A3;2026-2;Activo;General de A3",
+        "Beto;Nuevo;beto@eafit.edu.co;;Derecho;A3;2026-2;Activo;General de A3",
+      ];
+      const first = again(lines, new Map());
+      expect(first.rows.map((row) => row.errors.length)).toEqual([1, 1]);
+
+      const second = again(lines, new Map(first.rows.map((row) => [row.row, row.errors])));
+
+      expect(second.rows.map((row) => row.errors)).toEqual(first.rows.map((row) => row.errors));
+    });
+  });
 });

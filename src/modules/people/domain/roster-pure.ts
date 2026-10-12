@@ -228,6 +228,12 @@ export interface RosterCatalog {
   domains: string[];
   /** Personas que ya existen, por correo: para el modo actualización y para conservar cargos y transferencias. */
   existing: Map<string, ExistingPerson>;
+  /**
+   * Los errores con los que una validación anterior de este mismo archivo ya dejó una fila, por número
+   * de fila. La importación valida dos veces, antes y después de tomar los candados de las personas
+   * (ADR-127 regla 1): la segunda pasada puede sacar una fila, nunca sumar una que la primera rechazó.
+   */
+  rejected?: ReadonlyMap<number, readonly string[]>;
 }
 
 export interface ParsedCommittee {
@@ -637,6 +643,14 @@ export function validateRoster(
           );
         }
       }
+    }
+  }
+  // La fila que una pasada anterior ya rechazó sigue en error, con lo que se le dijo entonces (ADR-127
+  // regla 1): para ella no se tomó el candado de la persona ni se creó su término de ingreso. Va al
+  // final para no repetirle un error que esta pasada también le encuentra.
+  for (const row of rows) {
+    if (row.errors.length === 0) {
+      row.errors.push(...(catalog.rejected?.get(row.row) ?? []));
     }
   }
   return {

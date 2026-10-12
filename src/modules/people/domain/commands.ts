@@ -174,7 +174,13 @@ export function setProbationAs(
   termId: string,
   input: ProbationInput,
 ): Promise<void> {
-  return runCommand(actor, (ctx) => setProbation(ctx, personId, termId, input));
+  return runCommand(actor, async (ctx) => {
+    // El consultivo del ciclo de membresía al empezar, antes de cualquier fila (ADR-127 regla 2): la
+    // prueba que se fija sobre alguien que una importación del roster ya validó espera a que esa
+    // importación confirme, en vez de tumbarla entera con T-2331 cuando llega a su fila.
+    await lockMembershipCycle(ctx.tx, personId);
+    await setProbation(ctx, personId, termId, input);
+  });
 }
 
 export function leaveCommitteeAs(
@@ -229,6 +235,8 @@ export function requestCommitteeRemovalAs(
 // para ADMIN (ADR-072 regla 1; ADR-112): la dirección de un comité o ADMIN desde la Persona 360.
 // Revocar dice de quién es la sanción: la persona de la ficha desde la que se revoca (ADR-114 regla 3).
 // Y declara el mismo alcance, también obligatorio: hoy revoca solo el de ADMIN (ADR-116 regla 11).
+// Registrar toma el consultivo del ciclo de membresía al empezar, antes de cualquier fila, como fijar
+// la prueba (ADR-127 regla 2): una suspensión cambia quién puede pasar a honorario.
 
 export function recordSanctionAs(
   actor: Actor,
@@ -236,7 +244,10 @@ export function recordSanctionAs(
   input: SanctionInput,
   scope: SanctionScope,
 ): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => recordSanction(ctx, personId, input, scope));
+  return runCommand(actor, async (ctx) => {
+    await lockMembershipCycle(ctx.tx, personId);
+    return recordSanction(ctx, personId, input, scope);
+  });
 }
 
 export function revokeSanctionAs(

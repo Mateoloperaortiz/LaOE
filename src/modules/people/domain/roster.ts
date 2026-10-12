@@ -326,6 +326,7 @@ async function buildPreview(
   cells: string[][],
   mapping: Array<RosterColumn | null> | null,
   termId: string,
+  rejected?: ReadonlyMap<number, readonly string[]>,
 ): Promise<BuiltPreview> {
   const headers = cells[0] ?? [];
   const resolvedMapping = mapping ?? detectMapping(headers);
@@ -350,6 +351,7 @@ async function buildPreview(
     termCodes: terms.map((term) => term.code),
     domains: getEnv().INSTITUTIONAL_EMAIL_DOMAINS,
     existing,
+    ...(rejected ? { rejected } : {}),
   });
   const diff = diffRoster(validation.rows, existing);
   const rows: PreviewRow[] = diff.map((item) => ({
@@ -924,10 +926,21 @@ async function lockRosterMembers(ctx: CommandContext, rows: readonly PreviewRow[
   );
 }
 
+/** Las filas que una validación dejó en error, con lo que les dijo, por número de fila. */
+function rejectedIn(rows: readonly PreviewRow[]): Map<number, string[]> {
+  return new Map(
+    rows.flatMap((row) => (row.group === "ERROR" ? [[row.row, row.errors] as const] : [])),
+  );
+}
+
 /**
  * Paso 3: relee el archivo, vuelve a validar contra la base de hoy y aplica todo en una transacción.
  * Que el trabajo siga en vista previa lo decide la transacción, que lo toma antes de escribir; de la
  * fila tomada salen las columnas que se aplican.
+ *
+ * Valida dos veces por el camino de la vista previa (ADR-127 regla 1). La primera pasada, sin
+ * candados, dice de quién tomar el consultivo y qué términos crear. La segunda, con los consultivos
+ * tomados, es la que se aplica, se resume y se guarda.
  */
 export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<ApplySummary> {
   const job = await getImportJob(jobId);
@@ -952,23 +965,31 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
     if (!taken.success) {
       throw new DomainError(t("T-032"));
     }
-    const built = await buildPreview(cells, taken.data.mapping, termId);
+    // Los términos se crean con la primera pasada: el candado del calendario va antes que el
+    // consultivo de cualquier persona (ADR-123 regla 6).
+    const first = await buildPreview(cells, taken.data.mapping, termId);
     await requirePrivacyPolicyVersion(ctx, "admin");
-    const termsByCode = await ensureTerms(ctx, built.validation.missingTerms);
+    const termsByCode = await ensureTerms(ctx, first.validation.missingTerms);
     for (const term of terms) {
       termsByCode.set(term.code, term.id);
     }
+    await lockRosterMembers(ctx, first.rows);
+    // Con los consultivos tomados nadie le confirma a una de esas personas la prueba ni una suspensión
+    // (ADR-127 regla 2): la que llegó mientras tanto deja su fila en error acá, y no en
+    // `changeMembershipStatus` con la importación a medias. Esta pasada solo puede sacar filas: la que
+    // la primera rechazó sigue rechazada, que su consultivo no se tomó con los demás.
+    const built = await buildPreview(cells, taken.data.mapping, termId, rejectedIn(first.rows));
     const rolesCreated = await ensureRoles(ctx, built.rows);
     const summary: ApplySummary = {
       created: 0,
       updated: 0,
       unchanged: 0,
       skipped: 0,
-      termsCreated: built.validation.missingTerms,
+      // Los que de verdad se crearon, también el que solo pedía una fila que la segunda pasada sacó.
+      termsCreated: first.validation.missingTerms,
       rolesCreated,
       proposals: built.proposals,
     };
-    await lockRosterMembers(ctx, built.rows);
     for (const row of built.rows) {
       if (row.group === "ERROR") {
         summary.skipped += 1;
