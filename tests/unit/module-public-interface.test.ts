@@ -294,14 +294,78 @@ function mismatches(modules: ModuleInterface[], exceptions: WrittenExceptions): 
  * de textos, no la da por leída.
  */
 function knipOptions(config: unknown): { entry: string[]; rest: Record<string, unknown> } {
-  if (typeof config !== "object" || config === null) {
-    throw new Error("No se puede leer knip.ts: su configuración no es un objeto");
-  }
-  const { entry, ...rest } = config as Record<string, unknown>;
+  const { entry, ...rest } = knipObject(config);
   if (!Array.isArray(entry) || !entry.every((each): each is string => typeof each === "string")) {
     throw new Error("No se puede leer `entry` en knip.ts: no es una lista de textos");
   }
   return { entry, rest };
+}
+
+function knipObject(config: unknown): Record<string, unknown> {
+  if (typeof config !== "object" || config === null) {
+    throw new Error("No se puede leer knip.ts: su configuración no es un objeto");
+  }
+  return config as Record<string, unknown>;
+}
+
+/**
+ * Las opciones que `knip.ts` puede traer, cada una con su razón: por qué está y por qué no le quita a
+ * knip el `index.ts` de un módulo. Van las claves a cualquier profundidad, con la ruta de las que las
+ * contienen. Una opción nueva pone la prueba en rojo hasta que entre acá con la suya, y una que
+ * `knip.ts` ya no trae, también: así no pasa callada la que apaga el análisis sin nombrar un archivo
+ * (`exclude`, `rules`) ni la que trae sus propios patrones (un plugin, `ignore`, `workspaces`). La
+ * prueba no juzga la razón: la lee quien revisa el diff (ADR-125 regla 3).
+ */
+const KNIP_OPTIONS: Record<string, string> = {
+  entry:
+    "Lo que knip no descubre solo. De los `index.ts` de los módulos solo entra el de `competition`: lo comprueba `entryMismatches`.",
+  project:
+    "Los archivos que knip analiza. `entryMismatches` comprueba que ningún patrón le niegue un `index.ts`; que alguno lo siga incluyendo no lo comprueba nadie (DT-363).",
+  compilers: "knip no lee CSS: lleva un compilador por extensión, y cada extensión entra acá.",
+  "compilers › css":
+    "Saca los `@import` de Tailwind para que cuenten como uso. Solo recibe archivos `.css`.",
+  ignoreDependencies: "Nombra paquetes de `package.json`, no archivos.",
+  ignoreBinaries: "Nombra binarios del sistema (`openssl`, `uv`), no archivos.",
+  ignoreExportsUsedInFile:
+    "Calla el export que se usa en el archivo que lo define. Un `index.ts` reexporta y no usa lo que exporta: knip sigue marcando ahí el nombre sin uso (ADR-125 regla 3, «Podar no es borrar»).",
+};
+
+/** Las claves de la configuración de knip, a cualquier profundidad, con la ruta de las que las contienen. */
+function knipKeys(value: unknown, where: string[] = []): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((each) => knipKeys(each, where));
+  }
+  if (typeof value !== "object" || value === null) {
+    return [];
+  }
+  return Object.entries(value).flatMap(([key, inner]) => [
+    [...where, key].join(" › "),
+    ...knipKeys(inner, [...where, key]),
+  ]);
+}
+
+/**
+ * Lo que separa a las opciones de `knip.ts` de la lista, una frase por caso; vacío cuando coinciden.
+ * Falla cerrado: la opción que la lista no trae no se admite, sea la que sea.
+ */
+function optionMismatches(config: unknown, admitted: Record<string, string>): string[] {
+  const found = knipKeys(knipObject(config));
+  const problems: string[] = [];
+  for (const key of found) {
+    if (!Object.hasOwn(admitted, key)) {
+      problems.push(
+        `\`${key}\`: knip.ts trae una opción que no está en la lista; entra con su razón, que dice por qué no le quita a knip el \`index.ts\` de un módulo`,
+      );
+    }
+  }
+  for (const [key, reason] of Object.entries(admitted)) {
+    if (!found.includes(key)) {
+      problems.push(`\`${key}\`: sobra en la lista: knip.ts ya no trae esa opción`);
+    } else if (reason.trim() === "") {
+      problems.push(`\`${key}\`: está en la lista sin su razón`);
+    }
+  }
+  return problems;
 }
 
 /** Un texto de la configuración de knip, con la opción donde está escrito. */
@@ -336,12 +400,22 @@ const REACHES_SRC = /^(\.\/)?(src\b|[*{?[!])/;
 /**
  * Si un patrón de knip alcanza un archivo. Se expande contra la ruta y no se mira su forma, que es lo
  * que hace knip: un comodín en medio de `src` o un corchete (`sr[c]/modules/terms/index.ts`) nombran
- * un `index.ts` sin empezar por `src`. La negación y el `./` del principio no cambian a qué archivo
- * apunta.
+ * un `index.ts` sin empezar por `src`. Antes de expandirlo se lee como lo lee knip.
  */
 function reaches(pattern: string, path: string): boolean {
-  const bare = pattern.replace(/^!/, "").replace(/^(\.\/)+/, "");
+  const bare = asKnipReadsIt(pattern);
   return bare === path || posix.matchesGlob(path, bare);
+}
+
+/**
+ * Un patrón como lo deja knip antes de expandirlo (`prependDirToPatterns`, knip 6.34): sin el `!` del
+ * final, que es su sufijo de producción y fuera de ese modo no cuenta; relativo a la raíz si llega
+ * como ruta absoluta; y con los `./` y los `..` resueltos. La negación del principio tampoco cambia a
+ * qué archivo apunta. La raíz es la carpeta desde donde corren knip y esta prueba.
+ */
+function asKnipReadsIt(pattern: string): string {
+  const bare = pattern.replace(/^!/, "").replace(/!$/, "");
+  return posix.isAbsolute(bare) ? posix.relative(process.cwd(), bare) : posix.normalize(bare);
 }
 
 /**
@@ -523,6 +597,26 @@ describe("la interfaz pública de los módulos, sobre el código de hoy", () => 
     const { entry } = knipOptions(knipConfig);
     expect(entry.filter((pattern) => MODULE_ENTRY.test(pattern))).toEqual([
       `src/modules/${QUIET_MODULE}/index.ts`,
+    ]);
+  });
+
+  it("knip.ts trae solo las opciones de la lista, cada una con su razón: una nueva, como exclude, rules, ignore o un plugin, no entra sin decir por qué no le quita a knip el index.ts de un módulo", () => {
+    expect(optionMismatches(knipConfig, KNIP_OPTIONS)).toEqual([]);
+    const unlisted = (key: string) =>
+      `\`${key}\`: knip.ts trae una opción que no está en la lista; entra con su razón, que dice por qué no le quita a knip el \`index.ts\` de un módulo`;
+    for (const [key, value] of Object.entries({
+      exclude: ["exports"],
+      ignore: ["tests/fixtures/**"],
+      ignoreWorkspaces: ["packages/*"],
+      next: true,
+    })) {
+      expect(optionMismatches({ ...knipConfig, [key]: value }, KNIP_OPTIONS)).toEqual([
+        unlisted(key),
+      ]);
+    }
+    expect(optionMismatches({ ...knipConfig, rules: { exports: "off" } }, KNIP_OPTIONS)).toEqual([
+      unlisted("rules"),
+      unlisted("rules › exports"),
     ]);
   });
 
@@ -747,6 +841,10 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
       "s*/modules/*/index.ts",
       "sr[c]/modules/alpha/index.ts",
       "s?c/modules/{beta,gamma}/index.ts",
+      // Y se lee como lo lee knip: una ruta absoluta nombra el mismo archivo, también con su sufijo.
+      `${process.cwd()}/src/modules/alpha/index.ts`,
+      `${process.cwd()}/src/modules/*/index.ts!`,
+      "scripts/../src/modules/alpha/index.ts",
     ]) {
       expect(entryMismatches(knip(entry, index("competition")), modules, exceptions)).toEqual([
         pattern(entry),
@@ -774,7 +872,7 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
     ]);
   });
 
-  it("fuera de entry, ninguna opción de knip.ts alcanza el index.ts de un módulo: la entrada de un plugin o de un workspace, ignore, la clave de ignoreIssues y un project que lo niega la ponen en rojo; el project que lo incluye y lo que no alcanza ninguno, no", () => {
+  it("fuera de entry, ninguna opción de knip.ts alcanza el index.ts de un módulo: la entrada de un plugin o de un workspace, también con el sufijo «!» de knip o como ruta absoluta, ignore, la clave de ignoreIssues y un project que lo niega la ponen en rojo; el project que lo incluye y lo que no alcanza ninguno, no", () => {
     const modules = ["alpha", "beta", "competition", "gamma"];
     const exceptions: Exceptions = { competition: { competition: "quiet" } };
     const index = (module: string) => `src/modules/${module}/index.ts`;
@@ -790,6 +888,24 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
     expect(check({ workspaces: { ".": { entry: "./src/modules/gamma/index.ts" } } })).toEqual([
       outside("./src/modules/gamma/index.ts", "workspaces › . › entry", "gamma"),
     ]);
+    // El patrón se lee como lo lee knip antes de expandirlo: el `!` del final es su sufijo de
+    // producción, que fuera de ese modo no cuenta, y una ruta absoluta nombra el mismo archivo.
+    const absolute = `${process.cwd()}/${index("alpha")}`;
+    for (const [pattern, reached] of [
+      [`${index("alpha")}!`, "alpha"],
+      ["src/modules/*/index.ts!", "alpha, beta, competition, gamma"],
+      [absolute, "alpha"],
+      [`${absolute}!`, "alpha"],
+      [`!${absolute}`, "alpha"],
+      [`${process.cwd()}/src/modules/{beta,gamma}/*.ts`, "beta, gamma"],
+      ["scripts/../src/modules/beta/index.ts", "beta"],
+    ] as const) {
+      expect(check({ next: { entry: [pattern] } })).toEqual([
+        outside(pattern, "next › entry", reached),
+      ]);
+    }
+    // Una ruta absoluta de otra raíz no es de esta casa.
+    expect(check({ next: { entry: [`/otra-casa/${index("alpha")}`] } })).toEqual([]);
     expect(check({ ignore: [index("alpha")] })).toEqual([
       outside(index("alpha"), "ignore", "alpha"),
     ]);
@@ -823,6 +939,53 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
     expect(check({ project: ["src/**/*.ts"] })).toThrow("no es una lista de textos");
     expect(check(() => ({ entry: [] }))).toThrow("no es un objeto");
     expect(check(null)).toThrow("no es un objeto");
+  });
+
+  it("las opciones de knip.ts siguen a su lista: una clave nueva, a cualquier profundidad, una que sobra en la lista y una sin su razón la ponen en rojo, y una configuración que no es un objeto no se da por leída", () => {
+    const admitted = {
+      entry: "Lo que knip no descubre solo.",
+      compilers: "knip no lee CSS.",
+      "compilers › css": "Solo recibe archivos `.css`.",
+    };
+    const config = { entry: ["scripts/bench.ts"], compilers: { css: (text: string) => text } };
+    const unlisted = (key: string) =>
+      `\`${key}\`: knip.ts trae una opción que no está en la lista; entra con su razón, que dice por qué no le quita a knip el \`index.ts\` de un módulo`;
+    const stale = (key: string) => `\`${key}\`: sobra en la lista: knip.ts ya no trae esa opción`;
+    expect(optionMismatches(config, admitted)).toEqual([]);
+
+    // Lo que apaga el análisis sin nombrar un archivo no alcanza ningún `index.ts`: lo frena la lista.
+    expect(optionMismatches({ ...config, exclude: ["exports"] }, admitted)).toEqual([
+      unlisted("exclude"),
+    ]);
+    expect(optionMismatches({ ...config, rules: { exports: "off" } }, admitted)).toEqual([
+      unlisted("rules"),
+      unlisted("rules › exports"),
+    ]);
+    // La clave de adentro también se mira: admitir `compilers` no admite un compilador nuevo.
+    expect(
+      optionMismatches({ ...config, compilers: { ...config.compilers, ts: () => "" } }, admitted),
+    ).toEqual([unlisted("compilers › ts")]);
+    expect(
+      optionMismatches({ ...config, workspaces: { ".": { ignore: ["tests/**"] } } }, admitted),
+    ).toEqual([
+      unlisted("workspaces"),
+      unlisted("workspaces › ."),
+      unlisted("workspaces › . › ignore"),
+    ]);
+    // Una clave que cualquier objeto hereda tampoco pasa por estar en el prototipo de la lista.
+    expect(optionMismatches({ ...config, toString: true }, admitted)).toEqual([
+      unlisted("toString"),
+    ]);
+
+    expect(optionMismatches({ entry: [] }, admitted)).toEqual([
+      stale("compilers"),
+      stale("compilers › css"),
+    ]);
+    expect(optionMismatches(config, { ...admitted, compilers: " " })).toEqual([
+      "`compilers`: está en la lista sin su razón",
+    ]);
+    expect(() => optionMismatches(null, admitted)).toThrow("no es un objeto");
+    expect(() => optionMismatches(() => config, admitted)).toThrow("no es un objeto");
   });
 
   it("lo de competition que nadie importa va en su propia clase, y lo que solo importa una prueba, en solo-pruebas: el que quedó en la otra pone la lista en rojo, y el que falta sale con la decisión que espera su clase", () => {
