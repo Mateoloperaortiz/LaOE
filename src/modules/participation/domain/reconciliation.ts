@@ -145,7 +145,6 @@ export async function processReconciliationBatch(
       const result = await recomputeBadgesFor(personId, {
         historical: true,
         dryRun: run.mode === "DRY_RUN",
-        actor: SYSTEM_ACTOR,
       });
       delta.unlocked += result.unlocked.length;
       delta.revoked += result.revoked.length;

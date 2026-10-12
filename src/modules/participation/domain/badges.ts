@@ -2,7 +2,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, type Executor, runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { type CommandContext, type Executor, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { badgeUnlocked } from "@/domain-events/participation";
 import { getPeopleByIds } from "@/modules/people";
@@ -227,12 +227,12 @@ async function liveAchievementsFor(
  */
 export async function recomputeBadgesFor(
   personId: string,
-  options: { historical: boolean; dryRun?: boolean; actor?: Actor; now?: Date },
+  options: { historical: boolean; dryRun?: boolean; now?: Date },
 ): Promise<BadgeDelta> {
   const now = options.now ?? new Date();
   const dryRun = options.dryRun === true;
   const allowUnlocks = options.historical || (await requireConfig("gamification.enabled"));
-  return runCommand(options.actor ?? SYSTEM_ACTOR, async (ctx) => {
+  return runCommand(SYSTEM_ACTOR, async (ctx) => {
     await ctx.tx.execute(
       sql`select pg_advisory_xact_lock(hashtextextended(${`badges:${personId}`}, 0))`,
     );
