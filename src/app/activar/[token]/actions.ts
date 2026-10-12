@@ -1,10 +1,8 @@
 "use server";
 
 import "server-only";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getEnv } from "@/env";
-import { consumeAccessGrant, SESSION_COOKIE } from "@/modules/identity";
+import { consumeAccessGrant, writeSessionCookie } from "@/modules/identity";
 import { t } from "@/shared/copy";
 import { clientIp, userAgent } from "@/shared/lib/request";
 import type { ActivateState } from "./state";
@@ -43,15 +41,8 @@ export async function activateAction(
   if (!result.ok) {
     return { error: result.reason === "INVALID" ? t("T-2107") : t(problemas[result.problem]) };
   }
-  const store = await cookies();
-  store.set({
-    name: SESSION_COOKIE,
-    value: result.token,
-    httpOnly: true,
-    sameSite: "lax",
-    secure: getEnv().APP_URL.startsWith("https://"),
-    path: "/",
-    expires: result.expiresAt,
-  });
+  // El enlace abre una sesión recordada (`consumeAccessGrant`) y el formulario no pregunta: la
+  // cookie lleva siempre su vencimiento.
+  await writeSessionCookie({ token: result.token, expiresAt: result.expiresAt, remember: true });
   redirect("/app");
 }

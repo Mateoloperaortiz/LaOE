@@ -1,5 +1,4 @@
 // API pública del módulo identity.
-export { SESSION_COOKIE } from "./cookie";
 export {
   getActor,
   requireActor,
@@ -51,3 +50,4 @@ export {
 } from "./domain/permissions";
 export { describeUserAgent, safeNextPath } from "./domain/pure";
 export { listPermissionsFor, listSessionsFor, resolveActor, signOut } from "./domain/session";
+export { writeSessionCookie } from "./session-cookie";

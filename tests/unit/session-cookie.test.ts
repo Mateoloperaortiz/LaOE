@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { activateAction } from "@/app/activar/[token]/actions";
 import {
@@ -203,5 +206,30 @@ describe("cerrar sesión", () => {
     await expect(signOutAction(null)).rejects.toThrow("redirect:/");
     expect(state.signOut).not.toHaveBeenCalled();
     expect(state.remove.mock.calls).toEqual([[SESSION_NAME]]);
+  });
+});
+
+describe("dónde se escribe la cookie de sesión", () => {
+  const root = fileURLToPath(new URL("../../", import.meta.url));
+  const WRITER = "src/modules/identity/session-cookie.ts";
+  const read = (path: string) => readFileSync(join(root, path), "utf8");
+
+  it("el archivo que la escribe no es `use server`: ahí la función exportada quedaría como server action", () => {
+    expect(read(WRITER)).toMatch(/export async function writeSessionCookie\(/);
+    expect(read(WRITER)).not.toMatch(/^\s*["']use server["']/m);
+  });
+
+  it("no importa Next arriba del archivo: el index del módulo lo reexporta y también lo carga Node sin Next, en el poller, los scripts y la E2E", () => {
+    expect(read(WRITER)).not.toMatch(/^import\b[^;]*\bfrom "next\//m);
+    expect(read(WRITER)).toMatch(/await import\("next\/headers"\)/);
+  });
+
+  it("en src los atributos de una cookie se escriben en dos archivos: el de la sesión y el del hub de The Games, que es otra cookie", () => {
+    const withAttributes = readdirSync(join(root, "src"), { recursive: true, encoding: "utf8" })
+      .filter((path) => /\.tsx?$/.test(path))
+      .map((path) => join("src", path))
+      .filter((path) => /\bhttpOnly\b/.test(read(path)))
+      .sort();
+    expect(withAttributes).toEqual(["src/app/api/v1/the-games/hub/shared.ts", WRITER]);
   });
 });
