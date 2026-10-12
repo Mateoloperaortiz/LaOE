@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import ts from "typescript";
+import { positionalLabelCounts } from "./lib/label-position-metrics";
 import { moduleInterfaces } from "./lib/module-interface-metrics";
 import {
   looseInserts,
@@ -175,6 +176,9 @@ const insertsInE2e = looseInserts(load("tests/e2e"));
 const unguarded = unguardedConcurrencyTests(
   integration.filter((file) => file.path.endsWith(".test.ts")),
 );
+// Las lecturas por posición de una lista del catálogo de textos (spec #242): la misma cuenta que la
+// prueba `tests/unit/label-positions.test.ts` compara con su lista de excepciones.
+const positional = positionalLabelCounts(src);
 
 const rows: [string, string | number][] = [
   [
@@ -242,6 +246,14 @@ const rows: [string, string | number][] = [
   [
     "Pruebas que nombran una simultaneidad en el título sin `warmPool` ni `helpers/locks` en su archivo · archivos",
     `${unguarded.tests} · ${unguarded.files}`,
+  ],
+  [
+    "Etiquetas por `indexOf` · recorridos por índice · índice en constante · pares `zip` (`src`)",
+    `${positional.indexOf} · ${positional.traversal} · ${positional.storedIndex} · ${positional.zip}`,
+  ],
+  [
+    "Otras lecturas por posición de una lista del catálogo: constante de posiciones · subíndice calculado · `Record` de `tLabels` leído con un número",
+    `${positional.positionConstant} · ${positional.computedIndex} · ${positional.recordByNumber}`,
   ],
 ];
 
