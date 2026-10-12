@@ -389,3 +389,82 @@ describe("un `Error` que se interpola en el mensaje", () => {
     expect(lines[3]?.record.evento).toBe("ev-1");
   });
 });
+
+// DT-347, inciso (b), ADR-127 regla 8: lo interpolado que es un `Error` se cambia por lo que el error
+// dice de sí mismo, su nombre y su mensaje ya recortado. Antes, si su JSON nombraba una clave oculta,
+// se cambiaba por una copia plana, que con `%s` sale «[object Object]»; y si no, pasaba como llegó,
+// con los valores de su consulta en el mensaje y en `params`.
+describe("un `Error` interpolado no escribe nada de lo que trae colgado", () => {
+  const VALUE = "miembro-481516@example.test";
+  const QUERY = "select id from person where email = $1";
+  const queryError = () =>
+    Object.assign(new Error(`Failed query: ${QUERY}\nparams: ${VALUE}`), {
+      query: QUERY,
+      params: [VALUE],
+    });
+  const conversionError = () =>
+    Object.assign(new Error(`invalid input syntax for type date: "${VALUE}"`), { code: "22007" });
+
+  it.each([
+    ["%s", "Error: mensaje"],
+    ["%o", "{}"],
+    ["%O", "{}"],
+    ["%j", "{}"],
+  ])("con %s, un `Error` con `code` propio, con otro campo o con una clave oculta sale igual que sin ellos", async (placeholder, plain) => {
+    const lines = await written(() => {
+      info(`falló ${placeholder}`, Object.assign(new Error("mensaje"), { code: "57P01" }));
+      info(`falló ${placeholder}`, Object.assign(new Error("mensaje"), { status: 503 }));
+      info(
+        `falló ${placeholder}`,
+        Object.assign(new Error("mensaje"), { token: SECRET, response: { code: SECRET } }),
+      );
+      info(
+        { evento: "ev-1" },
+        `falló ${placeholder}`,
+        Object.assign(new Error("mensaje"), { code: 7 }),
+      );
+    });
+
+    expect(lines.map(({ record }) => record.msg)).toEqual(
+      Array.from({ length: 4 }, () => `falló ${plain}`),
+    );
+    expect(lines[3]?.record.evento).toBe("ev-1");
+  });
+
+  it.each([
+    "%s",
+    "%o",
+    "%O",
+    "%j",
+  ])("con %s, un error de consulta no deja sus valores en el mensaje, ni el de una conversión el valor que cita", async (placeholder) => {
+    const lines = await written(() => {
+      info(`falló ${placeholder}`, queryError());
+      info(`falló ${placeholder}`, conversionError());
+      info(
+        { evento: "ev-1" },
+        `falló ${placeholder} y ${placeholder}`,
+        queryError(),
+        conversionError(),
+      );
+    });
+
+    expect(lines).toHaveLength(3);
+    for (const { line } of lines) {
+      expect(line).not.toContain(VALUE);
+    }
+  });
+
+  it("como texto, el error de consulta conserva su SQL y el de una conversión lo que rechazó, sin el valor", async () => {
+    const lines = await written(() => {
+      logger.warn("falló %s", queryError());
+      logger.warn("falló %s", conversionError());
+      logger.warn("falló %s", new Error("no se pudo leer", { cause: queryError() }));
+    });
+
+    expect(lines.map(({ record }) => record.msg)).toEqual([
+      `falló Error: Failed query: ${QUERY}`,
+      'falló Error: invalid input syntax for type date: "[oculto]"',
+      "falló Error: no se pudo leer",
+    ]);
+  });
+});

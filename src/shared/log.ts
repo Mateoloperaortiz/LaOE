@@ -103,18 +103,35 @@ function withoutHiddenKeys(line: string): string {
 }
 
 /**
+ * Algo que solo sabe decir `text`: es lo que se interpola en lugar de un error. Donde va un texto
+ * (`%s`) sale `text`; donde va un objeto (`%o`, `%O`, `%j`) sale vacío, como salía un error sin campos
+ * propios, porque no lleva ninguno: nada de lo que el error trae colgado llega al mensaje.
+ */
+function sayingOnly(text: string): object {
+  return Object.defineProperty({}, "toString", { value: () => text });
+}
+
+/**
  * Lo que se interpola en el mensaje (`%o`, `%O`, `%j`) no llega a la línea como objeto: pino lo
  * escribe dentro de `msg`, y ahí `withoutHiddenKeys` ya no lo puede leer. Se revisa antes, con las
  * reglas de una línea y sin tope de profundidad (ADR-123 regla 15): si nombra alguna de las cuatro
  * claves, lo que se interpola es una copia con esas claves ocultas. Lo que no es un objeto, o no
  * nombra ninguna, pasa como llegó. Un objeto que no se deja copiar (un ciclo, un `bigint`) no se puede
  * revisar y no se escribe.
+ *
+ * Un `Error` se cambia siempre, nombre o no una clave oculta (ADR-127 regla 8): por lo que dice de sí
+ * mismo, su nombre y su mensaje sin los valores que repite (`withoutQueryValues`). Una copia plana
+ * deja de ser un error, y `%s` la escribe «[object Object]»; y el error tal cual lleva sus valores al
+ * mensaje, en el texto y en lo que trae colgado.
  */
 function withoutHiddenKeysInMessage(value: unknown): unknown {
   if (typeof value !== "object" || value === null) {
     return value;
   }
   try {
+    if (value instanceof Error) {
+      return sayingOnly(withoutQueryValues(value, String(value)));
+    }
     const written = JSON.stringify(value) as string | undefined;
     if (written === undefined || !NAMES_A_HIDDEN_KEY.test(written)) {
       return value;
