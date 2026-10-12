@@ -20,7 +20,7 @@ import { RewardBreakdown } from "@/modules/participation/components/RewardBreakd
 import { Trivia } from "@/modules/participation/components/Trivia";
 import { getCurrentTerm } from "@/modules/terms";
 import { Cartel, Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { CircleCheckIcon } from "@/shared/ui/icons/CircleCheckIcon";
 import { CircleDotIcon } from "@/shared/ui/icons/CircleDotIcon";
@@ -247,7 +247,7 @@ export default async function RetoDetallePage({
   const targeted = available.find(
     (item) => item.target?.kind === "CHALLENGE" && item.target.id === challenge.id,
   );
-  const boosterNames = tList("T-2451");
+  const boosterNames = tLabels("T-2451", BOOSTER_KINDS);
   const selectorLabels = tList("T-2578");
 
   return (
@@ -280,7 +280,7 @@ export default async function RetoDetallePage({
           {targeted ? (
             <p className="text-sm font-semibold">
               {t("T-2415", {
-                booster: boosterNames[BOOSTER_KINDS.indexOf(targeted.kind)] ?? targeted.kind,
+                booster: boosterNames[targeted.kind] ?? targeted.kind,
               })}
             </p>
           ) : null}
@@ -298,10 +298,7 @@ export default async function RetoDetallePage({
                 {available.map((item) => (
                   <option key={item.id} value={item.id}>
                     {(selectorLabels[1] ?? "")
-                      .replace(
-                        "{booster}",
-                        boosterNames[BOOSTER_KINDS.indexOf(item.kind)] ?? item.kind,
-                      )
+                      .replace("{booster}", boosterNames[item.kind] ?? item.kind)
                       .replace("{fecha}", formatDate(item.expiresAt))}
                   </option>
                 ))}

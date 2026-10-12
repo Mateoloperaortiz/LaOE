@@ -15,7 +15,7 @@ import {
 } from "@/modules/participation";
 import { getCurrentTerm } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Vacio } from "../../_ui/Vacio";
 import { setBoosterTargetAction } from "./actions";
@@ -44,14 +44,14 @@ function BoosterCard({
   error,
 }: {
   booster: BoosterView;
-  names: string[];
-  states: string[];
+  names: Readonly<Record<BoosterView["kind"], string>>;
+  states: Readonly<Record<BoosterState, string>>;
   targets: Awaited<ReturnType<typeof listBoosterTargetsForMember>>;
   guardado: boolean;
   error: string | null;
 }) {
-  const name = names[BOOSTER_KINDS.indexOf(booster.kind)] ?? booster.kind;
-  const stateLabel = states[BOOSTER_STATES.indexOf(booster.state)] ?? booster.state;
+  const name = names[booster.kind] ?? booster.kind;
+  const stateLabel = states[booster.state] ?? booster.state;
   const groupLabels = tList("T-2458");
   return (
     <article className="flex flex-col gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5">
@@ -184,8 +184,8 @@ export default async function BoostersPage({ searchParams }: PageProps<"/app/gh-
     listBoosterTargetsForMember(actor.personId, term.id),
     listActiveCampaignsForMember(term.id),
   ]);
-  const names = tList("T-2451");
-  const states = tList("T-2455");
+  const names = tLabels("T-2451", BOOSTER_KINDS);
+  const states = tLabels("T-2455", BOOSTER_STATES);
 
   return (
     <div className="flex flex-col gap-8">

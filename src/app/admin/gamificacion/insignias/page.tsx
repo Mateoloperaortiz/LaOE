@@ -14,7 +14,7 @@ import {
 import { getPeopleByIds, searchPeople } from "@/modules/people";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { XIcon } from "@/shared/ui/icons/XIcon";
@@ -65,12 +65,12 @@ export default async function InsigniasPage({
   const people = await getPeopleByIds(
     [...new Set([persona, ...boosters.map((item) => item.personId)])].filter(Boolean),
   );
-  const familyNames = tList("T-2473");
+  const familyNames = tLabels("T-2473", BADGE_FAMILIES);
   const columns = tList("T-2541");
   const specialFields = tList("T-2543");
   const grantFields = tList("T-2546");
   const boosterNames = tList("T-2451");
-  const boosterStates = tList("T-2455");
+  const boosterStates = tLabels("T-2455", BOOSTER_STATES);
   const results = tList("T-2548");
   const [si, no] = tList("T-2670");
   const revokeLabels = tList("T-2547");
@@ -130,9 +130,7 @@ export default async function InsigniasPage({
               {catalog.map((badge) => (
                 <tr key={badge.id} className="border-b border-borde align-top">
                   <td className="py-2 pr-4 font-mono text-xs">{badge.code}</td>
-                  <td className="py-2 pr-4">
-                    {familyNames[BADGE_FAMILIES.indexOf(badge.family)] ?? badge.family}
-                  </td>
+                  <td className="py-2 pr-4">{familyNames[badge.family] ?? badge.family}</td>
                   <td className="py-2 pr-4">{badge.level}</td>
                   <td className="py-2 pr-4">{badge.threshold ?? "—"}</td>
                   <td className="py-2 pr-4 font-semibold">{badge.name}</td>
@@ -307,9 +305,7 @@ export default async function InsigniasPage({
                       {people.get(item.personId)?.fullName?.trim() ?? item.personId}
                     </td>
                     <td className="py-2 pr-4">{boosterNames[item.kind === "PLUS_100" ? 1 : 0]}</td>
-                    <td className="py-2 pr-4">
-                      {boosterStates[BOOSTER_STATES.indexOf(item.state)] ?? item.state}
-                    </td>
+                    <td className="py-2 pr-4">{boosterStates[item.state] ?? item.state}</td>
                     <td className="py-2 pr-4">{formatDate(item.expiresAt)}</td>
                     <td className="py-2 pr-4">
                       {item.origin?.kind === "ACHIEVEMENT"

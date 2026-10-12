@@ -84,10 +84,10 @@ export const BOOSTER_STATES = [
   "EXPIRED",
   "REVOKED",
 ] as const satisfies readonly BoosterState[];
-export const BADGE_FAMILIES: readonly BadgeFamily[] = [
+export const BADGE_FAMILIES = [
   "EN_PARCHE",
   "EXPLORADOR",
   "RELAMPAGO",
   "PALABRA_A_PALABRA",
   "SPECIAL",
-];
+] as const satisfies readonly BadgeFamily[];

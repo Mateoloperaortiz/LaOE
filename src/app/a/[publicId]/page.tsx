@@ -24,7 +24,7 @@ import { getMembershipRef } from "@/modules/people";
 import { resolveAlias } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
 import { Cartel, Elemento, LogoOE, SelloOE } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateRange, formatTime } from "@/shared/lib/dates";
 import { type CheckInResultCode, checkInAction } from "./actions";
 
@@ -234,8 +234,8 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
     (item) =>
       item.id === appliedBoosterId && item.target?.kind === "OCCASION" && item.target.id === row.id,
   );
-  const boosterNames = tList("T-2451");
-  const boosterName = (kind: BoosterKind) => boosterNames[BOOSTER_KINDS.indexOf(kind)] ?? kind;
+  const boosterNames = tLabels("T-2451", BOOSTER_KINDS);
+  const boosterName = (kind: BoosterKind) => boosterNames[kind] ?? kind;
   const selectorLabels = tList("T-2578");
 
   return (
