@@ -10,7 +10,7 @@ import {
   Imagen,
 } from "@/modules/content";
 import { BarraTitulo, Cartel } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 
 type Props = {
   detail: {
@@ -45,7 +45,7 @@ export async function DocumentReader({
   downloadPending,
   showHeader = true,
 }: Props) {
-  const kinds = tList("T-394");
+  const kinds = tLabels("T-394", DOCUMENT_KINDS);
   const chapters = chaptersOf(detail.articles);
   const imageIds = [
     ...new Set(
@@ -65,7 +65,7 @@ export async function DocumentReader({
           variante="navy"
           nivel="h1"
           tamano="hero"
-          eyebrow={kinds[DOCUMENT_KINDS.indexOf(detail.document.kind)] ?? detail.document.kind}
+          eyebrow={kinds[detail.document.kind] ?? detail.document.kind}
           titulo={<span className="block hyphens-auto break-words">{detail.document.title}</span>}
           subtitulo={t("T-395", { v: detail.document.version })}
         />
