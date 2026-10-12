@@ -17,9 +17,12 @@ import { truncateAll } from "./db";
 // DT-343 inciso (d), ADR-127 regla 3: quién no puede pasar a honorario lo responden el comando, la
 // ficha y la vista previa del roster con la misma regla (ADR-061 regla 2; ADR-120 regla 4; ADR-123
 // reglas 5 y 7). Con semestre vigente la prueba guardada al salir a licencia se leía dos veces, una
-// dentro de `blockedBenefits` y otra por cuenta de quien pregunta. Para una licencia anterior a la
-// migración de la condición guardada cada lectura es reconstruirla desde la salida registrada: acá se
-// fija qué responde cada camino, con y sin semestre vigente, y cuántas veces la reconstruye.
+// dentro de `blockedBenefits` y otra por cuenta de quien pregunta; ahora responde `blockedBenefits`
+// sola, y sin semestre, cuando a ella no se le pregunta, la sigue mirando quien pregunta. Para una
+// licencia anterior a la migración de la condición guardada cada lectura es reconstruirla desde la
+// salida registrada: acá se fija qué responde cada camino, con y sin semestre vigente, y cuántas
+// veces la reconstruye. Antes eran 17 consultas y dos reconstrucciones en el paso rechazado, 25 y
+// tres en el que procede, 17 y dos en la ficha y 21 y cuatro en la vista previa de dos personas.
 
 const db = () => getDb();
 
@@ -193,7 +196,7 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
   describe("lo que le manda a PostgreSQL una licencia anterior a la migración, con semestre vigente", () => {
     const anterior = { guardada: false };
 
-    it("el paso a honorario que se rechaza reconstruye la condición dos veces", async () => {
+    it("el paso a honorario que se rechaza reconstruye la condición una sola vez", async () => {
       await seedTerm();
       const enPrueba = await onLeave("en.prueba@eafit.edu.co", { probation: true, ...anterior });
 
@@ -205,29 +208,30 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
       );
 
       expect(result).toBe(t("T-2331"));
-      expect(medida(queries)).toEqual({ consultas: 17, reconstrucciones: 2 });
+      expect(medida(queries)).toEqual({ consultas: 13, reconstrucciones: 1 });
     });
 
-    it("el que procede la reconstruye tres veces: dos para decidir y una para conservarla", async () => {
+    // La segunda no es de la decisión: es `conditionToKeep`, que la lee para dejarla escrita (DT-343).
+    it("el que procede la reconstruye una vez para decidir y otra para conservarla", async () => {
       await seedTerm();
       const limpia = await onLeave("sin.prueba@eafit.edu.co", { probation: false, ...anterior });
 
       const { queries } = await countQueries(() => toHonorary(limpia));
 
-      expect(medida(queries)).toEqual({ consultas: 25, reconstrucciones: 3 });
+      expect(medida(queries)).toEqual({ consultas: 21, reconstrucciones: 2 });
     });
 
-    it("la ficha la reconstruye dos veces", async () => {
+    it("la ficha la reconstruye una sola vez", async () => {
       await seedTerm();
       const enPrueba = await onLeave("en.prueba@eafit.edu.co", { probation: true, ...anterior });
 
       const { result, queries } = await countQueries(() => honoraryFacts(enPrueba));
 
       expect(result.benefitsBlocked).toBe(true);
-      expect(medida(queries)).toEqual({ consultas: 17, reconstrucciones: 2 });
+      expect(medida(queries)).toEqual({ consultas: 12, reconstrucciones: 1 });
     });
 
-    it("la vista previa del roster la reconstruye dos veces por persona", async () => {
+    it("la vista previa del roster la reconstruye una vez por persona", async () => {
       await seedTerm();
       const enPrueba = await onLeave("en.prueba@eafit.edu.co", { probation: true, ...anterior });
       const limpia = await onLeave("sin.prueba@eafit.edu.co", { probation: false, ...anterior });
@@ -237,7 +241,7 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
       );
 
       expect([...result]).toEqual([enPrueba]);
-      expect(medida(queries)).toEqual({ consultas: 21, reconstrucciones: 4 });
+      expect(medida(queries)).toEqual({ consultas: 13, reconstrucciones: 2 });
     });
 
     it("con la condición guardada en la membresía el paso a honorario no reconstruye nada", async () => {

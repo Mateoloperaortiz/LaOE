@@ -119,8 +119,9 @@ export async function leftOnProbationOf(personId: string): Promise<boolean> {
  * De estas membresías, las que no pueden pasar a honorario (ADR-061 regla 2): en prueba en el término
  * vigente o con los derechos suspendidos, o con la prueba guardada al salir a licencia (ADR-120 regla
  * 4). Es la regla de `changeMembershipStatus`, y la vista previa del roster marca la fila con esta
- * misma (ADR-123 regla 5): si acá cambia, cambia en los dos. `blockedBenefits` ya cuenta la prueba
- * guardada (ADR-123 regla 7); acá se vuelve a mirar porque sin término vigente no se le pregunta.
+ * misma (ADR-123 regla 5): si acá cambia, cambia en los dos. Con término vigente responde
+ * `blockedBenefits`, que ya cuenta la prueba guardada (ADR-123 regla 7), y acá no se vuelve a leer
+ * (ADR-127 regla 3). Sin término no se le pregunta, y la prueba guardada se mira acá.
  */
 async function honoraryBlocked(
   exec: Executor,
@@ -128,14 +129,15 @@ async function honoraryBlocked(
   now: Date,
 ): Promise<Set<string>> {
   const term = await getCurrentTerm(now);
-  const blocked = term
-    ? await blockedBenefits(
-        rows.map((row) => row.personId),
-        term.id,
-        now,
-        exec,
-      )
-    : new Set<string>();
+  if (term) {
+    return blockedBenefits(
+      rows.map((row) => row.personId),
+      term.id,
+      now,
+      exec,
+    );
+  }
+  const blocked = new Set<string>();
   for (const row of rows) {
     if (await leftOnProbation(exec, row)) blocked.add(row.personId);
   }
