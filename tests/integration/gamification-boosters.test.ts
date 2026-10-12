@@ -972,4 +972,17 @@ describe("boosters: administración", () => {
     expect(revoked?.revokedById).toBe(adminId);
     expect(revoked?.revokeReason).toBe("Otorgado por error");
   });
+
+  // El error nombra el estado con la palabra de T-2455, por su posición literal en la lista (el
+  // orden lo fija tests/unit/enum-label-pairs.test.ts). Fijado antes de leerla por valor (DT-011).
+  it("revocar un booster consumido responde con su estado como lo nombra T-2455", async () => {
+    const termId = await seedTerm();
+    const adminId = await seedMember("boost.revoca.estado@eafit.edu.co");
+    const personId = await seedMember("boost.revoca.estado.miembro@eafit.edu.co");
+    const consumed = await seedBooster(personId, termId, "PLUS_50", { status: "CONSUMED" });
+
+    await expect(
+      revokeBoosterAs({ personId: adminId, ip: null }, { boosterId: consumed, reason: "Prueba" }),
+    ).rejects.toThrow(t("T-676", { estado: (tList("T-2455")[2] ?? "").toLowerCase() }));
+  });
 });
