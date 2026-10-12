@@ -458,7 +458,6 @@ export const PAIRS: readonly LabelPair[] = [
     order: "ORGANIZATION_KINDS",
     positions: { COMPANY: 0, EAFIT_UNIT: 1, STUDENT_GROUP: 2, OTHER: 3 },
     canonical: ORGANIZATION_KINDS,
-    copies: ["src/app/api/admin/buscar/route.ts"],
   },
   {
     code: "T-964",
@@ -1240,6 +1239,12 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       order: "EVALUATIONS",
       code: "T-750",
       own: true,
+    },
+    {
+      file: "src/app/api/admin/buscar/route.ts",
+      order: "ORGANIZATION_KINDS",
+      code: "T-949",
+      own: false,
     },
     {
       file: "src/app/admin/asambleas/page.tsx",

@@ -7,7 +7,10 @@ import { tList } from "@/shared/copy";
 const identity = vi.hoisted(() => ({ getActor: vi.fn() }));
 const people = vi.hoisted(() => ({ searchPeople: vi.fn(), searchCommittees: vi.fn() }));
 const participation = vi.hoisted(() => ({ searchOccasions: vi.fn() }));
-const crm = vi.hoisted(() => ({ searchOrganizations: vi.fn() }));
+const crm = vi.hoisted(() => ({
+  searchOrganizations: vi.fn(),
+  ORGANIZATION_KINDS: ["COMPANY", "EAFIT_UNIT", "STUDENT_GROUP", "OTHER"],
+}));
 
 vi.mock("@/env", () => ({ getEnv: () => ({ APP_TIMEZONE: "America/Bogota" }) }));
 vi.mock("@/modules/identity", () => identity);

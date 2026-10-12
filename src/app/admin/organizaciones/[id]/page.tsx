@@ -21,7 +21,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminMultiSelect } from "@/shared/admin-kit/AdminMultiSelect";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
 import { Markdown } from "@/shared/ui/Markdown";
@@ -77,7 +77,7 @@ export default async function Page({
       accion === "vincular" && q ? searchPeople(q) : Promise.resolve([]),
       listCardsByOrganization(id),
     ]);
-  const kindLabels = tList("T-949");
+  const kindLabels = tLabels("T-949", ORGANIZATION_KINDS);
   const [bContactos, bLinea, bTareas, bTarjetas, bEtiquetas] = tList("T-951");
   const [cPersona, cRol, cPrincipal] = tList("T-952");
   const [aNombre, aApellido, aCorreo, aCelular, aRol, aPrincipal] = tList("T-953");
@@ -103,9 +103,7 @@ export default async function Page({
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-display-lg">{organization.name}</h1>
-          <Insignia fondo="sky">
-            {kindLabels[ORGANIZATION_KINDS.indexOf(organization.kind)] ?? organization.kind}
-          </Insignia>
+          <Insignia fondo="sky">{kindLabels[organization.kind] ?? organization.kind}</Insignia>
           {organization.tagNames.map((tag) => (
             <Insignia key={tag} fondo="paper">
               {tag}
