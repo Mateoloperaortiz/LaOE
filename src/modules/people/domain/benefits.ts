@@ -5,7 +5,7 @@ import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { membership, membershipTerm, sanction } from "../schema";
-import { leftOnProbation } from "./leave-condition";
+import { leftOnProbation, type SavedConditionReader, savedCondition } from "./leave-condition";
 import { suspendedUntil } from "./sanction-pure";
 import { lockMembershipCycle } from "./wallet-member";
 
@@ -19,12 +19,17 @@ import { lockMembershipCycle } from "./wallet-member";
  * consultivo del ciclo de membresía de la persona (`assertBenefitsAvailable`, el paso a honorario). El
  * exporte del horario preferencial la llama por el pool para muchas personas y no las retiene: lee lo
  * confirmado en cada lectura (DT-343).
+ *
+ * `saved` es con qué se lee la condición guardada de quien está en licencia. Si no llega, se lee de
+ * la base; el paso a honorario pasa la de su comando, que después la deja escrita sin volver a
+ * leerla (ADR-127 regla 3).
  */
 export async function blockedBenefits(
   personIds: string[],
   termId: string,
   now = new Date(),
   exec: Executor = getDb(),
+  saved: SavedConditionReader = savedCondition,
 ): Promise<Set<string>> {
   if (personIds.length === 0) return new Set();
   const day = todayKey(now);
@@ -59,7 +64,7 @@ export async function blockedBenefits(
     if (suspendedUntil([item], day)) blocked.add(item.personId);
   }
   for (const row of onLeave) {
-    if (await leftOnProbation(exec, row)) blocked.add(row.personId);
+    if (await leftOnProbation(exec, row, saved)) blocked.add(row.personId);
   }
   return blocked;
 }

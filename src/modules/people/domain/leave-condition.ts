@@ -87,13 +87,42 @@ export async function savedCondition(
   return departure ? conditionAtDeparture(exec, current, departure.at) : [];
 }
 
+/** Cómo se lee la condición guardada de una membresía: `savedCondition`, o la de un comando que no la repite. */
+export type SavedConditionReader = (
+  exec: Executor,
+  current: MembershipRecord,
+) => Promise<LeaveCondition[]>;
+
+/**
+ * `savedCondition` para un solo comando: le lee la condición a cada membresía una vez y le devuelve
+ * esa misma a quien la vuelva a pedir (ADR-127 regla 3). El paso a honorario la pide para decidir y
+ * otra vez para dejarla escrita, y en una licencia anterior a la migración cada pedido era
+ * reconstruirla. Vale porque el comando retiene el consultivo del ciclo de membresía y la fila de la
+ * membresía, y pide siempre por su transacción: nadie le cambia la condición ni la salida entre un
+ * pedido y el otro. Se crea dentro del comando y se va con él: no se guarda ni se comparte.
+ */
+export function savedConditionOnce(): SavedConditionReader {
+  const read = new Map<string, LeaveCondition[]>();
+  return async (exec, current) => {
+    const known = read.get(current.id);
+    if (known) return known;
+    const condition = await savedCondition(exec, current);
+    read.set(current.id, condition);
+    return condition;
+  };
+}
+
 /**
  * La prueba con la que alguien salió a licencia sigue siendo prueba mientras no vuelva a activo
  * (ADR-120 regla 4): vive en la condición guardada y no en las filas del término vigente. Cuenta la
  * general y la de cualquier comité, como las filas del término en `blockedBenefits`, que la suma a
- * las suyas (ADR-123 regla 7).
+ * las suyas (ADR-123 regla 7). `saved` es con qué se lee: si no llega, se lee de la base.
  */
-export async function leftOnProbation(exec: Executor, current: MembershipRecord): Promise<boolean> {
+export async function leftOnProbation(
+  exec: Executor,
+  current: MembershipRecord,
+  saved: SavedConditionReader = savedCondition,
+): Promise<boolean> {
   if (current.status !== "ON_LEAVE") return false;
-  return (await savedCondition(exec, current)).some((condition) => condition.probation);
+  return (await saved(exec, current)).some((condition) => condition.probation);
 }

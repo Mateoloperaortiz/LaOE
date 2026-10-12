@@ -23,6 +23,8 @@ import { truncateAll } from "./db";
 // salida registrada: acá se fija qué responde cada camino, con y sin semestre vigente, y cuántas
 // veces la reconstruye. Antes eran 17 consultas y dos reconstrucciones en el paso rechazado, 25 y
 // tres en el que procede, 17 y dos en la ficha y 21 y cuatro en la vista previa de dos personas.
+// El paso que procede la pedía además para dejarla escrita (`conditionToKeep`): el comando la lee
+// una vez y con esa misma decide y escribe, haya o no semestre vigente.
 
 const db = () => getDb();
 
@@ -225,14 +227,14 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
       expect(medida(queries)).toEqual({ consultas: 13, reconstrucciones: 1 });
     });
 
-    // La segunda no es de la decisión: es `conditionToKeep`, que la lee para dejarla escrita (DT-343).
-    it("el que procede la reconstruye una vez para decidir y otra para conservarla", async () => {
+    // Eran 21 y dos: la segunda era de `conditionToKeep`, que la volvía a leer para dejarla escrita.
+    it("el que procede la reconstruye una sola vez: con la que decide es la que deja escrita", async () => {
       await seedTerm();
       const limpia = await onLeave("sin.prueba@eafit.edu.co", { probation: false, ...anterior });
 
       const { queries } = await countQueries(() => toHonorary(limpia));
 
-      expect(medida(queries)).toEqual({ consultas: 21, reconstrucciones: 2 });
+      expect(medida(queries)).toEqual({ consultas: 17, reconstrucciones: 1 });
       expect(await comoQuedo(limpia)).toEqual({
         status: "HONORARY",
         leaveCondition: SALIO_SIN_PRUEBA,
@@ -273,10 +275,10 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
   });
 
   // Un día sin semestre decide quien pregunta y no `blockedBenefits` (ADR-120 regla 4), así que la
-  // cuenta es otra; la repetición es la misma del día con semestre: una reconstrucción para decidir
-  // y otra de `conditionToKeep` para dejarla escrita. Que haya días así es la decisión abierta 27.
+  // cuenta es otra; la repetición era la misma del día con semestre, 18 consultas y dos
+  // reconstrucciones, y se va igual. Que haya días así es la decisión abierta 27.
   describe("lo que le manda a PostgreSQL una licencia anterior a la migración, sin semestre vigente (decisión abierta 27)", () => {
-    it("el paso a honorario que procede la reconstruye una vez para decidir y otra para conservarla, y guarda la de su salida", async () => {
+    it("el paso a honorario que procede la reconstruye una sola vez y deja escrita la de su salida", async () => {
       const limpia = await onLeave("sin.prueba@eafit.edu.co", {
         probation: false,
         guardada: false,
@@ -285,7 +287,7 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
 
       const { queries } = await countQueries(() => toHonorary(limpia));
 
-      expect(medida(queries)).toEqual({ consultas: 18, reconstrucciones: 2 });
+      expect(medida(queries)).toEqual({ consultas: 14, reconstrucciones: 1 });
       expect(await comoQuedo(limpia)).toEqual({
         status: "HONORARY",
         leaveCondition: SALIO_SIN_PRUEBA,

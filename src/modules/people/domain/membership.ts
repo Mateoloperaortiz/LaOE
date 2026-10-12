@@ -23,7 +23,13 @@ import { blockedBenefits } from "./benefits";
 import { closeCommitteeMembership } from "./committee-membership-closing";
 import { endRolesForPerson } from "./committee-role-assignments";
 import { revokeAllConsents, syncConsent } from "./consents";
-import { conditionAtDeparture, leftOnProbation, savedCondition } from "./leave-condition";
+import {
+  conditionAtDeparture,
+  leftOnProbation,
+  type SavedConditionReader,
+  savedCondition,
+  savedConditionOnce,
+} from "./leave-condition";
 import { leaveUntilError, leaveWindow } from "./leave-pure";
 import { SIGN_IN_STATUSES } from "./reads";
 import { setProbation } from "./term-outcomes";
@@ -121,12 +127,15 @@ export async function leftOnProbationOf(personId: string): Promise<boolean> {
  * 4). Es la regla de `changeMembershipStatus`, y la vista previa del roster marca la fila con esta
  * misma (ADR-123 regla 5): si acá cambia, cambia en los dos. Con término vigente responde
  * `blockedBenefits`, que ya cuenta la prueba guardada (ADR-123 regla 7), y acá no se vuelve a leer
- * (ADR-127 regla 3). Sin término no se le pregunta, y la prueba guardada se mira acá.
+ * (ADR-127 regla 3). Sin término no se le pregunta, y la prueba guardada se mira acá. Por cualquiera
+ * de los dos caminos la condición guardada se lee con `saved`: el comando pasa la suya, que la
+ * recuerda para dejarla escrita, y una lectura pasa `savedCondition`.
  */
 async function honoraryBlocked(
   exec: Executor,
   rows: MembershipRecord[],
   now: Date,
+  saved: SavedConditionReader,
 ): Promise<Set<string>> {
   const term = await getCurrentTerm(now);
   if (term) {
@@ -135,11 +144,12 @@ async function honoraryBlocked(
       term.id,
       now,
       exec,
+      saved,
     );
   }
   const blocked = new Set<string>();
   for (const row of rows) {
-    if (await leftOnProbation(exec, row)) blocked.add(row.personId);
+    if (await leftOnProbation(exec, row, saved)) blocked.add(row.personId);
   }
   return blocked;
 }
@@ -152,21 +162,23 @@ export async function honoraryBlockedAmong(
   if (personIds.length === 0) return new Set();
   const db = getDb();
   const rows = await db.select().from(membership).where(inArray(membership.personId, personIds));
-  return honoraryBlocked(db, rows, now);
+  return honoraryBlocked(db, rows, now, savedCondition);
 }
 
 /**
  * La condición que queda guardada tras el cambio (ADR-118 regla 8): se toma al salir a licencia, el
- * paso por honorario la conserva y solo el regreso a activo la gasta.
+ * paso por honorario la conserva y solo el regreso a activo la gasta. La de quien está en licencia se
+ * pide con `saved`, la lectura del comando: es la misma con la que se decidió el paso a honorario.
  */
 async function conditionToKeep(
   ctx: CommandContext,
   current: MembershipRecord,
   to: ChangeStatusInput["to"],
   now: Date,
+  saved: SavedConditionReader,
 ): Promise<LeaveCondition[] | null> {
   if (to === "ACTIVE") return null;
-  if (current.status === "ON_LEAVE") return savedCondition(ctx.tx, current);
+  if (current.status === "ON_LEAVE") return saved(ctx.tx, current);
   if (current.status === "HONORARY" && current.leaveCondition !== null) {
     return current.leaveCondition;
   }
@@ -216,9 +228,15 @@ export async function changeMembershipStatus(
     throw new DomainError(t("T-3245"), "to");
   }
   const today = todayKey(now);
+  // La condición guardada de quien está en licencia se lee una vez en todo el comando: con la misma
+  // se decide el paso a honorario y se deja escrita (ADR-127 regla 3).
+  const saved = savedConditionOnce();
   // La prueba o la suspensión del término vigente y, para quien salió a licencia en prueba y no tiene
   // fila en él, la prueba que quedó guardada (ADR-061 regla 2; ADR-120 regla 4).
-  if (input.to === "HONORARY" && (await honoraryBlocked(ctx.tx, [current], now)).has(personId)) {
+  if (
+    input.to === "HONORARY" &&
+    (await honoraryBlocked(ctx.tx, [current], now, saved)).has(personId)
+  ) {
     throw new DomainError(t("T-2331"), "personId");
   }
   let leaveUntil: string | null = null;
@@ -237,7 +255,7 @@ export async function changeMembershipStatus(
     .set({
       status: input.to,
       leaveUntil,
-      leaveCondition: await conditionToKeep(ctx, current, input.to, now),
+      leaveCondition: await conditionToKeep(ctx, current, input.to, now, saved),
     })
     .where(eq(membership.id, current.id));
   await ctx.tx.insert(membershipEvent).values({
