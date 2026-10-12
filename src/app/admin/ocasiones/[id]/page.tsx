@@ -34,7 +34,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime, formatTime } from "@/shared/lib/dates";
 import {
   approveAllAction,
@@ -109,8 +109,8 @@ export default async function ConsolaPage({
     committeesOf.set(member.personId, names);
   }
   const pending = checkIns.filter((item) => item.status === "PENDING");
-  const statusLabels = tList("T-597");
-  const sourceLabels = tList("T-596");
+  const statusLabels = tLabels("T-597", CHECK_IN_STATUSES);
+  const sourceLabels = tLabels("T-596", CHECK_IN_SOURCES);
   const [abrir, cerrar, cancelar] = tList("T-589");
   const [activar, rotar, desactivar] = tList("T-588");
   const [aprobar, rechazar, anularLabel] = tList("T-592");
@@ -118,8 +118,7 @@ export default async function ConsolaPage({
   const columnLabels = tList("T-595");
   const scoreLabels = tList("T-605");
   const [todos] = tList("T-639");
-  const statusLabel = (status: CheckInStatus) =>
-    statusLabels[CHECK_IN_STATUSES.indexOf(status)] ?? status;
+  const statusLabel = (status: CheckInStatus) => statusLabels[status] ?? status;
   const canDecide = actor.isAdmin;
   const canOpen = occasion.status === "DRAFT" && canOpenOccasion(actor, occasion);
   const cell = occasionStatusCell(occasion.status);
@@ -438,7 +437,7 @@ export default async function ConsolaPage({
                         {formatTime(item.at)}
                       </td>
                       <td data-label={columnLabels[3]} className="py-2 pr-4">
-                        {sourceLabels[CHECK_IN_SOURCES.indexOf(item.source)] ?? item.source}
+                        {sourceLabels[item.source] ?? item.source}
                       </td>
                       <td data-label={columnLabels[4]} className="py-2 pr-4">
                         {statusLabel(item.status)}

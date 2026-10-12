@@ -1242,6 +1242,12 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       own: true,
     },
     {
+      file: "src/app/admin/asambleas/page.tsx",
+      order: "FILTERS",
+      code: "T-639",
+      own: true,
+    },
+    {
       file: "src/app/admin/gamificacion/revision/page.tsx",
       order: "MEMBER_STATES",
       code: "T-2410",

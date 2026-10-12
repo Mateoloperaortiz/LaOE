@@ -12,7 +12,7 @@ import { listGroupRefs } from "@/modules/permanence";
 import { countDeadLetters, getBackupStatus } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 
 // Inicio del admin (ADR-037 regla 11): las secciones de T-160 y el tablero de pendientes de ADMIN
@@ -133,7 +133,7 @@ export default async function AdminHome() {
       term ? listCommitteesMissingRequiredRoles(term.id) : Promise.resolve([]),
       term ? listCommitteeViability(term.id) : Promise.resolve([]),
     ]);
-  const viabilityLabels = tList("T-2264");
+  const viabilityLabels = tLabels("T-2264", VIABILITY_ALERTS);
   const grupos = await listGroupRefs(tablero.openCalls.map((call) => call.groupId));
   const [bPendientes, bVencidas, bSolicitudes, bRespuestas, bPipelines, bConvocatorias, bSistema] =
     tList("T-1033");
@@ -302,7 +302,7 @@ export default async function AdminHome() {
                         <Insignia fondo="naranja">
                           {t("T-2261", {
                             comité: row.committeeName,
-                            alerta: viabilityLabels[VIABILITY_ALERTS.indexOf(alert)] ?? alert,
+                            alerta: viabilityLabels[alert] ?? alert,
                           })}
                         </Insignia>
                       </Link>

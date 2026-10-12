@@ -21,7 +21,7 @@ import { getMembershipRef, listCommitteesByIds } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { Cartel, Insignia, Numeral, SelloOE } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Vacio } from "../_ui/Vacio";
 import { CommitteePodium, type CommitteePodiumEntry } from "./CommitteePodium";
@@ -55,7 +55,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const term = terms.find((item) => item.id === termParam) ?? current;
   const [tabNuevos, tabVeteranos, tabComites] = tList("T-083");
   const levelLabels = tList("T-082");
-  const kindLabels = tList("T-085");
+  const kindLabels = tLabels("T-085", POINT_ENTRY_KINDS);
   const [colFecha, colMovimiento, colPuntos] = tList("T-552");
 
   if (!term) {
@@ -78,7 +78,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
     membership ? boards.position(actor.personId, membership.firstTermId) : Promise.resolve(null),
     assemblyStatusFor(actor.personId, term),
   ]);
-  const assemblyKindLabels = tList("T-546");
+  const assemblyKindLabels = tLabels("T-546", ASSEMBLY_KINDS);
   const [firmada, pendienteAsamblea, noFuiste] = tList("T-547");
   const requiredTotalCount =
     assemblies.requirement.requiredOrdinary +
@@ -273,9 +273,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
                       {formatDateTime(entry.createdAt)}
                     </td>
                     <td className="py-2 pr-4">
-                      <span className="font-semibold">
-                        {kindLabels[POINT_ENTRY_KINDS.indexOf(entry.kind)] ?? entry.kind}
-                      </span>
+                      <span className="font-semibold">{kindLabels[entry.kind] ?? entry.kind}</span>
                       <span className="text-tinta-suave"> · {entry.reason}</span>
                     </td>
                     <td className="py-2 text-right font-semibold tabular-nums">
@@ -316,9 +314,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
                   <span className="flex flex-col">
                     <span className="font-semibold">{item.occasion.title}</span>
                     <span className="text-sm text-tinta-suave">
-                      {assemblyKindLabels[
-                        ASSEMBLY_KINDS.indexOf(item.occasion.assemblyKind ?? "ORDINARY")
-                      ] ?? ""}
+                      {assemblyKindLabels[item.occasion.assemblyKind ?? "ORDINARY"] ?? ""}
                       {" · "}
                       {formatDateTime(item.occasion.startsAt)}
                     </span>

@@ -9,7 +9,7 @@ import { listAllTerms } from "@/modules/terms";
 import { Pagination, ResourcePanel } from "@/shared/admin-kit";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { adjustAction, reverseAction } from "./actions";
 
@@ -54,7 +54,7 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
   if (personId) ids.add(personId);
   const people = await getPeopleByIds([...ids]);
   const termCode = new Map(terms.map((item) => [item.id, item.code]));
-  const kindLabels = tList("T-085");
+  const kindLabels = tLabels("T-085", POINT_ENTRY_KINDS);
   const columns = tList("T-623");
   const [filtroPersona, filtroSemestre, filtroMovimiento] = tList("T-624");
   const [campoPersona, campoSemestre, campoPuntos, campoMotivo] = tList("T-626");
@@ -112,9 +112,9 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
           <span className="eyebrow text-xs">{filtroMovimiento}</span>
           <select name="kind" defaultValue={kind} className={inputClass}>
             <option value="">—</option>
-            {POINT_ENTRY_KINDS.map((value, index) => (
+            {POINT_ENTRY_KINDS.map((value) => (
               <option key={value} value={value}>
-                {kindLabels[index] ?? value}
+                {kindLabels[value] ?? value}
               </option>
             ))}
           </select>
@@ -198,7 +198,7 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
                     {termCode.get(row.termId) ?? ""}
                   </td>
                   <td data-label={columns[3]} className="py-2 pr-4">
-                    {kindLabels[POINT_ENTRY_KINDS.indexOf(row.kind as PointEntryKind)] ?? row.kind}
+                    {kindLabels[row.kind as PointEntryKind] ?? row.kind}
                   </td>
                   <td
                     data-label={columns[4]}
@@ -223,7 +223,7 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
                         {t("T-630")}
                       </Link>
                     ) : row.reversedById ? (
-                      <span className="text-xs text-tinta-suave">{kindLabels[2]}</span>
+                      <span className="text-xs text-tinta-suave">{tList("T-085")[2]}</span>
                     ) : null}
                   </td>
                 </tr>
