@@ -435,6 +435,20 @@ const SEEDED: { title: string; form: PositionalForm; path: string; text: string 
     path: "src/app/sembrado/page.ts",
     text: `${HEAD}const list = tList("T-444");\nfunction label(index: number) {\n  return list[index] ?? "";\n}\nexport const kind = (value: string) => label(KINDS.indexOf(value as "A"));\n`,
   },
+  // DT-371 (ADR-126 regla 10): anotado con claves abiertas, `tsc` deja pasar el número y la lectura
+  // da `undefined`; sin anotar ya lo rechaza el tipo de `tLabels`.
+  {
+    title: "un número escrito de subíndice de un Record de tLabels anotado con claves abiertas",
+    form: "recordByNumber",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}const labels: Readonly<Record<string, string>> = tLabels("T-444", KINDS);\nexport const reversed = labels[1] ?? "";\n`,
+  },
+  {
+    title: "un número escrito de subíndice de las etiquetas que llegan por props",
+    form: "recordByNumber",
+    path: "src/app/sembrado/Fila.tsx",
+    text: `import { labelsFromProps } from "@/shared/copy/client";\nexport function Fila(props: { kinds: Record<string, string> }) {\n  const kinds = labelsFromProps(props.kinds);\n  return <span>{kinds[0]}</span>;\n}\n`,
+  },
 ];
 
 // Lo que la regla deja pasar: la lectura por valor y las que la spec dejó fuera.
@@ -505,13 +519,9 @@ describe("cada forma vieja, sembrada en memoria, deja la prueba en rojo", () => 
     );
   });
 
-  it("siembra al menos un sitio de cada forma que mide la spec", () => {
+  it("siembra al menos un sitio de cada forma que la regla cuenta", () => {
     const forms = new Set(SEEDED.map((seed) => seed.form));
-    for (const form of ["indexOf", "traversal", "storedIndex", "zip"] as const) {
-      expect(forms).toContain(form);
-    }
-    expect(forms).toContain("positionConstant");
-    expect(forms).toContain("computedIndex");
+    expect([...forms].sort()).toEqual([...POSITIONAL_FORMS].sort());
   });
 
   it("una lectura más en un archivo que ya tiene su excepción también cae", () => {
