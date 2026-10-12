@@ -60,3 +60,14 @@ export function pairCopyLabels(
   });
   return labels;
 }
+
+/**
+ * Las etiquetas que un componente de cliente recibió por props. React solo deja pasar objetos llanos
+ * del servidor al navegador, así que llegan heredando de `Object.prototype`: esta copia vuelve a no
+ * heredar, y un valor ajeno (`constructor`) da `undefined` como en el `Record` de `tLabels`.
+ */
+export function labelsFromProps(
+  labels: Readonly<Record<string, string>>,
+): Readonly<Record<string, string>> {
+  return Object.assign(Object.create(null), labels);
+}

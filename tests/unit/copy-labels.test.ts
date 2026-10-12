@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SUDOKU_DIFFICULTIES } from "@/modules/participation/sudoku-engine";
 import type { SudokuDifficulty } from "@/modules/participation/sudoku-types";
 import { type CopyCode, tLabels, tList } from "@/shared/copy";
-import { tLabels as tLabelsInBrowser } from "@/shared/copy/client";
+import { labelsFromProps, tLabels as tLabelsInBrowser } from "@/shared/copy/client";
 import { pairCopyLabels } from "@/shared/copy/format";
 
 // `tLabels(código, ENUM)` da la etiqueta de un valor por valor y no por su posición en la lista
@@ -106,5 +106,26 @@ describe("tLabels no compila con un par que no es uno a uno", () => {
     const labels = tLabels(code, SUDOKU_DIFFICULTIES);
 
     expect(read(labels, "EASY")).toBe(tList("T-2681")[0]);
+  });
+});
+
+describe("las etiquetas que llegan por props a un componente de cliente", () => {
+  // React solo deja pasar objetos llanos del servidor al navegador: un objeto sin prototipo lanza
+  // «Only plain objects… Classes or null prototypes are not supported» al serializar las props.
+  const labels = tLabels("T-2681", SUDOKU_DIFFICULTIES);
+  const arrived: Record<string, string> = JSON.parse(JSON.stringify({ ...labels }));
+
+  it("llegan como un objeto llano, que sí hereda de Object.prototype", () => {
+    expect(Object.getPrototypeOf({ ...labels })).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(arrived)).toBe(Object.prototype);
+    expect(typeof read(arrived, "constructor")).toBe("function");
+  });
+
+  it("labelsFromProps les vuelve a quitar el prototipo sin cambiar ninguna etiqueta", () => {
+    const received = labelsFromProps(arrived);
+
+    expect({ ...received }).toEqual({ ...labels });
+    expect(STRANGERS.map((value) => read(received, value))).toEqual(STRANGERS.map(() => undefined));
+    expect(Object.getPrototypeOf(received)).toBeNull();
   });
 });

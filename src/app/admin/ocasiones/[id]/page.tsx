@@ -17,7 +17,11 @@ import {
   SURVEY_TEXT_MIN,
   surveySummary,
 } from "@/modules/participation";
-import { occasionKindLabel, occasionStatusCell } from "@/modules/participation/admin";
+import {
+  liveConsoleLabels,
+  occasionKindLabel,
+  occasionStatusCell,
+} from "@/modules/participation/admin";
 import { ConsolaEnVivo } from "@/modules/participation/components/ConsolaEnVivo";
 import {
   getPeopleByIds,
@@ -301,8 +305,7 @@ export default async function ConsolaPage({
           counters: tList("T-585"),
           recentTitle: t("T-603"),
           recentEmpty: t("T-671"),
-          sources: sourceLabels,
-          statuses: statusLabels,
+          ...liveConsoleLabels(),
         }}
       />
 

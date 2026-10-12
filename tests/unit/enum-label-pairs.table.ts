@@ -320,7 +320,6 @@ export const PAIRS: readonly LabelPair[] = [
     order: "CHECK_IN_SOURCES",
     positions: { SELF_QR: 0, HOST: 1, ADMIN: 2, IMPORT: 3 },
     canonical: CHECK_IN_SOURCES,
-    copies: ["src/modules/participation/components/ConsolaEnVivo.tsx"],
   },
   {
     code: "T-597",
@@ -1096,15 +1095,16 @@ export const UNEVEN_PAIRS: readonly UnevenPair[] = [
     read: 'fields:zip(FIELD_KEYS,tList("T-427"))',
     seen: true,
   },
-  // La consola no conoce EXCUSED: una asistencia excusada cae al respaldo y muestra el código.
+  // La consola no nombra EXCUSED: una asistencia excusada cae al respaldo y muestra el código. Desde
+  // el ticket #317 sus cuatro estados leen por valor el `Record` del par uno a uno (DT-364).
   {
     code: "T-597",
-    order: "STATUS_ORDER",
-    file: "src/modules/participation/components/ConsolaEnVivo.tsx",
+    order: "CONSOLE_STATUSES",
+    file: "src/modules/participation/admin.ts",
     tuple: ["PENDING", "APPROVED", "REJECTED", "CANCELLED"],
     pieces: 5,
     positions: { PENDING: 0, APPROVED: 1, REJECTED: 2, CANCELLED: 3 },
-    read: "labels.statuses[STATUS_ORDER.indexOf",
+    read: "CONSOLE_STATUSES.map((status) => [status, statuses[status]])",
     seen: true,
   },
   // El formulario de reglas ofrece las siete categorías que admite el dominio de permanencia

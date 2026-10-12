@@ -213,7 +213,7 @@ describe("los pares que no son uno a uno", () => {
     );
     expect(shared.map(({ uneven }) => `${uneven.code} × ${uneven.order}`)).toEqual([
       "T-791 × FINAL_STATES",
-      "T-597 × STATUS_ORDER",
+      "T-597 × CONSOLE_STATUSES",
       "T-566 × CATEGORIES",
     ]);
     for (const { uneven, pair } of shared) {

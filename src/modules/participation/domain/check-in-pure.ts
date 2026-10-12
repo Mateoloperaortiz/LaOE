@@ -8,14 +8,19 @@ export type CheckInStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | 
 export type CheckInSource = "SELF_QR" | "HOST" | "ADMIN" | "IMPORT";
 export type CheckInDecision = "APPROVE" | "REJECT" | "CANCEL";
 
-export const CHECK_IN_STATUSES: readonly CheckInStatus[] = [
+export const CHECK_IN_STATUSES = [
   "PENDING",
   "APPROVED",
   "REJECTED",
   "CANCELLED",
   "EXCUSED",
-];
-export const CHECK_IN_SOURCES: readonly CheckInSource[] = ["SELF_QR", "HOST", "ADMIN", "IMPORT"];
+] as const satisfies readonly CheckInStatus[];
+export const CHECK_IN_SOURCES = [
+  "SELF_QR",
+  "HOST",
+  "ADMIN",
+  "IMPORT",
+] as const satisfies readonly CheckInSource[];
 
 const TRANSITIONS: Record<CheckInStatus, readonly CheckInStatus[]> = {
   PENDING: ["APPROVED", "REJECTED", "EXCUSED"],

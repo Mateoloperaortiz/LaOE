@@ -34,3 +34,5 @@ export function tLabels<const Code extends ClientCopyCode, const Values extends 
 ): CopyLabels<Values[number]> {
   return pairCopyLabels(splitCopyList(textosCliente[code]), values) as CopyLabels<Values[number]>;
 }
+
+export { labelsFromProps } from "./format";

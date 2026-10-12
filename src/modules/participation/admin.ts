@@ -11,9 +11,10 @@ import type {
   FilterDefinition,
   ResourceDefinition,
 } from "@/shared/admin-kit/types";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { type AssemblyOverviewRow, assemblyOverview } from "./domain/assemblies";
+import { CHECK_IN_SOURCES, CHECK_IN_STATUSES } from "./domain/check-in-pure";
 import {
   closeOccasionAs,
   createOccasionAs,
@@ -96,6 +97,28 @@ export function occasionStatusCell(status: OccasionStatus): { text: string; badg
   return {
     text: statusLabels[OCCASION_STATUSES.indexOf(status)] ?? status,
     badge: STATUS_BADGE[status],
+  };
+}
+
+/**
+ * Los estados que la consola en vivo nombra en sus últimos registros. No trae `EXCUSED`: una
+ * asistencia excusada muestra ahí su código, como hasta hoy (DT-364, decisión abierta 75).
+ */
+const CONSOLE_STATUSES = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"] as const;
+
+/**
+ * Las etiquetas de fuente (T-596) y de estado (T-597) que la consola en vivo recibe por props, por
+ * valor. Son objetos llanos: React no deja pasar a un componente de cliente el `Record` sin
+ * prototipo de `tLabels`, y la consola los lee con `labelsFromProps` (ADR-126 regla 5).
+ */
+export function liveConsoleLabels(): {
+  sources: Record<string, string>;
+  statuses: Record<string, string>;
+} {
+  const statuses = tLabels("T-597", CHECK_IN_STATUSES);
+  return {
+    sources: { ...tLabels("T-596", CHECK_IN_SOURCES) },
+    statuses: Object.fromEntries(CONSOLE_STATUSES.map((status) => [status, statuses[status]])),
   };
 }
 

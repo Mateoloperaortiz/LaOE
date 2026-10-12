@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { labelsFromProps } from "@/shared/copy/client";
 import { afterPoll, type LiveStatus, showsAsCurrent } from "./console-live";
 
 // Contador en vivo (ADR-035 regla 16): pide el JSON de la ocasión cada pocos segundos, se pausa con
@@ -27,8 +28,8 @@ type Labels = {
   counters: string[]; // Registrados · Pendientes · Rechazados · Anulados
   recentTitle: string;
   recentEmpty: string;
-  sources: string[];
-  statuses: string[];
+  sources: Record<string, string>; // la etiqueta de cada fuente, por valor (T-596)
+  statuses: Record<string, string>; // la de cada estado que la consola nombra (T-597)
 };
 
 type Props = {
@@ -40,10 +41,8 @@ type Props = {
   timeZone: string;
 };
 
-// Orden de los contadores (T-585) y orden del modelo para etiquetas de estado y fuente (T-597, T-596).
+// Orden de los contadores (T-585). Las etiquetas de estado y de fuente llegan por valor.
 const COUNTER_ORDER = ["APPROVED", "PENDING", "REJECTED", "CANCELLED"];
-const STATUS_ORDER = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"];
-const SOURCE_ORDER = ["SELF_QR", "HOST", "ADMIN", "IMPORT"];
 
 function fill(text: string, values: Record<string, string>): string {
   return text.replace(/\{([a-z]+)\}/g, (match, key: string) => values[key] ?? match);
@@ -60,6 +59,9 @@ export function ConsolaEnVivo({
   const [data, setData] = useState<LiveData>(initial);
   const [secondsLeft, setSecondsLeft] = useState(initial.code?.secondsLeft ?? 0);
   const [status, setStatus] = useState<LiveStatus>("live");
+  // Llegaron por props como objetos llanos: sin prototipo, un valor ajeno cae al respaldo.
+  const sources = labelsFromProps(labels.sources);
+  const statuses = labelsFromProps(labels.statuses);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,9 +175,8 @@ export function ConsolaEnVivo({
                 >
                   <span className="font-semibold">{item.name}</span>
                   <span className="text-tinta-suave">
-                    {time.format(new Date(item.at))} ·{" "}
-                    {labels.sources[SOURCE_ORDER.indexOf(item.source)] ?? item.source} ·{" "}
-                    {labels.statuses[STATUS_ORDER.indexOf(item.status)] ?? item.status}
+                    {time.format(new Date(item.at))} · {sources[item.source] ?? item.source} ·{" "}
+                    {statuses[item.status] ?? item.status}
                   </span>
                 </li>
               ))}

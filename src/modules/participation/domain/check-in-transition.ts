@@ -9,7 +9,7 @@ import {
   checkinPending,
   scoreRecompute,
 } from "@/domain-events/participation";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { checkIn } from "../schema";
 import { type BoosterRow, setBoosterTarget } from "./boosters";
@@ -62,7 +62,7 @@ export class BoosterDenied extends Error {
 }
 
 export function checkInStatusLabel(status: CheckInStatus): string {
-  return tList("T-597")[CHECK_IN_STATUSES.indexOf(status)] ?? status;
+  return tLabels("T-597", CHECK_IN_STATUSES)[status] ?? status;
 }
 
 function checkInEventPayload(row: OccasionRow, personId: string, source: string) {

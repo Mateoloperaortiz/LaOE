@@ -3,7 +3,7 @@
 - Estado: Aceptada
 - Fecha: 2026-10-11
 - Relacionadas: ADR-081, ADR-086, ADR-109, ADR-110, ADR-125
-- Enmienda: ADR-081, «Lo que queda fuera»: las etiquetas por posición de un enum dejan de quedar fuera, porque el helper que pedía ya existe (reglas 3 y 4)
+- Enmienda: ADR-081, «Lo que queda fuera»: las etiquetas por posición de un enum dejan de quedar fuera, porque el helper que pedía ya existe (reglas 3 a 5)
 
 ## Contexto
 
@@ -70,7 +70,7 @@ Dos de los sitios nuevos nacieron con DT-315 (`916d2313`): el nombre del estado 
    | T-801 | 6 | `DECISIONS` | 4 | `src/app/admin/personas/[id]/_ui/TabPermanencia.tsx` | Son los seis motivos automáticos del cierre: tres decisiones leen su posición, `EXIT_OE` lee la 3 o la 4 según la asamblea obligatoria y la 5 solo la da el motivo que calcula el dominio |
    | T-791 | 6 | `FINAL_STATES` | 3 | `src/app/admin/permanencia/cierre/page.tsx` | Los tres estados finales leen las tres últimas piezas con `3 + indexOf`. De los siete, es el único que la migración de la spec deshace: leído por valor con el par de los seis estados da la misma pieza, y la prueba lo comprueba |
    | T-427 | 11 | `FIELD_KEYS` | 8 | `src/modules/crm/jobs.ts` | La lista también da las columnas de Personas; el `zip` usa las ocho primeras piezas |
-   | T-597 | 5 | `STATUS_ORDER` | 4 | `src/modules/participation/components/ConsolaEnVivo.tsx` | La copia de la consola no trae `EXCUSED`: una asistencia excusada cae al respaldo y muestra el código (DT-364) |
+   | T-597 | 5 | `CONSOLE_STATUSES` | 4 | `src/modules/participation/admin.ts` | La consola en vivo nombra cuatro de los cinco estados: no trae `EXCUSED`, y una asistencia excusada cae al respaldo y muestra el código (DT-364). Hasta el ticket [#317](https://github.com/Mateoloperaortiz/LaOE/issues/317) era `STATUS_ORDER`, una copia `string[]` de `ConsolaEnVivo.tsx` que leía la lista por posición; ahora sus cuatro estados leen por valor el `Record` del par uno a uno (regla 5) |
    | T-566 | 8 | `CATEGORIES` | 7 | `src/app/admin/permanencia/_ui/reglas.ts` | El formulario de reglas ofrece las siete categorías que admite `src/modules/permanence/domain/params.ts`; `INDUCTION` no está entre ellas |
    | T-2473 | 5 | `FAMILY_INDEX` | 4 | `src/app/app/gh-points/coleccion/page.tsx` | La constante trae las cuatro familias con niveles; la quinta pieza, las ediciones especiales, la lee `familyNames[4]`. Leída por valor con el par de `BADGE_FAMILIES` daría la misma pieza, y la prueba lo comprueba |
    | T-2511 | 5 | `STATE_INDEX` | 4 | `src/app/admin/gamificacion/campanas/page.tsx` | Los cuatro estados de una campaña (`CampaignAdminState`) leen las piezas 1 a 4 de la lista de los estados de un reto: `ACTIVE` lee la de `OPEN` y `ENDED` la de `CLOSED`. No es el enum de esa lista, así que no hay par con el que leerla por valor |
@@ -87,6 +87,14 @@ Dos de los sitios nuevos nacieron con DT-315 (`916d2313`): el nombre del estado 
    `copy:sync` no cambia. Comprobado: su escaneo ([ADR-081](ADR-081-el-catalogo-de-textos-no-viaja-entero-al-navegador.md) regla 3) recoge todo literal `"T-…"` de un archivo que importa la entrada de cliente, esté donde esté. `Sudoku.tsx` ya no llama a `tList("T-2681")`, solo a `tLabels("T-2681", SUDOKU_DIFFICULTIES)`, y el código sigue en el subconjunto; si faltara, `tsc` lo rechazaría porque no sería una clave del mapa.
 
 4. **El enum que recibe `tLabels` es una tupla, y la constante de un enum se declara como tal.** Una constante anotada `readonly X[]` pierde su largo en el tipo. Las de `participation` que entran a un `tLabels` pasan a `[…] as const satisfies readonly X[]`: los mismos valores en el mismo orden, con el tipo `X` declarado aparte como estaba, y `satisfies` sigue rechazando un valor que no sea de `X`. Los `enumValues` de un `pgEnum` ya son una tupla. Donde el orden estaba copiado como arreglo literal se importa la tupla canónica si existe y `MODULE_DEPS` lo admite; si no, la copia se declara `as const` en su sitio y la sigue cuidando la tabla de la regla 1.
+
+5. **Un `Record` de `tLabels` no cruza tal cual del servidor al navegador.** React solo serializa objetos llanos en las props de un componente de cliente. Con un objeto sin prototipo lanza al dibujar la página: «Only plain objects, and a few built-ins, can be passed to Client Components from Server Components. Classes or null prototypes are not supported» (leído en el `react-server-dom-turbopack` que trae el Next instalado). La spec no lo contaba, y ni `tsc` ni una prueba unitaria lo ven: el tipo del `Record` es el de un objeto cualquiera. Por eso:
+
+   - Quien pasa etiquetas por props pasa una copia llana (`{ ...etiquetas }` u `Object.fromEntries`), nunca el `Record` de `tLabels`.
+   - El componente que las recibe las lee con `labelsFromProps`, de `@/shared/copy/client`, que les vuelve a quitar el prototipo: el objeto que llega al navegador hereda de `Object.prototype`, y sin eso `etiquetas["constructor"]` devolvería una función en vez de dejar entrar el respaldo.
+   - Un componente de cliente que conoce su enum no necesita nada de esto: llama a `tLabels` de `@/shared/copy/client`.
+
+   El único componente que recibía listas por props con su propio orden era `ConsolaEnVivo.tsx`. Deja sus dos órdenes `string[]` (`SOURCE_ORDER` y `STATUS_ORDER`) y recibe de `liveConsoleLabels` (`src/modules/participation/admin.ts`) la etiqueta de cada fuente y de cada estado. La consola nombraba cuatro de los cinco estados y lo sigue haciendo: `liveConsoleLabels` no trae `EXCUSED`, así que una asistencia excusada muestra ahí su código, como hasta hoy. Mostrar «Excusado» cambia un texto en pantalla y espera la decisión abierta 75 (DT-364). Lo fija `tests/unit/live-console-labels.test.ts`: cada etiqueta, que los dos objetos son llanos, que `EXCUSED` no está y que un valor ajeno cae al respaldo. Los contadores de la consola (T-585 con `COUNTER_ORDER`) no son la etiqueta de un enum sino un orden de pantalla: son de los 18 pares que las expresiones de la spec no ven, y siguen como estaban. La página `src/app/admin/ocasiones/[id]/page.tsx` cambia solo lo que le pasa a la consola; sus dos sitios propios son del ticket [#320](https://github.com/Mateoloperaortiz/LaOE/issues/320).
 
 ## Consecuencias
 
