@@ -4,7 +4,7 @@ import { type CommandContext, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { gamificationReconcile } from "@/domain-events/participation";
 import { listMembershipPersonIds } from "@/modules/people";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { withoutQueryValues } from "@/shared/log";
 import { badgeReconciliationRun, reconciliationStatus } from "../schema";
@@ -22,7 +22,7 @@ export type ReconciliationRunRow = typeof badgeReconciliationRun.$inferSelect;
  * nombra el error de reanudar una que no quedó con error (ADR-123 regla 8).
  */
 function reconciliationStatusLabel(status: ReconciliationRunRow["status"]): string {
-  return tList("T-2559")[reconciliationStatus.enumValues.indexOf(status)] ?? status;
+  return tLabels("T-2559", reconciliationStatus.enumValues)[status] ?? status;
 }
 
 export const RECONCILE_BATCH = 100;

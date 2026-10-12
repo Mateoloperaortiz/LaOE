@@ -9,7 +9,7 @@ import {
   evidenceProcess,
 } from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import type {
   BoosterKind,
@@ -791,7 +791,7 @@ async function auditParticipation(
  * aplica (ADR-123 regla 8).
  */
 function participationStatusLabel(status: ParticipationStatus): string {
-  return tList("T-3266")[challengeParticipationStatus.enumValues.indexOf(status)] ?? status;
+  return tLabels("T-3266", challengeParticipationStatus.enumValues)[status] ?? status;
 }
 
 /** Revisión de GH sobre una entrega pendiente: aprobar entrega el premio; rechazar lo libera. */

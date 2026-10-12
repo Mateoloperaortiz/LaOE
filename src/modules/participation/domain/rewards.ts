@@ -4,7 +4,7 @@ import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { challengeRewardReversed } from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import type {
   CampaignPercent,
@@ -29,7 +29,7 @@ export type RewardRow = typeof reward.$inferSelect;
  * nombra el error de un paso que ya no aplica (ADR-123 regla 8).
  */
 function rewardStatusLabel(status: RewardRow["status"]): string {
-  return tList("T-3267")[rewardStatus.enumValues.indexOf(status)] ?? status;
+  return tLabels("T-3267", rewardStatus.enumValues)[status] ?? status;
 }
 
 export interface ReserveRewardInput {
