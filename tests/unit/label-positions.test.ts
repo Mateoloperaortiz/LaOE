@@ -313,6 +313,9 @@ function stale(reads: PositionalRead[]): string[] {
 
 const files = sourceFiles(join(ROOT, "src"));
 const reads = positionalLabelReads(files);
+// Lo que `src` ya traiga sin excepción: se descuenta de cada sitio sembrado, para que una lectura
+// de más en `src` deje en rojo su caso y no los de todas las formas.
+const alreadyUnlisted = unlisted(reads);
 
 const HEAD =
   'import { tLabels, tList } from "@/shared/copy";\nconst KINDS = ["A", "B"] as const;\n';
@@ -433,6 +436,44 @@ const SEEDED: { title: string; form: PositionalForm; path: string; text: string 
     path: "src/app/sembrado/page.ts",
     text: `${HEAD}const list = tList("T-444");\nfunction label(index: number) {\n  return list[index] ?? "";\n}\nexport const kind = (value: string) => label(KINDS.indexOf(value as "A"));\n`,
   },
+  // Las cuatro formas que la revisión del ticket sembró sin que la regla cayera, y una quinta que
+  // salió al cerrarlas (DT-375, ADR-126 regla 11).
+  {
+    title: "un indexOf dentro de at(), que lee la lista igual que un subíndice",
+    form: "indexOf",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}export const label = (kind: string) => tList("T-444").at(KINDS.indexOf(kind as "A")) ?? kind;\n`,
+  },
+  {
+    title: "un recorrido que lee la lista con at() y su índice",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}const labels = tList("T-444");\nexport const options = KINDS.map((value, index) => ({ value, label: labels.at(index) ?? value }));\n`,
+  },
+  {
+    title: "el recorrido inverso, que recorre las etiquetas y lee el orden con su índice",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}export const options = tList("T-444").map((label, index) => ({ value: KINDS[index], label }));\n`,
+  },
+  {
+    title: "el indexOf asignado después a una variable que nació con otro valor",
+    form: "storedIndex",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}export function label(labels: string[], kind: string) {\n  let index = -1;\n  index = KINDS.indexOf(kind as "A");\n  return labels[index] ?? kind;\n}\n`,
+  },
+  {
+    title: "un contador que avanza a mano mientras se recorre el orden",
+    form: "computedIndex",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}const labels = tList("T-444");\nexport const pairs: string[] = [];\nlet position = 0;\nfor (const value of KINDS) {\n  pairs.push(labels[position] ?? value);\n  position += 1;\n}\n`,
+  },
+  {
+    title: "un indexOf envuelto en una llamada, sobre una lista que llega por props",
+    form: "indexOf",
+    path: "src/app/sembrado/page.ts",
+    text: `const ORDER = ["A", "B"];\nexport const label = (labels: string[], kind: string) =>\n  labels[Math.max(0, ORDER.indexOf(kind))] ?? kind;\n`,
+  },
   // DT-371 (ADR-126 regla 10): anotado con claves abiertas, `tsc` deja pasar el número y la lectura
   // da `undefined`; sin anotar ya lo rechaza el tipo de `tLabels`.
   {
@@ -470,6 +511,18 @@ const ALLOWED: { title: string; text: string }[] = [
   {
     title: "buscar una posición en una lista y leer esa misma lista",
     text: `export function next(stages: { id: string }[], id: string) {\n  const index = stages.findIndex((item) => item.id === id);\n  return stages[index + 1] ?? stages[stages.findIndex((item) => item.id === id)];\n}\n`,
+  },
+  {
+    title: "la última pieza con at() y un número escrito",
+    text: `${HEAD}export const last = tList("T-444").at(-1) ?? "";\n`,
+  },
+  {
+    title: "una variable que elige entre posiciones escritas",
+    text: `${HEAD}export function answer(value: boolean) {\n  let position = 0;\n  if (value) {\n    position = 1;\n  }\n  return tList("T-444")[position] ?? "";\n}\n`,
+  },
+  {
+    title: "buscar una posición con tope en una lista y leer esa misma lista",
+    text: `export const current = (stages: { id: string }[], id: string) =>\n  stages[Math.max(0, stages.findIndex((item) => item.id === id))];\n`,
   },
   {
     title: "un recorrido de dos arreglos paralelos que no son del catálogo",
@@ -512,9 +565,9 @@ describe("cada forma vieja, sembrada en memoria, deja la prueba en rojo", () => 
     const seeded = positionalLabelReads([{ path, text }]);
     expect(seeded.map((read) => read.form)).toEqual([form]);
     // Sumada a lo que hay en `src`, es justo la lectura que la prueba de arriba rechazaría.
-    expect(unlisted([...reads, ...seeded])).toEqual(
-      seeded.map((read) => `${path}:${read.line} · ${form} · ${read.read}`),
-    );
+    expect(
+      unlisted([...reads, ...seeded]).filter((entry) => !alreadyUnlisted.includes(entry)),
+    ).toEqual(seeded.map((read) => `${path}:${read.line} · ${form} · ${read.read}`));
   });
 
   it("siembra al menos un sitio de cada forma que la regla cuenta", () => {
@@ -530,6 +583,21 @@ describe("cada forma vieja, sembrada en memoria, deja la prueba en rojo", () => 
     const again = unlisted([...reads, first]);
     expect(again.length).toBeGreaterThan(0);
     expect(again.every((entry) => entry.startsWith(`${first.path}:`))).toBe(true);
+  });
+});
+
+// La regla es de `src`. En `tests` había siete sitios con el `indexOf` de subíndice, que ya leen por
+// valor, y nada impedía que volvieran: acá va la única búsqueda de subíndice que queda ahí.
+const TEST_SEARCHES = [
+  'tests/integration/finance.test.ts · indexOf · decisions[outcomes.findIndex((outcome)=>outcome.status==="fulfilled")]',
+];
+
+describe("las pruebas no vuelven a calcular una etiqueta con la posición de un valor", () => {
+  it("en tests no queda más búsqueda de subíndice que la que no es de etiquetas", () => {
+    const searches = positionalLabelReads(sourceFiles(join(ROOT, "tests")))
+      .filter((read) => read.form === "indexOf" || read.form === "storedIndex")
+      .map(key);
+    expect(searches).toEqual(TEST_SEARCHES);
   });
 });
 
@@ -620,6 +688,14 @@ describe("cada llamada a tLabels de src arma un par de la tabla", () => {
     {
       title: "dos valores cruzados en un orden escrito en el archivo",
       text: 'import { tLabels } from "@/shared/copy";\nconst STATUSES = ["DRAFT", "CLOSED", "OPEN", "CANCELLED"] as const;\nexport const labels = tLabels("T-568", STATUSES);\n',
+    },
+    {
+      title: "una tupla importada con el nombre del orden de otro par",
+      text: 'import { CONDITIONS as STATUS_CODES } from "@/modules/permanence";\nimport { tLabels } from "@/shared/copy";\nexport const labels = tLabels("T-381", STATUS_CODES);\n',
+    },
+    {
+      title: "una constante que guarda otra tupla con el nombre del orden de su par",
+      text: 'import { CONDITIONS } from "@/modules/permanence";\nimport { tLabels } from "@/shared/copy";\nconst STATUS_CODES = CONDITIONS;\nexport const labels = tLabels("T-381", STATUS_CODES);\n',
     },
     {
       title: "un código que no está escrito en la llamada",

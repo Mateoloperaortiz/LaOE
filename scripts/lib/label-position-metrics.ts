@@ -70,6 +70,8 @@ interface Trace {
   /** De qué lista se buscó la posición, por cada `indexOf` que se pudo seguir. */
   receivers: string[];
   params: ts.ParameterDeclaration[];
+  /** Lo que recorre cada índice de recorrido que se pudo seguir. */
+  traversed: ts.Expression[];
 }
 
 function compact(text: string): string {
@@ -213,6 +215,72 @@ function isTraversalIndex(declaration: ts.Node): boolean {
   return false;
 }
 
+/** La secuencia que recorre un índice de recorrido: la del callback o la de `.entries()`. */
+function traversedBy(declaration: ts.Node): ts.Expression | undefined {
+  if (ts.isParameter(declaration)) {
+    const call = declaration.parent.parent;
+    if (!ts.isCallExpression(call) || !ts.isPropertyAccessExpression(call.expression)) {
+      return undefined;
+    }
+    return call.expression.name.text === "from" ? call.arguments[0] : call.expression.expression;
+  }
+  if (ts.isBindingElement(declaration)) {
+    const loop = declaration.parent.parent.parent.parent;
+    return ts.isForOfStatement(loop) &&
+      ts.isCallExpression(loop.expression) &&
+      ts.isPropertyAccessExpression(loop.expression.expression)
+      ? loop.expression.expression.expression
+      : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Lo que el archivo le asigna a una variable después de declararla, y si además la hace avanzar
+ * (`+=`, `++`). Una constante no se busca: su único valor es el de su declaración.
+ */
+function reassigned(
+  declaration: ts.VariableDeclaration,
+  source: ts.SourceFile,
+): { values: ts.Expression[]; stepped: boolean } {
+  const values: ts.Expression[] = [];
+  let stepped = false;
+  if (
+    !ts.isVariableDeclarationList(declaration.parent) ||
+    (declaration.parent.flags & ts.NodeFlags.Const) !== 0
+  ) {
+    return { values, stepped };
+  }
+  const targets = (expression: ts.Expression) => {
+    const target = unwrap(expression);
+    return ts.isIdentifier(target) && declarationOf(target) === declaration;
+  };
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+      node.operatorToken.kind <= ts.SyntaxKind.LastAssignment &&
+      targets(node.left)
+    ) {
+      if (node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+        values.push(node.right);
+      } else {
+        stepped = true;
+      }
+    } else if (
+      (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
+      (node.operator === ts.SyntaxKind.PlusPlusToken ||
+        node.operator === ts.SyntaxKind.MinusMinusToken) &&
+      targets(node.operand)
+    ) {
+      stepped = true;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return { values, stepped };
+}
+
 function functionOf(
   declaration: ts.Node | undefined,
 ): ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression | undefined {
@@ -276,7 +344,7 @@ function originsOf(
   expression: ts.Expression,
   source: ts.SourceFile,
   depth = 0,
-  trace: Trace = { origins: new Set(), receivers: [], params: [] },
+  trace: Trace = { origins: new Set(), receivers: [], params: [], traversed: [] },
 ): Trace {
   const node = unwrap(expression);
   const again = (inner: ts.Expression) => originsOf(inner, source, depth, trace);
@@ -305,7 +373,18 @@ function originsOf(
         trace.origins.add("stored");
         trace.receivers.push("?");
       } else {
-        trace.origins.add("other");
+        // Una búsqueda envuelta en otra llamada (`Math.max(0, ORDER.indexOf(valor))`) sigue siendo
+        // la posición de un valor: cuenta como si estuviera sola en el subíndice.
+        const searched = node.arguments
+          .map((argument) => originsOf(argument, source, depth))
+          .filter((inner) => inner.origins.has("search") || inner.origins.has("stored"));
+        for (const inner of searched) {
+          trace.origins.add(inner.origins.has("search") ? "search" : "stored");
+          trace.receivers.push(...inner.receivers);
+        }
+        if (searched.length === 0) {
+          trace.origins.add("other");
+        }
       }
     }
   } else if (ts.isElementAccessExpression(node)) {
@@ -314,25 +393,38 @@ function originsOf(
     const declaration = declarationOf(node);
     if (declaration && isTraversalIndex(declaration)) {
       trace.origins.add("traversal");
+      const sequence = traversedBy(declaration);
+      if (sequence) {
+        trace.traversed.push(sequence);
+      }
     } else if (declaration && ts.isParameter(declaration)) {
       trace.origins.add("param");
       trace.params.push(declaration);
     } else if (
       declaration &&
       ts.isVariableDeclaration(declaration) &&
-      declaration.initializer &&
-      !isFunction(unwrap(declaration.initializer)) &&
+      !(declaration.initializer && isFunction(unwrap(declaration.initializer))) &&
       depth < DEPTH
     ) {
-      const inner = originsOf(declaration.initializer, source, depth + 1);
-      if (inner.origins.has("search") || inner.origins.has("stored")) {
-        trace.origins.add("stored");
-        trace.receivers.push(...inner.receivers);
-      } else {
-        for (const origin of inner.origins) {
-          trace.origins.add(origin);
+      // El valor con el que nació y los que el archivo le asigna después: un `let index = -1` que
+      // más abajo recibe un `indexOf` guarda esa búsqueda igual que una constante.
+      const { values, stepped } = reassigned(declaration, source);
+      const written = declaration.initializer ? [declaration.initializer, ...values] : values;
+      if (written.length === 0 || stepped) {
+        trace.origins.add("other");
+      }
+      for (const value of written) {
+        const inner = originsOf(value, source, depth + 1);
+        if (inner.origins.has("search") || inner.origins.has("stored")) {
+          trace.origins.add("stored");
+          trace.receivers.push(...inner.receivers);
+        } else {
+          for (const origin of inner.origins) {
+            trace.origins.add(origin);
+          }
+          trace.params.push(...inner.params);
+          trace.traversed.push(...inner.traversed);
         }
-        trace.params.push(...inner.params);
       }
     } else {
       trace.origins.add("other");
@@ -470,10 +562,7 @@ function readsIn(file: TextFile): PositionalRead[] {
    * pasa otra cosa cae ahí, con su forma. Si no se puede seguir (sale del archivo, no tiene nombre),
    * cae la lectura.
    */
-  const throughHelper = (
-    access: ts.ElementAccessExpression,
-    parameter: ts.ParameterDeclaration,
-  ) => {
+  const throughHelper = (access: ts.Expression, parameter: ts.ParameterDeclaration) => {
     const helper = parameter.parent;
     const named = ts.isFunctionDeclaration(helper)
       ? helper
@@ -507,32 +596,52 @@ function readsIn(file: TextFile): PositionalRead[] {
     }
   };
 
+  /** Una lectura de `target` en la posición `subscript`: `target[subscript]` o `target.at(subscript)`. */
+  const read = (node: ts.Expression, target: ts.Expression, subscript: ts.Expression) => {
+    const { origins, receivers, params, traversed } = originsOf(subscript, source);
+    const list = isLabelList(target);
+    if (onlyLiteral(origins)) {
+      if (ts.isElementAccessExpression(node) && isLabelRecord(target)) {
+        report(node, "recordByNumber");
+      }
+      return;
+    }
+    const form = formOf(origins);
+    if (form === "indexOf" || form === "storedIndex") {
+      // Buscar una posición en una lista y leer esa misma lista no empareja dos secuencias.
+      const name = compact(target.getText(source));
+      if (!receivers.every((receiver) => receiver === name)) {
+        report(node, form);
+      }
+    } else if (form === "positionConstant") {
+      report(node, form);
+    } else if (list && form === "computedIndex" && params.length > 0) {
+      for (const parameter of params) {
+        throughHelper(node, parameter);
+      }
+    } else if (list) {
+      report(node, form);
+    } else if (form === "traversal" && traversed.some((sequence) => isLabelList(sequence))) {
+      // El recorrido inverso: recorre las etiquetas y lee con su índice el orden, que no es del catálogo.
+      report(node, form);
+    }
+  };
+
   const visit = (node: ts.Node) => {
     ts.forEachChild(node, visit);
     if (ts.isElementAccessExpression(node)) {
-      const { origins, receivers, params } = originsOf(node.argumentExpression, source);
-      const list = isLabelList(node.expression);
-      if (onlyLiteral(origins)) {
-        if (isLabelRecord(node.expression)) {
-          report(node, "recordByNumber");
-        }
-        return;
-      }
-      const form = formOf(origins);
-      if (form === "indexOf" || form === "storedIndex") {
-        // Buscar una posición en una lista y leer esa misma lista no empareja dos secuencias.
-        const target = compact(node.expression.getText(source));
-        if (!receivers.every((receiver) => receiver === target)) {
-          report(node, form);
-        }
-      } else if (form === "positionConstant") {
-        report(node, form);
-      } else if (list && form === "computedIndex" && params.length > 0) {
-        for (const parameter of params) {
-          throughHelper(node, parameter);
-        }
-      } else if (list) {
-        report(node, form);
+      read(node, node.expression, node.argumentExpression);
+      return;
+    }
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === "at" &&
+      node.arguments.length === 1
+    ) {
+      const [subscript] = node.arguments;
+      if (subscript) {
+        read(node, node.expression.expression, subscript);
       }
       return;
     }
@@ -603,6 +712,27 @@ function writtenValues(expression: ts.Expression, depth = 0): string[] | null {
 }
 
 /**
+ * Cómo se llama el orden donde se declaró: el nombre de afuera si el import lo renombra, o el de la
+ * tupla que una constante del archivo solo guarda. Así un orden no pasa por otro con llamarse igual.
+ */
+function declaredOrder(expression: ts.Expression, source: ts.SourceFile, depth = 0): string {
+  const node = unwrap(expression);
+  if (ts.isIdentifier(node) && depth <= DEPTH) {
+    const declaration = declarationOf(node);
+    if (declaration && ts.isImportSpecifier(declaration) && declaration.propertyName) {
+      return declaration.propertyName.text;
+    }
+    if (declaration && ts.isVariableDeclaration(declaration) && declaration.initializer) {
+      const initializer = unwrap(declaration.initializer);
+      if (ts.isIdentifier(initializer) || ts.isPropertyAccessExpression(initializer)) {
+        return declaredOrder(initializer, source, depth + 1);
+      }
+    }
+  }
+  return compact(node.getText(source));
+}
+
+/**
  * Cada llamada a `tLabels` de los archivos: qué lista lee y con qué orden. `tLabels` compara largos,
  * no pares: con otra lista del mismo largo compila igual. Quien llama compara esto con la tabla de
  * pares (`tests/unit/enum-label-pairs.table.ts`).
@@ -634,7 +764,7 @@ export function labelCalls(files: TextFile[]): LabelCall[] {
             path: file.path,
             line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
             code: code && ts.isStringLiteralLike(code) ? code.text : null,
-            order: compact(unwrap(order).getText(source)),
+            order: declaredOrder(order, source),
             values: writtenValues(order),
           });
         }
