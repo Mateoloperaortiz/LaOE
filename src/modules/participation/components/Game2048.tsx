@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
+import { type ClientCopyCode, t, tLabels, tList } from "@/shared/copy/client";
 import { ArrowDownIcon } from "@/shared/ui/icons/ArrowDownIcon";
 import { ArrowLeftIcon } from "@/shared/ui/icons/ArrowLeftIcon";
 import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
@@ -32,7 +32,8 @@ import { game2048Finished, game2048ReleasedBy } from "./game2048-resume";
 // manda solo la lista de movimientos y el servidor la rejuega. Cada ficha lleva su número, así que
 // nunca hay información solo en color, y se opera con flechas, con botones o deslizando.
 
-const DIRECTIONS: Game2048Move[] = ["U", "D", "L", "R"];
+const DIRECTIONS = ["U", "D", "L", "R"] as const satisfies readonly Game2048Move[];
+const DIRECTION_LABELS = tLabels("T-2639", DIRECTIONS);
 const KEYS: Record<string, Game2048Move> = {
   ArrowUp: "U",
   ArrowDown: "D",
@@ -319,7 +320,7 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
       {playing ? (
         <fieldset className="mx-auto grid w-full max-w-sm grid-cols-4 gap-2 border-0 p-0">
           <legend className="sr-only">{t("T-2638")}</legend>
-          {DIRECTIONS.map((direction, index) => {
+          {DIRECTIONS.map((direction) => {
             const Arrow = ARROWS[direction];
             return (
               <button
@@ -329,7 +330,7 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
                 className="boton-secundario justify-center text-lg"
               >
                 <Arrow />
-                <span className="sr-only">{tList("T-2639")[index] ?? direction}</span>
+                <span className="sr-only">{DIRECTION_LABELS[direction] ?? direction}</span>
               </button>
             );
           })}

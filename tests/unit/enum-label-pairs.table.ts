@@ -1241,6 +1241,12 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       own: true,
     },
     {
+      file: "src/modules/participation/components/Game2048.tsx",
+      order: "DIRECTIONS",
+      code: "T-2639",
+      own: true,
+    },
+    {
       file: "src/app/admin/sistema/importaciones/page.tsx",
       order: "IMPORT_GROUPS",
       code: "T-482",
