@@ -4,14 +4,7 @@ import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import type { BoosterKind } from "../gamification-types";
-import {
-  type BadgeDelta,
-  createSpecialBadge,
-  markSeen,
-  recomputeBadgesFor,
-  type SpecialBadgeInput,
-  setFeatured,
-} from "./badges";
+import { createSpecialBadge, markSeen, type SpecialBadgeInput, setFeatured } from "./badges";
 import {
   type BoosterRow,
   type BoosterTarget,
@@ -305,14 +298,6 @@ export function markSeenAs(
   achievementIds: string[],
 ): Promise<void> {
   return runCommand(actor, (ctx) => markSeen(ctx, actor.personId, achievementIds));
-}
-
-/** Recompute manual desde el panel de GH (la vía normal son los handlers del outbox). */
-export function recomputeBadgesForAs(
-  actor: Actor & { personId: string },
-  personId: string,
-): Promise<BadgeDelta> {
-  return recomputeBadgesFor(personId, { historical: false, actor });
 }
 
 // Conciliación histórica (ADR-067 regla 13): solo GH; Simular (DRY_RUN) no escribe y Aplicar

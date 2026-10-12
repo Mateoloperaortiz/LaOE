@@ -125,7 +125,6 @@ export {
   grantBoosterAs,
   markSeenAs,
   publishChallengeAs,
-  recomputeBadgesForAs,
   resumeReconciliationAs,
   reviewParticipationAs,
   revokeBoosterAs,
@@ -157,7 +156,6 @@ export {
   windowState,
 } from "./domain/occasion-pure";
 export {
-  countApproved,
   getOccasion,
   getOccasionByPublicId,
   getOccasionsByIds,
@@ -210,22 +208,18 @@ export {
   submitWordleGuessAs,
 } from "./domain/wordle";
 export { runWordleReminder } from "./domain/wordle-reminder";
-export type { Game2048Result, Game2048StartResult, StartGame2048Input } from "./game2048-types";
+export type { Game2048Result, Game2048StartResult } from "./game2048-types";
 export type {
   BoosterKind,
   BoosterState,
   ChallengeState,
   ChallengeSubmitReply,
-  EvidenceFileStatus,
   MemberChallengeStatus,
 } from "./gamification-types";
 export {
   BADGE_FAMILIES,
   BOOSTER_KINDS,
   BOOSTER_STATES,
-  CHALLENGE_AUDIENCES,
   CHALLENGE_KINDS,
-  MEMBER_CHALLENGE_STATUSES,
-  PARTICIPATION_STATUSES,
 } from "./gamification-types";
 export type { SudokuResult, SudokuStartResult } from "./sudoku-types";

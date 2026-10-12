@@ -149,15 +149,6 @@ const EXCEPTIONS: Exceptions = {
     `,
   },
   participation: {
-    nadie: `
-      CHALLENGE_AUDIENCES
-      EvidenceFileStatus
-      MEMBER_CHALLENGE_STATUSES
-      PARTICIPATION_STATUSES
-      StartGame2048Input
-      countApproved
-      recomputeBadgesForAs
-    `,
     "solo-pruebas": `
       CheckInSource
       checkInLink

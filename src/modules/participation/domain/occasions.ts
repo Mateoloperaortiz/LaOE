@@ -9,7 +9,7 @@ import { lockOpenTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { checkIn, occasion } from "../schema";
+import { occasion } from "../schema";
 import {
   canOpenOccasion,
   canTransitionOccasion,
@@ -555,15 +555,6 @@ export async function searchOccasions(q: string, limit = 8): Promise<OccasionRef
     .where(or(sql`similarity(${occasion.title}, ${q}) > 0.2`, ilike(occasion.title, `%${q}%`)))
     .orderBy(sql`similarity(${occasion.title}, ${q}) desc`, asc(occasion.startsAt))
     .limit(limit);
-}
-
-/** Cuántos check-ins aprobados tiene una ocasión (para pruebas y listados). */
-export async function countApproved(occasionId: string): Promise<number> {
-  const [row] = await getDb()
-    .select({ n: count() })
-    .from(checkIn)
-    .where(and(eq(checkIn.occasionId, occasionId), eq(checkIn.status, "APPROVED")));
-  return row?.n ?? 0;
 }
 
 /** Ocasiones abiertas del término cuya ventana no venció, de la más próxima a la más lejana (agenda de Mi OE). */
