@@ -130,3 +130,63 @@ export function createStartGate(): (
     }
   };
 }
+
+/** Lo que el lector necesita de un flujo de video para apagarlo. Lo cumple `MediaStream`. */
+type VideoStream = { getTracks: () => { stop: () => void }[] };
+
+export type CameraSteps<Stream> = {
+  /**
+   * Pide el flujo de video, como `getUserMedia`: espera a que la persona conteste el permiso y rechaza
+   * si lo niega. `null` si el navegador no tiene cómo pedirlo.
+   */
+  open: (() => Promise<Stream>) | null;
+  /** Engancha el flujo al video y lo pone a andar. `false` si no hay video donde engancharlo. */
+  attach: (stream: Stream) => Promise<boolean>;
+  /** Arranca el sondeo (`startScanLoop`) y devuelve cómo detenerlo. */
+  poll: () => () => void;
+  /** Pinta el estado del lector. */
+  show: (state: ScanState) => void;
+  /** El texto de la cámara que no se puede usar. */
+  cameraError: string;
+};
+
+/**
+ * La cámara del lector: el flujo de video encendido y su sondeo. `start` pide el flujo, lo engancha al
+ * video, pinta «Detener» y arranca el sondeo; `stop` apaga el sondeo y el flujo.
+ */
+export function createCamera<Stream extends VideoStream>(): {
+  start: (steps: CameraSteps<Stream>) => Promise<void>;
+  stop: () => void;
+} {
+  let stream: Stream | null = null;
+  let stopPoll: (() => void) | null = null;
+
+  function stop(): void {
+    stopPoll?.();
+    stopPoll = null;
+    for (const track of stream?.getTracks() ?? []) {
+      track.stop();
+    }
+    stream = null;
+  }
+
+  async function start({ open, attach, poll, show, cameraError }: CameraSteps<Stream>) {
+    if (!open) {
+      show({ kind: "error", message: cameraError });
+      return;
+    }
+    try {
+      stream = await open();
+    } catch {
+      show({ kind: "error", message: cameraError });
+      return;
+    }
+    if (!(await attach(stream))) {
+      return;
+    }
+    show({ kind: "scanning" });
+    stopPoll = poll();
+  }
+
+  return { start, stop };
+}

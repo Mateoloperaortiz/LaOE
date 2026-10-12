@@ -1,14 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  createCamera,
   createStartGate,
   readPhoto,
+  type ScanState,
   sendScan,
   startScanLoop,
 } from "@/modules/participation/components/scan-loop";
 import { t } from "@/shared/copy";
 
 // El lector del carnet (ADR-118 regla 19): el sondeo con temporizadores falsos y el envío de una lectura.
-// Y lo que decide con una foto y con un segundo toque a «Escanear» (ADR-120 regla 15).
+// Y lo que decide con una foto y con un segundo toque a «Escanear» (ADR-120 regla 15). Abajo, la cámara:
+// la secuencia de arranque que vivía en el componente (ADR-127 regla 5).
 
 const FAILED = t("T-3251");
 const NO_CODE = t("T-617");
@@ -221,5 +224,147 @@ describe("lector del carnet", () => {
     expect(await start(granted, off)).toBe(true);
     expect(await start(granted, off)).toBe(true);
     expect(granted).toHaveBeenCalledTimes(2);
+  });
+});
+
+/** Un flujo de video como el de `getUserMedia`: una pista que se puede apagar. */
+function fakeStream() {
+  let live = true;
+  return {
+    live: () => live,
+    getTracks: () => [
+      {
+        stop: () => {
+          live = false;
+        },
+      },
+    ],
+  };
+}
+
+type FakeStream = ReturnType<typeof fakeStream>;
+
+/** Una espera que la prueba resuelve cuando quiere: el permiso de la cámara, o el video que arranca. */
+function held<T>() {
+  let resolve: (value: T) => void = () => {};
+  let reject: (reason: Error) => void = () => {};
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { promise, resolve, reject };
+}
+
+/** Los pasos que el componente le pasa a la cámara, con lo que el lector pintó y el sondeo que arrancó. */
+function wiring(
+  open: (() => Promise<FakeStream>) | null,
+  attach: (stream: FakeStream) => Promise<boolean> = async () => true,
+) {
+  const shown: ScanState[] = [];
+  const stopPoll = vi.fn();
+  const steps = {
+    open,
+    attach: vi.fn(attach),
+    poll: vi.fn(() => stopPoll),
+    show: (state: ScanState) => void shown.push(state),
+    cameraError: NO_CODE,
+  };
+  return { steps, shown, stopPoll };
+}
+
+describe("cámara del lector del carnet", () => {
+  it("un arranque sin interrupciones pide el flujo, lo engancha al video, pinta «Detener» y arranca el sondeo, en ese orden", async () => {
+    const stream = fakeStream();
+    const order: string[] = [];
+
+    await createCamera<FakeStream>().start({
+      open: async () => {
+        order.push("pide el flujo");
+        return stream;
+      },
+      attach: async (given) => {
+        order.push(given === stream ? "engancha el flujo al video" : "engancha otro flujo");
+        return true;
+      },
+      poll: () => {
+        order.push("arranca el sondeo");
+        return () => {};
+      },
+      show: (state) => void order.push(`pinta ${state.kind}`),
+      cameraError: NO_CODE,
+    });
+
+    expect(order).toEqual([
+      "pide el flujo",
+      "engancha el flujo al video",
+      "pinta scanning",
+      "arranca el sondeo",
+    ]);
+    expect(stream.live()).toBe(true);
+  });
+
+  it("detener apaga el sondeo y el flujo, y detener otra vez no tiene nada que apagar", async () => {
+    const stream = fakeStream();
+    const camera = createCamera<FakeStream>();
+    const { steps, stopPoll } = wiring(async () => stream);
+    await camera.start(steps);
+
+    camera.stop();
+
+    expect(stopPoll).toHaveBeenCalledTimes(1);
+    expect(stream.live()).toBe(false);
+    camera.stop();
+    expect(stopPoll).toHaveBeenCalledTimes(1);
+  });
+
+  it("sin cómo pedir la cámara, o con el permiso negado, queda el error de la cámara y nada se engancha", async () => {
+    const denied = async (): Promise<FakeStream> => {
+      throw new Error("NotAllowedError");
+    };
+    for (const open of [null, denied]) {
+      const { steps, shown } = wiring(open);
+
+      await createCamera<FakeStream>().start(steps);
+
+      expect(shown).toEqual([{ kind: "error", message: NO_CODE }]);
+      expect(steps.attach).not.toHaveBeenCalled();
+      expect(steps.poll).not.toHaveBeenCalled();
+    }
+  });
+
+  it("un permiso que se niega después de detener el lector pinta igual el error de la cámara", async () => {
+    // Conducta de hoy, conservada: qué se le muestra a quien sube una foto y después niega el permiso no
+    // lo elige este arreglo (DT-254, inciso f).
+    const permission = held<FakeStream>();
+    const camera = createCamera<FakeStream>();
+    const { steps, shown } = wiring(() => permission.promise);
+    const starting = camera.start(steps);
+
+    camera.stop();
+    permission.reject(new Error("NotAllowedError"));
+    await starting;
+
+    expect(shown).toEqual([{ kind: "error", message: NO_CODE }]);
+  });
+
+  it("si el video no arranca, el arranque falla sin pintar nada y la cámara sigue encendida hasta que detienen el lector", async () => {
+    // Conducta de hoy, conservada (DT-254, inciso g): el flujo queda guardado, y lo apaga el siguiente
+    // toque a «Escanear» o salir de la pantalla.
+    const stream = fakeStream();
+    const camera = createCamera<FakeStream>();
+    const { steps, shown } = wiring(
+      async () => stream,
+      async () => {
+        throw new Error("AbortError");
+      },
+    );
+
+    await expect(camera.start(steps)).rejects.toThrow("AbortError");
+
+    expect(shown).toEqual([]);
+    expect(steps.poll).not.toHaveBeenCalled();
+    expect(stream.live()).toBe(true);
+    camera.stop();
+    expect(stream.live()).toBe(false);
   });
 });
