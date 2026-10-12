@@ -711,7 +711,6 @@ export const PAIRS: readonly LabelPair[] = [
     order: "CHALLENGE_KINDS",
     positions: { PRESENTIAL: 0, TRIVIA: 1, EVIDENCE: 2 },
     canonical: CHALLENGE_KINDS,
-    copies: ["src/modules/participation/components/ChallengeEditor.tsx"],
   },
   {
     code: "T-2410",

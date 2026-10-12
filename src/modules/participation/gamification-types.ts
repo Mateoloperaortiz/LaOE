@@ -71,7 +71,11 @@ export interface RewardBreakdown {
   capped: boolean;
 }
 
-export const CHALLENGE_KINDS: readonly ChallengeKind[] = ["PRESENTIAL", "TRIVIA", "EVIDENCE"];
+export const CHALLENGE_KINDS = [
+  "PRESENTIAL",
+  "TRIVIA",
+  "EVIDENCE",
+] as const satisfies readonly ChallengeKind[];
 export const BOOSTER_KINDS = ["PLUS_50", "PLUS_100"] as const satisfies readonly BoosterKind[];
 export const BOOSTER_STATES = [
   "AVAILABLE",

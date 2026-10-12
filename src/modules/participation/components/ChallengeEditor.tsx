@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAdminFormState } from "@/shared/admin-kit/AdminFormDrafts";
-import { t, tList } from "@/shared/copy/client";
+import { t, tLabels, tList } from "@/shared/copy/client";
 import { PlusIcon } from "@/shared/ui/icons/PlusIcon";
 import { XIcon } from "@/shared/ui/icons/XIcon";
-import type { ChallengeAudience, ChallengeKind } from "../gamification-types";
+import { CHALLENGE_KINDS, type ChallengeAudience, type ChallengeKind } from "../gamification-types";
 
 // Editor del admin para retos (ADR-067 reglas 2 y 3): serializa las preguntas como JSON en un
 // input oculto y deja solo título y descripción editables cuando el reto ya está publicado.
@@ -47,8 +47,14 @@ interface EditorState {
   questions: ChallengeQuestionDraft[];
 }
 
-const KINDS: ChallengeKind[] = ["PRESENTIAL", "TRIVIA", "EVIDENCE"];
-const AUDIENCES: ChallengeAudience[] = ["ALL", "NEW", "VETERAN", "COMMITTEES"];
+// No hay tupla canónica de las audiencias: el orden vive acá, y lo cuida la tabla de
+// tests/unit/enum-label-pairs.test.ts.
+const AUDIENCES = [
+  "ALL",
+  "NEW",
+  "VETERAN",
+  "COMMITTEES",
+] as const satisfies readonly ChallengeAudience[];
 const inputClass =
   "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none disabled:opacity-60";
 
@@ -61,8 +67,8 @@ export function ChallengeEditor({
 }: ChallengeEditorProps) {
   const labels = tList("T-2504");
   const [, , , agregarPregunta, quitarPregunta, agregarOpcion] = tList("T-2508");
-  const kinds = tList("T-2409");
-  const audiences = tList("T-2411");
+  const kinds = tLabels("T-2409", CHALLENGE_KINDS);
+  const audiences = tLabels("T-2411", AUDIENCES);
   // Tras un error el formulario se remonta: se retoma lo elegido para que el borrador encaje.
   const memory = useAdminFormState<EditorState>("reto");
   const [saved] = useState(() => memory.read());
@@ -116,9 +122,9 @@ export function ChallengeEditor({
           onChange={(event) => setKind(event.target.value as ChallengeKind)}
           className={inputClass}
         >
-          {KINDS.map((value, index) => (
+          {CHALLENGE_KINDS.map((value) => (
             <option key={value} value={value}>
-              {kinds[index] ?? value}
+              {kinds[value] ?? value}
             </option>
           ))}
         </select>
@@ -156,9 +162,9 @@ export function ChallengeEditor({
           onChange={(event) => setAudience(event.target.value as ChallengeAudience)}
           className={inputClass}
         >
-          {AUDIENCES.map((value, index) => (
+          {AUDIENCES.map((value) => (
             <option key={value} value={value}>
-              {audiences[index] ?? value}
+              {audiences[value] ?? value}
             </option>
           ))}
         </select>
