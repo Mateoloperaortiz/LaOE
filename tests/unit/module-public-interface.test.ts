@@ -767,22 +767,35 @@ function mismatches(modules: ModuleInterface[], exceptions: Exceptions): string[
 }
 
 /**
- * Las entradas que `knip.ts` escribe en `entry`, leídas del texto. Falla si `entry` no es una lista
- * de textos escritos ahí: lo que se arme de otro modo no se puede comparar con la lista.
+ * Las entradas que `knip.ts` escribe en `entry`, leídas del texto. Recorre la lista pieza por pieza
+ * (un texto entre comillas dobles, una coma, un comentario de renglón) hasta su `]`, y falla ante
+ * cualquier otra cosa: lo que se arme de otro modo no se puede comparar con la lista.
  */
 function knipEntries(text: string): string[] {
-  const body = /\bentry:\s*\[([^\]]*)\]/.exec(text)?.[1];
-  if (body === undefined) {
+  const opening = /\bentry:\s*\[/.exec(text);
+  if (!opening) {
     throw new Error("No se puede leer `entry` en knip.ts: no es una lista escrita ahí");
   }
-  const written = body.replace(/^\s*\/\/.*$/gm, "");
-  const rest = written.replace(/"[^"\n]*"/g, "").replace(/[\s,]/g, "");
-  if (rest !== "") {
-    throw new Error(
-      `No se puede leer \`entry\` en knip.ts: tiene algo que no es un texto (${rest})`,
-    );
+  const piece = /\s+|,|\/\/[^\n]*|"([^"\n]*)"|(\])/y;
+  const entries: string[] = [];
+  let at = opening.index + opening[0].length;
+  for (;;) {
+    piece.lastIndex = at;
+    const match = piece.exec(text);
+    if (!match) {
+      const unread = text.slice(at, at + 40).split("\n")[0];
+      throw new Error(
+        `No se puede leer \`entry\` en knip.ts: tiene algo que no es un texto (${unread})`,
+      );
+    }
+    if (match[2]) {
+      return entries;
+    }
+    if (match[1] !== undefined) {
+      entries.push(match[1]);
+    }
+    at = piece.lastIndex;
   }
-  return [...written.matchAll(/"([^"\n]*)"/g)].map((match) => match[1] ?? "");
 }
 
 const MODULE_ENTRY = /^src\/modules\/([a-z0-9-]+)\/index\.ts$/;
@@ -1114,6 +1127,7 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
           lines(
             "  entry: [",
             '    // Un comentario que nombra "src/modules/*/index.ts" no es una entrada.',
+            "    // Tampoco corta la lista un comentario con un corchete: [nota].",
             '    "scripts/bench.ts",',
             '    "src/modules/alpha/index.ts",',
             '    ".railway/**/*.ts",',
@@ -1129,6 +1143,12 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
     expect(() =>
       knipEntries(config('  entry: ["scripts/bench.ts", `src/modules/alpha/index.ts`],')),
     ).toThrow("tiene algo que no es un texto");
+    expect(() =>
+      knipEntries(config('  entry: ["scripts/bench.ts", /* ] */ "src/modules/*/index.ts"],')),
+    ).toThrow("tiene algo que no es un texto");
+    expect(() => knipEntries('const config = { entry: ["scripts/bench.ts",')).toThrow(
+      "tiene algo que no es un texto",
+    );
     expect(() => knipEntries(config("  entry: ENTRIES,"))).toThrow("no es una lista escrita ahí");
     expect(() => knipEntries(config(""))).toThrow("no es una lista escrita ahí");
   });
