@@ -11,8 +11,11 @@ import {
 } from "@/modules/participation/schema";
 import { COMPLIANCE_STATES } from "@/modules/permanence/domain/snapshot-pure";
 import {
+  FALLBACK_SHAPES,
   type LabelCall,
+  type LabelFallback,
   labelCalls,
+  labelFallbacks,
   POSITIONAL_FORMS,
   type PositionalForm,
   type PositionalRead,
@@ -20,6 +23,7 @@ import {
   positionalLabelReads,
 } from "../../scripts/lib/label-position-metrics";
 import { PAIRS, UNSEEN_PAIRS } from "./enum-label-pairs.table";
+import { FALLBACKS_BY_FILE } from "./label-fallbacks.table";
 
 // DT-011: la etiqueta de un valor de un enum se lee por valor, con `tLabels(código, ENUM)[valor]`, y
 // no por la posición del valor en una lista del catálogo de textos. La migración de la spec #242 dejó
@@ -759,5 +763,54 @@ describe("cada llamada a tLabels de src arma un par de la tabla", () => {
     const seeded = labelCalls([{ path: "src/app/sembrado/page.ts", text }]);
     expect(seeded).toHaveLength(1);
     expect(seeded.filter(paired)).toHaveLength(1);
+  });
+});
+
+// Qué muestra un sitio cuando un valor no tiene etiqueta espera la decisión abierta 75 (DT-372). La
+// migración conservó el respaldo de cada lectura, pero nada lo cuidaba: el tipo de `tLabels` ya no lo
+// pide donde el valor es del enum, y quitar el `?? ""` del motivo guardado de un crédito o cambiarlo
+// por el valor crudo dejaba `tsc` y todas las pruebas en verde. Acá queda, por archivo, cuántas
+// lecturas caen a qué (ADR-126 regla 3). Ve el `Record` leído en la llamada o en la variable del
+// archivo que lo guarda; el que llega por parámetro o por props lo cuidan las pruebas de su sitio.
+describe("cada lectura por valor conserva el respaldo que tenía", () => {
+  /** Por archivo, cuántas lecturas tienen cada forma de respaldo, en el orden de `FALLBACK_SHAPES`. */
+  const byFile = (found: LabelFallback[]) =>
+    Object.fromEntries(
+      [...new Set(found.map(({ path }) => path))].map((path) => [
+        path,
+        FALLBACK_SHAPES.map(
+          (shape) => found.filter((read) => read.path === path && read.shape === shape).length,
+        ),
+      ]),
+    );
+  const fallbacks = labelFallbacks(files);
+
+  it("encuentra las lecturas por valor de src", () => {
+    expect(fallbacks.length).toBeGreaterThan(150);
+  });
+
+  it("ningún archivo de src quita, agrega ni cambia un respaldo (decisión abierta 75)", () => {
+    expect(byFile(fallbacks)).toEqual(FALLBACKS_BY_FILE);
+  });
+
+  it("sembrada en memoria, reconoce cada forma de respaldo", () => {
+    const text = `${HEAD}const labels: Readonly<Record<string, string>> = tLabels("T-444", KINDS);
+export const raw = (kind: string) => labels[kind] ?? kind;
+export const empty = (kind: string) => (labels[kind] ?? "");
+export const other = (kind: string) => labels[kind] ?? labels.A;
+export const none = (kind: string) => labels[kind];
+export const direct = (kind: "A" | "B") => tLabels("T-444", KINDS)[kind] ?? "";
+export const cast = (kind: string) => labels[kind as "A"] ?? kind;
+`;
+    const seeded = labelFallbacks([{ path: "src/app/sembrado/page.ts", text }]);
+    expect(seeded.map(({ shape }) => shape)).toEqual([
+      "raw",
+      "empty",
+      "other",
+      "none",
+      "empty",
+      "raw",
+    ]);
+    expect(new Set(seeded.map(({ shape }) => shape))).toEqual(new Set(FALLBACK_SHAPES));
   });
 });

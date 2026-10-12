@@ -866,3 +866,72 @@ export function labelCalls(files: TextFile[]): LabelCall[] {
     return found;
   });
 }
+
+/**
+ * - `raw`: cae al valor con el que se leyó (`etiquetas[valor] ?? valor`).
+ * - `empty`: cae a una cadena vacía (`?? ""`).
+ * - `other`: cae a otra cosa (la primera etiqueta, un texto del catálogo).
+ * - `none`: no tiene respaldo.
+ */
+export const FALLBACK_SHAPES = ["raw", "empty", "other", "none"] as const;
+export type FallbackShape = (typeof FALLBACK_SHAPES)[number];
+
+export interface LabelFallback {
+  path: string;
+  line: number;
+  shape: FallbackShape;
+  /** La lectura, sin espacios. */
+  read: string;
+}
+
+/**
+ * El respaldo de cada lectura por valor de un `Record` de `tLabels` o de `labelsFromProps`: lo que
+ * el sitio muestra cuando el valor no tiene etiqueta. La migración de la spec #242 no cambió ninguno
+ * y qué se muestra ahí espera una decisión (ADR-126 regla 3): quien llama los compara con su cuenta
+ * por archivo. Como lo demás, lee sin tipos: ve el `Record` leído en la llamada o en la variable del
+ * archivo que lo guarda, no el que llega por parámetro, por props o en la propiedad de un objeto.
+ */
+export function labelFallbacks(files: TextFile[]): LabelFallback[] {
+  return files.filter(isSource).flatMap((file) => {
+    const source = parse(file);
+    const found: LabelFallback[] = [];
+    const visit = (node: ts.Node) => {
+      ts.forEachChild(node, visit);
+      if (!ts.isElementAccessExpression(node) || !isLabelRecord(node.expression)) {
+        return;
+      }
+      let outer: ts.Node = node;
+      while (
+        ts.isParenthesizedExpression(outer.parent) ||
+        ts.isNonNullExpression(outer.parent) ||
+        ts.isAsExpression(outer.parent)
+      ) {
+        outer = outer.parent;
+      }
+      const parent = outer.parent;
+      const fallback =
+        ts.isBinaryExpression(parent) &&
+        parent.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken &&
+        parent.left === outer
+          ? unwrap(parent.right)
+          : undefined;
+      const key = compact(unwrap(node.argumentExpression).getText(source));
+      let shape: FallbackShape = "other";
+      if (!fallback) {
+        shape = "none";
+      } else if (ts.isStringLiteralLike(fallback) && fallback.text === "") {
+        shape = "empty";
+      } else if (compact(fallback.getText(source)) === key) {
+        shape = "raw";
+      }
+      found.push({
+        path: file.path,
+        line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+        shape,
+        read: compact(node.getText(source)),
+      });
+    };
+    visit(source);
+    return found;
+  });
+}
