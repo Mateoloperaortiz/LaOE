@@ -8,6 +8,7 @@ import { requestEventApprovalAs } from "@/modules/finance";
 import { eventApproval } from "@/modules/finance/schema";
 import {
   anonymizePersonAs,
+  changeMembershipStatus,
   changeMembershipStatusAs,
   endMembershipAs,
   lockMembershipCycle,
@@ -15,7 +16,6 @@ import {
   requestDeletionAs,
   setProbationAs,
 } from "@/modules/people";
-import { changeMembershipStatus } from "@/modules/people/domain/membership";
 import { membership, membershipTerm, person } from "@/modules/people/schema";
 import { getCurrentTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";

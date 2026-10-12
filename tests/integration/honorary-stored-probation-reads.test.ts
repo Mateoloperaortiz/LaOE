@@ -2,9 +2,9 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { recordSanctionAs } from "@/modules/people";
-import { honoraryFacts } from "@/modules/people/domain/honorary";
-import { changeMembershipStatus, honoraryBlockedAmong } from "@/modules/people/domain/membership";
+import { changeMembershipStatus, honoraryFacts, recordSanctionAs } from "@/modules/people";
+// La regla de la vista previa del roster no sale por el `index.ts` del módulo: solo la usa `people`.
+import { honoraryBlockedAmong } from "@/modules/people/domain/membership";
 import { membership } from "@/modules/people/schema";
 import { getCurrentTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
