@@ -56,9 +56,9 @@ export const complianceResource: ResourceDefinition<ComplianceRow, Empty> = {
     {
       key: "filtro",
       label: tList("T-789")[0] ?? "",
-      options: COMPLIANCE_FILTERS.map((value, index) => ({
+      options: COMPLIANCE_FILTERS.map((value) => ({
         value,
-        label: tList("T-789")[index] ?? value,
+        label: tLabels("T-789", COMPLIANCE_FILTERS)[value] ?? value,
       })),
     },
   ],
