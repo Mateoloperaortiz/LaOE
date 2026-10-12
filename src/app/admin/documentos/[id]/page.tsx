@@ -8,7 +8,7 @@ import { requireAdminActor } from "@/modules/identity";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { loadArticlesAction, publicationAction } from "../actions";
 
 const ID = /^[a-z0-9]{10,40}$/;
@@ -41,7 +41,7 @@ export default async function DocumentPreviewPage({
   const loaded = typeof search.cargado === "string" ? search.cargado : "";
   const [draft, published] = tList("T-288");
   const [publicAudience, memberAudience] = tList("T-339");
-  const kinds = tList("T-394");
+  const kinds = tLabels("T-394", DOCUMENT_KINDS);
   const document = detail.document;
   return (
     <div className="admin-page flex min-w-0 flex-col gap-6">
@@ -54,7 +54,7 @@ export default async function DocumentPreviewPage({
           <Insignia fondo={document.status === "PUBLISHED" ? "azul" : "sky"}>
             {document.status === "PUBLISHED" ? published : draft}
           </Insignia>
-          <span>{kinds[DOCUMENT_KINDS.indexOf(document.kind)]}</span>
+          <span>{kinds[document.kind]}</span>
           <span>{t("T-395", { v: document.version })}</span>
           <span>{document.audience === "PUBLIC" ? publicAudience : memberAudience}</span>
         </div>

@@ -11,7 +11,7 @@ import { DocumentUploader } from "@/modules/content/components/DocumentUploader"
 import { requireAdminActor } from "@/modules/identity";
 import { Pagination, ResourcePanel } from "@/shared/admin-kit";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 
 const [plural] = tList("T-425");
@@ -38,7 +38,7 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
   if (page > totalPages) redirect(hrefFor(totalPages, params.nuevo === "1"));
   const columnas = tList("T-500");
   const [borrador, publicado] = tList("T-288");
-  const kinds = tList("T-394");
+  const kinds = tLabels("T-394", DOCUMENT_KINDS);
   const [publico, soloMiembros] = tList("T-339");
   const [previous, next] = tList("T-258");
   return (
@@ -104,7 +104,7 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
                   <Link href={`${BASE}/${row.id}`}>{row.title}</Link>
                 </td>
                 <td data-label={columnas[1]} className="px-4 py-3">
-                  {kinds[DOCUMENT_KINDS.indexOf(row.kind)] ?? row.kind}
+                  {kinds[row.kind] ?? row.kind}
                 </td>
                 <td data-label={columnas[2]} className="px-4 py-3">
                   {row.version}
@@ -149,7 +149,7 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
             maxBytes={DOCUMENT_MAX_BYTES}
             labels={{
               fields: tList("T-494"),
-              kinds,
+              kinds: [...tList("T-394")],
               audiences: [publico, soloMiembros],
               help: t("T-1465"),
               uploading: t("T-359"),
