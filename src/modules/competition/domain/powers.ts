@@ -2,7 +2,7 @@ import { and, asc, eq, isNull, ne, notExists, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   competitionMatchup,
@@ -36,7 +36,7 @@ const idField = z.string().trim().min(1);
 const reasonField = z.string().trim().min(2).max(200);
 
 export function powerName(power: Power): string {
-  return tList("T-3040")[POWER_TYPES.indexOf(power)] ?? power;
+  return tLabels("T-3040", POWER_TYPES)[power] ?? power;
 }
 
 function dayName(value: number): string {

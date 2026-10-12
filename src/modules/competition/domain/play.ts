@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   competitionBase,
@@ -612,10 +612,10 @@ async function writeResult(
     })
     .returning({ id: competitionResult.id });
   if (!result) throw new Error("result insert");
-  const names = tList("T-3040");
+  const names = tLabels("T-3040", POWER_TYPES);
   const reason = resolution
     ? t("T-3061", {
-        poderes: uses.map((use) => names[POWER_TYPES.indexOf(use.power)] ?? use.power).join(", "),
+        poderes: uses.map((use) => names[use.power] ?? use.power).join(", "),
       })
     : "";
   const entries = [

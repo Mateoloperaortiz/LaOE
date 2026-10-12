@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   competitionBase,
@@ -202,9 +202,9 @@ export async function importDaySchedule(
     ...dayBases.map((base) => [base.id, base.name] as const),
     ...newBases.map((base) => [base.tempId, base.name] as const),
   ]);
-  const labels = tList("T-2841");
+  const labels = tLabels("T-2841", SCHEDULE_ISSUE_KINDS);
   const describe = (issue: ScheduleIssue): string => {
-    const label = labels[SCHEDULE_ISSUE_KINDS.indexOf(issue.kind)] ?? issue.kind;
+    const label = labels[issue.kind] ?? issue.kind;
     if ("teamAId" in issue) {
       return `${label}: ${teamLabel.get(issue.teamAId) ?? issue.teamAId} · ${
         teamLabel.get(issue.teamBId) ?? issue.teamBId
