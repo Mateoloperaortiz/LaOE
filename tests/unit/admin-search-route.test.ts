@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/admin/buscar/route";
+import { tList } from "@/shared/copy";
 
 // La paleta ⌘K es solo de ADMIN (ADR-072): otro rol no busca personas ni confirma si un correo existe.
 
@@ -78,5 +79,33 @@ describe("buscador de la paleta ⌘K", () => {
       },
     ]);
     expect(crm.searchOrganizations).toHaveBeenCalledWith("persona");
+  });
+
+  // El subtítulo sale de la casa en el JSON de la paleta: la etiqueta del tipo es la pieza de T-949
+  // de su posición, y un tipo sin etiqueta sale tal cual (DT-011; ese respaldo espera la decisión
+  // abierta 75).
+  it("una organización lleva de subtítulo la etiqueta de su tipo y sus contactos, y un tipo sin etiqueta sale tal cual", async () => {
+    identity.getActor.mockResolvedValue({ isAdmin: true, permissions: [{ code: "ADMIN" }] });
+    people.searchPeople.mockResolvedValue([]);
+    const kinds = ["COMPANY", "EAFIT_UNIT", "STUDENT_GROUP", "OTHER", "NO_EXISTE", "constructor"];
+    crm.searchOrganizations.mockResolvedValue(
+      kinds.map((kind, index) => ({
+        id: `organizacion${index}`,
+        name: `Organización sintética ${index}`,
+        kind,
+        contactCount: index,
+      })),
+    );
+    const response = await GET(search("sintética"));
+    const results: { subtitle: string }[] = (await response.json()).results;
+    const labels = tList("T-949");
+    expect(results.map((item) => item.subtitle)).toEqual([
+      `${labels[0]} · 0`,
+      `${labels[1]} · 1`,
+      `${labels[2]} · 2`,
+      `${labels[3]} · 3`,
+      "NO_EXISTE · 4",
+      "constructor · 5",
+    ]);
   });
 });
