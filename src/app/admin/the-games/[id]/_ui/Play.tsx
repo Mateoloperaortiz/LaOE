@@ -21,7 +21,7 @@ import { ImportarJornada } from "@/modules/competition/components/ImportarJornad
 import { ImportarJurado } from "@/modules/competition/components/ImportarJurado";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { importDayAction, importJuryAction } from "../actions";
 import { OperationForm, type PanelContext, Section, Submit, TeamChip } from "./shared";
@@ -45,8 +45,10 @@ function importLabels(day: 1 | 2) {
   };
 }
 
+const ROTATION_STATUSES = ["PENDING", "ACTIVE", "CLOSED"] as const;
+
 function rotationStatus(status: RotationSummary["status"]): string {
-  return tList("T-2834")[["PENDING", "ACTIVE", "CLOSED"].indexOf(status)] ?? status;
+  return tLabels("T-2834", ROTATION_STATUSES)[status] ?? status;
 }
 
 export function Rotaciones({
@@ -70,7 +72,7 @@ export function Rotaciones({
   const clock = tList("T-2836");
   const [rotacionesLabel, minutos] = tList("T-2832");
   const [errores, advertencias] = tList("T-2840");
-  const issueLabels = tList("T-2841");
+  const issueLabels = tLabels("T-2841", SCHEDULE_ISSUE_KINDS);
   const [quedan, cumplido] = tList("T-2881");
   const active = rotations.find((rotation) => rotation.status === "ACTIVE");
   const teamName = (id: string) => {
@@ -79,7 +81,7 @@ export function Rotaciones({
   };
   const baseName = (id: string) => bases.find((item) => item.id === id)?.name ?? id;
   const describe = (issue: ScheduleReport["errors"][number]) => {
-    const label = issueLabels[SCHEDULE_ISSUE_KINDS.indexOf(issue.kind)] ?? issue.kind;
+    const label = issueLabels[issue.kind] ?? issue.kind;
     if ("teamAId" in issue)
       return `${label}: ${teamName(issue.teamAId)} · ${teamName(issue.teamBId)}`;
     const parts = [
@@ -504,11 +506,11 @@ export function Posiciones({
   scope: string;
   showStandings: boolean;
 }) {
-  const scopes = tList("T-2851");
   const [publicada, oculta] = tList("T-3202");
   const [mostrar, ocultar] = tList("T-3203");
   const columns = tList("T-2852");
   const keys = ["overall", "day1", "day2"] as const;
+  const scopes = tLabels("T-2851", keys);
   const selected = keys.includes(scope as (typeof keys)[number])
     ? (scope as (typeof keys)[number])
     : "overall";
@@ -533,19 +535,19 @@ export function Posiciones({
         </div>
       </div>
       <nav className="flex flex-wrap gap-2" aria-label={tList("T-2805")[6] ?? ""}>
-        {keys.map((key, index) => (
+        {keys.map((key) => (
           <Link
             key={key}
             href={`?area=posiciones&alcance=${key}`}
             aria-current={key === selected ? "page" : undefined}
             className={key === selected ? "boton-primario min-h-11" : "boton-secundario min-h-11"}
           >
-            {scopes[index]}
+            {scopes[key]}
           </Link>
         ))}
       </nav>
       <table className="admin-data-table w-full text-left text-sm">
-        <caption className="sr-only">{scopes[keys.indexOf(selected)]}</caption>
+        <caption className="sr-only">{scopes[selected]}</caption>
         <thead>
           <tr>
             {columns.map((column) => (
@@ -575,7 +577,7 @@ export function Posiciones({
   );
 }
 
-const LEVEL_ORDER = ["EXCELLENT", "GOOD", "FAIR", "TO_IMPROVE"];
+const LEVEL_ORDER = ["EXCELLENT", "GOOD", "FAIR", "TO_IMPROVE"] as const;
 
 /** La rúbrica de una competencia extra: las notas consolidadas de cada equipo, del 1 al 10. */
 function RubricTeams({
@@ -589,7 +591,7 @@ function RubricTeams({
 }) {
   const rubric = extra.rubric;
   if (!rubric) return null;
-  const levels = tList("T-2895");
+  const levels: Readonly<Record<string, string>> = tLabels("T-2895", LEVEL_ORDER);
   return (
     <ul className="m-0 mt-3 flex list-none flex-col divide-y divide-borde p-0">
       {teams.map((team) => {
@@ -609,7 +611,7 @@ function RubricTeams({
                   {own?.total !== null && own?.total !== undefined
                     ? t("T-2896", {
                         total: own.total.toLocaleString("es-CO", { maximumFractionDigits: 1 }),
-                        nivel: levels[LEVEL_ORDER.indexOf(own.level ?? "")] ?? "",
+                        nivel: levels[own.level ?? ""] ?? "",
                         puntos: points,
                       })
                     : t("T-2897")}
@@ -658,7 +660,7 @@ function JuryBlock({
   teams: TeamRow[];
 }) {
   const jury = extra.jury;
-  const levels = tList("T-2895");
+  const levels: Readonly<Record<string, string>> = tLabels("T-2895", LEVEL_ORDER);
   const columns = tList("T-3175");
   const byId = new Map(teams.map((team) => [team.id, team]));
   const decimal = (value: number, digits: number) =>
@@ -756,7 +758,7 @@ function JuryBlock({
                           {row.total === null ? "—" : decimal(row.total, 2)}
                         </td>
                         <td className="whitespace-nowrap px-2 py-1">
-                          {row.level ? (levels[LEVEL_ORDER.indexOf(row.level)] ?? "") : "—"}
+                          {row.level ? (levels[row.level] ?? "") : "—"}
                         </td>
                         <td className="px-2 py-1 tabular-nums">{row.judges}</td>
                       </tr>

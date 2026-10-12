@@ -84,7 +84,6 @@ const EXCEPTIONS: Exceptions = {
       JudgeNudge
       JudgeStage
       JuryTeamResult
-      MARKET_STATUSES
       MarketStatus
       OUTCOMES
       POINTS

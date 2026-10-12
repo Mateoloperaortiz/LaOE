@@ -16,6 +16,7 @@ import {
   RECIPIENT_STATUSES,
   SKIP_REASONS,
 } from "@/modules/comms/domain/campaigns";
+import { MARKET_STATUSES } from "@/modules/competition/domain/betting-pure";
 import { powerName } from "@/modules/competition/domain/powers";
 import { POWER_EFFECTS, POWER_TYPES } from "@/modules/competition/domain/powers-pure";
 import { SCHEDULE_ISSUE_KINDS } from "@/modules/competition/domain/schedule-pure";
@@ -820,7 +821,7 @@ export const PAIRS: readonly LabelPair[] = [
     code: "T-2867",
     order: "BET_STATES",
     positions: { DRAFT: 0, OPEN: 1, CLOSED: 2, RESOLVED: 3, CANCELLED: 4 },
-    copies: ["src/app/admin/the-games/[id]/_ui/Community.tsx"],
+    canonical: MARKET_STATUSES,
   },
   {
     code: "T-2895",
@@ -1183,6 +1184,24 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       file: "src/app/admin/the-games/[id]/page.tsx",
       order: "COMPETITION_STATUSES",
       code: "T-2804",
+      own: false,
+    },
+    {
+      file: "src/app/admin/the-games/[id]/_ui/Play.tsx",
+      order: "ROTATION_STATUSES",
+      code: "T-2834",
+      own: true,
+    },
+    {
+      file: "src/app/admin/the-games/[id]/_ui/Community.tsx",
+      order: "ANNOUNCEMENT_LEVELS",
+      code: "T-2860",
+      own: true,
+    },
+    {
+      file: "src/app/admin/the-games/[id]/_ui/Community.tsx",
+      order: "MARKET_STATUSES",
+      code: "T-2867",
       own: false,
     },
   ];
