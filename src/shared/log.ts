@@ -13,36 +13,46 @@ function isErrorCode(value: unknown): value is string | number {
   return typeof value === "string" || typeof value === "number";
 }
 
-/**
- * Lo único que las rutas de abajo dejan leer: el código de un error registrado como `err` (`57P01`,
- * `ECONNRESET`), que es por lo que se busca en un incidente (ADR-118 regla 23). Cualquier otro `code`
- * sigue oculto, y si pino deja de decir de qué clave viene, este también.
- */
-function censor(value: unknown, path: string[]): unknown {
-  const isCodeOfError = path.length === 2 && path[0] === "err" && path[1] === "code";
-  return isCodeOfError && isErrorCode(value) ? value : REDACTED;
-}
-
 /** Las cuatro claves que el registro no escribe, estén donde estén. */
 const HIDDEN_KEYS = ["password", "token", "code", "secret"];
 
-/** Una línea trae alguna de esas claves solo si trae su nombre escrito así: JSON no escapa letras. */
-const NAMES_A_HIDDEN_KEY = new RegExp(`"(?:${HIDDEN_KEYS.join("|")})":`);
+/**
+ * Las dos cabeceras que llevan la sesión. No son claves ocultas en cualquier parte: se ocultan bajo
+ * `req.headers`, con `req` suelto en la línea, en lo que fija un logger hijo o en la raíz de lo que
+ * se interpola en el mensaje (ADR-127 regla 9). Es donde las ocultaban las rutas de pino.
+ */
+const SESSION_HEADERS = ["cookie", "authorization"];
 
 /**
- * Dónde está lo que se recorre. Es lo único que cambia de un lugar a otro: qué clave se perdona.
- *  - `line`: lo que una línea trae suelto. Su `err` es un error.
- *  - `error`: un error registrado como `err`. Deja leer su código (ADR-118 regla 23), y lo que
- *    agrupa en `aggregateErrors` son errores igual: pino los lista ahí.
- *  - `errors`: esa lista.
- *  - `data`: todo lo demás. Ahí no se perdona nada.
+ * Una línea trae algo que ocultar solo si trae escrito así el nombre de una de las cuatro claves o de
+ * las dos cabeceras: JSON no escapa letras.
  */
-type Place = "line" | "error" | "errors" | "data";
+const NAMES_A_HIDDEN_KEY = new RegExp(`"(?:${[...HIDDEN_KEYS, ...SESSION_HEADERS].join("|")})":`);
+
+/**
+ * Dónde está lo que se recorre. Es lo único que cambia de un lugar a otro: qué clave se perdona y
+ * cuál se oculta de más.
+ *  - `line`: lo que una línea trae suelto. Su `err` es un error y su `req`, un request.
+ *  - `error`: un error registrado como `err`. Deja leer su código (`57P01`, `ECONNRESET`), que es
+ *    por lo que se busca en un incidente (ADR-118 regla 23), y lo que agrupa en `aggregateErrors`
+ *    son errores igual: pino los lista ahí.
+ *  - `errors`: esa lista.
+ *  - `request`: un request registrado como `req`. Sus `headers` son sus cabeceras.
+ *  - `headers`: esas cabeceras. Ahí se ocultan además las dos de sesión.
+ *  - `data`: todo lo demás. Ahí no se perdona nada ni se oculta nada de más.
+ */
+type Place = "line" | "error" | "errors" | "request" | "headers" | "data";
 
 /** Dónde queda lo que cuelga de `key`. */
 function placeUnder(place: Place, key: string, inner: unknown): Place {
   if (place === "line" && key === "err") {
     return "error";
+  }
+  if (place === "line" && key === "req") {
+    return "request";
+  }
+  if (place === "request" && key === "headers") {
+    return "headers";
   }
   if (place === "error" && key === "aggregateErrors" && Array.isArray(inner)) {
     return "errors";
@@ -51,13 +61,15 @@ function placeUnder(place: Place, key: string, inner: unknown): Place {
 }
 
 /**
- * Oculta las cuatro claves en `value` y en todo lo que cuelga de él, sin tope de profundidad. Es el
- * único recorrido de la redacción (ADR-123 regla 17): una clave oculta más se escribe en
- * `HIDDEN_KEYS` y en ningún otro lado.
+ * Oculta las cuatro claves en `value` y en todo lo que cuelga de él, sin tope de profundidad, y las
+ * dos cabeceras de sesión donde van. Es el único recorrido de la redacción (ADR-123 regla 17,
+ * ADR-127 regla 9): una clave oculta más se escribe en `HIDDEN_KEYS`, una cabecera de sesión más en
+ * `SESSION_HEADERS`, y en ningún otro lado.
  */
 function hideKeys(value: unknown, place: Place): void {
   if (Array.isArray(value)) {
-    // Solo la lista de errores agrupados trae errores; cualquier otra, datos.
+    // Solo la lista de errores agrupados trae errores; cualquier otra, datos: una lista donde va el
+    // `req` o donde van sus cabeceras no es ni lo uno ni lo otro.
     for (const item of value) {
       hideKeys(item, place === "errors" ? "error" : "data");
     }
@@ -72,7 +84,7 @@ function hideKeys(value: unknown, place: Place): void {
     if (place === "error" && key === "code" && isErrorCode(inner)) {
       continue;
     }
-    if (HIDDEN_KEYS.includes(key)) {
+    if (HIDDEN_KEYS.includes(key) || (place === "headers" && SESSION_HEADERS.includes(key))) {
       record[key] = REDACTED;
     } else {
       hideKeys(inner, placeUnder(place, key, inner));
@@ -81,13 +93,14 @@ function hideKeys(value: unknown, place: Place): void {
 }
 
 /**
- * La línea como va a salir, con las cuatro claves ocultas a cualquier profundidad (ADR-120 regla 9).
- * Las rutas de pino cubren solo el primer nivel (ADR-123 regla 15): no admiten «a cualquier
- * profundidad», y con un comodín pino copia cada valor para aplicarlo, y la copia de un `Buffer` no
- * se deja serializar. Este paso mira lo que pino ya escribió, así que cubre también lo que fija un
- * logger hijo y lo que un objeto escribe con su `toJSON`. Solo vuelve a leer la línea que nombra
- * alguna de las cuatro claves; las demás salen como llegaron. Una línea que no se puede revisar no
- * se escribe.
+ * La línea como va a salir, con las cuatro claves ocultas a cualquier profundidad (ADR-120 regla 9)
+ * y las dos cabeceras de sesión ocultas bajo `req.headers`. Pino lleva solo las cuatro claves sueltas
+ * (ADR-123 regla 15, ADR-127 regla 9): sus rutas no admiten «a cualquier profundidad», y con un
+ * comodín o con una ruta anidada copia el valor entero de la clave de primer nivel para aplicarla, y
+ * la copia de un `Buffer` no se deja serializar. Este paso mira lo que pino ya escribió, así que cubre
+ * también lo que fija un logger hijo y lo que un objeto escribe con su `toJSON`. Solo vuelve a leer la
+ * línea que nombra alguna de las cuatro claves o de las dos cabeceras; las demás salen como llegaron.
+ * Una línea que no se puede revisar no se escribe.
  */
 function withoutHiddenKeys(line: string): string {
   if (!NAMES_A_HIDDEN_KEY.test(line)) {
@@ -115,8 +128,9 @@ function sayingOnly(text: string): object {
  * Lo que se interpola en el mensaje (`%o`, `%O`, `%j`) no llega a la línea como objeto: pino lo
  * escribe dentro de `msg`, y ahí `withoutHiddenKeys` ya no lo puede leer. Se revisa antes, con las
  * reglas de una línea y sin tope de profundidad (ADR-123 regla 15): si nombra alguna de las cuatro
- * claves, lo que se interpola es una copia con esas claves ocultas. Lo que no es un objeto, o no
- * nombra ninguna, pasa como llegó. Un objeto que no se deja copiar (un ciclo, un `bigint`) no se puede
+ * claves o de las dos cabeceras de sesión, lo que se interpola es una copia con lo que toca oculto: el
+ * código de su `err` se lee y las cabeceras de su `req` no. Lo que no es un objeto, o no nombra
+ * ninguna, pasa como llegó. Un objeto que no se deja copiar (un ciclo, un `bigint`) no se puede
  * revisar y no se escribe.
  *
  * Un `Error` se cambia siempre, nombre o no una clave oculta (ADR-127 regla 8): por lo que dice de sí
@@ -502,22 +516,17 @@ export const logger = pino({
       );
       method.apply(this, reviewed as typeof args);
     },
-    // Lo que las rutas de abajo no alcanzan: todo lo que no está suelto en la línea (ADR-120 regla 9).
+    // Lo que las rutas de abajo no alcanzan: todo lo que no está suelto en la línea (ADR-120 regla 9),
+    // el código de `err` y las cabeceras de sesión de `req` (ADR-127 regla 9).
     streamWrite: withoutHiddenKeys,
   },
   redact: {
-    paths: [
-      // Sueltas en la línea o en lo que fija un logger hijo (ADR-119 regla 14). Sin rutas con `*`:
-      // con una, pino copia el valor de cada clave de primer nivel, y la copia de un `Buffer` no se
-      // deja serializar (ADR-123 regla 15). Con una clave encima las oculta `withoutHiddenKeys`.
-      ...HIDDEN_KEYS,
-      // No oculta nada: pino solo le pasa a `censor` el nombre de la clave de primer nivel cuando esa
-      // clave tiene una ruta propia, y `censor` lo necesita para dejar pasar el código de un error.
-      "err.code",
-      "req.headers.cookie",
-      "req.headers.authorization",
-    ],
-    censor,
+    // Solo las cuatro claves, sueltas en la línea o en lo que fija un logger hijo (ADR-119 regla 14).
+    // Sin rutas con `*` ni anidadas: con una, pino copia entero el valor de la clave de primer nivel
+    // para aplicarla, y la copia de un `Buffer` no se deja serializar (ADR-123 regla 15, ADR-127
+    // regla 9). Lo que tiene una clave encima es de `withoutHiddenKeys`.
+    paths: [...HIDDEN_KEYS],
+    censor: REDACTED,
   },
   ...(pretty
     ? {

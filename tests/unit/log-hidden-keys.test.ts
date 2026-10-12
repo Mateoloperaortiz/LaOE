@@ -1,3 +1,4 @@
+import pino from "pino";
 import { describe, expect, it } from "vitest";
 import { logger } from "@/shared/log";
 import { captureLogs, type LoggedLine } from "../helpers/logs";
@@ -466,5 +467,58 @@ describe("un `Error` interpolado no escribe nada de lo que trae colgado", () => 
       'falló Error: invalid input syntax for type date: "[oculto]"',
       "falló Error: no se pudo leer",
     ]);
+  });
+});
+
+// DT-347, inciso (a), ADR-127 regla 9: pino copia entero el valor de una clave de primer nivel que
+// tenga una ruta anidada, y la copia de un `Buffer` no se deja serializar. Le quedaban tres, bajo
+// `err` y `req`. Salieron: el código de `err` y las dos cabeceras de sesión los decide el paso propio.
+describe("pino se queda con las cuatro claves sueltas, y `err` y `req` salen como cualquier otra clave", () => {
+  const AB = { type: "Buffer", data: [97, 98] };
+  const sessionHeaders = () => ({ cookie: SECRET, authorization: SECRET, accept: "text/html" });
+
+  it("un Buffer como `err` de una línea sale con su contenido", async () => {
+    const lines = await written(() => {
+      logger.error({ err: Buffer.from("ab") }, "falló");
+    });
+
+    expect(lines[0]?.record.err).toEqual(AB);
+    expect(lines[0]?.line).not.toContain("unable to serialize");
+  });
+
+  it("un Buffer como `req` de una línea, o del que fija un logger hijo, sale con su contenido", async () => {
+    const lines = await written(() => {
+      logger.info({ req: Buffer.from("ab") }, "request");
+      logger.child({ req: Buffer.from("ab") }).info("hijo");
+    });
+
+    expect(lines).toHaveLength(2);
+    for (const { line, record } of lines) {
+      expect(record.req).toEqual(AB);
+      expect(line).not.toContain("unable to serialize");
+    }
+  });
+
+  it("la redacción de pino no tiene ninguna ruta anidada: solo conoce las cuatro claves sueltas", () => {
+    const stringifiers = (logger as unknown as Record<symbol, Record<string, unknown>>)[
+      pino.symbols.stringifiersSym
+    ];
+
+    expect(Object.keys(stringifiers ?? {}).sort()).toEqual([...KEYS].sort());
+  });
+
+  it("las dos cabeceras se ocultan también cuando el `req` o sus cabeceras se escriben con su `toJSON`", async () => {
+    const lines = await written(() => {
+      logger.info({ req: { toJSON: () => ({ headers: sessionHeaders() }) } }, "request");
+      logger.info({ req: { headers: { toJSON: () => sessionHeaders() } } }, "cabeceras");
+    });
+
+    expect(lines).toHaveLength(2);
+    for (const { line, record } of lines) {
+      expect(line).not.toContain(SECRET);
+      expect(record.req).toEqual({
+        headers: { cookie: "[oculto]", authorization: "[oculto]", accept: "text/html" },
+      });
+    }
   });
 });
