@@ -2,7 +2,7 @@ import { z } from "zod";
 import { runCommand } from "@/db/tx";
 import { listAllSegments } from "@/modules/people";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import {
   CAMPAIGN_STATUSES,
@@ -38,10 +38,6 @@ const [mensajesPlural] = tList("T-1142");
 const [colFecha, colPersona, colCanal, colTipo, colAsunto, colEstado, colProveedor, colCampaña] =
   tList("T-1144");
 const [fCanal, fTipo, fEstado, fCampaña] = tList("T-1148");
-const channelLabels = tList("T-1145");
-const kindLabels = tList("T-1146");
-const statusLabels = tList("T-1147");
-const providerLabels = tList("T-1150");
 
 const CHANNELS = ["EMAIL", "PUSH"] as const;
 export const MESSAGE_KINDS = [
@@ -54,21 +50,26 @@ export const MESSAGE_KINDS = [
 ] as const;
 const STATUSES = ["SENT", "FAILED"] as const;
 const PROVIDERS = ["console", "resend", "ses", "webpush"] as const;
+// Un valor que el orden no trae llega acá como texto y cae al respaldo: por eso el tipo es abierto.
+const channelLabels: Readonly<Record<string, string>> = tLabels("T-1145", CHANNELS);
+const kindLabels: Readonly<Record<string, string>> = tLabels("T-1146", MESSAGE_KINDS);
+const statusLabels: Readonly<Record<string, string>> = tLabels("T-1147", STATUSES);
+const providerLabels: Readonly<Record<string, string>> = tLabels("T-1150", PROVIDERS);
 
 export function channelLabel(channel: string): string {
-  return channelLabels[CHANNELS.indexOf(channel as (typeof CHANNELS)[number])] ?? channel;
+  return channelLabels[channel] ?? channel;
 }
 
 export function kindLabel(kind: string): string {
-  return kindLabels[MESSAGE_KINDS.indexOf(kind as (typeof MESSAGE_KINDS)[number])] ?? kind;
+  return kindLabels[kind] ?? kind;
 }
 
 export function statusLabel(status: string): string {
-  return statusLabels[STATUSES.indexOf(status as (typeof STATUSES)[number])] ?? status;
+  return statusLabels[status] ?? status;
 }
 
 function providerLabel(provider: string): string {
-  return providerLabels[PROVIDERS.indexOf(provider as (typeof PROVIDERS)[number])] ?? provider;
+  return providerLabels[provider] ?? provider;
 }
 
 export const messagesResource: ResourceDefinition<MessageAdminRow, Empty> = {
@@ -226,33 +227,25 @@ export const templatesResource: ResourceDefinition<TemplateRow, TemplateInput> =
 const [campañasPlural] = tList("T-1123");
 const [cNombre, cPlantilla, cSegmento, cEstado, cProgramada, cEnviados] = tList("T-1125");
 const [fNombre, fPlantilla, fSegmento] = tList("T-1126");
-const campaignStatusLabels = tList("T-1127");
+const campaignStatusLabels: Readonly<Record<string, string>> = tLabels("T-1127", CAMPAIGN_STATUSES);
 
 export function campaignStatusLabel(status: string): string {
-  return (
-    campaignStatusLabels[CAMPAIGN_STATUSES.indexOf(status as (typeof CAMPAIGN_STATUSES)[number])] ??
-    status
-  );
+  return campaignStatusLabels[status] ?? status;
 }
 
 const QUOTA_PROVIDERS = ["console", "resend", "ses"] as const;
-const quotaProviderLabels = tList("T-3226");
+const quotaProviderLabels: Readonly<Record<string, string>> = tLabels("T-3226", QUOTA_PROVIDERS);
 const QUOTA_REASONS = ["BURST", "DAILY", "MONTHLY"] as const;
-const quotaReasonLabels = tList("T-3225");
+const quotaReasonLabels: Readonly<Record<string, string>> = tLabels("T-3225", QUOTA_REASONS);
 
 /** Cómo nombra el cupo de correo a un proveedor; uno que no conoce sale como vino. */
 export function quotaProviderLabel(provider: string): string {
-  return (
-    quotaProviderLabels[QUOTA_PROVIDERS.indexOf(provider as (typeof QUOTA_PROVIDERS)[number])] ??
-    provider
-  );
+  return quotaProviderLabels[provider] ?? provider;
 }
 
 /** La causa de un corte por cuota, lista para completar «rechazó un correo por …». */
 export function quotaReasonLabel(reason: string): string {
-  return (
-    quotaReasonLabels[QUOTA_REASONS.indexOf(reason as (typeof QUOTA_REASONS)[number])] ?? reason
-  );
+  return quotaReasonLabels[reason] ?? reason;
 }
 
 function campaignBadge(status: string): "sky" | "amarillo" | "naranja" | "azul" | "paper" {
