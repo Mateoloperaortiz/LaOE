@@ -144,7 +144,11 @@ module.exports = {
     },
   ],
   options: {
-    doNotFollow: { path: "node_modules" },
+    // `knip.ts` entra al grafo porque `tests/unit/module-public-interface.test.ts` lo importa para
+    // leer su configuración (ADR-125 regla 3). Solo importa el tipo de su paquete, y este resolvedor
+    // confunde el paquete `knip` con el archivo del mismo nombre: sin esto, `sin-ciclos` ve un ciclo
+    // de `knip.ts` consigo mismo. El archivo sigue en el grafo; no se siguen sus imports.
+    doNotFollow: { path: ["node_modules", "^knip\\.ts$"] },
     exclude: { path: ["node_modules", "\\.next", "^drizzle/"] },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.json" },
