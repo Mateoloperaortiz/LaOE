@@ -64,6 +64,7 @@ import {
 } from "@/modules/participation/gamification-types";
 import {
   challengeParticipationStatus,
+  occasionApproval,
   reconciliationStatus,
   rewardStatus,
 } from "@/modules/participation/schema";
@@ -908,7 +909,7 @@ export const UNSEEN_PAIRS: readonly LabelPair[] = [
     code: "T-567",
     order: "APPROVAL_MODES",
     positions: { AUTO: 0, MANUAL: 1 },
-    copies: ["src/modules/participation/admin.ts"],
+    canonical: occasionApproval.enumValues,
   },
   {
     code: "T-585",

@@ -48,6 +48,7 @@ import {
   occasionInputSchema,
 } from "./domain/occasions";
 import { type Board, peopleBoards } from "./domain/rankings";
+import { occasionApproval } from "./schema";
 
 // Recurso del admin para las ocasiones (ADR-017, ADR-035): listado con filtros y acciones Abrir y
 // Cerrar; la consola y el modo anfitrión son pantallas a medida.
@@ -57,7 +58,7 @@ const fieldLabels = tList("T-563");
 const kindLabels = tLabels("T-564", OCCASION_KINDS);
 const assemblyLabels = tLabels("T-565", ASSEMBLY_KINDS);
 const categoryLabels = tLabels("T-566", OCCASION_CATEGORIES);
-const approvalLabels = tList("T-567");
+const approvalLabels = tLabels("T-567", occasionApproval.enumValues);
 const statusLabels = tLabels("T-568", OCCASION_STATUSES);
 const [abrir, cerrar, consola] = tList("T-569");
 const filterLabels = tList("T-570");
@@ -77,9 +78,9 @@ const categoryOptions = OCCASION_CATEGORIES.map((value) => ({
   value,
   label: categoryLabels[value] ?? value,
 }));
-const approvalOptions = ["AUTO", "MANUAL"].map((value, index) => ({
+const approvalOptions = occasionApproval.enumValues.map((value) => ({
   value,
-  label: approvalLabels[index] ?? value,
+  label: approvalLabels[value] ?? value,
 }));
 const statusOptions = OCCASION_STATUSES.map((value) => ({
   value,

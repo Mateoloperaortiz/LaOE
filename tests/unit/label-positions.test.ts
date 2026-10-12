@@ -5,6 +5,7 @@ import { MARKET_STATUSES } from "@/modules/competition/domain/betting-pure";
 import { REQUEST_STATUSES } from "@/modules/crm/domain/requests-pure";
 import {
   challengeParticipationStatus,
+  occasionApproval,
   reconciliationStatus,
   rewardStatus,
 } from "@/modules/participation/schema";
@@ -140,13 +141,6 @@ const EXCEPTIONS: Exception[] = [
     read: "labels[index]",
     reason:
       "`areaLabel` busca el área en `COMMITTEE_AREAS`, un arreglo de objetos, y no hay tupla de sus cinco claves que pasarle a `tLabels` (DT-370).",
-  },
-  {
-    path: "src/modules/participation/admin.ts",
-    form: "traversal",
-    read: "approvalLabels[index]",
-    reason:
-      "Los dos modos de aprobación de una ocasión (T-567) son un par uno a uno que ningún ticket de la spec #242 migró: espera el suyo (DT-374).",
   },
   {
     path: "src/app/app/ajustes/page.tsx",
@@ -578,6 +572,7 @@ const NAMED_OTHERWISE: { order: string; path?: string; tuple: readonly string[] 
     tuple: challengeParticipationStatus.enumValues,
   },
   { order: "rewardStatus.enumValues", tuple: rewardStatus.enumValues },
+  { order: "occasionApproval.enumValues", tuple: occasionApproval.enumValues },
   { order: "reconciliationStatus.enumValues", tuple: reconciliationStatus.enumValues },
   {
     order: "statusValues",
