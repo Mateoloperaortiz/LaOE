@@ -5,7 +5,7 @@ import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { exportLimitWarning } from "@/shared/admin-kit/export-limit";
 import type { Badge, FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { MULTI_SEPARATOR } from "@/shared/admin-kit/types";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { COMMITTEE_CAPABILITIES } from "./domain/capabilities";
 import { type CommitteeRoleRow, listCommitteeRoles } from "./domain/committee-memberships";
@@ -223,19 +223,19 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
 const [personasPlural, personaSingular] = tList("T-420");
 const campos = tList("T-427");
 const [estudiante, externo] = tList("T-428");
-const etapas = tList("T-429");
-const estados = tList("T-381");
 const [filtroEtapa, filtroEstado, filtroComite, filtroSegmento] = tList("T-508");
 
 export const STAGE_CODES = ["PROSPECT", "APPLICANT", "MEMBER", "ALUMNI"] as const;
 export const STATUS_CODES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"] as const;
+const etapas: Readonly<Record<string, string>> = tLabels("T-429", STAGE_CODES);
+const estados: Readonly<Record<string, string>> = tLabels("T-381", STATUS_CODES);
 
 export function stageLabel(stage: string): string {
-  return etapas[STAGE_CODES.indexOf(stage as (typeof STAGE_CODES)[number])] ?? stage;
+  return etapas[stage] ?? stage;
 }
 
 export function statusLabel(status: string): string {
-  return estados[STATUS_CODES.indexOf(status as (typeof STATUS_CODES)[number])] ?? status;
+  return estados[status] ?? status;
 }
 
 const stageBadges: Record<(typeof STAGE_CODES)[number], Badge> = {
@@ -374,10 +374,10 @@ export const peopleResource: ResourceDefinition<PersonRow, PersonInput> = {
 
 const [cargosPlural, cargoSingular] = tList("T-421");
 const [codigo, nombreCargo, esDireccion, obligatorio, capacidades, orden] = tList("T-473");
-const capacidadLabels = tList("T-2179");
-const capabilityOptions = COMMITTEE_CAPABILITIES.map((value, index) => ({
+const capacidadLabels = tLabels("T-2179", COMMITTEE_CAPABILITIES);
+const capabilityOptions = COMMITTEE_CAPABILITIES.map((value) => ({
   value,
-  label: capacidadLabels[index] ?? value,
+  label: capacidadLabels[value] ?? value,
 }));
 
 function capabilityLabels(codes: string[]): string {
@@ -496,10 +496,10 @@ export const tagsResource: ResourceDefinition<TagRow, TagInput> = {
 
 const [segmentosPlural, segmentoSingular] = tList("T-424");
 const segmentoCampos = tList("T-468");
-const ingresoOpciones = tList("T-469");
-const consentimientoOpciones = tList("T-470");
 const ENTRY_CODES = ["ANY", "NEW", "VETERAN"] as const;
 const CONSENT_CODES = ["ANY", "COMMS_YES", "COMMS_NO", "PHOTO_YES", "MEMORIAL_YES"] as const;
+const ingresoOpciones = tLabels("T-469", ENTRY_CODES);
+const consentimientoOpciones = tLabels("T-470", CONSENT_CODES);
 
 async function segmentFields(): Promise<FieldDefinition[]> {
   const [committees, roles, tags] = await Promise.all([
@@ -525,9 +525,9 @@ async function segmentFields(): Promise<FieldDefinition[]> {
       name: "entry",
       label: segmentoCampos[3] ?? "",
       type: "select",
-      options: ENTRY_CODES.map((value, index) => ({
+      options: ENTRY_CODES.map((value) => ({
         value,
-        label: ingresoOpciones[index] ?? value,
+        label: ingresoOpciones[value] ?? value,
       })),
     },
     {
@@ -552,9 +552,9 @@ async function segmentFields(): Promise<FieldDefinition[]> {
       name: "consent",
       label: segmentoCampos[7] ?? "",
       type: "select",
-      options: CONSENT_CODES.map((value, index) => ({
+      options: CONSENT_CODES.map((value) => ({
         value,
-        label: consentimientoOpciones[index] ?? value,
+        label: consentimientoOpciones[value] ?? value,
       })),
     },
     { name: "program", label: segmentoCampos[8] ?? "", type: "text" },

@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { CommandContext, Executor } from "@/db/tx";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   appointment,
@@ -11,6 +11,7 @@ import {
 } from "../schema";
 import {
   type HeldRole,
+  INHABILITY_CODES,
   type InhabilityCode,
   inhabilities,
   inhabilityLabels,
@@ -186,7 +187,9 @@ export async function assertNoInhabilities(
     return codes;
   }
   throw new DomainError(
-    t("T-2282", { motivos: inhabilityLabels(codes, tList("T-2281")).join("; ") }),
+    t("T-2282", {
+      motivos: inhabilityLabels(codes, tLabels("T-2281", INHABILITY_CODES)).join("; "),
+    }),
     "roles",
   );
 }

@@ -18,7 +18,7 @@ import {
 } from "@/modules/system";
 import { conventionalTermDates, createTerm, getTerm, listAllTerms } from "@/modules/terms";
 import { getObject, putObject } from "@/shared/adapters/storage";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import {
@@ -38,7 +38,12 @@ import {
 } from "./committee-memberships";
 import { listAllCommittees } from "./committees";
 import { leadershipContext } from "./inhabilities";
-import { type HeldRole, inhabilities, inhabilityLabels } from "./inhabilities-pure";
+import {
+  type HeldRole,
+  INHABILITY_CODES,
+  inhabilities,
+  inhabilityLabels,
+} from "./inhabilities-pure";
 import { leaveWindow } from "./leave-pure";
 import {
   changeMembershipStatus,
@@ -282,7 +287,7 @@ async function warnInhabilities(
   termId: string,
 ): Promise<void> {
   const leadership = new Set(roles.filter((role) => role.isLeadership).map((role) => role.code));
-  const labels = tList("T-2281");
+  const labels = tLabels("T-2281", INHABILITY_CODES);
   for (const row of rows) {
     if (row.group === "ERROR" || !row.email || !row.committees) {
       continue;

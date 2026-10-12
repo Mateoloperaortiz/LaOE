@@ -4,7 +4,7 @@ import { getDb } from "@/db/client";
 import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { sanctionRecorded, sanctionRevoked } from "@/domain-events/people";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { committee, committeeMembership, membership, sanction } from "../schema";
@@ -32,7 +32,7 @@ export type SanctionRecord = typeof sanction.$inferSelect;
 
 export const sanctionInputSchema = z.object({
   termId: z.string().trim().min(1),
-  kind: z.enum(SANCTION_KINDS as [SanctionKind, ...SanctionKind[]]),
+  kind: z.enum(SANCTION_KINDS),
   /** Los hechos y los descargos (Regl. art. 55 y 56): mínimo una frase. */
   cause: z.string().trim().min(5).max(1000),
   reference: z
@@ -59,8 +59,11 @@ export const sanctionInputSchema = z.object({
 
 export type SanctionInput = z.input<typeof sanctionInputSchema>;
 
+/** Los estados de una sanción en el orden de T-2243. */
+const SANCTION_STATES = ["LIVE", "EXPIRED", "REVOKED"] as const satisfies readonly SanctionState[];
+
 export function sanctionKindLabel(kind: SanctionKind): string {
-  return tList("T-2229")[SANCTION_KINDS.indexOf(kind)] ?? kind;
+  return tLabels("T-2229", SANCTION_KINDS)[kind] ?? kind;
 }
 
 export interface SanctionView extends SanctionRecord {
@@ -77,7 +80,7 @@ function toView(row: SanctionRecord, committeeName: string | null, onKey: string
     kindLabel: sanctionKindLabel(row.kind),
     committeeName,
     state,
-    stateLabel: tList("T-2243")[["LIVE", "EXPIRED", "REVOKED"].indexOf(state)] ?? state,
+    stateLabel: tLabels("T-2243", SANCTION_STATES)[state] ?? state,
   };
 }
 

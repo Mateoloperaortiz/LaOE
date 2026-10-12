@@ -95,7 +95,10 @@ export function inhabilities(input: InhabilityInput): InhabilityCode[] {
   return codes;
 }
 
-/** Las etiquetas de T-2281 de esos códigos, en orden. */
-export function inhabilityLabels(codes: readonly InhabilityCode[], labels: string[]): string[] {
-  return codes.map((code) => labels[INHABILITY_CODES.indexOf(code)] ?? code);
+/** Las etiquetas de esos códigos, en orden; `labels` trae la de cada código de T-2281 por valor. */
+export function inhabilityLabels(
+  codes: readonly InhabilityCode[],
+  labels: Readonly<Record<string, string>>,
+): string[] {
+  return codes.map((code) => labels[code] ?? code);
 }

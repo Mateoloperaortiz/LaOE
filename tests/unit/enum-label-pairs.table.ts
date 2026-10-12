@@ -77,7 +77,7 @@ import { CLOSING_FILTERS } from "@/modules/permanence/domain/closing";
 import { COMPLIANCE_FILTERS } from "@/modules/permanence/domain/compliance";
 import { WORK_GROUP_KINDS } from "@/modules/permanence/domain/params";
 import { TEAM_AREA_CODES, teamAreaLabel } from "@/modules/permanence/domain/team-areas";
-import { tList } from "@/shared/copy";
+import { tLabels, type tList } from "@/shared/copy";
 
 const LABELS = {
   appointment: (value) => appointmentLabel({ kind: value as never, title: null }),
@@ -89,7 +89,8 @@ const LABELS = {
   channel: (value) => channelLabel(value),
   checkInStatus: (value) => checkInStatusLabel(value as never),
   excuseCause: (value) => excuseCauseLabel(value),
-  inhability: (value) => inhabilityLabels([value as never], tList("T-2281"))[0] ?? "",
+  inhability: (value) =>
+    inhabilityLabels([value as never], tLabels("T-2281", INHABILITY_CODES))[0] ?? "",
   memberStatus: (value) => memberStatusLabel(value),
   messageKind: (value) => kindLabel(value),
   messageStatus: (value) => messageStatusLabel(value),

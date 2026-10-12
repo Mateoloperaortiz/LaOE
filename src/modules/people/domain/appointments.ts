@@ -6,7 +6,7 @@ import { eventOf } from "@/domain-events/define";
 import { appointmentChanged } from "@/domain-events/people";
 import { getMacroeventEdition, listEditionRefs, macroeventRoleCodes } from "@/modules/events";
 import { findTermContaining, listAllTerms, type TermRow } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { APP_TIME_ZONE, dateKeyIn } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { scopeId } from "@/shared/lib/scope-id";
@@ -20,7 +20,7 @@ import { assertNoInhabilities, BOARD_KINDS, type Override } from "./inhabilities
 
 export type AppointmentKind = (typeof appointment.$inferSelect)["kind"];
 
-export const APPOINTMENT_KINDS: readonly AppointmentKind[] = [
+export const APPOINTMENT_KINDS = [
   "PRESIDENT",
   "VP_GH",
   "VP_PUBLIC_RELATIONS",
@@ -31,7 +31,7 @@ export const APPOINTMENT_KINDS: readonly AppointmentKind[] = [
   "GH_DIRECTOR",
   "MACROEVENT_DIRECTOR",
   "OTHER",
-];
+] as const satisfies readonly AppointmentKind[];
 
 /** Los que se nombran desde la Persona 360; el de macroevento sale de la edición. */
 export const BOARD_APPOINTMENT_KINDS: readonly AppointmentKind[] = APPOINTMENT_KINDS.filter(
@@ -99,7 +99,7 @@ export interface AppointmentLabelInput {
  * "{cargo} · {edición}" (T-2268) o "{cargo} (codirección) · {edición}" (T-2269).
  */
 export function appointmentLabel(item: AppointmentLabelInput): string {
-  const label = tList("T-444")[APPOINTMENT_KINDS.indexOf(item.kind)] ?? item.kind;
+  const label = tLabels("T-444", APPOINTMENT_KINDS)[item.kind] ?? item.kind;
   if (item.kind === "MACROEVENT_DIRECTOR" && item.roleLabel) {
     return t(item.coDirector ? "T-2269" : "T-2268", {
       cargo: item.roleLabel,

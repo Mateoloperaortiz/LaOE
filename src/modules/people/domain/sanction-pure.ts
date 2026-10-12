@@ -5,13 +5,13 @@ import { addDays } from "@/shared/lib/dates-pure";
 
 export type SanctionKind = "WARNING" | "MINOR" | "MAJOR" | "SUSPENSION" | "OFFICE_BAN";
 
-export const SANCTION_KINDS: readonly SanctionKind[] = [
+export const SANCTION_KINDS = [
   "WARNING",
   "MINOR",
   "MAJOR",
   "SUSPENSION",
   "OFFICE_BAN",
-];
+] as const satisfies readonly SanctionKind[];
 
 /**
  * Lo que registra la dirección de un comité (Regl. art. 69 par. 2; ADR-060 regla 6): la suspensión y

@@ -13,13 +13,13 @@ export type ConsentRow = typeof consent.$inferSelect;
 export type ConsentPurpose = ConsentRow["purpose"];
 export type ConsentSource = ConsentRow["source"];
 
-export const CONSENT_PURPOSES: readonly ConsentPurpose[] = [
+export const CONSENT_PURPOSES = [
   "MEMBERSHIP",
   "COMMUNICATIONS",
   "DIRECTORY_PHOTO",
   "MEMORIAL",
   "DATA_PROCESSING",
-];
+] as const satisfies readonly ConsentPurpose[];
 
 /** Los que la persona gestiona desde Ajustes; el tratamiento de datos de un formulario público no se revoca desde ahí (ADR-037). */
 export const SELF_MANAGED_PURPOSES: readonly ConsentPurpose[] = [
