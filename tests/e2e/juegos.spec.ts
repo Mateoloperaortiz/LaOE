@@ -184,6 +184,12 @@ test("la biblioteca muestra los juegos y se llega desde GH Points", async ({ pag
 test("cada partida real muestra el premio de su puntaje y el día acredita una sola vez", async ({
   page,
 }) => {
+  // Tres partidas de verdad son unas 360 jugadas (hasta 443 en 20.000 semillas simuladas con esta
+  // misma estrategia), y cada una cuesta tres o cuatro idas al navegador. En local son 3 s; en el CI,
+  // entre 19 y 25 s en seis corridas, y en la séptima (2026-10-12) cada ida tardó un tercio más y
+  // se quedó sin los 30 s de siempre cuando todavía jugaba la tercera. El límite sale de esa cuenta
+  // con un corredor el doble de lento, que da 69 s en el peor caso.
+  test.setTimeout(90_000);
   await page.goto("/app/juegos/2048");
   // Leer no reparte semillas: la partida nace al pulsar.
   expect(await partidas()).toHaveLength(0);

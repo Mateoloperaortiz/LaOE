@@ -7,7 +7,7 @@ Cierre del objetivo que Mateo fijó el 2026-10-06 ([ADR-109](adr/ADR-109-refacto
 - **Catorce ciclos y un remate**, del 2026-10-06 al 2026-10-12: seis ciclos de corrección, seguridad e integridad, uno de estructura, los arreglos rápidos que salieron de clasificar lo que quedaba, cuatro ciclos más con las filas diferidas que no esperaban nada, y los tres primeros refactors de estructura que tenían spec. Más un arreglo de dependencias vulnerables y una guarda de migraciones, los dos contra `main`.
 - **Nada está mezclado.** Todo vive en diecisiete PR abiertos, quince de ellos apilados. Mezclar y promover piden la decisión de Mateo, y cada ciclo trae su lista de comprobaciones previas (sección «Cómo seguir»).
 - **El repositorio se leyó entero.** Una revisión de arquitectura, un descubrimiento de seguridad y dos olas de una auditoría de huecos, cada hallazgo de severidad media o alta con un segundo lector que intentó tumbarlo.
-- **Ledger:** 376 hallazgos, todos en un estado final. 175 resueltos, 187 diferidos con lo que los destraba y el riesgo de dejarlos, 9 aceptados y 5 que no eran deuda. De los diferidos, 119 esperan una de las 75 decisiones abiertas.
+- **Ledger:** 377 hallazgos, todos en un estado final. 176 resueltos, 187 diferidos con lo que los destraba y el riesgo de dejarlos, 9 aceptados y 5 que no eran deuda. De los diferidos, 119 esperan una de las 75 decisiones abiertas.
 - **Pruebas:** de 855 unitarias y 603 de integración a 1.998 y 1.743. La E2E pasa entera, también pegada a `npm run check`. Lo que la hacía tardar de más tenía dos causas: lo que la suite de integración le dejaba a Postgres, corregido en el cierre (DT-188), y un servidor de desarrollo que se atasca en una corrida completa sin nada compilado, corregido en el ciclo 11: la corrida completa local va contra el build (DT-338).
 - **«Diferida» no era «bloqueada».** Al releer lo que quedó diferido salieron filas, y partes de una fila, que no esperaban una decisión, una mirada a producción ni mezclar la pila. Los ciclos 8 a 11 tomaron cuatro tandas de esas, la última con la cola. Lo que queda diferido espera una de esas tres cosas o una de las cinco specs de estructura que faltan; cada fila dice cuál.
 - **Lo más urgente no es código:** mezclar y promover el #116, porque producción sigue con un aviso crítico, y mezclar el #192 antes que la pila, porque sin él una migración se puede saltar en silencio.
@@ -164,11 +164,11 @@ Todo hallazgo del ledger terminó en uno de los cuatro estados de ADR-109. La cl
 | Integridad | 12 | 24 | 2 | 2 |
 | Simplicidad | 8 | 8 | 0 | 0 |
 | Mantenibilidad | 21 | 45 | 2 | 0 |
-| Testabilidad | 19 | 5 | 1 | 0 |
+| Testabilidad | 20 | 5 | 1 | 0 |
 | Observabilidad | 10 | 6 | 0 | 0 |
 | Rendimiento | 6 | 4 | 0 | 0 |
 | Sin prioridad | 0 | 0 | 0 | 3 |
-| **Total** | **175** | **187** | **9** | **5** |
+| **Total** | **176** | **187** | **9** | **5** |
 
 Lo diferido, por lo que lo destraba:
 
