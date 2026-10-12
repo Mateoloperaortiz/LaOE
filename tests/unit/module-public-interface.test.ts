@@ -162,25 +162,6 @@ const EXCEPTIONS: Exceptions = {
     `,
   },
   content: {
-    nadie: `
-      AnnouncementRow
-      ArticleHit
-      CommitteeAnnouncementInput
-      DocumentKind
-      MediaRedirect
-      PageRow
-      PublishedDocument
-      PublishedDocumentDetail
-      blocksText
-      createPage
-      documentContentChecksum
-      getPage
-      listAnnouncements
-      listPages
-      unpublishAnnouncement
-      updateAnnouncement
-      updatePage
-    `,
     "solo-pruebas": `
       getAnnouncement
       publishAndPushAnnouncement
