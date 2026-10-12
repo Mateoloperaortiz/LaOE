@@ -1241,6 +1241,18 @@ export const NAMED_READS: readonly { file: string; order: string; code: ListCode
       own: true,
     },
     {
+      file: "src/app/app/ajustes/page.tsx",
+      order: "SECCIONES",
+      code: "T-133",
+      own: true,
+    },
+    {
+      file: "src/app/app/_ui/PersonaTarjeta.tsx",
+      order: "STATUS_CODES",
+      code: "T-381",
+      own: true,
+    },
+    {
       file: "src/app/api/admin/buscar/route.ts",
       order: "ORGANIZATION_KINDS",
       code: "T-949",

@@ -27,7 +27,7 @@ import { PhotoUploader } from "@/modules/people/components/PhotoUploader";
 import { getPrivacyPolicyState, requireConfig } from "@/modules/system";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { BarraTitulo, Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import {
   consentAction,
@@ -91,11 +91,12 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
     { name: "emailCampaigns", label: prefCampañas, checked: preferences.emailCampaigns },
   ];
   const secciones = tList("T-133");
-  const availableSections = SECCIONES.map((id, index) => ({
+  const sectionLabels = tLabels("T-133", SECCIONES);
+  const availableSections = SECCIONES.map((id) => ({
     id,
-    label: secciones[index] ?? id,
+    label: sectionLabels[id] ?? id,
   })).filter((section) => section.id !== "calendario" || calendarUrl !== null);
-  const purposeLabels = tList("T-516");
+  const purposeLabels = tLabels("T-516", CONSENT_PURPOSES);
   const [autorizar, retirar] = tList("T-413");
   const aviso = (seccion: string) =>
     guardado === seccion ? (
@@ -385,7 +386,9 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
                     key={state.purpose}
                     className="flex flex-col gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5"
                   >
-                    <h3 className="text-display-md">{purposeLabels[index] ?? state.purpose}</h3>
+                    <h3 className="text-display-md">
+                      {purposeLabels[state.purpose] ?? state.purpose}
+                    </h3>
                     <p className="max-w-prose text-sm">
                       {t(texto, { v: policy.version ?? "—", versión: policy.version ?? "—" })}
                     </p>
