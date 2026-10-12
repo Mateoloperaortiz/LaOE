@@ -462,6 +462,56 @@ const SEEDED: { title: string; form: PositionalForm; path: string; text: string 
     path: "src/app/sembrado/page.ts",
     text: `const ORDER = ["A", "B"];\nexport const label = (labels: string[], kind: string) =>\n  labels[Math.max(0, ORDER.indexOf(kind))] ?? kind;\n`,
   },
+  // Las formas que la revisión de la rama encontró sin nombrar (ADR-126 regla 11): la lista pasa
+  // por otra expresión antes de leerse, o `tList` llega con otro nombre, y la regla dejaba de seguirla.
+  {
+    title: "un recorrido sobre una copia de la lista hecha con spread",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}const labels = [...tList("T-444")];\nexport const options = KINDS.map((value, index) => ({ value, label: labels[index] ?? value }));\n`,
+  },
+  {
+    title: "un recorrido sobre una copia de la lista hecha con Array.from",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}const labels = Array.from(tList("T-444"));\nexport const options = KINDS.map((value, index) => ({ value, label: labels[index] ?? value }));\n`,
+  },
+  {
+    title: "un recorrido sobre la lista después de un concat",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}const labels = tList("T-444").concat([]);\nexport const options = KINDS.map((value, index) => ({ value, label: labels[index] ?? value }));\n`,
+  },
+  {
+    title: "un recorrido sobre la lista invertida con toReversed",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}const labels = tList("T-444").toReversed();\nexport const options = KINDS.map((value, index) => ({ value, label: labels[index] ?? value }));\n`,
+  },
+  {
+    title: "un recorrido sobre una lista asignada después de declarada",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}let labels: readonly string[] = [];\nlabels = tList("T-444");\nexport const options = KINDS.map((value, index) => ({ value, label: labels[index] ?? value }));\n`,
+  },
+  {
+    title: "un recorrido sobre una lista desestructurada de un objeto literal",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}const { labels } = { labels: tList("T-444") };\nexport const options = KINDS.map((value, index) => ({ value, label: labels[index] ?? value }));\n`,
+  },
+  {
+    title: "un recorrido sobre un tList importado con otro nombre",
+    form: "traversal",
+    path: "src/app/sembrado/page.ts",
+    text: 'import { tList as lista } from "@/shared/copy";\nconst KINDS = ["A", "B"] as const;\nexport const options = KINDS.map((value, index) => ({ value, label: lista("T-444")[index] ?? value }));\n',
+  },
+  {
+    title: "un método que recibe la lista junto con su orden",
+    form: "zip",
+    path: "src/app/sembrado/page.ts",
+    text: `${HEAD}import { util } from "@/shared/lib/util";\nexport const labels = util.zip(KINDS, tList("T-444"));\n`,
+  },
   // DT-371 (ADR-126 regla 10): anotado con claves abiertas, `tsc` deja pasar el número y la lectura
   // da `undefined`; sin anotar ya lo rechaza el tipo de `tLabels`.
   {
@@ -511,6 +561,10 @@ const ALLOWED: { title: string; text: string }[] = [
   {
     title: "buscar una posición con tope en una lista y leer esa misma lista",
     text: `export const current = (stages: { id: string }[], id: string) =>\n  stages[Math.max(0, stages.findIndex((item) => item.id === id))];\n`,
+  },
+  {
+    title: "Array.from sobre la lista con una función que no lee otra secuencia",
+    text: `${HEAD}export const shouted = Array.from(tList("T-444"), (label) => label.toUpperCase());\n`,
   },
   {
     title: "un recorrido de dos arreglos paralelos que no son del catálogo",
@@ -684,6 +738,10 @@ describe("cada llamada a tLabels de src arma un par de la tabla", () => {
     {
       title: "una constante que guarda otra tupla con el nombre del orden de su par",
       text: 'import { CONDITIONS } from "@/modules/permanence";\nimport { tLabels } from "@/shared/copy";\nconst STATUS_CODES = CONDITIONS;\nexport const labels = tLabels("T-381", STATUS_CODES);\n',
+    },
+    {
+      title: "otra lista del mismo largo, con tLabels importado con otro nombre",
+      text: 'import { CONDITIONS } from "@/modules/permanence";\nimport { tLabels as etiquetas } from "@/shared/copy";\nexport const labels = etiquetas("T-381", CONDITIONS);\n',
     },
     {
       title: "un código que no está escrito en la llamada",

@@ -7,9 +7,12 @@ import ts from "typescript";
 // `npm run audit:metrics`. Solo lee texto, archivo por archivo y sin tipos: quien llama decide qué
 // archivos le pasa.
 //
-// Qué es una lista del catálogo, para lo que sigue: una llamada a `tList(…)`, lo que sale de ella con
-// `map`, `slice` o `filter`, una variable del archivo que guarda una de esas, o la propiedad de un
-// objeto literal del archivo que la guarda. Una lista que llega por parámetro o por props no se sigue.
+// Qué es una lista del catálogo, para lo que sigue: una llamada a `tList(…)`, se importe con el nombre
+// que se importe; lo que sale de ella con un método que devuelve otra lista (`map`, `slice`, `filter`,
+// `concat`, `toSorted`, `toReversed`, `sort`, `reverse`), con `[...lista]` o con `Array.from(lista)`;
+// una variable del archivo que guarda una de esas, al nacer o después; o la propiedad de un objeto
+// literal del archivo que la guarda, leída con punto o desestructurada. Una lista que llega por
+// parámetro o por props no se sigue, ni un `tList` envuelto en una función propia.
 
 interface TextFile {
   path: string;
@@ -56,7 +59,16 @@ const ITERATIONS = new Set([
   "findLast",
 ]);
 const FOLDS = new Set(["reduce", "reduceRight"]);
-const LIST_METHODS = new Set(["map", "slice", "filter"]);
+const LIST_METHODS = new Set([
+  "map",
+  "slice",
+  "filter",
+  "concat",
+  "toSorted",
+  "toReversed",
+  "sort",
+  "reverse",
+]);
 /** Las funciones del catálogo: reciben una lista o un código y no emparejan por su cuenta. */
 const CATALOG = new Set(["t", "tList", "tLabels", "pairCopyLabels", "labelsFromProps"]);
 const RECORDS = new Set(["tLabels", "labelsFromProps"]);
@@ -76,6 +88,48 @@ interface Trace {
 
 function compact(text: string): string {
   return text.replace(/\s+/g, "").replace(/,([)\]}])/g, "$1");
+}
+
+function isSource(file: TextFile): boolean {
+  return /\.tsx?$/.test(file.path) && !file.path.endsWith(".generated.ts");
+}
+
+function parse(file: TextFile): ts.SourceFile {
+  return ts.createSourceFile(
+    file.path,
+    file.text,
+    ts.ScriptTarget.ES2022,
+    true,
+    file.path.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+}
+
+const ALIASES = new WeakMap<ts.SourceFile, Map<string, string>>();
+
+/**
+ * Cómo se llama afuera lo que el archivo importa con otro nombre (`import { tList as lista }`): así
+ * una función del catálogo no deja de verse por llegar renombrada.
+ */
+function importedName(identifier: ts.Identifier): string {
+  const source = identifier.getSourceFile();
+  let aliases = ALIASES.get(source);
+  if (!aliases) {
+    aliases = new Map();
+    for (const statement of source.statements) {
+      const bindings = ts.isImportDeclaration(statement)
+        ? statement.importClause?.namedBindings
+        : undefined;
+      if (bindings && ts.isNamedImports(bindings)) {
+        for (const element of bindings.elements) {
+          if (element.propertyName) {
+            aliases.set(element.name.text, element.propertyName.text);
+          }
+        }
+      }
+    }
+    ALIASES.set(source, aliases);
+  }
+  return aliases.get(identifier.text) ?? identifier.text;
 }
 
 function unwrap(node: ts.Expression): ts.Expression {
@@ -438,7 +492,39 @@ function originsOf(
 function called(expression: ts.Expression, names: ReadonlySet<string>): boolean {
   const node = unwrap(expression);
   return (
-    ts.isCallExpression(node) && ts.isIdentifier(node.expression) && names.has(node.expression.text)
+    ts.isCallExpression(node) &&
+    ts.isIdentifier(node.expression) &&
+    names.has(importedName(node.expression))
+  );
+}
+
+function isArrayFrom(callee: ts.Expression): boolean {
+  return (
+    ts.isPropertyAccessExpression(callee) &&
+    ts.isIdentifier(callee.expression) &&
+    callee.expression.text === "Array" &&
+    callee.name.text === "from"
+  );
+}
+
+/** Si `holder` es un objeto literal, o la variable del archivo que lo guarda, con una lista en `key`. */
+function holdsLabelList(holder: ts.Expression, key: string, depth: number): boolean {
+  let literal = unwrap(holder);
+  if (ts.isIdentifier(literal)) {
+    const declaration = declarationOf(literal);
+    if (declaration && ts.isVariableDeclaration(declaration) && declaration.initializer) {
+      literal = unwrap(declaration.initializer);
+    }
+  }
+  return (
+    ts.isObjectLiteralExpression(literal) &&
+    literal.properties.some(
+      (property) =>
+        ts.isPropertyAssignment(property) &&
+        (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)) &&
+        property.name.text === key &&
+        isLabelList(property.initializer, depth),
+    )
   );
 }
 
@@ -451,12 +537,22 @@ function isLabelList(expression: ts.Expression, depth = 0): boolean {
   if (ts.isCallExpression(node)) {
     const callee = node.expression;
     if (ts.isIdentifier(callee)) {
-      return callee.text === "tList";
+      return importedName(callee) === "tList";
+    }
+    if (isArrayFrom(callee)) {
+      const [copied] = node.arguments;
+      return !!copied && isLabelList(copied, depth);
     }
     return (
       ts.isPropertyAccessExpression(callee) &&
       LIST_METHODS.has(callee.name.text) &&
       isLabelList(callee.expression, depth)
+    );
+  }
+  if (ts.isArrayLiteralExpression(node)) {
+    // `[...lista]` sigue siendo la lista, con las piezas en su posición o corridas.
+    return node.elements.some(
+      (element) => ts.isSpreadElement(element) && isLabelList(element.expression, depth),
     );
   }
   if (ts.isConditionalExpression(node)) {
@@ -467,29 +563,31 @@ function isLabelList(expression: ts.Expression, depth = 0): boolean {
   }
   if (ts.isIdentifier(node)) {
     const declaration = declarationOf(node);
-    return (
-      !!declaration &&
-      ts.isVariableDeclaration(declaration) &&
-      !!declaration.initializer &&
-      isLabelList(declaration.initializer, depth + 1)
-    );
+    if (declaration && ts.isVariableDeclaration(declaration)) {
+      // El valor con el que nació y los que el archivo le asigna después.
+      const { values } = reassigned(declaration, declaration.getSourceFile());
+      const written = declaration.initializer ? [declaration.initializer, ...values] : values;
+      return written.some((value) => isLabelList(value, depth + 1));
+    }
+    if (
+      declaration &&
+      ts.isBindingElement(declaration) &&
+      ts.isObjectBindingPattern(declaration.parent)
+    ) {
+      // `const { kinds } = { kinds: tList(…) }`: la propiedad de un objeto literal, desestructurada.
+      const holder = declaration.parent.parent;
+      const key = declaration.propertyName ?? declaration.name;
+      return (
+        ts.isVariableDeclaration(holder) &&
+        !!holder.initializer &&
+        (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) &&
+        holdsLabelList(holder.initializer, key.text, depth + 1)
+      );
+    }
+    return false;
   }
   if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
-    const declaration = declarationOf(node.expression);
-    const holder =
-      declaration && ts.isVariableDeclaration(declaration) && declaration.initializer
-        ? unwrap(declaration.initializer)
-        : undefined;
-    if (!holder || !ts.isObjectLiteralExpression(holder)) {
-      return false;
-    }
-    return holder.properties.some(
-      (property) =>
-        ts.isPropertyAssignment(property) &&
-        (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)) &&
-        property.name.text === node.name.text &&
-        isLabelList(property.initializer, depth + 1),
-    );
+    return holdsLabelList(node.expression, node.name.text, depth + 1);
   }
   return false;
 }
@@ -530,14 +628,20 @@ function onlyLiteral(origins: ReadonlySet<Origin>): boolean {
   return origins.size === 1 && origins.has("literal");
 }
 
+/**
+ * Una función que puede emparejar por su cuenta lo que recibe: cualquiera que no sea del catálogo,
+ * se llame suelta (`zip(…)`) o como método (`util.zip(…)`). `Array.from(lista, fn)` solo recorre la
+ * lista: si su función lee otra secuencia con el índice, cae como recorrido.
+ */
+function pairsByItself(callee: ts.Expression): boolean {
+  if (ts.isIdentifier(callee)) {
+    return !CATALOG.has(importedName(callee));
+  }
+  return ts.isPropertyAccessExpression(callee) && !isArrayFrom(callee);
+}
+
 function readsIn(file: TextFile): PositionalRead[] {
-  const source = ts.createSourceFile(
-    file.path,
-    file.text,
-    ts.ScriptTarget.ES2022,
-    true,
-    file.path.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  );
+  const source = parse(file);
   const found: PositionalRead[] = [];
   const report = (node: ts.Node, form: PositionalForm) => {
     found.push({
@@ -647,9 +751,8 @@ function readsIn(file: TextFile): PositionalRead[] {
     }
     if (
       ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      !CATALOG.has(node.expression.text) &&
       node.arguments.length > 1 &&
+      pairsByItself(node.expression) &&
       node.arguments.some((argument) => isLabelList(argument))
     ) {
       report(node, "zip");
@@ -661,9 +764,7 @@ function readsIn(file: TextFile): PositionalRead[] {
 
 /** Cada lectura por posición de los archivos, con su forma y su línea. Los generados no se leen. */
 export function positionalLabelReads(files: TextFile[]): PositionalRead[] {
-  return files
-    .filter((file) => /\.tsx?$/.test(file.path) && !file.path.endsWith(".generated.ts"))
-    .flatMap(readsIn);
+  return files.filter(isSource).flatMap(readsIn);
 }
 
 /** Cuántas hay de cada forma: la fila de `npm run audit:metrics`. */
@@ -738,38 +839,30 @@ function declaredOrder(expression: ts.Expression, source: ts.SourceFile, depth =
  * pares (`tests/unit/enum-label-pairs.table.ts`).
  */
 export function labelCalls(files: TextFile[]): LabelCall[] {
-  return files
-    .filter((file) => /\.tsx?$/.test(file.path) && !file.path.endsWith(".generated.ts"))
-    .flatMap((file) => {
-      const source = ts.createSourceFile(
-        file.path,
-        file.text,
-        ts.ScriptTarget.ES2022,
-        true,
-        file.path.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-      );
-      const found: LabelCall[] = [];
-      const visit = (node: ts.Node) => {
-        ts.forEachChild(node, visit);
-        if (
-          !ts.isCallExpression(node) ||
-          !ts.isIdentifier(node.expression) ||
-          node.expression.text !== "tLabels"
-        ) {
-          return;
-        }
-        const [code, order] = node.arguments;
-        if (order) {
-          found.push({
-            path: file.path,
-            line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
-            code: code && ts.isStringLiteralLike(code) ? code.text : null,
-            order: declaredOrder(order, source),
-            values: writtenValues(order),
-          });
-        }
-      };
-      visit(source);
-      return found;
-    });
+  return files.filter(isSource).flatMap((file) => {
+    const source = parse(file);
+    const found: LabelCall[] = [];
+    const visit = (node: ts.Node) => {
+      ts.forEachChild(node, visit);
+      if (
+        !ts.isCallExpression(node) ||
+        !ts.isIdentifier(node.expression) ||
+        importedName(node.expression) !== "tLabels"
+      ) {
+        return;
+      }
+      const [code, order] = node.arguments;
+      if (order) {
+        found.push({
+          path: file.path,
+          line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+          code: code && ts.isStringLiteralLike(code) ? code.text : null,
+          order: declaredOrder(order, source),
+          values: writtenValues(order),
+        });
+      }
+    };
+    visit(source);
+    return found;
+  });
 }
