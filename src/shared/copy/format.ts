@@ -30,7 +30,9 @@ export type CopyLabels<Value extends string> = { readonly [Key in Value]: string
 
 /**
  * Lo que `tLabels` le pide a su enum: ser una tupla con tantos valores como piezas trae la lista. Si
- * lo es no agrega nada; si no, el argumento no compila y el error trae el motivo.
+ * lo es no agrega nada; si no, el argumento no compila y el error trae el motivo. Los largos se
+ * comparan en las dos direcciones y sin repartir una unión: con un código en unión el largo de la
+ * lista es `3 | 4`, y un enum de tres valores no es el par de las dos listas.
  */
 export type PairedWithList<
   List extends readonly string[],
@@ -39,8 +41,10 @@ export type PairedWithList<
   ? "tLabels pide el código de la lista como literal: sin él no se conoce su largo"
   : number extends Values["length"]
     ? "tLabels pide el enum como tupla: declaralo `as const`"
-    : Values["length"] extends List["length"]
-      ? unknown
+    : [Values["length"]] extends [List["length"]]
+      ? [List["length"]] extends [Values["length"]]
+        ? unknown
+        : "la lista y el enum no tienen el mismo largo"
       : "la lista y el enum no tienen el mismo largo";
 
 /**

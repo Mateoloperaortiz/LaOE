@@ -107,6 +107,25 @@ describe("tLabels no compila con un par que no es uno a uno", () => {
 
     expect(read(labels, "EASY")).toBe(tList("T-2681")[0]);
   });
+
+  it("un código en unión no compila aunque una de sus listas tenga el largo del enum", () => {
+    // T-2681 trae tres piezas; T-381 y T-2639, cuatro. Con el código en unión el largo de la lista
+    // es `3 | 4`, y tres valores o cuatro caben en uno de los dos: en la otra lista quedaría un
+    // valor sin etiqueta o una pieza sin leer.
+    const code = "T-2681" as "T-2681" | "T-381";
+    const inBrowser = "T-2681" as "T-2681" | "T-2639";
+
+    // @ts-expect-error Tres valores no son el par de T-381, que trae cuatro piezas.
+    const labels = tLabels(code, SUDOKU_DIFFICULTIES);
+    // @ts-expect-error Cuatro valores no son el par de T-2681, que trae tres.
+    tLabels(code, FOUR);
+    // @ts-expect-error Lo mismo en la entrada del navegador.
+    tLabelsInBrowser(inBrowser, SUDOKU_DIFFICULTIES);
+    // @ts-expect-error Lo mismo en la entrada del navegador.
+    tLabelsInBrowser(inBrowser, FOUR);
+
+    expect(read(labels, "EASY")).toBe(tList("T-2681")[0]);
+  });
 });
 
 describe("las etiquetas que llegan por props a un componente de cliente", () => {
