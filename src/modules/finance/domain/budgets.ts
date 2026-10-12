@@ -4,7 +4,7 @@ import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { listCommitteesByIds } from "@/modules/people";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   budgetExpense,
@@ -545,9 +545,9 @@ export async function getBudgetSummary(id: string): Promise<BudgetSummary | null
 }
 
 export function budgetKindLabel(kind: BudgetRow["kind"]): string {
-  return tList("T-2286")[BUDGET_KINDS.indexOf(kind)] ?? kind;
+  return tLabels("T-2286", BUDGET_KINDS)[kind] ?? kind;
 }
 
 export function budgetStatusLabel(status: BudgetRow["status"]): string {
-  return tList("T-2202")[BUDGET_STATUSES.indexOf(status)] ?? status;
+  return tLabels("T-2202", BUDGET_STATUSES)[status] ?? status;
 }

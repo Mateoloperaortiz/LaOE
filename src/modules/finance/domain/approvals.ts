@@ -4,7 +4,7 @@ import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { assertBenefitsAvailable, listCommitteesByIds } from "@/modules/people";
 import { getCurrentTerm } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { scopeId } from "@/shared/lib/scope-id";
@@ -173,5 +173,5 @@ export async function listEventApprovals(params: {
 }
 
 export function approvalStatusLabel(status: EventApprovalRow["status"]): string {
-  return tList("T-2300")[APPROVAL_STATUSES.indexOf(status)] ?? status;
+  return tLabels("T-2300", APPROVAL_STATUSES)[status] ?? status;
 }
