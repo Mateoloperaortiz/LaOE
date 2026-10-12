@@ -568,3 +568,78 @@ export function positionalLabelCounts(files: TextFile[]): Record<PositionalForm,
   }
   return counts;
 }
+
+export interface LabelCall {
+  path: string;
+  line: number;
+  /** El código de la lista, si está escrito en la llamada. */
+  code: string | null;
+  /** Cómo nombra la llamada su orden, sin espacios. */
+  order: string;
+  /** Los valores del orden, cuando están escritos en el archivo; si se importa, no se saben. */
+  values: string[] | null;
+}
+
+/** Los valores de un arreglo literal de textos, o de la variable del archivo que lo guarda. */
+function writtenValues(expression: ts.Expression, depth = 0): string[] | null {
+  const node = unwrap(expression);
+  if (ts.isArrayLiteralExpression(node)) {
+    const values: string[] = [];
+    for (const element of node.elements) {
+      if (!ts.isStringLiteralLike(element)) {
+        return null;
+      }
+      values.push(element.text);
+    }
+    return values;
+  }
+  if (!ts.isIdentifier(node) || depth > DEPTH) {
+    return null;
+  }
+  const declaration = declarationOf(node);
+  return declaration && ts.isVariableDeclaration(declaration) && declaration.initializer
+    ? writtenValues(declaration.initializer, depth + 1)
+    : null;
+}
+
+/**
+ * Cada llamada a `tLabels` de los archivos: qué lista lee y con qué orden. `tLabels` compara largos,
+ * no pares: con otra lista del mismo largo compila igual. Quien llama compara esto con la tabla de
+ * pares (`tests/unit/enum-label-pairs.table.ts`).
+ */
+export function labelCalls(files: TextFile[]): LabelCall[] {
+  return files
+    .filter((file) => /\.tsx?$/.test(file.path) && !file.path.endsWith(".generated.ts"))
+    .flatMap((file) => {
+      const source = ts.createSourceFile(
+        file.path,
+        file.text,
+        ts.ScriptTarget.ES2022,
+        true,
+        file.path.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+      );
+      const found: LabelCall[] = [];
+      const visit = (node: ts.Node) => {
+        ts.forEachChild(node, visit);
+        if (
+          !ts.isCallExpression(node) ||
+          !ts.isIdentifier(node.expression) ||
+          node.expression.text !== "tLabels"
+        ) {
+          return;
+        }
+        const [code, order] = node.arguments;
+        if (order) {
+          found.push({
+            path: file.path,
+            line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+            code: code && ts.isStringLiteralLike(code) ? code.text : null,
+            order: compact(unwrap(order).getText(source)),
+            values: writtenValues(order),
+          });
+        }
+      };
+      visit(source);
+      return found;
+    });
+}

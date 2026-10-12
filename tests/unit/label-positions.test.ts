@@ -1,13 +1,24 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { MARKET_STATUSES } from "@/modules/competition/domain/betting-pure";
+import { REQUEST_STATUSES } from "@/modules/crm/domain/requests-pure";
 import {
+  challengeParticipationStatus,
+  reconciliationStatus,
+  rewardStatus,
+} from "@/modules/participation/schema";
+import { COMPLIANCE_STATES } from "@/modules/permanence/domain/snapshot-pure";
+import {
+  type LabelCall,
+  labelCalls,
   POSITIONAL_FORMS,
   type PositionalForm,
   type PositionalRead,
   positionalLabelCounts,
   positionalLabelReads,
 } from "../../scripts/lib/label-position-metrics";
+import { PAIRS, UNSEEN_PAIRS } from "./enum-label-pairs.table";
 
 // DT-011: la etiqueta de un valor de un enum se lee por valor, con `tLabels(código, ENUM)[valor]`, y
 // no por la posición del valor en una lista del catálogo de textos. La migración de la spec #242 dejó
@@ -546,5 +557,97 @@ describe("lo que la regla deja pasar", () => {
       [],
     );
     expect(positionalLabelReads([{ path: "src/app/notas.md", text }])).toEqual([]);
+  });
+});
+
+// `tLabels` compara largos, no pares: `tLabels("T-381", CONDITIONS)` compila porque las dos listas
+// traen cuatro piezas, y mostraría el estado de una membresía con la etiqueta de una condición. La
+// tabla de pares dice qué lista lee cada orden; acá se comprueba que cada llamada de `src` arma uno
+// de esos pares (ADR-126 regla 12). Donde el orden está escrito en el archivo se comparan sus
+// valores con las posiciones de la tabla; donde se importa, su nombre con el del par.
+const TABLE = [...PAIRS, ...UNSEEN_PAIRS];
+
+// Los órdenes que el código nombra distinto que la tabla y que no están escritos en el archivo que
+// los usa: acá va la tupla de verdad, y lo que se compara son sus valores. Con `path`, el nombre es
+// de ese archivo y de ningún otro.
+const NAMED_OTHERWISE: { order: string; path?: string; tuple: readonly string[] }[] = [
+  { order: "COMPLIANCE_STATES", tuple: COMPLIANCE_STATES },
+  { order: "MARKET_STATUSES", tuple: MARKET_STATUSES },
+  {
+    order: "challengeParticipationStatus.enumValues",
+    tuple: challengeParticipationStatus.enumValues,
+  },
+  { order: "rewardStatus.enumValues", tuple: rewardStatus.enumValues },
+  { order: "reconciliationStatus.enumValues", tuple: reconciliationStatus.enumValues },
+  {
+    order: "statusValues",
+    path: "src/app/admin/solicitudes/page.tsx",
+    tuple: [...REQUEST_STATUSES, "ALL"],
+  },
+];
+
+const namedOtherwise = (call: LabelCall) =>
+  NAMED_OTHERWISE.find(
+    (other) => other.order === call.order && (!other.path || other.path === call.path),
+  );
+
+function paired(call: LabelCall): boolean {
+  const values = call.values ?? namedOtherwise(call)?.tuple;
+  return TABLE.some((pair) => {
+    if (pair.code !== call.code) {
+      return false;
+    }
+    return values
+      ? values.length === Object.keys(pair.positions).length &&
+          values.every((value, index) => pair.positions[value] === index)
+      : pair.order === call.order;
+  });
+}
+
+const sighting = (call: LabelCall) => `${call.path}:${call.line} · ${call.code} · ${call.order}`;
+
+describe("cada llamada a tLabels de src arma un par de la tabla", () => {
+  const calls = labelCalls(files).filter((call) => !call.path.startsWith("src/shared/copy/"));
+
+  it("encuentra las llamadas de src", () => {
+    expect(calls.length).toBeGreaterThan(150);
+  });
+
+  it("ninguna lee una lista con un orden que no es el de su par", () => {
+    expect(calls.filter((call) => !paired(call)).map(sighting)).toEqual([]);
+  });
+
+  it("ningún nombre de más: cada orden nombrado distinto lo usa alguna llamada", () => {
+    const used = new Set(calls.map(namedOtherwise));
+    expect(NAMED_OTHERWISE.filter((other) => !used.has(other)).map((other) => other.order)).toEqual(
+      [],
+    );
+  });
+
+  it.each([
+    {
+      title: "otra lista del mismo largo, con una tupla importada",
+      text: 'import { CONDITIONS } from "@/modules/permanence";\nimport { tLabels } from "@/shared/copy";\nexport const labels = tLabels("T-381", CONDITIONS);\n',
+    },
+    {
+      title: "dos valores cruzados en un orden escrito en el archivo",
+      text: 'import { tLabels } from "@/shared/copy";\nconst STATUSES = ["DRAFT", "CLOSED", "OPEN", "CANCELLED"] as const;\nexport const labels = tLabels("T-568", STATUSES);\n',
+    },
+    {
+      title: "un código que no está escrito en la llamada",
+      text: 'import { tLabels } from "@/shared/copy";\nexport const labels = (code: "T-568", order: readonly ["A"]) => tLabels(code, order);\n',
+    },
+  ])("sembrada en memoria, cae $title", ({ text }) => {
+    const seeded = labelCalls([{ path: "src/app/sembrado/page.ts", text }]);
+    expect(seeded).toHaveLength(1);
+    expect(seeded.filter(paired)).toEqual([]);
+  });
+
+  it("sembrada en memoria, pasa la que escribe el orden de su par con otro nombre", () => {
+    const text =
+      'import { tLabels } from "@/shared/copy";\nconst ESTADOS = ["DRAFT", "OPEN", "CLOSED", "CANCELLED"] as const;\nexport const labels = tLabels("T-568", ESTADOS);\n';
+    const seeded = labelCalls([{ path: "src/app/sembrado/page.ts", text }]);
+    expect(seeded).toHaveLength(1);
+    expect(seeded.filter(paired)).toHaveLength(1);
   });
 });
