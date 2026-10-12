@@ -259,37 +259,8 @@ const EXCEPTIONS: Exceptions = {
   },
   forms: {
     nadie: `
-      AnswerValue
-      AnswersResult
-      CreateSubmissionInput
-      FIELD_KEY
-      FORM_MAX_PER_IP
-      FORM_SLUG
-      FORM_WINDOW_MS
       FieldType
-      FormActions
-      FormInput
-      FormListRow
-      FormOpenState
-      FormWindow
-      PublicForm
       RESERVED_KEYS
-      RegistrationRow
-      SubmitInput
-      SubmitResult
-      actionsSchema
-      fieldSchema
-      fieldsSchema
-      formInputSchema
-      formOpenState
-      getRegistration
-      listForms
-      listRegistrations
-      parseActions
-      personDataFromAnswers
-      publicIdentitySchema
-      setFormStatus
-      updateForm
     `,
     "solo-pruebas": `
       createForm
