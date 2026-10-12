@@ -21,7 +21,7 @@ import { outbox } from "@/modules/system/schema";
 import { tList } from "@/shared/copy";
 import { seedMember } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
-import { PAIRS, UNEVEN_PAIRS, ZIP_PAIRS } from "../unit/enum-label-pairs.table";
+import { PAIRS, UNZIPPED_FIELDS, ZIP_PAIRS } from "../unit/enum-label-pairs.table";
 import { truncateAll } from "./db";
 
 // El resumen de una interacción automática queda guardado en `interaction.summary` con la etiqueta
@@ -191,10 +191,7 @@ const KEYS = [
 
 /** La posición literal que la tabla le da a cada valor de la lista de esa clave. */
 function positionsOf(key: string, code: string): Record<string, number> {
-  const uneven = UNEVEN_PAIRS.filter(
-    (pair) => pair.code === code && pair.file === "src/modules/crm/jobs.ts",
-  );
-  const pairs = key === "fields" ? uneven : PAIRS.filter((pair) => pair.code === code);
+  const pairs = key === "fields" ? [UNZIPPED_FIELDS] : PAIRS.filter((pair) => pair.code === code);
   expect(pairs).toHaveLength(1);
   return pairs[0]?.positions ?? {};
 }

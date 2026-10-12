@@ -63,12 +63,6 @@ const EXCEPTIONS: Exception[] = [
     reason: `${UNEVEN} T-801 trae seis motivos para cuatro decisiones, y \`EXIT_OE\` lee el 3 o el 4 según la asamblea obligatoria.`,
   },
   {
-    path: "src/modules/crm/jobs.ts",
-    form: "zip",
-    read: 'zip(FIELD_KEYS,tList("T-427"))',
-    reason: `${UNEVEN} el \`zip\` usa las ocho primeras piezas de las once de T-427.`,
-  },
-  {
     path: "src/app/admin/gamificacion/campanas/page.tsx",
     form: "positionConstant",
     read: "stateLabels[STATE_INDEX[campaign.state]]",

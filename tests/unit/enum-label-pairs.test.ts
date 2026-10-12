@@ -12,6 +12,7 @@ import {
   UNDONE_UNEVEN_PAIRS,
   UNEVEN_PAIRS,
   UNSEEN_PAIRS,
+  UNZIPPED_FIELDS,
   ZIP_PAIRS,
 } from "./enum-label-pairs.table";
 
@@ -130,9 +131,11 @@ const inlineCopies = copies.filter(
 describe("la tabla de los pares", () => {
   it("trae los 85 pares que salen de las expresiones de la spec y 19 que esas expresiones no ven", () => {
     expect(PAIRS).toHaveLength(81);
-    expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(3);
-    // El que completa los 85 es el par de largo distinto de T-791, que la migración deshizo.
+    expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(2);
+    // Los que completan los 85 son el par de largo distinto de T-791, que la migración deshizo, y
+    // el de T-427, que dejó el `zip` por posiciones escritas.
     expect(UNDONE_UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(1);
+    expect(UNZIPPED_FIELDS.code).toBe("T-427");
     // Dieciocho uno a uno y el de largo distinto de T-566, también deshecho; el de T-2174 entró
     // con DT-370.
     expect(UNSEEN_PAIRS).toHaveLength(18);
@@ -344,7 +347,7 @@ describe("las constantes que guardan la posición de cada valor", () => {
       "T-2473 × FAMILY_INDEX de src/app/app/gh-points/coleccion/page.tsx",
       "T-2511 × STATE_INDEX de src/app/admin/gamificacion/campanas/page.tsx",
     ]);
-    expect(UNEVEN_PAIRS.length + uneven.length).toBe(5);
+    expect(UNEVEN_PAIRS.length + uneven.length).toBe(4);
     expect(UNDONE_UNEVEN_PAIRS).toHaveLength(2);
   });
 });
@@ -352,33 +355,43 @@ describe("las constantes que guardan la posición de cada valor", () => {
 describe("las etiquetas de la línea de tiempo en crm/jobs.ts", () => {
   // Qué etiqueta le toca a cada valor lo fija tests/integration/crm-timeline-labels.test.ts, que pasa
   // por `labels()` y lee el resumen guardado. Acá queda lo que solo se ve en el texto: que el `zip`
-  // ya arma un solo par, el de largo distinto, y que cada orden propio sigue escrito como en la tabla.
-  it("nueve de los diez pares se leen por valor y el zip solo arma el de largo distinto", () => {
+  // ya no existe, qué posición escrita lee cada campo del par de largo distinto y que cada orden
+  // propio sigue escrito como en la tabla.
+  it("nueve de los diez pares se leen por valor y el de largo distinto ya no pasa por un zip", () => {
     const source = sourceOf(JOBS);
-    expect(readFileSync(path.resolve(JOBS), "utf8").match(/: zip\(/g)).toHaveLength(1);
     expect(ZIP_PAIRS).toHaveLength(10);
-    expect(ZIP_PAIRS.filter((pair) => pair.own)).toHaveLength(5);
+    expect(ZIP_PAIRS.filter((pair) => pair.own)).toHaveLength(4);
     for (const { key, order, code } of ZIP_PAIRS) {
-      const uneven = UNEVEN_PAIRS.some((pair) => pair.code === code && pair.file === JOBS);
       expect(source).toContain(
         squash(
-          uneven
-            ? `${key}: zip(${order}, tList("${code}"))`
+          code === UNZIPPED_FIELDS.code
+            ? `${key}: fieldLabels()`
             : `${key}: tLabels("${code}", ${order})`,
         ),
       );
     }
+    for (const written of UNZIPPED_FIELDS.gone) {
+      expect(source).not.toContain(squash(written));
+    }
   });
 
-  it.each(ZIP_PAIRS)("$key lee $code con $order, en el orden de la tabla", ({
-    order,
-    code,
-    own,
-  }) => {
+  it("cada campo de un evento de persona lee la posición escrita de T-427 que dice la tabla", () => {
+    const fields = Object.entries(UNZIPPED_FIELDS.positions).sort(([, a], [, b]) => a - b);
+    expect(fields.map(([, position]) => position)).toEqual(fields.map((_, index) => index));
+    expect(tList(UNZIPPED_FIELDS.code)).toHaveLength(UNZIPPED_FIELDS.pieces);
+    expect(fields.length).toBeLessThan(UNZIPPED_FIELDS.pieces);
+    // La desestructuración le da a cada nombre la posición en la que está escrito.
+    expect(sourceOf(JOBS)).toContain(
+      `const[${fields.map(([field]) => field).join(",")}]=tList("${UNZIPPED_FIELDS.code}");`,
+    );
+  });
+
+  it.each(
+    ZIP_PAIRS.filter((pair) => pair.code !== UNZIPPED_FIELDS.code),
+  )("$key lee $code con $order, en el orden de la tabla", ({ order, code, own }) => {
     const source = sourceOf(JOBS);
-    const uneven = UNEVEN_PAIRS.find((pair) => pair.code === code && pair.file === JOBS);
     const pair = ONE_TO_ONE.find((item) => item.code === code);
-    const values = uneven ? [...uneven.tuple] : pair ? valuesOf(pair) : [];
+    const values = pair ? valuesOf(pair) : [];
     expect(values.length).toBeGreaterThan(0);
     if (own) {
       expect(source).toContain(`const${order}=${literal(values)}asconst;`);

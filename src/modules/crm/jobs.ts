@@ -46,25 +46,24 @@ const STATUS_CODES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"] as const;
 const STAGE_CODES = ["PROSPECT", "APPLICANT", "MEMBER", "ALUMNI"] as const;
 const PERMISSION_CODES = ["ADMIN", "COMMITTEE_LEADER", "BOARD"] as const;
 const DECISION_KINDS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"] as const;
-const FIELD_KEYS = [
-  "firstName",
-  "lastName",
-  "email",
-  "preferredName",
-  "phone",
-  "personalEmail",
-  "program",
-  "kind",
-] as const;
 
-// El único par que sigue emparejado por posición: T-427 trae once piezas (también da las columnas de
-// Personas) y los campos del evento son ocho, así que no entra a `tLabels` (ADR-126 regla 2). Sin
-// prototipo, como el `Record` de `tLabels`: un campo que la lista no trae cae al respaldo de `label`.
-function zip(keys: readonly string[], values: string[]): Record<string, string> {
-  return Object.assign(
-    Object.create(null),
-    Object.fromEntries(keys.map((key, index) => [key, values[index] ?? key])),
-  );
+// Los campos de un evento de persona. T-427 trae once piezas (también da las columnas de Personas) y
+// los campos son ocho: no es un par uno a uno y no entra a `tLabels` (ADR-126 regla 2). Cada campo
+// lee su posición escrita, que la tupla de `tList` cuida: con una pieza de menos no compila. Sin
+// prototipo, como el `Record` de `tLabels`: un campo que no está acá cae al respaldo de `label`.
+function fieldLabels(): Readonly<Record<string, string>> {
+  const [firstName, lastName, email, preferredName, phone, personalEmail, program, kind] =
+    tList("T-427");
+  return Object.assign(Object.create(null), {
+    firstName,
+    lastName,
+    email,
+    preferredName,
+    phone,
+    personalEmail,
+    program,
+    kind,
+  });
 }
 
 function labels(): TimelineLabels {
@@ -85,7 +84,7 @@ function labels(): TimelineLabels {
     appointmentKinds: tLabels("T-444", APPOINTMENT_KINDS),
     permissions: tLabels("T-289", PERMISSION_CODES),
     purposes: tLabels("T-516", CONSENT_PURPOSES),
-    fields: zip(FIELD_KEYS, tList("T-427")),
+    fields: fieldLabels(),
   };
 }
 

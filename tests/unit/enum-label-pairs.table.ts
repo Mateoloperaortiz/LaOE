@@ -1050,35 +1050,6 @@ export const UNEVEN_PAIRS: readonly UnevenPair[] = [
     seen: true,
   },
 
-  // La lista también da las columnas de Personas: sus tres últimas piezas no son campos del evento.
-  {
-    code: "T-427",
-    order: "FIELD_KEYS",
-    file: "src/modules/crm/jobs.ts",
-    tuple: [
-      "firstName",
-      "lastName",
-      "email",
-      "preferredName",
-      "phone",
-      "personalEmail",
-      "program",
-      "kind",
-    ],
-    pieces: 11,
-    positions: {
-      firstName: 0,
-      lastName: 1,
-      email: 2,
-      preferredName: 3,
-      phone: 4,
-      personalEmail: 5,
-      program: 6,
-      kind: 7,
-    },
-    read: 'fields:zip(FIELD_KEYS,tList("T-427"))',
-    seen: true,
-  },
   // La consola no nombra EXCUSED: una asistencia excusada cae al respaldo y muestra el código. Desde
   // el ticket #317 sus cuatro estados leen por valor el `Record` del par uno a uno (DT-364).
   {
@@ -1148,11 +1119,35 @@ export const UNDONE_UNEVEN_PAIRS: readonly {
   },
 ];
 
+/** El par de largo distinto que armaba el `zip` de crm/jobs.ts (T-427 con `FIELD_KEYS`, ADR-126
+ * reglas 2 y 6). T-427 trae once piezas, porque también da las columnas de Personas, y los campos de
+ * un evento de persona son ocho: no hay par uno a uno con el que leerlo por valor. Desde la revisión
+ * de la rama cada campo lee su posición escrita, que la tupla de `tList` cuida, y el `zip` ya no
+ * existe. Acá queda la posición literal que leía cada campo, para que siga leyendo esa. */
+export const UNZIPPED_FIELDS = {
+  code: "T-427",
+  order: "FIELD_KEYS",
+  file: "src/modules/crm/jobs.ts",
+  pieces: 11,
+  positions: {
+    firstName: 0,
+    lastName: 1,
+    email: 2,
+    preferredName: 3,
+    phone: 4,
+    personalEmail: 5,
+    program: 6,
+    kind: 7,
+  } as Record<string, number>,
+  /** Lo que el archivo ya no escribe. */
+  gone: ["function zip(", "FIELD_KEYS"],
+} satisfies { code: ListCode; [key: string]: unknown };
+
 /** Los diez pares que `labels()` de crm/jobs.ts armaba con su `zip`: la clave de las etiquetas de
- * la línea de tiempo, el orden que usa y si ese orden es uno de los cinco que el archivo declara.
- * Desde el ticket #318 nueve se leen por valor con `tLabels` y el `zip` solo arma `fields`, el de
- * largo distinto. Qué etiqueta le toca a cada valor lo fija, pasando por `labels()`,
- * tests/integration/crm-timeline-labels.test.ts. */
+ * la línea de tiempo, el orden que usaba y si ese orden es uno de los cuatro que el archivo declara.
+ * Desde el ticket #318 nueve se leen por valor con `tLabels`; `fields`, el de largo distinto, lee
+ * posiciones escritas desde la revisión de la rama (`UNZIPPED_FIELDS`). Qué etiqueta le toca a cada
+ * valor lo fija, pasando por `labels()`, tests/integration/crm-timeline-labels.test.ts. */
 export const ZIP_PAIRS: readonly { key: string; order: string; code: ListCode; own: boolean }[] = [
   { key: "sanctionKinds", order: "SANCTION_KINDS", code: "T-2229", own: false },
   { key: "stages", order: "STAGE_CODES", code: "T-1047", own: true },
@@ -1163,7 +1158,7 @@ export const ZIP_PAIRS: readonly { key: string; order: string; code: ListCode; o
   { key: "appointmentKinds", order: "APPOINTMENT_KINDS", code: "T-444", own: false },
   { key: "permissions", order: "PERMISSION_CODES", code: "T-289", own: true },
   { key: "purposes", order: "CONSENT_PURPOSES", code: "T-516", own: false },
-  { key: "fields", order: "FIELD_KEYS", code: "T-427", own: true },
+  { key: "fields", order: "FIELD_KEYS", code: "T-427", own: false },
 ];
 
 const DESGLOSE = "src/modules/permanence/components/Desglose.tsx";
