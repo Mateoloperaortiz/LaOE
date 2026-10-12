@@ -107,13 +107,7 @@ export {
   listExcusedCheckInsForTerm,
   type SelfCheckInResult,
 } from "./domain/check-ins";
-export {
-  closingSummary,
-  getTermStanding,
-  type StandingCommittee,
-  type StandingPerson,
-  type TermStandingView,
-} from "./domain/closing";
+export { closingSummary, getTermStanding } from "./domain/closing";
 export {
   adjustPointsAs,
   adjustRequirementAs,
@@ -213,17 +207,8 @@ export {
   listEntriesFor,
   listEntriesForPerson,
   listLedger,
-  type PointEntryRow,
 } from "./domain/ledger";
-export {
-  balance,
-  competitionRanks,
-  type Level,
-  levelFor,
-  POINT_ENTRY_KINDS,
-  type PointEntryKind,
-  type Ranked,
-} from "./domain/ledger-pure";
+export { levelFor, POINT_ENTRY_KINDS, type PointEntryKind } from "./domain/ledger-pure";
 export { buildLiveSnapshot, checkInLink } from "./domain/live";
 export { type GamificationSettings, loadGamificationSettings } from "./domain/member-context";
 export {
@@ -249,14 +234,7 @@ export {
 } from "./domain/occasions";
 export { getTodayPanal, listPanalGamesFor, startPanalAs, submitPanalWordAs } from "./domain/panal";
 export { isPublicId } from "./domain/public-id-pure";
-export {
-  type Board,
-  type CommitteeScore,
-  type MyPosition,
-  peopleBoards,
-  type RankedPerson,
-  rankCommittees,
-} from "./domain/rankings";
+export { peopleBoards, rankCommittees } from "./domain/rankings";
 export {
   getReconciliationRun,
   listReconciliationRuns,
@@ -284,12 +262,7 @@ export {
   usedRewardPoints,
 } from "./domain/rewards";
 export { rotatingCodeAt, secondsUntilRotation } from "./domain/rotating-code-pure";
-export {
-  type CommitteeOccasionScore,
-  type CommitteeParticipationRow,
-  listCommitteeScores,
-  listOccasionScores,
-} from "./domain/scores";
+export { listCommitteeScores, listOccasionScores } from "./domain/scores";
 export {
   abandonSudokuAs,
   finishSudokuAs,

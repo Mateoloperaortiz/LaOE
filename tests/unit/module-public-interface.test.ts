@@ -156,7 +156,6 @@ const EXCEPTIONS: Exceptions = {
       BadgeDelta
       BadgeFact
       BadgeFamily
-      Board
       BoostCampaignRow
       BoosterAdminRow
       BoosterOrigin
@@ -177,9 +176,6 @@ const EXCEPTIONS: Exceptions = {
       ChallengeRow
       ChallengeStoredStatus
       CollectionLevel
-      CommitteeOccasionScore
-      CommitteeParticipationRow
-      CommitteeScore
       EVIDENCE_KEY_PREFIX
       EvidenceFileRow
       EvidenceFileStatus
@@ -197,20 +193,15 @@ const EXCEPTIONS: Exceptions = {
       Game2048State
       Game2048Status
       GamificationOverview
-      Level
       MEMBER_CHALLENGE_STATUSES
       MemberCampaignView
-      MyPosition
       PARTICIPATION_STATUSES
       ParticipationRow
       ParticipationStatus
       PendingReviewRow
       PersonalPercent
-      PointEntryRow
       PreparedEvidenceUpload
       RECONCILE_BATCH
-      Ranked
-      RankedPerson
       ReconciliationReport
       ReconciliationRunRow
       ReportSampleEntry
@@ -222,8 +213,6 @@ const EXCEPTIONS: Exceptions = {
       RewardSource
       RewardStatus
       SpecialBadgeInput
-      StandingCommittee
-      StandingPerson
       StartGame2048Input
       StartSudokuInput
       SubmitDenial
@@ -234,7 +223,6 @@ const EXCEPTIONS: Exceptions = {
       SudokuRunView
       SudokuStartedView
       SudokuStatus
-      TermStandingView
       TodayGame2048
       TodaySudoku
       TodayWordle
@@ -253,13 +241,11 @@ const EXCEPTIONS: Exceptions = {
       awardSpecialBadgesForOccasion
       badgeFactsFor
       badgeProgress
-      balance
       boosterExpiresAt
       boosterPercent
       boosterState
       cancelCampaign
       challengeState
-      competitionRanks
       computeReward
       countApproved
       countPendingGamification
