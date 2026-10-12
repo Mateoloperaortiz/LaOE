@@ -22,6 +22,7 @@ import { powerName } from "@/modules/competition/domain/powers";
 import { POWER_EFFECTS, POWER_TYPES } from "@/modules/competition/domain/powers-pure";
 import { SCHEDULE_ISSUE_KINDS } from "@/modules/competition/domain/schedule-pure";
 import { COMPETITION_STATUSES } from "@/modules/competition/domain/setup";
+import { STAFF_SHEET_ROLES } from "@/modules/competition/domain/staff-import-pure";
 import { DOCUMENT_KINDS } from "@/modules/content/domain/documents-pure";
 import {
   CALL_ENTRY_STATUSES,
@@ -846,9 +847,9 @@ export const PAIRS: readonly LabelPair[] = [
   },
   {
     code: "T-3155",
-    order: "ROLE_ORDER",
+    order: "STAFF_SHEET_ROLES",
     positions: { LEADER: 0, GRADER: 1, OVERSEER: 2, VAR: 3 },
-    copies: ["src/modules/competition/domain/staff-import.ts"],
+    canonical: STAFF_SHEET_ROLES,
   },
   {
     code: "T-3225",

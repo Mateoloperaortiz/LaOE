@@ -23,6 +23,7 @@ import {
   type ParsedStaffRow,
   parseStaffSheet,
   planStaffChanges,
+  STAFF_SHEET_ROLES,
   type StaffDirectory,
   type StaffSheetProblem,
   type StaffSheetRole,
@@ -101,20 +102,13 @@ const EMPTY_SUMMARY: ImportStaffResult["summary"] = {
   kept: 0,
 };
 
-const ROLE_ORDER = [
-  "LEADER",
-  "GRADER",
-  "OVERSEER",
-  "VAR",
-] as const satisfies readonly StaffSheetRole[];
-
 /** El día en minúscula, como lo usan los textos («el jueves»). */
 export function dayName(day: Day): string {
   return (tList("T-3048")[day - 1] ?? String(day)).toLowerCase();
 }
 
 function roleLabel(role: StaffSheetRole): string {
-  return tLabels("T-3155", ROLE_ORDER)[role] ?? role;
+  return tLabels("T-3155", STAFF_SHEET_ROLES)[role] ?? role;
 }
 
 function list(names: readonly string[]): string {
