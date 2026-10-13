@@ -189,15 +189,18 @@ function hangingError(error: Error): object {
 
 /**
  * El error de una línea: ella misma o lo que trae bajo `err`, sea un `Error` o tenga su forma. De ahí
- * toma pino el mensaje que falta.
+ * toma pino el mensaje que falta, y solo si la línea no trae su propia clave `msg`: con ella no hay
+ * mensaje que falte, y pasarle el del error escribía dos claves `msg` (ADR-129 regla 7).
  */
 function errorOfLine(line: unknown): Error | undefined {
   if (line instanceof Error) {
     return line;
   }
-  const carried =
-    typeof line === "object" && line !== null ? (line as { err?: unknown }).err : undefined;
-  return isErrorLike(carried) ? carried : undefined;
+  if (typeof line !== "object" || line === null) {
+    return undefined;
+  }
+  const { err, msg } = line as { err?: unknown; msg?: unknown };
+  return msg === undefined && isErrorLike(err) ? err : undefined;
 }
 
 /**

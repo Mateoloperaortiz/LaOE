@@ -1,3 +1,4 @@
+import pino from "pino";
 import { describe, expect, it } from "vitest";
 import { logger } from "@/shared/log";
 import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
@@ -390,5 +391,77 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     const [entry] = await written(() => error({ err: err() }, "falló"));
 
     expect(placesOf(entry?.record)).toEqual([]);
+  });
+});
+
+// DT-393, ADR-129 regla 7: a la línea sin mensaje que trae su propia clave `msg` el paso propio le
+// pasaba además el mensaje de su error. Salían dos claves `msg`, y quien lee el JSON se queda con la
+// última, la del error. Gana la que escribió quien llamó, que es lo que hace pino solo.
+describe("la línea sin mensaje que trae su propia clave `msg`", () => {
+  /** Cuántas veces escribe la línea la clave `msg`. */
+  const msgKeys = (line: string) => line.split('"msg":').length - 1;
+
+  it("sale con una sola clave `msg`, la de la línea, y el mensaje de su error queda en `err.message`", async () => {
+    const lines = await written(() => {
+      error({ err: new Error("del error"), msg: "propio de la línea" });
+      error({ err: queryError(), msg: "propio de la línea", evento: "ev-1" });
+      error({ err: plainQueryError(), msg: "propio de la línea" });
+      error({ err: new Error("del error"), msg: null });
+    });
+
+    expect(lines.map(({ line }) => msgKeys(line))).toEqual([1, 1, 1, 1]);
+    expect(lines.map(({ record }) => record.msg)).toEqual([
+      "propio de la línea",
+      "propio de la línea",
+      "propio de la línea",
+      null,
+    ]);
+    expect(lines.map((line) => errOf(line).message)).toEqual([
+      "del error",
+      FAILED_QUERY,
+      FAILED_QUERY,
+      "del error",
+    ]);
+    expect(lines[1]?.record.evento).toBe("ev-1");
+    for (const { line } of lines) {
+      expect(line).not.toContain(VALUE);
+    }
+  });
+
+  it("sin clave `msg`, o con una sin valor, la línea sigue tomando el mensaje de su error", async () => {
+    const lines = await written(() => {
+      error({ err: new Error("del error") });
+      error({ err: new Error("del error"), msg: undefined });
+      error({ err: queryError(), msg: undefined });
+      error(Object.assign(new Error("del error"), { msg: "un campo del error" }));
+    });
+
+    expect(lines.map(({ record }) => record.msg)).toEqual([
+      "del error",
+      "del error",
+      FAILED_QUERY,
+      "del error",
+    ]);
+    expect(lines.slice(0, 3).map(({ line }) => msgKeys(line))).toEqual([1, 1, 1]);
+    expect(errOf(lines[3]).msg).toBe("un campo del error");
+  });
+
+  it("con mensaje, la línea que además trae su clave `msg` sale como salía: pino escribe las dos", async () => {
+    const lines: string[] = [];
+    const target = logger as unknown as Record<symbol, { write(line: string): void } | undefined>;
+    const original = target[pino.symbols.streamSym];
+    target[pino.symbols.streamSym] = {
+      write(line) {
+        lines.push(line);
+      },
+    };
+    try {
+      logger.error({ msg: "propio de la línea" }, "el mensaje");
+    } finally {
+      target[pino.symbols.streamSym] = original;
+    }
+
+    expect(lines.map((line) => msgKeys(line))).toEqual([2]);
+    expect(lines.map((line) => (JSON.parse(line) as { msg: string }).msg)).toEqual(["el mensaje"]);
   });
 });
