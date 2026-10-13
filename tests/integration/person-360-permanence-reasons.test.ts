@@ -2,6 +2,7 @@ import { isValidElement, type ReactNode } from "react";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { adjustRequirementAs } from "@/modules/participation";
 import { recordSanctionAs } from "@/modules/people";
 import {
   closeTermPermanenceAs,
@@ -25,6 +26,7 @@ import {
   seedTerm,
 } from "../factories";
 import { copyPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
 
@@ -252,8 +254,11 @@ describe("el motivo de una decisión del cierre en la pestaña de permanencia de
 
     const shown = [line("A3", "CONTINUES", met), line(null, "EXIT_OE", sanctions)];
     expect(await decisionsShown(warned, termId)).toEqual(shown);
-    // Aplicado el cierre, la pestaña lee el resultado congelado.
+    // Cerrado el término, la pestaña lee el resultado congelado.
     await closeTermPermanenceAs(actor, termId);
+    expect(await decisionsShown(warned, termId)).toEqual(shown);
+    // Y aplicado el cierre, que es trabajo del outbox y le da la baja, lo sigue mostrando.
+    await drainOutbox();
     expect(await decisionsShown(warned, termId)).toEqual(shown);
   });
 
@@ -341,6 +346,65 @@ describe("el motivo de una decisión del cierre en la pestaña de permanencia de
 
     expect(await decisionsShown(below, termId)).toEqual([
       line("A3", "EXIT_COMMITTEE", belowBand),
+      line(null, "EXIT_OE", noCommitteeLeft),
+    ]);
+  });
+
+  it("si a un nuevo le ajustan el requisito después de confirmar su salida por una asamblea perdida, la línea ya no dice por qué se propuso: el motivo de la propuesta no se guarda (DT-392)", async () => {
+    const { termId, a3, actor, member, closePoints, proposalOf } = await setup();
+    const absent = await member("nuevo-falto.motivos@eafit.edu.co", {
+      credit: 60,
+      attends: false,
+      since: termId,
+    });
+    // Para que cumpla en A3 con el umbral de un nuevo: 40 puntos más por una segunda regla del comité.
+    const extra = await seedRule(termId, "proyectos", {
+      committeeId: a3,
+      weight: 40,
+      computation: "MANUAL",
+      params: {},
+    });
+    await seedManualCredit(termId, extra, absent, 40, {
+      reason: "seed",
+      grantedById: actor.personId,
+    });
+    await closePoints();
+    // Faltó a la única ordinaria celebrada: el cierre lo propone por esa asamblea, y le queda comité.
+    expect(await proposalOf(absent)).toMatchObject({
+      isNew: true,
+      personProposed: "EXIT_OE",
+      personReason: 4,
+      mandatoryMet: false,
+    });
+    await confirmAllProposedAs(actor, termId);
+    expect(await decisionsShown(absent, termId)).toEqual([
+      line("A3", "CONTINUES", met),
+      line(null, "EXIT_OE", lostAssembly),
+    ]);
+
+    // GH le ajusta el requisito: ya no se le exige ninguna ordinaria, y esa asamblea deja de estar perdida.
+    await adjustRequirementAs(actor, {
+      termId,
+      personId: absent,
+      requiredOrdinary: 0,
+      requiresBoardElection: false,
+      requiresRunoff: false,
+      reason: "Ajuste del requisito después de confirmar",
+    });
+    await recomputeSnapshots(termId);
+    // Hoy el cierre le propondría continuar; lo obligatorio sigue sin cumplir por la inducción pendiente.
+    expect(await proposalOf(absent)).toMatchObject({
+      personProposed: "CONTINUES",
+      personReason: 0,
+      mandatoryMet: false,
+      drifted: true,
+    });
+
+    // La línea no dice el motivo con que se propuso ni una causa de hoy: comité le queda. Antes de
+    // ADR-128 regla 1 decía «faltó a una asamblea obligatoria», porque la pestaña elegía con
+    // `mandatory.met`. Mostrar el motivo de la propuesta pide guardarlo con la decisión (DT-392).
+    expect(await decisionsShown(absent, termId)).toEqual([
+      line("A3", "CONTINUES", met),
       line(null, "EXIT_OE", noCommitteeLeft),
     ]);
   });
