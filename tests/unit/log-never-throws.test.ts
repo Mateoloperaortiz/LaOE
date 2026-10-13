@@ -365,27 +365,30 @@ describe("sin `DATABASE_URL`, un error cuyo `message` no es un texto se escribe 
   });
 });
 
-// DT-399, ADR-129 regla 5: un símbolo donde va el mensaje. Pino lo pasaba tal cual a la línea, que
-// salía con `"msg":undefined` y dejaba de ser JSON. `captureLogs` lee cada línea como JSON, y con un
-// destino que lanza sale el aviso en su lugar: acá el destino guarda el texto y lo lee la prueba.
-describe("un símbolo donde va el mensaje de la línea", () => {
-  function rawLines(run: () => void): string[] {
-    const target = logger as unknown as Record<symbol, { write(line: string): void } | undefined>;
-    const original = target[pino.symbols.streamSym];
-    const lines: string[] = [];
-    target[pino.symbols.streamSym] = {
-      write(line) {
-        lines.push(line);
-      },
-    };
-    try {
-      run();
-    } finally {
-      target[pino.symbols.streamSym] = original;
-    }
-    return lines;
+/**
+ * Lo que el logger escribe mientras corre `run`, como texto. `captureLogs` lee cada línea como JSON, y
+ * con un destino que lanza sale el aviso en su lugar: acá el destino guarda el texto y lo lee la prueba.
+ */
+function rawLines(run: () => void): string[] {
+  const target = logger as unknown as Record<symbol, { write(line: string): void } | undefined>;
+  const original = target[pino.symbols.streamSym];
+  const lines: string[] = [];
+  target[pino.symbols.streamSym] = {
+    write(line) {
+      lines.push(line);
+    },
+  };
+  try {
+    run();
+  } finally {
+    target[pino.symbols.streamSym] = original;
   }
+  return lines;
+}
 
+// DT-399, ADR-129 regla 5: un símbolo donde va el mensaje. Pino lo pasaba tal cual a la línea, que
+// salía con `"msg":undefined` y dejaba de ser JSON.
+describe("un símbolo donde va el mensaje de la línea", () => {
   it("se escribe como su texto, y la línea sigue siendo JSON", () => {
     const lines = rawLines(() => {
       error({ evento: "ev-1" }, Symbol("s"));
@@ -501,6 +504,48 @@ describe("un logger hijo y las dos lecturas del error tampoco lanzan", () => {
       { level: 40, time: expect.any(Number), pedido: "p-2", msg: "de un texto" },
       { level: 40, time: expect.any(Number), pedido: "p-3", intento: 2, msg: "sigue" },
     ]);
+  });
+
+  // `hasOwnProperty` es un nombre de una familia. Pino busca el serializador y el stringifier de cada
+  // clave que fija en objetos llanos (`serializers[key]`, `stringifiers[key]`): con una clave que se
+  // llama como algo de `Object.prototype` encuentra el método heredado, y lanza o escribe una línea
+  // que no es JSON.
+  it.each([
+    "constructor",
+    "toString",
+    "toLocaleString",
+    "valueOf",
+    "isPrototypeOf",
+    "propertyIsEnumerable",
+    "__proto__",
+    "__defineGetter__",
+    "__defineSetter__",
+    "__lookupGetter__",
+    "__lookupSetter__",
+  ])("una clave `%s` en lo que le piden fijar tampoco tumba a `child` ni a `setBindings`, y la línea se deja leer como JSON: esa clave no se fija, y las demás sí", (key) => {
+    const lines = rawLines(() => {
+      child(logger, JSON.parse(`{"${key}":"de afuera","pedido":"p-1"}`)).error("un hijo");
+      const fixed = child(logger, { pedido: "p-2" });
+      fixed.setBindings(JSON.parse(`{"${key}":"de afuera","intento":2}`) as pino.Bindings);
+      fixed.error("sigue");
+    });
+
+    expect(lines.map((line) => JSON.parse(line) as unknown)).toEqual([
+      { level: 50, time: expect.any(Number), pedido: "p-1", msg: "un hijo" },
+      { level: 50, time: expect.any(Number), pedido: "p-2", intento: 2, msg: "sigue" },
+    ]);
+  });
+
+  it("en el objeto de una línea, y no en lo que fija un hijo, una clave `constructor` o `toString` todavía deja una línea que no es JSON: ahí la escribe pino (DT-394)", () => {
+    const lines = rawLines(() => {
+      error(JSON.parse('{"constructor":"de afuera","a":1}'), "una línea");
+      error(JSON.parse('{"toString":"de afuera","a":1}'), "una línea");
+    });
+
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+      expect(() => JSON.parse(line) as unknown).toThrow(SyntaxError);
+    }
   });
 
   it("lo que se pasa por opciones al crear un hijo es configuración, no lo que se pide anotar: sigue lanzando", () => {
