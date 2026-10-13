@@ -716,6 +716,24 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     expect(placesOf(entry?.record)).toEqual(places);
   });
 
+  // Otro borde que queda (ADR-129 regla 5): pino lista cada elemento de `errors` sin mirar si ya lo
+  // está escribiendo, y con un agregado que se lista a sí mismo desborda la pila antes de que el
+  // recorte corra. No filtra ni lanza, pero de ese error no queda nada en la línea.
+  it("todavía sale oculto entero el `err` de un agregado que se lista a sí mismo, o de dos que se listan entre sí", async () => {
+    const itself = Object.assign(queryError(), { errors: [] as unknown[] });
+    itself.errors.push(itself);
+    const first = carrying({ errors: [] as unknown[], failure: queryError() });
+    (first as unknown as { errors: unknown[] }).errors.push(carrying({ errors: [first] }));
+    const lines = await written(() => {
+      error({ err: itself }, "falló");
+      error({ err: first }, "falló");
+    });
+
+    expect(lines.map((entry) => entry.record.msg)).toEqual(["falló", "falló"]);
+    expect(lines.map((entry) => entry.record.err)).toEqual(["[oculto]", "[oculto]"]);
+    expect(lines.flatMap((entry) => placesOf(entry.record))).toEqual([]);
+  });
+
   it.each([
     ["en la raíz", () => queryError()],
     ["como causa", () => new Error("fuera", { cause: queryError() })],
