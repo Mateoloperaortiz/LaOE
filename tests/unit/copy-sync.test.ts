@@ -151,7 +151,7 @@ describe("copy:sync no escribe una lista reordenada sin que se la confirmen", ()
 
     const result = syncCopy({ root });
 
-    expect(result).toEqual({ reordered: [], unread: null, total: 2, client: 1 });
+    expect(result).toEqual({ reordered: [], unreadReason: null, totalCount: 2, clientCount: 1 });
     expect(generated()).toContain("Borrador · Abierta · Cerrado");
     expect(generated()).toContain("Título nuevo");
     expect(clientGenerated()).toContain("Borrador · Abierta · Cerrado");
@@ -206,7 +206,7 @@ describe("copy:sync no escribe una lista reordenada sin que se la confirmen", ()
     const result = syncCopy({ root });
 
     expect(result.reordered).toEqual([]);
-    expect(result.unread).toEqual(expect.any(String));
+    expect(result.unreadReason).toEqual(expect.any(String));
     expect(generated()).toContain("Cerrado · Abierto · Borrador");
     expect(clientGenerated()).toContain("Cerrado · Abierto · Borrador");
   });
@@ -217,16 +217,16 @@ describe("copy:sync no escribe una lista reordenada sin que se la confirmen", ()
 
     const result = syncCopy({ root });
 
-    expect(result.unread).toContain(COPY_TARGET);
+    expect(result.unreadReason).toContain(COPY_TARGET);
     expect(generated()).toContain("Cerrado · Abierto · Borrador");
   });
 
   it("el aviso de una lista reordenada termina con error, nombra el código y dice cómo confirmarlo", () => {
     const report = copySyncReport({
       reordered: ["T-002", "T-003"],
-      unread: null,
-      total: 3,
-      client: 1,
+      unreadReason: null,
+      totalCount: 3,
+      clientCount: 1,
     });
 
     expect(report.code).toBe(1);
@@ -236,7 +236,12 @@ describe("copy:sync no escribe una lista reordenada sin que se la confirmen", ()
   });
 
   it("sin listas reordenadas termina bien y cuenta lo que escribió", () => {
-    const report = copySyncReport({ reordered: [], unread: null, total: 3, client: 1 });
+    const report = copySyncReport({
+      reordered: [],
+      unreadReason: null,
+      totalCount: 3,
+      clientCount: 1,
+    });
 
     expect(report).toEqual({
       code: 0,
@@ -246,7 +251,12 @@ describe("copy:sync no escribe una lista reordenada sin que se la confirmen", ()
   });
 
   it("si no pudo leer el generado anterior termina bien y avisa que no comparó el orden", () => {
-    const report = copySyncReport({ reordered: [], unread: "no existe", total: 3, client: 1 });
+    const report = copySyncReport({
+      reordered: [],
+      unreadReason: "no existe",
+      totalCount: 3,
+      clientCount: 1,
+    });
 
     expect(report.code).toBe(0);
     expect(report.err).toContain("no existe");

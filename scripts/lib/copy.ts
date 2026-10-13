@@ -181,13 +181,16 @@ export function reorderedLists(
 ): string[] {
   return Object.keys(after)
     .filter((code) => {
-      const was = splitCopyList(before[code] ?? "");
-      const is = splitCopyList(after[code] ?? "");
-      if (was.length !== is.length || was.every((piece, index) => piece === is[index])) {
+      const previousPieces = splitCopyList(before[code] ?? "");
+      const currentPieces = splitCopyList(after[code] ?? "");
+      if (
+        previousPieces.length !== currentPieces.length ||
+        previousPieces.every((piece, index) => piece === currentPieces[index])
+      ) {
         return false;
       }
-      const sorted = [...is].sort();
-      return [...was].sort().every((piece, index) => piece === sorted[index]);
+      const sorted = [...currentPieces].sort();
+      return [...previousPieces].sort().every((piece, index) => piece === sorted[index]);
     })
     .sort();
 }
@@ -199,9 +202,11 @@ export interface CopySync {
   /** Las listas reordenadas que nadie confirmó. Con una sola no se escribe ningún generado. */
   reordered: string[];
   /** Por qué no se pudo leer el generado anterior; ahí el orden no se comparó. Nulo si se leyó. */
-  unread: string | null;
-  total: number;
-  client: number;
+  unreadReason: string | null;
+  /** Cuántos textos trae el inventario. */
+  totalCount: number;
+  /** Cuántos de esos quedaron en el subconjunto de cliente; cero si no se escribió nada. */
+  clientCount: number;
 }
 
 /**
@@ -214,13 +219,13 @@ export function syncCopy(
 ): CopySync {
   const root = options.root ?? ".";
   const entries = parseCopy(readFileSync(join(root, COPY_SOURCE), "utf8"));
-  const total = Object.keys(entries).length;
+  const totalCount = Object.keys(entries).length;
   let before: Record<string, string> = {};
-  let unread: string | null = null;
+  let unreadReason: string | null = null;
   try {
     before = generatedTexts(readFileSync(join(root, COPY_TARGET), "utf8"));
   } catch (error) {
-    unread = error instanceof Error ? error.message : String(error);
+    unreadReason = error instanceof Error ? error.message : String(error);
   }
   const confirmed = new Set((options.confirmed ?? "").split(",").map((code) => code.trim()));
   const after = Object.fromEntries(
@@ -228,12 +233,12 @@ export function syncCopy(
   );
   const reordered = reorderedLists(before, after).filter((code) => !confirmed.has(code));
   if (reordered.length > 0) {
-    return { reordered, unread, total, client: 0 };
+    return { reordered, unreadReason, totalCount, clientCount: 0 };
   }
   writeFileSync(join(root, COPY_TARGET), renderCopy(entries));
   const clientCopy = clientCopyOf(entries, collectClientCodes(join(root, "src")));
   writeFileSync(join(root, CLIENT_COPY_TARGET), renderClientCopy(clientCopy));
-  return { reordered, unread, total, client: Object.keys(clientCopy).length };
+  return { reordered, unreadReason, totalCount, clientCount: Object.keys(clientCopy).length };
 }
 
 /** Lo que `copy:sync` dice y con qué código termina: uno distinto de cero si no escribió nada. */
@@ -254,9 +259,9 @@ export function copySyncReport(result: CopySync): { code: 0 | 1; out: string; er
   }
   return {
     code: 0,
-    out: `${result.total} textos en ${COPY_TARGET}; ${result.client} en ${CLIENT_COPY_TARGET}\n`,
-    err: result.unread
-      ? `copy:sync no pudo leer el generado anterior (${result.unread}): no comparó el orden de las listas con el de antes.\n`
+    out: `${result.totalCount} textos en ${COPY_TARGET}; ${result.clientCount} en ${CLIENT_COPY_TARGET}\n`,
+    err: result.unreadReason
+      ? `copy:sync no pudo leer el generado anterior (${result.unreadReason}): no comparó el orden de las listas con el de antes.\n`
       : "",
   };
 }
