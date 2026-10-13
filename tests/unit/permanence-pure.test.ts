@@ -22,6 +22,7 @@ import {
   type OccasionFact,
   type PermanenceConfig,
   type PersonFacts,
+  PROPOSAL_REASON,
   personStanding,
   proposalReason,
   proposeDecisions,
@@ -1355,6 +1356,27 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
         reason: 0,
       });
       expect(proposalReason(null, pendingInduction, "EXIT_OE")).toBe(4);
+    });
+
+    it("cada motivo automático tiene nombre y vale el número de siempre: su posición en T-801, que es lo que guarda la decisión (DT-400)", () => {
+      // Los números están guardados en `permanence_decision.proposal_reason`: moverlos cambia qué texto
+      // muestra una decisión ya confirmada.
+      expect(PROPOSAL_REASON).toEqual({
+        CONTINUES: 0,
+        PROBATION: 1,
+        EXIT_COMMITTEE: 2,
+        NO_COMMITTEE: 3,
+        MANDATORY_LOST: 4,
+        SANCTIONS: 5,
+      });
+      expect(Object.values(PROPOSAL_REASON)).toEqual([...REASONS]);
+      expect(tList("T-801")).toHaveLength(REASONS.length);
+      // Donde el cierre lo decide: cada salida de la OE con su causa.
+      expect(exits.map((result) => proposeDecisions(result).person.reason)).toEqual([
+        PROPOSAL_REASON.NO_COMMITTEE,
+        PROPOSAL_REASON.MANDATORY_LOST,
+        PROPOSAL_REASON.SANCTIONS,
+      ]);
     });
 
     it("la causal de la baja y el motivo de la salida salen de una sola regla: en cada situación dicen lo que decían la condición que la baja escribía a mano y la función del motivo de antes del ciclo 17 (DT-398)", () => {

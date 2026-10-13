@@ -21,6 +21,7 @@ import {
   exitEndReason,
   type FinalState,
   type PersonPermanence,
+  PROPOSAL_REASON,
   type Proposal,
   type ProposalReason,
   proposalReason,
@@ -242,7 +243,7 @@ export async function listClosingRows(
         threshold: item.threshold,
         finalState: item.finalState,
         proposed: proposed?.proposed ?? "CONTINUES",
-        reason: proposed?.reason ?? 0,
+        reason: proposed?.reason ?? PROPOSAL_REASON.CONTINUES,
         decision: decisionFor(snapshot.personId, item.committeeId),
       };
     });

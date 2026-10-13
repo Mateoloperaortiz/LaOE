@@ -967,22 +967,36 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
   };
 }
 
-/** Motivo automático de una propuesta, en el orden de T-801. */
-export type ProposalReason = 0 | 1 | 2 | 3 | 4 | 5;
-
 export type CommitteeDecision = Exclude<DecisionKind, "EXIT_OE">;
+
+/**
+ * Los motivos automáticos de una propuesta del cierre, cada uno con su número: la posición de su texto
+ * en T-801 y lo que guarda `permanence_decision.proposal_reason`, con su `check` de 0 a 5. Los números no
+ * se mueven: cambiar uno cambia qué texto muestra una decisión ya guardada (ADR-129 regla 3). Continuar,
+ * la prueba y la salida de un comité llevan el nombre de su decisión, y por eso se leen con ella.
+ */
+export const PROPOSAL_REASON = {
+  CONTINUES: 0,
+  PROBATION: 1,
+  EXIT_COMMITTEE: 2,
+  /** Sale de la OE porque no le queda un comité donde cumpla o esté en prueba. */
+  NO_COMMITTEE: 3,
+  /** Sale de la OE porque perdió una asamblea obligatoria. */
+  MANDATORY_LOST: 4,
+  /** Sale de la OE por una falta grave vigente más otra sanción. */
+  SANCTIONS: 5,
+} as const satisfies Record<
+  CommitteeDecision | "NO_COMMITTEE" | "MANDATORY_LOST" | "SANCTIONS",
+  number
+>;
+
+/** Motivo automático de una propuesta, en el orden de T-801. */
+export type ProposalReason = (typeof PROPOSAL_REASON)[keyof typeof PROPOSAL_REASON];
 
 export interface Proposal {
   committees: Array<{ committeeId: string; proposed: CommitteeDecision; reason: ProposalReason }>;
   person: { proposed: "CONTINUES" | "EXIT_OE"; reason: ProposalReason };
 }
-
-/** El motivo de continuar, de quedar en prueba y de salir de un comité: lo lleva la propuesta misma. */
-const KIND_REASON = {
-  CONTINUES: 0,
-  PROBATION: 1,
-  EXIT_COMMITTEE: 2,
-} as const satisfies Record<CommitteeDecision, ProposalReason>;
 
 /**
  * La causa que obliga a salir de la OE, de la que más pesa a la que menos; nulo si ninguna obliga. Faltar
@@ -993,11 +1007,11 @@ const KIND_REASON = {
  */
 function forcedExitReason(
   result: Pick<PersonPermanence, "mandatory" | "expulsionWarning">,
-): 4 | 5 | null {
+): typeof PROPOSAL_REASON.MANDATORY_LOST | typeof PROPOSAL_REASON.SANCTIONS | null {
   if (result.mandatory.lost.length > 0) {
-    return 4;
+    return PROPOSAL_REASON.MANDATORY_LOST;
   }
-  return result.expulsionWarning ? 5 : null;
+  return result.expulsionWarning ? PROPOSAL_REASON.SANCTIONS : null;
 }
 
 /**
@@ -1020,17 +1034,17 @@ export function proposeDecisions(result: PersonPermanence): Proposal {
     } else if (item.finalState === "PRUEBA") {
       proposed = "PROBATION";
     }
-    return { committeeId: item.committeeId, proposed, reason: KIND_REASON[proposed] };
+    return { committeeId: item.committeeId, proposed, reason: PROPOSAL_REASON[proposed] };
   });
   const forced = forcedExitReason(result);
   const stays = committees.some((item) => item.proposed !== "EXIT_COMMITTEE");
-  // Sin nada que obligue, sale quien se queda sin un comité donde cumpla o esté en prueba (3).
+  // Sin nada que obligue, sale quien se queda sin un comité donde cumpla o esté en prueba.
   return {
     committees,
     person:
       forced === null && stays
-        ? { proposed: "CONTINUES", reason: KIND_REASON.CONTINUES }
-        : { proposed: "EXIT_OE", reason: forced ?? 3 },
+        ? { proposed: "CONTINUES", reason: PROPOSAL_REASON.CONTINUES }
+        : { proposed: "EXIT_OE", reason: forced ?? PROPOSAL_REASON.NO_COMMITTEE },
   };
 }
 
@@ -1045,13 +1059,13 @@ export function proposeDecisions(result: PersonPermanence): Proposal {
  */
 function unsavedProposalReason(result: PersonPermanence, proposed: DecisionKind): ProposalReason {
   if (proposed !== "EXIT_OE") {
-    return KIND_REASON[proposed];
+    return PROPOSAL_REASON[proposed];
   }
   const today = proposeDecisions(result).person;
   if (today.proposed === "EXIT_OE") {
     return today.reason;
   }
-  return result.mandatory.met ? 3 : 4;
+  return result.mandatory.met ? PROPOSAL_REASON.NO_COMMITTEE : PROPOSAL_REASON.MANDATORY_LOST;
 }
 
 /**
