@@ -266,7 +266,11 @@ describe("Wordle diario persistido", () => {
   it("relee elegibilidad en cada envío y admite honorarios sin confiar en el actor", async () => {
     const termId = await seedTerm();
     for (const status of ["ON_LEAVE", "INACTIVE", "HONORARY"] as const) {
-      const personId = await seedPerson(`wordle.${status.toLowerCase()}@eafit.edu.co`);
+      // Quien salió queda exalumno, como lo deja la baja (DT-351).
+      const personId = await seedPerson(
+        `wordle.${status.toLowerCase()}@eafit.edu.co`,
+        status === "INACTIVE" ? { stage: "ALUMNI" } : {},
+      );
       await seedMembership(personId, termId, status);
       const result = await startWordleAs({ personId, ip: null });
       expect(result.ok).toBe(status === "HONORARY");

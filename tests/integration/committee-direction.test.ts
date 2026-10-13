@@ -113,7 +113,7 @@ describe("capacidades por cargo", () => {
     expect((await listMyCommitteeCapabilities(onLeave, f.termId))[0]).toMatchObject({
       isGeneral: true,
     });
-    const inactive = await seedPerson("baja@eafit.edu.co");
+    const inactive = await seedPerson("baja@eafit.edu.co", { stage: "ALUMNI" });
     await seedMembership(inactive, f.termId, "INACTIVE");
     await seedCommitteeMembership(inactive, f.pixel, f.termId, "FINANCIERO");
     expect(await listMyCommitteeCapabilities(inactive, f.termId)).toEqual([]);

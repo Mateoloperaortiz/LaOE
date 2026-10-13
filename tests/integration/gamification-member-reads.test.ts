@@ -106,7 +106,7 @@ describe("retos: lo que ve un miembro en el término vigente", () => {
     const now = new Date();
     const termId = await seedTerm();
     const sinMembresia = await seedPerson("lecturas.sin@eafit.edu.co");
-    const deBaja = await seedPerson("lecturas.baja@eafit.edu.co");
+    const deBaja = await seedPerson("lecturas.baja@eafit.edu.co", { stage: "ALUMNI" });
     await seedMembership(deBaja, termId, "INACTIVE");
     const paraTodos = await seedChallenge(termId, { title: "Para todos" });
 

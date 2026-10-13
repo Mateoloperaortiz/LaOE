@@ -39,6 +39,7 @@ import {
   seedSegment,
   seedTag,
   seedTerm,
+  seedVeteran,
 } from "../factories";
 import { truncateAll } from "./db";
 
@@ -266,17 +267,25 @@ describe("la fábrica y los comandos de las cuatro tablas de partida", () => {
     ).toEqual([{ membershipId: byCommand.membershipId }]);
   });
 
-  it("dejan la misma membresía de quien salió, salvo el último semestre y la época del carné, que solo escribe la baja (DT-351)", async () => {
+  const LEAVING = {
+    endReason: "RESIGNATION",
+    memorialConsent: false,
+    contactConsent: false,
+  } as const;
+
+  /** La persona sin lo que es propio de cada una: su id, su correo y cuándo se creó o cambió. */
+  const personOf = async (personId: string) => {
+    const rows = await db().select().from(person).where(eq(person.id, personId));
+    return without(rows[0], "id", "email", "createdAt", "updatedAt");
+  };
+
+  it("dejan la misma membresía de quien salió, con el último semestre y la época del carné que deja la baja (DT-351)", async () => {
     const actor = await seedMember(GRANTOR);
     const termId = await seedTerm();
-    const left = await seedMember(BY_COMMAND);
-    const seeded = await seedPerson(BY_FACTORY);
+    const left = await seedMember(BY_COMMAND, { phone: "3000000000" });
+    const seeded = await seedPerson(BY_FACTORY, { stage: "ALUMNI" });
 
-    await endMembershipAs({ personId: actor, ip: null }, left, {
-      endReason: "RESIGNATION",
-      memorialConsent: false,
-      contactConsent: false,
-    });
+    await endMembershipAs({ personId: actor, ip: null }, left, LEAVING);
     await seedMembership(seeded, termId, "INACTIVE", "RESIGNATION");
 
     // Además de lo de siempre, sin la hora de la salida.
@@ -284,18 +293,55 @@ describe("la fábrica y los comandos de las cuatro tablas de partida", () => {
     expect(byCommand).toMatchObject({
       status: "INACTIVE",
       endReason: "RESIGNATION",
+      firstTermId: termId,
       lastTermId: termId,
       walletEpoch: 1,
     });
-    expect(await membershipOf(seeded, "endedAt")).toEqual({
-      ...byCommand,
-      lastTermId: null,
-      walletEpoch: 0,
+    expect(await membershipOf(seeded, "endedAt")).toEqual(byCommand);
+    // La fábrica siembra la membresía y no toca a la persona: quien la llama la siembra como exalumna,
+    // que es como la deja la baja. Lo otro que la baja le hace a la persona no lo deja ninguna siembra:
+    // le revoca las sesiones y, sin autorización de contacto, le borra el celular.
+    const former = await personOf(left);
+    expect(former).toMatchObject({ stage: "ALUMNI", phone: null });
+    expect(former.sessionsRevokedAt).toBeInstanceOf(Date);
+    expect(await personOf(seeded)).toEqual({ ...former, sessionsRevokedAt: null });
+  });
+
+  it("dejan la misma membresía de quien entró en un semestre anterior y salió en el vigente, si la fábrica recibe aparte el último semestre", async () => {
+    const actor = await seedMember(GRANTOR);
+    const termId = await seedTerm();
+    const entryTermId = await seedTerm("2025-1");
+    const left = await seedVeteran(BY_COMMAND);
+    const seeded = await seedPerson(BY_FACTORY, { stage: "ALUMNI" });
+
+    await endMembershipAs({ personId: actor, ip: null }, left, LEAVING);
+    await seedMembership(seeded, entryTermId, "INACTIVE", "RESIGNATION", termId);
+
+    const byCommand = await membershipOf(left, "endedAt");
+    expect(byCommand).toMatchObject({
+      firstTermId: entryTermId,
+      lastTermId: termId,
+      walletEpoch: 1,
     });
-    // La baja pasa además a la persona a exalumna; la fábrica siembra la membresía y no toca a la persona.
-    const stages = await db().select({ id: person.id, stage: person.stage }).from(person);
-    expect(stages.find((row) => row.id === left)?.stage).toBe("ALUMNI");
-    expect(stages.find((row) => row.id === seeded)?.stage).toBe("MEMBER");
+    expect(await membershipOf(seeded, "endedAt")).toEqual(byCommand);
+  });
+
+  it("sin decirle el último semestre, la fábrica escribe el de ingreso: es la membresía de una baja que nombra ese semestre como el último", async () => {
+    const actor = await seedMember(GRANTOR);
+    await seedTerm();
+    const entryTermId = await seedTerm("2025-1");
+    const left = await seedVeteran(BY_COMMAND);
+    const seeded = await seedPerson(BY_FACTORY, { stage: "ALUMNI" });
+
+    await endMembershipAs({ personId: actor, ip: null }, left, {
+      ...LEAVING,
+      lastTermId: entryTermId,
+    });
+    await seedMembership(seeded, entryTermId, "INACTIVE", "RESIGNATION");
+
+    const byCommand = await membershipOf(left, "endedAt");
+    expect(byCommand).toMatchObject({ firstTermId: entryTermId, lastTermId: entryTermId });
+    expect(await membershipOf(seeded, "endedAt")).toEqual(byCommand);
   });
 });
 

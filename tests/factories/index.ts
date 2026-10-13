@@ -155,16 +155,20 @@ type MembershipEndReason = NonNullable<(typeof membership.$inferInsert)["endReas
 
 /**
  * La membresía de varias personas en una sola escritura, con el mismo término de ingreso y el mismo
- * estado; devuelve sus ids en el orden pedido. Una inactiva lleva su fecha y su motivo de salida
- * (`endReason`), que el esquema exige juntos. No es todo lo que deja una baja: `endMembership` escribe
- * además el último semestre (`lastTermId`), sube la época del carné (`walletEpoch`) y pasa a la persona
- * a exalumna; `tests/integration/factory-parity.test.ts` fija esa diferencia (DT-351).
+ * estado; devuelve sus ids en el orden pedido. Una inactiva es la fila que deja una baja
+ * (`endMembership`; `tests/integration/factory-parity.test.ts`): su fecha y su motivo de salida
+ * (`endReason`), el último semestre (`lastTermId`) y la época del carné subida a 1 (`walletEpoch`).
+ * El último semestre es `lastTermId` o, si no se dice, el de ingreso: la baja escribe el término
+ * vigente el día de la salida, así que quien siembra a alguien que entró en un término anterior y sale
+ * hoy lo pasa aparte. A la persona no la toca: la baja la deja exalumna, y eso lo siembra quien llama
+ * con `seedPerson(correo, { stage: "ALUMNI" })`.
  */
 export async function seedMemberships(
   personIds: string[],
   termId: string,
   status: MembershipStatus = "ACTIVE",
   endReason: MembershipEndReason = "OTHER",
+  lastTermId: string = termId,
 ): Promise<string[]> {
   if (personIds.length === 0) return [];
   const rows = await db()
@@ -174,7 +178,9 @@ export async function seedMemberships(
         personId,
         firstTermId: termId,
         status,
-        ...(status === "INACTIVE" ? { endedAt: new Date(), endReason } : {}),
+        ...(status === "INACTIVE"
+          ? { endedAt: new Date(), endReason, lastTermId, walletEpoch: 1 }
+          : {}),
       })),
     )
     .returning({ id: membership.id, personId: membership.personId });
@@ -191,8 +197,9 @@ export async function seedMembership(
   termId: string,
   status: MembershipStatus = "ACTIVE",
   endReason: MembershipEndReason = "OTHER",
+  lastTermId: string = termId,
 ): Promise<string> {
-  const [id] = await seedMemberships([personId], termId, status, endReason);
+  const [id] = await seedMemberships([personId], termId, status, endReason, lastTermId);
   if (!id) throw new Error("seed membership");
   return id;
 }

@@ -167,7 +167,7 @@ describe("faltas y sanciones", () => {
     const gh = await seedPerson("gh@eafit.edu.co");
     await seedMembership(gh, termId);
     const personId = await member("susp@eafit.edu.co", termId, a3);
-    const retired = await seedPerson("retirada@eafit.edu.co");
+    const retired = await seedPerson("retirada@eafit.edu.co", { stage: "ALUMNI" });
     await seedMembership(retired, termId, "INACTIVE");
     const actor = { personId: gh, ip: null };
     await expect(

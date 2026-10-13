@@ -108,12 +108,19 @@ const noEstaActiva = () => t("T-3269");
 async function seedCase(item: Case) {
   const termId = await seedTerm(currentTermCode());
   const previousTermId = await seedTerm("2019-1");
-  const personId = await seedPerson("quien.registra@eafit.edu.co");
+  // Quien salió queda como lo deja la baja de hoy (DT-351): exalumno y con el término vigente de
+  // último semestre, también cuando entró en uno anterior.
+  const personId = await seedPerson(
+    "quien.registra@eafit.edu.co",
+    item.persona.estado === "INACTIVE" ? { stage: "ALUMNI" } : {},
+  );
   if (item.persona.estado) {
     await seedMembership(
       personId,
       item.persona.nueva ? termId : previousTermId,
       item.persona.estado,
+      "OTHER",
+      termId,
     );
   }
   const now = Date.now();

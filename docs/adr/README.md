@@ -16,7 +16,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-127](ADR-127-reglas-de-correccion-del-decimoquinto-ciclo.md) | Reglas de corrección del decimoquinto ciclo del refactor | Aceptada |
 | [ADR-126](ADR-126-reglas-de-las-etiquetas-por-valor-del-decimocuarto-ciclo.md) | Reglas de las etiquetas por valor del decimocuarto ciclo del refactor | Aceptada |
 | [ADR-125](ADR-125-reglas-de-la-interfaz-de-los-modulos-del-decimotercer-ciclo.md) | Reglas de la interfaz pública de los módulos del decimotercer ciclo del refactor | Aceptada |
-| [ADR-124](ADR-124-reglas-de-la-base-de-pruebas-del-duodecimo-ciclo.md) | Reglas de la base de pruebas del duodécimo ciclo del refactor | Aceptada |
+| [ADR-124](ADR-124-reglas-de-la-base-de-pruebas-del-duodecimo-ciclo.md) | Reglas de la base de pruebas del duodécimo ciclo del refactor | Aceptada (enmendada por ADR-127) |
 | [ADR-123](ADR-123-reglas-de-verificacion-y-correccion-del-undecimo-ciclo.md) | Reglas de verificación y corrección del undécimo ciclo del refactor | Aceptada (enmendada por ADR-127) |
 | [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) | Reglas de alcance y corrección del décimo ciclo del refactor | Aceptada (enmendada por ADR-123) |
 | [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) | Reglas de estructura y pruebas del noveno ciclo del refactor | Aceptada (enmendada por ADR-122 y ADR-123) |

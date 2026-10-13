@@ -113,7 +113,7 @@ describe("grupos de trabajo", () => {
     const termId = await seedTerm();
     const one = await seedMember("uno@eafit.edu.co");
     await seedMember("dos@eafit.edu.co");
-    const inactive = await seedPerson("baja@eafit.edu.co");
+    const inactive = await seedPerson("baja@eafit.edu.co", { stage: "ALUMNI" });
     await seedMembership(inactive, termId, "INACTIVE");
     const { id } = await createGroupAs(admin, {
       termId,

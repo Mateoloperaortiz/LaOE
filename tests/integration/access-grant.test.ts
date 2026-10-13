@@ -50,7 +50,11 @@ async function seedMember(
   status: "ACTIVE" | "INACTIVE" = "ACTIVE",
 ): Promise<string> {
   const termId = await seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
-  const personId = await seedPerson(email, { firstName: "Camila" });
+  // Quien salió queda exalumno, como lo deja la baja (DT-351).
+  const personId = await seedPerson(email, {
+    firstName: "Camila",
+    ...(status === "INACTIVE" ? { stage: "ALUMNI" as const } : {}),
+  });
   await seedMembership(personId, termId, status);
   return personId;
 }
