@@ -28,8 +28,8 @@ import { truncateAll } from "./db";
 // tomada, y la importación entera caía con T-2331 al llegar a su fila. Cada prueba cae al quitar el
 // candado de su comando.
 
-const SIGUE = "prueba.sigue@eafit.edu.co";
-const HONORARIA = "prueba.honoraria@eafit.edu.co";
+const STAYS = "prueba.sigue@eafit.edu.co";
+const HONORARY = "prueba.honoraria@eafit.edu.co";
 
 interface Admin {
   personId: string;
@@ -39,13 +39,13 @@ interface Admin {
 const db = () => getDb();
 
 /** Dos personas activas y un archivo que deja a la primera como está y pasa a la segunda a honoraria. */
-async function escenario() {
+async function scenario() {
   const termId = await seedTerm();
   const admin: Admin = { personId: await seedMember("admin.roster@eafit.edu.co"), ip: null };
-  const sigue = await seedMember(SIGUE);
-  const honoraria = await seedMember(HONORARIA);
+  const stays = await seedMember(STAYS);
+  const honorary = await seedMember(HONORARY);
   const bytes = new TextEncoder().encode(
-    `${["CORREO;ESTADO", `${SIGUE};Activo`, `${HONORARIA};Honorario`].join("\r\n")}\r\n`,
+    `${["CORREO;ESTADO", `${STAYS};Activo`, `${HONORARY};Honorario`].join("\r\n")}\r\n`,
   );
   const { jobId } = await createRosterPreviewAs(admin, {
     filename: "estados.csv",
@@ -53,19 +53,19 @@ async function escenario() {
     bytes,
     termId,
   });
-  return { termId, admin, sigue, honoraria, jobId };
+  return { termId, admin, stays, honorary, jobId };
 }
 
-async function comoQuedo(personId: string, termId: string) {
+async function stateOf(personId: string, termId: string) {
   const [row] = await db()
     .select({ status: membership.status })
     .from(membership)
     .where(eq(membership.personId, personId));
-  const sanciones = await db()
+  const sanctions = await db()
     .select({ id: sanction.id })
     .from(sanction)
     .where(eq(sanction.personId, personId));
-  const [prueba] = await db()
+  const [termRow] = await db()
     .select({ probation: membershipTerm.probation })
     .from(membershipTerm)
     .where(
@@ -75,14 +75,18 @@ async function comoQuedo(personId: string, termId: string) {
         isNull(membershipTerm.committeeId),
       ),
     );
-  return { estado: row?.status, sanciones: sanciones.length, enPrueba: prueba?.probation ?? false };
+  return {
+    status: row?.status,
+    sanctions: sanctions.length,
+    onProbation: termRow?.probation ?? false,
+  };
 }
 
 /**
  * La importación es una sola transacción: toma los consultivos de las dos personas y se queda
  * esperando la fila de la primera, que la prueba retiene. La segunda sigue tomada hasta que confirme.
  */
-const filaDe = (personId: string) =>
+const holdPersonRow = (personId: string) =>
   holdTransaction((tx) =>
     tx.select({ id: person.id }).from(person).where(eq(person.id, personId)).for("update"),
   );
@@ -93,9 +97,9 @@ function launch<T>(running: Promise<T>): Promise<T> {
   return running;
 }
 
-const COMANDOS = [
+const COMMANDS = [
   {
-    nombre: "registrar una suspensión",
+    name: "registrar una suspensión",
     run: (admin: Admin, personId: string, termId: string): Promise<unknown> =>
       recordSanctionAs(
         admin,
@@ -109,26 +113,26 @@ const COMANDOS = [
         },
         { by: "ADMIN" },
       ),
-    deja: { sanciones: 1, enPrueba: false },
+    leaves: { sanctions: 1, onProbation: false },
   },
   {
-    nombre: "fijar el periodo de prueba",
+    name: "fijar el periodo de prueba",
     run: (admin: Admin, personId: string, termId: string): Promise<unknown> =>
       setProbationAs(admin, personId, termId, {
         probation: true,
         reason: "Bajo desempeño el semestre pasado",
       }),
-    deja: { sanciones: 0, enPrueba: true },
+    leaves: { sanctions: 0, onProbation: true },
   },
 ];
 
-const SALIDAS = [
+const DEPARTURES = [
   {
-    salida: "una anonimización",
+    departure: "una anonimización",
     leave: (admin: Admin, personId: string): Promise<unknown> => anonymizePersonAs(admin, personId),
   },
   {
-    salida: "una baja",
+    departure: "una baja",
     leave: (admin: Admin, personId: string): Promise<unknown> =>
       endMembershipAs(admin, personId, {
         endReason: "RESIGNATION",
@@ -142,39 +146,39 @@ describe("sancionar o fijar la prueba a alguien que una importación del roster 
   beforeEach(truncateAll);
   afterAll(() => closeDb());
 
-  describe.each(COMANDOS)("$nombre", ({ run, deja }) => {
+  describe.each(COMMANDS)("$name", ({ run, leaves }) => {
     it("hace cola detrás de la importación detenida en otra fila y confirma después, sin tumbarla", async () => {
-      const { termId, admin, sigue, honoraria, jobId } = await escenario();
+      const { termId, admin, stays, honorary, jobId } = await scenario();
 
       const results = await firstThenSecond(
-        await filaDe(sigue),
+        await holdPersonRow(stays),
         () => applyRosterImportAs(admin, jobId),
-        () => run(admin, honoraria, termId),
+        () => run(admin, honorary, termId),
       );
 
       // La importación la pasó a honoraria con lo que había validado, y el comando, que esperó,
       // decidió después sobre lo que ella dejó confirmado.
       expect(results.map(outcome)).toEqual(["ok", "ok"]);
-      expect(await comoQuedo(honoraria, termId)).toEqual({ estado: "HONORARY", ...deja });
+      expect(await stateOf(honorary, termId)).toEqual({ status: "HONORARY", ...leaves });
     });
 
     it.each(
-      SALIDAS,
-    )("con $salida de esa persona en la cola detrás, las tres terminan y ninguna se interbloquea", async ({
+      DEPARTURES,
+    )("con $departure de esa persona en la cola detrás, las tres terminan y ninguna se interbloquea", async ({
       leave,
     }) => {
-      const { termId, admin, sigue, honoraria, jobId } = await escenario();
-      await requestDeletionAs({ personId: honoraria, ip: null });
-      const held = await filaDe(sigue);
+      const { termId, admin, stays, honorary, jobId } = await scenario();
+      await requestDeletionAs({ personId: honorary, ip: null });
+      const held = await holdPersonRow(stays);
       let results: PromiseSettledResult<unknown>[];
       try {
         const importing = launch(applyRosterImportAs(admin, jobId));
         await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBe(1), {
           timeout: 5_000,
         });
-        const acting = launch(run(admin, honoraria, termId));
+        const acting = launch(run(admin, honorary, termId));
         await vi.waitFor(async () => expect(await waitingForLock()).toBe(2), { timeout: 5_000 });
-        const leaving = launch(leave(admin, honoraria));
+        const leaving = launch(leave(admin, honorary));
         await vi.waitFor(async () => expect(await waitingForLock()).toBe(3), { timeout: 5_000 });
         held.release();
         results = await Promise.allSettled([importing, acting, leaving]);
@@ -184,7 +188,7 @@ describe("sancionar o fijar la prueba a alguien que una importación del roster 
       }
 
       expect(results.map(outcome)).toEqual(["ok", "ok", "ok"]);
-      expect((await comoQuedo(honoraria, termId)).estado).toBe("INACTIVE");
+      expect((await stateOf(honorary, termId)).status).toBe("INACTIVE");
     });
   });
 });

@@ -28,11 +28,11 @@ import { truncateAll } from "./db";
 
 const db = () => getDb();
 
-interface Salida {
+interface Departure {
   /** Salió en prueba. */
   probation: boolean;
   /** Con la condición guardada en la membresía; sin ella es una licencia anterior a la migración. */
-  guardada: boolean;
+  stored: boolean;
 }
 
 /**
@@ -46,14 +46,14 @@ async function memberSince2026(email: string): Promise<string> {
 }
 
 /**
- * Sale a licencia en 2026-1, el semestre en que entró, y en el vigente no tiene fila. Sin `guardada`
+ * Sale a licencia en 2026-1, el semestre en que entró, y en el vigente no tiene fila. Sin `stored`
  * queda como las licencias anteriores a la migración: la membresía no trae la condición y la casa la
  * reconstruye desde el término de la salida. El reloj se le pasa al comando.
  */
-async function onLeave(email: string, { probation, guardada }: Salida): Promise<string> {
-  const previo = await seedTerm("2026-1");
+async function onLeave(email: string, { probation, stored }: Departure): Promise<string> {
+  const previous = await seedTerm("2026-1");
   const personId = await memberSince2026(email);
-  await seedMembershipTerm(personId, previo, probation);
+  await seedMembershipTerm(personId, previous, probation);
   await runCommand(SYSTEM_ACTOR, (ctx) =>
     changeMembershipStatus(
       ctx,
@@ -62,7 +62,7 @@ async function onLeave(email: string, { probation, guardada }: Salida): Promise<
       new Date("2026-06-01T15:00:00Z"),
     ),
   );
-  if (!guardada) {
+  if (!stored) {
     await db()
       .update(membership)
       .set({ leaveCondition: null })
@@ -76,7 +76,7 @@ const toHonorary = (personId: string) =>
     changeMembershipStatus(ctx, personId, { to: "HONORARY", reason: "Pasa a honoraria" }),
   );
 
-async function comoQuedo(personId: string) {
+async function stateOf(personId: string) {
   const [row] = await db()
     .select({ status: membership.status, leaveCondition: membership.leaveCondition })
     .from(membership)
@@ -85,15 +85,15 @@ async function comoQuedo(personId: string) {
 }
 
 /** Cuántas consultas salieron y cuántas de ellas leen la salida a licencia para reconstruir la condición. */
-function medida(queries: CountedQuery[]) {
+function measure(queries: CountedQuery[]) {
   return {
-    consultas: queries.length,
-    reconstrucciones: queries.filter((query) => /from "membership_event"/.test(query.text)).length,
+    queries: queries.length,
+    rebuilds: queries.filter((query) => /from "membership_event"/.test(query.text)).length,
   };
 }
 
 /** Que el día no tenga semestre no se supone: se comprueba. */
-async function sinSemestreVigente(): Promise<void> {
+async function expectNoCurrentTerm(): Promise<void> {
   expect((await getCurrentTerm()) ?? null).toBeNull();
 }
 
@@ -101,7 +101,7 @@ async function sinSemestreVigente(): Promise<void> {
  * La condición con la que sale `onLeave` sin prueba, entera: es lo que el paso a honorario deja
  * escrito en la membresía, lo traiga guardado o lo reconstruya (ADR-118 regla 8).
  */
-const SALIO_SIN_PRUEBA = [
+const LEFT_WITHOUT_PROBATION = [
   {
     committeeId: null,
     probation: false,
@@ -111,35 +111,37 @@ const SALIO_SIN_PRUEBA = [
   },
 ];
 
-const SALIDAS = [
-  { licencia: "con la condición guardada en la membresía", guardada: true },
-  { licencia: "anterior a la migración, que se reconstruye desde la salida", guardada: false },
+const DEPARTURES = [
+  { leave: "con la condición guardada en la membresía", stored: true },
+  { leave: "anterior a la migración, que se reconstruye desde la salida", stored: false },
 ];
 
 describe("la prueba con la que alguien salió a licencia y el paso a honorario", () => {
   beforeEach(truncateAll);
   afterAll(() => closeDb());
 
-  describe.each(SALIDAS)("una licencia $licencia", ({ guardada }) => {
+  describe.each(DEPARTURES)("una licencia $leave", ({ stored }) => {
     it("con semestre vigente y en prueba al salir: el comando responde T-2331, la ficha la da por bloqueada y la vista previa del roster la marca", async () => {
       await seedTerm();
-      const enPrueba = await onLeave("en.prueba@eafit.edu.co", { probation: true, guardada });
-      const limpia = await onLeave("sin.prueba@eafit.edu.co", { probation: false, guardada });
+      const onProbation = await onLeave("en.prueba@eafit.edu.co", { probation: true, stored });
+      const clean = await onLeave("sin.prueba@eafit.edu.co", { probation: false, stored });
 
-      expect([...(await honoraryBlockedAmong([enPrueba, limpia]))]).toEqual([enPrueba]);
-      expect((await honoraryFacts(enPrueba)).benefitsBlocked).toBe(true);
-      await expect(toHonorary(enPrueba)).rejects.toThrow(new DomainError(t("T-2331"), "personId"));
-      expect((await comoQuedo(enPrueba))?.status).toBe("ON_LEAVE");
+      expect([...(await honoraryBlockedAmong([onProbation, clean]))]).toEqual([onProbation]);
+      expect((await honoraryFacts(onProbation)).benefitsBlocked).toBe(true);
+      await expect(toHonorary(onProbation)).rejects.toThrow(
+        new DomainError(t("T-2331"), "personId"),
+      );
+      expect((await stateOf(onProbation))?.status).toBe("ON_LEAVE");
     });
 
     it("con semestre vigente y sin prueba al salir: pasa a honoraria y conserva la condición con la que salió", async () => {
       await seedTerm();
-      const limpia = await onLeave("sin.prueba@eafit.edu.co", { probation: false, guardada });
+      const clean = await onLeave("sin.prueba@eafit.edu.co", { probation: false, stored });
 
-      expect((await honoraryFacts(limpia)).benefitsBlocked).toBe(false);
-      await toHonorary(limpia);
+      expect((await honoraryFacts(clean)).benefitsBlocked).toBe(false);
+      await toHonorary(clean);
 
-      expect(await comoQuedo(limpia)).toEqual({
+      expect(await stateOf(clean)).toEqual({
         status: "HONORARY",
         leaveCondition: [
           expect.objectContaining({ committeeId: null, probation: false, resumedNew: true }),
@@ -150,29 +152,31 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
     // Sin semestre vigente a `blockedBenefits` no se le pregunta, y la prueba guardada se mira aparte
     // (ADR-120 regla 4). Que haya días así depende de los huecos entre términos: decisión abierta 27.
     it("sin semestre vigente y en prueba al salir: responden lo mismo los tres (decisión abierta 27)", async () => {
-      const enPrueba = await onLeave("en.prueba@eafit.edu.co", { probation: true, guardada });
-      const limpia = await onLeave("sin.prueba@eafit.edu.co", { probation: false, guardada });
-      await sinSemestreVigente();
+      const onProbation = await onLeave("en.prueba@eafit.edu.co", { probation: true, stored });
+      const clean = await onLeave("sin.prueba@eafit.edu.co", { probation: false, stored });
+      await expectNoCurrentTerm();
 
-      expect([...(await honoraryBlockedAmong([enPrueba, limpia]))]).toEqual([enPrueba]);
-      expect((await honoraryFacts(enPrueba)).benefitsBlocked).toBe(true);
-      expect((await honoraryFacts(limpia)).benefitsBlocked).toBe(false);
-      await expect(toHonorary(enPrueba)).rejects.toThrow(new DomainError(t("T-2331"), "personId"));
-      await toHonorary(limpia);
-      expect((await comoQuedo(limpia))?.status).toBe("HONORARY");
+      expect([...(await honoraryBlockedAmong([onProbation, clean]))]).toEqual([onProbation]);
+      expect((await honoraryFacts(onProbation)).benefitsBlocked).toBe(true);
+      expect((await honoraryFacts(clean)).benefitsBlocked).toBe(false);
+      await expect(toHonorary(onProbation)).rejects.toThrow(
+        new DomainError(t("T-2331"), "personId"),
+      );
+      await toHonorary(clean);
+      expect((await stateOf(clean))?.status).toBe("HONORARY");
     });
   });
 
   describe("una suspensión vigente", () => {
-    async function suspendida(email: string): Promise<string> {
-      const previo = await seedTerm("2026-1");
+    async function suspended(email: string): Promise<string> {
+      const previous = await seedTerm("2026-1");
       const admin = { personId: await memberSince2026("admin.gh@eafit.edu.co"), ip: null };
       const personId = await memberSince2026(email);
       await recordSanctionAs(
         admin,
         personId,
         {
-          termId: previo,
+          termId: previous,
           kind: "SUSPENSION",
           cause: "Uso indebido de la oficina, con descargos",
           occurredOn: todayKey(),
@@ -185,7 +189,7 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
 
     it("con semestre vigente impide el paso a honorario", async () => {
       await seedTerm();
-      const personId = await suspendida("suspendida@eafit.edu.co");
+      const personId = await suspended("suspendida@eafit.edu.co");
 
       expect((await honoraryFacts(personId)).benefitsBlocked).toBe(true);
       await expect(toHonorary(personId)).rejects.toThrow(new DomainError(t("T-2331"), "personId"));
@@ -196,81 +200,81 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
     // término. Corregirlo cambia lo que se ve en el aval, en el paso a honorario con su fila del
     // roster y en la ficha, y espera las decisiones abiertas 27 (si hay días sin semestre) y 72.
     it("sin semestre vigente no lo impide, ni la ficha la da por bloqueada (decisiones abiertas 27 y 72)", async () => {
-      const personId = await suspendida("suspendida@eafit.edu.co");
-      await sinSemestreVigente();
+      const personId = await suspended("suspendida@eafit.edu.co");
+      await expectNoCurrentTerm();
 
       expect((await honoraryFacts(personId)).benefitsBlocked).toBe(false);
       expect([...(await honoraryBlockedAmong([personId]))]).toEqual([]);
       await toHonorary(personId);
 
-      expect((await comoQuedo(personId))?.status).toBe("HONORARY");
+      expect((await stateOf(personId))?.status).toBe("HONORARY");
     });
   });
 
   // Lo que cuesta, contado: cada reconstrucción es la lectura de la salida a licencia y, detrás, el
   // término de esa fecha, las filas de ese término y los traslados.
   describe("lo que le manda a PostgreSQL una licencia anterior a la migración, con semestre vigente", () => {
-    const anterior = { guardada: false };
+    const earlier = { stored: false };
 
     it("el paso a honorario que se rechaza reconstruye la condición una sola vez", async () => {
       await seedTerm();
-      const enPrueba = await onLeave("en.prueba@eafit.edu.co", { probation: true, ...anterior });
+      const onProbation = await onLeave("en.prueba@eafit.edu.co", { probation: true, ...earlier });
 
       const { result, queries } = await countQueries(() =>
-        toHonorary(enPrueba).then(
+        toHonorary(onProbation).then(
           () => "ok",
           (error: Error) => error.message,
         ),
       );
 
       expect(result).toBe(t("T-2331"));
-      expect(medida(queries)).toEqual({ consultas: 13, reconstrucciones: 1 });
+      expect(measure(queries)).toEqual({ queries: 13, rebuilds: 1 });
     });
 
     // Eran 21 y dos: la segunda era de `conditionToKeep`, que la volvía a leer para dejarla escrita.
     it("el que procede la reconstruye una sola vez: con la que decide es la que deja escrita", async () => {
       await seedTerm();
-      const limpia = await onLeave("sin.prueba@eafit.edu.co", { probation: false, ...anterior });
+      const clean = await onLeave("sin.prueba@eafit.edu.co", { probation: false, ...earlier });
 
-      const { queries } = await countQueries(() => toHonorary(limpia));
+      const { queries } = await countQueries(() => toHonorary(clean));
 
-      expect(medida(queries)).toEqual({ consultas: 17, reconstrucciones: 1 });
-      expect(await comoQuedo(limpia)).toEqual({
+      expect(measure(queries)).toEqual({ queries: 17, rebuilds: 1 });
+      expect(await stateOf(clean)).toEqual({
         status: "HONORARY",
-        leaveCondition: SALIO_SIN_PRUEBA,
+        leaveCondition: LEFT_WITHOUT_PROBATION,
       });
     });
 
     it("la ficha la reconstruye una sola vez", async () => {
       await seedTerm();
-      const enPrueba = await onLeave("en.prueba@eafit.edu.co", { probation: true, ...anterior });
+      const onProbation = await onLeave("en.prueba@eafit.edu.co", { probation: true, ...earlier });
 
-      const { result, queries } = await countQueries(() => honoraryFacts(enPrueba));
+      const { result, queries } = await countQueries(() => honoraryFacts(onProbation));
 
       expect(result.benefitsBlocked).toBe(true);
-      expect(medida(queries)).toEqual({ consultas: 12, reconstrucciones: 1 });
+      expect(measure(queries)).toEqual({ queries: 12, rebuilds: 1 });
     });
 
     it("la vista previa del roster la reconstruye una vez por persona", async () => {
       await seedTerm();
-      const enPrueba = await onLeave("en.prueba@eafit.edu.co", { probation: true, ...anterior });
-      const limpia = await onLeave("sin.prueba@eafit.edu.co", { probation: false, ...anterior });
+      const onProbation = await onLeave("en.prueba@eafit.edu.co", { probation: true, ...earlier });
+      const clean = await onLeave("sin.prueba@eafit.edu.co", { probation: false, ...earlier });
 
       const { result, queries } = await countQueries(() =>
-        honoraryBlockedAmong([enPrueba, limpia]),
+        honoraryBlockedAmong([onProbation, clean]),
       );
 
-      expect([...result]).toEqual([enPrueba]);
-      expect(medida(queries)).toEqual({ consultas: 13, reconstrucciones: 2 });
+      expect([...result]).toEqual([onProbation]);
+      expect(measure(queries)).toEqual({ queries: 13, rebuilds: 2 });
     });
 
     it("con la condición guardada en la membresía el paso a honorario no reconstruye nada", async () => {
       await seedTerm();
-      const limpia = await onLeave("sin.prueba@eafit.edu.co", { probation: false, guardada: true });
+      const clean = await onLeave("sin.prueba@eafit.edu.co", { probation: false, stored: true });
 
-      const { queries } = await countQueries(() => toHonorary(limpia));
+      const { queries } = await countQueries(() => toHonorary(clean));
 
-      expect(medida(queries)).toEqual({ consultas: 13, reconstrucciones: 0 });
+      expect(measure(queries)).toEqual({ queries: 13, rebuilds: 0 });
     });
   });
 
@@ -279,18 +283,18 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
   // reconstrucciones, y se va igual. Que haya días así es la decisión abierta 27.
   describe("lo que le manda a PostgreSQL una licencia anterior a la migración, sin semestre vigente (decisión abierta 27)", () => {
     it("el paso a honorario que procede la reconstruye una sola vez y deja escrita la de su salida", async () => {
-      const limpia = await onLeave("sin.prueba@eafit.edu.co", {
+      const clean = await onLeave("sin.prueba@eafit.edu.co", {
         probation: false,
-        guardada: false,
+        stored: false,
       });
-      await sinSemestreVigente();
+      await expectNoCurrentTerm();
 
-      const { queries } = await countQueries(() => toHonorary(limpia));
+      const { queries } = await countQueries(() => toHonorary(clean));
 
-      expect(medida(queries)).toEqual({ consultas: 14, reconstrucciones: 1 });
-      expect(await comoQuedo(limpia)).toEqual({
+      expect(measure(queries)).toEqual({ queries: 14, rebuilds: 1 });
+      expect(await stateOf(clean)).toEqual({
         status: "HONORARY",
-        leaveCondition: SALIO_SIN_PRUEBA,
+        leaveCondition: LEFT_WITHOUT_PROBATION,
       });
     });
   });
