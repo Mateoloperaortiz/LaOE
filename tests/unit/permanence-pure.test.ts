@@ -1214,6 +1214,41 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
     expect(tList("T-801")).toHaveLength(6);
   });
 
+  it("faltar a una obligatoria manda sobre las sanciones, y las sanciones sobre quedarse sin comité", () => {
+    const closedTerm = { ...TERM, permanenceClosedAt: new Date() };
+    const termFacts = facts({
+      rules: [eventos],
+      occasions: [ordinary, election],
+      term: closedTerm,
+    });
+    const warnedAndAbsent = computePerson(
+      termFacts,
+      person({
+        committees: [committee("a3")],
+        attended: new Set(["ord"]),
+        expulsionWarning: true,
+        credits: [{ ruleId: eventos.id, value: 60, reason: "" }],
+      }),
+      NOW,
+    );
+    expect(warnedAndAbsent.mandatory.lost).toEqual(["BOARD_ELECTION"]);
+    expect(proposeDecisions(warnedAndAbsent).person).toEqual({ proposed: "EXIT_OE", reason: 4 });
+    const warnedWithoutCommittee = computePerson(
+      termFacts,
+      person({
+        committees: [committee("a3")],
+        attended: new Set(["ord", "elec"]),
+        expulsionWarning: true,
+        credits: [{ ruleId: eventos.id, value: 10, reason: "" }],
+      }),
+      NOW,
+    );
+    expect(proposeDecisions(warnedWithoutCommittee)).toEqual({
+      committees: [{ committeeId: "a3", proposed: "EXIT_COMMITTEE", reason: 2 }],
+      person: { proposed: "EXIT_OE", reason: 5 },
+    });
+  });
+
   it("una obligatoria con excusa aceptada no se pierde ni expulsa (ADR-060 regla 5)", () => {
     const closedTerm = { ...TERM, permanenceClosedAt: new Date() };
     const termFacts = facts({
