@@ -5,7 +5,7 @@ import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { listAlumniByYear } from "@/modules/people/domain/alumni";
 import { addAppointment } from "@/modules/people/domain/appointments";
 import { recordConsent, revokeConsent } from "@/modules/people/domain/consents";
-import { membership, person } from "@/modules/people/schema";
+import { person } from "@/modules/people/schema";
 import {
   seedCommittee,
   seedCommitteeMembership,
@@ -15,12 +15,21 @@ import {
 } from "../factories";
 import { truncateAll } from "./db";
 
-async function alumni(email: string, name: string, endedAt: Date): Promise<string> {
-  const termId = await seedTerm("2024-1");
+/**
+ * Una persona egresada que entró en el término `entryTermCode` y salió en `endedAt`, con la fila que
+ * deja una baja. La fecha va por la fábrica y cae dentro de ese semestre: nadie sale antes de entrar
+ * (DT-397).
+ */
+async function alumni(
+  email: string,
+  name: string,
+  entryTermCode: string,
+  endedAt: Date,
+): Promise<string> {
+  const termId = await seedTerm(entryTermCode);
   const [firstName, lastName] = name.split(" ") as [string, string];
   const personId = await seedPerson(email, { firstName, lastName, stage: "ALUMNI" });
-  await seedMembership(personId, termId, "INACTIVE");
-  await getDb().update(membership).set({ endedAt }).where(eq(membership.personId, personId));
+  await seedMembership(personId, termId, "INACTIVE", { endedAt });
   return personId;
 }
 
@@ -32,15 +41,22 @@ describe("galería de egresados", () => {
     const t2024 = await seedTerm("2024-1");
     const t2026 = await seedTerm();
     const a3 = await seedCommittee("a3");
-    const ana = await alumni("ana@eafit.edu.co", "Ana Arango", new Date("2024-06-15T05:00:00Z"));
+    const ana = await alumni(
+      "ana@eafit.edu.co",
+      "Ana Arango",
+      "2024-1",
+      new Date("2024-06-15T05:00:00Z"),
+    );
     const bruno = await alumni(
       "bruno@eafit.edu.co",
       "Bruno Betancur",
+      "2023-2",
       new Date("2023-12-01T05:00:00Z"),
     );
     const cami = await alumni(
       "cami@eafit.edu.co",
       "Camila Cadavid",
+      "2024-1",
       new Date("2024-06-15T05:00:00Z"),
     );
     await seedCommitteeMembership(ana, a3, t2024, "GENERAL");

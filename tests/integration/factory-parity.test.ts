@@ -358,12 +358,39 @@ describe("la fábrica y los comandos de las cuatro tablas de partida", () => {
     expect(await membershipOf(seeded, "endedAt")).toEqual(byCommand);
   });
 
-  it("el motivo de salida y el último semestre son de una inactiva: con otro estado la fábrica lanza, dice qué hacer y no siembra la membresía (DT-382)", async () => {
+  it("la fábrica escribe la fecha de salida que le pasan, y sin ella la del momento, como la baja (DT-397)", async () => {
+    const entryTermId = await seedTerm("2024-1");
+    const endedAt = new Date("2024-06-15T05:00:00Z");
+    const dated = await seedPerson(BY_FACTORY, { stage: "ALUMNI" });
+    const undated = await seedPerson(BY_COMMAND, { stage: "ALUMNI" });
+    const before = Date.now();
+
+    await seedMembership(dated, entryTermId, "INACTIVE", { endedAt });
+    await seedMembership(undated, entryTermId, "INACTIVE");
+
+    const left = {
+      status: "INACTIVE",
+      endReason: "OTHER",
+      firstTermId: entryTermId,
+      lastTermId: entryTermId,
+      walletEpoch: 1,
+    };
+    expect(await membershipOf(dated)).toMatchObject({ ...left, endedAt });
+    const now = await membershipOf(undated);
+    expect(now).toMatchObject(left);
+    expect((now.endedAt as Date).getTime()).toBeGreaterThanOrEqual(before);
+  });
+
+  it("el motivo de salida, el último semestre y la fecha de salida son de una inactiva: con otro estado la fábrica lanza, dice qué hacer y no siembra la membresía (DT-382, DT-397)", async () => {
     const termId = await seedTerm();
     const personId = await seedPerson(BY_FACTORY);
 
     for (const status of ["ACTIVE", "ON_LEAVE", "HONORARY"] as const) {
-      for (const exit of [{ endReason: "RESIGNATION" } as const, { lastTermId: termId }]) {
+      for (const exit of [
+        { endReason: "RESIGNATION" } as const,
+        { lastTermId: termId },
+        { endedAt: new Date("2024-06-15T05:00:00Z") },
+      ]) {
         await expect(seedMembership(personId, termId, status, exit)).rejects.toThrow(
           `con el estado ${status} no se escriben. Quitá las opciones de salida o sembrá la membresía "INACTIVE"`,
         );

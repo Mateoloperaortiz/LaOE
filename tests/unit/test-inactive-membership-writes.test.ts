@@ -9,19 +9,27 @@ import { describe, expect, it } from "vitest";
 // queda en verde sobre eso (DT-382, ADR-128 regla 7). Por eso esta prueba lee el código: fuera de la
 // fábrica no admite esa escritura si no está en su lista de excepciones.
 //
+// Lo mismo vale para la fecha de salida (DT-397, ADR-129 regla 10): la escribe la baja, y la fábrica
+// la recibe en `exit.endedAt`. Un `update` suelto que la reescribe puede dejar a alguien saliendo
+// antes de su término de ingreso, como pasaba en `tests/integration/alumni.test.ts`.
+//
 // Lee todo `tests/` menos la fábrica, que es la que siembra, y las unitarias, que no tocan la base y
 // traen escrituras de muestra en sus cadenas (las de este archivo).
 //
-// Cuenta tres cosas. La primera es la que busca; las otras dos son lo que no se deja leer, y caen
-// igual, porque podrían ser lo mismo escrito de otra manera:
+// Cuenta cuatro cosas. Las dos primeras son las que busca; las otras dos son lo que no se deja leer, y
+// caen igual, porque podrían ser lo mismo escrito de otra manera:
 //
 // - `INACTIVE`: el `.set({ … })` que sigue a `.update(membership)` escribe `status: "INACTIVE"`.
+// - `exitDate`: ese `.set({ … })` no toca el estado y nombra `endedAt` con algo que no es `null`: una
+//   fecha, la clave sola (`{ endedAt }`) o la clave entre comillas. Borrarla (`endedAt: null`) no
+//   cuenta: es la vuelta a activa, que no arma una salida.
 // - `unreadable`, lo que no se lee: ese `.set(` no recibe un objeto literal, trae un `...`, o le escribe a `status` algo
 //   que no es un texto entre comillas dobles (una variable, `{ status }`, una clave entre corchetes);
 //   o al `.update(membership)` no le sigue un `.set(`.
-// - `SQL`: un `update membership set …` escrito a mano que nombra `status`, también con `only`, con un
-//   alias, con un comentario antes de la tabla o con la tabla interpolada (`update ${membership} set`).
-//   Si lo interpolado no es la tabla por ninguno de sus nombres, cae como `unreadable`.
+// - `SQL`: un `update membership set …` escrito a mano que nombra `status`, o `ended_at` con algo que
+//   no es `null`, también con `only`, con un alias, con un comentario antes de la tabla o con la tabla
+//   interpolada (`update ${membership} set`). Si lo interpolado no es la tabla por ninguno de sus
+//   nombres, cae como `unreadable`.
 //
 // `membership` es la tabla de `modules/people/schema`, tomada con `@/` o con una ruta relativa, con
 // ese nombre o con el que el archivo le ponga: `membership as m` en un `import`, `membership: m` al
@@ -42,7 +50,7 @@ interface TextFile {
 interface Finding {
   path: string;
   line: number;
-  write: "INACTIVE" | "unreadable" | "SQL";
+  write: "INACTIVE" | "exitDate" | "unreadable" | "SQL";
 }
 
 interface Exception {
@@ -98,6 +106,20 @@ function statusWritten(argument: string): Finding["write"] | null {
   return literals.includes("INACTIVE") ? "INACTIVE" : null;
 }
 
+/** Si el argumento de un `.set(` le escribe a `endedAt` algo que no es `null`: una fecha de salida. */
+function exitDateWritten(argument: string): Finding["write"] | null {
+  const mentions = argument.match(/\bendedAt\b/g)?.length ?? 0;
+  const cleared = argument.match(/(?<![.\w"'`[])endedAt\s*:\s*null\s*(?=[,}])/g)?.length ?? 0;
+  return mentions > cleared ? "exitDate" : null;
+}
+
+/** Si lo que sigue al `set` de un SQL nombra `ended_at` con algo que no es `null`. */
+function sqlWritesExitDate(written: string): boolean {
+  const mentions = written.match(/\bended_at\b/gi)?.length ?? 0;
+  const cleared = written.match(/\bended_at"?\s*=\s*null\b/gi)?.length ?? 0;
+  return mentions > cleared;
+}
+
 /** El schema de people como lo nombra quien lo carga, con `@/` o con una ruta relativa. */
 const PEOPLE_SCHEMA = String.raw`["'][^"'\n]*modules\/people\/schema(?:\.[cm]?[jt]s)?["']`;
 
@@ -148,7 +170,10 @@ const SQL_UPDATE = new RegExp(
   "gi",
 );
 
-/** Cada escritura a `membership` que la deja inactiva, o que no deja leer qué estado le escribe. */
+/**
+ * Cada escritura a `membership` que la deja inactiva o le escribe la fecha de salida, o que no deja
+ * leer qué le escribe.
+ */
 function inactiveMembershipWrites(files: TextFile[]): Finding[] {
   const found: Finding[] = [];
   for (const { path, text } of files) {
@@ -160,18 +185,21 @@ function inactiveMembershipWrites(files: TextFile[]): Finding[] {
       const after = match.index + match[0].length;
       const set = /^\s*\.set\(/.exec(text.slice(after));
       const argument = set ? argumentAt(text, after + set[0].length - 1) : null;
-      const write = argument === null ? "unreadable" : statusWritten(argument);
+      const write =
+        argument === null ? "unreadable" : (statusWritten(argument) ?? exitDateWritten(argument));
       if (write) found.push({ path, line: lineOf(match.index), write });
     }
     const named = new RegExp(`^(?:${tables})$`);
     for (const match of text.matchAll(SQL_UPDATE)) {
       const [, target = "", written = ""] = match;
       // La tabla interpolada es la de people si lo interpolado es uno de sus nombres. Si es otra
-      // cosa no se sabe a qué tabla escribe, y con `status` en la sentencia cae igual.
+      // cosa no se sabe a qué tabla escribe, y con `status` o una fecha de salida en la sentencia
+      // cae igual.
       const interpolated = /^\$\{([^}]*)\}$/.exec(target)?.[1]?.trim();
       const isMembership =
         interpolated === undefined ? /^"?membership"?$/i.test(target) : named.test(interpolated);
-      if ((isMembership || interpolated !== undefined) && /\bstatus\b/i.test(written)) {
+      const watched = /\bstatus\b/i.test(written) || sqlWritesExitDate(written);
+      if ((isMembership || interpolated !== undefined) && watched) {
         found.push({ path, line: lineOf(match.index), write: isMembership ? "SQL" : "unreadable" });
       }
     }
@@ -192,7 +220,7 @@ const sample = (text: string) => inactiveMembershipWrites([{ path: "muestra.ts",
 const writesOf = (text: string) => sample(text).map(({ write }) => write);
 
 describe("la membresía inactiva de una prueba", () => {
-  it("sale de la fábrica o del comando de la baja: fuera de la fábrica quedan solo los `update` de la lista de excepciones, ni uno más ni uno menos", () => {
+  it("sale de la fábrica o del comando de la baja, con su fecha de salida: fuera de la fábrica quedan solo los `update` de la lista de excepciones, ni uno más ni uno menos", () => {
     const counts: Record<string, number> = {};
     for (const { path } of inactiveMembershipWrites(scannedSources())) {
       counts[path] = (counts[path] ?? 0) + 1;
@@ -274,8 +302,32 @@ describe("lo que el lector de escrituras a `membership` cuenta", () => {
       "un SQL con la tabla interpolada, que no es la de people por ninguno de sus nombres",
       "sql`update ${table} set status = 'INACTIVE'`",
     ],
+    [
+      "un SQL con la tabla interpolada, que no es la de people, y una fecha de salida",
+      "sql`update ${table} set ended_at = now()`",
+    ],
   ])("la que no deja leer qué estado escribe: %s", (_title, text) => {
     expect(writesOf(text)).toEqual(["unreadable"]);
+  });
+
+  it.each([
+    ["la clave sola", "db().update(membership).set({ endedAt })"],
+    ["una fecha", 'db().update(membership).set({ endedAt: new Date("2023-12-01T05:00:00Z") })'],
+    [
+      "partida en varias líneas, con el motivo",
+      'await getDb()\n  .update(membership)\n  .set({ endedAt: left, endReason: "OTHER" })\n  .where(x);',
+    ],
+    ["la clave entre comillas", 'db().update(membership).set({ "endedAt": left })'],
+    [
+      "con otro estado que no es la baja",
+      'db().update(membership).set({ status: "ON_LEAVE", endedAt: left })',
+    ],
+    [
+      "nombrada en el valor de otra clave, que cae por las dudas",
+      "db().update(membership).set({ leaveUntil: previous.endedAt })",
+    ],
+  ])("la que le escribe la fecha de salida sin dejarla inactiva: %s", (_title, text) => {
+    expect(writesOf(text)).toEqual(["exitDate"]);
   });
 
   it.each([
@@ -296,11 +348,16 @@ describe("lo que el lector de escrituras a `membership` cuenta", () => {
       "sql`update membership set end_reason = 'a;b', status = 'INACTIVE'`",
     ],
     ["con la tabla interpolada", "sql`update ${membership} set status = 'INACTIVE'`"],
+    ["que le escribe la fecha de salida", "sql`update membership set ended_at = now()`"],
+    [
+      "que le escribe la fecha de salida, con la tabla interpolada",
+      "sql`update ${membership} set ended_at = ${left}`",
+    ],
     [
       "con la tabla interpolada por el nombre que le da el archivo",
       "import * as people from \"@/modules/people/schema\";\nsql`update ${people.membership} set status = 'INACTIVE'`",
     ],
-  ])("el SQL escrito a mano que le cambia el estado, %s", (_title, text) => {
+  ])("el SQL escrito a mano que le cambia el estado o la fecha de salida, %s", (_title, text) => {
     expect(writesOf(text)).toEqual(["SQL"]);
   });
 
@@ -308,17 +365,21 @@ describe("lo que el lector de escrituras a `membership` cuenta", () => {
     ["otro estado", 'db().update(membership).set({ status: "ON_LEAVE", leaveUntil: null })'],
     ["la vuelta a activa", 'db().update(membership).set({ status: "ACTIVE", endedAt: null })'],
     ["otra columna", "db().update(membership).set({ firstTermId: previousTermId })"],
-    ["la fecha de salida sola", "db().update(membership).set({ endedAt })"],
+    [
+      "la fecha de salida borrada, con su motivo y su último semestre",
+      "db().update(membership).set({ endedAt: null, endReason: null, lastTermId: null })",
+    ],
     ["otra tabla", 'db().update(committee).set({ status: "INACTIVE" })'],
     [
       "una tabla de nombre parecido",
       'db().update(committeeMembership).set({ status: "INACTIVE" })',
     ],
-    ["un SQL que no toca el estado", "sql`update membership set ended_at = now()`"],
+    ["un SQL que no toca el estado ni la fecha", "sql`update membership set leave_until = null`"],
+    ["un SQL que borra la fecha de salida", "sql`update membership set ended_at = null`"],
     ["una lectura", 'expect(row).toMatchObject({ status: "INACTIVE" })'],
     [
-      "un SQL con la tabla interpolada que no toca el estado",
-      "sql`update ${membership} set ended_at = now()`",
+      "un SQL con la tabla interpolada que no toca el estado ni la fecha",
+      "sql`update ${membership} set leave_until = null`",
     ],
     [
       "el SQL de otra tabla, con el esquema interpolado",

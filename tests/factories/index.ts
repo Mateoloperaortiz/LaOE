@@ -163,6 +163,12 @@ interface MembershipExit {
    * salida, así que quien siembra a alguien que entró en un término anterior y sale hoy lo pasa acá.
    */
   lastTermId?: string;
+  /**
+   * La fecha de salida; la del momento si no se dice, como la baja. Quien siembra a alguien que salió
+   * antes la pasa acá, con un término de ingreso que no empiece después de ella: un `update` suelto
+   * de `endedAt` no pasa `tests/unit/test-inactive-membership-writes.test.ts`.
+   */
+  endedAt?: Date;
 }
 
 /**
@@ -170,8 +176,8 @@ interface MembershipExit {
  * estado; devuelve sus ids en el orden pedido. Una inactiva es la fila que deja una baja
  * (`endMembership`; `tests/integration/factory-parity.test.ts`): su fecha y su motivo de salida
  * (`endReason`), el último semestre (`lastTermId`) y la época del carné subida a 1 (`walletEpoch`).
- * El motivo y el último semestre van en `exit` y son solo de una inactiva: con otro estado la función
- * lanza en vez de ignorarlos. A la persona no la toca: la baja la deja egresada, y eso lo siembra
+ * El motivo, el último semestre y la fecha van en `exit` y son solo de una inactiva: con otro estado
+ * la función lanza en vez de ignorarlos. A la persona no la toca: la baja la deja egresada, y eso lo siembra
  * quien llama con `seedPerson(correo, { stage: "ALUMNI" })`. Si alguna no lo es, la función lanza
  * antes de escribir: una inactiva sobre una persona de miembro es un estado que ninguna baja deja.
  */
@@ -181,9 +187,9 @@ export async function seedMemberships(
   status: MembershipStatus = "ACTIVE",
   exit: MembershipExit = {},
 ): Promise<string[]> {
-  if (status !== "INACTIVE" && (exit.endReason !== undefined || exit.lastTermId !== undefined)) {
+  if (status !== "INACTIVE" && Object.values(exit).some((value) => value !== undefined)) {
     throw new Error(
-      `seedMemberships: el motivo de salida y el último semestre son de una membresía inactiva; con el estado ${status} no se escriben. Quitá las opciones de salida o sembrá la membresía "INACTIVE".`,
+      `seedMemberships: el motivo de salida y el último semestre son de una membresía inactiva, igual que la fecha de salida; con el estado ${status} no se escriben. Quitá las opciones de salida o sembrá la membresía "INACTIVE".`,
     );
   }
   if (personIds.length === 0) return [];
@@ -209,7 +215,7 @@ export async function seedMemberships(
         status,
         ...(status === "INACTIVE"
           ? {
-              endedAt: new Date(),
+              endedAt: exit.endedAt ?? new Date(),
               endReason: exit.endReason ?? "OTHER",
               lastTermId: exit.lastTermId ?? termId,
               walletEpoch: 1,
