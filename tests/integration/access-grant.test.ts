@@ -283,10 +283,13 @@ describe("enlace de acceso", () => {
     expect(await resolveAccessGrant(token, enDosHoras)).toBeNull();
     expect(await resolveAccessGrant("un-token-inventado")).toBeNull();
 
-    await db()
-      .update(membership)
-      .set({ status: "INACTIVE" })
-      .where(eq(membership.personId, destino));
+    // Sale por la baja. El enlace sigue guardado: lo borra el handler cuando corre el outbox, y acá no
+    // corre, así que lo que deja de resolver es la membresía.
+    await endMembershipAs({ personId: emisor, ip: null }, destino, {
+      endReason: "OTHER",
+      memorialConsent: false,
+      contactConsent: false,
+    });
     expect(await resolveAccessGrant(token)).toBeNull();
   });
 

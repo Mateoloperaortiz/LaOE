@@ -27,7 +27,7 @@ import {
   challengeParticipation,
   reward,
 } from "@/modules/participation/schema";
-import { membership } from "@/modules/people/schema";
+import { endMembershipAs } from "@/modules/people";
 import { setConfigAs } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
@@ -82,10 +82,12 @@ it.each([
 ] as const)("decide la reserva presencial con bandera apagada y membresía cambiada: %s", async (decision) => {
   const { personId, checkInId, termId } = await presential("MANUAL");
   await setConfigAs({ personId, ip: null }, "gamification.enabled", false);
-  await getDb()
-    .update(membership)
-    .set({ status: "INACTIVE" })
-    .where(eq(membership.personId, personId));
+  // La asistencia quedó por decidir con la membresía activa; después la persona sale por la baja.
+  await endMembershipAs({ personId, ip: null }, personId, {
+    endReason: "OTHER",
+    memorialConsent: false,
+    contactConsent: false,
+  });
   await decideInOwnOccasion({ personId, ip: null }, { checkInId, decision, reason: "Corrección" });
   const [entry] = await getDb().select().from(reward);
   expect(entry?.status).toBe(decision === "APPROVE" ? "GRANTED" : "RELEASED");

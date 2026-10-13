@@ -26,9 +26,11 @@ import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
+  seedMembership,
   seedMemberships,
   seedOccasion,
   seedPeople,
+  seedPerson,
   seedTerm,
 } from "../factories";
 import { decideInOwnOccasion } from "../helpers/check-ins";
@@ -275,11 +277,8 @@ describe("check-in propio", () => {
     const termId = await seedTerm(currentTermCode());
     const host = await seedMember("lider@eafit.edu.co");
     const guest = await seedMember("invitada@eafit.edu.co");
-    const retired = await seedMember("retirado@eafit.edu.co");
-    await db()
-      .update(membership)
-      .set({ status: "INACTIVE", endedAt: new Date(), endReason: "OTHER" })
-      .where(eq(membership.personId, retired));
+    const retired = await seedPerson("retirado@eafit.edu.co", { stage: "ALUMNI" });
+    await seedMembership(retired, termId, "INACTIVE");
     const { id, publicId } = await seedOccasion(termId, { approval: "MANUAL", points: 10 });
     const result = await hostCheckInAs(
       { personId: host, ip: null },

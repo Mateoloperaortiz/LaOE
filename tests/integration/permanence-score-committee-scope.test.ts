@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { committeeMembership, membership, person } from "@/modules/people/schema";
+import { committeeMembership, person } from "@/modules/people/schema";
 import { listLeaderScores, scoreCriterionAs } from "@/modules/permanence";
 import { leaderScore } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
@@ -10,6 +10,8 @@ import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
+  seedMembership,
+  seedPerson,
   seedRule,
   seedTerm,
 } from "../factories";
@@ -121,13 +123,12 @@ describe("el puntaje del líder comprueba que la persona sea de su comité", () 
 
   it("a quien tiene la membresía fuera del directorio, con la pertenencia todavía abierta, tampoco", async () => {
     const f = await setup();
-    const inactive = await seedMember("inactivo.comite@eafit.edu.co");
-    await seedCommitteeMembership(inactive, f.a3, f.termId);
     // La tercera condición del roster (ADR-122 regla 2): el estado de la membresía es del directorio.
-    await getDb()
-      .update(membership)
-      .set({ status: "INACTIVE" })
-      .where(eq(membership.personId, inactive));
+    // La membresía es la que deja una baja; la pertenencia abierta, que la baja cierra, es lo que la
+    // prueba deja a propósito.
+    const inactive = await seedPerson("inactivo.comite@eafit.edu.co", { stage: "ALUMNI" });
+    await seedMembership(inactive, f.termId, "INACTIVE");
+    await seedCommitteeMembership(inactive, f.a3, f.termId);
 
     await expect(
       scoreCriterionAs(

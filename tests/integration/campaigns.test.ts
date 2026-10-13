@@ -20,9 +20,8 @@ import {
 } from "@/modules/comms";
 import { campaignRecipient, message } from "@/modules/comms/schema";
 import { recordConsentAs } from "@/modules/people";
-import { membership, person } from "@/modules/people/schema";
 import type { MailMessage, MailTransport } from "@/shared/adapters/mail";
-import { seedMember, seedSegment, seedTerm } from "../factories";
+import { seedMember, seedMemberships, seedPerson, seedSegment, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
@@ -74,14 +73,12 @@ describe("campañas", () => {
     const termId = await seedTerm();
     const activa = await seedMember("activa@eafit.edu.co", { firstName: "Ana" });
     const baja = await seedMember("baja@eafit.edu.co");
-    const egresadoSin = await seedMember("egresado.sin@eafit.edu.co");
-    const egresadoCon = await seedMember("egresado.con@eafit.edu.co", {
+    const egresadoSin = await seedPerson("egresado.sin@eafit.edu.co", { stage: "ALUMNI" });
+    const egresadoCon = await seedPerson("egresado.con@eafit.edu.co", {
+      stage: "ALUMNI",
       personalEmail: "egresado@gmail.com",
     });
-    for (const id of [egresadoSin, egresadoCon]) {
-      await db().update(membership).set({ status: "INACTIVE" }).where(eq(membership.personId, id));
-      await db().update(person).set({ stage: "ALUMNI" }).where(eq(person.id, id));
-    }
+    await seedMemberships([egresadoSin, egresadoCon], termId, "INACTIVE");
     await recordConsentAs(SYSTEM_ACTOR, egresadoCon, "COMMUNICATIONS", "SELF");
     await updatePreferencesAs(
       { personId: baja, ip: null },
