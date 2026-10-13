@@ -189,3 +189,83 @@ describe("lo que tiene forma de error sin serlo, bajo `err`", () => {
     ]);
   });
 });
+
+// Lo que sigue no es un arreglo: fija por dónde sale hoy el valor de una consulta cuando el error que
+// lo trae no está donde el recorte mira, que es la raíz de `err` y sus causas hasta cinco niveles
+// (ADR-128 regla 3). Son caminos de antes del ciclo 16, que encontró la revisión de su rama (DT-399).
+// Quien los cierre va a ver caer estos casos, y cambia lo que esperan.
+describe("lo que el recorte todavía no alcanza: por dónde sale hoy el valor de una consulta (DT-399)", () => {
+  /** Las rutas de la línea escrita en las que aparece el valor de la consulta. */
+  function placesOf(value: unknown, path = ""): string[] {
+    if (typeof value === "string") {
+      return value.includes(VALUE) ? [path] : [];
+    }
+    if (typeof value !== "object" || value === null) {
+      return [];
+    }
+    return Object.entries(value).flatMap(([key, inner]) =>
+      placesOf(inner, path ? `${path}.${key}` : key),
+    );
+  }
+
+  /** Un error de consulta como causa de causa, `levels` veces. */
+  function buried(levels: number): Error {
+    let current: Error = queryError();
+    for (let level = levels; level > 0; level -= 1) {
+      current = new Error(`nivel ${level}`, { cause: current });
+    }
+    return current;
+  }
+
+  it.each([
+    [
+      "que cuelga de un campo del error que no es `cause`",
+      () => ({ err: Object.assign(new Error("fuera"), { original: queryError() }) }),
+      ["err.original.message", "err.original.stack", "err.original.params.0"],
+    ],
+    [
+      "en la lista `errors` de un error que no es un `AggregateError`",
+      () => ({ err: Object.assign(new Error("fuera"), { errors: [queryError()] }) }),
+      ["err.errors.0.params.0"],
+    ],
+    [
+      "dentro de un objeto que cuelga del error",
+      () => ({ err: Object.assign(new Error("fuera"), { detail: { failures: [queryError()] } }) }),
+      ["err.detail.failures.0.params.0"],
+    ],
+    ["como causa a más de cinco niveles", () => ({ err: buried(6) }), ["err.message", "err.stack"]],
+    [
+      "como causa que es una función",
+      () => ({ err: Object.assign(new Error("fuera"), { cause: () => queryError() }) }),
+      ["err.stack"],
+    ],
+    [
+      "como causa asignada cuyo `message` no es un texto",
+      () => ({
+        err: Object.assign(new Error("fuera"), {
+          cause: { message: 42, query: QUERY, params: [VALUE] },
+        }),
+      }),
+      ["err.cause.params.0"],
+    ],
+    [
+      "bajo una clave de la línea que no es `err`",
+      () => ({ failure: queryError() }),
+      ["failure.params.0"],
+    ],
+  ])("un error de consulta %s", async (_title, line, places) => {
+    const [entry] = await written(() => error(line(), "falló"));
+
+    expect(placesOf(entry?.record)).toEqual(places);
+  });
+
+  it.each([
+    ["en la raíz", () => queryError()],
+    ["como causa", () => new Error("fuera", { cause: queryError() })],
+    ["como causa a cinco niveles", () => buried(4)],
+  ])("y donde el recorte sí mira no sale: %s", async (_title, err) => {
+    const [entry] = await written(() => error({ err: err() }, "falló"));
+
+    expect(placesOf(entry?.record)).toEqual([]);
+  });
+});
