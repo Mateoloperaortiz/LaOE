@@ -292,6 +292,29 @@ describe("un texto sembrado en una ruta de API", () => {
     expect(read(route("{ deny }", 'lib.deny("Texto nuevo")'), denies)).toEqual([]);
   });
 
+  it("todavía no ve la función de la carpeta exportada por defecto e importada con otro nombre", () => {
+    const denies: TextFile = {
+      path: `${API}/sembrado/deny.ts`,
+      text: [
+        "export default function deny(message: string): Response {",
+        "  return new Response(message, { status: 403 });",
+        "}",
+      ].join("\n"),
+    };
+    const route = (imported: string, call: string) =>
+      [`import ${imported} from "../sembrado/deny";`, `export const GET = () => ${call};`].join(
+        "\n",
+      );
+
+    // Con el nombre con que se declaró la reconoce, porque la busca por ese nombre.
+    expect(read(route("deny", 'deny("Texto nuevo")'), denies)).toEqual([
+      '403 › body › "Texto nuevo"',
+    ]);
+    // Con otro no: hoy ninguna función de `src/app/api` se exporta por defecto.
+    expect(read(route("no", 'no("Texto nuevo")'), denies)).toEqual([]);
+    expect(read(route("{ default as no }", 'no("Texto nuevo")'), denies)).toEqual([]);
+  });
+
   it("no cuenta lo que no es un error ni lo que no trae texto", () => {
     const fine = [
       "return Response.json({ ok: true });",

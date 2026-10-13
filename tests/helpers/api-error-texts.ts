@@ -8,15 +8,16 @@ import type { TextFile } from "./ratchet";
 // (`ok ? "OK" : "Token inválido"`), partido en varios renglones o pasar por una función de la carpeta.
 //
 // Qué mira. Una respuesta es `new Response(cuerpo, init)` o `new NextResponse(cuerpo, init)`,
-// `Response.json(cuerpo, init)` o `NextResponse.json(cuerpo, init)`, o la llamada a una función de la
-// carpeta que arma una de esas con lo que le pasan (hoy `hubJson`): esas funciones las descubre, no
-// las trae en una lista, y las reconoce por el nombre con que el archivo las llama: el propio, el
-// alias de un `import { fn as otro }` o `ns.fn` sobre un `import * as ns`. De una respuesta que sale con 400 o más, o con un status que no está escrito
-// ahí, toma el cuerpo si es texto y, si es un objeto, cada clave, también las de un objeto o una lista
-// de adentro y las de un objeto que el cuerpo esparce (`...(mal ? { error: "…" } : {})`): de `error`,
-// lo que traiga; de las demás, solo un texto escrito o un `t(…)`. El cuerpo, sea texto o JSON, puede
-// ser un ternario o ir detrás de un `??` o de un `||`: lee cada rama, con el status de su rama si el
-// status pregunta lo mismo. Lo que sale con menos de 400 no cuenta, tampoco si viaja en `error`.
+// `Response.json(cuerpo, init)` o `NextResponse.json(cuerpo, init)`, o la llamada a una función de
+// la carpeta que arma una de esas con lo que le pasan (hoy `hubJson`): esas funciones las descubre,
+// no las trae en una lista, y las reconoce por el nombre con que el archivo las llama: el propio,
+// el alias de un `import { fn as otro }` o `ns.fn` sobre un `import * as ns`. De una respuesta que
+// sale con 400 o más, o con un status que no está escrito ahí, toma el cuerpo si es texto y, si es
+// un objeto, cada clave, también las de un objeto o una lista de adentro y las de un objeto que el
+// cuerpo esparce (`...(mal ? { error: "…" } : {})`): de `error`, lo que traiga; de las demás, solo
+// un texto escrito o un `t(…)`. El cuerpo, sea texto o JSON, puede ser un ternario o ir detrás de
+// un `??` o de un `||`: lee cada rama, con el status de su rama si el status pregunta lo mismo. Lo
+// que sale con menos de 400 no cuenta, tampoco si viaja en `error`.
 //
 // Además toma la clave `error` de todo objeto del archivo que no haya leído así, sin status: el
 // cuerpo armado en una variable (`health`) y el que llega a la respuesta por una forma que no conoce,
@@ -25,11 +26,13 @@ import type { TextFile } from "./ratchet";
 // Qué no ve, y por eso es un trinquete y no una demostración: el texto que una ruta le pase a una
 // función de fuera de `src/app/api`, el que llegue por una variable (ese sale como `passed`, con el
 // nombre de la variable y no con su texto), una clave que no sea `error` en un cuerpo armado aparte
-// o en uno que pasa por una función que no conoce, la función de la carpeta que saque su parámetro de
-// otro modo que como el cuerpo entero o el valor de una clave suya (`{ error: { message } }`), y dos
-// funciones de la carpeta que se llamen igual, la que llegue a la llamada por otro camino que un
-// `import` (guardada en una variable, reexportada con otro nombre) y el texto que viaje en
-// `statusText` o en una cabecera. Tampoco lee una respuesta de fuera de `src/app/api`.
+// o en uno que pasa por una función que no conoce, la función de la carpeta que saque su parámetro
+// de otro modo que como el cuerpo entero o el valor de una clave suya (`{ error: { message } }`), y
+// dos funciones de la carpeta que se llamen igual, la que llegue a la llamada por otro camino que
+// un `import` con su nombre, con alias o de espacio de nombres (guardada en una variable,
+// reexportada con otro nombre, o exportada por defecto e importada con otro: `import no from` o
+// `import { default as no }`; hoy ninguna de `src/app/api` se exporta por defecto) y el texto que
+// viaje en `statusText` o en una cabecera. Tampoco lee una respuesta de fuera de `src/app/api`.
 
 /** De dónde sale el texto: escrito en la ruta, del catálogo por su código, o una expresión que la ruta deja pasar. */
 export type ErrorSource =
