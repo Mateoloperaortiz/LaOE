@@ -519,6 +519,36 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     expect([within, beyond, plain].flatMap((entry) => placesOf(entry?.record))).toEqual([]);
   });
 
+  /** Un error de consulta en la lista `errors` de un error, que está en la de otro, `levels` veces. */
+  function listed(levels: number): Error {
+    let current: Error = queryError();
+    for (let level = 0; level < levels; level += 1) {
+      current = carrying({ errors: [current] });
+    }
+    return current;
+  }
+
+  /** Lo que la línea trae al fondo de esas `levels` listas. */
+  function listedLeafOf(entry: LoggedLine | undefined, levels: number): unknown {
+    let current: unknown = errOf(entry);
+    for (let level = 0; level < levels; level += 1) {
+      current = (current as { aggregateErrors?: unknown[] } | undefined)?.aggregateErrors?.[0];
+    }
+    return current;
+  }
+
+  it("la lista `errors` cuenta para el tope: cada error y cada lista son un nivel, y el error que queda más adentro de cien sale oculto", async () => {
+    const [within, beyond] = await written(() => {
+      // El error y 49 veces una lista con su error: 99 niveles.
+      error({ err: listed(49) }, "falló");
+      error({ err: listed(50) }, "falló");
+    });
+
+    expect(listedLeafOf(within, 49)).toEqual(TRIMMED);
+    expect(listedLeafOf(beyond, 50)).toBe("[oculto]");
+    expect([within, beyond].flatMap((entry) => placesOf(entry?.record))).toEqual([]);
+  });
+
   it("lo que cuelga se recorre una vez por objeto, aunque los objetos se nombren todos entre sí", () => {
     let reads = 0;
     const nodes = Array.from({ length: 8 }, () =>

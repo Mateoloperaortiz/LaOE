@@ -545,10 +545,14 @@ function trimmedItems(list: unknown[], done: Trimmed, trim: (item: unknown) => u
  * Un elemento con forma de error de la lista `errors`, recortado como un error. `listed` es el camino
  * hasta esa lista: el error que ya se está escribiendo más arriba no se escribe otra vez, como en
  * cualquier lista que cuelga del error (ADR-129 regla 5). Sin ese camino, el agregado al que nombra
- * uno de sus errores se recorría sin fin. El que no se deja leer sale `[oculto]`, él solo: las copias
- * que quedaron a medio armar al leerlo se olvidan, para que nadie las tome por terminadas.
+ * uno de sus errores se recorría sin fin. La lista es un nivel más y el tope es el mismo: el error que
+ * queda más adentro no se mira y sale `[oculto]`. El que no se deja leer sale `[oculto]`, él solo: las
+ * copias que quedaron a medio armar al leerlo se olvidan, para que nadie las tome por terminadas.
  */
 function trimmedListed(inner: Error, listed: readonly object[], done: Trimmed): unknown {
+  if (listed.length >= HANGING_LIMIT) {
+    return REDACTED;
+  }
   if (listed.includes(inner)) {
     return CIRCULAR;
   }
