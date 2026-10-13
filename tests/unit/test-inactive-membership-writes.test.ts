@@ -19,11 +19,15 @@ import { describe, expect, it } from "vitest";
 // - `unreadable`, lo que no se lee: ese `.set(` no recibe un objeto literal, trae un `...`, o le escribe a `status` algo
 //   que no es un texto entre comillas dobles (una variable, `{ status }`, una clave entre corchetes);
 //   o al `.update(membership)` no le sigue un `.set(`.
-// - `SQL`: un `update membership set …` escrito a mano que nombra `status`.
+// - `SQL`: un `update membership set …` escrito a mano que nombra `status`, también con `only`, con un
+//   alias, con un comentario antes de la tabla o con la tabla interpolada (`update ${membership} set`).
+//   Si lo interpolado no es la tabla por ninguno de sus nombres, cae como `unreadable`.
 //
-// `membership` es la tabla de `@/modules/people/schema`, con ese nombre o con el que el archivo le
-// ponga al importarla (`membership as m`). No sigue a la tabla por una variable ni por un parámetro
-// (`const tabla = membership`), ni a un `status` que llegue armado desde otra función.
+// `membership` es la tabla de `modules/people/schema`, tomada con `@/` o con una ruta relativa, con
+// ese nombre o con el que el archivo le ponga: `membership as m` en un `import`, `membership: m` al
+// desestructurar un `import("…")`, o `espacio.membership` si toma el schema entero. No sigue a la
+// tabla por una variable ni por un parámetro (`const tabla = membership`), por un `require` ni
+// reexportada por otro archivo, ni a un `status` que llegue armado desde otra función.
 //
 // No comparte su cuenta con `npm run audit:metrics`, y por eso el lector vive acá y no en
 // `scripts/lib/test-suite-metrics.ts`.
@@ -94,16 +98,55 @@ function statusWritten(argument: string): Finding["write"] | null {
   return literals.includes("INACTIVE") ? "INACTIVE" : null;
 }
 
-/** Los nombres con los que el archivo tiene a mano la tabla `membership` de people. */
+/** El schema de people como lo nombra quien lo carga, con `@/` o con una ruta relativa. */
+const PEOPLE_SCHEMA = String.raw`["'][^"'\n]*modules\/people\/schema(?:\.[cm]?[jt]s)?["']`;
+
+/**
+ * Los nombres con los que el archivo tiene a mano la tabla `membership` de people, como trozos de una
+ * expresión regular: el suyo; el que le ponga un `import { membership as m }` o un
+ * `const { membership: m } = await import("…")`, y `espacio.membership` si toma el schema entero, con
+ * `import * as espacio` o con `const espacio = await import("…")`.
+ */
 function membershipNames(text: string): string[] {
   const names = new Set(["membership"]);
-  for (const [, imported = ""] of text.matchAll(
-    /import\s*\{([^}]*)\}\s*from\s*"@\/modules\/people\/schema"/g,
-  )) {
-    for (const [, alias = ""] of imported.matchAll(/\bmembership\s+as\s+(\w+)/g)) names.add(alias);
+  const all = (pattern: string) =>
+    [...text.matchAll(new RegExp(pattern, "g"))].map((match) => match[1] ?? "");
+  const renamed = (list: string, link: string) => {
+    for (const [, alias = ""] of list.matchAll(
+      new RegExp(String.raw`\bmembership\s*${link}\s*(\w+)`, "g"),
+    )) {
+      names.add(alias);
+    }
+  };
+  for (const list of all(String.raw`import\s*\{([^}]*)\}\s*from\s*${PEOPLE_SCHEMA}`)) {
+    renamed(list, String.raw`\bas\b`);
+  }
+  for (const list of all(String.raw`\{([^}]*)\}\s*=\s*await\s+import\(\s*${PEOPLE_SCHEMA}\s*\)`)) {
+    renamed(list, ":");
+  }
+  for (const space of [
+    ...all(String.raw`import\s*\*\s*as\s+(\w+)\s*from\s*${PEOPLE_SCHEMA}`),
+    ...all(String.raw`\b(\w+)\s*(?::[^=;]+)?=\s*await\s+import\(\s*${PEOPLE_SCHEMA}\s*\)`),
+  ]) {
+    names.add(String.raw`${space}\.membership`);
   }
   return [...names];
 }
+
+/** Lo que separa dos palabras de una sentencia SQL: espacios o un comentario. */
+const SQL_GAP = String.raw`(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+`;
+/** Un nombre de SQL: escrito, con comillas o sin ellas, o interpolado. */
+const SQL_NAME = String.raw`(?:\$\{[^}]*\}|"?\w+"?)`;
+
+/**
+ * Un `update … set` escrito a mano: con `only` o sin él, la tabla con su esquema si lo trae, su alias
+ * si lo trae, y lo que sigue al `set` hasta el final de la sentencia, sin cortar en un `;` que va
+ * dentro de un texto de SQL.
+ */
+const SQL_UPDATE = new RegExp(
+  String.raw`\bupdate${SQL_GAP}(?:only${SQL_GAP})?(?:${SQL_NAME}\.)?(${SQL_NAME})(?:${SQL_GAP}(?:as${SQL_GAP})?(?!set\b)"?\w+"?)?${SQL_GAP}set\b((?:'[^']*'|[^\`;])*)`,
+  "gi",
+);
 
 /** Cada escritura a `membership` que la deja inactiva, o que no deja leer qué estado le escribe. */
 function inactiveMembershipWrites(files: TextFile[]): Finding[] {
@@ -111,16 +154,25 @@ function inactiveMembershipWrites(files: TextFile[]): Finding[] {
   for (const { path, text } of files) {
     const lineOf = (index: number) => text.slice(0, index).split("\n").length;
     const tables = membershipNames(text).join("|");
-    for (const match of text.matchAll(new RegExp(`\\.update\\(\\s*(?:${tables})\\s*\\)`, "g"))) {
+    for (const match of text.matchAll(
+      new RegExp(String.raw`\.update\(\s*(?:${tables})\s*,?\s*\)`, "g"),
+    )) {
       const after = match.index + match[0].length;
       const set = /^\s*\.set\(/.exec(text.slice(after));
       const argument = set ? argumentAt(text, after + set[0].length - 1) : null;
       const write = argument === null ? "unreadable" : statusWritten(argument);
       if (write) found.push({ path, line: lineOf(match.index), write });
     }
-    for (const match of text.matchAll(/\bupdate\s+(?:public\.)?"?membership"?\s+set\b[^`;]*/gi)) {
-      if (/\bstatus\b/i.test(match[0])) {
-        found.push({ path, line: lineOf(match.index), write: "SQL" });
+    const named = new RegExp(`^(?:${tables})$`);
+    for (const match of text.matchAll(SQL_UPDATE)) {
+      const [, target = "", written = ""] = match;
+      // La tabla interpolada es la de people si lo interpolado es uno de sus nombres. Si es otra
+      // cosa no se sabe a qué tabla escribe, y con `status` en la sentencia cae igual.
+      const interpolated = /^\$\{([^}]*)\}$/.exec(target)?.[1]?.trim();
+      const isMembership =
+        interpolated === undefined ? /^"?membership"?$/i.test(target) : named.test(interpolated);
+      if ((isMembership || interpolated !== undefined) && /\bstatus\b/i.test(written)) {
+        found.push({ path, line: lineOf(match.index), write: isMembership ? "SQL" : "unreadable" });
       }
     }
   }
@@ -183,6 +235,26 @@ describe("lo que el lector de escrituras a `membership` cuenta", () => {
       "con la tabla importada con otro nombre",
       'import { membership as m } from "@/modules/people/schema";\ndb().update(m).set({ status: "INACTIVE" });',
     ],
+    [
+      "con la tabla importada por una ruta relativa y con otro nombre",
+      'import { membership as m } from "../../src/modules/people/schema";\ndb().update(m).set({ status: "INACTIVE" });',
+    ],
+    [
+      "con el schema importado entero",
+      'import * as people from "@/modules/people/schema";\ndb().update(people.membership).set({ status: "INACTIVE" });',
+    ],
+    [
+      "con la tabla tomada de una carga, con otro nombre",
+      'const { membership: m } = await import("@/modules/people/schema");\ndb().update(m).set({ status: "INACTIVE" });',
+    ],
+    [
+      "con la carga del schema guardada en una variable",
+      'const people = await import("@/modules/people/schema");\ndb().update(people.membership).set({ status: "INACTIVE" });',
+    ],
+    [
+      "con una coma después de la tabla",
+      'db()\n  .update(\n    membership,\n  )\n  .set({ status: "INACTIVE" });',
+    ],
   ])("la que deja inactiva una membresía, %s", (_title, text) => {
     expect(writesOf(text)).toEqual(["INACTIVE"]);
   });
@@ -198,6 +270,10 @@ describe("lo que el lector de escrituras a `membership` cuenta", () => {
     ["un objeto esparcido", "db().update(membership).set({ ...ended })"],
     ["un objeto que llega armado", "db().update(membership).set(ended)"],
     ["un `update` sin su `.set(` a continuación", "const pending = db().update(membership);"],
+    [
+      "un SQL con la tabla interpolada, que no es la de people por ninguno de sus nombres",
+      "sql`update ${table} set status = 'INACTIVE'`",
+    ],
   ])("la que no deja leer qué estado escribe: %s", (_title, text) => {
     expect(writesOf(text)).toEqual(["unreadable"]);
   });
@@ -207,6 +283,22 @@ describe("lo que el lector de escrituras a `membership` cuenta", () => {
     [
       "con el esquema y entre comillas",
       '`UPDATE public."membership" SET ended_at = now(), status = $1`',
+    ],
+    ["con un alias", "sql`update membership as m set status = 'INACTIVE' where m.id = ${id}`"],
+    ["con un alias sin `as`", "sql`update membership m set status = 'INACTIVE'`"],
+    ["con `only`", "`UPDATE ONLY membership SET status = $1`"],
+    [
+      "con un comentario antes de la tabla",
+      "sql`update /* la de people */ membership set status = 'INACTIVE'`",
+    ],
+    [
+      "con un `;` dentro de un texto antes del estado",
+      "sql`update membership set end_reason = 'a;b', status = 'INACTIVE'`",
+    ],
+    ["con la tabla interpolada", "sql`update ${membership} set status = 'INACTIVE'`"],
+    [
+      "con la tabla interpolada por el nombre que le da el archivo",
+      "import * as people from \"@/modules/people/schema\";\nsql`update ${people.membership} set status = 'INACTIVE'`",
     ],
   ])("el SQL escrito a mano que le cambia el estado, %s", (_title, text) => {
     expect(writesOf(text)).toEqual(["SQL"]);
@@ -224,6 +316,15 @@ describe("lo que el lector de escrituras a `membership` cuenta", () => {
     ],
     ["un SQL que no toca el estado", "sql`update membership set ended_at = now()`"],
     ["una lectura", 'expect(row).toMatchObject({ status: "INACTIVE" })'],
+    [
+      "un SQL con la tabla interpolada que no toca el estado",
+      "sql`update ${membership} set ended_at = now()`",
+    ],
+    [
+      "el SQL de otra tabla, con el esquema interpolado",
+      "sql`update ${baseline}.app_config set status = 'x'`",
+    ],
+    ["el SQL de otra tabla con alias", "sql`update session as s set status = 'x'`"],
   ])("no cuenta %s", (_title, text) => {
     expect(writesOf(text)).toEqual([]);
   });
