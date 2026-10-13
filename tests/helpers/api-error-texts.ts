@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { parse } from "../../scripts/lib/test-suite-metrics";
 import type { TextFile } from "./ratchet";
 
 // El lector de `tests/unit/api-error-texts.test.ts` (DT-345, ADR-129 regla 13): saca de los archivos
@@ -9,7 +10,8 @@ import type { TextFile } from "./ratchet";
 // Qué mira. Una respuesta es `new Response(cuerpo, init)` o `new NextResponse(cuerpo, init)`,
 // `Response.json(cuerpo, init)` o `NextResponse.json(cuerpo, init)`, o la llamada a una función de la
 // carpeta que arma una de esas con lo que le pasan (hoy `hubJson`): esas funciones las descubre, no
-// las trae en una lista. De una respuesta que sale con 400 o más, o con un status que no está escrito
+// las trae en una lista, y las reconoce por el nombre con que el archivo las llama: el propio, el
+// alias de un `import { fn as otro }` o `ns.fn` sobre un `import * as ns`. De una respuesta que sale con 400 o más, o con un status que no está escrito
 // ahí, toma el cuerpo si es texto y, si es un objeto, cada clave, también las de un objeto o una lista
 // de adentro y las de un objeto que el cuerpo esparce (`...(mal ? { error: "…" } : {})`): de `error`,
 // lo que traiga; de las demás, solo un texto escrito o un `t(…)`. El cuerpo, sea texto o JSON, puede
@@ -25,7 +27,9 @@ import type { TextFile } from "./ratchet";
 // nombre de la variable y no con su texto), una clave que no sea `error` en un cuerpo armado aparte
 // o en uno que pasa por una función que no conoce, la función de la carpeta que saque su parámetro de
 // otro modo que como el cuerpo entero o el valor de una clave suya (`{ error: { message } }`), y dos
-// funciones de la carpeta que se llamen igual. Tampoco lee una respuesta de fuera de `src/app/api`.
+// funciones de la carpeta que se llamen igual, la que llegue a la llamada por otro camino que un
+// `import` (guardada en una variable, reexportada con otro nombre) y el texto que viaje en
+// `statusText` o en una cabecera. Tampoco lee una respuesta de fuera de `src/app/api`.
 
 /** De dónde sale el texto: escrito en la ruta, del catálogo por su código, o una expresión que la ruta deja pasar. */
 export type ErrorSource =
@@ -109,6 +113,41 @@ function statusIn(init: ts.Expression | undefined): Status {
   return unwritten;
 }
 
+/** El nombre con que se llama a una función: `fn`, o `ns.fn` sobre un espacio de nombres. */
+function calledName(callee: ts.Expression): string | undefined {
+  if (ts.isIdentifier(callee)) return callee.text;
+  if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression)) {
+    return `${callee.expression.text}.${callee.name.text}`;
+  }
+  return undefined;
+}
+
+/**
+ * Las funciones de la carpeta con los nombres con que este archivo las puede llamar: el propio, el
+ * alias de un `import { fn as otro }` y `ns.fn` por cada `import * as ns`. No mira de dónde viene el
+ * `import`, igual que el nombre propio: lo que se llame como una función de la carpeta cuenta como ella.
+ */
+function helpersAs(source: ts.SourceFile, helpers: Helpers): Helpers {
+  const local = new Map(helpers);
+  for (const statement of source.statements) {
+    const bindings = ts.isImportDeclaration(statement)
+      ? statement.importClause?.namedBindings
+      : undefined;
+    if (!bindings) continue;
+    if (ts.isNamespaceImport(bindings)) {
+      for (const [name, helper] of helpers) {
+        local.set(`${bindings.name.text}.${name}`, helper);
+      }
+      continue;
+    }
+    for (const element of bindings.elements) {
+      const helper = element.propertyName ? helpers.get(element.propertyName.text) : undefined;
+      if (helper) local.set(element.name.text, helper);
+    }
+  }
+  return local;
+}
+
 function siteOf(node: ts.Node, helpers: Helpers): Site | null {
   if (ts.isNewExpression(node)) {
     if (!ts.isIdentifier(node.expression) || !RESPONSES.has(node.expression.text)) return null;
@@ -126,7 +165,8 @@ function siteOf(node: ts.Node, helpers: Helpers): Site | null {
     const [body, init] = node.arguments;
     return { body, via: null, status: statusIn(init) };
   }
-  const helper = ts.isIdentifier(callee) ? helpers.get(callee.text) : undefined;
+  const called = calledName(callee);
+  const helper = called === undefined ? undefined : helpers.get(called);
   if (!helper) return null;
   const passed = helper.statusAt === null ? undefined : node.arguments[helper.statusAt];
   return { body: node.arguments[helper.body], via: helper.via, status: passed ?? helper.status };
@@ -357,15 +397,12 @@ function textsIn(file: string, source: ts.SourceFile, helpers: Helpers): ErrorTe
 
 /** Cada texto con que las rutas de esos archivos responden un error, en el orden en que están escritos. */
 export function apiErrorTexts(files: readonly TextFile[]): ErrorText[] {
-  const sources = files.map(({ path, text }) => ({
-    path,
-    source: ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true),
-  }));
+  const sources = files.map((file) => ({ path: file.path, source: parse(file) }));
   const helpers = new Map<string, Helper>();
   for (const { source } of sources) {
     helpersIn(source, helpers);
   }
-  return sources.flatMap(({ path, source }) => textsIn(path, source, helpers));
+  return sources.flatMap(({ path, source }) => textsIn(path, source, helpersAs(source, helpers)));
 }
 
 /** La clave de un texto: dónde está, con qué status sale, por dónde viaja y qué es. */

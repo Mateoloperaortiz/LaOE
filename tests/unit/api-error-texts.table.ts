@@ -1,3 +1,5 @@
+import type { ErrorText } from "../helpers/api-error-texts";
+
 // El inventario de los textos con que las rutas de `src/app/api` responden un error, clasificado
 // (DT-345, ADR-129 regla 13). Lo compara `tests/unit/api-error-texts.test.ts` con lo que lee del
 // código: un texto que no está acá la pone en rojo, y una fila que ya no corresponde a ninguno,
@@ -17,16 +19,13 @@
 // `reader` dice quién lo recibe, con el archivo donde se comprobó. Si cambia quién llama a una ruta
 // (un componente que empieza a mostrar `body.error`, un enlace nuevo), cambia la clase de sus filas.
 
-interface Site {
-  /** El status con que sale, o `null` si no está escrito junto al texto. */
-  status: number | null;
-  /** `"body"` si el texto es el cuerpo entero; si viaja en un JSON, su clave. */
-  via: string;
+/** Con qué status sale y por dónde viaja, como lo lee el lector, y cuántas veces. */
+type RowSite = Pick<ErrorText, "status" | "via"> & {
   /** Cuántas veces está escrito así en el archivo; una si no se dice. */
   count?: number;
-}
+};
 
-export type ErrorTextRow = Site &
+export type ErrorTextRow = RowSite &
   (
     | { class: "shown" | "unread"; text: string; reader: string }
     | { class: "catalog"; code: string }

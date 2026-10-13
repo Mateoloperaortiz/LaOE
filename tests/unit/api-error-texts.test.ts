@@ -263,6 +263,35 @@ describe("un texto sembrado en una ruta de API", () => {
     expect(read('return reply(request, { error: "Texto nuevo" });', SHARED)).toEqual([]);
   });
 
+  it("en lo que se le pasa a una función de la carpeta importada con otro nombre o por espacio de nombres cae igual, con el status de la función", () => {
+    // Recibe el texto suelto: sin reconocer la llamada no queda ningún objeto con `error` que lo delate.
+    const denies: TextFile = {
+      path: `${API}/sembrado/deny.ts`,
+      text: [
+        "export function deny(message: string): Response {",
+        "  return new Response(message, { status: 403 });",
+        "}",
+      ].join("\n"),
+    };
+    const route = (imported: string, call: string) =>
+      [`import ${imported} from "../sembrado/deny";`, `export const GET = () => ${call};`].join(
+        "\n",
+      );
+
+    expect(read(route("{ deny }", 'deny("Texto nuevo")'), denies)).toEqual([
+      '403 › body › "Texto nuevo"',
+    ]);
+    expect(read(route("{ deny as no }", 'no("Texto nuevo")'), denies)).toEqual([
+      '403 › body › "Texto nuevo"',
+    ]);
+    expect(read(route("* as lib", 'lib.deny("Texto nuevo")'), denies)).toEqual([
+      '403 › body › "Texto nuevo"',
+    ]);
+    // El alias de algo que la carpeta no declara, o el método de otra cosa, no es una respuesta.
+    expect(read(route("{ other as no }", 'no("Texto nuevo")'), denies)).toEqual([]);
+    expect(read(route("{ deny }", 'lib.deny("Texto nuevo")'), denies)).toEqual([]);
+  });
+
   it("no cuenta lo que no es un error ni lo que no trae texto", () => {
     const fine = [
       "return Response.json({ ok: true });",
