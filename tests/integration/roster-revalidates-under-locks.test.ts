@@ -151,11 +151,9 @@ describe("la importación del roster vuelve a validar con los candados de las pe
   afterAll(() => closeDb());
 
   it.each([
-    { arrives: "una suspensión", block: suspend },
-    { arrives: "el periodo de prueba", block: putOnProbation },
-  ])("$arrives que se confirma después de validar y antes de los candados deja esa fila en error y el resto del archivo se aplica", async ({
-    block,
-  }) => {
+    ["una suspensión", suspend],
+    ["el periodo de prueba", putOnProbation],
+  ] as const)("%s que se confirma después de validar y antes de los candados deja esa fila en error y el resto del archivo se aplica", async (_arrives, block) => {
     const scene = await scenario();
     const { termId, admin, first, honorary, jobId } = scene;
     // Lo que el archivo anunciaba antes de la carrera: la fila sin error, con su propuesta.
@@ -324,8 +322,8 @@ describe("la importación del roster vuelve a validar con los candados de las pe
   ];
 
   it.each(
-    IN_PROGRESS,
-  )("la importación que llega con $written escrita y sin confirmar la espera en el candado de esa persona y salta su fila", async ({
+    IN_PROGRESS.map((item) => [item.written, item] as const),
+  )("la importación que llega con %s escrita y sin confirmar la espera en el candado de esa persona y salta su fila", async (_written, {
     block,
     prepare,
     take,

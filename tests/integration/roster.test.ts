@@ -410,14 +410,10 @@ describe("importación del roster", () => {
   // A quien sigue de baja el roster no le cambia los comités (ADR-118 regla 11), y su fila proponía
   // igual el permiso: la acción se lo concedía después del commit a quien no quedó en el comité.
   it.each([
-    { endReason: "EXPULSION" as const, left: "fue expulsado", listedAs: "Activo", stays: [] },
-    { endReason: "EXPULSION" as const, left: "fue expulsado", listedAs: "Honorario", stays: [] },
-    { endReason: "RESIGNATION" as const, left: "renunció", listedAs: "Activo", stays: ["pixel"] },
-  ])("a quien $left y figura como $listedAs y General de un comité se le propone el permiso de líder solo si el roster lo deja en ese comité", async ({
-    endReason,
-    listedAs,
-    stays,
-  }) => {
+    ["fue expulsado", "Activo", "EXPULSION", []],
+    ["fue expulsado", "Honorario", "EXPULSION", []],
+    ["renunció", "Activo", "RESIGNATION", ["pixel"]],
+  ] as const)("a quien %s y figura como %s y General de un comité se le propone el permiso de líder solo si el roster lo deja en ese comité", async (_left, listedAs, endReason, stays) => {
     const { termId, code, adminId, juan } = await rosterConBaja(endReason);
 
     const next = await preview(
