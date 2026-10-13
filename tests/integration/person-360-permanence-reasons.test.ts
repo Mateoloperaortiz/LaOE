@@ -3,7 +3,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { adjustRequirementAs } from "@/modules/participation";
-import { recordSanctionAs } from "@/modules/people";
+import { recordSanctionAs, revokeSanctionAs } from "@/modules/people";
 import {
   closeTermPermanenceAs,
   confirmAllProposedAs,
@@ -32,9 +32,9 @@ import { truncateAll } from "./db";
 
 // El motivo que la pestaña de permanencia de la Persona 360 le muestra a GH junto a cada decisión
 // confirmada del cierre (T-831), cuando GH confirmó la propuesta sin escribir motivo (DT-388).
-// El cierre propone con su motivo automático, uno de los seis de T-801, y de la decisión solo se
-// guarda qué se propuso, no por qué: el motivo se vuelve a sacar al pintar, sobre el resultado que la
-// pestaña muestra. Va por el camino de verdad: el cierre propone, GH confirma con los comandos del
+// El cierre propone con su motivo automático, uno de los seis de T-801, y `confirmDecisions` lo guarda
+// con la decisión: la pestaña muestra ese, cambien o no los hechos después de confirmar (DT-392). Va
+// por el camino de verdad: el cierre propone, GH confirma con los comandos del
 // módulo y la pantalla se monta entera contra Postgres; solo se reemplaza quién tiene la sesión.
 //
 // El motivo lo resuelve el dominio, con la misma regla con la que el cierre propone (ADR-128 regla 1).
@@ -165,19 +165,25 @@ async function setup() {
     return personId;
   }
 
-  /** Una falta grave más un llamado de atención, vivos al cierre: la advertencia de expulsión (Regl. art. 69). */
-  async function sanction(personId: string): Promise<void> {
+  /**
+   * Una falta grave más un llamado de atención, vivos al cierre: la advertencia de expulsión (Regl. art. 69).
+   * Devuelve la falta grave, que es la que hay que revocar para que la advertencia se caiga.
+   */
+  async function sanction(personId: string): Promise<string> {
+    const recorded: string[] = [];
     for (const [kind, occurredOn] of [
       ["MAJOR", "2024-10-01"],
       ["WARNING", "2024-10-20"],
     ] as const) {
-      await recordSanctionAs(
+      const { id } = await recordSanctionAs(
         actor,
         personId,
         { termId, kind, cause: "Sanción sembrada para el cierre de permanencia", occurredOn },
         asAdmin,
       );
+      recorded.push(id);
     }
+    return recorded[0] as string;
   }
 
   /** Los puntos del término quedan cerrados, que es lo que el cierre pide para confirmar decisiones. */
@@ -350,7 +356,7 @@ describe("el motivo de una decisión del cierre en la pestaña de permanencia de
     ]);
   });
 
-  it("si a un nuevo le ajustan el requisito después de confirmar su salida por una asamblea perdida, la línea ya no dice por qué se propuso: el motivo de la propuesta no se guarda (DT-392)", async () => {
+  it("si a un nuevo le ajustan el requisito después de confirmar su salida por una asamblea perdida, la línea sigue mostrando ese motivo, que se guardó con la decisión (DT-392)", async () => {
     const { termId, a3, actor, member, closePoints, proposalOf } = await setup();
     const absent = await member("nuevo-falto.motivos@eafit.edu.co", {
       credit: 60,
@@ -400,12 +406,46 @@ describe("el motivo de una decisión del cierre en la pestaña de permanencia de
       drifted: true,
     });
 
-    // La línea no dice el motivo con que se propuso ni una causa de hoy: comité le queda. Antes de
-    // ADR-128 regla 1 decía «faltó a una asamblea obligatoria», porque la pestaña elegía con
-    // `mandatory.met`. Mostrar el motivo de la propuesta pide guardarlo con la decisión (DT-392).
+    // La línea dice el motivo con que se propuso, que `confirmDecisions` guardó con la decisión. Sin
+    // guardarlo, la lectura lo sacaba del resultado de hoy y decía «no le queda un comité», y comité
+    // le queda (DT-392).
     expect(await decisionsShown(absent, termId)).toEqual([
       line("A3", "CONTINUES", met),
-      line(null, "EXIT_OE", noCommitteeLeft),
+      line(null, "EXIT_OE", lostAssembly),
+    ]);
+  });
+
+  it("si le revocan la falta grave después de confirmar su salida por sanciones, la línea sigue mostrando ese motivo (DT-392)", async () => {
+    const { termId, actor, member, sanction, closePoints, proposalOf } = await setup();
+    const warned = await member("revocada.motivos@eafit.edu.co", { credit: 60 });
+    const major = await sanction(warned);
+    await closePoints();
+    expect(await proposalOf(warned)).toMatchObject({
+      personProposed: "EXIT_OE",
+      personReason: 5,
+      mandatoryMet: true,
+    });
+    await confirmAllProposedAs(actor, termId);
+
+    await revokeSanctionAs(
+      actor,
+      warned,
+      major,
+      "Descargos aceptados después de confirmar",
+      asAdmin,
+    );
+    await recomputeSnapshots(termId);
+    // Sin la falta grave no hay advertencia de expulsión: hoy el cierre le propondría continuar.
+    expect(await proposalOf(warned)).toMatchObject({
+      personProposed: "CONTINUES",
+      personReason: 0,
+      mandatoryMet: true,
+      drifted: true,
+    });
+
+    expect(await decisionsShown(warned, termId)).toEqual([
+      line("A3", "CONTINUES", met),
+      line(null, "EXIT_OE", sanctions),
     ]);
   });
 });

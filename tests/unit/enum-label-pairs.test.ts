@@ -274,10 +274,11 @@ describe("el par de largo distinto de T-801 que armaba la pestaña de permanenci
     expect(Math.max(...positions)).toBeLessThan(DOMAIN_REASONS.pieces);
     // Continuar, la prueba y la salida de un comité llevan su motivo en la propuesta: el dominio no
     // lee el resultado para darlo, así que acá va vacío.
-    const unread = {} as Parameters<typeof proposalReason>[0];
+    // Tampoco hay motivo guardado: es el que el dominio le da a la propuesta de una decisión que no lo trae.
+    const unread = {} as Parameters<typeof proposalReason>[1];
     for (const [decision, position] of Object.entries(DOMAIN_REASONS.positions)) {
       expect(
-        proposalReason(unread, decision as Parameters<typeof proposalReason>[1]),
+        proposalReason(null, unread, decision as Parameters<typeof proposalReason>[2]),
         decision,
       ).toBe(position);
     }

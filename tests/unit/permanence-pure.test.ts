@@ -1250,7 +1250,7 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
     });
   });
 
-  it("el motivo de una propuesta ya confirmada es el de lo que se propuso, y el de una salida de la OE es su causa en el resultado que se muestra (ADR-128 regla 1)", () => {
+  describe("el motivo automático de una decisión ya confirmada (ADR-128 regla 1)", () => {
     const closedTerm = { ...TERM, permanenceClosedAt: new Date() };
     const termFacts = facts({
       rules: [eventos],
@@ -1272,23 +1272,130 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
     const withoutCommittee = resultOf(["ord", "elec"], 10);
     const absent = resultOf(["ord"], 60);
     const warned = resultOf(["ord", "elec"], 60, true);
-    // Donde el cierre propone la salida, el motivo de la propuesta confirmada es el de esa propuesta.
     const exits = [withoutCommittee, absent, warned];
-    expect(exits.map((result) => proposalReason(result, "EXIT_OE"))).toEqual([3, 4, 5]);
-    expect(exits.map((result) => proposalReason(result, "EXIT_OE"))).toEqual(
-      exits.map((result) => proposeDecisions(result).person.reason),
-    );
-    // Continuar, la prueba y la salida de un comité lo llevan en la propuesta, diga lo que diga hoy el resultado.
-    for (const result of [stays, ...exits]) {
-      expect(
-        (["CONTINUES", "PROBATION", "EXIT_COMMITTEE"] as const).map((proposed) =>
-          proposalReason(result, proposed),
-        ),
-      ).toEqual([0, 1, 2]);
+    const KINDS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"] as const;
+    const REASONS = [0, 1, 2, 3, 4, 5] as const;
+    type Result = ReturnType<typeof resultOf>;
+
+    /**
+     * Lo que mostraba la pestaña de la Persona 360 antes del ciclo 16 (`TabPermanencia.tsx` en
+     * `refactor/ciclo-15`): la posición de lo propuesto en su lista y, para la salida de la OE, el 3 o
+     * el 4 según `mandatory.met`.
+     */
+    const shownBeforeCycle16 = (result: Result, proposed: (typeof KINDS)[number]) =>
+      proposed === "EXIT_OE" ? (result.mandatory.met ? 3 : 4) : KINDS.indexOf(proposed);
+
+    /**
+     * Cada situación que el cierre distingue al proponerle a una persona: perdió o no una obligatoria,
+     * la expulsan o no sus sanciones, le queda o no un comité, y lo obligatorio cumplido o no. Con una
+     * perdida lo obligatorio no está cumplido; sin ninguna puede no estarlo igual, que es el nuevo con
+     * la inducción pendiente o la obligatoria que no se da por perdida. Son doce.
+     */
+    const situations: Array<{ name: string; result: Result }> = [];
+    for (const lost of [false, true]) {
+      for (const warnedNow of [false, true]) {
+        for (const keepsCommittee of [true, false]) {
+          for (const met of lost ? [false] : [true, false]) {
+            situations.push({
+              name: `${lost ? "perdió una obligatoria" : met ? "obligatorias cumplidas" : "obligatorias sin cumplir y ninguna perdida"}, ${warnedNow ? "con" : "sin"} advertencia de expulsión, ${keepsCommittee ? "con" : "sin"} comité`,
+              result: {
+                ...stays,
+                expulsionWarning: warnedNow,
+                results: (keepsCommittee ? stays : withoutCommittee).results,
+                mandatory: {
+                  ...stays.mandatory,
+                  met,
+                  lost: lost ? absent.mandatory.lost : [],
+                },
+              },
+            });
+          }
+        }
+      }
     }
-    // Una salida ya confirmada de quien hoy continuaría: ni perdió una obligatoria ni lo expulsan sus sanciones.
-    expect(proposeDecisions(stays).person).toEqual({ proposed: "CONTINUES", reason: 0 });
-    expect(proposalReason(stays, "EXIT_OE")).toBe(3);
+
+    it("con el motivo guardado es ese, diga lo que diga el resultado de hoy y sea cual sea la propuesta", () => {
+      expect(situations).toHaveLength(12);
+      for (const { name, result } of situations) {
+        for (const proposed of KINDS) {
+          expect(
+            REASONS.map((saved) => proposalReason(saved, result, proposed)),
+            `${name}: ${proposed}`,
+          ).toEqual([...REASONS]);
+        }
+      }
+    });
+
+    it("sin motivo guardado, continuar, la prueba y la salida de un comité llevan el de su propuesta, y la salida de la OE que hoy se sigue proponiendo, su causa de hoy", () => {
+      expect(exits.map((result) => proposalReason(null, result, "EXIT_OE"))).toEqual([3, 4, 5]);
+      expect(exits.map((result) => proposalReason(null, result, "EXIT_OE"))).toEqual(
+        exits.map((result) => proposeDecisions(result).person.reason),
+      );
+      // Lo llevan en la propuesta, diga lo que diga hoy el resultado.
+      for (const result of [stays, ...exits]) {
+        expect(
+          (["CONTINUES", "PROBATION", "EXIT_COMMITTEE"] as const).map((proposed) =>
+            proposalReason(null, result, proposed),
+          ),
+        ).toEqual([0, 1, 2]);
+      }
+    });
+
+    it("sin motivo guardado, la salida de la OE que hoy ya no se propondría muestra lo que mostraba la pestaña de antes: el 3 con lo obligatorio cumplido y el 4 sin cumplir (respaldo de las filas viejas, DT-401)", () => {
+      // Ni perdió una obligatoria ni lo expulsan sus sanciones, y comité le queda: hoy continuaría.
+      expect(proposeDecisions(stays).person).toEqual({ proposed: "CONTINUES", reason: 0 });
+      expect(stays.mandatory.met).toBe(true);
+      expect(proposalReason(null, stays, "EXIT_OE")).toBe(3);
+      // Lo mismo con lo obligatorio sin cumplir y nada perdido, como el nuevo con la inducción pendiente
+      // al que le ajustaron el requisito después de confirmar su salida por una asamblea (DT-392).
+      const pendingInduction = { ...stays, mandatory: { ...stays.mandatory, met: false } };
+      expect(proposeDecisions(pendingInduction).person).toEqual({
+        proposed: "CONTINUES",
+        reason: 0,
+      });
+      expect(proposalReason(null, pendingInduction, "EXIT_OE")).toBe(4);
+    });
+
+    it("de cada situación al confirmar a cada situación de hoy: con el motivo guardado se muestra el de la propuesta, y sin él lo que mostraba la pestaña de antes del ciclo 16, salvo donde hoy se sigue proponiendo lo decidido, que muestra el motivo de hoy", () => {
+      let compared = 0;
+      const unsavedAwayFromProposal: string[] = [];
+      const beforeAwayFromProposal: string[] = [];
+      for (const confirmed of situations) {
+        const { proposed, reason: atConfirm } = proposeDecisions(confirmed.result).person;
+        for (const today of situations) {
+          const label = `${confirmed.name} → ${today.name}`;
+          compared += 1;
+          expect(proposalReason(atConfirm, today.result, proposed), label).toBe(atConfirm);
+
+          const unsaved = proposalReason(null, today.result, proposed);
+          const before = shownBeforeCycle16(today.result, proposed);
+          const now = proposeDecisions(today.result).person;
+          if (now.proposed === proposed) {
+            expect(unsaved, label).toBe(now.reason);
+          } else {
+            expect(unsaved, label).toBe(before);
+          }
+          // Lo que el ticket pide de una fila vieja: no dice nada distinto de la pestaña de antes
+          // salvo donde hoy se sigue proponiendo lo que se decidió.
+          if (unsaved !== before) {
+            expect(now.proposed, label).toBe(proposed);
+          }
+          if (unsaved !== atConfirm) {
+            unsavedAwayFromProposal.push(label);
+          }
+          if (before !== atConfirm) {
+            beforeAwayFromProposal.push(label);
+          }
+        }
+      }
+      expect(compared).toBe(144);
+      // Sin el motivo guardado no hay de dónde sacar por qué se propuso cuando los hechos cambian: de
+      // las 144 combinaciones, en 78 la fila vieja no muestra el motivo de su propuesta, y en 80 no lo
+      // mostraba la pestaña de antes. Con el motivo guardado no hay ninguna. Es lo que deja el respaldo
+      // (DT-401): los dos números lo fijan, para que nadie lo lea como una regla que acierta.
+      expect(unsavedAwayFromProposal).toHaveLength(78);
+      expect(beforeAwayFromProposal).toHaveLength(80);
+    });
   });
 
   it("una obligatoria con excusa aceptada no se pierde ni expulsa (ADR-060 regla 5)", () => {

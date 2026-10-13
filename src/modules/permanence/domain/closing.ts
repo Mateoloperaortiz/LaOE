@@ -126,7 +126,7 @@ export interface PersonDecisionView {
   committeeId: string | null;
   committeeName: string;
   proposed: DecisionKind;
-  /** El motivo automático de lo que se propuso, en el orden de T-801 (ADR-128 regla 1). */
+  /** El motivo automático con que el cierre propuso, en el orden de T-801 (ADR-128 regla 1). */
   proposalReason: ProposalReason;
   decision: DecisionKind;
   /** El motivo que GH escribió; vacío si confirmó la propuesta tal cual. */
@@ -137,9 +137,10 @@ export interface PersonDecisionView {
 }
 
 /**
- * Las decisiones confirmadas de una persona en un término, para la Persona 360 (T-831). `result` es
- * el resultado que la pantalla muestra, vivo o congelado: de la decisión se guarda qué se propuso y no
- * por qué, y el motivo automático de cada una se resuelve acá, sobre ese resultado (ADR-128 regla 1).
+ * Las decisiones confirmadas de una persona en un término, para la Persona 360 (T-831). El motivo
+ * automático de cada una es el que se guardó con ella al confirmar (ADR-128 regla 1). `result` es el
+ * resultado que la pantalla muestra, vivo o congelado, y solo lo lee una decisión confirmada antes de
+ * que el motivo se guardara, que lo saca de ahí con su respaldo (`proposalReason`).
  */
 export async function listPersonDecisions(
   personId: string,
@@ -163,7 +164,7 @@ export async function listPersonDecisions(
     committeeId: row.committeeId,
     committeeName: row.committeeId ? (names.get(row.committeeId) ?? "") : "",
     proposed: row.proposed,
-    proposalReason: proposalReason(result, row.proposed),
+    proposalReason: proposalReason(row.proposalReason, result, row.proposed),
     decision: row.decision,
     reason: row.reason ?? "",
     decidedByName: row.decidedById ? (people.get(row.decidedById)?.fullName ?? "") : "",

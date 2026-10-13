@@ -1021,13 +1021,36 @@ export function proposeDecisions(result: PersonPermanence): Proposal {
 }
 
 /**
- * El motivo automático de una propuesta que ya se confirmó, con la regla con la que el cierre propone
- * (ADR-128 regla 1). De la decisión se guarda qué se propuso y no por qué: continuar, la prueba y la
- * salida de un comité llevan su motivo en la propuesta, y la salida de la OE lo saca de su causa en
- * `result`, que es el resultado que la pantalla muestra.
+ * Respaldo para las decisiones confirmadas antes de que el motivo de la propuesta se guardara con ellas
+ * (migración 0051; DT-392 y DT-401): de esas solo queda qué se propuso. Continuar, la prueba y la salida
+ * de un comité llevan su motivo en la propuesta. La salida de la OE no, y se saca de `result`, el
+ * resultado que la pantalla muestra: si ese resultado la sigue proponiendo, es su causa de hoy. Si ya no
+ * la propone, no queda de dónde sacar por qué se propuso, y se muestra lo que mostraba la pestaña de la
+ * Persona 360 antes de ADR-128, que elegía con `mandatory.met`: una fila vieja no pasa a decir nada que
+ * no dijera. No es una regla del cierre y no decide nada: una decisión nueva nunca pasa por acá.
  */
-export function proposalReason(result: PersonPermanence, proposed: DecisionKind): ProposalReason {
-  return proposed === "EXIT_OE" ? exitReason(result) : KIND_REASON[proposed];
+function unsavedProposalReason(result: PersonPermanence, proposed: DecisionKind): ProposalReason {
+  if (proposed !== "EXIT_OE") {
+    return KIND_REASON[proposed];
+  }
+  if (proposeDecisions(result).person.proposed === "EXIT_OE") {
+    return exitReason(result);
+  }
+  return result.mandatory.met ? 3 : 4;
+}
+
+/**
+ * El motivo automático que se muestra junto a una decisión ya confirmada (ADR-128 regla 1). `saved` es
+ * el motivo con que el cierre la propuso, que `confirmDecisions` guarda con la decisión: si está, es
+ * ese, cambien como cambien los hechos después de confirmar. Solo le falta a una decisión confirmada
+ * antes de que se guardara, y esa lo saca de `result` con su respaldo.
+ */
+export function proposalReason(
+  saved: ProposalReason | null,
+  result: PersonPermanence,
+  proposed: DecisionKind,
+): ProposalReason {
+  return saved ?? unsavedProposalReason(result, proposed);
 }
 
 /** Sumas de una tabla frente al nominal: veteranos (todos + veteranos) y nuevos (todos + nuevos). */
