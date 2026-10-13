@@ -66,6 +66,25 @@ export async function waitingOn(pid: number): Promise<number> {
   return result.rows[0]?.n ?? 0;
 }
 
+/**
+ * Cuántas de las conexiones que esperan a la transacción indicada ya escribieron en `table`: quien
+ * inserta, actualiza o borra retiene `RowExclusiveLock` sobre la tabla hasta confirmar. Dice qué hizo
+ * un comando antes de pedir el candado en el que espera, sin tocar `src`.
+ */
+export async function waitingWithWritesTo(pid: number, table: string): Promise<number> {
+  const result = await getDb().execute<{ n: number }>(sql`
+    select count(*)::int as n
+    from pg_locks as taken
+    join pg_class as relation on relation.oid = taken.relation
+    join pg_database as base on base.oid = taken.database
+    where base.datname = current_database()
+      and taken.locktype = 'relation' and taken.granted and taken.mode = 'RowExclusiveLock'
+      and relation.relname = ${table}
+      and ${pid} = any(pg_blocking_pids(taken.pid))
+  `);
+  return result.rows[0]?.n ?? 0;
+}
+
 /** Cuántas conexiones de esta base esperan un candado, de quien sea. */
 export async function waitingForLock(): Promise<number> {
   const result = await getDb().execute<{ n: number }>(sql`

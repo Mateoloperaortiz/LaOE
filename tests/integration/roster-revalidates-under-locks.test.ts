@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, getTableName, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import type { Tx } from "@/db/tx";
@@ -27,7 +27,13 @@ import {
   seedTerm,
 } from "../factories";
 import { copyPattern } from "../helpers/copy";
-import { firstThenSecond, holdTransaction, outcome, waitingOn } from "../helpers/locks";
+import {
+  firstThenSecond,
+  holdTransaction,
+  outcome,
+  waitingOn,
+  waitingWithWritesTo,
+} from "../helpers/locks";
 import { truncateAll } from "./db";
 
 // ADR-127 regla 1 (DT-339): después de tomar los consultivos de las personas de su archivo, la
@@ -180,6 +186,31 @@ describe("la importación del roster vuelve a validar con los candados de las pe
         .from(committeeRole)
         .where(eq(committeeRole.code, "CRONISTA")),
     ).toEqual([{ label: "Cronista" }]);
+  });
+
+  // ADR-120 regla 3, «Dentro de una importación»: el trabajo, los términos y los cargos que falten,
+  // y recién después cada persona. La revisión del ciclo 15 encontró los cargos creándose después de
+  // la segunda validación, con los consultivos de todo el archivo ya tomados.
+  it("el cargo que el archivo trae nuevo ya está escrito cuando la importación espera el primer consultivo", async () => {
+    const { admin, primera, jobId } = await escenario();
+
+    const held = await holdTransaction((tx) => lockMembershipCycle(tx, primera.id));
+    let imported: PromiseSettledResult<unknown>;
+    let wroteRoles: number;
+    try {
+      const importing = launch(applyRosterImportAs(admin, jobId));
+      await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBe(1), { timeout: 5_000 });
+      wroteRoles = await waitingWithWritesTo(held.pid, getTableName(committeeRole));
+      held.release();
+      [imported] = await Promise.allSettled([importing]);
+    } finally {
+      held.release();
+      await held.done;
+    }
+
+    expect(wroteRoles).toBe(1);
+    expect(outcome(imported)).toBe("ok");
+    expect(imported).toMatchObject({ value: { rolesCreated: ["Cronista"] } });
   });
 
   it("la fila que ya era un error antes de los candados sigue saltada aunque le levanten la prueba mientras la importación espera", async () => {

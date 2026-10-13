@@ -944,8 +944,8 @@ function rejectedIn(rows: readonly PreviewRow[]): Map<number, string[]> {
  * fila tomada salen las columnas que se aplican.
  *
  * Valida dos veces por el camino de la vista previa (ADR-127 regla 1). La primera pasada, sin
- * candados, dice de quién tomar el consultivo y qué términos crear. La segunda, con los consultivos
- * tomados, es la que se aplica, se resume y se guarda.
+ * candados, prepara: dice de quién tomar el consultivo y qué términos y cargos crear. La segunda, con
+ * los consultivos tomados, decide: es la que se aplica, se resume y se guarda.
  */
 export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<ApplySummary> {
   const job = await getImportJob(jobId);
@@ -970,32 +970,38 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
     if (!taken.success) {
       throw new DomainError(t("T-032"));
     }
-    // Los términos se crean con la primera pasada: el candado del calendario va antes que el
-    // consultivo de cualquier persona (ADR-123 regla 6).
-    const first = await buildPreview(cells, taken.data.mapping, termId);
+    // Los términos y los cargos que falten se crean con la primera pasada, antes de tomar a ninguna
+    // persona: es el orden de una importación (ADR-120 regla 3), y el candado del calendario va antes
+    // que el consultivo de cualquiera (ADR-123 regla 6).
+    const prepared = await buildPreview(cells, taken.data.mapping, termId);
     await requirePrivacyPolicyVersion(ctx, "admin");
-    const termsByCode = await ensureTerms(ctx, first.validation.missingTerms);
+    const termsByCode = await ensureTerms(ctx, prepared.validation.missingTerms);
     for (const term of terms) {
       termsByCode.set(term.code, term.id);
     }
-    await lockRosterMembers(ctx, first.rows);
+    const rolesCreated = await ensureRoles(ctx, prepared.rows);
+    await lockRosterMembers(ctx, prepared.rows);
     // Con los consultivos tomados nadie le confirma a una de esas personas la prueba ni una suspensión
     // (ADR-127 regla 2): la que llegó mientras tanto deja su fila en error acá, y no en
     // `changeMembershipStatus` con la importación a medias. Esta pasada solo puede sacar filas: la que
     // la primera rechazó sigue rechazada, que su consultivo no se tomó con los demás.
-    const built = await buildPreview(cells, taken.data.mapping, termId, rejectedIn(first.rows));
-    const rolesCreated = await ensureRoles(ctx, built.rows);
+    const decided = await buildPreview(
+      cells,
+      taken.data.mapping,
+      termId,
+      rejectedIn(prepared.rows),
+    );
     const summary: ApplySummary = {
       created: 0,
       updated: 0,
       unchanged: 0,
       skipped: 0,
-      // Los que de verdad se crearon, también el que solo pedía una fila que la segunda pasada sacó.
-      termsCreated: first.validation.missingTerms,
+      // Los que de verdad se crearon, también los que solo pedía una fila que la segunda pasada sacó.
+      termsCreated: prepared.validation.missingTerms,
       rolesCreated,
-      proposals: built.proposals,
+      proposals: decided.proposals,
     };
-    for (const row of built.rows) {
+    for (const row of decided.rows) {
       if (row.group === "ERROR") {
         summary.skipped += 1;
         continue;
@@ -1006,7 +1012,7 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
     await updateImportJob(ctx, jobId, {
       status: "APPLIED",
       appliedAt: new Date(),
-      payload: payloadOf(built, current.data.format),
+      payload: payloadOf(decided, current.data.format),
       summary: { ...summary, leaders: { granted: [], failed: [] } },
     });
     return summary;
