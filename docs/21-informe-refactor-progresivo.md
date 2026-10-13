@@ -4,12 +4,12 @@ Cierre del objetivo que Mateo fijó el 2026-10-06 ([ADR-109](adr/ADR-109-refacto
 
 ## En corto
 
-- **Quince ciclos y un remate**, del 2026-10-06 al 2026-10-12: seis ciclos de corrección, seguridad e integridad, uno de estructura, los arreglos rápidos que salieron de clasificar lo que quedaba, cuatro ciclos más con las filas diferidas que no esperaban nada, los tres primeros refactors de estructura que tenían spec, y un ciclo más con la cola que dejaron esos. Más un arreglo de dependencias vulnerables y una guarda de migraciones, los dos contra `main`.
-- **Nada está mezclado.** Todo vive en dieciocho PR abiertos, dieciséis de ellos apilados. Mezclar y promover piden la decisión de Mateo, y cada ciclo trae su lista de comprobaciones previas (sección «Cómo seguir»).
+- **Dieciséis ciclos y un remate**, del 2026-10-06 al 2026-10-13: seis ciclos de corrección, seguridad e integridad, uno de estructura, los arreglos rápidos que salieron de clasificar lo que quedaba, cuatro ciclos más con las filas diferidas que no esperaban nada, los tres primeros refactors de estructura que tenían spec, un ciclo más con la cola que dejaron esos, y otro con lo que dejó su revisión. Más un arreglo de dependencias vulnerables y una guarda de migraciones, los dos contra `main`.
+- **Nada está mezclado.** Todo vive en diecinueve PR abiertos, diecisiete de ellos apilados. Mezclar y promover piden la decisión de Mateo, y cada ciclo trae su lista de comprobaciones previas (sección «Cómo seguir»).
 - **El repositorio se leyó entero.** Una revisión de arquitectura, un descubrimiento de seguridad y dos olas de una auditoría de huecos, cada hallazgo de severidad media o alta con un segundo lector que intentó tumbarlo.
-- **Ledger:** 391 hallazgos, todos en un estado final. 182 resueltos, 195 diferidos con lo que los destraba y el riesgo de dejarlos, 9 aceptados y 5 que no eran deuda. De los diferidos, 127 esperan una de las 78 decisiones abiertas.
-- **Pruebas:** de 855 unitarias y 603 de integración a 2.120 y 1.870. La E2E pasa entera, también pegada a `npm run check`. Lo que la hacía tardar de más tenía dos causas: lo que la suite de integración le dejaba a Postgres, corregido en el cierre (DT-188), y un servidor de desarrollo que se atasca en una corrida completa sin nada compilado, corregido en el ciclo 11: la corrida completa local va contra el build (DT-338).
-- **«Diferida» no era «bloqueada».** Al releer lo que quedó diferido salieron filas, y partes de una fila, que no esperaban una decisión, una mirada a producción ni mezclar la pila. Los ciclos 8 a 11 tomaron cuatro tandas de esas, la última con la cola, y el 15 una quinta, con lo que dejaron los ciclos de estructura. Lo que queda diferido espera una de esas tres cosas o una de las cinco specs de estructura que faltan; cada fila dice cuál.
+- **Ledger:** 401 hallazgos, todos en un estado final. 189 resueltos, 198 diferidos con lo que los destraba y el riesgo de dejarlos, 9 aceptados y 5 que no eran deuda. De los diferidos, 128 esperan una de las 79 decisiones abiertas.
+- **Pruebas:** de 855 unitarias y 603 de integración a 2.297 y 1.890. La E2E pasa entera, también pegada a `npm run check`. Lo que la hacía tardar de más tenía dos causas: lo que la suite de integración le dejaba a Postgres, corregido en el cierre (DT-188), y un servidor de desarrollo que se atasca en una corrida completa sin nada compilado, corregido en el ciclo 11: la corrida completa local va contra el build (DT-338).
+- **«Diferida» no era «bloqueada».** Al releer lo que quedó diferido salieron filas, y partes de una fila, que no esperaban una decisión, una mirada a producción ni mezclar la pila. Los ciclos 8 a 11 tomaron cuatro tandas de esas, la última con la cola, el 15 una quinta, con lo que dejaron los ciclos de estructura, y el 16 una sexta, con lo que dejó la revisión del 15. Lo que queda diferido espera una de esas tres cosas o una de las cinco specs de estructura que faltan; cada fila dice cuál.
 - **Lo más urgente no es código:** mezclar y promover el #116, porque producción sigue con un aviso crítico, y mezclar el #192 antes que la pila, porque sin él una migración se puede saltar en silencio.
 
 ## Punto de partida
@@ -40,7 +40,7 @@ Y lo que no se medía con un conteo:
 
 Cada ciclo siguió el mismo recorrido: descubrir, priorizar, escribir la spec y sus tickets como issues, probar, implementar, revisar, verificar y volver a escanear. Las reglas están en ADR-109; lo que conviene saber para leer el resto:
 
-- **Orden de prioridad:** corrección, seguridad, integridad, simplicidad, mantenibilidad, testabilidad, observabilidad y rendimiento. Por eso seis de los siete primeros ciclos fueron de corrección, seguridad e integridad y solo el séptimo de estructura; del octavo al undécimo volvieron a la corrección, la seguridad y la red de pruebas, con lo diferido que nada frenaba; el duodécimo abrió los refactors de estructura que tenían spec, por el que no toca el código de la casa, el decimotercero siguió con la interfaz pública de los módulos, una poda que no cambia ninguna conducta, y el decimocuarto con las etiquetas de un enum, que pasan a leerse por valor; el decimoquinto volvió a la corrección y la seguridad, con la cola.
+- **Orden de prioridad:** corrección, seguridad, integridad, simplicidad, mantenibilidad, testabilidad, observabilidad y rendimiento. Por eso seis de los siete primeros ciclos fueron de corrección, seguridad e integridad y solo el séptimo de estructura; del octavo al undécimo volvieron a la corrección, la seguridad y la red de pruebas, con lo diferido que nada frenaba; el duodécimo abrió los refactors de estructura que tenían spec, por el que no toca el código de la casa, el decimotercero siguió con la interfaz pública de los módulos, una poda que no cambia ninguna conducta, y el decimocuarto con las etiquetas de un enum, que pasan a leerse por valor; el decimoquinto volvió a la corrección y la seguridad, con la cola, y el decimosexto siguió con lo que dejó su revisión.
 - **Prueba en rojo primero.** Casi todo lo que la auditoría encontró estaba leído y no ejecutado. Cada ticket reprodujo su defecto con una prueba que fallaba antes de tocar el código; lo que no se reprodujo quedó como caracterización y no se «arregló».
 - **Caracterización antes de tocar una zona sin red.** Campañas, el poller del outbox y la asistencia tuvieron primero pruebas en verde sobre el código como estaba.
 - **Nadie revisa su propio trabajo.** Cada ticket lo implementó un agente y lo revisó otro con prueba de mutación: devolver el código a su versión anterior y ver la prueba fallar. Al final de cada ciclo, toda la rama pasó por tres ejes: estándares, spec, y uno que ejecuta escenarios de fallo y de concurrencia.
@@ -69,6 +69,7 @@ Cada ciclo siguió el mismo recorrido: descubrir, priorizar, escribir la spec y 
 | 13 | [#322](https://github.com/Mateoloperaortiz/LaOE/pull/322) | La interfaz pública de los módulos, sin cambio de conducta: trece `index.ts` dejan de exportar 517 nombres que nadie de afuera importaba, knip pasa a analizar sus exports, se borran 21 nombres sin ningún uso, y una prueba que lee el código no deja entrar un export sin consumidor (ADR-125) | Ninguna |
 | 14 | [#324](https://github.com/Mateoloperaortiz/LaOE/pull/324) | Las etiquetas de un enum, por valor: `tLabels` no compila si la lista y el enum tienen distinto largo, 180 llamadas en 89 archivos conservan su respaldo, y una prueba que lee el código rechaza una lectura por posición nueva. Dos cambios de conducta que no se alcanzan en el uso normal (ADR-126) | Ninguna |
 | 15 | [#337](https://github.com/Mateoloperaortiz/LaOE/pull/337) | La cola de los ciclos de estructura: la importación del roster valida otra vez con los candados tomados y propone el permiso de líder solo a quien deja en el comité, cuatro comandos más hacen cola en el ciclo de membresía, el lector cancela el arranque de la cámara, la cookie de sesión vive en un archivo y el registro no deja valores de una consulta en el mensaje (ADR-127) | Ninguna |
+| 16 | [#348](https://github.com/Mateoloperaortiz/LaOE/pull/348) | Lo que dejó la revisión del ciclo 15: la pestaña de permanencia muestra el motivo de verdad de una decisión y ese motivo se guarda al confirmar, el registro no lanza por lo que le piden anotar, las asambleas firmadas se cuentan en una función, y tres trinquetes nuevos leen el código de las pruebas (ADR-128) | `0051_decision_motivo_de_la_propuesta.sql`, aditiva |
 
 ## Cómo quedó
 
@@ -84,13 +85,13 @@ Lo que cambió de forma, más allá de cada defecto:
 - **Una red de pruebas que entra por la interfaz de los módulos**, contra Postgres real, con el reloj inyectado y ayudantes para forzar el orden de dos comandos sin esperas y para contar las consultas de una lectura. La base de esas pruebas se vacía con una lista que sale de PostgreSQL y vuelve sus catálogos a una foto de la migración, y la siembra pasa por una fábrica que comparten integración y E2E: fuera de ella, cada escritura a mano tiene su razón escrita, y una prueba que lee el código no deja entrar otra.
 - **La verificación local es la del CI.** `npm test` y `npm run test:integration` pasan su informe por la comprobación de la compuerta: un caso saltado falla en la máquina de quien lo escribe.
 
-| Qué | Línea base | Tras el ciclo 15 |
+| Qué | Línea base | Tras el ciclo 16 |
 | --- | --- | --- |
-| Líneas en `src`, sin el catálogo de textos | 116.434 en 739 archivos | 125.107 en 785 archivos |
+| Líneas en `src`, sin el catálogo de textos | 116.434 en 739 archivos | 125.309 en 785 archivos |
 | Funciones de más de 100, 200 y 300 líneas | 179, 60 y 23 | 188, 59 y 23 |
 | Funciones con complejidad mayor a 30 | 64 | 68 |
-| Archivos de más de 500 y de 1.000 líneas | 46 y 6 | 49 y 6 |
-| Símbolos que exportan `participation`, `people` y `crm` | 384, 235 y 150 | 193, 175 y 94 |
+| Archivos de más de 500 y de 1.000 líneas | 46 y 6 | 49 y 7 |
+| Símbolos que exportan `participation`, `people` y `crm` | 384, 235 y 150 | 194, 175 y 94 |
 | Nombres de función declarados en dos o más archivos | 99 | 94 |
 | Eventos de dominio en el catálogo | 66 | 68 |
 | Módulos de dominio en una componente circular | 7 | 0, con una regla que rechaza uno nuevo |
@@ -99,7 +100,7 @@ Lo que cambió de forma, más allá de cada defecto:
 | Nombres que un `index.ts` exporta sin que producción los importe de afuera | 626 de 1.550 al empezar el ciclo 13 | 109 de 1.033: 67 que solo importan las pruebas y 42 de `competition` |
 | Etiquetas de un enum leídas por su posición en una lista | 126 con `indexOf`, 50 recorridos, 11 con el índice guardado y 12 pares `zip` al empezar el ciclo 14 | 1, 3, 4 y 0: pares de largo distinto o lecturas que no son la etiqueta de un enum, cada una con su razón |
 | Archivos de `src` que insertan puntos | 5 (el ledger y los cuatro juegos) | 1 |
-| Pruebas unitarias y de integración | 855 y 603 | 2.120 y 1.870 |
+| Pruebas unitarias y de integración | 855 y 603 | 2.297 y 1.890 |
 | Avisos de `npm audit` | 13, uno crítico | 13 en la pila; 8 y ninguno crítico con el #116 mezclado |
 
 Las métricas de tamaño crecieron, y es lo esperado: seis ciclos agregaron código de guarda y pruebas, no lo quitaron. El ciclo de estructura movió poco el tamaño y sí el lugar de las reglas: un solo sitio escribe una asistencia y un solo sitio inserta puntos. Lo que sigue igual de grande es lo que quedó diferido como estructura: la interfaz pública de `participation`, las páginas largas y las piezas base de interfaz.
@@ -127,6 +128,7 @@ Cada ciclo cerró con `npm run check` completo (lint, tipos, reglas de dependenc
 | 13 | 1.510 | 1.704 | 250 de 250 a la primera, contra el build |
 | 14 | 1.998 | 1.743 | 250 de 250 a la primera, contra el build |
 | 15 | 2.120 | 1.870 | 256 de 256 |
+| 16 | 2.297 | 1.890 | 256 de 256 |
 
 Las E2E que fallaron a la primera tenían cuatro causas, y las cuatro quedaron arregladas:
 
@@ -145,13 +147,13 @@ Lo que **no** se verificó, y conviene saberlo:
 
 ## Riesgos
 
-- **La pila es larga y nada está mezclado.** Dieciséis PR apilados sobre `main`, que no se movió desde el 2026-10-06. Si `main` recibe cambios, cada eslabón pide ponerse al día. Mezclar el #192 primero hace chocar la pila en los documentos que los dos editan (el índice de decisiones, el roadmap y el índice de ADR): son conflictos de texto, no de código.
+- **La pila es larga y nada está mezclado.** Diecisiete PR apilados sobre `main`, que no se movió desde el 2026-10-06. Si `main` recibe cambios, cada eslabón pide ponerse al día. Mezclar el #192 primero hace chocar la pila en los documentos que los dos editan (el índice de decisiones, el roadmap y el índice de ADR): son conflictos de texto, no de código.
 - **Cuatro migraciones esperan en la pila** (0047 a 0050), todas aditivas. Si `main` recibe otra migración antes, hay que volver a generarlas: Drizzle saltaría las más viejas sin avisar (DT-128). La guarda del #192 lo detecta y tiene que mezclarse primero.
 - **Producción sigue con el aviso crítico de `next/og`** hasta que se mezcle y promueva el #116. Dependabot abrió por su cuenta el #172 con la misma subida de `next`: sobra uno de los dos.
 - **Un dato sensible sobrevive a la anonimización** hasta que se cierre la decisión 10: el motivo de una excusa, una licencia o una renuncia, que puede ser médico, queda en la solicitud y en la auditoría. Lo ven GH y ADMIN (DT-100). Y una persona anonimizada todavía se puede editar abriendo el panel por su dirección, porque el comando no mira la anonimización (DT-296, decisión 61); salió al redactar las specs y está leído, no ejecutado.
 - **Durante un despliegue conviven dos versiones del poller.** La anterior da por procesado un evento cuyo tipo no conoce (decisión 40), y la pila agrega dos tipos nuevos, uno de ellos programado al minuto 20 de cada hora: conviene promover lejos de ese minuto.
 - **Hay cambios de conducta a la vista de las personas.** Cada PR los lista. Los que más se notan: una campaña grande dura días por el cupo diario; quien vuelve a un grupo de trabajo queda con la evaluación pendiente; los formularios con estado ya no se envían sin JavaScript; una campaña que agota el cupo del día retoma a las 7:00 p. m. y no a la medianoche; crear solo el término siguiente falla si se cruza con el vigente; y conceder un permiso mata el enlace de activación que esa persona tuviera sin usar.
-- **78 decisiones de dominio siguen abiertas.** El código conserva en cada una la conducta anterior, pero varias tapan defectos reales que no se pueden corregir sin elegir.
+- **79 decisiones de dominio siguen abiertas.** El código conserva en cada una la conducta anterior, pero varias tapan defectos reales que no se pueden corregir sin elegir.
 - **Dos condiciones para promover piden tocar servicios reales:** probar qué hace Resend con una clave de idempotencia que recibió un error (DT-182) y saber cuándo reinicia su cupo mensual (DT-184). El cupo diario ya no pide preguntarle: su documentación dice que cuenta por día UTC, y el ciclo 9 lo corrigió (DT-125).
 
 ## Deuda que queda
@@ -160,28 +162,28 @@ Todo hallazgo del ledger terminó en uno de los cuatro estados de ADR-109. La cl
 
 | Prioridad | Resueltos | Diferidos | Aceptados | No eran deuda |
 | --- | --- | --- | --- | --- |
-| Corrección | 62 | 72 | 1 | 0 |
+| Corrección | 64 | 72 | 1 | 0 |
 | Seguridad | 34 | 26 | 3 | 0 |
 | Privacidad | 5 | 1 | 0 | 0 |
 | Integridad | 12 | 24 | 2 | 2 |
 | Simplicidad | 8 | 8 | 0 | 0 |
-| Mantenibilidad | 22 | 47 | 2 | 0 |
-| Testabilidad | 22 | 6 | 1 | 0 |
-| Observabilidad | 11 | 7 | 0 | 0 |
+| Mantenibilidad | 24 | 48 | 2 | 0 |
+| Testabilidad | 24 | 6 | 1 | 0 |
+| Observabilidad | 12 | 9 | 0 | 0 |
 | Rendimiento | 6 | 4 | 0 | 0 |
 | Sin prioridad | 0 | 0 | 0 | 3 |
-| **Total** | **182** | **195** | **9** | **5** |
+| **Total** | **189** | **198** | **9** | **5** |
 
 Lo diferido, por lo que lo destraba:
 
-- **127 esperan una decisión de dominio.** Están en [decisiones-abiertas.md](decisiones-abiertas.md), cada una con sus opciones, una recomendación y su ticket. Las que más filas destraban: la 8 (8), la 42 (5), la 7 (4), la 18 (4), la 28 (4), la 38 (4).
+- **128 esperan una decisión de dominio.** Están en [decisiones-abiertas.md](decisiones-abiertas.md), cada una con sus opciones, una recomendación y su ticket. Las que más filas destraban: la 8 (8), la 42 (5), la 7 (4), la 18 (4), la 28 (4), la 38 (4).
 - **32 piden mirar staging o producción** antes de poder cerrarse: un conteo de solo lectura, una medición o una prueba contra un proveedor real. Varias caben en una sola sesión del túnel de solo lectura.
 - **La estructura que el plan cierra sin hacer**, cada pieza con sus filas y su spec, escrita contra el código del cierre y comprobada por un segundo lector, sin implementar: el resultado de una acción, que hoy tiene cinco convenciones (DT-014, [#239](https://github.com/Mateoloperaortiz/LaOE/issues/239)); las piezas base de interfaz y las páginas largas, que van juntas (DT-015, DT-047 y DT-027, [#240](https://github.com/Mateoloperaortiz/LaOE/issues/240)); la biblioteca de juegos (DT-032, [#241](https://github.com/Mateoloperaortiz/LaOE/issues/241)); el cargo principal derivado (DT-039, [#243](https://github.com/Mateoloperaortiz/LaOE/issues/243)); y el poller por handler (DT-016, [#245](https://github.com/Mateoloperaortiz/LaOE/issues/245)). La base de las pruebas de integración ([#244](https://github.com/Mateoloperaortiz/LaOE/issues/244)), la interfaz pública de los módulos ([#238](https://github.com/Mateoloperaortiz/LaOE/issues/238)) y las etiquetas por valor ([#242](https://github.com/Mateoloperaortiz/LaOE/issues/242)) ya se hicieron, en los ciclos 12, 13 y 14.
 - **Rendimiento**, cuatro filas. Ninguna está medida como problema a la escala de hoy, unas 470 personas. El ayudante que cuenta consultas existe desde el ciclo 8, que fijó con él tres lecturas; las demás esperan una medición en staging o su ticket.
 - **Dependencias:** tres saltos mayores pendientes, TypeScript, Vitest y los tipos de Node (DT-237). Se suben después de mezclar, uno por vez.
-- **El resto son tickets chicos**: cada fila dice cuál en su nota de cierre. Los que no esperaban nada los tomaron los ciclos 8 a 11 y, de la cola que dejaron los siguientes, el 15. Las filas chicas que siguen quedan cada una con lo que la destraba.
+- **El resto son tickets chicos**: cada fila dice cuál en su nota de cierre. Los que no esperaban nada los tomaron los ciclos 8 a 11 y, de la cola que dejaron los siguientes, el 15 y el 16. Las filas chicas que siguen quedan cada una con lo que la destraba.
 
-Por riesgo, de las 135 filas diferidas que tienen su riesgo escrito: 3 de riesgo alto, 37 de riesgo medio y 95 de riesgo bajo. Las demás esperan una decisión ya numerada y no se volvieron a leer. Las de riesgo alto son DT-053 y DT-128, que se cierran mezclando el #116 y el #192, y DT-100, la del dato sensible que sobrevive a la anonimización.
+Por riesgo, de las 147 filas diferidas que tienen su riesgo escrito: 3 de riesgo alto, 37 de riesgo medio y 107 de riesgo bajo. Las demás esperan una decisión ya numerada y no se volvieron a leer. Las de riesgo alto son DT-053 y DT-128, que se cierran mezclando el #116 y el #192, y DT-100, la del dato sensible que sobrevive a la anonimización.
 
 ## Bloqueos
 
@@ -190,15 +192,15 @@ Tres cosas no dependen de más código. Van en el formato que pide el objetivo.
 ### Nada se puede mezclar ni promover sin Mateo
 
 - **Problema.** Todo el refactor vive en ramas. Producción sigue en el `main` del 2026-10-06, con el aviso crítico de `next/og`, y las verificaciones están en verde en local y en el CI de cada PR, no sobre `main`.
-- **Evidencia.** `gh pr list` muestra los PR abiertos, limpios y con sus once chequeos en verde: #116, #192 y la pila #133, #142, #154, #173, #215, #222, #226, #237, #268, #272, #285, #297, #306, #322, #324 y #337. `origin/main` sigue en `01d022d`. `npm audit` sobre `main` da 13 avisos, uno crítico.
+- **Evidencia.** `gh pr list` muestra los PR abiertos, limpios y con sus once chequeos en verde: #116, #192 y la pila #133, #142, #154, #173, #215, #222, #226, #237, #268, #272, #285, #297, #306, #322, #324, #337 y #348. `origin/main` sigue en `01d022d`. `npm audit` sobre `main` da 13 avisos, uno crítico.
 - **Intentos.** Ninguno de mezclar, a propósito: mezclar a `main`, promover a `production` y abrir el túnel de solo lectura piden una frase explícita de Mateo en el mensaje del momento. Se hizo lo que no cruza esa línea: cada PR con su CI, la pila al día, y la lista de lo que hay que comprobar antes de promover cada ciclo.
 - **Opciones.** (a) Mateo mezcla en el orden de «Cómo seguir». (b) Mateo lo autoriza con su frase y el agente mezcla, eslabón por eslabón, esperando el CI de cada uno. (c) Mezclar ya solo el #116, que es independiente de la pila, y dejar lo demás para después.
 - **Recomendación.** (c) hoy, porque quita el aviso crítico de producción sin esperar nada; después (b), con el #192 primero.
 
-### 127 filas esperan una decisión de dominio
+### 128 filas esperan una decisión de dominio
 
 - **Problema.** El código no puede elegir qué es el fin del término, qué conserva quien vuelve antes de que se procese su baja o si un formulario público liga a una persona por su correo. Cada una de esas preguntas tapa defectos que no se pueden corregir sin elegir.
-- **Evidencia.** [decisiones-abiertas.md](decisiones-abiertas.md) tiene 78 abiertas, cada una con sus opciones, una recomendación y su ticket bajo el mapa [#117](https://github.com/Mateoloperaortiz/LaOE/issues/117). 127 filas diferidas del ledger nombran la suya.
+- **Evidencia.** [decisiones-abiertas.md](decisiones-abiertas.md) tiene 79 abiertas, cada una con sus opciones, una recomendación y su ticket bajo el mapa [#117](https://github.com/Mateoloperaortiz/LaOE/issues/117). 128 filas diferidas del ledger nombran la suya.
 - **Intentos.** En cada caso el código conservó la conducta de hoy, fijada con una prueba que nombra la decisión, y se corrigió todo lo vecino que no la pedía.
 - **Opciones.** (a) Responderlas por tandas, empezando por las que más filas destraban y por las dos de privacidad (10 y 61). (b) Aceptar por escrito la recomendación de las que no tengan discusión, y dejar solo las demás para conversar con GH.
 - **Recomendación.** (b): la mayoría trae una recomendación que casi no admite otra respuesta, y con eso se puede abrir un ciclo que las aplique.
@@ -217,7 +219,7 @@ El orden para mezclar, cada paso con la frase explícita de Mateo:
 
 1. **#116**, las dependencias. Es independiente y urgente.
 2. **#192**, la guarda de migraciones. Antes, comparar las marcas de las migraciones aplicadas en staging y en producción con el diario.
-3. **La pila, de abajo hacia arriba:** #133, #142, #154, #173, #215, #222, #226, #237, #268, #272, #285, #297, #306, #322, #324 y #337. Cada eslabón pide «Update branch» y su CI después de mezclar el anterior; no usar `--delete-branch`, que cierra el PR que depende de esa rama.
+3. **La pila, de abajo hacia arriba:** #133, #142, #154, #173, #215, #222, #226, #237, #268, #272, #285, #297, #306, #322, #324, #337 y #348. Cada eslabón pide «Update branch» y su CI después de mezclar el anterior; no usar `--delete-branch`, que cierra el PR que depende de esa rama.
 
 Antes de promover, por ciclo:
 
@@ -238,5 +240,6 @@ Antes de promover, por ciclo:
 | 13 | Nada: es una poda sin cambio de conducta ni migraciones |
 | 14 | Nada antes. Después: abrir la consola en vivo de una ocasión y mirar que las etiquetas de fuente, estado y contadores salgan como antes |
 | 15 | Nada antes. Después: subir un roster de prueba en staging y mirar la vista previa, abrir el lector del carnet en un teléfono y detenerlo antes de contestar el permiso, y entrar y salir una vez |
+| 16 | Antes: la migración `0051_decision_motivo_de_la_propuesta.sql` agrega una columna anulable y no toca filas. Después: abrir la pestaña de permanencia de una persona con una decisión confirmada y mirar su motivo |
 
 Las decisiones abiertas están en [decisiones-abiertas.md](decisiones-abiertas.md), cada una con su ticket bajo el mapa [#117](https://github.com/Mateoloperaortiz/LaOE/issues/117). Cerrar una decisión destraba sus filas del ledger, que dicen cuál esperan.
