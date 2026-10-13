@@ -546,6 +546,33 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     expect(reads).toBe(8);
   });
 
+  // Tres grafos en los que un objeto con un error adentro aparece por dos caminos: uno en el que un
+  // objeto de más arriba lo vuelve a nombrar, y otro en el que no.
+
+  /** El error de un cliente HTTP: la respuesta nombra a su solicitud y ella a la respuesta. */
+  const httpClientError = () => {
+    const request: Record<string, unknown> = { path: "/x" };
+    const response = { status: 500, failure: queryError(), request };
+    request.res = response;
+    return carrying({ response, request });
+  };
+
+  /** Dos objetos que se nombran entre sí y cuelgan del error cada uno por su campo. */
+  const twoNamingEachOther = () => {
+    const second: Record<string, unknown> = {};
+    const first = { failure: queryError(), o: second };
+    second.p = first;
+    return carrying({ a: first, b: second });
+  };
+
+  /** Un error que nombra al objeto que lo trae y cuelga, aparte, del error de la línea. */
+  const errorNamingItsHolder = () => {
+    const inner = new Error("dentro");
+    const holder = { failure: queryError(), e: inner };
+    Object.assign(inner, { ctx: holder });
+    return carrying({ a: holder, b: inner });
+  };
+
   // Lo que el recorte todavía no alcanza: fija por dónde sale hoy el valor. Quien cierre uno de estos
   // caminos va a ver caer su caso, y cambia lo que espera.
   it.each([
@@ -572,6 +599,23 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
         return { err: carrying({ detail }) };
       },
       ["err.detail.self.failure.params.0"],
+    ],
+    // Los tres que siguen son una regresión de `f4c099f4`: lo ya recortado se guarda, y el objeto que
+    // solo nombra a uno de más arriba se guardaba como llegó, con el error adentro sin recortar.
+    [
+      "en la respuesta del error de un cliente HTTP, por donde la solicitud la vuelve a nombrar",
+      () => ({ err: httpClientError() }),
+      ["err.request.res.failure.params.0"],
+    ],
+    [
+      "en uno de dos objetos que se nombran entre sí, por donde el otro lo vuelve a nombrar",
+      () => ({ err: twoNamingEachOther() }),
+      ["err.b.p.failure.params.0"],
+    ],
+    [
+      "en el objeto al que nombra un error, por donde ese error cuelga aparte del de la línea",
+      () => ({ err: errorNamingItsHolder() }),
+      ["err.b.ctx.failure.params.0"],
     ],
     [
       "en lo que escribe el `toJSON` de un objeto del error",
