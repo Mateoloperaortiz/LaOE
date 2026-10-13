@@ -11,14 +11,21 @@ import type { TextFile } from "./ratchet";
 // carpeta que arma una de esas con lo que le pasan (hoy `hubJson`): esas funciones las descubre, no
 // las trae en una lista. De una respuesta que sale con 400 o más, o con un status que no está escrito
 // ahí, toma el cuerpo si es texto y, si es un objeto, cada clave, también las de un objeto o una lista
-// de adentro: de `error`, lo que traiga; de las demás, solo un texto escrito o un `t(…)`. Además toma
-// la clave `error` de cualquier otro objeto del archivo, sin status: el cuerpo armado en una variable
-// (`health`).
+// de adentro y las de un objeto que el cuerpo esparce (`...(mal ? { error: "…" } : {})`): de `error`,
+// lo que traiga; de las demás, solo un texto escrito o un `t(…)`. El cuerpo, sea texto o JSON, puede
+// ser un ternario o ir detrás de un `??` o de un `||`: lee cada rama, con el status de su rama si el
+// status pregunta lo mismo. Lo que sale con menos de 400 no cuenta, tampoco si viaja en `error`.
+//
+// Además toma la clave `error` de todo objeto del archivo que no haya leído así, sin status: el
+// cuerpo armado en una variable (`health`) y el que llega a la respuesta por una forma que no conoce,
+// como el argumento de una función de fuera. Lo que no reconoce cae ahí: no se calla.
 //
 // Qué no ve, y por eso es un trinquete y no una demostración: el texto que una ruta le pase a una
 // función de fuera de `src/app/api`, el que llegue por una variable (ese sale como `passed`, con el
 // nombre de la variable y no con su texto), una clave que no sea `error` en un cuerpo armado aparte
-// y dos funciones de la carpeta que se llamen igual.
+// o en uno que pasa por una función que no conoce, la función de la carpeta que saque su parámetro de
+// otro modo que como el cuerpo entero o el valor de una clave suya (`{ error: { message } }`), y dos
+// funciones de la carpeta que se llamen igual. Tampoco lee una respuesta de fuera de `src/app/api`.
 
 /** De dónde sale el texto: escrito en la ruta, del catálogo por su código, o una expresión que la ruta deja pasar. */
 export type ErrorSource =
@@ -58,6 +65,15 @@ interface Helper {
 }
 
 type Helpers = ReadonlyMap<string, Helper>;
+
+/**
+ * La lectura de un archivo: las funciones de la carpeta y los objetos que ya miró, porque los leyó
+ * con el status de su respuesta o porque salen bien. Los demás quedan para la lectura sin status.
+ */
+interface Reading {
+  helpers: Helpers;
+  read: Set<ts.Node>;
+}
 
 const NO_HELPERS: Helpers = new Map();
 const RESPONSES = new Set(["Response", "NextResponse"]);
@@ -129,12 +145,13 @@ function statusesOf(status: Status): Array<number | null> {
 /**
  * Cada valor que una expresión puede dar, con el status con que saldría. Un ternario da sus dos
  * ramas; si el status es otro ternario con la misma pregunta, cada rama va con el status de su rama
- * (`ok ? "OK" : "Token inválido"` con `ok ? 200 : 404`), y si no, con todos.
+ * (`ok ? "OK" : "Token inválido"` con `ok ? 200 : 404`), y si no, con todos. El status va como está
+ * escrito, sin resolver, para que un ternario de más adentro todavía encuentre su pareja.
  */
 function leavesOf(
   value: ts.Expression,
   status: Status,
-): Array<{ node: ts.Expression; status: number | null }> {
+): Array<{ node: ts.Expression; status: Status }> {
   const node = unwrap(value);
   if (ts.isConditionalExpression(node)) {
     const written = status !== null && typeof status !== "number" ? unwrap(status) : null;
@@ -156,7 +173,13 @@ function leavesOf(
   ) {
     return [...leavesOf(node.left, status), ...leavesOf(node.right, status)];
   }
-  return statusesOf(status).map((code) => ({ node, status: code }));
+  return [{ node, status }];
+}
+
+/** Marca como mirados los objetos de lo que sale bien: nada de adentro es un error. */
+function settle(node: ts.Node, read: Set<ts.Node>): void {
+  if (ts.isObjectLiteralExpression(node)) read.add(node);
+  ts.forEachChild(node, (child) => settle(child, read));
 }
 
 /** La función con nombre que encierra a un nodo, si la hay. */
@@ -194,34 +217,45 @@ function fromValue(
   value: ts.Expression,
   status: Status,
   anything: boolean,
-  helpers: Helpers,
+  reading: Reading,
 ): Found[] {
   return leavesOf(value, status).flatMap((leaf) => {
-    if (leaf.status !== null && leaf.status < 400) return [];
+    const failing = statusesOf(leaf.status).filter((code) => code === null || code >= 400);
+    if (failing.length === 0) {
+      settle(leaf.node, reading.read);
+      return [];
+    }
     // Un objeto o una lista adentro del cuerpo: sus claves y sus elementos salen con el mismo status.
-    if (ts.isObjectLiteralExpression(leaf.node)) return fromObject(leaf.node, leaf.status, helpers);
+    if (ts.isObjectLiteralExpression(leaf.node)) return fromObject(leaf.node, leaf.status, reading);
     if (ts.isArrayLiteralExpression(leaf.node)) {
       return leaf.node.elements.flatMap((element) =>
-        fromValue(via, element, leaf.status, anything, helpers),
+        fromValue(via, element, leaf.status, anything, reading),
       );
     }
-    const source = sourceOf(leaf.node, helpers);
+    const source = sourceOf(leaf.node, reading.helpers);
     if (!source || (source.kind === "passed" && !anything)) return [];
-    return [{ status: leaf.status, via, source }];
+    return failing.map((code) => ({ status: code, via, source }));
   });
 }
 
-function fromObject(body: ts.ObjectLiteralExpression, status: Status, helpers: Helpers): Found[] {
+function fromObject(body: ts.ObjectLiteralExpression, status: Status, reading: Reading): Found[] {
+  reading.read.add(body);
   return body.properties.flatMap((property) => {
     if (ts.isPropertyAssignment(property)) {
       const key = ts.isStringLiteralLike(property.name)
         ? property.name.text
         : property.name.getText();
-      return fromValue(key, property.initializer, status, key === "error", helpers);
+      return fromValue(key, property.initializer, status, key === "error", reading);
     }
     if (ts.isShorthandPropertyAssignment(property)) {
       const key = property.name.text;
-      return fromValue(key, property.name, status, key === "error", helpers);
+      return fromValue(key, property.name, status, key === "error", reading);
+    }
+    if (ts.isSpreadAssignment(property)) {
+      // `...(mal ? { error: "…" } : {})`: las claves del objeto que se esparce son claves del cuerpo.
+      return leavesOf(property.expression, status).flatMap((leaf) =>
+        ts.isObjectLiteralExpression(leaf.node) ? fromObject(leaf.node, leaf.status, reading) : [],
+      );
     }
     return [];
   });
@@ -301,24 +335,19 @@ function helpersIn(source: ts.SourceFile, helpers: Map<string, Helper>): void {
 
 function textsIn(file: string, source: ts.SourceFile, helpers: Helpers): ErrorText[] {
   const found: Found[] = [];
-  /** Los objetos del cuerpo de una respuesta: se leen con su status, o no se leen si sale bien. */
-  const bodies = new Set<ts.Node>();
-  const inBody = (node: ts.Node): void => {
-    if (ts.isObjectLiteralExpression(node)) bodies.add(node);
-    ts.forEachChild(node, inBody);
-  };
+  const reading: Reading = { helpers, read: new Set() };
   const visit = (node: ts.Node): void => {
     const site = siteOf(node, helpers);
     if (site?.body) {
-      const body = unwrap(site.body);
-      inBody(body);
-      if (site.via !== null) {
-        found.push(...fromValue(site.via, body, site.status, true, helpers));
-      } else if (ts.isObjectLiteralExpression(body)) {
-        found.push(...fromObject(body, site.status, helpers));
-      }
-    } else if (ts.isObjectLiteralExpression(node) && !bodies.has(node)) {
-      found.push(...fromObject(node, null, helpers).filter((text) => text.via === "error"));
+      // Un cuerpo JSON se lee como el valor de una clave que no es `error`: de un objeto o una lista,
+      // lo de adentro; suelto, solo un texto escrito o un `t(…)`.
+      found.push(
+        ...fromValue(site.via ?? "body", site.body, site.status, site.via !== null, reading),
+      );
+    } else if (ts.isObjectLiteralExpression(node) && !reading.read.has(node)) {
+      // El objeto que ninguna respuesta leyó, porque está armado aparte o porque llega al cuerpo por
+      // una forma que el lector no conoce: su clave `error`, sin status.
+      found.push(...fromObject(node, null, reading).filter((text) => text.via === "error"));
     }
     ts.forEachChild(node, visit);
   };

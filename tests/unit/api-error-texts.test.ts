@@ -177,6 +177,46 @@ describe("un texto sembrado en una ruta de API", () => {
       found: ['400 › message › "Texto nuevo"'],
     },
     {
+      form: "en una rama de un cuerpo JSON en ternario, con el status de su rama",
+      code: 'return Response.json(done ? { ok: true } : { error: "Texto nuevo" }, { status: done ? 200 : 400 });',
+      found: ['400 › error › "Texto nuevo"'],
+    },
+    {
+      form: "en una rama de un cuerpo JSON en ternario cuando las dos salen con el mismo status",
+      code: 'return Response.json(actor ? { results: [] } : { error: "Texto nuevo" }, { status: 401 });',
+      found: ['401 › error › "Texto nuevo"'],
+    },
+    {
+      form: "en un cuerpo JSON que va detrás de un ??",
+      code: 'return Response.json(cached ?? { error: "Texto nuevo" }, { status: 401 });',
+      found: ['401 › error › "Texto nuevo"'],
+    },
+    {
+      form: "en un objeto que el cuerpo esparce según una condición",
+      code: 'return Response.json({ ok: false, ...(bad ? { error: "Texto nuevo" } : {}) }, { status: 400 });',
+      found: ['400 › error › "Texto nuevo"'],
+    },
+    {
+      form: "en la rama de error de una clave, sin el texto de la rama que sale bien",
+      code: 'return Response.json({ error: ok ? "Listo" : "Texto nuevo" }, { status: ok ? 200 : 400 });',
+      found: ['400 › error › "Texto nuevo"'],
+    },
+    {
+      form: "como un cuerpo JSON que es solo el texto",
+      code: 'return Response.json("Texto nuevo", { status: 400 });',
+      found: ['400 › body › "Texto nuevo"'],
+    },
+    {
+      form: "en un cuerpo que pasa por una función que el lector no conoce: cae por su clave error, sin status",
+      code: 'return Response.json(wrap({ error: "Texto nuevo" }), { status: 400 });',
+      found: ['? › error › "Texto nuevo"'],
+    },
+    {
+      form: "en un objeto de adentro de un cuerpo armado en una variable: cae una sola vez",
+      code: 'const body = { detail: { error: "Texto nuevo" } };\nreturn Response.json(body, { status: 400 });',
+      found: ['? › error › "Texto nuevo"'],
+    },
+    {
       form: "en una variable: cae con el nombre de la variable",
       code: 'const message = "Texto nuevo";\nreturn Response.json({ error: message }, { status: 400 });',
       found: ["400 › error › message"],
@@ -214,7 +254,13 @@ describe("un texto sembrado en una ruta de API", () => {
     expect(read(refused, SHARED)).toEqual(['403 › error › "Texto nuevo"']);
     // Sin el archivo que la declara, la llamada no es una respuesta y el status no se sabe.
     expect(read(refused)).toEqual(['? › error › "Texto nuevo"']);
+    // Con el cuerpo en un ternario, cada rama sale con el status de su rama.
+    const branched =
+      'return reply(request, done ? { ok: true } : { error: "Texto nuevo" }, done ? 200 : 400);';
+    expect(read(branched, SHARED)).toEqual(['400 › error › "Texto nuevo"']);
+    // Sin status la función responde 200, y lo que sale bien no es un error aunque viaje en `error`.
     expect(read('return reply(request, { note: "Texto nuevo" });', SHARED)).toEqual([]);
+    expect(read('return reply(request, { error: "Texto nuevo" });', SHARED)).toEqual([]);
   });
 
   it("no cuenta lo que no es un error ni lo que no trae texto", () => {
@@ -226,6 +272,10 @@ describe("un texto sembrado en una ruta de API", () => {
       "return Response.json({ results: [] }, { status: 401 });",
       "return Response.json({ terms: result.version }, { status: 409 });",
       "return Response.json({ item: { error: item.error, note: `Listo` } });",
+      // Lo que sale con 2xx no es un error, tampoco si viaja en `error` o en un objeto esparcido.
+      'return Response.json({ error: "Texto nuevo" });',
+      'return Response.json({ ok: true, ...(warned ? { error: "Texto nuevo" } : {}) }, { status: 201 });',
+      'return Response.json(done ? { error: "Texto nuevo" } : { ok: false }, { status: done ? 200 : 202 });',
       'return new Response(toCsv(headers, rows), { headers: { "content-type": "text/csv" } });',
       "return new Response(null, { status: 302, headers: { location: url } });",
     ];
