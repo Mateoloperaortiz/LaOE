@@ -48,7 +48,7 @@ const KINDS: readonly Kind[] = [
 /** Los que llevan el valor de una consulta: cada grafo trae al menos uno. */
 const QUERY_KINDS: readonly Kind[] = ["queryError", "plainQueryError"];
 
-/** Los campos con nombre de los que cuelga un nodo: los que el recorte y pino miran distinto, y otros. */
+/** Los campos de los que cuelga un nodo: los que el recorte y pino miran distinto, y otros. */
 const FIELDS = [
   "cause",
   "original",

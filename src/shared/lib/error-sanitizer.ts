@@ -520,7 +520,8 @@ function trimmedCopy(value: object, above: readonly object[], done: Trimmed): un
   const copy: Record<string, unknown> = {};
   done.set(value, copy);
   for (const key of Object.keys(value)) {
-    // Con `defineProperty`, una clave propia `__proto__` sigue siendo una clave y no cambia el prototipo.
+    // Con `defineProperty`, una clave propia `__proto__` sigue siendo una clave: asignada,
+    // cambiaría el prototipo de la copia.
     Object.defineProperty(copy, key, {
       value: trimmedHanging((value as Record<string, unknown>)[key], path, done),
       enumerable: true,

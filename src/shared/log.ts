@@ -235,8 +235,8 @@ function namedLikeObjectPrototype(key: string): boolean {
  * clave que lanza al leerla o con un `Proxy`, lanzaba él. Se copian las claves propias que se enumeran,
  * que son las que pino fija. La que lanza al leerla sale `[oculto]`, y de lo que no deja ni listar sus
  * claves no se fija nada. Tampoco se fija una clave propia que se llame como algo de `Object.prototype`
- * (`namedLikeObjectPrototype`), aunque se deje leer. Los valores no se tocan: pasan por el serializador de `err` y por las rutas ocultas,
- * como siempre.
+ * (`namedLikeObjectPrototype`), aunque se deje leer. Los valores no se tocan: pasan por el
+ * serializador de `err` y por las rutas ocultas, como siempre.
  */
 function readableBindings(bindings: unknown): Record<string, unknown> {
   const entries: [string, unknown][] = [];
