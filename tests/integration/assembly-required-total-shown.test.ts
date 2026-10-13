@@ -11,6 +11,11 @@ import { truncateAll } from "./db";
 // vuelta cuando aplican. Las dos pantallas lo sumaban cada una a mano, sin llamar a `requiredTotal`
 // (DT-358, auditoría C6). Acá queda fijado lo que muestran, antes de que pasen a llamarla. Las
 // pantallas se montan enteras contra Postgres; solo se reemplaza quién tiene la sesión.
+//
+// Y cuántas de esas lleva firmadas la persona, la `n` de los dos textos, que cada pantalla también
+// suma a mano (DT-385, la otra mitad de C6): las ordinarias firmadas hasta las que exige el
+// requisito, más la elección de junta y la segunda vuelta si el requisito las exige y están
+// firmadas. Queda fijada por las dos pantallas antes de sacar esa cuenta a una función.
 
 const session = vi.hoisted(() => ({ member: "", admin: "" }));
 
@@ -86,7 +91,7 @@ async function expectBoth(personId: string, n: number, total: number): Promise<v
   expect(await ghReads(personId)).toBe(t("T-670", { n, total }));
 }
 
-describe("el total de asambleas obligatorias que muestran GH Points y la Persona 360", () => {
+describe("las asambleas obligatorias que muestran GH Points y la Persona 360: cuántas lleva firmadas y de cuántas", () => {
   let termId = "";
   let personId = "";
 
@@ -99,8 +104,19 @@ describe("el total de asambleas obligatorias que muestran GH Points y la Persona
   afterAll(closeDb);
 
   /** Una asamblea citada en el semestre; una asamblea no da puntos. */
-  const seedAssembly = (assemblyKind: "BOARD_ELECTION" | "RUNOFF") =>
+  const seedAssembly = (assemblyKind: "ORDINARY" | "BOARD_ELECTION" | "RUNOFF") =>
     seedOccasion(termId, { kind: "ASSEMBLY", assemblyKind, points: 0 });
+
+  /** GH le ajusta el requisito a la persona, con motivo (ADR-024). */
+  const adjustRequirement = (requirement: {
+    requiredOrdinary: number;
+    requiresBoardElection: boolean;
+    requiresRunoff: boolean;
+  }) =>
+    adjustRequirementAs(
+      { personId: session.admin, ip: null },
+      { termId, personId, ...requirement, reason: "Ajuste sintético" },
+    );
 
   it("sin elección de junta ni segunda vuelta citadas, el total es el de las ordinarias del semestre", async () => {
     await expectBoth(personId, 0, 1);
@@ -121,17 +137,7 @@ describe("el total de asambleas obligatorias que muestran GH Points y la Persona
     await seedAssembly("BOARD_ELECTION");
     await seedAssembly("RUNOFF");
     const adjust = (requiresBoardElection: boolean, requiresRunoff: boolean) =>
-      adjustRequirementAs(
-        { personId: session.admin, ip: null },
-        {
-          termId,
-          personId,
-          requiredOrdinary: 4,
-          requiresBoardElection,
-          requiresRunoff,
-          reason: "Ajuste sintético",
-        },
-      );
+      adjustRequirement({ requiredOrdinary: 4, requiresBoardElection, requiresRunoff });
 
     await adjust(false, false);
     await expectBoth(personId, 0, 4);
@@ -141,5 +147,63 @@ describe("el total de asambleas obligatorias que muestran GH Points y la Persona
     await expectBoth(personId, 0, 5);
     await adjust(true, true);
     await expectBoth(personId, 0, 6);
+  });
+
+  it("las ordinarias firmadas cuentan hasta las que exige el requisito: una firmada de más no suma", async () => {
+    const ordinaries = [
+      await seedAssembly("ORDINARY"),
+      await seedAssembly("ORDINARY"),
+      await seedAssembly("ORDINARY"),
+    ];
+    const [first, ...rest] = ordinaries;
+    if (!first) {
+      throw new Error("sin asambleas ordinarias sembradas");
+    }
+    await seedCheckIn(first.id, personId);
+    await expectBoth(personId, 1, 1);
+
+    // El semestre exige una: con las tres firmadas sigue llevando una de una.
+    for (const assembly of rest) {
+      await seedCheckIn(assembly.id, personId);
+    }
+    await expectBoth(personId, 1, 1);
+
+    // El tope es el del requisito de la persona: sube con el ajuste, y por debajo del tope cuentan
+    // todas las firmadas.
+    const adjust = (requiredOrdinary: number) =>
+      adjustRequirement({ requiredOrdinary, requiresBoardElection: false, requiresRunoff: false });
+    await adjust(2);
+    await expectBoth(personId, 2, 2);
+    await adjust(4);
+    await expectBoth(personId, 3, 4);
+  });
+
+  it("la segunda vuelta firmada cuenta en lo que lleva, y con la elección de junta firmada son dos", async () => {
+    const election = await seedAssembly("BOARD_ELECTION");
+    const runoff = await seedAssembly("RUNOFF");
+
+    await seedCheckIn(runoff.id, personId);
+    await expectBoth(personId, 1, 3);
+
+    await seedCheckIn(election.id, personId);
+    await expectBoth(personId, 2, 3);
+  });
+
+  it("la asamblea firmada que el requisito ajustado no exige no cuenta en lo que lleva", async () => {
+    const election = await seedAssembly("BOARD_ELECTION");
+    const runoff = await seedAssembly("RUNOFF");
+    await seedCheckIn(election.id, personId);
+    await seedCheckIn(runoff.id, personId);
+    const adjust = (requiresBoardElection: boolean, requiresRunoff: boolean) =>
+      adjustRequirement({ requiredOrdinary: 4, requiresBoardElection, requiresRunoff });
+
+    await adjust(false, false);
+    await expectBoth(personId, 0, 4);
+    await adjust(true, false);
+    await expectBoth(personId, 1, 5);
+    await adjust(false, true);
+    await expectBoth(personId, 1, 5);
+    await adjust(true, true);
+    await expectBoth(personId, 2, 6);
   });
 });
