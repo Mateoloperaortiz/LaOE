@@ -1,7 +1,8 @@
 import { checkServerIdentity, type PeerCertificate } from "node:tls";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { logger, withoutQueryValues } from "@/shared/log";
+import { withoutQueryValues } from "@/shared/lib/error-sanitizer";
+import { logger } from "@/shared/log";
 import { captureLogs, type LoggedLine } from "../helpers/logs";
 
 // A dónde iba una conexión que no abrió no sale en el registro (DT-295 inciso k, ADR-120 regla 10).

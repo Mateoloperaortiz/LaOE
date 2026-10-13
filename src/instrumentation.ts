@@ -12,7 +12,8 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
   if (process.env.NEXT_RUNTIME === "edge") {
     return;
   }
-  const { carriesQueryError, logger } = await import("@/shared/log");
+  const { carriesQueryError } = await import("@/shared/lib/error-sanitizer");
+  const { logger } = await import("@/shared/log");
   if (!carriesQueryError(error)) {
     return;
   }

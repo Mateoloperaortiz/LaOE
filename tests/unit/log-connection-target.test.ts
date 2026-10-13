@@ -2,14 +2,13 @@ import { createServer, type Server, type Socket } from "node:net";
 import { connect as connectTls } from "node:tls";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { describe, expect, it } from "vitest";
-import * as log from "@/shared/log";
+import { markConnectionFailure, withoutQueryValues } from "@/shared/lib/error-sanitizer";
+import { logger } from "@/shared/log";
 import { captureLogs, type LoggedLine } from "../helpers/logs";
 
 // Lo que quedaba de a dónde iba una conexión (DT-307, ADR-123 regla 16): el host que Node deja como
 // campo en un error de socket sin `syscall`, el host configurado en un fallo que quien abre la
 // conexión marcó, y los renglones `at …` de la traza, que no se tocan.
-
-const { logger, markConnectionFailure } = log;
 
 function errOf(entry: LoggedLine | undefined): Record<string, unknown> {
   return (entry?.record.err ?? {}) as Record<string, unknown>;
@@ -152,7 +151,7 @@ describe("un fallo al conectar que marcó quien abre la conexión", () => {
     }
     expect(frames(errOf(lines[0]).stack)).toEqual(original);
     expect(String(errOf(lines[1]).message)).toContain("servidor para [oculto] ([oculto])");
-    expect(log.withoutQueryValues(error, error.message)).toBe(
+    expect(withoutQueryValues(error, error.message)).toBe(
       "el balanceador no encontró un servidor para [oculto] ([oculto])",
     );
   });

@@ -3,8 +3,9 @@ import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { Tx } from "@/db/tx";
 import { OUTBOX_PENDING_KEY_INDEX, outbox } from "@/modules/system/schema";
+import { withoutQueryValues } from "@/shared/lib/error-sanitizer";
 import { withTimeout } from "@/shared/lib/timeout";
-import { logger, withoutQueryValues } from "@/shared/log";
+import { logger } from "@/shared/log";
 import { backoffFor, isDeadAfter } from "./backoff";
 import { getHandlers } from "./registry";
 

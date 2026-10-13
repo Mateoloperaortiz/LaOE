@@ -19,11 +19,11 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-126](ADR-126-reglas-de-las-etiquetas-por-valor-del-decimocuarto-ciclo.md) | Reglas de las etiquetas por valor del decimocuarto ciclo del refactor | Aceptada (enmendada por ADR-128) |
 | [ADR-125](ADR-125-reglas-de-la-interfaz-de-los-modulos-del-decimotercer-ciclo.md) | Reglas de la interfaz pública de los módulos del decimotercer ciclo del refactor | Aceptada (enmendada por ADR-127) |
 | [ADR-124](ADR-124-reglas-de-la-base-de-pruebas-del-duodecimo-ciclo.md) | Reglas de la base de pruebas del duodécimo ciclo del refactor | Aceptada (enmendada por ADR-127 y ADR-128) |
-| [ADR-123](ADR-123-reglas-de-verificacion-y-correccion-del-undecimo-ciclo.md) | Reglas de verificación y corrección del undécimo ciclo del refactor | Aceptada (enmendada por ADR-127) |
+| [ADR-123](ADR-123-reglas-de-verificacion-y-correccion-del-undecimo-ciclo.md) | Reglas de verificación y corrección del undécimo ciclo del refactor | Aceptada (enmendada por ADR-127 y ADR-129) |
 | [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) | Reglas de alcance y corrección del décimo ciclo del refactor | Aceptada (enmendada por ADR-123) |
 | [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) | Reglas de estructura y pruebas del noveno ciclo del refactor | Aceptada (enmendada por ADR-122 y ADR-123) |
-| [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) | Reglas de corrección del octavo ciclo del refactor | Aceptada (enmendada por ADR-121, ADR-122, ADR-123 y ADR-127) |
-| [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) | Reglas de estructura y robustez del séptimo ciclo del refactor | Aceptada (enmendada por ADR-120, ADR-123, ADR-124, ADR-125 y ADR-127) |
+| [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) | Reglas de corrección del octavo ciclo del refactor | Aceptada (enmendada por ADR-121, ADR-122, ADR-123, ADR-127 y ADR-129) |
+| [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) | Reglas de estructura y robustez del séptimo ciclo del refactor | Aceptada (enmendada por ADR-120, ADR-123, ADR-124, ADR-125, ADR-127 y ADR-129) |
 | [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) | Reglas de corrección del sexto ciclo del refactor | Aceptada (enmendada por ADR-119, ADR-120, ADR-121, ADR-122, ADR-123 y ADR-127) |
 | [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) | Reglas de corrección, privacidad y permisos del quinto ciclo del refactor | Aceptada (enmendada por ADR-118, ADR-119, ADR-120, ADR-121, ADR-123 y ADR-124) |
 | [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) | Reglas de campañas de correo y tareas de GH del cuarto ciclo del refactor | Aceptada (enmendada por ADR-116, ADR-120 y ADR-121) |

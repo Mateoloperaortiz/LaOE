@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Tx } from "@/db/tx";
 import { clearConfigCache } from "@/modules/system/domain/config";
-import { errorCode } from "@/shared/log";
+import { errorCode } from "@/shared/lib/error-sanitizer";
 import { TEST_POLICY_VERSION } from "../factories/policy-version";
 
 // Deja la base de pruebas como recién migrada entre una prueba y la siguiente: las tablas de `public`

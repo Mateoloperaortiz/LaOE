@@ -2,7 +2,8 @@ import { DrizzleQueryError } from "drizzle-orm/errors";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool, type PoolClient, type PoolConfig } from "pg";
 import { getEnv } from "@/env";
-import { logger, markConnectionFailure, printableError } from "@/shared/log";
+import { markConnectionFailure, printableError } from "@/shared/lib/error-sanitizer";
+import { logger } from "@/shared/log";
 
 // Next imprime con `console.error` el error que una action o una ruta dejan escapar, y lo hace
 // antes de avisarle a `onRequestError` (ADR-120 regla 12). Un error de consulta impreso así trae sus

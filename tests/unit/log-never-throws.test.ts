@@ -3,10 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   carriesQueryError,
   errorCode,
-  logger,
   printableError,
   withoutQueryValues,
-} from "@/shared/log";
+} from "@/shared/lib/error-sanitizer";
+import { logger } from "@/shared/log";
 import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // DT-390, ADR-128 regla 2: el registro no lanza por lo que le piden anotar. Lanzaba con un `Error` cuyo

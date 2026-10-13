@@ -7,7 +7,8 @@ import { describe, expect, it, vi } from "vitest";
 import { getEnv } from "@/env";
 import { startPoller } from "@/jobs/poller";
 import { startScheduler } from "@/jobs/scheduler";
-import { logger, withoutQueryValues } from "@/shared/log";
+import { withoutQueryValues } from "@/shared/lib/error-sanitizer";
+import { logger } from "@/shared/log";
 import { captureLogs, type LoggedLine, recordsOf } from "../helpers/logs";
 
 // Un fallo al conectar con la base, como lo registran el poller y el programador (DT-295 inciso k,

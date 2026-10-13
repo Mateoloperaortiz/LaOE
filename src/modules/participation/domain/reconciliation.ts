@@ -5,8 +5,8 @@ import { eventOf } from "@/domain-events/define";
 import { gamificationReconcile } from "@/domain-events/participation";
 import { listMembershipPersonIds } from "@/modules/people";
 import { t, tLabels } from "@/shared/copy";
+import { withoutQueryValues } from "@/shared/lib/error-sanitizer";
 import { DomainError } from "@/shared/lib/errors";
-import { withoutQueryValues } from "@/shared/log";
 import { badgeReconciliationRun, reconciliationStatus } from "../schema";
 import { recomputeBadgesFor } from "./badges";
 

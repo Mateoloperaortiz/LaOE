@@ -54,7 +54,7 @@ const DROP = [
 /**
  * Cada rechazo: con qué rol y a qué base va la conexión, y el SQLSTATE y el mensaje de PostgreSQL.
  * `hiddenByCode` dice si el recorte oculta lo que el mensaje cita con solo mirar su código
- * (`QUOTES_A_VALUE`, `src/shared/log.ts`) o si depende de que la conexión configurada lo nombre.
+ * (`QUOTES_A_VALUE`, `src/shared/lib/error-sanitizer.ts`) o si depende de que la conexión configurada lo nombre.
  */
 const REFUSALS = [
   {
@@ -179,9 +179,13 @@ describe("un rechazo de PostgreSQL a la conexión, provocado contra el servidor"
       vi.stubEnv("DATABASE_URL", connectionString);
     }
     house.__casaDigitalDb = undefined;
-    const [{ getDb, closeDb }, { logger, withoutQueryValues }, { captureLogs }] = await Promise.all(
-      [import("@/db/client"), import("@/shared/log"), import("../helpers/logs")],
-    );
+    const [{ getDb, closeDb }, { logger }, { withoutQueryValues }, { captureLogs }] =
+      await Promise.all([
+        import("@/db/client"),
+        import("@/shared/log"),
+        import("@/shared/lib/error-sanitizer"),
+        import("../helpers/logs"),
+      ]);
     return { getDb, closeDb, logger, withoutQueryValues, captureLogs };
   }
 

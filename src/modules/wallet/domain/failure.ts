@@ -1,7 +1,7 @@
 import { ForbiddenError } from "@/modules/identity";
 import { type WalletAdapterFailureReason, WalletError } from "@/shared/adapters/wallet-error";
+import { errorCode } from "@/shared/lib/error-sanitizer";
 import { DomainError } from "@/shared/lib/errors";
-import { errorCode } from "@/shared/log";
 
 /** Los motivos que solo conoce la emisión: se declaran acá y no en el adaptador compartido. */
 type WalletIssueFailureReason =

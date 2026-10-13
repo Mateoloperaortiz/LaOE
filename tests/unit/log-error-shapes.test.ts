@@ -1,6 +1,7 @@
 import pino from "pino";
 import { describe, expect, it } from "vitest";
-import { logger, withoutQueryValues } from "@/shared/log";
+import { withoutQueryValues } from "@/shared/lib/error-sanitizer";
+import { logger } from "@/shared/log";
 import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // DT-381, incisos (c) y (d), ADR-128 regla 3: dos formas de error por las que los valores de una
