@@ -1,7 +1,8 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { sourceFiles } from "../helpers/ratchet";
 
 // El saneo de errores salió de `src/shared/log.ts` a su propio archivo (DT-312 inciso 2, ADR-129
 // regla 8). Esta prueba lee `src` y fija el corte por sus tres bordes: el registro exporta solo el
@@ -25,9 +26,15 @@ function exportedNames(source: string): string[] {
   return [...declared].map((match) => match[1] ?? "").sort();
 }
 
-/** De dónde importa un archivo, sin repetir. */
+/**
+ * Un export que no está donde se declara el nombre: un `export { … }`, un `export *` o un
+ * `export default`. `exportedNames` no los ve, así que ninguno de los dos archivos puede traer uno.
+ */
+const LOOSE_EXPORT = /^export (?:\*|\{|default)/m;
+
+/** De dónde importa un archivo, sin repetir: con `from`, con `import(…)` o con un `import "…"` suelto. */
 function importedFrom(source: string): string[] {
-  const specifiers = source.matchAll(/(?:\bfrom|\bimport\()\s*["']([^"']+)["']/g);
+  const specifiers = source.matchAll(/(?:\bfrom|\bimport\(|^import)\s*["']([^"']+)["']/gm);
   return [...new Set([...specifiers].map((match) => match[1] ?? ""))].sort();
 }
 
@@ -41,17 +48,11 @@ function askedOfSanitizer(source: string): string[] {
     .filter((name) => name !== "");
 }
 
-function productionFiles(): string[] {
-  return (readdirSync(join(root, "src"), { recursive: true }) as string[])
-    .filter((path) => /\.tsx?$/.test(path))
-    .map((path) => join("src", path));
-}
-
 describe("el registro y el saneo de errores viven cada uno en su archivo", () => {
   it("`src/shared/log.ts` exporta solo el registro", () => {
     expect(exportedNames(read(LOG))).toEqual(["logger"]);
     // Tampoco reexporta: lo que era suyo se pide donde vive.
-    expect(read(LOG)).not.toMatch(/^export (?:\*|\{)/m);
+    expect(read(LOG)).not.toMatch(LOOSE_EXPORT);
   });
 
   it("el saneo no importa el registro ni nada de la casa: solo pino, por su serializador de errores", () => {
@@ -60,13 +61,16 @@ describe("el registro y el saneo de errores viven cada uno en su archivo", () =>
 
   it("el saneo exporta solo lo que le pide por nombre algún archivo de `src`", () => {
     const asked = new Set(
-      productionFiles()
-        .filter((path) => path !== SANITIZER)
-        .flatMap((path) => askedOfSanitizer(read(path))),
+      sourceFiles("src")
+        .filter(({ path }) => path !== SANITIZER)
+        .flatMap(({ text }) => askedOfSanitizer(text)),
     );
     const exported = exportedNames(read(SANITIZER));
     expect(exported).toEqual([...asked].sort());
-    // Los cuatro que piden el pool, el poller, la reconciliación, la billetera y `onRequestError`, y
+    // Exporta donde declara, como el registro: un `export { nombre }` suelto pasaría sin consumidor,
+    // y a `npm run deadcode` le alcanza con que lo importe una prueba.
+    expect(read(SANITIZER)).not.toMatch(LOOSE_EXPORT);
+    // Los cinco que piden el pool, el poller, la reconciliación, la billetera y `onRequestError`, y
     // la copia imprimible; los demás son del registro.
     expect(exported).toEqual(
       expect.arrayContaining([
