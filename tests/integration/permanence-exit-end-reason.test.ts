@@ -9,6 +9,7 @@ import {
   confirmDecisionsAs,
   listClosingRows,
 } from "@/modules/permanence";
+import { permanenceSnapshot } from "@/modules/permanence/schema";
 import { t } from "@/shared/copy";
 import { type ClosingWorld, closingWorld, type Profile } from "../helpers/closing-world";
 import { drainOutbox } from "../helpers/outbox";
@@ -367,5 +368,24 @@ describe("la causal con que queda la baja de quien el cierre de permanencia saca
     await closeAndApply(w);
 
     expect(await membershipOf(resigned)).toEqual({ status: "INACTIVE", endReason: "RESIGNATION" });
+  });
+
+  it("sin el snapshot de quien sale no hay de dónde decir que es una expulsión: la baja queda por permanencia, aunque la salida se haya confirmado con las dos causas (decisión abierta 80)", async () => {
+    const w = await closingWorld();
+    const both = await w.member(
+      "sin-snapshot.causal@eafit.edu.co",
+      ARRIVALS.mandatoryLostAndSanctions,
+    );
+    await w.closePoints();
+    await confirmAllProposedAs(w.actor, w.termId);
+    expect((await w.savedReasons(both)).person).toBe(4);
+    await closeTermPermanenceAs(w.actor, w.termId);
+
+    // Ningún comando deja una decisión confirmada sin su snapshot: la fila se borra a mano, entre
+    // aplicar el cierre y que corra el trabajo, que es la única forma de llegar a esa rama.
+    await getDb().delete(permanenceSnapshot).where(eq(permanenceSnapshot.personId, both));
+    await drainOutbox();
+
+    expect(await membershipOf(both)).toEqual({ status: "INACTIVE", endReason: "PERMANENCE" });
   });
 });
