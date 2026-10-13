@@ -472,9 +472,11 @@ type Trimmed = Map<object, unknown>;
  * ahí para abajo no hay cómo decir que no trae ninguno. `above` es el camino desde ese error.
  *
  * De una lista o de un objeto sale siempre una copia, traiga o no un error (`trimmedCopy`), y de un
- * error su copia recortada: en la línea no queda ninguna lista ni ningún objeto de los que le pasaron
- * al registro, y a ellos no se los toca. Lo único que vuelve tal cual es lo que no es un objeto y lo
- * que se escribe a sí mismo con `toJSON` (una fecha, un `Buffer`), a lo que el recorte no entra.
+ * error su copia recortada: de lo que este recorrido alcanza, en la línea no queda ninguna lista ni
+ * ningún objeto de los que le pasaron al registro, y a ellos no se los toca. Lo único que vuelve tal
+ * cual es lo que no es un objeto y lo que se escribe a sí mismo con `toJSON` (una fecha, un `Buffer`),
+ * a lo que el recorte no entra. No alcanza dos sitios (DT-399, incisos l y m): lo que pino ya dejó
+ * bajo una clave cuyo campo no devuelve lo mismo en la segunda lectura, y el `type` del error.
  *
  * Lo que ya tiene copia (`done`) no se recorre de nuevo: sale esa copia. Vale para lo ya recorrido y
  * para la lista o el objeto de más arriba, que se nombra entonces por su copia y el ciclo se conserva:
@@ -547,8 +549,10 @@ function trimmedItems(list: unknown[], done: Trimmed, trim: (item: unknown) => u
  * hasta esa lista: el error que ya se está escribiendo más arriba no se escribe otra vez, como en
  * cualquier lista que cuelga del error (ADR-129 regla 5). Sin ese camino, el agregado al que nombra
  * uno de sus errores se recorría sin fin. La lista es un nivel más y el tope es el mismo: el error que
- * queda más adentro no se mira y sale `[oculto]`. El que no se deja leer sale `[oculto]`, él solo: las
- * copias que quedaron a medio armar al leerlo se olvidan, para que nadie las tome por terminadas.
+ * queda más adentro no se mira y sale `[oculto]`. El que no se deja leer por algo que cuelga de él
+ * dentro de un objeto o de una lista sale `[oculto]`, él solo (si lo que lanza es un campo propio suyo,
+ * pino lanza antes y sale oculto el `err` entero): las copias que quedaron a medio armar al leerlo se
+ * olvidan, para que nadie las tome por terminadas.
  */
 function trimmedListed(inner: Error, listed: readonly object[], done: Trimmed): unknown {
   if (listed.length >= HANGING_LIMIT) {

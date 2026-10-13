@@ -722,6 +722,36 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
       }),
       ["err.detail.failure.params.0"],
     ],
+    [
+      // Pino lee el campo primero y serializa lo que recibe; el recorte lo vuelve a leer, recibe otra
+      // cosa y deja en pie la copia de pino (DT-399, inciso l).
+      "en un campo del error que no devuelve lo mismo en dos lecturas seguidas",
+      () => {
+        let last: unknown = queryError();
+        const err = Object.defineProperty(new Error("fuera"), "lastFailure", {
+          enumerable: true,
+          get: () => {
+            const taken = last;
+            last = undefined;
+            return taken;
+          },
+        });
+        return { err };
+      },
+      ["err.lastFailure.message", "err.lastFailure.stack", "err.lastFailure.params.0"],
+    ],
+    [
+      // Con un `constructor` que no es una función pino escribe `type` con el `name` del error, y el
+      // recorte no entra a lo que escribe pino (DT-399, inciso m).
+      "en el `name` de un error cuyo `constructor` no es una función",
+      () => ({
+        err: Object.assign(new Error("fuera"), {
+          constructor: 5,
+          name: { failure: queryError() },
+        }),
+      }),
+      ["err.type.failure.params.0"],
+    ],
   ])("todavía sale el valor de un error de consulta %s", async (_title, line, places) => {
     const [entry] = await written(() => error(line(), "falló"));
 
