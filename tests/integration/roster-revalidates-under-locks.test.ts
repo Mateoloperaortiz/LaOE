@@ -5,6 +5,7 @@ import type { Tx } from "@/db/tx";
 import {
   applyRosterImportAs,
   createRosterPreviewAs,
+  endMembershipAs,
   getRosterPreview,
   lockMembershipCycle,
   recordSanctionAs,
@@ -186,6 +187,51 @@ describe("la importación del roster vuelve a validar con los candados de las pe
         .from(committeeRole)
         .where(eq(committeeRole.code, "CRONISTA")),
     ).toEqual([{ label: "Cronista" }]);
+  });
+
+  // La carrera que ejecutó la revisión del ciclo 15 (DT-386): la expulsión que se confirma mientras la
+  // importación espera sus consultivos. La primera pasada todavía proponía a esa persona de líder;
+  // la segunda, con los consultivos tomados, la encuentra de baja, su fila ya no le deja escrito
+  // ningún comité (`committeesToWrite`) y por eso el resumen no la propone.
+  it("la expulsión que se confirma después de validar y antes de los candados deja a esa persona sin comités y sin propuesta de líder, y el resto del archivo se aplica", async () => {
+    const { admin, first, honorary, jobId } = await scenario();
+    const before = await getRosterPreview(jobId);
+    expect(before?.proposals).toEqual([expect.objectContaining({ email: honorary.email })]);
+
+    const held = await holdTransaction((tx) => lockMembershipCycle(tx, first.id));
+    let imported: PromiseSettledResult<unknown>;
+    try {
+      const importing = launch(applyRosterImportAs(admin, jobId));
+      await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBe(1), { timeout: 5_000 });
+      await endMembershipAs(admin, honorary.id, {
+        endReason: "EXPULSION",
+        memorialConsent: false,
+        contactConsent: false,
+      });
+      held.release();
+      [imported] = await Promise.allSettled([importing]);
+    } finally {
+      held.release();
+      await held.done;
+    }
+
+    expect(outcome(imported)).toBe("ok");
+    // Sin propuesta de líder en el resumen: es de ahí de donde la acción concede el permiso.
+    expect(imported).toMatchObject({ value: { skipped: 0, proposals: [] } });
+    const applied = await getRosterPreview(jobId);
+    expect(applied).toMatchObject({ status: "APPLIED", proposals: [] });
+    // Su fila no queda en error: avisa que no vuelve (T-2208) y no anuncia el estado ni los comités.
+    const row = applied?.rows.find((item) => item.email === honorary.email);
+    expect(row?.errors).toEqual([]);
+    expect(row?.warnings).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(copyPattern("T-2208", { nombre: "Juan Gómez" })),
+      ]),
+    );
+    expect(row?.changes).toEqual(expect.not.arrayContaining(["status"]));
+    expect(row?.changes).toEqual(expect.not.arrayContaining(["committees"]));
+    expect(await stateOf(honorary.id)).toEqual({ status: "INACTIVE", committees: [] });
+    expect(await stateOf(first.id)).toEqual({ status: "ACTIVE", committees: ["a3"] });
   });
 
   // ADR-120 regla 3, «Dentro de una importación»: el trabajo, los términos y los cargos que falten,
