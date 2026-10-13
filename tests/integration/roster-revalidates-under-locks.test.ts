@@ -146,6 +146,69 @@ async function expectRowSkipped(scene: Scenario, imported: PromiseSettledResult<
   expect(await stateOf(first.id)).toEqual({ status: "ACTIVE", committees: ["a3"] });
 }
 
+/**
+ * Una persona activa, otra expulsada con un correo que el archivo no trae, y un archivo cuya segunda
+ * fila trae como nueva, activa y General de A3 a alguien cuyo correo todavía no es de nadie.
+ */
+async function newGeneralScenario() {
+  const termId = await seedTerm();
+  const code = currentTermCode();
+  const committeeId = await seedCommittee("a3");
+  const admin: Admin = { personId: await seedMember("admin.roster@eafit.edu.co"), ip: null };
+  const member = {
+    email: "prueba.una@eafit.edu.co",
+    id: await seedMember("prueba.una@eafit.edu.co"),
+  };
+  const expelledId = await seedMember("prueba.vieja@eafit.edu.co");
+  await endMembershipAs(admin, expelledId, {
+    endReason: "EXPULSION",
+    memorialConsent: false,
+    contactConsent: false,
+  });
+  const incoming = "prueba.nueva@eafit.edu.co";
+  const bytes = new TextEncoder().encode(
+    `${[
+      HEADER,
+      `Ana;Pérez;${member.email};;Derecho;A3;${code};Activo;`,
+      `Juan;Gómez;${incoming};;Economía;A3;${code};Activo;General de A3`,
+    ].join("\r\n")}\r\n`,
+  );
+  const { jobId } = await createRosterPreviewAs(admin, {
+    filename: "roster.csv",
+    contentType: "text/csv",
+    bytes,
+    termId,
+  });
+  return { admin, member, expelledId, incoming, committeeId, jobId };
+}
+
+/**
+ * Aplica la importación con la fila de `person` de alguien del archivo retenida. La importación ya
+ * tomó sus consultivos y validó por segunda vez, y hace cola al aplicar esa fila: `meanwhile` corre
+ * en ese rato, con las demás filas todavía sin aplicar.
+ */
+async function applyWithRowHeld(
+  admin: Admin,
+  jobId: string,
+  personId: string,
+  meanwhile: () => Promise<unknown>,
+): Promise<PromiseSettledResult<Awaited<ReturnType<typeof applyRosterImportAs>>>> {
+  const held = await holdTransaction((tx) =>
+    tx.select({ id: person.id }).from(person).where(eq(person.id, personId)).for("update"),
+  );
+  try {
+    const importing = launch(applyRosterImportAs(admin, jobId));
+    await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBe(1), { timeout: 5_000 });
+    await meanwhile();
+    held.release();
+    const [imported] = await Promise.allSettled([importing]);
+    return imported;
+  } finally {
+    held.release();
+    await held.done;
+  }
+}
+
 describe("la importación del roster vuelve a validar con los candados de las personas tomados", () => {
   beforeEach(truncateAll);
   afterAll(() => closeDb());
@@ -230,6 +293,45 @@ describe("la importación del roster vuelve a validar con los candados de las pe
     expect(row?.changes).toEqual(expect.not.arrayContaining(["committees"]));
     expect(await stateOf(honorary.id)).toEqual({ status: "INACTIVE", committees: [] });
     expect(await stateOf(first.id)).toEqual({ status: "ACTIVE", committees: ["a3"] });
+  });
+
+  // El resumen de una importación aplicada propone el permiso de líder por lo que esa transacción le
+  // escribió a cada persona (ADR-127 regla 1, DT-386). Este es el caso de control de la carrera de
+  // abajo, con la misma espera y sin que nadie toque nada mientras tanto: la fila crea a la persona,
+  // la deja de General en A3 y por eso la propone.
+  it("la fila que trae a alguien nuevo como General de un comité lo deja en ese comité y propone su permiso de líder", async () => {
+    const { admin, member, incoming, committeeId, jobId } = await newGeneralScenario();
+    const before = await getRosterPreview(jobId);
+    expect(before?.proposals).toEqual([expect.objectContaining({ email: incoming })]);
+    expect(before?.rows.find((item) => item.email === incoming)).toMatchObject({
+      group: "NEW",
+      errors: [],
+    });
+
+    const imported = await applyWithRowHeld(admin, jobId, member.id, async () => {});
+
+    expect(outcome(imported)).toBe("ok");
+    const proposal = {
+      email: incoming,
+      personName: "Juan Gómez",
+      committeeId,
+      committeeName: "A3",
+      coDirector: false,
+    };
+    expect(imported).toMatchObject({
+      value: { created: 1, updated: 1, skipped: 0, proposals: [proposal] },
+    });
+    // Lo que el trabajo aplicado guarda es lo mismo que devolvió el resumen.
+    expect(await getRosterPreview(jobId)).toMatchObject({
+      status: "APPLIED",
+      proposals: [proposal],
+    });
+    const [created] = await db()
+      .select({ id: person.id })
+      .from(person)
+      .where(eq(person.email, incoming));
+    expect(await stateOf(created?.id ?? "")).toEqual({ status: "ACTIVE", committees: ["a3"] });
+    expect(await stateOf(member.id)).toEqual({ status: "ACTIVE", committees: ["a3"] });
   });
 
   // ADR-120 regla 3, «Dentro de una importación»: el trabajo, los términos y los cargos que falten,
