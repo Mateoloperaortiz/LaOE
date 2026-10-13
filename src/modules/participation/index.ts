@@ -8,7 +8,7 @@ export {
   assemblyStatusFor,
   listTermAssemblies,
 } from "./domain/assemblies";
-export { termAssemblyRequirement } from "./domain/assembly-pure";
+export { requiredTotal, termAssemblyRequirement } from "./domain/assembly-pure";
 export {
   type AchievementRow,
   type BadgeRow,

@@ -13,6 +13,7 @@ import {
   POINT_ENTRY_KINDS,
   peopleBoards,
   rankCommittees,
+  requiredTotal,
   unseenBadgesFor,
 } from "@/modules/participation";
 import { BadgeUnlock } from "@/modules/participation/components/BadgeUnlock";
@@ -80,10 +81,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   ]);
   const assemblyKindLabels = tLabels("T-546", ASSEMBLY_KINDS);
   const [firmada, pendienteAsamblea, noFuiste] = tList("T-547");
-  const requiredTotalCount =
-    assemblies.requirement.requiredOrdinary +
-    (assemblies.requirement.requiresBoardElection ? 1 : 0) +
-    (assemblies.requirement.requiresRunoff ? 1 : 0);
+  const requiredTotalCount = requiredTotal(assemblies.requirement);
   const attendedRequired =
     Math.min(assemblies.compliance.ordinaryAttended, assemblies.requirement.requiredOrdinary) +
     (assemblies.requirement.requiresBoardElection && assemblies.compliance.boardElectionAttended

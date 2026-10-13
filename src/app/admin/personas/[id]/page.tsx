@@ -28,6 +28,7 @@ import {
   listBoostersFor,
   listCheckInsForPerson,
   listEntriesForPerson,
+  requiredTotal,
 } from "@/modules/participation";
 import {
   getMyMembership,
@@ -216,10 +217,7 @@ export default async function PersonaPage({
                       (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended
                         ? 1
                         : 0),
-                    total:
-                      assemblies.requirement.requiredOrdinary +
-                      (assemblies.requirement.requiresBoardElection ? 1 : 0) +
-                      (assemblies.requirement.requiresRunoff ? 1 : 0),
+                    total: requiredTotal(assemblies.requirement),
                   })
                 : null
             }
