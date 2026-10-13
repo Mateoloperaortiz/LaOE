@@ -187,7 +187,7 @@ Por riesgo, de las 147 filas diferidas que tienen su riesgo escrito: 3 de riesgo
 
 ## Bloqueos
 
-Tres cosas no dependen de más código. Van en el formato que pide el objetivo.
+Cuatro cosas no dependen de más código. Van en el formato que pide el objetivo.
 
 ### Nada se puede mezclar ni promover sin Mateo
 
@@ -212,6 +212,14 @@ Tres cosas no dependen de más código. Van en el formato que pide el objetivo.
 - **Intentos.** Todo se probó con proveedores de mentira, el bucket local y el Postgres local. No se abrió el túnel ni se tocó staging.
 - **Opciones.** (a) Una sola sesión del túnel de solo lectura, autorizada por Mateo, que saque todos los conteos de una vez. (b) Ir sacándolos a medida que se promueve cada ciclo.
 - **Recomendación.** (a), antes de promover el ciclo 2: son consultas de totales, sin datos de personas, y varias deciden si una migración de datos hace falta.
+
+### La cola de filas chicas se vuelve a llenar con cada ciclo
+
+- **Problema.** Quedan 33 filas diferidas que no esperan una decisión, una spec, un PR ni producción. Tomarlas en ciclos nuevos no las lleva a cero: la revisión de cada ciclo encuentra más de las que el ciclo cierra, y cada ciclo le suma un eslabón a una pila que nadie mezcló.
+- **Evidencia.** El ciclo 15 resolvió 6 filas y abrió 14; el 16 resolvió 7 y abrió 10. De las 33 que quedan, ninguna es de corrección salvo DT-184, que espera una respuesta de Resend, y las dos de seguridad son DT-307, que espera que aparezca un error con otra forma, y DT-346, que ya tiene su spec ([#349](https://github.com/Mateoloperaortiz/LaOE/issues/349)). Las demás son de mantenibilidad, de pruebas o del registro, todas de riesgo bajo, y cada una dice qué la destraba.
+- **Intentos.** Los ciclos 8 a 11, el 15 y el 16 fueron seis tandas de esas filas, siempre con corrección y seguridad primero. El 16 encontró así un defecto real en la pestaña de permanencia, y su propia revisión, un retroceso de ese arreglo, que quedó cerrado en el mismo ciclo.
+- **Opciones.** (a) Seguir abriendo ciclos sobre la pila. (b) Parar acá, mezclar, y tomar lo que quede como tickets sueltos sobre `main`, donde cada uno se revisa y se publica solo. (c) Aceptar por escrito las filas de forma que no valga la pena tocar.
+- **Recomendación.** (b). Lo que queda no tapa un defecto conocido, y con diecisiete PR en fila el costo de un ciclo más ya es mayor que lo que arregla: cada eslabón nuevo hay que ponerlo al día y volver a pasarle el CI cuando se mezcle el anterior.
 
 ## Cómo seguir
 
