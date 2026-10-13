@@ -12,7 +12,8 @@ import ts from "typescript";
 // `concat`, `toSorted`, `toReversed`, `sort`, `reverse`), con `[...lista]` o con `Array.from(lista)`;
 // una variable del archivo que guarda una de esas, al nacer o después; o la propiedad de un objeto
 // literal del archivo que la guarda, leída con punto o desestructurada. Una lista que llega por
-// parámetro o por props no se sigue, ni un `tList` envuelto en una función propia.
+// parámetro o por props no se sigue, ni un `tList` envuelto en una función propia: de la primera no
+// se sabe si es del catálogo, y por eso su recorrido tiene forma y cuenta propias (`paramTraversal`).
 
 interface TextFile {
   path: string;
@@ -27,6 +28,9 @@ interface TextFile {
  * - `positionConstant`: el subíndice sale de una constante que guarda a mano la posición de cada valor.
  * - `computedIndex`: cualquier otro subíndice que no sea un número escrito, sobre una lista del catálogo.
  * - `recordByNumber`: un número escrito de subíndice de un `Record` de `tLabels`, que da `undefined`.
+ * - `paramTraversal`: en un `.tsx`, el índice de un recorrido lee una lista que llega por parámetro o
+ *   por props mientras recorre otra secuencia (ADR-128 regla 10). Sin tipos no se sabe si es una lista
+ *   de textos: por eso no suma a `traversal`, que es solo de listas del catálogo.
  */
 export const POSITIONAL_FORMS = [
   "indexOf",
@@ -36,6 +40,7 @@ export const POSITIONAL_FORMS = [
   "positionConstant",
   "computedIndex",
   "recordByNumber",
+  "paramTraversal",
 ] as const;
 export type PositionalForm = (typeof POSITIONAL_FORMS)[number];
 
@@ -610,6 +615,56 @@ function isLabelRecord(expression: ts.Expression): boolean {
   );
 }
 
+/** La lista de la que sale otra con un método que devuelve otra lista, con `[...x]` o con `Array.from(x)`. */
+function listBase(expression: ts.Expression): ts.Expression {
+  const node = unwrap(expression);
+  if (ts.isCallExpression(node)) {
+    const callee = node.expression;
+    const [copied] = node.arguments;
+    if (isArrayFrom(callee) && copied) {
+      return listBase(copied);
+    }
+    if (ts.isPropertyAccessExpression(callee) && LIST_METHODS.has(callee.name.text)) {
+      return listBase(callee.expression);
+    }
+  }
+  if (ts.isArrayLiteralExpression(node)) {
+    const [only] = node.elements;
+    if (only && node.elements.length === 1 && ts.isSpreadElement(only)) {
+      return listBase(only.expression);
+    }
+  }
+  return node;
+}
+
+/**
+ * Si la expresión sale de un parámetro: el de un componente (sus props), el de una función o el de
+ * un callback. Leído con punto, desestructurado en la firma o más abajo, o guardado en una variable
+ * del archivo. Lo que pasa por otra función antes de leerse no se sigue.
+ */
+function arrivesByParameter(expression: ts.Expression, depth = 0): boolean {
+  let node = listBase(expression);
+  while (ts.isPropertyAccessExpression(node)) {
+    node = listBase(node.expression);
+  }
+  if (!ts.isIdentifier(node) || depth > DEPTH) {
+    return false;
+  }
+  let owner = declarationOf(node);
+  while (owner && ts.isBindingElement(owner)) {
+    owner = owner.parent.parent;
+  }
+  if (!owner) {
+    return false;
+  }
+  return (
+    ts.isParameter(owner) ||
+    (ts.isVariableDeclaration(owner) &&
+      !!owner.initializer &&
+      arrivesByParameter(owner.initializer, depth + 1))
+  );
+}
+
 /** La forma de un subíndice que no es un número escrito, por lo más grave que traiga. */
 function formOf(origins: ReadonlySet<Origin>): PositionalForm {
   if (origins.has("search")) {
@@ -728,6 +783,15 @@ function readsIn(file: TextFile): PositionalRead[] {
     } else if (form === "traversal" && traversed.some((sequence) => isLabelList(sequence))) {
       // El recorrido inverso: recorre las etiquetas y lee con su índice el orden, que no es del catálogo.
       report(node, form);
+    } else if (form === "traversal" && file.path.endsWith(".tsx") && arrivesByParameter(target)) {
+      // DT-375: en un componente, una lista que llega por parámetro o por props se lee con el índice
+      // con que se recorre otra secuencia. Así emparejaba sus tipos `DocumentUploader.tsx` (DT-368).
+      // Recorrer la lista y leerla con su propio índice no empareja nada, y de un contador de `for`
+      // no se sabe qué recorre: ninguno de los dos cuenta.
+      const list = compact(listBase(target).getText(source));
+      if (traversed.some((sequence) => compact(listBase(sequence).getText(source)) !== list)) {
+        report(node, "paramTraversal");
+      }
     }
   };
 

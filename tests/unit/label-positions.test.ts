@@ -32,9 +32,11 @@ import { FALLBACKS_BY_FILE } from "./label-fallbacks.table";
 // prueba lee el código (ADR-126 regla 11). La cuenta es la de `scripts/lib/label-position-metrics.ts`,
 // la misma que suma `npm run audit:metrics`.
 //
-// Es un trinquete. Lee archivo por archivo y sin tipos: no sigue una lista que llega por parámetro o
-// por props, salvo donde el subíndice trae un `indexOf`, un `findIndex` o una constante de posiciones,
-// que caen sobre cualquier lista. Qué etiqueta le toca a cada valor lo sigue fijando la tabla de
+// Es un trinquete. Lee archivo por archivo y sin tipos: no sabe si una lista que llega por parámetro
+// o por props salió de un `tList`. Sobre una de esas caen las tres formas que caen sobre cualquier
+// lista (un `indexOf` o un `findIndex` en el subíndice, la búsqueda guardada y la constante de
+// posiciones) y, en un `.tsx`, el recorrido de otra secuencia que la lee con su índice (ADR-128
+// regla 10). Qué etiqueta le toca a cada valor lo sigue fijando la tabla de
 // `tests/unit/enum-label-pairs.test.ts`.
 
 const ROOT = process.cwd();
@@ -54,6 +56,8 @@ const UNEVEN = "Par de largo distinto, que queda fuera de `tLabels` (ADR-126 reg
 const BY_HAND =
   "Constante de posiciones que fija `INDEX_PAIRS` de la tabla de pares y espera su migración (DT-366):";
 const NOT_LABELS = "No empareja un enum con sus etiquetas:";
+const NOT_TEXTS =
+  "Lo que llega por props no es una lista de textos, y sin tipos la regla no lo distingue (ADR-128 regla 10):";
 
 // Las únicas lecturas por posición que quedan en `src`. Antes de sumar una acá, leela por valor: si
 // es la etiqueta de un valor de un enum, `tLabels(código, ENUM)[valor]` con el respaldo que el sitio
@@ -163,6 +167,18 @@ const OTHER_FORMS: (Exception & { form: Exclude<PositionalForm, "computedIndex">
     form: "storedIndex",
     read: "row[column]",
     reason: `${NOT_LABELS} lee de cada fila de un CSV la columna que encontró en el encabezado.`,
+  },
+  {
+    path: "src/app/admin/personas/[id]/_ui/Paneles.tsx",
+    form: "paramTraversal",
+    read: "my.committees[index]",
+    reason: `${NOT_TEXTS} llena las filas fijas del formulario de comités con las pertenencias de la persona; lo que recorre es \`{ length: MAX_ROWS }\`.`,
+  },
+  {
+    path: "src/app/admin/personas/importar/page.tsx",
+    form: "paramTraversal",
+    read: "preview.mapping[index]",
+    reason: `${NOT_TEXTS} la columna que la vista previa del roster le propuso a cada cabecera del archivo, dos arreglos paralelos que arma el dominio.`,
   },
 ];
 
@@ -442,6 +458,33 @@ const SEEDED: { title: string; form: PositionalForm; path: string; text: string 
     path: "src/app/sembrado/page.ts",
     text: `${HEAD}import { util } from "@/shared/lib/util";\nexport const labels = util.zip(KINDS, tList("T-444"));\n`,
   },
+  // DT-375 (ADR-128 regla 10): en un componente, la lista y su orden llegan por props y un recorrido
+  // del orden lee la lista con su índice. Es la forma que tuvo `DocumentUploader.tsx` (DT-368) y la
+  // que tuvieron los contadores de `ConsolaEnVivo.tsx`: ni la regla ni la tabla de pares la veían.
+  {
+    title: "un recorrido del orden que lee con su índice una lista, las dos por props",
+    form: "paramTraversal",
+    path: "src/app/sembrado/Selector.tsx",
+    text: `export function Selector({ kindCodes, labels }: { kindCodes: string[]; labels: { kinds: string[] } }) {\n  return (\n    <select>\n      {kindCodes.map((code, index) => (\n        <option key={code} value={code}>\n          {labels.kinds[index] ?? code}\n        </option>\n      ))}\n    </select>\n  );\n}\n`,
+  },
+  {
+    title: "un recorrido de un orden del archivo sobre las props sin desestructurar",
+    form: "paramTraversal",
+    path: "src/app/sembrado/Selector.tsx",
+    text: `const ORDER = ["A", "B"] as const;\nexport function Selector(props: { labels: { kinds: string[] } }) {\n  return <ul>{ORDER.map((value, i) => <li key={value}>{props.labels.kinds[i] ?? value}</li>)}</ul>;\n}\n`,
+  },
+  {
+    title: "un recorrido sobre una lista que el componente desestructura de sus props más abajo",
+    form: "paramTraversal",
+    path: "src/app/sembrado/Selector.tsx",
+    text: `const ORDER = ["A", "B"] as const;\nexport function Selector({ labels }: { labels: { kinds: string[] } }) {\n  const { kinds } = labels;\n  return <ul>{ORDER.map((value, index) => <li key={value}>{kinds.at(index) ?? value}</li>)}</ul>;\n}\n`,
+  },
+  {
+    title: "un ayudante de un componente que recibe la lista y su orden por parámetro",
+    form: "paramTraversal",
+    path: "src/app/sembrado/Selector.tsx",
+    text: `export const options = (codes: readonly string[], names: readonly string[]) =>\n  codes.map((code, index) => <option key={code}>{names[index] ?? code}</option>);\n`,
+  },
   // DT-371 (ADR-126 regla 10): anotado con claves abiertas, `tsc` deja pasar el número y la lectura
   // da `undefined`; sin anotar ya lo rechaza el tipo de `tLabels`.
   {
@@ -459,7 +502,7 @@ const SEEDED: { title: string; form: PositionalForm; path: string; text: string 
 ];
 
 // Lo que la regla deja pasar: la lectura por valor y las que la spec dejó fuera.
-const ALLOWED: { title: string; text: string }[] = [
+const ALLOWED: { title: string; text: string; path?: string }[] = [
   {
     title: "la etiqueta por valor",
     text: `${HEAD}const labels = tLabels("T-444", KINDS);\nexport const label = (kind: "A" | "B") => labels[kind] ?? kind;\n`,
@@ -499,6 +542,27 @@ const ALLOWED: { title: string; text: string }[] = [
   {
     title: "un recorrido de dos arreglos paralelos que no son del catálogo",
     text: `export const pairs = (keys: string[], values: number[]) => keys.map((item, index) => [item, values[index]]);\n`,
+  },
+  // Lo que la forma `paramTraversal` deja pasar en un componente (ADR-128 regla 10).
+  {
+    title: "las etiquetas que llegan por props leídas por valor, mientras se recorre el orden",
+    path: "src/app/sembrado/Selector.tsx",
+    text: `import { labelsFromProps } from "@/shared/copy/client";\nexport function Selector({ kindCodes, labels }: { kindCodes: string[]; labels: { kinds: Record<string, string> } }) {\n  const kindLabels = labelsFromProps(labels.kinds);\n  return <ul>{kindCodes.map((code) => <li key={code}>{kindLabels[code] ?? code}</li>)}</ul>;\n}\n`,
+  },
+  {
+    title: "recorrer la lista que llega por props y leer esa misma lista con el índice",
+    path: "src/app/sembrado/Selector.tsx",
+    text: `export function Pasos({ steps }: { steps: string[] }) {\n  return <ol>{steps.slice(1).map((step, index) => <li key={step}>{steps[index]} → {step}</li>)}</ol>;\n}\n`,
+  },
+  {
+    title: "el contador de un for sobre una lista por props, que no dice qué recorre",
+    path: "src/app/sembrado/Selector.tsx",
+    text: `export function total(cells: number[]) {\n  let sum = 0;\n  for (let i = 0; i < cells.length; i += 1) {\n    sum += cells[i] ?? 0;\n  }\n  return sum;\n}\n`,
+  },
+  {
+    title: "una lista del archivo, que no llega por parámetro, leída con el índice de un recorrido",
+    path: "src/app/sembrado/Selector.tsx",
+    text: `const WIDTHS = [1, 2, 3];\nexport function Fila({ cells }: { cells: string[] }) {\n  return <tr>{cells.map((cell, index) => <td key={cell} colSpan={WIDTHS[index]}>{cell}</td>)}</tr>;\n}\n`,
   },
 ];
 
@@ -582,8 +646,8 @@ describe("las pruebas no vuelven a calcular una etiqueta con la posición de un 
 });
 
 describe("lo que la regla deja pasar", () => {
-  it.each(ALLOWED)("$title", ({ text }) => {
-    expect(positionalLabelReads([{ path: "src/app/sembrado/page.ts", text }])).toEqual([]);
+  it.each(ALLOWED)("$title", ({ text, path = "src/app/sembrado/page.ts" }) => {
+    expect(positionalLabelReads([{ path, text }])).toEqual([]);
   });
 
   it("no lee los generados del catálogo ni lo que no es TypeScript", () => {
