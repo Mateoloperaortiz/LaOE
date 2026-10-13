@@ -731,6 +731,27 @@ export function staysInactive(
 }
 
 /**
+ * Los comités que esta fila le deja escritos a la persona, o `null` si no le escribe ninguno. Los
+ * comités se le cambian solo a quien queda con membresía vigente (ADR-118 regla 11): no a quien la
+ * fila da de baja, ni a quien ya estaba de baja y sigue así (`staysInactive`). `current` es la
+ * membresía que la fila encuentra; quien no tiene (la persona nueva, o la que existía sin ella) la
+ * recibe en el estado de la fila.
+ *
+ * Es la única respuesta a esa pregunta (ADR-127 regla 1). La leen el diff, para anunciar el cambio;
+ * la aplicación, para escribirlo; y la propuesta de líder, que sale de esta lista y por eso no
+ * nombra a nadie que la fila no deje en el comité.
+ */
+export function committeesToWrite<Listed>(
+  current: Pick<ExistingPerson, "status" | "endReason"> | undefined,
+  row: { status?: RosterStatus | undefined; committees?: Listed[] | undefined },
+): Listed[] | null {
+  if (row.committees === undefined || row.status === "INACTIVE") {
+    return null;
+  }
+  return staysInactive(current, row.status) ? null : row.committees;
+}
+
+/**
  * Con qué nombre un error o un aviso nombra a la persona de una fila: el del archivo y, donde no lo
  * trae, el guardado.
  */
@@ -799,13 +820,14 @@ export function diffRoster(rows: ValidatedRow[], existing: Map<string, ExistingP
     if (row.probation !== undefined && row.probation !== current.probation && !keepsOut) {
       changes.push("status");
     }
-    if (row.committees !== undefined && row.status !== "INACTIVE" && !keepsOut) {
+    const written = committeesToWrite(current, row);
+    if (written) {
       const rolesKey = (roles: Array<{ roleCode: string; coDirector: boolean }>) =>
         roles
           .map((role) => `${role.roleCode}${role.coDirector ? "*" : ""}`)
           .sort()
           .join("+");
-      const wanted = row.committees
+      const wanted = written
         .map((item) => `${item.slug}:${rolesKey(item.roles)}:${row.transferSlug === item.slug}`)
         .sort()
         .join("|");

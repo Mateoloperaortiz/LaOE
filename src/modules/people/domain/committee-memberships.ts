@@ -235,7 +235,7 @@ export async function liveCommitteesPayload(
 const COMMITTEE_STATUSES: readonly MembershipStatus[] = ["ACTIVE", "ON_LEAVE", "HONORARY"];
 
 /** Si una membresía en ese estado puede cambiar de comités; sin membresía, no. */
-export function canHoldCommittees(status: MembershipStatus | undefined): boolean {
+function canHoldCommittees(status: MembershipStatus | undefined): boolean {
   return status !== undefined && COMMITTEE_STATUSES.includes(status);
 }
 

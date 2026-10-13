@@ -439,8 +439,9 @@ describe("importación del roster", () => {
   // A quién le deja escritos los comités una fila, por cómo está hoy la persona y cómo figura en el
   // archivo (ADR-118 regla 11): solo a quien la fila deja con membresía vigente. Es la caracterización
   // de lo que la aplicación escribe y de lo que el diff anuncia, fijada antes de que los dos lean la
-  // misma función (ADR-127 regla 1). La persona figura siempre en A3 y de General de A3; quien hoy
-  // tiene membresía vigente ya está en A3, sin cargo.
+  // misma función (`committeesToWrite`, ADR-127 regla 1), y de esa misma lista sale la propuesta de
+  // líder. La persona figura siempre en A3 y de General de A3; quien hoy tiene membresía vigente ya
+  // está en A3, sin cargo.
   type Left = "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE" | "ROW_IN_ERROR";
   type Today =
     | "NOBODY"
@@ -522,7 +523,7 @@ describe("importación del roster", () => {
     LEFT_BY_ROW.flatMap(([who, today, left]) =>
       LISTED.map(([listedAs, word]) => [who, listedAs, today, word, left[listedAs]] as const),
     ),
-  )("a quien %s y figura %s y General de su comité, la fila le escribe los comités solo si lo deja con membresía vigente", async (_who, _listedAs, today, word, left) => {
+  )("a quien %s y figura %s y General de su comité, la fila le escribe los comités y le propone el permiso de líder solo si lo deja con membresía vigente", async (_who, _listedAs, today, word, left) => {
     const termId = await seedTerm();
     const code = currentTermCode();
     const a3 = await seedCommittee("a3");
@@ -560,7 +561,8 @@ describe("importación del roster", () => {
     const row = shown.rows.find((item) => item.email === email);
     if (left === "ROW_IN_ERROR") {
       expect(row?.group).toBe("ERROR");
-      expect(applied).toMatchObject({ created: 0, updated: 0, skipped: 1 });
+      expect(applied).toMatchObject({ created: 0, updated: 0, skipped: 1, proposals: [] });
+      expect(shown.proposals).toEqual([]);
       expect(await leftAs(email)).toBeNull();
       return;
     }
@@ -570,6 +572,13 @@ describe("importación del roster", () => {
       status: left,
       committees: written ? ["a3:GENERAL"] : [],
     });
+    // La propuesta de líder sale de los comités que la fila deja escritos: la acción le concede el
+    // permiso, después del commit, a quien el resumen nombre. Quien queda en licencia o como
+    // honorario queda en el comité con su cargo y por eso se le propone, como siempre: si conserva
+    // esa dirección es la decisión abierta 7, y si sigue de representante, la 45.
+    const proposed = written ? [email] : [];
+    expect(shown.proposals.map((proposal) => proposal.email)).toEqual(proposed);
+    expect(applied.proposals.map((proposal) => proposal.email)).toEqual(proposed);
     // El diff anuncia el cambio de comités donde la aplicación los escribe, y solo ahí. De una
     // persona nueva no anuncia columnas, y de quien sigue de baja no anuncia nada.
     if (today === "NOBODY") {

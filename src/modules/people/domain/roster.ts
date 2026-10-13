@@ -32,7 +32,6 @@ import {
 } from "../schema";
 import {
   type CommitteeRoleRow,
-  canHoldCommittees,
   listCommitteeRoles,
   setCommitteeMembershipsIfChanged,
 } from "./committee-memberships";
@@ -54,6 +53,7 @@ import {
 import { createCommitteeRole } from "./roles";
 import { ROSTER_MAX_BYTES, readRosterCells, rosterFormat } from "./roster-file";
 import {
+  committeesToWrite,
   type DiffGroup,
   detectMapping,
   diffRoster,
@@ -368,12 +368,10 @@ async function buildPreview(
     if (row.group === "ERROR" || !row.email) {
       continue;
     }
-    // A quien sigue de baja el roster no le cambia los comités (ADR-118 regla 11): su fila no deja a
-    // nadie de General, y el permiso se concede a quien la fila dejó en el comité (ADR-127 regla 1).
-    if (staysInactive(existing.get(row.email), row.status)) {
-      continue;
-    }
-    for (const item of row.committees ?? []) {
+    // La propuesta sale de los comités que la fila deja escritos, y de ningún otro lado: el permiso
+    // se le concede a quien la fila dejó en el comité (ADR-127 regla 1). No propone la fila de quien
+    // sigue de baja ni la que da de baja a alguien, que no le cambian los comités (ADR-118 regla 11).
+    for (const item of committeesToWrite(existing.get(row.email), row) ?? []) {
       for (const role of item.roles.filter((role) => role.roleCode === "GENERAL")) {
         proposals.push({
           email: row.email,
@@ -631,14 +629,6 @@ async function insertRosterMembership(
   });
 }
 
-async function membershipHoldsCommittees(ctx: CommandContext, personId: string): Promise<boolean> {
-  const [row] = await ctx.tx
-    .select({ status: membership.status })
-    .from(membership)
-    .where(eq(membership.personId, personId));
-  return canHoldCommittees(row?.status);
-}
-
 /**
  * La persona de un correo, tomada en el orden del ciclo de membresía (ADR-120 regla 3): primero el
  * candado consultivo `wallet-member:<persona>` y después su fila. Dar de baja, cambiar el estado,
@@ -737,6 +727,9 @@ async function applyRow(
   // Quien ya estaba de baja y esta fila no lo saca de ahí: se decide con la membresía leída acá, no
   // con la de la vista previa.
   let keepsOut = false;
+  // Los comités que la fila le deja escritos, con esa misma membresía. Quien no tiene ninguna, la
+  // persona nueva o la que existía sin ella, la recibe en el estado de la fila.
+  let committeesWritten = committeesToWrite(undefined, row);
   if (!existing) {
     const entryTermId = row.entryTerm ? termsByCode.get(row.entryTerm) : undefined;
     if (!entryTermId) {
@@ -788,6 +781,7 @@ async function applyRow(
       .from(membership)
       .where(eq(membership.personId, personId));
     keepsOut = staysInactive(current, row.status);
+    committeesWritten = committeesToWrite(current, row);
     if (!current) {
       const entryTermId = (row.entryTerm ? termsByCode.get(row.entryTerm) : undefined) ?? termId;
       await insertRosterMembership(ctx, { personId, status, entryTermId, termId });
@@ -862,17 +856,20 @@ async function applyRow(
       if (outcome === "unchanged") outcome = "updated";
     }
   }
-  // Los comités se cambian solo a quien queda con membresía vigente (ADR-118 regla 11), y eso se
-  // decide con el estado que quedó en la base, no con el que pide la fila: quien sigue de baja (el
-  // archivo no trae ESTADO, o fue expulsado y el roster no lo reactiva) conserva su fila tal cual. La
-  // vista previa ya lo avisó (T-2208, T-3247). A quien ya tiene esas mismas pertenencias no se le
+  // Los comités se cambian solo a quien queda con membresía vigente (ADR-118 regla 11), y lo decide
+  // `committeesToWrite` con la membresía que la fila encontró y el estado que trae, no solo con el
+  // que pide: quien sigue de baja (el archivo no trae ESTADO, o fue expulsado y el roster no lo
+  // reactiva) conserva su fila tal cual. La vista previa ya lo avisó (T-2208, T-3247). Es la misma
+  // lista de la que sale la propuesta de líder (ADR-127 regla 1). El comando vuelve a leer la
+  // membresía con su candado y responde T-3246 si no está vigente: la importación cae entera antes
+  // que dejar a alguien de baja en un comité. A quien ya tiene esas mismas pertenencias no se le
   // escribe nada: se valida igual, y no queda auditoría ni evento de sus comités (ADR-120 regla 2).
-  if (row.committees !== undefined && (await membershipHoldsCommittees(ctx, personId))) {
+  if (committeesWritten) {
     await setCommitteeMembershipsIfChanged(
       ctx,
       personId,
       termId,
-      row.committees.map((item) => ({
+      committeesWritten.map((item) => ({
         committeeId: item.committeeId,
         roleCode: item.roleCode,
         roles: item.roles.map((role) => ({ roleCode: role.roleCode, coDirector: role.coDirector })),
