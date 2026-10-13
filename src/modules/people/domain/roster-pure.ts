@@ -737,9 +737,14 @@ export function staysInactive(
  * membresía que la fila encuentra; quien no tiene (la persona nueva, o la que existía sin ella) la
  * recibe en el estado de la fila.
  *
- * Es la única respuesta a esa pregunta (ADR-127 regla 1). La leen el diff, para anunciar el cambio;
- * la aplicación, para escribirlo; y la propuesta de líder, que sale de esta lista y por eso no
- * nombra a nadie que la fila no deje en el comité.
+ * La leen el diff, para anunciar el cambio; la aplicación, para escribirlo, con la membresía que lee
+ * en su transacción; y la propuesta de líder de la vista previa, con la lectura sin candados de la
+ * validación (ADR-127 regla 1). La propuesta del resumen de una importación aplicada no sale de una
+ * tercera evaluación: sale de la lista que la aplicación le pasó al comando de los comités.
+ *
+ * No es el único sitio que decide sobre lo que una fila escribe. La validación de «un solo titular»
+ * de `validateRoster` cuenta el cargo de una fila sin preguntarle a esta función, también el de la
+ * fila que no deja comités (DT-391).
  */
 export function committeesToWrite<Listed>(
   current: Pick<ExistingPerson, "status" | "endReason"> | undefined,
