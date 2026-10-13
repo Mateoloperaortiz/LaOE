@@ -115,11 +115,14 @@ export function requiredTotal(requirement: AssemblyRequirementView): number {
 
 /**
  * Cuántas de las asambleas que exige el requisito lleva firmadas la persona: la `n` de «{n} de
- * {total}», con `requiredTotal` como total, y el único sitio que la cuenta (ADR-128 regla 4). Las
- * ordinarias cuentan hasta las que el requisito exige, y la elección de junta y la segunda vuelta
- * solo si las exige: una firmada de más, o una que el requisito ajustado no pide, no suma, así que
- * nunca pasa del total. Firmada es aprobada: una excusa cumple el requisito (`assemblyCompliance`)
- * y no cuenta acá.
+ * {total}», con `requiredTotal` como total. La llaman GH Points y el Resumen de la Persona 360
+ * (ADR-128 regla 4). No es el único sitio que hace esta cuenta: el Desglose de permanencia la repite
+ * a mano, con su total, sobre el resultado de `permanence` (DT-395). Las ordinarias cuentan hasta las
+ * que el requisito exige, y la elección de junta y la segunda vuelta solo si las exige: una firmada
+ * de más, o una que el requisito ajustado no pide, no suma, así que nunca pasa del total. Firmada es
+ * aprobada: una excusa cumple el requisito (`assemblyCompliance`) y no cuenta acá. No valida lo que
+ * recibe: las ordinarias exigidas llegan de 0 o más porque así las dejan pasar el término y
+ * `adjustRequirement`.
  */
 export function attendedRequired(
   requirement: AssemblyRequirementView,
