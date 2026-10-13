@@ -13,7 +13,12 @@ import { type UnnamedLoad, unnamedSourceLoads } from "../../scripts/lib/test-sui
 // - el archivo `entero`: la carga que no llega a un nombre. La que algo esparce,
 //   `...(await import("…"))`; la que una función devuelve, como la fábrica de
 //   `vi.mock("…", async () => await import("…"))`; la que se pasa como argumento, se asigna, se
-//   guarda sin `await` o queda suelta, y la variable que la guarda si después se usa entera.
+//   guarda sin `await` o queda suelta; la que no va escrita tal cual, con un paréntesis o un cambio
+//   de tipo de por medio, y la variable que la guarda si después se usa entera, se le lee un miembro
+//   con una clave que no es un texto (`ruta[metodo]`) o se desestructura con resto.
+//
+// Lo mismo vale para el `import` estático, que es otro camino al mismo efecto: sale como `entero` el
+// `import * as` al que no se le lee ningún miembro por nombre, y el `export * from`.
 //
 // Pasan solo las formas con las que knip sigue marcando: `unnamedSourceLoads` las enumera, con lo
 // que se midió. La lectura es sobre el árbol que arma el compilador: una forma escrita dentro de una
@@ -221,8 +226,12 @@ describe("lo que las pruebas cargan de src", () => {
           'const route = await import("@/app/api/v1/the-games/hub/route");',
           'const response = await route.GET(new Request("http://casa.test"));',
           'const viaBrackets = route["POST"];',
+          "const viaTemplate = route[`PUT`];",
+          "const optional = route?.DELETE;",
           "const { OPTIONS } = route;",
           "let same: typeof route;",
+          'const annotated: typeof import("@/shared/kit") = await import("@/shared/kit");',
+          "annotated.used;",
           // El nombre de un miembro que se llama igual no es la variable.
           "const other = { route: 1 }.route;",
           'const [{ getPool }, { logger }] = await Promise.all([import("@/db/client"), import("@/shared/log")]);',
@@ -233,6 +242,159 @@ describe("lo que las pruebas cargan de src", () => {
         ].join("\n"),
       ),
     ).toEqual([]);
+  });
+
+  it("rechaza la variable que guarda la carga si se le lee un miembro con una clave que no es un texto, aunque además se le lea otro por nombre; si se desestructura con resto, o si sale exportada", () => {
+    expect(
+      loadsIn(
+        [
+          'const route = await import("@/app/api/v1/the-games/hub/route");',
+          'it.each(["GET", "POST"] as const)("responde a %s", async (method) => {',
+          '  await route[method](new Request("http://casa.test"));',
+          "});",
+          'const kit = await import("@/shared/kit/types");',
+          "use(kit.used, kit[key as keyof typeof kit]);",
+          'const dates = await import("@/shared/lib/dates");',
+          "const { addDays, ...others } = dates;",
+          'const log = await import("@/shared/log");',
+          "export { log };",
+          'const feed = await import("@/shared/brand/feed");',
+          "export { feed as brand };",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "entero @/app/api/v1/the-games/hub/route",
+      "entero @/shared/kit/types",
+      "entero @/shared/lib/dates",
+      "entero @/shared/log",
+      "entero @/shared/brand/feed",
+    ]);
+  });
+
+  it("no toma por la variable el nombre con el que otro archivo o la prueba exportan otra cosa", () => {
+    expect(
+      loadsIn(
+        [
+          'const route = await import("@/app/api/v1/the-games/hub/route");',
+          "await route.GET();",
+          "const other = 1;",
+          "export { other as route };",
+          'export { route } from "../helpers/routes";',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  it("rechaza la carga que no va escrita tal cual: con un paréntesis, un cambio de tipo o un ! de por medio, se desestructure, se guarde o venga en una lista", () => {
+    expect(
+      loadsIn(
+        [
+          'const { used } = (await import("@/modules/alpha/domain/things")) as { used: unknown };',
+          'const { other } = (await import("@/modules/alpha/domain/more"));',
+          'const { sure } = (await import("@/shared/kit"))!;',
+          'const { fits } = (await import("@/shared/kit/csv")) satisfies object;',
+          'const { inside } = await (import("@/shared/lib/dates") as Promise<{ inside: unknown }>);',
+          'const typed = (await import("@/shared/log")) as typeof import("@/shared/log");',
+          "typed.logger;",
+          'const [{ getPool }] = (await Promise.all([import("@/db/client")])) as [{ getPool: unknown }];',
+          'const [{ feed }] = await Promise.all([import("@/shared/brand/feed") as Promise<{ feed: unknown }>]);',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "entero @/modules/alpha/domain/things",
+      "entero @/modules/alpha/domain/more",
+      "entero @/shared/kit",
+      "entero @/shared/kit/csv",
+      "entero @/shared/lib/dates",
+      "entero @/shared/log",
+      "entero @/db/client",
+      "entero @/shared/brand/feed",
+    ]);
+  });
+
+  it("rechaza el import * as de un archivo de src al que no se le lee ningún miembro por nombre: el que solo va de argumento, como en vi.spyOn; el esparcido; el guardado en otra variable; el que solo se usa de tipo, y el que nadie usa", () => {
+    expect(
+      loadsIn(
+        [
+          'import * as passes from "@/modules/alpha/domain/passes";',
+          'import * as kit from "@/shared/kit/types";',
+          'import * as instrumentation from "@/instrumentation";',
+          'import type * as shapes from "@/shared/kit/csv";',
+          'import * as idle from "@/shared/brand/feed";',
+          'vi.spyOn(passes, "record").mockRejectedValueOnce(new Error("fallo"));',
+          "use({ ...kit });",
+          "const found: Module = instrumentation;",
+          "await found.onRequestError?.();",
+          "let shape: typeof shapes;",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "entero @/modules/alpha/domain/passes",
+      "entero @/shared/kit/types",
+      "entero @/instrumentation",
+      "entero @/shared/kit/csv",
+      "entero @/shared/brand/feed",
+    ]);
+  });
+
+  it("rechaza el import * as con un miembro leído por nombre si además se le lee otro con una clave que no es un texto, se guarda en otra variable, se desestructura con resto o se esparce", () => {
+    expect(
+      loadsIn(
+        [
+          'import * as ledger from "@/modules/alpha/domain/ledger";',
+          'import * as badges from "@/modules/alpha/domain/badges";',
+          'import * as log from "@/shared/log";',
+          'import * as dates from "@/shared/lib/dates";',
+          "use(ledger.credit, ledger[key as keyof typeof ledger]);",
+          "use(badges.recompute);",
+          "const other = badges;",
+          "use(log.logger);",
+          "const { withoutQueryValues, ...rest } = log;",
+          "use(dates.addDays, { ...dates });",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "entero @/modules/alpha/domain/ledger",
+      "entero @/modules/alpha/domain/badges",
+      "entero @/shared/log",
+      "entero @/shared/lib/dates",
+    ]);
+  });
+
+  it("no rechaza el import * as al que se le lee un miembro por nombre, aunque además vaya entero como argumento de una llamada; el de un ayudante de las pruebas no lo mira", () => {
+    expect(
+      loadsIn(
+        [
+          'import * as adapter from "@/shared/adapters/apple-pass";',
+          'import * as route from "@/app/api/v1/the-games/hub/route";',
+          'import * as log from "@/shared/log";',
+          'import * as records from "@/modules/alpha/domain/passes";',
+          'import * as helpers from "../helpers/logs";',
+          "const realSign = adapter.signPass;",
+          'vi.spyOn(adapter, "signPass").mockImplementationOnce(realSign);',
+          'await route.GET(new Request("http://casa.test"));',
+          'use(route["POST"], route[`PUT`]);',
+          "const { logger, markConnectionFailure } = log;",
+          "let same: typeof log;",
+          'vi.spyOn(records, "record").mockRejectedValueOnce(new Error("fallo"));',
+          "expect(records.record).toHaveBeenCalled();",
+          "use(helpers);",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  it("rechaza el reexporte entero de un archivo de src, export * from y export * as; el que va con nombres no", () => {
+    expect(
+      loadsIn(
+        [
+          'export * from "@/shared/kit/types";',
+          'export * as csv from "@/shared/kit/csv";',
+          'export { used } from "@/modules/alpha/domain/things";',
+          'export * from "../helpers/logs";',
+        ].join("\n"),
+      ),
+    ).toEqual(["entero @/shared/kit/types", "entero @/shared/kit/csv"]);
   });
 
   it("mira la variable en el bloque donde se declara: otra del mismo nombre en otro bloque no cuenta", () => {

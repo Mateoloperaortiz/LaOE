@@ -49,13 +49,14 @@ async function asNextReportsIt(error: Error, routePath: string): Promise<string>
   const spy = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
     printed.push(format(...args));
   });
-  const found: InstrumentationModule = instrumentation;
+  // Con el tipo de Next: si `onRequestError` deja de calzar con lo que Next le pasa, no compila.
+  const onRequestError: InstrumentationModule["onRequestError"] = instrumentation.onRequestError;
   const host = {
     async instrumentationOnRequestError(
       _req: unknown,
       ...args: Parameters<NonNullable<InstrumentationModule["onRequestError"]>>
     ) {
-      await found.onRequestError?.(...args);
+      await onRequestError?.(...args);
     },
   };
   try {

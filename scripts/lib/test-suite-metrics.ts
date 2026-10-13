@@ -218,7 +218,8 @@ export interface UnnamedLoad {
   path: string;
   /**
    * `lectura` es un miembro leído sobre la carga, `(await import("…")).nombre`. `entero` es la carga
-   * que no llega a un nombre: la que algo esparce, devuelve, recibe o guarda sin decir qué toma.
+   * que no llega a un nombre: la que algo esparce, devuelve, recibe o guarda sin decir qué toma; el
+   * `import * as` al que no se le lee ningún miembro por nombre, y el `export * from`.
    */
   form: "lectura" | "entero";
   /** El archivo de `src`, como lo escribe la prueba. */
@@ -237,12 +238,12 @@ function pointsToSrc(from: string, specifier: string): boolean {
 }
 
 /**
- * Lo cargado, pasando por lo que no cambia qué se hace con él: los paréntesis, un cambio de tipo y
- * el `await`, que se anota.
+ * Lo cargado, pasando por los paréntesis, un cambio de tipo y el `await`. Sirve solo para saber si
+ * encima le leen un miembro, que sale siempre; para pasar, la carga va escrita tal cual
+ * (`declaredFrom`).
  */
-function loaded(load: ts.Expression): { value: ts.Expression; awaited: boolean } {
+function loaded(load: ts.Expression): ts.Expression {
   let value = load;
-  let awaited = false;
   while (
     ts.isAwaitExpression(value.parent) ||
     ts.isParenthesizedExpression(value.parent) ||
@@ -250,63 +251,105 @@ function loaded(load: ts.Expression): { value: ts.Expression; awaited: boolean }
     ts.isSatisfiesExpression(value.parent) ||
     ts.isNonNullExpression(value.parent)
   ) {
-    awaited ||= ts.isAwaitExpression(value.parent);
     value = value.parent;
   }
-  return { value, awaited };
+  return value;
 }
 
-/** Si un nombre igual al de la variable la usa entera: ni le lee un miembro ni la desestructura. */
-function takesItWhole(use: ts.Identifier): boolean {
+/**
+ * La declaración `const … = await <expresión>`, si la expresión va sola. Con un paréntesis, un
+ * `as`, un `satisfies` o un `!` entre la declaración y la carga, knip deja de seguirla.
+ */
+function declaredFrom(expression: ts.Expression): ts.VariableDeclaration | null {
+  const awaited = expression.parent;
+  if (!ts.isAwaitExpression(awaited)) {
+    return null;
+  }
+  const declaration = awaited.parent;
+  return ts.isVariableDeclaration(declaration) && declaration.initializer === awaited
+    ? declaration
+    : null;
+}
+
+/**
+ * Qué hace con una carga guardada un nombre igual al de su variable: le lee un miembro por su
+ * `nombre` o la desestructura; la usa de `tipo` (`typeof ruta`); la pasa entera como `argumento` de
+ * una llamada; la usa `entera` de otra forma, o es `ajeno`, el nombre de un miembro o de otra
+ * declaración (`otro.cargado`, `{ cargado: 1 }`), que no es la variable.
+ */
+type Use = "nombre" | "tipo" | "argumento" | "entera" | "ajeno";
+
+function howUsed(use: ts.Identifier): Use {
   const parent = use.parent;
-  if (
-    (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent)) &&
-    parent.expression === use
-  ) {
-    return false;
+  if (ts.isPropertyAccessExpression(parent) && parent.expression === use) {
+    return "nombre";
+  }
+  if (ts.isElementAccessExpression(parent) && parent.expression === use) {
+    // `ruta["GET"]` nombra. `ruta[metodo]` no: con una clave que no es un texto escrito ahí, knip da
+    // por usado todo el archivo, aunque al lado se lea otro miembro por nombre.
+    return ts.isStringLiteralLike(parent.argumentExpression) ? "nombre" : "entera";
   }
   if (
     ts.isVariableDeclaration(parent) &&
     parent.initializer === use &&
     ts.isObjectBindingPattern(parent.name)
   ) {
-    return false;
+    // Con resto (`const { GET, ...otros } = ruta`) knip tampoco sigue.
+    return parent.name.elements.some((element) => element.dotDotDotToken) ? "entera" : "nombre";
   }
   if (ts.isTypeQueryNode(parent)) {
-    return false;
+    return "tipo";
   }
-  // El nombre de un miembro o de otra declaración (`otro.cargado`, `{ cargado: 1 }`) no es la
-  // variable. `{ cargado }` sí: la mete entera.
+  if (ts.isExportSpecifier(parent)) {
+    // `export { cargado }` y `export { cargado as otro }` la sacan entera. En `export { otro as
+    // cargado }` y en un reexporte con `from`, el nombre no es la variable.
+    const local = parent.propertyName ?? parent.name;
+    return local === use && !parent.parent.parent.moduleSpecifier ? "entera" : "ajeno";
+  }
+  // `{ cargado }` la mete entera.
+  if (ts.isShorthandPropertyAssignment(parent)) {
+    return "entera";
+  }
   const named = parent as { name?: ts.Node; propertyName?: ts.Node };
-  return (
-    ts.isShorthandPropertyAssignment(parent) || (named.name !== use && named.propertyName !== use)
-  );
+  if (named.name === use || named.propertyName === use) {
+    return "ajeno";
+  }
+  return ts.isCallExpression(parent) && parent.arguments.includes(use) ? "argumento" : "entera";
 }
 
-/** Si a la variable que guarda una carga solo se le leen miembros o se la desestructura, en su bloque. */
-function readByNameOnly(variable: ts.Identifier): boolean {
+/** Lo que hace con la variable cada nombre igual al suyo, en el bloque donde se declara. */
+function usesOf(variable: ts.Identifier): Use[] {
   let scope: ts.Node = variable;
   while (!ts.isBlock(scope) && !ts.isSourceFile(scope)) {
     scope = scope.parent;
   }
-  let named = true;
+  const uses: Use[] = [];
   const visit = (node: ts.Node) => {
-    if (
-      ts.isIdentifier(node) &&
-      node !== variable &&
-      node.text === variable.text &&
-      takesItWhole(node)
-    ) {
-      named = false;
+    if (ts.isIdentifier(node) && node !== variable && node.text === variable.text) {
+      uses.push(howUsed(node));
     }
     ts.forEachChild(node, visit);
   };
   visit(scope);
-  return named;
+  return uses;
+}
+
+/** Si a la variable que guarda una carga solo se le leen miembros por nombre o se la desestructura. */
+function readByNameOnly(variable: ts.Identifier): boolean {
+  return usesOf(variable).every((use) => use !== "entera" && use !== "argumento");
+}
+
+/**
+ * Si un `import * as` nombra lo que toma: se le lee al menos un miembro por nombre y, fuera de eso,
+ * entero solo va como argumento de una llamada, que es como lo pide `vi.spyOn(espacio, "nombre")`.
+ */
+function namespaceReadByName(namespace: ts.Identifier): boolean {
+  const uses = usesOf(namespace);
+  return uses.includes("nombre") && !uses.includes("entera");
 }
 
 /** Si la carga es un elemento de `const [{ a }, { b }] = await Promise.all([…])` y el suyo nombra lo que toma. */
-function namedInList(list: ts.ArrayLiteralExpression, value: ts.Expression): boolean {
+function namedInList(list: ts.ArrayLiteralExpression, load: ts.Expression): boolean {
   const call = list.parent;
   if (
     !ts.isCallExpression(call) ||
@@ -315,17 +358,11 @@ function namedInList(list: ts.ArrayLiteralExpression, value: ts.Expression): boo
   ) {
     return false;
   }
-  const all = loaded(call);
-  const declaration = all.value.parent;
-  if (
-    !all.awaited ||
-    !ts.isVariableDeclaration(declaration) ||
-    declaration.initializer !== all.value ||
-    !ts.isArrayBindingPattern(declaration.name)
-  ) {
+  const declaration = declaredFrom(call);
+  if (!declaration || !ts.isArrayBindingPattern(declaration.name)) {
     return false;
   }
-  const element = declaration.name.elements[list.elements.indexOf(value)];
+  const element = declaration.name.elements[list.elements.indexOf(load)];
   return (
     element !== undefined &&
     ts.isBindingElement(element) &&
@@ -336,7 +373,7 @@ function namedInList(list: ts.ArrayLiteralExpression, value: ts.Expression): boo
 
 /** En cuál de las dos formas queda un `import("…")`, mirando qué se hace con lo que carga. */
 function unnamedForm(load: ts.CallExpression): UnnamedLoad["form"] | null {
-  const { value, awaited } = loaded(load);
+  const value = loaded(load);
   const holder = value.parent;
   if (
     (ts.isPropertyAccessExpression(holder) || ts.isElementAccessExpression(holder)) &&
@@ -344,49 +381,82 @@ function unnamedForm(load: ts.CallExpression): UnnamedLoad["form"] | null {
   ) {
     return "lectura";
   }
-  if (ts.isVariableDeclaration(holder) && holder.initializer === value && awaited) {
-    const named = ts.isIdentifier(holder.name)
-      ? readByNameOnly(holder.name)
-      : ts.isObjectBindingPattern(holder.name);
+  const declaration = declaredFrom(load);
+  if (declaration) {
+    const named = ts.isIdentifier(declaration.name)
+      ? readByNameOnly(declaration.name)
+      : ts.isObjectBindingPattern(declaration.name);
     return named ? null : "entero";
   }
-  if (ts.isArrayLiteralExpression(holder) && namedInList(holder, value)) {
+  if (ts.isArrayLiteralExpression(load.parent) && namedInList(load.parent, load)) {
     return null;
   }
   return "entero";
 }
 
+/** Si un `import` o un `export` estático toma el archivo sin nombrar nada de él. */
+function takesWholeFile(node: ts.ImportDeclaration | ts.ExportDeclaration): boolean {
+  if (ts.isExportDeclaration(node)) {
+    // `export * from "…"` y `export * as nombre from "…"`.
+    return !node.exportClause || ts.isNamespaceExport(node.exportClause);
+  }
+  const bindings = node.importClause?.namedBindings;
+  return (
+    bindings !== undefined && ts.isNamespaceImport(bindings) && !namespaceReadByName(bindings.name)
+  );
+}
+
+/** El archivo de `src` que una carga nombra con un texto, o nada si no cae en `src`. */
+function srcSpecifier(from: string, specifier: ts.Expression | undefined): string | null {
+  return specifier && ts.isStringLiteralLike(specifier) && pointsToSrc(from, specifier.text)
+    ? specifier.text
+    : null;
+}
+
 /**
  * Las cargas de un archivo de `src` que no nombran lo que toman (DT-384, ADR-128 regla 5). Deja pasar
  * solo las formas con las que knip sigue marcando un export sin uso del archivo, medidas con knip
- * 6.34 y un export sembrado por archivo: `const { nombre } = await import("…")`, también con resto;
- * la carga con `await` guardada en una variable a la que después solo se le leen miembros o se la
- * desestructura, y la de una lista `const [{ a }, { b }] = await Promise.all([…])`.
+ * 6.34 y un export sembrado por archivo:
+ *
+ * - `const { nombre } = await import("…")`, también con resto;
+ * - la carga con `await` guardada en una variable a la que después solo se le leen miembros por
+ *   nombre (`ruta.GET`, `ruta?.GET`, `ruta["GET"]`) o que se desestructura sin resto;
+ * - la de una lista `const [{ a }, { b }] = await Promise.all([…])`;
+ * - el `import * as` al que se le lee al menos un miembro por nombre, o que se desestructura sin
+ *   resto, aunque además vaya entero como argumento de una llamada: `vi.spyOn(espacio, "nombre")`.
+ *
+ * Las tres primeras, escritas tal cual: `await import("…")` va solo a la derecha del `=`.
  * `vi.importActual` y el `importOriginal` de una fábrica no son un `import("…")` y no pasan por
  * acá; knip marca también con ellos.
  *
  * Lo demás sale. Con esto knip dejó de marcar el sembrado: un miembro leído sobre la carga (con
  * `await` o sin él, por punto, por corchetes o por `then`); la carga esparcida, devuelta por una
  * función, pasada como argumento (ella o su promesa), asignada a una variable ya declarada,
- * guardada sin `await` o suelta, que solo corre el archivo; y la variable que la guarda, esparcida
- * o pasada como argumento. Sale además lo que no se midió, y la variable devuelta entera, que knip
- * sí sigue: la regla es nombrar.
+ * guardada sin `await` o suelta, que solo corre el archivo; la que lleva un paréntesis, un `as`, un
+ * `satisfies` o un `!` entre la declaración y el `import("…")`; la variable que la guarda,
+ * esparcida, pasada como argumento, leída con una clave que no es un texto (`ruta[metodo]`, aunque
+ * al lado se lea otro miembro por nombre) o desestructurada con resto; el `import * as` sin ningún
+ * miembro leído por nombre (solo de argumento, esparcido, guardado en otra variable o usado solo de
+ * tipo), o con uno y además leído con una clave que no es un texto, guardado en otra variable o
+ * desestructurado con resto; y el `export * from` de una prueba, con `as` o sin él. Sale además lo
+ * que no se midió, y lo que knip sí sigue pero no nombra: la variable devuelta o exportada entera y
+ * el `import * as` que, con un miembro leído, además se esparce o pasa por un `satisfies`. La regla
+ * es nombrar.
  */
 export function unnamedSourceLoads(files: TextFile[]): UnnamedLoad[] {
   const found: UnnamedLoad[] = [];
   for (const file of files) {
     const visit = (node: ts.Node) => {
       if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
-        const [specifier] = node.arguments;
-        if (
-          specifier &&
-          ts.isStringLiteralLike(specifier) &&
-          pointsToSrc(file.path, specifier.text)
-        ) {
-          const form = unnamedForm(node);
-          if (form) {
-            found.push({ path: file.path, form, specifier: specifier.text });
-          }
+        const specifier = srcSpecifier(file.path, node.arguments[0]);
+        const form = specifier === null ? null : unnamedForm(node);
+        if (specifier !== null && form) {
+          found.push({ path: file.path, form, specifier });
+        }
+      } else if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+        const specifier = srcSpecifier(file.path, node.moduleSpecifier);
+        if (specifier !== null && takesWholeFile(node)) {
+          found.push({ path: file.path, form: "entero", specifier });
         }
       }
       ts.forEachChild(node, visit);

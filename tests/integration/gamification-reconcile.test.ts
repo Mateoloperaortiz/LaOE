@@ -188,6 +188,8 @@ describe("conciliación histórica", () => {
       .spyOn(badges, "recomputeBadgesFor")
       .mockRejectedValueOnce(new DrizzleQueryError(query, values, cause));
     await drainOutbox();
+    // El fallo salió del recálculo de insignias, que es donde la prueba lo puso.
+    expect(badges.recomputeBadgesFor).toHaveBeenCalled();
     spy.mockRestore();
 
     const run = await getReconciliationRun(runId);

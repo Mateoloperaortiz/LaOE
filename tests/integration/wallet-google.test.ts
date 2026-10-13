@@ -176,6 +176,8 @@ describe("emisión y reconciliación Google Wallet", () => {
       new Error("Fallo local sintético"),
     );
     await expect(issueGoogleSaveUrl(personId)).rejects.toThrow("Fallo local sintético");
+    // El fallo salió del registro local, que es donde la prueba lo puso.
+    expect(passRecords.recordPassIssued).toHaveBeenCalled();
     const [reservation] = await listPassesFor(personId);
     expect(reservation).toMatchObject({ issuedAt: null, lastIssuedAt: null });
     expect(server.objects.has(reservation?.externalId ?? "")).toBe(true);
