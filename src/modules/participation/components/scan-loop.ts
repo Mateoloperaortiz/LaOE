@@ -177,8 +177,8 @@ export function createCamera<Stream extends VideoStream>(): {
   // Cada `stop` abre una tanda. El arranque guarda la suya al empezar y la compara al volver de una espera.
   let round = 0;
 
-  function turnOff(video: Stream | null): void {
-    for (const track of video?.getTracks() ?? []) {
+  function turnOff(toStop: Stream | null): void {
+    for (const track of toStop?.getTracks() ?? []) {
       track.stop();
     }
   }
@@ -192,7 +192,8 @@ export function createCamera<Stream extends VideoStream>(): {
   }
 
   async function start({ open, attach, poll, show, cameraError }: CameraSteps<Stream>) {
-    const mine = round;
+    const roundAtStart = round;
+    const stoppedSince = () => roundAtStart !== round;
     if (!open) {
       show({ kind: "error", message: cameraError });
       return;
@@ -204,14 +205,14 @@ export function createCamera<Stream extends VideoStream>(): {
       show({ kind: "error", message: cameraError });
       return;
     }
-    if (mine !== round) {
+    if (stoppedSince()) {
       // Lo detuvieron mientras el navegador pedía el permiso: este flujo no llegó a guardarse.
       turnOff(opened);
       return;
     }
     stream = opened;
     const attached = await attach(opened);
-    if (mine !== round) {
+    if (stoppedSince()) {
       // Lo detuvieron mientras el video arrancaba: `stop` ya apagó este flujo.
       return;
     }
