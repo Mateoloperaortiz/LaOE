@@ -1,6 +1,6 @@
 import pino from "pino";
 import { describe, expect, it } from "vitest";
-import { withoutQueryValues } from "@/shared/lib/error-sanitizer";
+import { serializeError, withoutQueryValues } from "@/shared/lib/error-sanitizer";
 import { logger } from "@/shared/log";
 import { QUERY, queryError, untyped, VALUE } from "../helpers/log-fixtures";
 import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
@@ -519,6 +519,33 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     expect([within, beyond, plain].flatMap((entry) => placesOf(entry?.record))).toEqual([]);
   });
 
+  it("lo que cuelga se recorre una vez por objeto, aunque los objetos se nombren todos entre sí", () => {
+    let reads = 0;
+    const nodes = Array.from({ length: 8 }, () =>
+      Object.defineProperty({} as Record<string, unknown>, "leido", {
+        enumerable: true,
+        get: () => {
+          reads += 1;
+          return true;
+        },
+      }),
+    );
+    for (const [index, node] of nodes.entries()) {
+      for (const [other, target] of nodes.entries()) {
+        if (other !== index) {
+          node[`n${other}`] = target;
+        }
+      }
+    }
+
+    serializeError(carrying({ red: nodes[0] }));
+
+    // Ocho objetos, ocho lecturas. Siguiendo cada camino que no repite un objeto serían más de trece
+    // mil con ocho, y con veinte no terminaría: el registro colgaría a quien registra un error que
+    // trae, por ejemplo, una respuesta con sus sockets.
+    expect(reads).toBe(8);
+  });
+
   // Lo que el recorte todavía no alcanza: fija por dónde sale hoy el valor. Quien cierre uno de estos
   // caminos va a ver caer su caso, y cambia lo que espera.
   it.each([
@@ -535,6 +562,16 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
       "bajo una clave de la línea que no es `err`",
       () => ({ failure: queryError() }),
       ["failure.params.0"],
+    ],
+    [
+      // El objeto se recorta, pero donde se nombra a sí mismo sigue el de origen, sin recortar.
+      "dentro de un objeto del error que se nombra a sí mismo",
+      () => {
+        const detail: Record<string, unknown> = { failure: queryError() };
+        detail.self = detail;
+        return { err: carrying({ detail }) };
+      },
+      ["err.detail.self.failure.params.0"],
     ],
     [
       "en lo que escribe el `toJSON` de un objeto del error",

@@ -457,15 +457,23 @@ const WRITTEN_BY_PINO = ["type", "message", "stack"];
 const CIRCULAR = "[Circular]";
 
 /**
+ * Lo que ya se recortó al escribir un error: cada objeto que cuelga de él se recorre una vez, y donde
+ * vuelve a aparecer sale lo mismo. Sin esto el recorrido seguiría cada camino que no repite un objeto,
+ * y con objetos que se nombran entre sí (una respuesta con sus sockets) no terminaría.
+ */
+type Trimmed = Map<object, unknown>;
+
+/**
  * `value`, que cuelga de un error registrado, con cada cosa con forma de error recortada como un error
  * (ADR-129 regla 5): en un campo del error, en una lista o en un objeto, hasta `HANGING_LIMIT` niveles
  * contando el error. Lo que queda más adentro no se mira y sale `[oculto]`, traiga o no un error: de
  * ahí para abajo no hay cómo decir que no trae ninguno. `above` es el camino desde ese error. Lo que le pasaron al registro no se toca:
  * de la lista o del objeto que trae un error sale una copia, y lo que no trae ninguno vuelve tal cual,
  * así que se escribe como se escribía. No entra a lo que se escribe a sí mismo con `toJSON` (una
- * fecha, un `Buffer`). El error que ya se está escribiendo más arriba no se escribe otra vez.
+ * fecha, un `Buffer`). El error que ya se está escribiendo más arriba no se escribe otra vez, y lo que
+ * ya se recortó (`done`) no se recorre de nuevo.
  */
-function trimmedHanging(value: unknown, above: readonly object[]): unknown {
+function trimmedHanging(value: unknown, above: readonly object[], done: Trimmed): unknown {
   if (typeof value !== "object" || value === null) {
     return value;
   }
@@ -475,21 +483,31 @@ function trimmedHanging(value: unknown, above: readonly object[]): unknown {
   if (above.includes(value)) {
     return isErrorLike(value) ? CIRCULAR : value;
   }
+  if (done.has(value)) {
+    return done.get(value);
+  }
+  const trimmed = trimmedOnce(value, above, done);
+  done.set(value, trimmed);
+  return trimmed;
+}
+
+/** `trimmedHanging` para el objeto que todavía no se recorrió en esta escritura. */
+function trimmedOnce(value: object, above: readonly object[], done: Trimmed): unknown {
   if (isErrorLike(value)) {
-    return trimmedError(value, above);
+    return trimmedError(value, above, done);
   }
   if (typeof (value as { toJSON?: unknown }).toJSON === "function") {
     return value;
   }
   const path = [...above, value];
   if (Array.isArray(value)) {
-    const items = value.map((item: unknown) => trimmedHanging(item, path));
+    const items = value.map((item: unknown) => trimmedHanging(item, path, done));
     return items.some((item, index) => item !== value[index]) ? items : value;
   }
   let copy: Record<string, unknown> | undefined;
   for (const key of Object.keys(value)) {
     const inner = (value as Record<string, unknown>)[key];
-    const trimmed = trimmedHanging(inner, path);
+    const trimmed = trimmedHanging(inner, path, done);
     if (trimmed !== inner) {
       copy ??= { ...value };
       copy[key] = trimmed;
@@ -504,15 +522,21 @@ function trimmedHanging(value: unknown, above: readonly object[]): unknown {
  * cualquier lista que cuelga del error (ADR-129 regla 5). Sin ese camino, el agregado al que nombra
  * uno de sus errores se recorría sin fin. El que no se deja leer sale `[oculto]`, él solo.
  */
-function trimmedListed(inner: Error, listed: readonly object[]): unknown {
+function trimmedListed(inner: Error, listed: readonly object[], done: Trimmed): unknown {
   if (listed.includes(inner)) {
     return CIRCULAR;
   }
-  try {
-    return trimmedError(inner, listed);
-  } catch {
-    return REDACTED;
+  if (done.has(inner)) {
+    return done.get(inner);
   }
+  let trimmed: unknown;
+  try {
+    trimmed = trimmedError(inner, listed, done);
+  } catch {
+    trimmed = REDACTED;
+  }
+  done.set(inner, trimmed);
+  return trimmed;
 }
 
 /**
@@ -535,7 +559,11 @@ function trimmedListed(inner: Error, listed: readonly object[]): unknown {
  *
  * Lanza si el error no se deja leer: de eso se ocupa `serializeError`.
  */
-function trimmedError(error: unknown, above: readonly object[] = []): unknown {
+function trimmedError(
+  error: unknown,
+  above: readonly object[] = [],
+  done: Trimmed = new Map(),
+): unknown {
   // Lo que no tiene forma de error sale como llegó: pino lo devuelve tal cual.
   if (!isErrorLike(error)) {
     return pino.stdSerializers.err(error as Error);
@@ -563,7 +591,7 @@ function trimmedError(error: unknown, above: readonly object[] = []): unknown {
     // en cualquier lista que cuelga del error.
     const listed = [...path, grouped];
     serialized.aggregateErrors = grouped.map((inner: unknown) =>
-      isErrorLike(inner) ? trimmedListed(inner, listed) : trimmedHanging(inner, listed),
+      isErrorLike(inner) ? trimmedListed(inner, listed, done) : trimmedHanging(inner, listed, done),
     );
     // Pino lista los errores de `errors` en `aggregateErrors`, sea o no un `AggregateError`. Si esa
     // lista además se enumera, la copia cruda al lado: sale una vez, recortada.
@@ -579,7 +607,7 @@ function trimmedError(error: unknown, above: readonly object[] = []): unknown {
       delete serialized[key];
       continue;
     }
-    const trimmed = trimmedHanging(hanging, path);
+    const trimmed = trimmedHanging(hanging, path, done);
     if (trimmed !== hanging) {
       serialized[key] = trimmed;
     }
