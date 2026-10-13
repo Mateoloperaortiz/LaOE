@@ -43,6 +43,7 @@ import {
   seedCredential,
   seedMember,
   seedMembership,
+  seedMemberships,
   seedPermission,
   seedPerson,
   seedQuestion,
@@ -296,7 +297,7 @@ describe("la fábrica y los comandos de las cuatro tablas de partida", () => {
     const seeded = await seedPerson(BY_FACTORY, { stage: "ALUMNI" });
 
     await endMembershipAs({ personId: actor, ip: null }, left, LEAVING);
-    await seedMembership(seeded, termId, "INACTIVE", "RESIGNATION");
+    await seedMembership(seeded, termId, "INACTIVE", { endReason: "RESIGNATION" });
 
     // Además de lo de siempre, sin la hora de la salida.
     const byCommand = await membershipOf(left, "endedAt");
@@ -325,7 +326,10 @@ describe("la fábrica y los comandos de las cuatro tablas de partida", () => {
     const seeded = await seedPerson(BY_FACTORY, { stage: "ALUMNI" });
 
     await endMembershipAs({ personId: actor, ip: null }, left, LEAVING);
-    await seedMembership(seeded, entryTermId, "INACTIVE", "RESIGNATION", termId);
+    await seedMembership(seeded, entryTermId, "INACTIVE", {
+      endReason: "RESIGNATION",
+      lastTermId: termId,
+    });
 
     const byCommand = await membershipOf(left, "endedAt");
     expect(byCommand).toMatchObject({
@@ -347,11 +351,31 @@ describe("la fábrica y los comandos de las cuatro tablas de partida", () => {
       ...LEAVING,
       lastTermId: entryTermId,
     });
-    await seedMembership(seeded, entryTermId, "INACTIVE", "RESIGNATION");
+    await seedMembership(seeded, entryTermId, "INACTIVE", { endReason: "RESIGNATION" });
 
     const byCommand = await membershipOf(left, "endedAt");
     expect(byCommand).toMatchObject({ firstTermId: entryTermId, lastTermId: entryTermId });
     expect(await membershipOf(seeded, "endedAt")).toEqual(byCommand);
+  });
+
+  it("el motivo de salida y el último semestre son de una inactiva: con otro estado la fábrica lanza, dice qué hacer y no siembra la membresía (DT-382)", async () => {
+    const termId = await seedTerm();
+    const personId = await seedPerson(BY_FACTORY);
+
+    for (const status of ["ACTIVE", "ON_LEAVE", "HONORARY"] as const) {
+      for (const exit of [{ endReason: "RESIGNATION" } as const, { lastTermId: termId }]) {
+        await expect(seedMembership(personId, termId, status, exit)).rejects.toThrow(
+          `con el estado ${status} no se escriben. Quitá las opciones de salida o sembrá la membresía "INACTIVE"`,
+        );
+        await expect(seedMemberships([personId], termId, status, exit)).rejects.toThrow(
+          "el motivo de salida y el último semestre son de una membresía inactiva",
+        );
+      }
+    }
+
+    expect(await db().select().from(membership).where(eq(membership.personId, personId))).toEqual(
+      [],
+    );
   });
 });
 

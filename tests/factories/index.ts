@@ -154,23 +154,37 @@ export async function seedPerson(email: string, overrides: PersonOverrides = {})
 type MembershipStatus = NonNullable<(typeof membership.$inferInsert)["status"]>;
 type MembershipEndReason = NonNullable<(typeof membership.$inferInsert)["endReason"]>;
 
+/** Lo que una baja le deja escrito a la membresía y quien siembra una inactiva puede elegir. */
+interface MembershipExit {
+  /** El motivo de salida; `OTHER` si no se dice. */
+  endReason?: MembershipEndReason;
+  /**
+   * El último semestre; el de ingreso si no se dice. La baja escribe el término vigente el día de la
+   * salida, así que quien siembra a alguien que entró en un término anterior y sale hoy lo pasa acá.
+   */
+  lastTermId?: string;
+}
+
 /**
  * La membresía de varias personas en una sola escritura, con el mismo término de ingreso y el mismo
  * estado; devuelve sus ids en el orden pedido. Una inactiva es la fila que deja una baja
  * (`endMembership`; `tests/integration/factory-parity.test.ts`): su fecha y su motivo de salida
  * (`endReason`), el último semestre (`lastTermId`) y la época del carné subida a 1 (`walletEpoch`).
- * El último semestre es `lastTermId` o, si no se dice, el de ingreso: la baja escribe el término
- * vigente el día de la salida, así que quien siembra a alguien que entró en un término anterior y sale
- * hoy lo pasa aparte. A la persona no la toca: la baja la deja exalumna, y eso lo siembra quien llama
- * con `seedPerson(correo, { stage: "ALUMNI" })`.
+ * El motivo y el último semestre van en `exit` y son solo de una inactiva: con otro estado la función
+ * lanza en vez de ignorarlos. A la persona no la toca: la baja la deja exalumna, y eso lo siembra
+ * quien llama con `seedPerson(correo, { stage: "ALUMNI" })`.
  */
 export async function seedMemberships(
   personIds: string[],
   termId: string,
   status: MembershipStatus = "ACTIVE",
-  endReason: MembershipEndReason = "OTHER",
-  lastTermId: string = termId,
+  exit: MembershipExit = {},
 ): Promise<string[]> {
+  if (status !== "INACTIVE" && (exit.endReason !== undefined || exit.lastTermId !== undefined)) {
+    throw new Error(
+      `seedMemberships: el motivo de salida y el último semestre son de una membresía inactiva; con el estado ${status} no se escriben. Quitá las opciones de salida o sembrá la membresía "INACTIVE".`,
+    );
+  }
   if (personIds.length === 0) return [];
   const rows = await db()
     .insert(membership)
@@ -180,7 +194,12 @@ export async function seedMemberships(
         firstTermId: termId,
         status,
         ...(status === "INACTIVE"
-          ? { endedAt: new Date(), endReason, lastTermId, walletEpoch: 1 }
+          ? {
+              endedAt: new Date(),
+              endReason: exit.endReason ?? "OTHER",
+              lastTermId: exit.lastTermId ?? termId,
+              walletEpoch: 1,
+            }
           : {}),
       })),
     )
@@ -197,10 +216,9 @@ export async function seedMembership(
   personId: string,
   termId: string,
   status: MembershipStatus = "ACTIVE",
-  endReason: MembershipEndReason = "OTHER",
-  lastTermId: string = termId,
+  exit: MembershipExit = {},
 ): Promise<string> {
-  const [id] = await seedMemberships([personId], termId, status, endReason, lastTermId);
+  const [id] = await seedMemberships([personId], termId, status, exit);
   if (!id) throw new Error("seed membership");
   return id;
 }

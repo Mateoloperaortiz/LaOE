@@ -119,8 +119,7 @@ async function seedCase(item: Case) {
       personId,
       item.persona.nueva ? termId : previousTermId,
       item.persona.estado,
-      "OTHER",
-      termId,
+      item.persona.estado === "INACTIVE" ? { lastTermId: termId } : {},
     );
   }
   const now = Date.now();

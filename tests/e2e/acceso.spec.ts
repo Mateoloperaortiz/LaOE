@@ -67,7 +67,7 @@ test.beforeEach(async () => {
   };
   fuera = [cambio.id, baja.id];
   await seedMembership(cambio.id, current.id);
-  await seedMembership(baja.id, current.id, "INACTIVE", "RESIGNATION");
+  await seedMembership(baja.id, current.id, "INACTIVE", { endReason: "RESIGNATION" });
   await seedCommitteeMembership(cambio.id, committeeId, current.id, "MIEMBRO", {
     joinedAt: null,
     leftAt: new Date(),

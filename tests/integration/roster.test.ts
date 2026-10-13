@@ -538,7 +538,7 @@ describe("importación del roster", () => {
         await seedMembership(juan, termId, today);
         await seedCommitteeMembership(juan, a3, termId);
       } else if (today !== "NO_MEMBERSHIP") {
-        await seedMembership(juan, termId, "INACTIVE", today);
+        await seedMembership(juan, termId, "INACTIVE", { endReason: today });
       }
     }
 
