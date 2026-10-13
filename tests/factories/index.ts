@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { campaign, campaignRecipient, emailTemplate, message } from "@/modules/comms/schema";
 import { competitionSupport } from "@/modules/competition/schema";
@@ -172,7 +172,8 @@ interface MembershipExit {
  * (`endReason`), el último semestre (`lastTermId`) y la época del carné subida a 1 (`walletEpoch`).
  * El motivo y el último semestre van en `exit` y son solo de una inactiva: con otro estado la función
  * lanza en vez de ignorarlos. A la persona no la toca: la baja la deja exalumna, y eso lo siembra
- * quien llama con `seedPerson(correo, { stage: "ALUMNI" })`.
+ * quien llama con `seedPerson(correo, { stage: "ALUMNI" })`. Si alguna no lo es, la función lanza
+ * antes de escribir: una inactiva sobre una persona de miembro es un estado que ninguna baja deja.
  */
 export async function seedMemberships(
   personIds: string[],
@@ -186,6 +187,19 @@ export async function seedMemberships(
     );
   }
   if (personIds.length === 0) return [];
+  if (status === "INACTIVE") {
+    const alumni = await db()
+      .select({ id: person.id })
+      .from(person)
+      .where(and(inArray(person.id, personIds), eq(person.stage, "ALUMNI")));
+    const seeded = new Set(alumni.map((row) => row.id));
+    const notAlumni = personIds.filter((personId) => !seeded.has(personId));
+    if (notAlumni.length > 0) {
+      throw new Error(
+        `seedMemberships: una membresía inactiva es la que deja una baja, y la baja deja a la persona exalumna. Sembrá a la persona con seedPerson(correo, { stage: "ALUMNI" }) antes de sembrar su membresía; no lo están: ${notAlumni.join(", ")}.`,
+      );
+    }
+  }
   const rows = await db()
     .insert(membership)
     .values(

@@ -377,6 +377,34 @@ describe("la fábrica y los comandos de las cuatro tablas de partida", () => {
       [],
     );
   });
+
+  it("sembrar una inactiva sobre una persona que no es exalumna lanza, dice qué hacer y no siembra ninguna membresía (DT-382)", async () => {
+    const termId = await seedTerm();
+    const former = await seedPerson(BY_COMMAND, { stage: "ALUMNI" });
+
+    for (const stage of ["MEMBER", "APPLICANT", "PROSPECT"] as const) {
+      const personId = await seedPerson(`${stage.toLowerCase()}.${BY_FACTORY}`, { stage });
+
+      await expect(seedMembership(personId, termId, "INACTIVE")).rejects.toThrow(
+        'Sembrá a la persona con seedPerson(correo, { stage: "ALUMNI" }) antes de sembrar su membresía',
+      );
+      // En un lote, una sola persona que no es exalumna deja el lote entero sin sembrar, y el mensaje
+      // la nombra a ella y no a la que sí lo es.
+      const batch = seedMemberships([former, personId], termId, "INACTIVE");
+      await expect(batch).rejects.toThrow(`no lo están: ${personId}.`);
+    }
+    // Una persona que no existe tampoco es exalumna: cae por la misma puerta, antes de escribir.
+    await expect(seedMembership("nadie", termId, "INACTIVE")).rejects.toThrow(
+      "no lo están: nadie.",
+    );
+
+    expect(await db().select().from(membership)).toEqual([]);
+    // Con la persona exalumna, la misma llamada siembra.
+    await seedMembership(former, termId, "INACTIVE");
+    expect(await db().select({ personId: membership.personId }).from(membership)).toEqual([
+      { personId: former },
+    ]);
+  });
 });
 
 describe("la fábrica y el cargo de quien ya está en un comité", () => {
