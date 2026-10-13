@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
 // igual, porque podrían ser lo mismo escrito de otra manera:
 //
 // - `INACTIVE`: el `.set({ … })` que sigue a `.update(membership)` escribe `status: "INACTIVE"`.
-// - `no se lee`: ese `.set(` no recibe un objeto literal, trae un `...`, o le escribe a `status` algo
+// - `unreadable`, lo que no se lee: ese `.set(` no recibe un objeto literal, trae un `...`, o le escribe a `status` algo
 //   que no es un texto entre comillas dobles (una variable, `{ status }`, una clave entre corchetes);
 //   o al `.update(membership)` no le sigue un `.set(`.
 // - `SQL`: un `update membership set …` escrito a mano que nombra `status`.
@@ -38,7 +38,7 @@ interface TextFile {
 interface Finding {
   path: string;
   line: number;
-  write: "INACTIVE" | "no se lee" | "SQL";
+  write: "INACTIVE" | "unreadable" | "SQL";
 }
 
 interface Exception {
@@ -84,13 +84,13 @@ function argumentAt(text: string, open: number): string | null {
 /** Qué le escribe a `status` el argumento de un `.set(`: nada, un estado que se lee, o no se sabe. */
 function statusWritten(argument: string): Finding["write"] | null {
   const body = argument.trim();
-  if (!body.startsWith("{") || body.includes("...")) return "no se lee";
+  if (!body.startsWith("{") || body.includes("...")) return "unreadable";
   const mentions = body.match(/\bstatus\b/g)?.length ?? 0;
   if (mentions === 0) return null;
   const literals = [
     ...body.matchAll(/(?<![.\w"'`[])status\s*:\s*"([A-Z_]+)"(?:\s+as\s+const)?\s*(?=[,}])/g),
   ].map((match) => match[1]);
-  if (literals.length !== mentions) return "no se lee";
+  if (literals.length !== mentions) return "unreadable";
   return literals.includes("INACTIVE") ? "INACTIVE" : null;
 }
 
@@ -115,7 +115,7 @@ function inactiveMembershipWrites(files: TextFile[]): Finding[] {
       const after = match.index + match[0].length;
       const set = /^\s*\.set\(/.exec(text.slice(after));
       const argument = set ? argumentAt(text, after + set[0].length - 1) : null;
-      const write = argument === null ? "no se lee" : statusWritten(argument);
+      const write = argument === null ? "unreadable" : statusWritten(argument);
       if (write) found.push({ path, line: lineOf(match.index), write });
     }
     for (const match of text.matchAll(/\bupdate\s+(?:public\.)?"?membership"?\s+set\b[^`;]*/gi)) {
@@ -199,7 +199,7 @@ describe("lo que el lector de escrituras a `membership` cuenta", () => {
     ["un objeto que llega armado", "db().update(membership).set(ended)"],
     ["un `update` sin su `.set(` a continuación", "const pending = db().update(membership);"],
   ])("la que no deja leer qué estado escribe: %s", (_title, text) => {
-    expect(writesOf(text)).toEqual(["no se lee"]);
+    expect(writesOf(text)).toEqual(["unreadable"]);
   });
 
   it.each([
@@ -234,7 +234,7 @@ describe("lo que el lector de escrituras a `membership` cuenta", () => {
 
     expect(sample(text)).toEqual([
       { path: "muestra.ts", line: 2, write: "INACTIVE" },
-      { path: "muestra.ts", line: 5, write: "no se lee" },
+      { path: "muestra.ts", line: 5, write: "unreadable" },
     ]);
   });
 });

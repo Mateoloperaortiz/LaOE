@@ -98,11 +98,11 @@ const WRITTEN_ROSTER_ERRORS = [...sourceOf(ROSTER).matchAll(/\btext\((\d+)/g)].m
 /** Con qué mira la prueba el rango del número. */
 type Seen =
   /** Llama a la función que da el número. */
-  | "función"
+  | "function"
   /** Enumera un tipo exportado, que no compila si gana un valor. */
-  | "tipo"
+  | "type"
   /** Lee un número del texto de un archivo: nada lo ata a lo que hay guardado en una base. */
-  | "texto";
+  | "text";
 
 interface ListRow {
   code: CopyCode;
@@ -121,7 +121,7 @@ const badgeConditions = (code: CopyCode): ListRow => ({
   code,
   number: "el nivel de una insignia",
   source: `el \`check\` \`badge_definition_level_range\` de \`${BADGE_SCHEMA}\`; el rango de verdad es el de la base`,
-  seen: "texto",
+  seen: "text",
   pieces: BADGE_POSITIONS.length,
   positions: BADGE_POSITIONS,
 });
@@ -131,7 +131,7 @@ const LISTS: ListRow[] = [
     code: "T-3048",
     number: "la jornada de The Games",
     source: "el tipo `Day` de `src/modules/competition/domain/schedule-pure.ts`",
-    seen: "tipo",
+    seen: "type",
     pieces: DAYS.length,
     positions: DAYS.map((day) => day - 1),
   },
@@ -139,7 +139,7 @@ const LISTS: ListRow[] = [
     code: "T-3078",
     number: "la columna de cada jornada de The Games, entre la del equipo y la de las entregadas",
     source: "el tipo `Day` de `src/modules/competition/domain/schedule-pure.ts`",
-    seen: "tipo",
+    seen: "type",
     pieces: DAYS.length + 2,
     positions: DAYS,
   },
@@ -148,7 +148,7 @@ const LISTS: ListRow[] = [
     number: "el rango del Panal",
     source:
       "`panalRank` sobre los cortes de `PANAL_RANK_PERCENTAGES` (`src/modules/participation/panal-engine.ts`)",
-    seen: "función",
+    seen: "function",
     pieces: PANAL_RANK_PERCENTAGES.length + 1,
     positions: PANAL_RANKS,
   },
@@ -156,7 +156,7 @@ const LISTS: ListRow[] = [
     code: "T-2250",
     number: "el escalón de la representación de un comité",
     source: "`representationLadder` (`src/modules/participation/domain/committee-assembly.ts`)",
-    seen: "función",
+    seen: "function",
     pieces: LADDER_STEPS.length,
     positions: LADDER_STEPS,
   },
@@ -164,7 +164,7 @@ const LISTS: ListRow[] = [
     code: "T-801",
     number: "el motivo automático de una propuesta del cierre",
     source: "el tipo `ProposalReason` de `src/modules/permanence/domain/permanence-pure.ts`",
-    seen: "tipo",
+    seen: "type",
     pieces: PROPOSAL_REASONS.length,
     positions: PROPOSAL_REASONS,
   },
@@ -176,7 +176,7 @@ const LISTS: ListRow[] = [
     code: "T-082",
     number: "el nivel de GH Points",
     source: `los cortes de \`points.levels\` que siembra \`drizzle/${LEVELS_SEED}\`, por \`levelFor\`; lo guardado es configuración y esta prueba no lo ve`,
-    seen: "texto",
+    seen: "text",
     pieces: SEEDED_CUTOFFS.length,
     positions: LEVEL_POSITIONS,
   },
@@ -184,7 +184,7 @@ const LISTS: ListRow[] = [
     code: "T-2623",
     number: "el estado de un juego de la biblioteca",
     source: "el tipo `Estado`, que es de `src/app/app/juegos/page.tsx` y no se puede importar",
-    seen: "texto",
+    seen: "text",
     pieces: GAME_STATES.length,
     positions: GAME_STATES,
   },
@@ -192,7 +192,7 @@ const LISTS: ListRow[] = [
     code: "T-165",
     number: "el error del validador de asignaciones",
     source: `los \`error: n\` que devuelve \`parseRoleAssignments\` (\`${ROSTER}\`); el largo es la posición más alta que ese archivo le pide a su lista`,
-    seen: "texto",
+    seen: "text",
     pieces: Math.max(...WRITTEN_ROSTER_ERRORS, ...ASSIGNMENT_ERRORS) + 1,
     positions: ASSIGNMENT_ERRORS,
   },

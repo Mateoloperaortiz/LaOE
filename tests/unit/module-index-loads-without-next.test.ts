@@ -186,11 +186,11 @@ describe("el index.ts de cada módulo, cargado en Node sin Next", () => {
     const listed = EXCEPTIONS.map(({ module }) => module);
 
     expect({
-      noCargan: Object.fromEntries(
+      failing: Object.fromEntries(
         Object.entries(failed).filter(([name]) => !listed.includes(name)),
       ),
-      sobran: listed.filter((name) => !(name in failed)).sort(),
-    }).toEqual({ noCargan: {}, sobran: [] });
+      stale: listed.filter((name) => !(name in failed)).sort(),
+    }).toEqual({ failing: {}, stale: [] });
   });
 
   it("se cargan todos los módulos de `src/modules`, uno por uno y sin saltarse ninguno", () => {

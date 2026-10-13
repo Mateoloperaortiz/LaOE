@@ -217,11 +217,11 @@ export function unguardedConcurrencyTests(files: TextFile[]): { tests: number; f
 export interface UnnamedLoad {
   path: string;
   /**
-   * `lectura` es un miembro leído sobre la carga, `(await import("…")).nombre`. `entero` es la carga
-   * que no llega a un nombre: la que algo esparce, devuelve, recibe o guarda sin decir qué toma; el
+   * `memberRead` es la lectura: un miembro leído sobre la carga, `(await import("…")).nombre`.
+   * `wholeFile` es el archivo entero, la carga que no llega a un nombre: la que algo esparce, devuelve, recibe o guarda sin decir qué toma; el
    * `import * as` al que no se le lee ningún miembro por nombre, y el `export * from`.
    */
-  form: "lectura" | "entero";
+  form: "memberRead" | "wholeFile";
   /** El archivo de `src`, como lo escribe la prueba. */
   specifier: string;
 }
@@ -273,21 +273,22 @@ function declaredFrom(expression: ts.Expression): ts.VariableDeclaration | null 
 
 /**
  * Qué hace con una carga guardada un nombre igual al de su variable: le lee un miembro por su
- * `nombre` o la desestructura; la usa de `tipo` (`typeof ruta`); la pasa entera como `argumento` de
- * una llamada; la usa `entera` de otra forma, o es `ajeno`, el nombre de un miembro o de otra
- * declaración (`otro.cargado`, `{ cargado: 1 }`), que no es la variable.
+ * nombre o la desestructura (`named`); la usa de tipo (`type`, `typeof ruta`); la pasa entera como
+ * argumento de una llamada (`argument`); la usa entera de otra forma (`whole`), o es ajeno
+ * (`unrelated`): el nombre de un miembro o de otra declaración (`otro.cargado`, `{ cargado: 1 }`),
+ * que no es la variable.
  */
-type Use = "nombre" | "tipo" | "argumento" | "entera" | "ajeno";
+type Use = "named" | "type" | "argument" | "whole" | "unrelated";
 
 function howUsed(use: ts.Identifier): Use {
   const parent = use.parent;
   if (ts.isPropertyAccessExpression(parent) && parent.expression === use) {
-    return "nombre";
+    return "named";
   }
   if (ts.isElementAccessExpression(parent) && parent.expression === use) {
     // `ruta["GET"]` nombra. `ruta[metodo]` no: con una clave que no es un texto escrito ahí, knip da
     // por usado todo el archivo, aunque al lado se lea otro miembro por nombre.
-    return ts.isStringLiteralLike(parent.argumentExpression) ? "nombre" : "entera";
+    return ts.isStringLiteralLike(parent.argumentExpression) ? "named" : "whole";
   }
   if (
     ts.isVariableDeclaration(parent) &&
@@ -295,26 +296,26 @@ function howUsed(use: ts.Identifier): Use {
     ts.isObjectBindingPattern(parent.name)
   ) {
     // Con resto (`const { GET, ...otros } = ruta`) knip tampoco sigue.
-    return parent.name.elements.some((element) => element.dotDotDotToken) ? "entera" : "nombre";
+    return parent.name.elements.some((element) => element.dotDotDotToken) ? "whole" : "named";
   }
   if (ts.isTypeQueryNode(parent)) {
-    return "tipo";
+    return "type";
   }
   if (ts.isExportSpecifier(parent)) {
     // `export { cargado }` y `export { cargado as otro }` la sacan entera. En `export { otro as
     // cargado }` y en un reexporte con `from`, el nombre no es la variable.
     const local = parent.propertyName ?? parent.name;
-    return local === use && !parent.parent.parent.moduleSpecifier ? "entera" : "ajeno";
+    return local === use && !parent.parent.parent.moduleSpecifier ? "whole" : "unrelated";
   }
   // `{ cargado }` la mete entera.
   if (ts.isShorthandPropertyAssignment(parent)) {
-    return "entera";
+    return "whole";
   }
   const named = parent as { name?: ts.Node; propertyName?: ts.Node };
   if (named.name === use || named.propertyName === use) {
-    return "ajeno";
+    return "unrelated";
   }
-  return ts.isCallExpression(parent) && parent.arguments.includes(use) ? "argumento" : "entera";
+  return ts.isCallExpression(parent) && parent.arguments.includes(use) ? "argument" : "whole";
 }
 
 /** Lo que hace con la variable cada nombre igual al suyo, en el bloque donde se declara. */
@@ -336,7 +337,7 @@ function usesOf(variable: ts.Identifier): Use[] {
 
 /** Si a la variable que guarda una carga solo se le leen miembros por nombre o se la desestructura. */
 function readByNameOnly(variable: ts.Identifier): boolean {
-  return usesOf(variable).every((use) => use !== "entera" && use !== "argumento");
+  return usesOf(variable).every((use) => use !== "whole" && use !== "argument");
 }
 
 /**
@@ -345,7 +346,7 @@ function readByNameOnly(variable: ts.Identifier): boolean {
  */
 function namespaceReadByName(namespace: ts.Identifier): boolean {
   const uses = usesOf(namespace);
-  return uses.includes("nombre") && !uses.includes("entera");
+  return uses.includes("named") && !uses.includes("whole");
 }
 
 /** Si la carga es un elemento de `const [{ a }, { b }] = await Promise.all([…])` y el suyo nombra lo que toma. */
@@ -379,19 +380,19 @@ function unnamedForm(load: ts.CallExpression): UnnamedLoad["form"] | null {
     (ts.isPropertyAccessExpression(holder) || ts.isElementAccessExpression(holder)) &&
     holder.expression === value
   ) {
-    return "lectura";
+    return "memberRead";
   }
   const declaration = declaredFrom(load);
   if (declaration) {
     const named = ts.isIdentifier(declaration.name)
       ? readByNameOnly(declaration.name)
       : ts.isObjectBindingPattern(declaration.name);
-    return named ? null : "entero";
+    return named ? null : "wholeFile";
   }
   if (ts.isArrayLiteralExpression(load.parent) && namedInList(load.parent, load)) {
     return null;
   }
-  return "entero";
+  return "wholeFile";
 }
 
 /** Si un `import` o un `export` estático toma el archivo sin nombrar nada de él. */
@@ -456,7 +457,7 @@ export function unnamedSourceLoads(files: TextFile[]): UnnamedLoad[] {
       } else if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
         const specifier = srcSpecifier(file.path, node.moduleSpecifier);
         if (specifier !== null && takesWholeFile(node)) {
-          found.push({ path: file.path, form: "entero", specifier });
+          found.push({ path: file.path, form: "wholeFile", specifier });
         }
       }
       ts.forEachChild(node, visit);

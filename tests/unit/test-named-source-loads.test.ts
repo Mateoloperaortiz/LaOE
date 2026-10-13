@@ -9,15 +9,15 @@ import { type UnnamedLoad, unnamedSourceLoads } from "../../scripts/lib/test-sui
 // regla 12). Por eso esta prueba lee el código de `tests/` y no admite, fuera de su lista de
 // excepciones:
 //
-// - la `lectura`: un miembro leído sobre la carga, `(await import("…")).nombre`;
-// - el archivo `entero`: la carga que no llega a un nombre. La que algo esparce,
+// - la lectura (`memberRead`): un miembro leído sobre la carga, `(await import("…")).nombre`;
+// - el archivo entero (`wholeFile`): la carga que no llega a un nombre. La que algo esparce,
 //   `...(await import("…"))`; la que una función devuelve, como la fábrica de
 //   `vi.mock("…", async () => await import("…"))`; la que se pasa como argumento, se asigna, se
 //   guarda sin `await` o queda suelta; la que no va escrita tal cual, con un paréntesis o un cambio
 //   de tipo de por medio, y la variable que la guarda si después se usa entera, se le lee un miembro
 //   con una clave que no es un texto (`ruta[metodo]`) o se desestructura con resto.
 //
-// Lo mismo vale para el `import` estático, que es otro camino al mismo efecto: sale como `entero` el
+// Lo mismo vale para el `import` estático, que es otro camino al mismo efecto: sale como `wholeFile` el
 // `import * as` al que no se le lee ningún miembro por nombre, y el `export * from`.
 //
 // Pasan solo las formas con las que knip sigue marcando: `unnamedSourceLoads` las enumera, con lo
@@ -42,7 +42,7 @@ interface Exception {
 const EXCEPTIONS: Exception[] = [
   {
     path: "tests/integration/outbox.test.ts",
-    form: "entero",
+    form: "wholeFile",
     specifier: "@/jobs/handlers",
     loads: 1,
     reason:
@@ -72,7 +72,7 @@ function drift(found: UnnamedLoad[], exceptions: Exception[]) {
     Object.keys(a)
       .filter((key) => (a[key] ?? 0) > (b[key] ?? 0))
       .sort();
-  return { sinNombrar: more(counted, listed), sobran: more(listed, counted) };
+  return { unnamed: more(counted, listed), stale: more(listed, counted) };
 }
 
 /** Lo que la lectura encuentra en una prueba de unitarias con ese texto. */
@@ -83,8 +83,8 @@ function loadsIn(text: string, path = "tests/unit/sintetica.test.ts") {
 describe("lo que las pruebas cargan de src", () => {
   it("va con nombre: fuera de la lista de excepciones no queda una lectura sobre la carga ni un archivo esparcido o devuelto entero", () => {
     expect(drift(unnamedSourceLoads(sources("tests")), EXCEPTIONS)).toEqual({
-      sinNombrar: [],
-      sobran: [],
+      unnamed: [],
+      stale: [],
     });
   });
 
@@ -98,19 +98,19 @@ describe("lo que las pruebas cargan de src", () => {
   it("una carga que la lista no tiene la pone en rojo, y una excepción que sobra también", () => {
     const load = {
       path: "tests/unit/a.test.ts",
-      form: "lectura" as const,
+      form: "memberRead" as const,
       specifier: "@/shared/a",
     };
     const exception = { ...load, loads: 1, reason: "" };
 
-    expect(drift([load], [])).toEqual({ sinNombrar: [named(load)], sobran: [] });
-    expect(drift([], [exception])).toEqual({ sinNombrar: [], sobran: [named(load)] });
-    expect(drift([load], [exception])).toEqual({ sinNombrar: [], sobran: [] });
+    expect(drift([load], [])).toEqual({ unnamed: [named(load)], stale: [] });
+    expect(drift([], [exception])).toEqual({ unnamed: [], stale: [named(load)] });
+    expect(drift([load], [exception])).toEqual({ unnamed: [], stale: [] });
     // La cuenta es por forma y por archivo: una segunda lectura no entra con la excepción de la primera.
-    expect(drift([load, load], [exception])).toEqual({ sinNombrar: [named(load)], sobran: [] });
+    expect(drift([load, load], [exception])).toEqual({ unnamed: [named(load)], stale: [] });
     expect(drift([load], [{ ...exception, loads: 2 }])).toEqual({
-      sinNombrar: [],
-      sobran: [named(load)],
+      unnamed: [],
+      stale: [named(load)],
     });
   });
 
@@ -127,10 +127,10 @@ describe("lo que las pruebas cargan de src", () => {
         ].join("\n"),
       ),
     ).toEqual([
-      "lectura @/modules/alpha/domain/things",
-      "lectura @/shared/kit",
-      "lectura @/shared/lib/dates",
-      "lectura @/shared/log",
+      "memberRead @/modules/alpha/domain/things",
+      "memberRead @/shared/kit",
+      "memberRead @/shared/lib/dates",
+      "memberRead @/shared/log",
     ]);
   });
 
@@ -152,12 +152,12 @@ describe("lo que las pruebas cargan de src", () => {
         ].join("\n"),
       ),
     ).toEqual([
-      "entero @/modules/alpha/domain/things",
-      "entero @/shared/kit/types",
-      "entero @/shared/brand/feed",
-      "entero @/modules/beta/domain/things",
-      "entero @/shared/lib/dates",
-      "entero @/shared/log",
+      "wholeFile @/modules/alpha/domain/things",
+      "wholeFile @/shared/kit/types",
+      "wholeFile @/shared/brand/feed",
+      "wholeFile @/modules/beta/domain/things",
+      "wholeFile @/shared/lib/dates",
+      "wholeFile @/shared/log",
     ]);
   });
 
@@ -176,13 +176,13 @@ describe("lo que las pruebas cargan de src", () => {
         ].join("\n"),
       ),
     ).toEqual([
-      "entero @/shared/kit/types",
-      "entero @/modules/alpha/domain/things",
-      "entero @/modules/beta/domain/pure",
-      "entero @/shared/log",
-      "entero @/jobs/handlers",
-      "entero @/shared/lib/dates",
-      "entero @/db/client",
+      "wholeFile @/shared/kit/types",
+      "wholeFile @/modules/alpha/domain/things",
+      "wholeFile @/modules/beta/domain/pure",
+      "wholeFile @/shared/log",
+      "wholeFile @/jobs/handlers",
+      "wholeFile @/shared/lib/dates",
+      "wholeFile @/db/client",
     ]);
   });
 
@@ -207,10 +207,10 @@ describe("lo que las pruebas cargan de src", () => {
         ].join("\n"),
       ),
     ).toEqual([
-      "entero @/shared/kit/types",
-      "entero @/shared/lib/dates",
-      "entero @/shared/brand/feed",
-      "entero @/shared/log",
+      "wholeFile @/shared/kit/types",
+      "wholeFile @/shared/lib/dates",
+      "wholeFile @/shared/brand/feed",
+      "wholeFile @/shared/log",
     ]);
   });
 
@@ -263,11 +263,11 @@ describe("lo que las pruebas cargan de src", () => {
         ].join("\n"),
       ),
     ).toEqual([
-      "entero @/app/api/v1/the-games/hub/route",
-      "entero @/shared/kit/types",
-      "entero @/shared/lib/dates",
-      "entero @/shared/log",
-      "entero @/shared/brand/feed",
+      "wholeFile @/app/api/v1/the-games/hub/route",
+      "wholeFile @/shared/kit/types",
+      "wholeFile @/shared/lib/dates",
+      "wholeFile @/shared/log",
+      "wholeFile @/shared/brand/feed",
     ]);
   });
 
@@ -301,14 +301,14 @@ describe("lo que las pruebas cargan de src", () => {
         ].join("\n"),
       ),
     ).toEqual([
-      "entero @/modules/alpha/domain/things",
-      "entero @/modules/alpha/domain/more",
-      "entero @/shared/kit",
-      "entero @/shared/kit/csv",
-      "entero @/shared/lib/dates",
-      "entero @/shared/log",
-      "entero @/db/client",
-      "entero @/shared/brand/feed",
+      "wholeFile @/modules/alpha/domain/things",
+      "wholeFile @/modules/alpha/domain/more",
+      "wholeFile @/shared/kit",
+      "wholeFile @/shared/kit/csv",
+      "wholeFile @/shared/lib/dates",
+      "wholeFile @/shared/log",
+      "wholeFile @/db/client",
+      "wholeFile @/shared/brand/feed",
     ]);
   });
 
@@ -329,11 +329,11 @@ describe("lo que las pruebas cargan de src", () => {
         ].join("\n"),
       ),
     ).toEqual([
-      "entero @/modules/alpha/domain/passes",
-      "entero @/shared/kit/types",
-      "entero @/instrumentation",
-      "entero @/shared/kit/csv",
-      "entero @/shared/brand/feed",
+      "wholeFile @/modules/alpha/domain/passes",
+      "wholeFile @/shared/kit/types",
+      "wholeFile @/instrumentation",
+      "wholeFile @/shared/kit/csv",
+      "wholeFile @/shared/brand/feed",
     ]);
   });
 
@@ -354,10 +354,10 @@ describe("lo que las pruebas cargan de src", () => {
         ].join("\n"),
       ),
     ).toEqual([
-      "entero @/modules/alpha/domain/ledger",
-      "entero @/modules/alpha/domain/badges",
-      "entero @/shared/log",
-      "entero @/shared/lib/dates",
+      "wholeFile @/modules/alpha/domain/ledger",
+      "wholeFile @/modules/alpha/domain/badges",
+      "wholeFile @/shared/log",
+      "wholeFile @/shared/lib/dates",
     ]);
   });
 
@@ -394,7 +394,7 @@ describe("lo que las pruebas cargan de src", () => {
           'export * from "../helpers/logs";',
         ].join("\n"),
       ),
-    ).toEqual(["entero @/shared/kit/types", "entero @/shared/kit/csv"]);
+    ).toEqual(["wholeFile @/shared/kit/types", "wholeFile @/shared/kit/csv"]);
   });
 
   it("mira la variable en el bloque donde se declara: otra del mismo nombre en otro bloque no cuenta", () => {
@@ -422,7 +422,7 @@ describe("lo que las pruebas cargan de src", () => {
       'const d = { ...(await import("./fixtures")) };',
     ].join("\n");
 
-    expect(loadsIn(text)).toEqual(["lectura ../../src/shared/log"]);
+    expect(loadsIn(text)).toEqual(["memberRead ../../src/shared/log"]);
     // La misma ruta desde otra carpeta ya no cae en `src`.
     expect(loadsIn(text, "tests/sintetica.test.ts")).toEqual([]);
   });
