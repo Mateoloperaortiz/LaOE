@@ -219,7 +219,7 @@ describe("dónde se escribe la cookie de sesión", () => {
     expect(read(WRITER)).not.toMatch(/^\s*["']use server["']/m);
   });
 
-  it("no importa Next arriba del archivo: el index del módulo lo reexporta y también lo carga Node sin Next, en el poller, los scripts y la E2E", () => {
+  it("no importa Next arriba del archivo: el index del módulo lo reexporta y también lo carga Node sin Next, en los scripts y en la E2E, donde ese import no resuelve", () => {
     expect(read(WRITER)).not.toMatch(/^import\b[^;]*\bfrom "next\//m);
     expect(read(WRITER)).toMatch(/await import\("next\/headers"\)/);
   });

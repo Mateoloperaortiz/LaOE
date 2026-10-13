@@ -3,7 +3,7 @@
 - Estado: Aceptada
 - Fecha: 2026-10-13
 - Relacionadas: ADR-024, ADR-028, ADR-036, ADR-060, ADR-109, ADR-119, ADR-120, ADR-123, ADR-125, ADR-126, ADR-127
-- Enmienda: ADR-126 (regla 2: T-801 con las cuatro decisiones deja de ser un par de largo distinto, porque la pestaña de permanencia ya no empareja la lista con ese orden; regla 13: los pares de largo distinto que siguen por posición pasan de 4 lecturas a 3 y las de un número que calcula el dominio de 17 a 18); ADR-127 (regla 8: el error que cuelga de un objeto interpolado y escribe su propio `toJSON` ya no sale por él, deja solo su código; y a la línea sin mensaje cuyo `err` es un objeto con un texto por `message` le llega ese mensaje ya recortado, como a la de un `Error`; regla 13 y Consecuencias: lo firmado de T-545 y T-670 deja de sumarse a mano, y «el total de asambleas obligatorias se calcula en un solo sitio» no era cierto, porque el Desglose de permanencia lo suma aparte; regla 12: la carga con nombre vale para toda prueba y todo archivo de `src`, y una prueba la vigila)
+- Enmienda: ADR-126 (regla 2: T-801 con las cuatro decisiones deja de ser un par de largo distinto, porque la pestaña de permanencia ya no empareja la lista con ese orden; regla 13: los pares de largo distinto que siguen por posición pasan de 4 lecturas a 3 y las de un número que calcula el dominio de 17 a 18); ADR-127 (regla 8: el error que cuelga de un objeto interpolado y escribe su propio `toJSON` ya no sale por él, deja solo su código; y a la línea sin mensaje cuyo `err` es un objeto con un texto por `message` le llega ese mensaje ya recortado, como a la de un `Error`; regla 13 y Consecuencias: lo firmado de T-545 y T-670 deja de sumarse a mano, y «el total de asambleas obligatorias se calcula en un solo sitio» no era cierto, porque el Desglose de permanencia lo suma aparte; regla 12: la carga con nombre vale para toda prueba y todo archivo de `src`, y una prueba la vigila; regla 6: un `import` estático de Next arriba de un archivo que un `index.ts` reexporta no resuelve en la E2E, y sí cargan con él los scripts y el poller)
 
 ## Contexto
 
@@ -32,6 +32,15 @@ La fila del ledger nombraba el primer caso, leído y sin ejecutar. El segundo sa
 **knip no veía los exports de once archivos de `src`, y nada impedía una carga nueva que le tapara otro (DT-384).** [ADR-127](ADR-127-reglas-de-correccion-del-decimoquinto-ciclo.md) regla 12 dejó con nombre lo que siete pruebas toman de `identity`, y la fila anotó que la misma forma seguía en `tests/` sobre diez archivos: doce lecturas `(await import("…")).nombre` sobre ocho y dos enteros. Medido el 2026-10-13 con knip 6.34 y un export sembrado en cada uno: `npm run deadcode` salió en 0, sin marcar ninguno. Las doce lecturas eran las de la fila. Lo de los archivos enteros era más: `@/shared/admin-kit/types` lo devolvían o esparcían siete pruebas y no una, cinco de ellas de integración; un undécimo archivo, `@/shared/admin-kit/csv`, lo esparcían tres, y `@/modules/system/domain/privacy-pure`, una.
 
 Las formas que le tapan un archivo a knip tampoco eran solo esas dos. Con una carga sembrada de cada una, knip dejó de marcar el export sembrado también con la carga pasada como argumento (ella o su promesa), asignada a una variable ya declarada, guardada sin `await` o suelta, que solo corre el archivo, y con la variable que la guarda cuando después se esparce o se pasa entera. La última es la que alguien escribe sin pensarlo al quitar un `...(await import("…"))`: `const tipos = await import("…")` y `{ ...tipos }`.
+
+**Nada vigilaba que el `index.ts` de un módulo cargara en Node sin Next, y estaba mal anotado a quién le pasa (DT-379).** Al unificar la cookie de sesión, un `import` estático de `next/headers` arriba de `session-cookie.ts` pasó lint, tipos, `deps:check`, `deadcode` y las unitarias, porque Vitest lo resuelve, y dejó a la E2E sin pruebas que correr. `tests/unit/session-cookie.test.ts` lo vigila desde entonces para ese archivo solo. Medido el 2026-10-13 con Node 24.19, tsx 4.23 y Playwright 1.62:
+
+- Los catorce `index.ts` de `src/modules` cargan hoy en un proceso `node --conditions=react-server --import tsx`, en menos de un segundo entre todos, con la base escrita o sin ella. Ninguno abre una conexión al importarse y el proceso termina solo.
+- Con el `import` sembrado, el cargador de Playwright no resuelve el paquete: `next` no trae mapa `exports` y Node no prueba extensiones («Cannot find module …/node_modules/next/headers imported from …/session-cookie.ts»). `npm run test:e2e -- --list` responde «No tests found».
+- Los scripts de `package.json` no caen. Corren con tsx, que vuelve a pedir el paquete con la extensión puesta cuando Node dice que no resuelve, y `identity` carga igual.
+- El poller no corre en Node sin Next: lo arranca `src/instrumentation.ts`, dentro del proceso de Next.
+
+La fila y [ADR-127](ADR-127-reglas-de-correccion-del-decimoquinto-ciclo.md) regla 6 decían que caían los tres.
 
 ## Decisión
 
@@ -84,6 +93,16 @@ Las formas que le tapan un archivo a knip tampoco eran solo esas dos. Con una ca
 
    `tests/unit/test-named-source-loads.test.ts` lee todo `tests/` con el compilador de TypeScript (`unnamedSourceLoads`, en `scripts/lib/test-suite-metrics.ts`) y falla con una carga de esas sobre un archivo de `src`, escrito con `@/` o con una ruta relativa, que no esté en su lista de excepciones. Una excepción que sobra también la pone en rojo. La lista tiene una: `tests/integration/outbox.test.ts` carga `@/jobs/handlers` suelto para que corra y registre los handlers, y no toma nada de él. La fábrica que reemplaza un barrel nombra solo lo que el código bajo prueba toma de él: Vitest falla al leer una clave que el mock no trae, así que lo que falte se ve al correr la prueba.
 
+6. **El `index.ts` de cada módulo carga en Node sin Next, y una prueba los carga de verdad.** Lo que necesita Next se importa dentro de la función que lo usa, como `writeSessionCookie` y `getActor` ([ADR-127](ADR-127-reglas-de-correccion-del-decimoquinto-ciclo.md) regla 6): un `import` estático de `next/…` arriba de un archivo que un `index.ts` alcanza no entra.
+
+   `tests/unit/module-index-loads-without-next.test.ts` importa el `index.ts` de cada carpeta de `src/modules` en un solo proceso hijo de Node, con `--conditions=react-server` y tsx y sin `DATABASE_URL`, y falla nombrando el módulo, el import que no resolvió y el archivo que lo pide. Debajo de tsx va un paso que deja en firme la respuesta de Node cuando un paquete que importa el código de la casa no resuelve. Sin él la prueba no cae, porque tsx vuelve a pedir el paquete con la extensión. Un archivo de control con `import { cookies } from "next/headers"` arriba se carga en cada corrida y tiene que fallar: si un cambio de tsx o de Node deja de reproducirlo, la prueba cae por ahí en vez de pasar sin mirar. La prueba comprueba además que el hijo termina solo.
+
+   Se eligió cargar y no una regla de `dependency-cruiser`. La regla habría tenido que decir qué cuenta como pasar por un componente o por un `actions.ts`; la carga no lo tiene que decir, ve lo que pasa, y tarda menos de un segundo para los catorce.
+
+   La lista de excepciones es para el `index.ts` que necesite Next al cargarse a propósito, con su razón. Nace vacía, y una excepción que ya carga la pone en rojo.
+
+   Enmienda [ADR-127](ADR-127-reglas-de-correccion-del-decimoquinto-ciclo.md) regla 6 en a quién le pasa. Decía que a ese `index.ts` lo cargan sin Next «el poller por `wallet`, `scripts/` y el lanzador de la E2E» y que ahí el `import` estático no resuelve. No resuelve en la E2E. Los scripts corren con tsx y cargan igual, y al poller lo arranca Next. La regla de esa ADR no cambia: el `import` va adentro de la función.
+
 ## Consecuencias
 
 - GH lee en la Persona 360 el mismo motivo que en la página del cierre para una misma propuesta.
@@ -103,3 +122,7 @@ Las formas que le tapan un archivo a knip tampoco eran solo esas dos. Con una ca
 - La excepción de `@/jobs/handlers` deja ese archivo fuera de la vista de knip: no marca un export sembrado en él. Hoy no exporta nada. Quien le agregue un export no va a tener ese aviso.
 - Lo que el trinquete no mira: un `import()` cuyo archivo no está escrito como texto (hoy uno, en `tests/unit/domain-events.test.ts`, que arma la ruta con una plantilla). Y a la variable que guarda una carga la sigue por su nombre dentro del bloque donde se declara, sin el compilador: otra variable del mismo nombre en un bloque de adentro cuenta como la misma, y puede pedir un nombre de más.
 - knip sigue contando una prueba como consumidor: un export que solo usa una prueba no sale marcado. Eso no cambia y espera la decisión abierta 73.
+- Un `import` estático de Next en lo que alcanza el `index.ts` de un módulo cae en las unitarias, con el nombre del módulo, el import y el archivo, y ya no recién en la E2E con «No tests found». Con `import { cookies } from "next/headers"` sembrado arriba de `src/modules/identity/session-cookie.ts`, `tests/unit/module-index-loads-without-next.test.ts` cae en `identity` y en `wallet`, que lo carga por `identity`, con el mismo error que da el cargador de Playwright con ese sembrado. `tests/unit/session-cookie.test.ts` conserva su caso y cae también.
+- Las unitarias lanzan un proceso de Node más, de menos de un segundo. No abre conexiones: el hijo no recibe `DATABASE_URL`.
+- La prueba depende de cómo resuelve tsx: el paso que deja en firme la respuesta de Node se apoya en que tsx reintenta solo ante `ERR_MODULE_NOT_FOUND`. Si eso cambia, cae el control.
+- No cubre lo que Node carga de `src` sin pasar por un `index.ts`. `tests/e2e`, `tests/factories` y `playwright.config.ts` importan directo 36 rutas más (los `schema.ts`, `@/shared/copy`, `@/db/client` y algunos archivos de dominio). Lo que de eso no alcance ningún `index.ts` lo sigue atrapando solo la E2E del CI (DT-396).

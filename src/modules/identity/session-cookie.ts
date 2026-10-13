@@ -9,9 +9,9 @@ import { SESSION_COOKIE } from "./cookie";
 
 /**
  * La tienda de cookies del request. `next/headers` se importa acá adentro y no arriba: el `index.ts`
- * del módulo reexporta este archivo y también lo carga Node a secas (el poller, los scripts y el
- * lanzador de la E2E), donde ese import no resuelve. Next se carga recién al atender un request,
- * igual que en `current.ts`.
+ * del módulo reexporta este archivo y también lo carga Node sin Next. Con la resolución de paquetes
+ * de Node, que es la del cargador de Playwright en la E2E, ese import no resuelve arriba del archivo
+ * (ADR-128 regla 6). Next se carga recién al atender un request, igual que en `current.ts`.
  */
 async function cookieStore() {
   const { cookies } = await import("next/headers");
