@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 // Una membresía inactiva de una prueba sale de la fábrica (`seedMemberships`, que siembra la fila que
-// deja una baja y lanza si la persona no es exalumna) o del comando de la baja (`endMembershipAs`).
+// deja una baja y lanza si la persona no es egresada) o del comando de la baja (`endMembershipAs`).
 // Un `update(membership)` suelto que le escribe `status: "INACTIVE"` arma lo que ninguna baja deja:
 // sin último semestre, con la época del carné sin subir y la persona todavía de miembro, y la prueba
 // queda en verde sobre eso (DT-382, ADR-128 regla 7). Por eso esta prueba lee el código: fuera de la
@@ -53,7 +53,7 @@ interface Exception {
   reason: string;
 }
 
-// Antes de sumar una acá: sembrá a la persona exalumna y su membresía con la fábrica, o dá la baja con
+// Antes de sumar una acá: sembrá a la persona egresada y su membresía con la fábrica, o dá la baja con
 // `endMembershipAs`. La lista es para el escritor que la prueba arma a propósito.
 const EXCEPTIONS: Exception[] = [
   {

@@ -378,7 +378,7 @@ describe("la fábrica y los comandos de las cuatro tablas de partida", () => {
     );
   });
 
-  it("sembrar una inactiva sobre una persona que no es exalumna lanza, dice qué hacer y no siembra ninguna membresía (DT-382)", async () => {
+  it("sembrar una inactiva sobre una persona que no es egresada lanza, dice qué hacer y no siembra ninguna membresía (DT-382)", async () => {
     const termId = await seedTerm();
     const former = await seedPerson(BY_COMMAND, { stage: "ALUMNI" });
 
@@ -388,18 +388,18 @@ describe("la fábrica y los comandos de las cuatro tablas de partida", () => {
       await expect(seedMembership(personId, termId, "INACTIVE")).rejects.toThrow(
         'Sembrá a la persona con seedPerson(correo, { stage: "ALUMNI" }) antes de sembrar su membresía',
       );
-      // En un lote, una sola persona que no es exalumna deja el lote entero sin sembrar, y el mensaje
+      // En un lote, una sola persona que no es egresada deja el lote entero sin sembrar, y el mensaje
       // la nombra a ella y no a la que sí lo es.
       const batch = seedMemberships([former, personId], termId, "INACTIVE");
       await expect(batch).rejects.toThrow(`no lo están: ${personId}.`);
     }
-    // Una persona que no existe tampoco es exalumna: cae por la misma puerta, antes de escribir.
+    // Una persona que no existe tampoco es egresada: cae por la misma puerta, antes de escribir.
     await expect(seedMembership("nadie", termId, "INACTIVE")).rejects.toThrow(
       "no lo están: nadie.",
     );
 
     expect(await db().select().from(membership)).toEqual([]);
-    // Con la persona exalumna, la misma llamada siembra.
+    // Con la persona egresada, la misma llamada siembra.
     await seedMembership(former, termId, "INACTIVE");
     expect(await db().select({ personId: membership.personId }).from(membership)).toEqual([
       { personId: former },

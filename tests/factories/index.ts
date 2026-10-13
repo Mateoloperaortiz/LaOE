@@ -171,7 +171,7 @@ interface MembershipExit {
  * (`endMembership`; `tests/integration/factory-parity.test.ts`): su fecha y su motivo de salida
  * (`endReason`), el último semestre (`lastTermId`) y la época del carné subida a 1 (`walletEpoch`).
  * El motivo y el último semestre van en `exit` y son solo de una inactiva: con otro estado la función
- * lanza en vez de ignorarlos. A la persona no la toca: la baja la deja exalumna, y eso lo siembra
+ * lanza en vez de ignorarlos. A la persona no la toca: la baja la deja egresada, y eso lo siembra
  * quien llama con `seedPerson(correo, { stage: "ALUMNI" })`. Si alguna no lo es, la función lanza
  * antes de escribir: una inactiva sobre una persona de miembro es un estado que ninguna baja deja.
  */
@@ -196,7 +196,7 @@ export async function seedMemberships(
     const notAlumni = personIds.filter((personId) => !seeded.has(personId));
     if (notAlumni.length > 0) {
       throw new Error(
-        `seedMemberships: una membresía inactiva es la que deja una baja, y la baja deja a la persona exalumna. Sembrá a la persona con seedPerson(correo, { stage: "ALUMNI" }) antes de sembrar su membresía; no lo están: ${notAlumni.join(", ")}.`,
+        `seedMemberships: una membresía inactiva es la que deja una baja, y la baja deja a la persona egresada. Sembrá a la persona con seedPerson(correo, { stage: "ALUMNI" }) antes de sembrar su membresía; no lo están: ${notAlumni.join(", ")}.`,
       );
     }
   }
