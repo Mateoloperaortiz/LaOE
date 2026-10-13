@@ -985,17 +985,30 @@ const KIND_REASON = {
 } as const satisfies Record<CommitteeDecision, ProposalReason>;
 
 /**
- * Por qué sale de la OE quien sale, de la causa que más pesa a la que menos. Faltar es no tener registro
- * en una obligatoria que sí se celebró y no tiene reemplazo programado; una obligatoria que nunca se
- * registró en el sistema no expulsa a nadie. Una falta grave viva más cualquier otra sanción viva
- * expulsa (Regl. art. 69.3; ADR-060 regla 6). Sin ninguna de las dos, sale quien se queda sin un comité
- * donde cumpla o esté en prueba.
+ * La causa que obliga a salir de la OE, de la que más pesa a la que menos; nulo si ninguna obliga. Faltar
+ * es no tener registro en una obligatoria que sí se celebró y no tiene reemplazo programado; una
+ * obligatoria que nunca se registró en el sistema no expulsa a nadie. Una falta grave viva más cualquier
+ * otra sanción viva expulsa (Regl. art. 69.3; ADR-060 regla 6). Es la única regla de «por qué sale»
+ * (ADR-129 regla 1): de ella saca el cierre el motivo de su propuesta y la baja su causal.
  */
-function exitReason(result: PersonPermanence): 3 | 4 | 5 {
+function forcedExitReason(
+  result: Pick<PersonPermanence, "mandatory" | "expulsionWarning">,
+): 4 | 5 | null {
   if (result.mandatory.lost.length > 0) {
     return 4;
   }
-  return result.expulsionWarning ? 5 : 3;
+  return result.expulsionWarning ? 5 : null;
+}
+
+/**
+ * La causal con que queda guardada la baja de quien el cierre saca de la OE (ADR-060 regla 3; ADR-129
+ * regla 1): una expulsión si algo lo obliga a salir, y si no, la salida por permanencia de quien se
+ * queda sin comité o de quien GH decide sacar. Lee lo mismo de un resultado que de su snapshot.
+ */
+export function exitEndReason(
+  result: Pick<PersonPermanence, "mandatory" | "expulsionWarning">,
+): "EXPULSION" | "PERMANENCE" {
+  return forcedExitReason(result) === null ? "PERMANENCE" : "EXPULSION";
 }
 
 /** Propuesta del cierre (ADR-028): por comité según el estado final; por persona si no queda comité, faltó a una obligatoria o la expulsan sus sanciones. */
@@ -1009,14 +1022,15 @@ export function proposeDecisions(result: PersonPermanence): Proposal {
     }
     return { committeeId: item.committeeId, proposed, reason: KIND_REASON[proposed] };
   });
-  const reason = exitReason(result);
+  const forced = forcedExitReason(result);
   const stays = committees.some((item) => item.proposed !== "EXIT_COMMITTEE");
+  // Sin nada que obligue, sale quien se queda sin un comité donde cumpla o esté en prueba (3).
   return {
     committees,
     person:
-      reason === 3 && stays
+      forced === null && stays
         ? { proposed: "CONTINUES", reason: KIND_REASON.CONTINUES }
-        : { proposed: "EXIT_OE", reason },
+        : { proposed: "EXIT_OE", reason: forced ?? 3 },
   };
 }
 
@@ -1033,8 +1047,9 @@ function unsavedProposalReason(result: PersonPermanence, proposed: DecisionKind)
   if (proposed !== "EXIT_OE") {
     return KIND_REASON[proposed];
   }
-  if (proposeDecisions(result).person.proposed === "EXIT_OE") {
-    return exitReason(result);
+  const today = proposeDecisions(result).person;
+  if (today.proposed === "EXIT_OE") {
+    return today.reason;
   }
   return result.mandatory.met ? 3 : 4;
 }

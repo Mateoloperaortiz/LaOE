@@ -13,7 +13,8 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) | Reglas de corrección del decimosexto ciclo del refactor | Aceptada |
+| [ADR-129](ADR-129-reglas-de-consolidacion-del-decimoseptimo-ciclo.md) | Reglas de consolidación del decimoséptimo ciclo del refactor | Aceptada |
+| [ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) | Reglas de corrección del decimosexto ciclo del refactor | Aceptada (enmendada por ADR-129) |
 | [ADR-127](ADR-127-reglas-de-correccion-del-decimoquinto-ciclo.md) | Reglas de corrección del decimoquinto ciclo del refactor | Aceptada (enmendada por ADR-128) |
 | [ADR-126](ADR-126-reglas-de-las-etiquetas-por-valor-del-decimocuarto-ciclo.md) | Reglas de las etiquetas por valor del decimocuarto ciclo del refactor | Aceptada (enmendada por ADR-128) |
 | [ADR-125](ADR-125-reglas-de-la-interfaz-de-los-modulos-del-decimotercer-ciclo.md) | Reglas de la interfaz pública de los módulos del decimotercer ciclo del refactor | Aceptada (enmendada por ADR-127) |

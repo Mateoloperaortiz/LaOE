@@ -18,6 +18,7 @@ import { permanenceDecision } from "../schema";
 import {
   type CommitteeDecision,
   type DecisionKind,
+  exitEndReason,
   type FinalState,
   type PersonPermanence,
   type Proposal,
@@ -526,12 +527,13 @@ export async function applyDecisions(termId: string, nextTermId: string): Promis
     };
     const reason = personRow?.reason ?? "";
     if (personRow?.decision === "EXIT_OE") {
-      // Faltar a una obligatoria expulsa (ADR-060 regla 3); quedarse sin comité es permanencia.
+      // Lo que obliga a salir expulsa y quedarse sin comité es permanencia (ADR-060 regla 3). La causal
+      // sale de la regla del dominio que da el motivo de la salida, sobre el snapshot que el cierre
+      // congeló y no sobre el motivo guardado al confirmar (ADR-129 regla 1; decisión abierta 80). Sin
+      // snapshot no hay de dónde decir que es una expulsión.
       const snapshot = await getSnapshot(personId, termId);
-      const expelled =
-        snapshot !== null && (snapshot.mandatory.lost.length > 0 || snapshot.expulsionWarning);
       await endMembershipAs(actor, personId, {
-        endReason: expelled ? "EXPULSION" : "PERMANENCE",
+        endReason: snapshot === null ? "PERMANENCE" : exitEndReason(snapshot),
         note: reason || undefined,
         memorialConsent: false,
         contactConsent: false,

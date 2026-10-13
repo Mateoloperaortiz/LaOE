@@ -14,6 +14,7 @@ import {
   deviatesFromNominal,
   distribution,
   evaluationWindow,
+  exitEndReason,
   finalStateFor,
   type GroupFact,
   marginFor,
@@ -1354,6 +1355,59 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
         reason: 0,
       });
       expect(proposalReason(null, pendingInduction, "EXIT_OE")).toBe(4);
+    });
+
+    it("la causal de la baja y el motivo de la salida salen de una sola regla: en cada situación dicen lo que decían la condición que la baja escribía a mano y la función del motivo de antes del ciclo 17 (DT-398)", () => {
+      /**
+       * Las dos copias de antes, como estaban en `refactor/ciclo-16`: la condición de `applyDecisions`
+       * (`closing.ts`), que leía el snapshot, y `exitReason` (`permanence-pure.ts`), con su 3 de
+       * centinela de «nada obliga a salir».
+       */
+      const expelledBefore = (result: Result) =>
+        result.mandatory.lost.length > 0 || result.expulsionWarning;
+      const exitReasonBefore = (result: Result) => {
+        if (result.mandatory.lost.length > 0) {
+          return 4;
+        }
+        return result.expulsionWarning ? 5 : 3;
+      };
+      for (const { name, result } of situations) {
+        const keeps = proposeDecisions(result).committees.some(
+          (item) => item.proposed !== "EXIT_COMMITTEE",
+        );
+        const reason = exitReasonBefore(result);
+        const personBefore =
+          reason === 3 && keeps
+            ? { proposed: "CONTINUES", reason: 0 }
+            : { proposed: "EXIT_OE", reason };
+        expect(proposeDecisions(result).person, name).toEqual(personBefore);
+        expect(exitEndReason(result), name).toBe(
+          expelledBefore(result) ? "EXPULSION" : "PERMANENCE",
+        );
+        // Una sola regla: la baja es una expulsión exactamente cuando el motivo de la salida es la
+        // obligatoria perdida o las sanciones.
+        expect(exitEndReason(result) === "EXPULSION", name).toBe(reason === 4 || reason === 5);
+        // El respaldo de las filas viejas tampoco cambia.
+        const fallback = result.mandatory.met ? 3 : 4;
+        expect(proposalReason(null, result, "EXIT_OE"), name).toBe(
+          personBefore.proposed === "EXIT_OE" ? reason : fallback,
+        );
+      }
+      // Las doce situaciones, en su orden: sin nada que obligue, con la advertencia y con la perdida.
+      expect(situations.map(({ result }) => exitEndReason(result))).toEqual([
+        ...Array<string>(4).fill("PERMANENCE"),
+        ...Array<string>(8).fill("EXPULSION"),
+      ]);
+      // La baja la lee del snapshot, que trae lo obligatorio y la advertencia igual que el resultado.
+      expect(exitEndReason({ mandatory: absent.mandatory, expulsionWarning: false })).toBe(
+        "EXPULSION",
+      );
+      expect(exitEndReason({ mandatory: stays.mandatory, expulsionWarning: true })).toBe(
+        "EXPULSION",
+      );
+      expect(exitEndReason({ mandatory: stays.mandatory, expulsionWarning: false })).toBe(
+        "PERMANENCE",
+      );
     });
 
     it("de cada situación al confirmar a cada situación de hoy: con el motivo guardado se muestra el de la propuesta, y sin él lo que mostraba la pestaña de antes del ciclo 16, salvo donde hoy se sigue proponiendo lo decidido, que muestra el motivo de hoy", () => {
