@@ -45,6 +45,21 @@ function isErrorCode(value: unknown): value is string | number {
   return typeof value === "string" || typeof value === "number";
 }
 
+/**
+ * Lo que el registro recorta como un error: un `Error`, o lo que pino serializa como si lo fuera, un
+ * objeto con un texto por `message` (ADR-128 regla 3). Así llega un error de otro contexto de
+ * ejecución, donde `instanceof Error` no vale. Vale donde alguien dijo que eso es un error: bajo `err`
+ * y como causa de otro. En cualquier otra parte un objeto con `message` es un dato.
+ */
+function isErrorLike(value: unknown): value is Error {
+  return (
+    value instanceof Error ||
+    (typeof value === "object" &&
+      value !== null &&
+      typeof (value as { message?: unknown }).message === "string")
+  );
+}
+
 /** Las cuatro claves que el registro no escribe, estén donde estén. */
 const HIDDEN_KEYS = ["password", "token", "code", "secret"];
 
@@ -171,14 +186,17 @@ function hangingError(error: Error): object {
   return isErrorCode(code) ? { code } : {};
 }
 
-/** El error de una línea: ella misma o lo que trae bajo `err`. De ahí toma pino el mensaje que falta. */
+/**
+ * El error de una línea: ella misma o lo que trae bajo `err`, sea un `Error` o tenga su forma. De ahí
+ * toma pino el mensaje que falta.
+ */
 function errorOfLine(line: unknown): Error | undefined {
   if (line instanceof Error) {
     return line;
   }
   const carried =
     typeof line === "object" && line !== null ? (line as { err?: unknown }).err : undefined;
-  return carried instanceof Error ? carried : undefined;
+  return isErrorLike(carried) ? carried : undefined;
 }
 
 /**
@@ -195,7 +213,7 @@ function errorOfLine(line: unknown): Error | undefined {
  * deja de ser un error, y `%s` la escribe «[object Object]»; y el error tal cual lleva sus valores al
  * mensaje, en el texto y en lo que trae colgado. El que cuelga de un objeto interpolado tampoco
  * escribe lo que trae colgado: de él queda su código (`hangingError`), y el objeto se copia aunque no
- * nombre ninguna clave.
+ * nombre ninguna clave. Tampoco sale por su propio `toJSON`, si lo escribe (ADR-128 regla 3).
  */
 function reviewedForMessage(value: unknown): unknown {
   if (typeof value !== "object" || value === null) {
@@ -206,11 +224,15 @@ function reviewedForMessage(value: unknown): unknown {
       return sayingOnly(withoutQueryValues(value, String(value)));
     }
     let carriesError = false;
-    // El reemplazo recibe cada valor después de su `toJSON`: un error que escribe el suyo sale por él.
-    const written = JSON.stringify(value, (_key, inner: unknown) => {
-      if (inner instanceof Error) {
+    // El reemplazo recibe cada valor después de su `toJSON`, y `this` es quien lo trae: ahí está lo
+    // que cuelga antes de escribirse. Se mira antes y después: el error que escribe su propio
+    // `toJSON` no sale por él, y el que devuelve el `toJSON` de otro objeto tampoco sale entero.
+    const written = JSON.stringify(value, function (this: unknown, key: string, inner: unknown) {
+      const hanging = (this as Record<string, unknown>)[key];
+      const error = hanging instanceof Error ? hanging : inner instanceof Error ? inner : undefined;
+      if (error) {
         carriesError = true;
-        return hangingError(inner);
+        return hangingError(error);
       }
       return inner;
     }) as string | undefined;
@@ -246,17 +268,21 @@ export function errorCode(error: Error): string | number | undefined {
 
 type QueryError = Error & { query: string; params: unknown[] };
 
-/** Un error de consulta de Drizzle: trae el SQL y, aparte, los valores con que se llamó. */
+/**
+ * Un error de consulta de Drizzle: trae el SQL y, aparte, los valores con que se llamó. También lo
+ * que tiene esa forma sin ser un `Error` (`isErrorLike`).
+ */
 function isQueryError(error: unknown): error is QueryError {
   const candidate = error as Partial<QueryError> | null;
   return (
-    error instanceof Error &&
-    typeof candidate?.query === "string" &&
-    Array.isArray(candidate.params)
+    isErrorLike(error) && typeof candidate?.query === "string" && Array.isArray(candidate.params)
   );
 }
 
-/** Si el error, o alguna de sus causas hasta cinco niveles, es un error de consulta. */
+/**
+ * Si el error, o alguna de sus causas hasta cinco niveles, es un error de consulta. Recorre solo lo
+ * que es un `Error`: lo que tiene su forma sin serlo se recorta al escribirlo, y acá no cuenta.
+ */
 export function carriesQueryError(error: unknown): boolean {
   let current: unknown = error;
   for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
@@ -487,6 +513,9 @@ function replaceOutsideStackFrames(text: string, written: string, replacement: s
  * Es el recorte del serializador de `err`, y lo usa también quien guarda el texto de un error fuera
  * del registro: el poller, en `outbox.last_error` (ADR-119 regla 16).
  *
+ * Recorre también lo que tiene forma de error sin serlo (`isErrorLike`, ADR-128 regla 3): pino dobla
+ * en el mensaje y en la traza la causa que tiene un texto por `message`, sea o no un `Error`.
+ *
  * No lanza (ADR-128 regla 2). `text` y el mensaje de cada error se leen como texto (`asText`), sean lo
  * que sean. Y si el error no se deja leer, o sus valores no se dejan escribir, no hay con qué recortar
  * y el texto no sale: devuelve `[oculto]`.
@@ -495,7 +524,7 @@ export function withoutQueryValues(error: Error, text: string): string {
   try {
     let clean = asText(text);
     let current: unknown = error;
-    for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
+    for (let depth = 0; depth < 5 && isErrorLike(current); depth += 1) {
       if (isQueryError(current)) {
         // Lo mismo que escribe Drizzle: `params: ${params}`.
         clean = clean.split(`\nparams: ${current.params.join(",")}`).join("");
@@ -561,7 +590,8 @@ function serializedByPino(error: Error): ReturnType<typeof pino.stdSerializers.e
  * Lanza si el error no se deja leer: de eso se ocupa `serializeError`.
  */
 function trimmedError(error: unknown): unknown {
-  if (!(error instanceof Error)) {
+  // Lo que no tiene forma de error sale como llegó: pino lo devuelve tal cual.
+  if (!isErrorLike(error)) {
     return pino.stdSerializers.err(error as Error);
   }
   const serialized = serializedByPino(error);
