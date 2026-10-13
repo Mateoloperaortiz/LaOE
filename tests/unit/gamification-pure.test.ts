@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   audienceIncludes,
-  badgeProgress,
   boosterExpiresAt,
   boosterPercent,
   boosterState,
@@ -12,7 +11,6 @@ import {
   isVoluntaryOccasion,
   memberChallengeStatus,
   nextDayAt,
-  unlockedLevel,
   weekKeyFor,
 } from "@/modules/participation/domain/gamification-pure";
 import type {
@@ -280,18 +278,5 @@ describe("economía de la gamificación (ADR-067)", () => {
     expect(boosterState({ status: "RESERVED", expiresAt: past }, now)).toBe("RESERVED");
     expect(boosterState({ status: "CONSUMED", expiresAt: past }, now)).toBe("CONSUMED");
     expect(boosterState({ status: "REVOKED", expiresAt: future }, now)).toBe("REVOKED");
-  });
-
-  it("cuenta niveles y progreso de insignias por umbrales", () => {
-    const thresholds = [1, 5, 15];
-    expect(unlockedLevel(0, thresholds)).toBe(0);
-    expect(unlockedLevel(1, thresholds)).toBe(1);
-    expect(unlockedLevel(4, thresholds)).toBe(1);
-    expect(unlockedLevel(5, thresholds)).toBe(2);
-    expect(unlockedLevel(15, thresholds)).toBe(3);
-    expect(unlockedLevel(40, thresholds)).toBe(3);
-    expect(badgeProgress(0, thresholds)).toEqual({ level: 0, next: 1, current: 0 });
-    expect(badgeProgress(3, thresholds)).toEqual({ level: 1, next: 5, current: 3 });
-    expect(badgeProgress(15, thresholds)).toEqual({ level: 3, next: null, current: 15 });
   });
 });

@@ -189,17 +189,3 @@ export function boosterState(
 ): BoosterState {
   return row.status === "AVAILABLE" && row.expiresAt <= now ? "EXPIRED" : row.status;
 }
-
-/** Nivel alcanzado: cantidad de umbrales cubiertos por `count`. */
-export function unlockedLevel(count: number, thresholds: readonly number[]): number {
-  return thresholds.filter((threshold) => count >= threshold).length;
-}
-
-/** Progreso dentro de una familia: nivel actual, próximo umbral (null si completó) y cuenta. */
-export function badgeProgress(
-  count: number,
-  thresholds: readonly number[],
-): { level: number; next: number | null; current: number } {
-  const level = unlockedLevel(count, thresholds);
-  return { level, next: thresholds[level] ?? null, current: count };
-}

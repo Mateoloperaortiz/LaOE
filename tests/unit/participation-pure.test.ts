@@ -23,7 +23,6 @@ import {
   viabilityAlerts,
 } from "@/modules/participation/domain/committee-viability-pure";
 import {
-  balance,
   competitionRanks,
   levelFor,
   meanRate,
@@ -316,8 +315,7 @@ describe("registro propio: por qué no procede (ADR-120 regla 17)", () => {
 });
 
 describe("ledger y tableros", () => {
-  it("suma el saldo y ubica el nivel por cortes", () => {
-    expect(balance([{ points: 20 }, { points: -20 }, { points: 15 }])).toBe(15);
+  it("ubica el nivel por cortes", () => {
     const cutoffs = [0, 100, 250, 500, 1000];
     expect(levelFor(0, cutoffs)).toEqual({ index: 0, min: 0, next: 100, remaining: 100 });
     expect(levelFor(99, cutoffs)).toEqual({ index: 0, min: 0, next: 100, remaining: 1 });

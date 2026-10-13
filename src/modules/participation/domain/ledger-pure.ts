@@ -27,11 +27,6 @@ export const POINT_ENTRY_KINDS = [
   "PANAL",
 ] as const satisfies readonly PointEntryKind[];
 
-/** El saldo nunca se persiste: es la suma de las entradas. */
-export function balance(entries: ReadonlyArray<{ points: number }>): number {
-  return entries.reduce((sum, entry) => sum + entry.points, 0);
-}
-
 export interface Level {
   /** Posición del nivel en la lista de cortes (0 = el primero). */
   index: number;
