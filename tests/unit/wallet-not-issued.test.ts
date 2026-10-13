@@ -17,9 +17,10 @@ vi.mock("@/modules/identity", async () => {
   const { ForbiddenError } = await import("@/modules/identity/domain/errors");
   return { ForbiddenError };
 });
-vi.mock("@/modules/wallet", async () => ({
-  walletFailure: (await import("@/modules/wallet/domain/failure")).walletFailure,
-}));
+vi.mock("@/modules/wallet", async () => {
+  const { walletFailure } = await import("@/modules/wallet/domain/failure");
+  return { walletFailure };
+});
 
 const PLATFORMS = ["APPLE", "GOOGLE"] as const;
 

@@ -23,22 +23,21 @@ vi.mock("@/modules/identity", () => ({
   getCarnetMetadata: state.credential,
   issueCarnet: state.issueApp,
 }));
-vi.mock("@/modules/people", async () => ({
-  canParticipate: (await import("@/modules/people/domain/access-pure")).canParticipate,
-  getMyMembership: state.membership,
-  getPersonRecord: state.person,
-}));
-vi.mock("@/modules/wallet", async () => ({
-  isStalePass: (await import("@/modules/wallet/domain/pass-pure")).isStalePass,
-  listPassesFor: state.passes,
-  walletAvailability: state.available,
-}));
+vi.mock("@/modules/people", async () => {
+  const { canParticipate } = await import("@/modules/people/domain/access-pure");
+  return { canParticipate, getMyMembership: state.membership, getPersonRecord: state.person };
+});
+vi.mock("@/modules/wallet", async () => {
+  const { isStalePass } = await import("@/modules/wallet/domain/pass-pure");
+  return { isStalePass, listPassesFor: state.passes, walletAvailability: state.available };
+});
 vi.mock("@/app/app/carnet/actions", () => ({ revokeCarnetAction: async () => {} }));
 vi.mock("@/env", () => ({ getEnv: () => ({ APP_TIMEZONE: "America/Bogota" }) }));
 // Se conserva el Cartel real; se evita cargar next/font desde el barrel de marca.
-vi.mock("@/shared/brand", async () => ({
-  Cartel: (await import("@/shared/brand/Cartel")).Cartel,
-}));
+vi.mock("@/shared/brand", async () => {
+  const { Cartel } = await import("@/shared/brand/Cartel");
+  return { Cartel };
+});
 vi.mock("next/image", async () => {
   const { createElement } = await import("react");
   return {

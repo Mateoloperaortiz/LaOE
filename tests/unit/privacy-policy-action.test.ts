@@ -26,10 +26,16 @@ vi.mock("@/modules/identity", async () => {
   const { ForbiddenError } = await import("@/modules/identity/domain/errors");
   return { assertAdmin, ForbiddenError, getActor: state.actor, hasRecentStepUp };
 });
-vi.mock("@/modules/system", async () => ({
-  ...(await import("@/modules/system/domain/privacy-pure")),
-  setPrivacyPolicyVersionAs: state.save,
-}));
+vi.mock("@/modules/system", async () => {
+  const { isPrivacyPolicyReady, privacyPolicyVersionSchema } = await import(
+    "@/modules/system/domain/privacy-pure"
+  );
+  return {
+    isPrivacyPolicyReady,
+    privacyPolicyVersionSchema,
+    setPrivacyPolicyVersionAs: state.save,
+  };
+});
 vi.mock("@/shared/lib/request", () => ({ clientIp: state.ip }));
 
 const path = "/admin/sistema/politica";

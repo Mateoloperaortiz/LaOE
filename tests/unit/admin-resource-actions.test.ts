@@ -30,7 +30,14 @@ vi.mock("@/modules/identity", async () => {
   const { safeNextPath } = await import("@/modules/identity/domain/pure");
   return { assertAdmin, ForbiddenError, getActor: state.actor, hasRecentStepUp, safeNextPath };
 });
-vi.mock("@/shared/admin-kit", async () => await import("@/shared/admin-kit/types"));
+// Del barrel del admin kit van nombradas las tres funciones que la action toma, con el código de
+// verdad: devuelto entero, `types` le tapaba a knip sus exports sin uso (DT-384).
+vi.mock("@/shared/admin-kit", async () => {
+  const { formDataToInput, formDataToValues, withLockedFormValues } = await import(
+    "@/shared/admin-kit/types"
+  );
+  return { formDataToInput, formDataToValues, withLockedFormValues };
+});
 vi.mock("@/app/admin/_kit/registry", () => ({ getResource: state.resource }));
 const initial: FormState = { ok: false, message: null, errors: {}, values: {} };
 function form() {

@@ -8,9 +8,10 @@ import { formatDate } from "@/shared/lib/dates";
 
 vi.mock("@/env", () => ({ getEnv: () => ({ APP_TIMEZONE: "America/Bogota" }) }));
 // Se conserva la Insignia real; se evita cargar next/font desde el barrel de marca.
-vi.mock("@/shared/brand", async () => ({
-  Insignia: (await import("@/shared/brand/Insignia")).Insignia,
-}));
+vi.mock("@/shared/brand", async () => {
+  const { Insignia } = await import("@/shared/brand/Insignia");
+  return { Insignia };
+});
 
 // El bloque de faltas y sanciones de la Persona 360 (ADR-116 regla 13): dice hasta cuándo fue la
 // suspensión de cada sanción con un texto propio, que no afirma que siga. El de Mi OE (T-2237) le

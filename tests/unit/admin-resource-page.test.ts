@@ -31,15 +31,18 @@ vi.mock("@/app/admin/_kit/actions", () => ({
   rowActionAction: vi.fn(),
   saveResourceAction: vi.fn(),
 }));
-vi.mock("@/shared/admin-kit", async () => ({
-  ...(await import("@/shared/admin-kit/types")),
-  Pagination: () => null,
-  ResourceForm: () => null,
-  ResourcePanel: () => null,
-  ResourceSubmitButton: () => null,
-  ResourceTable: () => null,
-  ResourceToolbar: () => null,
-}));
+vi.mock("@/shared/admin-kit", async () => {
+  const { resolveFilters } = await import("@/shared/admin-kit/types");
+  return {
+    resolveFilters,
+    Pagination: () => null,
+    ResourceForm: () => null,
+    ResourcePanel: () => null,
+    ResourceSubmitButton: () => null,
+    ResourceTable: () => null,
+    ResourceToolbar: () => null,
+  };
+});
 
 function resource(overrides: Partial<AnyResource> = {}): AnyResource {
   return {

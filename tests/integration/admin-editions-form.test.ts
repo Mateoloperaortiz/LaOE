@@ -10,8 +10,11 @@ import { truncateAll } from "./db";
 // las pone el registro.
 
 // El barrel del admin kit trae componentes con `next/font`, que no carga fuera de Next; de él los
-// recursos solo usan lo que vive en `types`.
-vi.mock("@/shared/admin-kit", async () => await import("@/shared/admin-kit/types"));
+// recursos solo usan el separador de las listas, que vive en `types` (DT-384).
+vi.mock("@/shared/admin-kit", async () => {
+  const { MULTI_SEPARATOR } = await import("@/shared/admin-kit/types");
+  return { MULTI_SEPARATOR };
+});
 
 describe("formulario de ediciones del admin", () => {
   beforeEach(() => truncateAll());

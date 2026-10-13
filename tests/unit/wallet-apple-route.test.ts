@@ -17,11 +17,10 @@ vi.mock("@/modules/identity", async () => {
 // seguro escribir lo decide el módulo, no la prueba (DT-228, ADR-120 regla 13).
 // Acá queda un solo caso de fallo, que dice que la ruta registra con su plataforma y vuelve al
 // carnet: la matriz de lo que se registra según el error está en `wallet-not-issued.test.ts`.
-vi.mock("@/modules/wallet", async () => ({
-  walletAvailability: state.available,
-  buildApplePass: state.issue,
-  walletFailure: (await import("@/modules/wallet/domain/failure")).walletFailure,
-}));
+vi.mock("@/modules/wallet", async () => {
+  const { walletFailure } = await import("@/modules/wallet/domain/failure");
+  return { walletAvailability: state.available, buildApplePass: state.issue, walletFailure };
+});
 
 beforeEach(() => {
   vi.resetAllMocks();

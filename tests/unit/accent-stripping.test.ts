@@ -54,15 +54,17 @@ vi.mock("react", async (importOriginal) => {
   };
 });
 vi.mock("@/modules/people", () => ({ listPublishedCommittees: async () => search.committees }));
-vi.mock("@/modules/content", async () => ({
-  excerpt: (await import("@/modules/content/domain/markdown-pure")).excerpt,
-}));
+vi.mock("@/modules/content", async () => {
+  const { excerpt } = await import("@/modules/content/domain/markdown-pure");
+  return { excerpt };
+});
 // Se conservan las piezas reales; se evita cargar next/font desde el barrel de marca.
-vi.mock("@/shared/brand", async () => ({
-  BarraTitulo: (await import("@/shared/brand/BarraTitulo")).BarraTitulo,
-  Cartel: (await import("@/shared/brand/Cartel")).Cartel,
-  feedVariant: (await import("@/shared/brand/feed")).feedVariant,
-}));
+vi.mock("@/shared/brand", async () => {
+  const { BarraTitulo } = await import("@/shared/brand/BarraTitulo");
+  const { Cartel } = await import("@/shared/brand/Cartel");
+  const { feedVariant } = await import("@/shared/brand/feed");
+  return { BarraTitulo, Cartel, feedVariant };
+});
 
 const COMMITTEES = [
   { id: "c1", slug: "agora", name: "Café Ágora" },

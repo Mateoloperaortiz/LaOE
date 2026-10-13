@@ -24,11 +24,14 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }),
 }));
 // El barrel del admin kit trae componentes con `next/font`, que no carga fuera de Next: de él la ruta
-// y los recursos solo usan los contratos y el CSV.
-vi.mock("@/shared/admin-kit", async () => ({
-  ...(await import("@/shared/admin-kit/types")),
-  ...(await import("@/shared/admin-kit/csv")),
-}));
+// y los recursos solo usan lo que va nombrado acá, de los contratos y del CSV (DT-384).
+vi.mock("@/shared/admin-kit", async () => {
+  const { EXPORT_ROW_LIMIT, MULTI_SEPARATOR, resolveFilters } = await import(
+    "@/shared/admin-kit/types"
+  );
+  const { toCsv } = await import("@/shared/admin-kit/csv");
+  return { EXPORT_ROW_LIMIT, MULTI_SEPARATOR, resolveFilters, toCsv };
+});
 vi.mock("@/modules/identity", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/identity")>()),
   getActor: session.getActor,
