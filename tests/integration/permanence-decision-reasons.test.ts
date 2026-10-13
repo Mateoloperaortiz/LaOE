@@ -1,32 +1,17 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { adjustRequirementAs } from "@/modules/participation";
-import { recordSanctionAs, revokeSanctionAs } from "@/modules/people";
 import {
   closeTermPermanenceAs,
   confirmAllProposedAs,
   confirmDecisionsAs,
   getPersonPermanence,
-  grantManualCreditAs,
   listClosingRows,
   listPersonDecisions,
   recomputeSnapshots,
 } from "@/modules/permanence";
 import { permanenceDecision } from "@/modules/permanence/schema";
-import { closeTermPoints } from "@/modules/terms";
-import {
-  seedCheckIn,
-  seedCommittee,
-  seedCommitteeMembership,
-  seedManualCredit,
-  seedMembership,
-  seedOccasion,
-  seedPerson,
-  seedRule,
-  seedTerm,
-} from "../factories";
+import { type ClosingWorld, closingWorld, type Profile } from "../helpers/closing-world";
 import { truncateAll } from "./db";
 
 // El motivo automático con que el cierre de permanencia propuso una decisión se guarda con la decisión
@@ -34,200 +19,13 @@ import { truncateAll } from "./db";
 // snapshots, GH confirma con los comandos del módulo, y lo que quedó guardado se lee por las filas del
 // cierre, que traen la decisión confirmada de cada comité y la de la persona.
 
-/** ADMIN desde la Persona 360: declara su alcance, sin restricción de tipo ni de comité. */
-const asAdmin = { by: "ADMIN" } as const;
-
-/** Cómo llega la persona a su comité: cumple, queda en la banda de prueba o queda fuera de ella. */
-type Level = "MEETS" | "BAND" | "BELOW";
-
-/** Lo que suma cada nivel en las dos reglas del comité (60 y 40 puntos). */
-const CREDITS: Record<Level, readonly [number, number]> = {
-  MEETS: [60, 40],
-  BAND: [55, 0],
-  BELOW: [10, 0],
-};
-
-interface Profile {
-  level: Level;
-  /** Fue a la única asamblea ordinaria celebrada; quien no fue la tiene perdida. */
-  attends?: boolean;
-  /** Llega al cierre con una falta grave más un llamado de atención vivos (Regl. art. 69). */
-  sanctioned?: boolean;
-  /** Ingresó en el término del cierre: tiene la inducción pendiente y lo obligatorio sin cumplir. */
-  isNew?: boolean;
-}
-
-/**
- * Un término ya vencido (2024-2) con el comité A3, su tabla de 100 puntos en dos reglas de crédito manual
- * y una asamblea ordinaria celebrada. Con las dos reglas completas cumple un veterano y cumple un nuevo,
- * que tiene el umbral más alto.
- */
-async function world() {
-  const termId = await seedTerm("2024-2");
-  const previous = await seedTerm("2024-1");
-  const a3 = await seedCommittee("a3", "A3");
-  const gh = await seedPerson("gh.motivo-guardado@eafit.edu.co");
-  await seedMembership(gh, previous);
-  const actor = { personId: gh, ip: null };
-  const rules = [
-    await seedRule(termId, "eventos", {
-      committeeId: a3,
-      weight: 60,
-      computation: "MANUAL",
-      params: {},
-    }),
-    await seedRule(termId, "proyectos", {
-      committeeId: a3,
-      weight: 40,
-      computation: "MANUAL",
-      params: {},
-    }),
-  ] as const;
-  const assembly = await seedOccasion(termId, {
-    kind: "ASSEMBLY",
-    assemblyKind: "ORDINARY",
-    points: 0,
-    status: "CLOSED",
-    startsAt: new Date("2024-09-10T22:00:00Z"),
-    checkInOpensAt: new Date("2024-09-10T21:00:00Z"),
-    checkInClosesAt: new Date("2024-09-10T23:00:00Z"),
-  });
-
-  const majorSanctions = new Map<string, string>();
-
-  /** Una falta grave más un llamado de atención: la advertencia de expulsión. Devuelve la falta grave. */
-  async function sanction(personId: string): Promise<string> {
-    const recorded: string[] = [];
-    for (const [kind, occurredOn] of [
-      ["MAJOR", "2024-10-01"],
-      ["WARNING", "2024-10-20"],
-    ] as const) {
-      const { id } = await recordSanctionAs(
-        actor,
-        personId,
-        { termId, kind, cause: "Sanción sembrada para el cierre de permanencia", occurredOn },
-        asAdmin,
-      );
-      recorded.push(id);
-    }
-    return recorded[0] as string;
-  }
-
-  async function member(email: string, profile: Profile): Promise<string> {
-    const personId = await seedPerson(email);
-    await seedMembership(personId, profile.isNew ? termId : previous);
-    await seedCommitteeMembership(personId, a3, termId, "MIEMBRO", {
-      joinedAt: new Date("2024-07-20T12:00:00Z"),
-    });
-    for (const [index, value] of CREDITS[profile.level].entries()) {
-      if (value > 0) {
-        await seedManualCredit(termId, rules[index] as string, personId, value, {
-          reason: "seed",
-          grantedById: gh,
-        });
-      }
-    }
-    if (profile.attends ?? true) {
-      await seedCheckIn(assembly.id, personId);
-    }
-    if (profile.sanctioned) {
-      majorSanctions.set(personId, await sanction(personId));
-    }
-    return personId;
-  }
-
-  /** GH le revoca la falta grave: sin ella no hay advertencia de expulsión. */
-  async function revokeMajor(personId: string): Promise<void> {
-    const sanctionId = majorSanctions.get(personId);
-    if (!sanctionId) {
-      throw new Error("la persona no llegó con una falta grave");
-    }
-    await revokeSanctionAs(
-      actor,
-      personId,
-      sanctionId,
-      "Descargos aceptados después de confirmar",
-      asAdmin,
-    );
-  }
-
-  /** GH le ajusta el requisito: ya no se le exige ninguna asamblea, y la que faltó deja de estar perdida. */
-  async function adjustRequirement(personId: string): Promise<void> {
-    await adjustRequirementAs(actor, {
-      termId,
-      personId,
-      requiredOrdinary: 0,
-      requiresBoardElection: false,
-      requiresRunoff: false,
-      reason: "Ajuste del requisito después de confirmar",
-    });
-  }
-
-  /** GH deja a la persona en otro nivel de su comité, con el comando de los créditos manuales. */
-  async function setLevel(personId: string, level: Level): Promise<void> {
-    for (const [index, value] of CREDITS[level].entries()) {
-      await grantManualCreditAs(actor, {
-        ruleId: rules[index] as string,
-        personId,
-        value,
-        reason: "Crédito corregido después de confirmar",
-      });
-    }
-  }
-
-  /** Los puntos del término quedan cerrados, que es lo que el cierre pide para confirmar decisiones. */
-  async function closePoints(): Promise<void> {
-    await recomputeSnapshots(termId);
-    await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
-  }
-
-  /** La fila del cierre de una persona: lo que hoy se le propone y lo que quedó confirmado. */
-  async function closingRow(personId: string) {
-    const { rows } = await listClosingRows(termId);
-    const row = rows.find((item) => item.personId === personId);
-    if (!row) {
-      throw new Error("el cierre no trae a la persona");
-    }
-    return row;
-  }
-
-  /** El motivo con que el cierre propone hoy: el de su comité y el de la persona. */
-  async function proposedReasons(personId: string) {
-    const row = await closingRow(personId);
-    return { committee: row.committees[0]?.reason, person: row.personReason };
-  }
-
-  /** El motivo de la propuesta que quedó guardado con la decisión de su comité y con la de la persona. */
-  async function savedReasons(personId: string) {
-    const row = await closingRow(personId);
-    return {
-      committee: row.committees[0]?.decision?.proposalReason,
-      person: row.personDecision?.proposalReason,
-    };
-  }
-
-  return {
-    termId,
-    a3,
-    actor,
-    member,
-    sanction,
-    revokeMajor,
-    adjustRequirement,
-    setLevel,
-    closePoints,
-    closingRow,
-    proposedReasons,
-    savedReasons,
-  };
-}
-
 describe("el motivo con que el cierre propuso se guarda con la decisión confirmada", () => {
   beforeEach(truncateAll);
   afterAll(() => closeDb());
 
   it("confirmar en bloque guarda, con la decisión de cada comité y con la de la persona, el motivo de su propuesta", async () => {
-    const { termId, actor, member, closePoints, proposedReasons, savedReasons } = await world();
+    const { termId, actor, member, closePoints, proposedReasons, savedReasons } =
+      await closingWorld();
     const people = {
       meets: await member("cumple.guardado@eafit.edu.co", { level: "MEETS" }),
       onProbation: await member("prueba.guardado@eafit.edu.co", { level: "BAND" }),
@@ -264,7 +62,8 @@ describe("el motivo con que el cierre propuso se guarda con la decisión confirm
   });
 
   it("cuando GH cambia la propuesta se guarda el motivo de lo que el cierre propuso, no uno de lo que GH decidió", async () => {
-    const { termId, a3, actor, member, closePoints, closingRow, savedReasons } = await world();
+    const { termId, a3, actor, member, closePoints, closingRow, savedReasons } =
+      await closingWorld();
     const below = await member("cambiada.guardado@eafit.edu.co", { level: "BELOW" });
     const absent = await member("perdonada.guardado@eafit.edu.co", {
       level: "MEETS",
@@ -298,7 +97,7 @@ describe("el motivo con que el cierre propuso se guarda con la decisión confirm
 
   it("volver a confirmar después de que cambian los hechos guarda el motivo de la propuesta de ese momento, y sin volver a confirmar se conserva el de antes", async () => {
     const { termId, a3, actor, member, setLevel, closePoints, proposedReasons, savedReasons } =
-      await world();
+      await closingWorld();
     const below = await member("reconfirmada.guardado@eafit.edu.co", { level: "BELOW" });
     await closePoints();
     await confirmAllProposedAs(actor, termId);
@@ -368,13 +167,11 @@ const ARRIVALS: ReadonlyArray<{ name: string; profile: Profile }> = [
   },
 ];
 
-type World = Awaited<ReturnType<typeof world>>;
-
 /** Lo que puede cambiar después de confirmar, cada cosa con su comando y solo para quien aplica. */
 const DRIFTS: ReadonlyArray<{
   name: string;
   applies: (profile: Profile) => boolean;
-  apply: (w: World, personId: string) => Promise<unknown>;
+  apply: (w: ClosingWorld, personId: string) => Promise<unknown>;
 }> = [
   { name: "nada cambia", applies: () => true, apply: async () => {} },
   {
@@ -436,7 +233,7 @@ interface Line {
  * de la migración 0051, que no se rellenaron.
  */
 async function observe(saved: boolean) {
-  const w = await world();
+  const w = await closingWorld();
   const people: string[] = [];
   for (const [index, item] of CASES.entries()) {
     people.push(await w.member(`caso${index}.tabla@eafit.edu.co`, item.profile));
