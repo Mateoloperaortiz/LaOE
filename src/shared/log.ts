@@ -24,10 +24,14 @@ const HIDDEN_KEYS = ["password", "token", "code", "secret"];
 const SESSION_HEADERS = ["cookie", "authorization"];
 
 /**
- * Una línea trae algo que ocultar solo si trae escrito así el nombre de una de las cuatro claves o de
- * las dos cabeceras: JSON no escapa letras.
+ * La puerta de la revisión: una línea, o un objeto que se interpola, trae algo que revisar solo si
+ * trae escrito así el nombre de una de las cuatro claves o de las dos cabeceras, que JSON no escapa
+ * letras. Las dos cabeceras no son claves ocultas, pero sin nombrarlas acá la línea que trae solo una
+ * cookie no se vuelve a leer (ADR-127 regla 9).
  */
-const NAMES_A_HIDDEN_KEY = new RegExp(`"(?:${[...HIDDEN_KEYS, ...SESSION_HEADERS].join("|")})":`);
+const NAMES_SOMETHING_TO_REVIEW = new RegExp(
+  `"(?:${[...HIDDEN_KEYS, ...SESSION_HEADERS].join("|")})":`,
+);
 
 /**
  * Dónde está lo que se recorre. Es lo único que cambia de un lugar a otro: qué clave se perdona y
@@ -103,7 +107,7 @@ function hideKeys(value: unknown, place: Place): void {
  * Una línea que no se puede revisar no se escribe.
  */
 function withoutHiddenKeys(line: string): string {
-  if (!NAMES_A_HIDDEN_KEY.test(line)) {
+  if (!NAMES_SOMETHING_TO_REVIEW.test(line)) {
     return line;
   }
   try {
@@ -125,6 +129,27 @@ function sayingOnly(text: string): object {
 }
 
 /**
+ * Lo que queda de un error que cuelga de un objeto que se interpola: su código, si es un código, y
+ * nada más de lo que trae colgado, que es donde van los valores (ADR-127 regla 8). Sin código queda
+ * vacío, como ya salía ahí un error sin campos propios. Si ese código se lee o sale oculto lo decide
+ * el recorrido, por el lugar: se lee bajo el `err` de la raíz, como en una línea.
+ */
+function hangingError(error: Error): object {
+  const code = (error as { code?: unknown }).code;
+  return isErrorCode(code) ? { code } : {};
+}
+
+/** El error de una línea: ella misma o lo que trae bajo `err`. De ahí toma pino el mensaje que falta. */
+function errorOfLine(line: unknown): Error | undefined {
+  if (line instanceof Error) {
+    return line;
+  }
+  const carried =
+    typeof line === "object" && line !== null ? (line as { err?: unknown }).err : undefined;
+  return carried instanceof Error ? carried : undefined;
+}
+
+/**
  * Lo que se interpola en el mensaje (`%o`, `%O`, `%j`) no llega a la línea como objeto: pino lo
  * escribe dentro de `msg`, y ahí `withoutHiddenKeys` ya no lo puede leer. Se revisa antes, con las
  * reglas de una línea y sin tope de profundidad (ADR-123 regla 15): si nombra alguna de las cuatro
@@ -136,9 +161,11 @@ function sayingOnly(text: string): object {
  * Un `Error` se cambia siempre, nombre o no una clave oculta (ADR-127 regla 8): por lo que dice de sí
  * mismo, su nombre y su mensaje sin los valores que repite (`withoutQueryValues`). Una copia plana
  * deja de ser un error, y `%s` la escribe «[object Object]»; y el error tal cual lleva sus valores al
- * mensaje, en el texto y en lo que trae colgado.
+ * mensaje, en el texto y en lo que trae colgado. El que cuelga de un objeto interpolado tampoco
+ * escribe lo que trae colgado: de él queda su código (`hangingError`), y el objeto se copia aunque no
+ * nombre ninguna clave.
  */
-function withoutHiddenKeysInMessage(value: unknown): unknown {
+function reviewedForMessage(value: unknown): unknown {
   if (typeof value !== "object" || value === null) {
     return value;
   }
@@ -146,8 +173,16 @@ function withoutHiddenKeysInMessage(value: unknown): unknown {
     if (value instanceof Error) {
       return sayingOnly(withoutQueryValues(value, String(value)));
     }
-    const written = JSON.stringify(value) as string | undefined;
-    if (written === undefined || !NAMES_A_HIDDEN_KEY.test(written)) {
+    let carriesError = false;
+    // El reemplazo recibe cada valor después de su `toJSON`: un error que escribe el suyo sale por él.
+    const written = JSON.stringify(value, (_key, inner: unknown) => {
+      if (inner instanceof Error) {
+        carriesError = true;
+        return hangingError(inner);
+      }
+      return inner;
+    }) as string | undefined;
+    if (written === undefined || !(carriesError || NAMES_SOMETHING_TO_REVIEW.test(written))) {
       return value;
     }
     const copy = JSON.parse(written) as Record<string, unknown>;
@@ -511,10 +546,13 @@ export const logger = pino({
     // El primer argumento, si es un objeto, es el de la línea, y a esa la revisa `streamWrite`. Los
     // demás son el mensaje y lo que se le interpola.
     logMethod(args, method) {
-      const reviewed = args.map((arg, index) =>
-        index === 0 ? arg : withoutHiddenKeysInMessage(arg),
-      );
-      method.apply(this, reviewed as typeof args);
+      const reviewed = args.map((arg, index) => (index === 0 ? arg : reviewedForMessage(arg)));
+      // A la línea que llega sin mensaje pino le pone en `msg` el de su error, tal cual: con el tramo
+      // `params: …` de una consulta y con el valor que cita una conversión. Llega ya recortado, como
+      // sale en `err.message` de esa misma línea, y sin nada que interpolarle (ADR-127 regla 8).
+      const error = reviewed[1] === undefined ? errorOfLine(reviewed[0]) : undefined;
+      const line = error ? [reviewed[0], withoutQueryValues(error, error.message)] : reviewed;
+      method.apply(this, line as typeof args);
     },
     // Lo que las rutas de abajo no alcanzan: todo lo que no está suelto en la línea (ADR-120 regla 9),
     // el código de `err` y las cabeceras de sesión de `req` (ADR-127 regla 9).

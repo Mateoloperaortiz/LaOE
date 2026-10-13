@@ -395,17 +395,17 @@ describe("un `Error` que se interpola en el mensaje", () => {
 // dice de sí mismo, su nombre y su mensaje ya recortado. Antes, si su JSON nombraba una clave oculta,
 // se cambiaba por una copia plana, que con `%s` sale «[object Object]»; y si no, pasaba como llegó,
 // con los valores de su consulta en el mensaje y en `params`.
-describe("un `Error` interpolado no escribe nada de lo que trae colgado", () => {
-  const VALUE = "miembro-481516@example.test";
-  const QUERY = "select id from person where email = $1";
-  const queryError = () =>
-    Object.assign(new Error(`Failed query: ${QUERY}\nparams: ${VALUE}`), {
-      query: QUERY,
-      params: [VALUE],
-    });
-  const conversionError = () =>
-    Object.assign(new Error(`invalid input syntax for type date: "${VALUE}"`), { code: "22007" });
+const VALUE = "miembro-481516@example.test";
+const QUERY = "select id from person where email = $1";
+const queryError = () =>
+  Object.assign(new Error(`Failed query: ${QUERY}\nparams: ${VALUE}`), {
+    query: QUERY,
+    params: [VALUE],
+  });
+const conversionError = () =>
+  Object.assign(new Error(`invalid input syntax for type date: "${VALUE}"`), { code: "22007" });
 
+describe("un `Error` interpolado no escribe nada de lo que trae colgado", () => {
   it.each([
     ["%s", "Error: mensaje"],
     ["%o", "{}"],
@@ -466,6 +466,93 @@ describe("un `Error` interpolado no escribe nada de lo que trae colgado", () => 
       `falló Error: Failed query: ${QUERY}`,
       'falló Error: invalid input syntax for type date: "[oculto]"',
       "falló Error: no se pudo leer",
+    ]);
+  });
+});
+
+// DT-381, de la revisión del ciclo 15 (ADR-127 regla 8): los valores de un error llegaban todavía al
+// mensaje por dos caminos que la revisión de lo interpolado no miraba. El error que cuelga de un objeto
+// interpolado se escribía por sus campos propios, `params` incluido. Y a la línea que llega sin mensaje
+// pino le copia en `msg` el del error tal cual, con el tramo `params: …` y con el valor que cita.
+describe("los valores de un error no llegan al mensaje por ningún otro camino", () => {
+  /** `logger.error` sin los tipos de pino, que no admiten un mensaje indefinido. */
+  const error = logger.error.bind(logger) as (...args: unknown[]) => void;
+
+  it.each([
+    "%o",
+    "%O",
+    "%j",
+  ])("con %s, un error que cuelga de un objeto interpolado sale vacío, o con su código donde va un error", async (placeholder) => {
+    const lines = await written(() => {
+      info(`falló ${placeholder}`, { err: queryError() });
+      info(`falló ${placeholder}`, { fallo: queryError(), intento: 2 });
+      info(`falló ${placeholder}`, [conversionError(), queryError()]);
+      info(`falló ${placeholder}`, {
+        err: Object.assign(new Error("mensaje"), { code: "57P01", status: 503 }),
+      });
+      info(`falló ${placeholder}`, {
+        a: { b: [Object.assign(new Error("mensaje"), { code: 7, response: { otro: "x" } })] },
+      });
+    });
+
+    expect(lines.map(({ record }) => record.msg)).toEqual([
+      'falló {"err":{}}',
+      'falló {"fallo":{},"intento":2}',
+      'falló [{"code":"[oculto]"},{}]',
+      'falló {"err":{"code":"57P01"}}',
+      'falló {"a":{"b":[{"code":"[oculto]"}]}}',
+    ]);
+    for (const { line } of lines) {
+      expect(line).not.toContain(VALUE);
+    }
+  });
+
+  it("un error sin campos propios que cuelga de un objeto interpolado sale como salía, y el objeto que no trae ninguno no se copia", async () => {
+    const lines = await written(() => {
+      logger.warn("falló %o", { err: new Error("mensaje"), intento: 2 });
+      logger.warn("falló %o", { cuando: new Date("2026-10-12T15:00:00.000Z"), intento: 2 });
+    });
+
+    expect(lines.map(({ record }) => record.msg)).toEqual([
+      'falló {"err":{},"intento":2}',
+      'falló {"cuando":"2026-10-12T15:00:00.000Z","intento":2}',
+    ]);
+  });
+
+  it("la línea que llega sin mensaje toma el del error ya recortado: el error solo, bajo `err` y con el mensaje indefinido", async () => {
+    const lines = await written(() => {
+      error(queryError());
+      error({ err: queryError() });
+      error(queryError(), undefined);
+      error(conversionError());
+      error({ err: new Error("no se pudo leer", { cause: queryError() }) });
+    });
+
+    expect(lines.map(({ record }) => record.msg)).toEqual([
+      `Failed query: ${QUERY}`,
+      `Failed query: ${QUERY}`,
+      `Failed query: ${QUERY}`,
+      'invalid input syntax for type date: "[oculto]"',
+      "no se pudo leer",
+    ]);
+    for (const { line } of lines) {
+      expect(line).not.toContain(VALUE);
+    }
+  });
+
+  it("sin error del que tomarlo la línea sale sin mensaje, y el mensaje que sí llega no se toca", async () => {
+    const lines = await written(() => {
+      error({ evento: "ev-1" });
+      error({ err: "no es un error" });
+      error({ err: new Error("mensaje") }, "no se pudo guardar");
+      error(new Error("mensaje con %s"));
+    });
+
+    expect(lines.map(({ record }) => record.msg)).toEqual([
+      undefined,
+      undefined,
+      "no se pudo guardar",
+      "mensaje con %s",
     ]);
   });
 });
