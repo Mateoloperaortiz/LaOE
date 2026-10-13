@@ -392,4 +392,6 @@ Regla 13: su tabla contaba 4 lecturas en «Pares de largo distinto (regla 2): T-
 
 Regla 13 y Consecuencias (DT-369): decían que a las lecturas de un número que calcula el dominio les faltaba «una prueba que compare el largo de cada lista con el rango del número que la lee». Existe: `tests/unit/computed-index-lists.test.ts` trae una fila por cada una de sus doce listas. Las excepciones `computedIndex` de la regla 11 son las mismas 18 lecturas y pasan a `tests/unit/computed-index-lists.table.ts`, que las dos pruebas importan y donde cada una nombra la lista que lee.
 
-Ver [ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) reglas 1 y 8.
+Regla 3 y Consecuencias (DT-365): la regla 3 decía «`copy:sync` no cambia» y que el orden de las piezas de una lista lo cuidaban solo la tabla de la regla 1 y la nota «en el orden del modelo» del inventario; las Consecuencias, que nada ve una lista reordenada. `copy:sync` cambia: no escribe una lista que trae las mismas piezas que en el generado anterior en otro orden, hasta que se confirme su código. Su escaneo de los códigos de cliente es el mismo, y `tLabels` sigue verificando el largo y no el orden. El reorden que además cambia una redacción sigue sin verse.
+
+Ver [ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) reglas 1, 8 y 9.

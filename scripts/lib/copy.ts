@@ -1,5 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import ts from "typescript";
+import { splitCopyList } from "@/shared/copy/format";
 
 // Lectura de docs/14-copy-y-textos.md y escritura de los dos catálogos generados. Lo comparten
 // `npm run copy:sync` y la prueba que vigila que lo generado no se quede atrás (ADR-079, ADR-081).
@@ -117,4 +119,144 @@ export const textosCliente = {
 ${body}
 } as const;
 `;
+}
+
+/**
+ * Los textos del catálogo generado, por código, leídos de su fuente: el archivo lleva `server-only`
+ * y un script no lo puede importar. Lanza si lo que le pasan no trae el catálogo.
+ */
+export function generatedTexts(source: string): Record<string, string> {
+  const file = ts.createSourceFile(COPY_TARGET, source, ts.ScriptTarget.ES2022, false);
+  for (const statement of file.statements) {
+    const [declaration] = ts.isVariableStatement(statement)
+      ? statement.declarationList.declarations
+      : [];
+    let catalog = declaration?.initializer;
+    while (catalog && (ts.isAsExpression(catalog) || ts.isSatisfiesExpression(catalog))) {
+      catalog = catalog.expression;
+    }
+    if (
+      !declaration ||
+      !ts.isIdentifier(declaration.name) ||
+      declaration.name.text !== "textos" ||
+      !catalog ||
+      !ts.isObjectLiteralExpression(catalog)
+    ) {
+      continue;
+    }
+    const texts: Record<string, string> = {};
+    for (const entry of catalog.properties) {
+      if (
+        !ts.isPropertyAssignment(entry) ||
+        !ts.isStringLiteralLike(entry.name) ||
+        !ts.isObjectLiteralExpression(entry.initializer)
+      ) {
+        throw new Error(`${COPY_TARGET} trae una entrada que no se pudo leer`);
+      }
+      const text = entry.initializer.properties.find(
+        (property): property is ts.PropertyAssignment =>
+          ts.isPropertyAssignment(property) &&
+          ts.isIdentifier(property.name) &&
+          property.name.text === "text",
+      );
+      if (!text || !ts.isStringLiteralLike(text.initializer)) {
+        throw new Error(`${COPY_TARGET} trae ${entry.name.text} sin su texto`);
+      }
+      texts[entry.name.text] = text.initializer.text;
+    }
+    return texts;
+  }
+  throw new Error(`${COPY_TARGET} no trae el catálogo \`textos\``);
+}
+
+/**
+ * Los códigos cuyo texto trae las mismas piezas que antes en otro orden (DT-365, ADR-128 regla 9).
+ * El código lee cada pieza de una lista por su posición: `tLabels` y la tabla de pares comparan
+ * largos y posiciones, no redacciones, así que una lista reordenada le cambia la etiqueta a cada
+ * valor sin que nada falle. No ve el reorden que además cambia una redacción o suma una pieza.
+ */
+export function reorderedLists(
+  before: Readonly<Record<string, string>>,
+  after: Readonly<Record<string, string>>,
+): string[] {
+  return Object.keys(after)
+    .filter((code) => {
+      const was = splitCopyList(before[code] ?? "");
+      const is = splitCopyList(after[code] ?? "");
+      if (was.length !== is.length || was.every((piece, index) => piece === is[index])) {
+        return false;
+      }
+      const sorted = [...is].sort();
+      return [...was].sort().every((piece, index) => piece === sorted[index]);
+    })
+    .sort();
+}
+
+/** La variable de entorno con la que se confirma un reorden: los códigos, separados por comas. */
+export const REORDER_CONFIRMATION = "COPY_SYNC_REORDERED";
+
+export interface CopySync {
+  /** Las listas reordenadas que nadie confirmó. Con una sola no se escribe ningún generado. */
+  reordered: string[];
+  /** Por qué no se pudo leer el generado anterior; ahí el orden no se comparó. Nulo si se leyó. */
+  unread: string | null;
+  total: number;
+  client: number;
+}
+
+/**
+ * Lo que hace `npm run copy:sync`: lee el inventario y escribe los dos generados, salvo que una lista
+ * traiga las mismas piezas que en el generado anterior en otro orden y nadie lo haya confirmado.
+ * `confirmed` es el valor de `COPY_SYNC_REORDERED`: los códigos confirmados, separados por comas.
+ */
+export function syncCopy(
+  options: { root?: string; confirmed?: string | undefined } = {},
+): CopySync {
+  const root = options.root ?? ".";
+  const entries = parseCopy(readFileSync(join(root, COPY_SOURCE), "utf8"));
+  const total = Object.keys(entries).length;
+  let before: Record<string, string> = {};
+  let unread: string | null = null;
+  try {
+    before = generatedTexts(readFileSync(join(root, COPY_TARGET), "utf8"));
+  } catch (error) {
+    unread = error instanceof Error ? error.message : String(error);
+  }
+  const confirmed = new Set((options.confirmed ?? "").split(",").map((code) => code.trim()));
+  const after = Object.fromEntries(
+    Object.entries(entries).map(([code, entry]) => [code, entry.text]),
+  );
+  const reordered = reorderedLists(before, after).filter((code) => !confirmed.has(code));
+  if (reordered.length > 0) {
+    return { reordered, unread, total, client: 0 };
+  }
+  writeFileSync(join(root, COPY_TARGET), renderCopy(entries));
+  const clientCopy = clientCopyOf(entries, collectClientCodes(join(root, "src")));
+  writeFileSync(join(root, CLIENT_COPY_TARGET), renderClientCopy(clientCopy));
+  return { reordered, unread, total, client: Object.keys(clientCopy).length };
+}
+
+/** Lo que `copy:sync` dice y con qué código termina: uno distinto de cero si no escribió nada. */
+export function copySyncReport(result: CopySync): { code: 0 | 1; out: string; err: string } {
+  if (result.reordered.length > 0) {
+    const codes = result.reordered;
+    return {
+      code: 1,
+      out: "",
+      err: [
+        `copy:sync no escribió nada. En ${COPY_SOURCE} hay listas con las mismas piezas que antes en otro orden: ${codes.join(", ")}.`,
+        "El código lee cada pieza por su posición: con otro orden, cada valor pasa a mostrar la etiqueta de otro.",
+        "Si el orden nuevo es a propósito, revisá el enum que lee cada lista y confirmalo:",
+        `  ${REORDER_CONFIRMATION}=${codes.join(",")} npm run copy:sync`,
+        "",
+      ].join("\n"),
+    };
+  }
+  return {
+    code: 0,
+    out: `${result.total} textos en ${COPY_TARGET}; ${result.client} en ${CLIENT_COPY_TARGET}\n`,
+    err: result.unread
+      ? `copy:sync no pudo leer el generado anterior (${result.unread}): no comparó el orden de las listas con el de antes.\n`
+      : "",
+  };
 }
