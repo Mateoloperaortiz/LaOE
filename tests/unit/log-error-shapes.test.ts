@@ -438,6 +438,40 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     });
   });
 
+  it("un ciclo que pasa por la lista `errors` se corta igual: el agregado al que nombra uno de sus errores sale una vez, y el error que vuelve a aparecer en la lista sale `[Circular]`", async () => {
+    const inner = queryError();
+    const grouped = new AggregateError([inner], "varios");
+    Object.assign(inner, { owner: grouped });
+    const first = queryError();
+    const second = carrying({ errors: [first] });
+    Object.assign(first, { original: second });
+    const [byList, byField] = await written(() => {
+      error({ err: grouped }, "falló");
+      error({ err: first }, "falló");
+    });
+
+    expect(errOf(byList)).toEqual({
+      type: "AggregateError",
+      message: "varios",
+      stack: expect.any(String),
+      aggregateErrors: [TRIMMED],
+    });
+    expect(errOf(byField)).toEqual({
+      ...TRIMMED,
+      original: {
+        type: "Error",
+        message: "fuera",
+        stack: expect.any(String),
+        aggregateErrors: ["[Circular]"],
+      },
+    });
+    // Sin el corte cada error se repetía un nivel adentro del otro hasta desbordar la pila, y la
+    // línea pasaba del mega.
+    for (const entry of [byList, byField]) {
+      expect(entry?.line.length).toBeLessThan(20_000);
+    }
+  });
+
   // Lo que el recorte todavía no alcanza: fija por dónde sale hoy el valor. Quien cierre uno de estos
   // caminos va a ver caer su caso, y cambia lo que espera.
   it.each([

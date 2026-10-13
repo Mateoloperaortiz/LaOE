@@ -484,6 +484,23 @@ function trimmedHanging(value: unknown, above: readonly object[]): unknown {
 }
 
 /**
+ * Un elemento con forma de error de la lista `errors`, recortado como un error. `listed` es el camino
+ * hasta esa lista: el error que ya se está escribiendo más arriba no se escribe otra vez, como en
+ * cualquier lista que cuelga del error (ADR-129 regla 5). Sin ese camino, el agregado al que nombra
+ * uno de sus errores se recorría sin fin. El que no se deja leer sale `[oculto]`, él solo.
+ */
+function trimmedListed(inner: Error, listed: readonly object[]): unknown {
+  if (listed.includes(inner)) {
+    return CIRCULAR;
+  }
+  try {
+    return trimmedError(inner, listed);
+  } catch {
+    return REDACTED;
+  }
+}
+
+/**
  * El serializador de pino dobla la causa dentro del mensaje y de la traza, y pierde su código. Drizzle
  * envuelve cada error de Postgres en un `DrizzleQueryError`, así que sin esto el `57P01` de una
  * consulta que falló no sale en ninguna parte.
@@ -531,7 +548,7 @@ function trimmedError(error: unknown, above: readonly object[] = []): unknown {
     // en cualquier lista que cuelga del error.
     const listed = [...path, grouped];
     serialized.aggregateErrors = grouped.map((inner: unknown) =>
-      isErrorLike(inner) ? serializeError(inner) : trimmedHanging(inner, listed),
+      isErrorLike(inner) ? trimmedListed(inner, listed) : trimmedHanging(inner, listed),
     );
     // Pino lista los errores de `errors` en `aggregateErrors`, sea o no un `AggregateError`. Si esa
     // lista además se enumera, la copia cruda al lado: sale una vez, recortada.
