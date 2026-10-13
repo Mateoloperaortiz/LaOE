@@ -242,9 +242,9 @@ const EXCEPTIONS: Exception[] = [
   {
     path: "tests/integration/permanence-facts.test.ts",
     target: "permanenceDecision",
-    inserts: 6,
+    inserts: 7,
     reason:
-      "Son las decisiones que la prueba escribe una por una para ver chocar la repetida de un comité y la de la persona con sus índices únicos, y las que espera ver rechazadas por `permanence_decision_reason_when_changed` y `permanence_decision_person_scope`: las dos que entran están para que las demás choquen.",
+      "Son las decisiones que la prueba escribe una por una para ver chocar la repetida de un comité y la de la persona con sus índices únicos, y las que espera ver rechazadas por `permanence_decision_reason_when_changed`, `permanence_decision_person_scope` y `permanence_decision_proposal_reason_range`: las que entran están para que las demás choquen o para fijar los bordes del rango, con un motivo de la propuesta que `confirmDecisions` nunca escribiría.",
   },
   {
     path: "tests/integration/permanence-facts.test.ts",

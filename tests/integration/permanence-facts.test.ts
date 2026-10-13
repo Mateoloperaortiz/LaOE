@@ -11,6 +11,7 @@ import {
   loadTermFacts,
   recomputeSnapshots,
 } from "@/modules/permanence";
+import type { ProposalReason } from "@/modules/permanence/domain/permanence-pure";
 import {
   leaderScore,
   permanenceDecision,
@@ -171,6 +172,34 @@ describe("esquema de permanencia", () => {
         decision: "CONTINUES",
       }),
     ).rejects.toSatisfy((error) => isUniqueViolation(error, "permanence_decision_person_unique"));
+  });
+
+  it("el motivo con que el cierre propuso una decisión es uno de los seis de T-801, o no está (ADR-128 regla 1)", async () => {
+    const termId = await seedTerm();
+    const decide = async (email: string, proposalReason: number) =>
+      getDb()
+        .insert(permanenceDecision)
+        .values({
+          termId,
+          personId: await seedMember(email),
+          committeeId: null,
+          proposed: "EXIT_OE",
+          decision: "EXIT_OE",
+          proposalReason: proposalReason as ProposalReason,
+        });
+    for (const outOfRange of [-1, 6]) {
+      await expect(decide(`fuera${outOfRange}@eafit.edu.co`, outOfRange)).rejects.toSatisfy(
+        (error) => isCheckViolation(error, "permanence_decision_proposal_reason_range"),
+      );
+    }
+    await decide("primero@eafit.edu.co", 0);
+    await decide("ultimo@eafit.edu.co", 5);
+    // Sin motivo también entra: así quedaron las decisiones confirmadas antes de la columna (DT-392).
+    const stored = await getDb()
+      .select({ proposalReason: permanenceDecision.proposalReason })
+      .from(permanenceDecision)
+      .where(eq(permanenceDecision.termId, termId));
+    expect(stored.map((row) => row.proposalReason).sort()).toEqual([0, 5]);
   });
 });
 
