@@ -1,7 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { insertTargets, looseInserts } from "../../scripts/lib/test-suite-metrics";
+import { countByKey, expectReasonedOnce, sourceFiles } from "../helpers/ratchet";
 
 // La siembra de las pruebas pasa por la fábrica de `tests/factories`, que comparten integración y
 // E2E (DT-013, ADR-124 reglas 5 y 6). Una fila escrita a mano en una prueba puede armar un estado que
@@ -346,17 +345,9 @@ const EXCEPTIONS: Exception[] = [
   },
 ];
 
-/** Los archivos de código de una carpeta de pruebas: los casos, su preparación y sus ayudantes. */
-function sources(dir: string) {
-  return readdirSync(dir, { recursive: true, encoding: "utf8" })
-    .filter((file) => /\.[cm]?[jt]sx?$/.test(file))
-    .sort()
-    .map((file) => ({ path: `${dir}/${file}`, text: readFileSync(join(dir, file), "utf8") }));
-}
-
 /** Todo `tests/` menos la fábrica y las unitarias: donde un insert suelto es siembra a mano. */
 function seedingSources() {
-  return sources("tests").filter(
+  return sourceFiles("tests").filter(
     ({ path }) => !NOT_SEEDING_DIRS.some((dir) => path.startsWith(dir)),
   );
 }
@@ -365,11 +356,7 @@ const named = (path: string, target: string) => `${path} › ${target}`;
 
 /** Cuántos insert sueltos de cada destino hay de verdad en cada archivo. */
 function looseInsertCounts(): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const { path, target } of insertTargets(seedingSources())) {
-    counts[named(path, target)] = (counts[named(path, target)] ?? 0) + 1;
-  }
-  return counts;
+  return countByKey(insertTargets(seedingSources()), ({ path, target }) => named(path, target));
 }
 
 describe("la siembra de las pruebas", () => {
@@ -382,14 +369,7 @@ describe("la siembra de las pruebas", () => {
   });
 
   it("cada destino de un archivo está una sola vez en la lista, y cada excepción trae su razón en una frase", () => {
-    expect(new Set(EXCEPTIONS.map(({ path, target }) => named(path, target))).size).toBe(
-      EXCEPTIONS.length,
-    );
-    for (const exception of EXCEPTIONS) {
-      expect(exception.reason, named(exception.path, exception.target)).toMatch(
-        /^\p{Lu}[^\n]{40,}\.$/u,
-      );
-    }
+    expectReasonedOnce(EXCEPTIONS, ({ path, target }) => named(path, target));
   });
 
   it.each(
@@ -400,11 +380,11 @@ describe("la siembra de las pruebas", () => {
         ({ path, target }) => path.startsWith(`${dir}/`) && target.startsWith("into ") === raw,
       ).reduce((total, { inserts }) => total + inserts, 0);
 
-    expect({ calls: listed(false), raw: listed(true) }).toEqual(looseInserts(sources(dir)));
+    expect({ calls: listed(false), raw: listed(true) }).toEqual(looseInserts(sourceFiles(dir)));
   });
 
   it("la fábrica es la que escribe las cuatro tablas", () => {
-    const written = insertTargets(sources("tests/factories"))
+    const written = insertTargets(sourceFiles("tests/factories"))
       .map(({ target }) => target)
       .filter((target) => FACTORY_TABLES.includes(target));
 
@@ -412,7 +392,7 @@ describe("la siembra de las pruebas", () => {
   });
 
   it("la fábrica no escribe puntos ni nombra su tabla: `point_entry` tiene un solo escritor, el libro (ADR-119 regla 8)", () => {
-    const factory = sources("tests/factories");
+    const factory = sourceFiles("tests/factories");
 
     expect(insertTargets(factory).filter(({ target }) => /point_?entry/i.test(target))).toEqual([]);
     // Importada con otro nombre no se vería en el destino del insert: tampoco puede nombrarla.
@@ -422,7 +402,7 @@ describe("la siembra de las pruebas", () => {
   });
 
   it("cada insert de la fábrica nombra una tabla que importa de un `schema.ts`: ninguna función recibe la tabla y escribe lo que le pasen", () => {
-    for (const file of sources("tests/factories")) {
+    for (const file of sourceFiles("tests/factories")) {
       const tables = new Set(
         [...file.text.matchAll(/import\s*\{([^}]*)\}\s*from\s*"@\/modules\/[a-z0-9-]+\/schema"/g)]
           .flatMap((match) => (match[1] ?? "").split(","))

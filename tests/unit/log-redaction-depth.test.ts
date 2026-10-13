@@ -1,7 +1,7 @@
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { describe, expect, it } from "vitest";
 import { logger } from "@/shared/log";
-import { captureLogs, type LoggedLine } from "../helpers/logs";
+import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // Lo que el registro oculta se oculta a cualquier profundidad (DT-283, ADR-120 regla 9). Las rutas de
 // pino llegan al segundo nivel: un `code`, `token`, `password` o `secret` a tres niveles salía tal
@@ -23,10 +23,6 @@ function nested(depth: number, leaf: Record<string, unknown>): Record<string, un
     value = { [`n${level}`]: value };
   }
   return value;
-}
-
-function errOf(entry: LoggedLine | undefined): Record<string, unknown> {
-  return (entry?.record.err ?? {}) as Record<string, unknown>;
 }
 
 function expectNoSecret(lines: LoggedLine[]): void {

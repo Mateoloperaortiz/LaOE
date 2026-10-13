@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -6,6 +6,7 @@ import {
   unguardedConcurrencyTests,
   unguardedConcurrencyTitles,
 } from "../../scripts/lib/test-suite-metrics";
+import { driftByKey, expectReasonedOnce, presence, sourceFiles } from "../helpers/ratchet";
 
 // Una prueba de solicitudes simultáneas puede pasar sin el candado que nombra (DT-166): con una sola
 // conexión abierta en el pool, la segunda solicitud gasta su arranque abriendo la suya, la primera
@@ -79,22 +80,19 @@ const EXCEPTIONS: Exception[] = [
 ];
 
 /** Los archivos de prueba de un directorio, los mismos que lee la fila de `npm run audit:metrics`. */
-function testFiles(dir: string) {
-  return readdirSync(dir, { recursive: true, encoding: "utf8" })
-    .filter((file) => file.endsWith(".test.ts"))
-    .sort()
-    .map((file) => ({ path: `${dir}/${file}`, text: readFileSync(join(dir, file), "utf8") }));
-}
+const testFiles = (dir: string) => sourceFiles(dir, /\.test\.ts$/);
 
 const named = (test: { path: string; title: string }) => `${test.path} › ${test.title}`;
 
+/** Lo que nombra una simultaneidad sin los ayudantes en `dir`, comparado con la lista, por prueba. */
+const listDrift = (dir: string) =>
+  driftByKey(
+    presence(unguardedConcurrencyTitles(testFiles(dir)).map(named)),
+    presence(EXCEPTIONS.map(named)),
+  );
+
 /** Las que el trinquete no deja pasar: nombran una simultaneidad sin los ayudantes y no están en la lista. */
-function unlisted(dir: string): string[] {
-  const listed = new Set(EXCEPTIONS.map(named));
-  return unguardedConcurrencyTitles(testFiles(dir))
-    .map(named)
-    .filter((test) => !listed.has(test));
-}
+const unlisted = (dir: string): string[] => listDrift(dir).unlisted;
 
 // Dice «a la vez», lanza sus dos llamadas juntas y no abre las conexiones ni retiene nada: con una
 // sola conexión abierta en el pool pasa aunque `creditAs` no tome ningún candado. `helperImport` y
@@ -120,16 +118,11 @@ describe("las pruebas de integración que nombran una simultaneidad", () => {
   });
 
   it("una excepción que ya no hace falta sale de la lista: ninguna sobra", () => {
-    const found = new Set(unguardedConcurrencyTitles(testFiles(INTEGRATION)).map(named));
-
-    expect(EXCEPTIONS.map(named).filter((test) => !found.has(test))).toEqual([]);
+    expect(listDrift(INTEGRATION).stale).toEqual([]);
   });
 
   it("cada excepción está una vez y trae su razón en una frase", () => {
-    expect(new Set(EXCEPTIONS.map(named)).size).toBe(EXCEPTIONS.length);
-    for (const exception of EXCEPTIONS) {
-      expect(exception.reason, named(exception)).toMatch(/^\p{Lu}[^\n]{40,}\.$/u);
-    }
+    expectReasonedOnce(EXCEPTIONS, named);
   });
 
   it("la fila de audit:metrics marca lo mismo que la lista de excepciones", () => {

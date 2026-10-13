@@ -11,6 +11,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { type ImportClosure, importClosure } from "../../scripts/lib/import-closure";
+import {
+  driftByKey,
+  expectReasonedOnce,
+  presence,
+  sourceFiles,
+  sourcePaths,
+} from "../helpers/ratchet";
 
 // El `index.ts` de un módulo no lo carga solo Next. También lo carga, en Node y sin Next, la E2E
 // entera: `scripts/test-e2e.ts` lanza Playwright con `node --conditions=react-server` y sin tsx, y
@@ -130,24 +137,19 @@ function moduleNames(): string[] {
 
 const indexOf = (module: string) => `src/modules/${module}/index.ts`;
 
-/** Las rutas, desde la raíz, de los archivos de código de una carpeta. */
-function codePaths(dir: string): string[] {
-  return readdirSync(dir, { recursive: true, encoding: "utf8" })
-    .filter((file) => /\.[cm]?[jt]sx?$/.test(file))
-    .sort()
-    .map((file) => `${dir}/${file}`);
-}
-
 /**
  * Lo que la E2E carga de `src`, leído de sus `import`: parte de la configuración de Playwright y de
  * cada archivo de `tests/e2e`, y sigue por lo que importan de `tests/`, la fábrica y los ayudantes.
  */
 function e2eImports(): ImportClosure {
-  const tests = [...codePaths("tests"), PLAYWRIGHT_CONFIG];
+  const tests = [
+    ...sourceFiles("tests"),
+    { path: PLAYWRIGHT_CONFIG, text: readFileSync(PLAYWRIGHT_CONFIG, "utf8") },
+  ];
   return importClosure(
-    tests.map((path) => ({ path, text: readFileSync(path, "utf8") })),
-    [PLAYWRIGHT_CONFIG, ...tests.filter((path) => path.startsWith(E2E))],
-    codePaths("src"),
+    tests,
+    [PLAYWRIGHT_CONFIG, ...tests.map(({ path }) => path).filter((path) => path.startsWith(E2E))],
+    sourcePaths("src"),
   );
 }
 
@@ -235,13 +237,14 @@ describe("el index.ts de cada módulo y lo que la E2E importa de src, cargados e
         name === CONTROL || error === null ? [] : [[name, readable(error)]],
       ),
     );
-    const listed = EXCEPTIONS.map(({ entry }) => entry);
+    const { unlisted, stale } = driftByKey(
+      presence(Object.keys(failed)),
+      presence(EXCEPTIONS.map(({ entry }) => entry)),
+    );
 
     expect({
-      failing: Object.fromEntries(
-        Object.entries(failed).filter(([name]) => !listed.includes(name)),
-      ),
-      stale: listed.filter((name) => !(name in failed)).sort(),
+      failing: Object.fromEntries(unlisted.map((name) => [name, failed[name]])),
+      stale,
     }).toEqual({ failing: {}, stale: [] });
   });
 
@@ -252,7 +255,7 @@ describe("el index.ts de cada módulo y lo que la E2E importa de src, cargados e
   });
 
   it("lo que la E2E importa de `src` sale del código: la lectura parte de la configuración de Playwright y de cada archivo de `tests/e2e`, pasa por la fábrica y los ayudantes que usan, y no deja ninguna carga sin seguir", () => {
-    const specs = codePaths("tests/e2e");
+    const specs = sourcePaths("tests/e2e");
 
     expect(e2e.unread).toEqual([]);
     expect(specs.length).toBeGreaterThan(0);
@@ -283,10 +286,9 @@ describe("el index.ts de cada módulo y lo que la E2E importa de src, cargados e
   });
 
   it("cada excepción nombra una sola vez algo de lo que se carga y trae su razón en una frase", () => {
-    expect(new Set(EXCEPTIONS.map(({ entry }) => entry)).size).toBe(EXCEPTIONS.length);
+    expectReasonedOnce(EXCEPTIONS, ({ entry }) => entry);
     for (const exception of EXCEPTIONS) {
       expect([...modules, ...sources], exception.entry).toContain(exception.entry);
-      expect(exception.reason, exception.entry).toMatch(/^\p{Lu}[^\n]{40,}\.$/u);
     }
   });
 });

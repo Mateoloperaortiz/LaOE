@@ -1,17 +1,13 @@
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { describe, expect, it } from "vitest";
 import { logger } from "@/shared/log";
-import { captureLogs, type LoggedLine } from "../helpers/logs";
+import { captureLogs, errOf } from "../helpers/logs";
 
 // Lo que el registro oculta y lo que deja leer (ADR-118 regla 23). La regla `*.code` se puso para el
 // código de ingreso y tapaba también el código de un error registrado como `err`: `57P01`,
 // `ECONNRESET`. Las líneas se leen ya serializadas, como llegan a los registros del despliegue.
 
 const withCode = (message: string, code: string) => Object.assign(new Error(message), { code });
-
-function errOf(entry: LoggedLine | undefined): Record<string, unknown> {
-  return (entry?.record.err ?? {}) as Record<string, unknown>;
-}
 
 describe("el código de un error en el registro", () => {
   it("el código de un error de Postgres o de red sale legible en las líneas que registran `err`", async () => {

@@ -1,5 +1,6 @@
 import { posix } from "node:path";
 import ts from "typescript";
+import type { TextFile } from "./test-suite-metrics";
 
 // La interfaz pública de los módulos (spec #238, DT-012): qué exporta el `index.ts` de cada módulo de
 // `src/modules` y quién se lo importa por nombre. La comparten `npm run audit:metrics` y la prueba que
@@ -10,11 +11,6 @@ import ts from "typescript";
 // El criterio de uso es el de la spec: un nombre se queda si lo importa por nombre un archivo de
 // producción (`src`, `scripts`, `.railway`) de fuera del módulo, o un componente del propio módulo, que
 // no puede importar `domain/` (regla `componentes-sin-servidor`). Los tipos siguen el mismo criterio.
-
-interface TextFile {
-  path: string;
-  text: string;
-}
 
 interface IndexUse {
   path: string;

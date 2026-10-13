@@ -4,15 +4,11 @@ import { DrizzleQueryError } from "drizzle-orm/errors";
 import { describe, expect, it } from "vitest";
 import { markConnectionFailure, withoutQueryValues } from "@/shared/lib/error-sanitizer";
 import { logger } from "@/shared/log";
-import { captureLogs, type LoggedLine } from "../helpers/logs";
+import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // Lo que quedaba de a dónde iba una conexión (DT-307, ADR-123 regla 16): el host que Node deja como
 // campo en un error de socket sin `syscall`, el host configurado en un fallo que quien abre la
 // conexión marcó, y los renglones `at …` de la traza, que no se tocan.
-
-function errOf(entry: LoggedLine | undefined): Record<string, unknown> {
-  return (entry?.record.err ?? {}) as Record<string, unknown>;
-}
 
 /** `error` como se registra suelto y como causa de una consulta. */
 async function logged(error: Error): Promise<LoggedLine[]> {

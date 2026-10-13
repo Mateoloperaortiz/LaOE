@@ -7,6 +7,7 @@ import {
   withoutQueryValues,
 } from "@/shared/lib/error-sanitizer";
 import { logger } from "@/shared/log";
+import { QUERY, untyped, VALUE } from "../helpers/log-fixtures";
 import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // DT-390, ADR-128 regla 2: el registro no lanza por lo que le piden anotar. Lanzaba con un `Error` cuyo
@@ -20,12 +21,7 @@ const CONFIGURED = `postgres://${USER}:clave-sintetica@base-sintetica.internal:5
 const HIDDEN = "[oculto]";
 const NOTICE = "registro: una línea no se pudo revisar y no se escribió";
 
-const VALUE = "miembro-481516@example.test";
-const QUERY = "select id from person where email = $1";
-
-/** `logger.error` y `logger.info` sin los tipos de pino, que no admiten cualquier cosa por línea. */
-const error = logger.error.bind(logger) as (...args: unknown[]) => void;
-const info = logger.info.bind(logger) as (...args: unknown[]) => void;
+const { error, info } = untyped;
 
 /** Un error al que alguien le asignó después un `message` que no es un texto. */
 function withMessage(message: unknown): Error {

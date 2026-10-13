@@ -1,7 +1,8 @@
 import pino from "pino";
 import { describe, expect, it } from "vitest";
 import { logger } from "@/shared/log";
-import { captureLogs, type LoggedLine } from "../helpers/logs";
+import { QUERY, queryError, VALUE } from "../helpers/log-fixtures";
+import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // Cada forma en que una de las cuatro claves ocultas llega al registro, y qué se perdona en cada
 // lugar (ADR-118 regla 23, ADR-119 regla 14, ADR-120 regla 9). Es la caracterización de la redacción:
@@ -28,10 +29,6 @@ const secrets = () => ({
 async function written(run: () => void): Promise<LoggedLine[]> {
   const { lines } = await captureLogs(async () => run());
   return lines;
-}
-
-function errOf(entry: LoggedLine | undefined): Record<string, unknown> {
-  return (entry?.record.err ?? {}) as Record<string, unknown>;
 }
 
 describe("cada forma en que una clave oculta llega al registro", () => {
@@ -395,13 +392,6 @@ describe("un `Error` que se interpola en el mensaje", () => {
 // dice de sí mismo, su nombre y su mensaje ya recortado. Antes, si su JSON nombraba una clave oculta,
 // se cambiaba por una copia plana, que con `%s` sale «[object Object]»; y si no, pasaba como llegó,
 // con los valores de su consulta en el mensaje y en `params`.
-const VALUE = "miembro-481516@example.test";
-const QUERY = "select id from person where email = $1";
-const queryError = () =>
-  Object.assign(new Error(`Failed query: ${QUERY}\nparams: ${VALUE}`), {
-    query: QUERY,
-    params: [VALUE],
-  });
 const conversionError = () =>
   Object.assign(new Error(`invalid input syntax for type date: "${VALUE}"`), { code: "22007" });
 

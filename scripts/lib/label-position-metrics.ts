@@ -1,4 +1,5 @@
 import ts from "typescript";
+import type { TextFile } from "./test-suite-metrics";
 
 // Las lecturas por posición de una lista del catálogo de textos (spec #242, ADR-126 regla 11): la
 // etiqueta de un valor de un enum se lee con `tLabels(código, ENUM)[valor]`, y esto encuentra las
@@ -14,11 +15,6 @@ import ts from "typescript";
 // literal del archivo que la guarda, leída con punto o desestructurada. Una lista que llega por
 // parámetro o por props no se sigue, ni un `tList` envuelto en una función propia: de la primera no
 // se sabe si es del catálogo, y por eso su recorrido tiene forma y cuenta propias (`paramTraversal`).
-
-interface TextFile {
-  path: string;
-  text: string;
-}
 
 /**
  * - `indexOf`: el subíndice trae un `indexOf` o un `findIndex` (`lista[ENUM.indexOf(valor)]`).

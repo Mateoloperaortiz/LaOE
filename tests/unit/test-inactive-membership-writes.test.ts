@@ -1,6 +1,5 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { countByKey, expectReasonedOnce, sourceFiles, type TextFile } from "../helpers/ratchet";
 
 // Una membresía inactiva de una prueba sale de la fábrica (`seedMemberships`, que siembra la fila que
 // deja una baja y lanza si la persona no es egresada) o del comando de la baja (`endMembershipAs`).
@@ -41,11 +40,6 @@ import { describe, expect, it } from "vitest";
 // `scripts/lib/test-suite-metrics.ts`.
 
 const NOT_SCANNED_DIRS = ["tests/factories/", "tests/unit/"];
-
-interface TextFile {
-  path: string;
-  text: string;
-}
 
 interface Finding {
   path: string;
@@ -209,11 +203,9 @@ function inactiveMembershipWrites(files: TextFile[]): Finding[] {
 
 /** Los archivos de código de `tests/` menos la fábrica y las unitarias. */
 function scannedSources(): TextFile[] {
-  return readdirSync("tests", { recursive: true, encoding: "utf8" })
-    .filter((file) => /\.[cm]?[jt]sx?$/.test(file))
-    .sort()
-    .map((file) => ({ path: `tests/${file}`, text: readFileSync(join("tests", file), "utf8") }))
-    .filter(({ path }) => !NOT_SCANNED_DIRS.some((dir) => path.startsWith(dir)));
+  return sourceFiles("tests").filter(
+    ({ path }) => !NOT_SCANNED_DIRS.some((dir) => path.startsWith(dir)),
+  );
 }
 
 const sample = (text: string) => inactiveMembershipWrites([{ path: "muestra.ts", text }]);
@@ -221,10 +213,7 @@ const writesOf = (text: string) => sample(text).map(({ write }) => write);
 
 describe("la membresía inactiva de una prueba", () => {
   it("sale de la fábrica o del comando de la baja, con su fecha de salida: fuera de la fábrica quedan solo los `update` de la lista de excepciones, ni uno más ni uno menos", () => {
-    const counts: Record<string, number> = {};
-    for (const { path } of inactiveMembershipWrites(scannedSources())) {
-      counts[path] = (counts[path] ?? 0) + 1;
-    }
+    const counts = countByKey(inactiveMembershipWrites(scannedSources()), ({ path }) => path);
 
     expect(counts).toEqual(
       Object.fromEntries(EXCEPTIONS.map(({ path, writes }) => [path, writes])),
@@ -232,10 +221,7 @@ describe("la membresía inactiva de una prueba", () => {
   });
 
   it("cada archivo está una sola vez en la lista, y cada excepción trae su razón en una frase", () => {
-    expect(new Set(EXCEPTIONS.map(({ path }) => path)).size).toBe(EXCEPTIONS.length);
-    for (const exception of EXCEPTIONS) {
-      expect(exception.reason, exception.path).toMatch(/^\p{Lu}[^\n]{40,}\.$/u);
-    }
+    expectReasonedOnce(EXCEPTIONS, ({ path }) => path);
   });
 
   it("el lector recorre las pruebas de integración, las de la E2E y sus ayudantes, y deja fuera la fábrica y las unitarias", () => {

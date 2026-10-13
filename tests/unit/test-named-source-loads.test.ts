@@ -1,7 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { type UnnamedLoad, unnamedSourceLoads } from "../../scripts/lib/test-source-loads";
+import { countByKey, driftByKey, expectReasonedOnce, sourceFiles } from "../helpers/ratchet";
 
 // Una prueba que carga un archivo de `src` con `import("…")` nombra lo que toma:
 // `const { nombre } = await import("…")`. Si no, knip da por usado el archivo entero y deja de avisar
@@ -50,29 +49,16 @@ const EXCEPTIONS: Exception[] = [
   },
 ];
 
-/** Los archivos de código de `tests/`: los casos, su preparación y sus ayudantes. */
-function sources(dir: string) {
-  return readdirSync(dir, { recursive: true, encoding: "utf8" })
-    .filter((file) => /\.[cm]?[jt]sx?$/.test(file))
-    .sort()
-    .map((file) => ({ path: `${dir}/${file}`, text: readFileSync(join(dir, file), "utf8") }));
-}
-
 const named = ({ path, form, specifier }: Omit<Exception, "loads" | "reason">) =>
   `${path} › ${form} › ${specifier}`;
 
 /** Lo que la lista no tiene y lo que le sobra, contando cada forma de cada archivo. */
 function drift(found: UnnamedLoad[], exceptions: Exception[]) {
-  const counted: Record<string, number> = {};
-  for (const load of found) {
-    counted[named(load)] = (counted[named(load)] ?? 0) + 1;
-  }
-  const listed = Object.fromEntries(exceptions.map((item) => [named(item), item.loads]));
-  const more = (a: Record<string, number>, b: Record<string, number>) =>
-    Object.keys(a)
-      .filter((key) => (a[key] ?? 0) > (b[key] ?? 0))
-      .sort();
-  return { unnamed: more(counted, listed), stale: more(listed, counted) };
+  const { unlisted, stale } = driftByKey(
+    countByKey(found, named),
+    Object.fromEntries(exceptions.map((item) => [named(item), item.loads])),
+  );
+  return { unnamed: unlisted, stale };
 }
 
 /** Lo que la lectura encuentra en una prueba de unitarias con ese texto. */
@@ -82,17 +68,14 @@ function loadsIn(text: string, path = "tests/unit/sintetica.test.ts") {
 
 describe("lo que las pruebas cargan de src", () => {
   it("va con nombre: fuera de la lista de excepciones no queda una lectura sobre la carga ni un archivo esparcido o devuelto entero", () => {
-    expect(drift(unnamedSourceLoads(sources("tests")), EXCEPTIONS)).toEqual({
+    expect(drift(unnamedSourceLoads(sourceFiles("tests")), EXCEPTIONS)).toEqual({
       unnamed: [],
       stale: [],
     });
   });
 
   it("cada excepción está una sola vez en la lista y trae su razón en una frase", () => {
-    expect(new Set(EXCEPTIONS.map(named)).size).toBe(EXCEPTIONS.length);
-    for (const exception of EXCEPTIONS) {
-      expect(exception.reason, named(exception)).toMatch(/^\p{Lu}[^\n]{40,}\.$/u);
-    }
+    expectReasonedOnce(EXCEPTIONS, named);
   });
 
   it("una carga que la lista no tiene la pone en rojo, y una excepción que sobra también", () => {

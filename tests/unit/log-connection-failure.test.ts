@@ -3,7 +3,7 @@ import { DrizzleQueryError } from "drizzle-orm/errors";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withoutQueryValues } from "@/shared/lib/error-sanitizer";
 import { logger } from "@/shared/log";
-import { captureLogs, type LoggedLine } from "../helpers/logs";
+import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // A dónde iba una conexión que no abrió no sale en el registro (DT-295 inciso k, ADR-120 regla 10).
 // Los errores tienen la forma que les da Node: el destino en el mensaje y, aparte, en `address`,
@@ -40,10 +40,6 @@ function certificateMismatch(host: string, certificateName: string): Error {
     throw new Error("el certificado valió y no debía");
   }
   return error;
-}
-
-function errOf(entry: LoggedLine | undefined): Record<string, unknown> {
-  return (entry?.record.err ?? {}) as Record<string, unknown>;
 }
 
 /** `error` como lo registran el poller y el programador, suelto y como causa de una consulta. */

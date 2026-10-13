@@ -2,6 +2,7 @@ import pino from "pino";
 import { describe, expect, it } from "vitest";
 import { withoutQueryValues } from "@/shared/lib/error-sanitizer";
 import { logger } from "@/shared/log";
+import { QUERY, queryError, untyped, VALUE } from "../helpers/log-fixtures";
 import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // DT-381, incisos (c) y (d), ADR-128 regla 3: dos formas de error por las que los valores de una
@@ -10,15 +11,7 @@ import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 // `message`, que es lo que pino serializa como un error) no se recortaba: ni en `err`, ni en el `msg`
 // de la línea sin mensaje, ni doblado como causa dentro de un `Error`.
 
-const VALUE = "miembro-481516@example.test";
-const QUERY = "select id from person where email = $1";
 const FAILED_QUERY = `Failed query: ${QUERY}`;
-
-const queryError = () =>
-  Object.assign(new Error(`${FAILED_QUERY}\nparams: ${VALUE}`), {
-    query: QUERY,
-    params: [VALUE],
-  });
 
 /** Un error de consulta que escribe su propio `toJSON`, y ahí sus valores. */
 const selfWritten = () =>
@@ -42,9 +35,7 @@ const plainQueryError = () => ({
   params: [VALUE],
 });
 
-/** `logger.info` y `logger.error` sin los tipos de pino. */
-const info = logger.info.bind(logger) as (...args: unknown[]) => void;
-const error = logger.error.bind(logger) as (...args: unknown[]) => void;
+const { error, info } = untyped;
 
 async function written(run: () => void): Promise<LoggedLine[]> {
   const { lines } = await captureLogs(async () => run());
