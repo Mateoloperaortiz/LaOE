@@ -493,6 +493,12 @@ function configuredNames(): string[] {
   return namesRead;
 }
 
+/**
+ * Cuántos errores mira el recorte en una cadena de causas, contando el primero (ADR-129 regla 5). Una
+ * cadena de verdad tiene dos o tres; el tope está para la que no se acaba.
+ */
+const CAUSE_CHAIN_LIMIT = 100;
+
 /** Un renglón `at …` de la traza: lo que trae es la ruta de un archivo, no un mensaje. */
 const STACK_FRAME = /^\s+at .*(?::\d+:\d+\)?|\(<anonymous>\)|\(native\))$/;
 
@@ -529,8 +535,8 @@ function replaceOutsideStackFrames(text: string, written: string, replacement: s
 /**
  * `text` es el mensaje o la traza de `error`, con sus causas dobladas adentro. Lo devuelve sin los
  * valores de la consulta que falló y sin los datos de una conexión que no abrió, mirando el error y
- * cada causa que pino dobló ahí, sin tope (ADR-129 regla 5): el tramo `params: …` que escribe Drizzle,
- * el valor que cita un
+ * cada causa que pino dobló ahí, hasta cien errores (ADR-129 regla 5): el tramo `params: …` que
+ * escribe Drizzle, el valor que cita un
  * error de Postgres (el de una conversión, o el usuario y la base de una conexión rechazada), el
  * destino que Node escribe en un error de red o en un certificado que no nombra al host, y el usuario
  * y la base de la conexión configurada donde PostgreSQL los cite (ADR-120 regla 10). Todo se quita
@@ -543,19 +549,25 @@ function replaceOutsideStackFrames(text: string, written: string, replacement: s
  *
  * Recorre también lo que tiene forma de error sin serlo (`isErrorLike`, ADR-128 regla 3): pino dobla
  * en el mensaje y en la traza la causa que tiene un texto por `message`, sea o no un `Error`, y la que
- * devuelve una causa que es una función (`foldedCause`). Para donde para pino: en la causa que no
- * tiene forma de error o en la que ya recorrió.
+ * devuelve una causa que es una función (`foldedCause`). Para donde para pino, en la causa que no
+ * tiene forma de error o en la que ya recorrió, y además en su tope (`CAUSE_CHAIN_LIMIT`): lo que ya
+ * recorrió corta un ciclo, no una cadena que arma una causa nueva cada vez que la leen.
  *
  * No lanza (ADR-128 regla 2). `text` y el mensaje de cada error se leen como texto (`asText`), sean lo
- * que sean. Y si el error no se deja leer, o sus valores no se dejan escribir, no hay con qué recortar
- * y el texto no sale: devuelve `[oculto]`.
+ * que sean. Y si el error no se deja leer, sus valores no se dejan escribir o la cadena de causas pasa
+ * del tope, no hay con qué recortar y el texto no sale: devuelve `[oculto]`.
  */
 export function withoutQueryValues(error: Error, text: string): string {
   try {
     let clean = asText(text);
     const walked = new Set<unknown>();
     let current: unknown = error;
-    while (isErrorLike(current) && !walked.has(current)) {
+    // El tope cuenta las vueltas y no lo ya recorrido: no depende de que el corte del ciclo esté.
+    for (let looked = 0; isErrorLike(current) && !walked.has(current); looked += 1) {
+      if (looked >= CAUSE_CHAIN_LIMIT) {
+        // La cadena sigue: lo que pino dobló de ahí en adelante no hay con qué recortarlo.
+        return REDACTED;
+      }
       walked.add(current);
       if (isQueryError(current)) {
         // Lo mismo que escribe Drizzle: `params: ${params}`.
@@ -608,8 +620,12 @@ function serializedByPino(error: Error): ReturnType<typeof pino.stdSerializers.e
 /** Cuántos niveles mira el recorte en lo que cuelga de un error, contándolo a él. */
 const HANGING_DEPTH = 5;
 
-/** Lo que el serializador de pino escribe en su copia y no es un campo del error. */
-const WRITTEN_BY_PINO = ["type", "message", "stack", "aggregateErrors"];
+/**
+ * Lo que el serializador de pino escribe en su copia y no es un campo del error. `aggregateErrors`
+ * también lo escribe él, pero solo si el error trae una lista `errors`: sin ella es un campo del error
+ * como cualquier otro.
+ */
+const WRITTEN_BY_PINO = ["type", "message", "stack"];
 
 /** Lo que escribe en lugar de un ciclo el serializador de pino que no lanza con ellos. */
 const CIRCULAR = "[Circular]";
@@ -692,16 +708,22 @@ function trimmedError(error: unknown, above: readonly object[] = []): unknown {
   for (const field of connectionTarget(error).fields) {
     delete serialized[field];
   }
+  const path = [...above, error];
   const grouped = (error as { errors?: unknown }).errors;
-  if (Array.isArray(grouped) && Array.isArray(serialized.aggregateErrors)) {
-    serialized.aggregateErrors = grouped.map((inner: unknown) => serializeError(inner));
+  const listedByPino = Array.isArray(grouped) && Array.isArray(serialized.aggregateErrors);
+  if (listedByPino) {
+    // Lo que en la lista no tiene forma de error pino lo deja tal cual: ahí se busca adentro, como
+    // en cualquier lista que cuelga del error.
+    const listed = [...path, grouped];
+    serialized.aggregateErrors = grouped.map((inner: unknown) =>
+      isErrorLike(inner) ? serializeError(inner) : trimmedHanging(inner, listed),
+    );
     // Pino lista los errores de `errors` en `aggregateErrors`, sea o no un `AggregateError`. Si esa
     // lista además se enumera, la copia cruda al lado: sale una vez, recortada.
     delete serialized.errors;
   }
-  const path = [...above, error];
   for (const key of Object.keys(serialized)) {
-    if (WRITTEN_BY_PINO.includes(key)) {
+    if (WRITTEN_BY_PINO.includes(key) || (listedByPino && key === "aggregateErrors")) {
       continue;
     }
     const hanging = (error as unknown as Record<string, unknown>)[key];

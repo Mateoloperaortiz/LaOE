@@ -1,6 +1,6 @@
 import pino from "pino";
 import { describe, expect, it } from "vitest";
-import { logger } from "@/shared/log";
+import { logger, withoutQueryValues } from "@/shared/log";
 import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // DT-381, incisos (c) y (d), ADR-128 regla 3: dos formas de error por las que los valores de una
@@ -48,6 +48,15 @@ const error = logger.error.bind(logger) as (...args: unknown[]) => void;
 async function written(run: () => void): Promise<LoggedLine[]> {
   const { lines } = await captureLogs(async () => run());
   return lines;
+}
+
+/** Un error de consulta como causa de causa, `levels` veces. */
+function buried(levels: number): Error {
+  let current: Error = queryError();
+  for (let level = levels; level > 0; level -= 1) {
+    current = new Error(`nivel ${level}`, { cause: current });
+  }
+  return current;
 }
 
 describe("el error que escribe su propio `toJSON` y cuelga de un objeto interpolado", () => {
@@ -205,17 +214,28 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     );
   }
 
-  /** Un error de consulta como causa de causa, `levels` veces. */
-  function buried(levels: number): Error {
+  /** Un error con `fields` colgando. */
+  const carrying = (fields: Record<string, unknown>) => Object.assign(new Error("fuera"), fields);
+
+  /** Un error de consulta colgado del campo `original` de otro error, `levels` veces. */
+  function hanging(levels: number): Error {
     let current: Error = queryError();
-    for (let level = levels; level > 0; level -= 1) {
-      current = new Error(`nivel ${level}`, { cause: current });
+    for (let level = 0; level < levels; level += 1) {
+      current = carrying({ original: current });
     }
     return current;
   }
 
-  /** Un error con `fields` colgando. */
-  const carrying = (fields: Record<string, unknown>) => Object.assign(new Error("fuera"), fields);
+  /** Algo que se escribe a sí mismo con el `toJSON` de su prototipo y trae un error en un campo propio. */
+  const selfWrittenDetail = () =>
+    Object.assign(
+      Object.create({
+        toJSON(this: { count: number }) {
+          return { count: `${this.count} intentos` };
+        },
+      }) as object,
+      { count: 2, failure: queryError() },
+    );
 
   /** Como sale un error de consulta ya recortado. */
   const TRIMMED = {
@@ -234,6 +254,23 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
       "en la lista `errors` de un error que no es un `AggregateError`",
       () => ({ err: carrying({ errors: [queryError()] }) }),
     ],
+    [
+      "dentro de un objeto de la lista `errors`",
+      () => ({ err: carrying({ errors: [{ failure: queryError() }] }) }),
+    ],
+    [
+      "dentro de una lista de la lista `errors`",
+      () => ({ err: carrying({ errors: [[queryError()]] }) }),
+    ],
+    [
+      "dentro de un objeto de la lista de un `AggregateError`",
+      () => ({ err: new AggregateError([{ failure: queryError() }], "varios") }),
+    ],
+    [
+      "en un campo propio del error que se llama `aggregateErrors`",
+      () => ({ err: carrying({ aggregateErrors: [queryError()] }) }),
+    ],
+    ["por una cadena de campos de error, a cinco niveles", () => ({ err: hanging(4) })],
     [
       "dentro de un objeto que cuelga del error",
       () => ({ err: carrying({ detail: { failures: [queryError()] } }) }),
@@ -286,6 +323,71 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     // Lo que le pasaron al registro queda como llegó: lo que se recorta es una copia.
     expect(detail.failures[0]).toBeInstanceOf(Error);
     expect(detail.failures[0]).toMatchObject({ query: QUERY, params: [VALUE] });
+  });
+
+  it("lo que no tiene forma de error en la lista `errors` se recorre como cualquier lista, y un campo propio `aggregateErrors` también", async () => {
+    const lines = await written(() => {
+      error(
+        {
+          err: carrying({
+            errors: [{ failure: queryError(), attempt: 2 }, [queryError()], "un texto"],
+          }),
+        },
+        "falló",
+      );
+      error({ err: new AggregateError([{ failure: queryError() }], "varios") }, "falló");
+      error({ err: carrying({ aggregateErrors: [queryError(), "un texto"] }) }, "falló");
+    });
+
+    expect(lines.map((line) => errOf(line))).toEqual([
+      {
+        type: "Error",
+        message: "fuera",
+        stack: expect.any(String),
+        aggregateErrors: [{ failure: TRIMMED, attempt: 2 }, [TRIMMED], "un texto"],
+      },
+      {
+        type: "AggregateError",
+        message: "varios",
+        stack: expect.any(String),
+        aggregateErrors: [{ failure: TRIMMED }],
+      },
+      {
+        type: "Error",
+        message: "fuera",
+        stack: expect.any(String),
+        aggregateErrors: [TRIMMED, "un texto"],
+      },
+    ]);
+  });
+
+  it("lo que se escribe a sí mismo con `toJSON` sale por él: el recorte no entra a sus campos ni lo cambia por una copia", async () => {
+    const [entry] = await written(() =>
+      error({ err: carrying({ detail: selfWrittenDetail() }) }, "falló"),
+    );
+
+    expect(errOf(entry).detail).toEqual({ count: "2 intentos" });
+  });
+
+  it("un objeto llano con un texto por `message`, en una lista o en un objeto que cuelga del error, sale como un error: gana `type` y `stack`", async () => {
+    const [entry] = await written(() =>
+      error(
+        {
+          err: carrying({
+            issues: [{ message: "Required", path: ["email"] }],
+            detail: { last: { message: "Required", attempt: 2 } },
+          }),
+        },
+        "falló",
+      ),
+    );
+
+    expect(errOf(entry).issues).toEqual([
+      { type: "Object", message: "Required", stack: "", path: ["email"] },
+    ]);
+    expect(errOf(entry).detail).toEqual({
+      last: { type: "Object", message: "Required", stack: "", attempt: 2 },
+    });
   });
 
   it("lo que cuelga de un error y no trae ninguno sale como salía", async () => {
@@ -369,6 +471,17 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
       ["err.n1.n2.n3.n4.n5.params.0"],
     ],
     [
+      // A pino lo que cuelga de un campo de error lo serializa como un error, con su mensaje y su
+      // traza: pasado el tope, sale por los tres lados.
+      "por una cadena de campos de error, a más de cinco niveles",
+      () => ({ err: hanging(5) }),
+      [
+        "err.original.original.original.original.original.message",
+        "err.original.original.original.original.original.stack",
+        "err.original.original.original.original.original.params.0",
+      ],
+    ],
+    [
       "en lo que escribe el `toJSON` de un objeto del error",
       () => ({
         err: carrying({
@@ -391,6 +504,133 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     const [entry] = await written(() => error({ err: err() }, "falló"));
 
     expect(placesOf(entry?.record)).toEqual([]);
+  });
+});
+
+// DT-399, ADR-129 regla 5: el recorte camina las causas que pino dobla, hasta cien errores. Sin tope,
+// una cadena que no se acaba (una causa que es una función y arma un error nuevo cada vez que la leen)
+// dejaba dando vueltas al registro, al poller y a la conciliación: lo que ya recorrió corta un ciclo,
+// no una cadena de objetos siempre nuevos. De la cadena que pasa del tope el texto no sale.
+describe("el recorte camina hasta cien causas, y de la cadena que sigue no escribe el texto", () => {
+  const HIDDEN = "[oculto]";
+
+  /** Los errores que el recorte mira en una cadena de causas, contando el primero. */
+  const LIMIT = 100;
+
+  /** Donde la prueba corta una cadena que no se acaba, para caer en rojo y no quedarse colgada. */
+  const CUT = 100_000;
+
+  /**
+   * Un error cuya causa es una función que arma un error nuevo cada vez que la leen, `levels` veces o
+   * sin fin. `onRead` corre en cada lectura.
+   */
+  function freshCauses(levels: number, onRead: () => void): Error {
+    const at = (depth: number): Error =>
+      Object.defineProperty(new Error(`nivel ${depth}`), "cause", {
+        value: () => {
+          onRead();
+          return depth < levels ? at(depth + 1) : undefined;
+        },
+      });
+    return at(0);
+  }
+
+  /** Cuenta las lecturas de una cadena que no se acaba, y la corta en `CUT`. */
+  function endless(): { error: Error; reads: () => number } {
+    let reads = 0;
+    const error = freshCauses(Infinity, () => {
+      reads += 1;
+      if (reads > CUT) {
+        throw new Error("corte de la prueba");
+      }
+    });
+    return { error, reads: () => reads };
+  }
+
+  it("fuera del registro, de una cadena que no se acaba lee cien causas y devuelve oculto", () => {
+    const chain = endless();
+
+    expect(withoutQueryValues(chain.error, "un texto")).toBe(HIDDEN);
+    expect(chain.reads()).toBe(LIMIT);
+  });
+
+  it("por el registro, la línea sin mensaje de una cadena que no se acaba sale igual: el recorte para en su tope", async () => {
+    const chain = endless();
+    const [entry] = await written(() => error({ err: chain.error }));
+
+    // Lo que pasa del tope lo lee pino, que dobla la cadena hasta desbordar la pila: el serializador
+    // lo atrapa y `err` sale oculto, como salía.
+    expect(chain.reads()).toBeLessThan(CUT);
+    expect(entry?.record).toEqual({
+      level: 50,
+      time: expect.any(Number),
+      err: HIDDEN,
+      msg: HIDDEN,
+    });
+  });
+
+  it("por el registro, de una cadena más larga que el tope el recorte lee cien causas cada vez, y el mensaje y la traza salen ocultos", async () => {
+    const LEVELS = 300;
+    let reads = 0;
+    const count = () => {
+      reads += 1;
+    };
+    // Lo que lee pino solo al doblar las causas, una vez por el mensaje y otra por la traza.
+    pino.stdSerializers.err(freshCauses(LEVELS, count));
+    const byPino = reads;
+    reads = 0;
+    const [entry] = await written(() => error({ err: freshCauses(LEVELS, count) }));
+
+    // El recorte pasa tres veces: por el mensaje de la línea, y por el mensaje y la traza de `err`.
+    expect(reads - byPino).toBeLessThanOrEqual(3 * LIMIT);
+    expect(entry?.record).toEqual({
+      level: 50,
+      time: expect.any(Number),
+      err: { type: "Error", message: HIDDEN, stack: HIDDEN },
+      msg: HIDDEN,
+    });
+  });
+
+  it("una cadena de cien errores se recorta entera; con uno más, el mensaje y la traza salen ocultos", async () => {
+    const lines = await written(() => {
+      error({ err: buried(LIMIT - 1) }, "falló");
+      error({ err: buried(LIMIT) }, "falló");
+    });
+
+    expect(String(errOf(lines[0]).message).endsWith(`nivel ${LIMIT - 1}: ${FAILED_QUERY}`)).toBe(
+      true,
+    );
+    expect(errOf(lines[1])).toEqual({ type: "Error", message: HIDDEN, stack: HIDDEN });
+    for (const { line } of lines) {
+      expect(line).not.toContain(VALUE);
+    }
+  });
+
+  it("un ciclo de causas y la causa que se devuelve a sí misma terminan donde termina pino, sin llegar al tope", async () => {
+    const failed = queryError();
+    const outer = new Error("fuera", { cause: failed });
+    Object.assign(failed, { cause: outer });
+    let reads = 0;
+    const itself = Object.defineProperty(new Error("raíz"), "cause", {
+      value(this: Error) {
+        reads += 1;
+        return this;
+      },
+    });
+    const lines = await written(() => {
+      error({ err: outer }, "falló");
+      error({ err: itself });
+    });
+
+    expect(lines.map(({ record }) => record.msg)).toEqual(["falló", "raíz"]);
+    expect(lines.map((line) => errOf(line).message)).toEqual([
+      `fuera: ${FAILED_QUERY}: fuera: ...`,
+      "raíz: ...",
+    ]);
+    expect(lines[0]?.line).not.toContain(VALUE);
+    expect(withoutQueryValues(outer, `fuera: ${failed.message}`)).toBe(`fuera: ${FAILED_QUERY}`);
+    expect(withoutQueryValues(itself, "raíz")).toBe("raíz");
+    expect(reads).toBeLessThan(LIMIT);
   });
 });
 
