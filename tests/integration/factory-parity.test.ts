@@ -372,9 +372,20 @@ describe("la fábrica y el cargo de quien ya está en un comité", () => {
       .orderBy(asc(committeeRoleAssignment.roleCode));
     return {
       pertenencia: without(seats[0], "id", "personId", "committeeId", "joinedAt", "createdAt"),
-      cargos: roles.map((row) =>
-        without(row, "id", "membershipId", "personId", "committeeId", "startedAt", "createdAt"),
-      ),
+      // La hora del cierre es propia de cada fila; que el cargo esté cerrado o vivo, no.
+      cargos: roles.map((row) => ({
+        ...without(
+          row,
+          "id",
+          "membershipId",
+          "personId",
+          "committeeId",
+          "startedAt",
+          "endedAt",
+          "createdAt",
+        ),
+        cerrado: row.endedAt !== null,
+      })),
     };
   }
 
@@ -400,6 +411,17 @@ describe("la fábrica y el cargo de quien ya está en un comité", () => {
       ],
       principal: "FINANCIERO",
     },
+    {
+      // El orden es el del catálogo (`sort_order`) y la etiqueta solo desempata: Logística (5) va antes
+      // que Gestión Humana (6), y por etiqueta iría después. En el caso anterior los dos órdenes dan lo
+      // mismo.
+      caso: "un segundo cargo de menor orden y de etiqueta posterior, que pasa a ser el principal",
+      roles: [
+        { roleCode: "GESTION_HUMANA", coDirector: false },
+        { roleCode: "LOGISTICA", coDirector: true },
+      ],
+      principal: "LOGISTICA",
+    },
   ])("dejan la misma pertenencia y los mismos cargos con $caso (DT-354)", async ({
     roles,
     principal,
@@ -424,6 +446,41 @@ describe("la fábrica y el cargo de quien ya está en un comité", () => {
     const named = await seatOf(byCommand);
     expect(named.pertenencia).toMatchObject({ roleCode: principal });
     expect(named.cargos).toHaveLength(roles.length);
+    expect(await seatOf(byFactory)).toEqual(named);
+  });
+
+  it("dejan el mismo cargo principal en una pertenencia con un cargo cerrado de menor orden: el cerrado no cuenta (DT-354)", async () => {
+    const actor = await seedMember(GRANTOR);
+    const termId = await seedTerm();
+    const byCommand = await seedVeteran(BY_COMMAND);
+    const byFactory = await seedVeteran(BY_FACTORY);
+    const forCommand = await seedCommittee("paridad-comando");
+    const forFactory = await seedCommittee("paridad-fabrica");
+    await seedCommitteeMembership(byCommand, forCommand, termId);
+    const seat = await seedCommitteeMembership(byFactory, forFactory, termId);
+    const name = (personId: string, committeeId: string, roleCodes: string[]) =>
+      setCommitteeMembershipsAs({ personId: actor, ip: null }, personId, termId, [
+        { committeeId, roles: roleCodes.map((roleCode) => ({ roleCode, coDirector: false })) },
+      ]);
+    // El cargo cerrado lo deja el comando por los dos caminos, porque la fábrica no cierra cargos:
+    // Logística (5), de menor orden que el cargo que viene después.
+    for (const [personId, committeeId] of [
+      [byCommand, forCommand],
+      [byFactory, forFactory],
+    ] as const) {
+      await name(personId, committeeId, ["LOGISTICA"]);
+      await name(personId, committeeId, []);
+    }
+
+    await name(byCommand, forCommand, ["GESTION_HUMANA"]);
+    await seedCommitteeRole(seat, "GESTION_HUMANA");
+
+    const named = await seatOf(byCommand);
+    expect(named.pertenencia).toMatchObject({ roleCode: "GESTION_HUMANA" });
+    expect(named.cargos).toMatchObject([
+      { roleCode: "GESTION_HUMANA", cerrado: false },
+      { roleCode: "LOGISTICA", cerrado: true },
+    ]);
     expect(await seatOf(byFactory)).toEqual(named);
   });
 });
