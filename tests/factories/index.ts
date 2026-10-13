@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { campaign, campaignRecipient, emailTemplate, message } from "@/modules/comms/schema";
 import { competitionSupport } from "@/modules/competition/schema";
@@ -37,6 +37,7 @@ import {
   appointment,
   committee,
   committeeMembership,
+  committeeRole,
   committeeRoleAssignment,
   consent,
   membership,
@@ -305,8 +306,8 @@ function conventionalDeactivation(): string {
 
 /**
  * Pertenencia en un comité y término. Un cargo distinto de MIEMBRO también se escribe como cargo
- * asignado (ADR-058); `roleCode` queda como cargo principal (o MIEMBRO si el cargo es codirección
- * sin otro cargo, igual que hace el dominio).
+ * asignado (ADR-058), titular o, con `coDirector`, en codirección; `roleCode` queda como cargo
+ * principal en los dos casos, igual que hace el dominio (`syncPrincipalRole`).
  */
 export async function seedCommitteeMembership(
   personId: string,
@@ -350,8 +351,10 @@ export async function seedCommitteeMembership(
 
 /**
  * Cargo asignado a una pertenencia que ya existe (ADR-058), para la prueba que le da un cargo a quien
- * ya está en el comité. Deja `roleCode` como cargo principal, salvo en una codirección, que deja
- * MIEMBRO: es lo que sembraban las specs y no lo que deja el dominio, que pone el cargo (DT-354).
+ * ya está en el comité. Deja las filas que deja nombrar a alguien
+ * (`tests/integration/factory-parity.test.ts`): el cargo asignado, titular o en codirección, y de
+ * cargo principal de la pertenencia el cargo vivo de menor orden, como `syncPrincipalRole`. No
+ * comprueba inhabilidades ni que el cargo admita codirección.
  */
 export async function seedCommitteeRole(
   membershipId: string,
@@ -370,9 +373,22 @@ export async function seedCommitteeRole(
   await db()
     .insert(committeeRoleAssignment)
     .values({ membershipId, ...seat, roleCode, coDirector });
+  const [principal] = await db()
+    .select({ roleCode: committeeRoleAssignment.roleCode })
+    .from(committeeRoleAssignment)
+    .innerJoin(committeeRole, eq(committeeRole.code, committeeRoleAssignment.roleCode))
+    .where(
+      and(
+        eq(committeeRoleAssignment.membershipId, membershipId),
+        isNull(committeeRoleAssignment.endedAt),
+      ),
+    )
+    .orderBy(asc(committeeRole.sortOrder), asc(committeeRole.label))
+    .limit(1);
+  if (!principal) throw new Error("seed committee role");
   await db()
     .update(committeeMembership)
-    .set({ roleCode: coDirector ? "MIEMBRO" : roleCode })
+    .set({ roleCode: principal.roleCode })
     .where(eq(committeeMembership.id, membershipId));
 }
 

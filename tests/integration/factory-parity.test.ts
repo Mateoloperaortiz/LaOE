@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
@@ -7,7 +7,13 @@ import { verifyPassword } from "@/modules/identity/domain/pure";
 import { credential, permission } from "@/modules/identity/schema";
 import { createChallengeAs } from "@/modules/participation/domain/gamification-commands";
 import { challengeQuestion } from "@/modules/participation/schema";
-import { admitPersonAs, createPersonAs, endMembershipAs, recordConsentAs } from "@/modules/people";
+import {
+  admitPersonAs,
+  createPersonAs,
+  endMembershipAs,
+  recordConsentAs,
+  setCommitteeMembershipsAs,
+} from "@/modules/people";
 import {
   createSegment,
   segmentFilterSchema,
@@ -15,6 +21,8 @@ import {
 } from "@/modules/people/domain/segments";
 import { createTag } from "@/modules/people/domain/tags";
 import {
+  committeeMembership,
+  committeeRoleAssignment,
   consent,
   membership,
   membershipEvent,
@@ -29,6 +37,8 @@ import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import {
   seedCommittee,
+  seedCommitteeMembership,
+  seedCommitteeRole,
   seedConsent,
   seedCredential,
   seedMember,
@@ -342,6 +352,79 @@ describe("la fábrica y los comandos de las cuatro tablas de partida", () => {
     const byCommand = await membershipOf(left, "endedAt");
     expect(byCommand).toMatchObject({ firstTermId: entryTermId, lastTermId: entryTermId });
     expect(await membershipOf(seeded, "endedAt")).toEqual(byCommand);
+  });
+});
+
+describe("la fábrica y el cargo de quien ya está en un comité", () => {
+  beforeEach(truncateAll);
+
+  /** La pertenencia de la persona y sus cargos, sin lo que es propio de cada fila. */
+  async function seatOf(personId: string) {
+    const seats = await db()
+      .select()
+      .from(committeeMembership)
+      .where(eq(committeeMembership.personId, personId));
+    expect(seats).toHaveLength(1);
+    const roles = await db()
+      .select()
+      .from(committeeRoleAssignment)
+      .where(eq(committeeRoleAssignment.personId, personId))
+      .orderBy(asc(committeeRoleAssignment.roleCode));
+    return {
+      pertenencia: without(seats[0], "id", "personId", "committeeId", "joinedAt", "createdAt"),
+      cargos: roles.map((row) =>
+        without(row, "id", "membershipId", "personId", "committeeId", "startedAt", "createdAt"),
+      ),
+    };
+  }
+
+  // El cargo principal de la pertenencia es el cargo vivo de menor orden, sea titular o codirección
+  // (`syncPrincipalRole`, ADR-058): Financiero va antes que Gestión Humana.
+  it.each([
+    {
+      caso: "un titular",
+      roles: [{ roleCode: "GESTION_HUMANA", coDirector: false }],
+      principal: "GESTION_HUMANA",
+    },
+    {
+      caso: "una codirección",
+      roles: [{ roleCode: "GENERAL", coDirector: true }],
+      principal: "GENERAL",
+    },
+    {
+      // Con dos cargos directivos, uno tiene que ser codirección (Regl. art. 27; ADR-060 regla 11).
+      caso: "un segundo cargo de mayor orden, que no pasa a ser el principal",
+      roles: [
+        { roleCode: "FINANCIERO", coDirector: false },
+        { roleCode: "GESTION_HUMANA", coDirector: true },
+      ],
+      principal: "FINANCIERO",
+    },
+  ])("dejan la misma pertenencia y los mismos cargos con $caso (DT-354)", async ({
+    roles,
+    principal,
+  }) => {
+    const actor = await seedMember(GRANTOR);
+    const termId = await seedTerm();
+    const byCommand = await seedVeteran(BY_COMMAND);
+    const byFactory = await seedVeteran(BY_FACTORY);
+    // Un comité por camino: un cargo admite un solo titular y una sola codirección por comité y término.
+    const forCommand = await seedCommittee("paridad-comando");
+    const forFactory = await seedCommittee("paridad-fabrica");
+    await seedCommitteeMembership(byCommand, forCommand, termId);
+    const seat = await seedCommitteeMembership(byFactory, forFactory, termId);
+
+    await setCommitteeMembershipsAs({ personId: actor, ip: null }, byCommand, termId, [
+      { committeeId: forCommand, roles },
+    ]);
+    for (const role of roles) {
+      await seedCommitteeRole(seat, role.roleCode, role.coDirector);
+    }
+
+    const named = await seatOf(byCommand);
+    expect(named.pertenencia).toMatchObject({ roleCode: principal });
+    expect(named.cargos).toHaveLength(roles.length);
+    expect(await seatOf(byFactory)).toEqual(named);
   });
 });
 
