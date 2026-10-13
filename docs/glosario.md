@@ -69,7 +69,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Ventana de evaluación | `permanence.evaluationWindowDays` | Las dos semanas antes del fin del término en que los evaluadores registran el desempeño |
 | Puntaje del líder | `LeaderScore` | Valor que el líder del comité asigna en un criterio de su tabla, con observación obligatoria si baja del peso |
 | Crédito manual | `ManualCredit` | Reconocimiento a mano de GH en un criterio manual, con motivo |
-| Decisión de permanencia | `PermanenceDecision` | Lo que GH confirma en el cierre por comité (continúa, prueba, sale del comité) y por persona (continúa, sale de la OE); la app la propone y un job la aplica |
+| Decisión de permanencia | `PermanenceDecision` | Lo que GH confirma en el cierre por comité (continúa, prueba, sale del comité) y por persona (continúa, sale de la OE); la app la propone y un job la aplica. Guarda el motivo automático con que se propuso (`proposalReason`, [ADR-128](adr/ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) regla 1) |
 | Categoría de ocasión | `Occasion.category` | Integración, partido del Athletic, reunión de comité, charla, taller, social u otra; la usan los criterios |
 | Tabla general | `PermanenceRule.scope=GENERAL` | Criterios de permanencia de la junta, aplicados por GH a toda la OE; vale unos 50 puntos |
 | Tabla del comité | `PermanenceRule.scope=COMMITTEE` | Criterios de permanencia propios de un comité, definidos por su líder; vale unos 60 puntos |
