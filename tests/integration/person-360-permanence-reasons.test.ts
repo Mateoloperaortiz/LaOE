@@ -356,63 +356,95 @@ describe("el motivo de una decisión del cierre en la pestaña de permanencia de
     ]);
   });
 
-  it("si a un nuevo le ajustan el requisito después de confirmar su salida por una asamblea perdida, la línea sigue mostrando ese motivo, que se guardó con la decisión (DT-392)", async () => {
+  it("si le ajustan el requisito después de confirmar su salida por una asamblea perdida, la línea sigue mostrando ese motivo, que se guardó con la decisión: a un nuevo con la inducción pendiente y a un veterano (DT-392)", async () => {
     const { termId, a3, actor, member, closePoints, proposalOf } = await setup();
     const absent = await member("nuevo-falto.motivos@eafit.edu.co", {
       credit: 60,
       attends: false,
       since: termId,
     });
-    // Para que cumpla en A3 con el umbral de un nuevo: 40 puntos más por una segunda regla del comité.
+    const veteran = await member("veterano-falto.motivos@eafit.edu.co", {
+      credit: 60,
+      attends: false,
+    });
+    // Para que cumplan en A3 con el umbral de un nuevo: 40 puntos más por una segunda regla del comité.
     const extra = await seedRule(termId, "proyectos", {
       committeeId: a3,
       weight: 40,
       computation: "MANUAL",
       params: {},
     });
-    await seedManualCredit(termId, extra, absent, 40, {
-      reason: "seed",
-      grantedById: actor.personId,
-    });
+    for (const personId of [absent, veteran]) {
+      await seedManualCredit(termId, extra, personId, 40, {
+        reason: "seed",
+        grantedById: actor.personId,
+      });
+    }
     await closePoints();
-    // Faltó a la única ordinaria celebrada: el cierre lo propone por esa asamblea, y le queda comité.
+    // Faltaron a la única ordinaria celebrada: el cierre los propone por esa asamblea, y les queda comité.
     expect(await proposalOf(absent)).toMatchObject({
       isNew: true,
       personProposed: "EXIT_OE",
       personReason: 4,
       mandatoryMet: false,
     });
-    await confirmAllProposedAs(actor, termId);
-    expect(await decisionsShown(absent, termId)).toEqual([
-      line("A3", "CONTINUES", met),
-      line(null, "EXIT_OE", lostAssembly),
-    ]);
-
-    // GH le ajusta el requisito: ya no se le exige ninguna ordinaria, y esa asamblea deja de estar perdida.
-    await adjustRequirementAs(actor, {
-      termId,
-      personId: absent,
-      requiredOrdinary: 0,
-      requiresBoardElection: false,
-      requiresRunoff: false,
-      reason: "Ajuste del requisito después de confirmar",
+    expect(await proposalOf(veteran)).toMatchObject({
+      isNew: false,
+      personProposed: "EXIT_OE",
+      personReason: 4,
+      mandatoryMet: false,
     });
+    await confirmAllProposedAs(actor, termId);
+    for (const personId of [absent, veteran]) {
+      expect(await decisionsShown(personId, termId)).toEqual([
+        line("A3", "CONTINUES", met),
+        line(null, "EXIT_OE", lostAssembly),
+      ]);
+    }
+
+    // GH les ajusta el requisito: ya no se les exige ninguna ordinaria, y esa asamblea deja de estar perdida.
+    for (const personId of [absent, veteran]) {
+      await adjustRequirementAs(actor, {
+        termId,
+        personId,
+        requiredOrdinary: 0,
+        requiresBoardElection: false,
+        requiresRunoff: false,
+        reason: "Ajuste del requisito después de confirmar",
+      });
+    }
     await recomputeSnapshots(termId);
-    // Hoy el cierre le propondría continuar; lo obligatorio sigue sin cumplir por la inducción pendiente.
+    // Hoy el cierre les propondría continuar. Al nuevo lo obligatorio le sigue sin cumplir por la
+    // inducción pendiente; al veterano no.
     expect(await proposalOf(absent)).toMatchObject({
       personProposed: "CONTINUES",
       personReason: 0,
       mandatoryMet: false,
       drifted: true,
     });
+    expect(await proposalOf(veteran)).toMatchObject({
+      personProposed: "CONTINUES",
+      personReason: 0,
+      mandatoryMet: true,
+      drifted: true,
+    });
 
     // La línea dice el motivo con que se propuso, que `confirmDecisions` guardó con la decisión. Sin
     // guardarlo, la lectura lo sacaba del resultado de hoy y decía «no le queda un comité», y comité
-    // le queda (DT-392).
-    expect(await decisionsShown(absent, termId)).toEqual([
-      line("A3", "CONTINUES", met),
-      line(null, "EXIT_OE", lostAssembly),
-    ]);
+    // les queda (DT-392). El veterano es el que prueba que se lee el guardado: al nuevo, el respaldo de
+    // las filas viejas le da ese mismo motivo por `mandatory.met`, como la pestaña de antes del ciclo
+    // 16, y al veterano le daría «no le queda un comité» (DT-401).
+    for (const personId of [absent, veteran]) {
+      expect(await decisionsShown(personId, termId)).toEqual([
+        line("A3", "CONTINUES", met),
+        line(null, "EXIT_OE", lostAssembly),
+      ]);
+      // Y es el que quedó guardado con la decisión de la persona, que sigue siendo la confirmada.
+      expect((await proposalOf(personId))?.personDecision).toMatchObject({
+        proposed: "EXIT_OE",
+        proposalReason: 4,
+      });
+    }
   });
 
   it("si le revocan la falta grave después de confirmar su salida por sanciones, la línea sigue mostrando ese motivo (DT-392)", async () => {
