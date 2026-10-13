@@ -473,7 +473,8 @@ export async function seedTag(name: string): Promise<string> {
 /**
  * Correos que el proveedor ya había enviado antes de la prueba, que es lo que cuenta contra el cupo:
  * ningún comando deja un envío hecho sin pasar por el proveedor. Llevan un asunto numerado, salvo
- * que se diga uno.
+ * que se diga uno. Un lote de cero no escribe nada: las cantidades de las pruebas del cupo salen de
+ * una resta contra el tope del día, y Drizzle lanza con una lista de valores vacía.
  */
 export async function seedSentEmails(
   personId: string,
@@ -485,6 +486,7 @@ export async function seedSentEmails(
     subject?: string;
   },
 ): Promise<void> {
+  if (amount === 0) return;
   await db()
     .insert(message)
     .values(

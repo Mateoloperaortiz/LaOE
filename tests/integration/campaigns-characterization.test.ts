@@ -40,6 +40,7 @@ import {
 import { t } from "@/shared/copy";
 import { withTimeout } from "@/shared/lib/timeout";
 import { seedMember, seedSegment, seedSentEmails } from "../factories";
+import { setPerMinute } from "../helpers/campaigns";
 import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
@@ -111,10 +112,6 @@ async function seedRoster(size: number): Promise<Member[]> {
 
 const emails = (roster: Member[]): string[] => roster.map((member) => member.email).sort();
 const addresses = (inbox: MailMessage[]): string[] => inbox.map((mail) => mail.to).sort();
-
-function setPerMinute(value: number): Promise<void> {
-  return runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "campaigns.perMinute", value));
-}
 
 interface CampaignParts {
   templateId: string;
@@ -784,18 +781,6 @@ const TO_MIDNIGHT = 21 * 60;
 /** Los que le faltan para la medianoche de Colombia, que al cupo ya no le dice nada. */
 const TO_LOCAL_MIDNIGHT = 120;
 
-/** Correos que ya salieron a esa hora, sin pasar por el transporte: lo que cuenta el cupo. */
-async function seedSent(
-  personId: string,
-  kind: "TRANSACTIONAL" | "CAMPAIGN",
-  amount: number,
-  sentAt: Date,
-  provider: MailProvider = "resend",
-): Promise<void> {
-  if (amount === 0) return;
-  await seedSentEmails(personId, amount, { kind, provider, sentAt });
-}
-
 function setReserve(value: number): Promise<void> {
   return runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "campaigns.transactionalReserve", value));
 }
@@ -814,13 +799,29 @@ describe("el cupo del día y el margen para los correos transaccionales (ADR-115
     const id = await scheduleForNight(10);
     // En el día del proveedor ya salieron todos los que caben menos dos, entre transaccionales y de
     // campaña: su medianoche en punto, que son las 19:00 de Colombia, ya es de hoy.
-    await seedSent(ana.id, "TRANSACTIONAL", CAMPAIGN_CEILING - 5, EARLIER);
-    await seedSent(ana.id, "CAMPAIGN", 3, new Date("2031-03-10T00:00:00.000Z"));
+    await seedSentEmails(ana.id, CAMPAIGN_CEILING - 5, {
+      kind: "TRANSACTIONAL",
+      provider: "resend",
+      sentAt: EARLIER,
+    });
+    await seedSentEmails(ana.id, 3, {
+      kind: "CAMPAIGN",
+      provider: "resend",
+      sentAt: new Date("2031-03-10T00:00:00.000Z"),
+    });
     // No cuentan: lo de su día anterior, por un segundo o desde la mañana, aunque en Colombia sea el
     // mismo día; ni lo que salió por otro proveedor.
-    await seedSent(ana.id, "TRANSACTIONAL", 40, new Date("2031-03-09T23:59:59.000Z"));
-    await seedSent(ana.id, "TRANSACTIONAL", 40, MORNING);
-    await seedSent(ana.id, "TRANSACTIONAL", 40, EARLIER, "ses");
+    await seedSentEmails(ana.id, 40, {
+      kind: "TRANSACTIONAL",
+      provider: "resend",
+      sentAt: new Date("2031-03-09T23:59:59.000Z"),
+    });
+    await seedSentEmails(ana.id, 40, {
+      kind: "TRANSACTIONAL",
+      provider: "resend",
+      sentAt: MORNING,
+    });
+    await seedSentEmails(ana.id, 40, { kind: "TRANSACTIONAL", provider: "ses", sentAt: EARLIER });
     useTransports({ overflow: null });
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 2 });
@@ -878,7 +879,11 @@ describe("el cupo del día y el margen para los correos transaccionales (ADR-115
     const [ana] = roster;
     if (!ana) throw new Error("seed roster");
     const id = await scheduleForNight(10);
-    await seedSent(ana.id, "TRANSACTIONAL", DAILY_LIMIT, EARLIER);
+    await seedSentEmails(ana.id, DAILY_LIMIT, {
+      kind: "TRANSACTIONAL",
+      provider: "resend",
+      sentAt: EARLIER,
+    });
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 3 });
 
@@ -935,7 +940,11 @@ describe("el cupo del día y el margen para los correos transaccionales (ADR-115
     const [ana] = roster;
     if (!ana) throw new Error("seed roster");
     const id = await scheduleForNight(3);
-    await seedSent(ana.id, "TRANSACTIONAL", CAMPAIGN_CEILING - 2, EARLIER);
+    await seedSentEmails(ana.id, CAMPAIGN_CEILING - 2, {
+      kind: "TRANSACTIONAL",
+      provider: "resend",
+      sentAt: EARLIER,
+    });
     // El proveedor no responde hasta que los dos lotes reclamaron lo suyo: ninguno ve todavía un
     // correo enviado por el otro, solo lo que el otro reclamó.
     let waiting = 0;

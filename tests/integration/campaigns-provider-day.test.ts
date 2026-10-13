@@ -14,9 +14,10 @@ import {
 } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import { getConfig, setConfig } from "@/modules/system";
-import { type MailProvider, type MailTransport, QuotaExceededError } from "@/shared/adapters/mail";
+import { type MailTransport, QuotaExceededError } from "@/shared/adapters/mail";
 import { formatDateTime } from "@/shared/lib/dates";
 import { seedMember, seedSegment, seedSentEmails } from "../factories";
+import { setPerMinute } from "../helpers/campaigns";
 import { truncateAll } from "./db";
 
 // DT-125 (ADR-121 regla 5): el cupo del día del correo se cuenta por el día del proveedor. Resend lo
@@ -67,10 +68,6 @@ function useTransports(options: { overflow: boolean; resend?: Accept }): void {
   });
 }
 
-function setPerMinute(value: number): Promise<void> {
-  return runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "campaigns.perMinute", value));
-}
-
 /** Deja el cupo de las campañas en `ceiling` correos al día. */
 function setCampaignCeiling(ceiling: number): Promise<void> {
   return runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, RESERVE_KEY, DAILY_LIMIT - ceiling));
@@ -104,16 +101,6 @@ async function seedCampaign(at: Date): Promise<string> {
   });
   await scheduleCampaignAs(SYSTEM_ACTOR, id, at);
   return id;
-}
-
-/** Correos que ya salieron a esa hora, sin pasar por el transporte: lo que cuenta el cupo. */
-async function seedSent(
-  personId: string,
-  amount: number,
-  sentAt: Date,
-  provider: MailProvider = "resend",
-): Promise<void> {
-  await seedSentEmails(personId, amount, { provider, sentAt });
 }
 
 /** Cuántos correos aceptó Resend en ese día suyo, según lo que quedó registrado. */
@@ -171,7 +158,7 @@ describe("el cupo del día del correo es el del día del proveedor, que va en UT
     // El desbordamiento a SES está apagado en todos los entornos y si vuelve es la decisión abierta 52:
     // esto no la adelanta, solo fija que el día que mira es el mismo del lote y de la pantalla.
     useTransports({ overflow: true });
-    await seedSent(ana, DAILY_LIMIT, EVENING);
+    await seedSentEmails(ana, DAILY_LIMIT, { provider: "resend", sentAt: EVENING });
     const mail = { personId: ana, to: "ana@eafit.edu.co", subject: "Hola", text: "x" };
 
     expect(await sendTransactionalEmail(mail, PAST_LOCAL_MIDNIGHT)).toMatchObject({
@@ -193,10 +180,16 @@ describe("el cupo del día del correo es el del día del proveedor, que va en UT
     if (!ana) throw new Error("seed people");
     // Las 7:00 p. m. en punto ya son del día del proveedor; un segundo antes es de su día anterior,
     // aunque en Colombia sea la misma tarde. Lo de otro proveedor no cuenta.
-    await seedSent(ana, 4, PROVIDER_DAY);
-    await seedSent(ana, 3, new Date(PROVIDER_DAY.getTime() - 1_000));
-    await seedSent(ana, 2, new Date("2031-03-10T05:01:00.000Z"));
-    await seedSent(ana, 9, EVENING, "ses");
+    await seedSentEmails(ana, 4, { provider: "resend", sentAt: PROVIDER_DAY });
+    await seedSentEmails(ana, 3, {
+      provider: "resend",
+      sentAt: new Date(PROVIDER_DAY.getTime() - 1_000),
+    });
+    await seedSentEmails(ana, 2, {
+      provider: "resend",
+      sentAt: new Date("2031-03-10T05:01:00.000Z"),
+    });
+    await seedSentEmails(ana, 9, { provider: "ses", sentAt: EVENING });
 
     const { daily } = await getCampaignQuotaStatus(PAST_LOCAL_MIDNIGHT);
 

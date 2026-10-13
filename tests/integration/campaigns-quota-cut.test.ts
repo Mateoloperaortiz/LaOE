@@ -17,6 +17,7 @@ import { auditLog } from "@/modules/system/schema";
 import { type MailMessage, QuotaExceededError } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
 import { seedMember, seedSegment } from "../factories";
+import { setPerMinute } from "../helpers/campaigns";
 import { truncateAll } from "./db";
 
 // DT-117 (ADR-116 regla 19, que enmienda ADR-115 regla 6): el corte de las campañas guarda la causa del
@@ -75,10 +76,6 @@ function rejectSecondWith(error: QuotaExceededError): { calls: () => number } {
     return `resend_${call}`;
   });
   return { calls: () => seen };
-}
-
-function setPerMinute(value: number): Promise<void> {
-  return runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "campaigns.perMinute", value));
 }
 
 const NAMES = ["Ana", "Beto", "Caro", "Dani"];

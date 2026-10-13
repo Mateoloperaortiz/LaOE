@@ -16,10 +16,10 @@ import { requestOtp } from "@/modules/identity";
 import { anonymizePersonAs, requestDeletionAs } from "@/modules/people";
 import { anonymizePerson } from "@/modules/people/domain/membership";
 import { person } from "@/modules/people/schema";
-import { setConfig } from "@/modules/system";
 import type { MailMessage } from "@/shared/adapters/mail";
 import { withTimeout } from "@/shared/lib/timeout";
 import { seedMember, seedSegment } from "../factories";
+import { setPerMinute } from "../helpers/campaigns";
 import { deferred, type Held, holdCommand, waitingForLock, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
@@ -60,7 +60,7 @@ async function seedRosterMember(name: string): Promise<Member> {
 
 /** Una campaña a todas las personas de la prueba, programada para `DUE` y con lote para todas. */
 async function scheduleCampaign(): Promise<string> {
-  await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "campaigns.perMinute", 60));
+  await setPerMinute(60);
   const segmentId = await seedSegment();
   const { id: templateId } = await runCommand(SYSTEM_ACTOR, (ctx) =>
     createTemplate(ctx, {

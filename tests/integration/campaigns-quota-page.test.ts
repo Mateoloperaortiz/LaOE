@@ -56,11 +56,6 @@ function useProvider(name: MailProvider): void {
   setMailTransportsForTests({ primary, overflow: null });
 }
 
-/** Correos que ya salieron a esa hora por Resend, sin pasar por el transporte: lo que cuenta el cupo. */
-async function seedSent(personId: string, amount: number, sentAt: Date): Promise<void> {
-  await seedSentEmails(personId, amount, { provider: "resend", sentAt });
-}
-
 interface Shown {
   /** Los datos de «Hoy», por su rótulo. */
   data: Map<unknown, unknown>;
@@ -104,8 +99,11 @@ describe("la pantalla del cupo de correo dice cuándo vuelve a empezar la cuenta
     useProvider("resend");
     const ana = await seedMember("ana@eafit.edu.co", { firstName: "Ana" });
     // Las 7:00 p. m. en punto ya son del día del proveedor; un segundo antes es de su día anterior.
-    await seedSent(ana, 4, PROVIDER_DAY);
-    await seedSent(ana, 3, new Date(PROVIDER_DAY.getTime() - 1_000));
+    await seedSentEmails(ana, 4, { provider: "resend", sentAt: PROVIDER_DAY });
+    await seedSentEmails(ana, 3, {
+      provider: "resend",
+      sentAt: new Date(PROVIDER_DAY.getTime() - 1_000),
+    });
     const proveedor = quotaProviderLabel("resend");
     const [dtProveedor, , dtEnviados] = tList("T-3229");
 
@@ -123,7 +121,7 @@ describe("la pantalla del cupo de correo dice cuándo vuelve a empezar la cuenta
   it("a las 7:00 p. m. en punto la cuenta ya es la del día nuevo y la hora que dice es la del otro día", async () => {
     useProvider("resend");
     const ana = await seedMember("ana@eafit.edu.co", { firstName: "Ana" });
-    await seedSent(ana, 4, PROVIDER_DAY);
+    await seedSentEmails(ana, 4, { provider: "resend", sentAt: PROVIDER_DAY });
     const [, , dtEnviados] = tList("T-3229");
 
     const { data, texts } = await shownAt(NEXT_PROVIDER_DAY);

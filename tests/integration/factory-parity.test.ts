@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
+import { message } from "@/modules/comms/schema";
 import { grantPermissionAs, setOwnPassword } from "@/modules/identity";
 import { verifyPassword } from "@/modules/identity/domain/pure";
 import { credential, permission } from "@/modules/identity/schema";
@@ -48,6 +49,7 @@ import {
   seedPerson,
   seedQuestion,
   seedSegment,
+  seedSentEmails,
   seedTag,
   seedTerm,
   seedVeteran,
@@ -684,5 +686,41 @@ describe("la fábrica y el guardado de un reto", () => {
         .map((row) => without(row, "id", "challengeId", "createdAt"));
     expect(of(byCommand.id)).toHaveLength(1);
     expect(of(byFactory.id)).toEqual(of(byCommand.id));
+  });
+});
+
+describe("la fábrica y los correos que el proveedor ya había enviado", () => {
+  beforeEach(truncateAll);
+
+  it("un lote de cero correos no escribe nada ni lanza, y uno de tres escribe los tres con su asunto numerado (DT-326)", async () => {
+    const personId = await seedMember(BY_FACTORY);
+    const sent = { provider: "resend", sentAt: new Date("2031-03-10T15:00:00.000Z") };
+
+    await expect(seedSentEmails(personId, 0, sent)).resolves.toBeUndefined();
+    expect(await db().select().from(message)).toEqual([]);
+
+    await seedSentEmails(personId, 3, sent);
+    const rows = await db()
+      .select({
+        personId: message.personId,
+        channel: message.channel,
+        kind: message.kind,
+        subject: message.subject,
+        status: message.status,
+        provider: message.provider,
+        sentAt: message.sentAt,
+      })
+      .from(message)
+      .orderBy(asc(message.subject));
+    expect(rows).toEqual(
+      ["Previo 0", "Previo 1", "Previo 2"].map((subject) => ({
+        personId,
+        channel: "EMAIL",
+        kind: "TRANSACTIONAL",
+        subject,
+        status: "SENT",
+        ...sent,
+      })),
+    );
   });
 });

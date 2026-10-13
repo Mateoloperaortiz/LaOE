@@ -14,11 +14,12 @@ import {
   setMailTransportsForTests,
   setTransactionalReserveAs,
 } from "@/modules/comms";
-import { getConfig, setConfig } from "@/modules/system";
+import { getConfig } from "@/modules/system";
 import { appConfig, auditLog } from "@/modules/system/schema";
 import { type MailProvider, QuotaExceededError } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
 import { seedMember, seedSegment, seedSentEmails } from "../factories";
+import { setPerMinute } from "../helpers/campaigns";
 import { truncateAll } from "./db";
 
 // DT-115 (ADR-116 regla 20): lo que la pantalla de una campaña y la del cupo de correo le muestran a un
@@ -63,10 +64,6 @@ const rejecting = (error: QuotaExceededError): Accept => {
   };
 };
 
-function setPerMinute(value: number): Promise<void> {
-  return runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "campaigns.perMinute", value));
-}
-
 const NAMES = ["Ana", "Beto", "Caro"];
 
 async function seedPeople(size: number): Promise<string[]> {
@@ -95,18 +92,6 @@ async function seedCampaign(suffix = ""): Promise<string> {
   });
   await scheduleCampaignAs(SYSTEM_ACTOR, id, NIGHT);
   return id;
-}
-
-/** Correos que ya salieron a esa hora, sin pasar por el transporte: lo que cuenta el cupo. */
-async function seedSent(
-  personId: string,
-  kind: "TRANSACTIONAL" | "CAMPAIGN",
-  amount: number,
-  sentAt: Date,
-  provider: MailProvider = "resend",
-): Promise<void> {
-  if (amount === 0) return;
-  await seedSentEmails(personId, amount, { kind, provider, sentAt });
 }
 
 function reserveAudits() {
@@ -138,12 +123,20 @@ describe("el cupo de correo que ve un ADMIN (ADR-116 regla 20)", () => {
   it("sin margen fijado muestra el cupo del día, el margen por defecto, lo enviado en el día del proveedor y lo que cabe", async () => {
     const [ana] = await seedPeople(1);
     if (!ana) throw new Error("seed people");
-    await seedSent(ana, "TRANSACTIONAL", 10, EARLIER);
+    await seedSentEmails(ana, 10, { kind: "TRANSACTIONAL", provider: "resend", sentAt: EARLIER });
     // La medianoche del proveedor en punto ya es de hoy; un segundo antes es de ayer, aunque en
     // Colombia sea la misma tarde, y lo de otro proveedor no cuenta.
-    await seedSent(ana, "CAMPAIGN", 5, new Date("2031-03-10T00:00:00.000Z"));
-    await seedSent(ana, "TRANSACTIONAL", 7, new Date("2031-03-09T23:59:59.000Z"));
-    await seedSent(ana, "TRANSACTIONAL", 9, EARLIER, "ses");
+    await seedSentEmails(ana, 5, {
+      kind: "CAMPAIGN",
+      provider: "resend",
+      sentAt: new Date("2031-03-10T00:00:00.000Z"),
+    });
+    await seedSentEmails(ana, 7, {
+      kind: "TRANSACTIONAL",
+      provider: "resend",
+      sentAt: new Date("2031-03-09T23:59:59.000Z"),
+    });
+    await seedSentEmails(ana, 9, { kind: "TRANSACTIONAL", provider: "ses", sentAt: EARLIER });
 
     expect(await getCampaignQuotaStatus(NIGHT)).toEqual({
       provider: "resend",
@@ -370,7 +363,7 @@ describe("cambiar el margen para lo transaccional (ADR-116 regla 20)", () => {
     const id = await seedCampaign();
     // Con el margen nuevo caben dos correos de campaña, y hoy ya salió uno transaccional.
     await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, DAILY_LIMIT - 2);
-    await seedSent(ana, "TRANSACTIONAL", 1, EARLIER);
+    await seedSentEmails(ana, 1, { kind: "TRANSACTIONAL", provider: "resend", sentAt: EARLIER });
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
     expect(await getCampaignBacklog(id, after(1))).toEqual({
@@ -436,7 +429,11 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     const [ana] = await seedPeople(3);
     if (!ana) throw new Error("seed people");
     const id = await seedCampaign();
-    await seedSent(ana, "TRANSACTIONAL", DEFAULT_CEILING, EARLIER);
+    await seedSentEmails(ana, DEFAULT_CEILING, {
+      kind: "TRANSACTIONAL",
+      provider: "resend",
+      sentAt: EARLIER,
+    });
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 0 });
 
@@ -459,7 +456,11 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
 
     expect(await getCampaignBacklog(id, after(1))).toEqual({ pending: 3, hold: cut });
 
-    await seedSent(ana, "TRANSACTIONAL", DEFAULT_CEILING, EARLIER);
+    await seedSentEmails(ana, DEFAULT_CEILING, {
+      kind: "TRANSACTIONAL",
+      provider: "resend",
+      sentAt: EARLIER,
+    });
     expect(await getCampaignBacklog(id, after(2))).toEqual({ pending: 3, hold: cut });
   });
 
@@ -616,7 +617,11 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     const [ana] = await seedPeople(3);
     if (!ana) throw new Error("seed people");
     const id = await seedCampaign();
-    await seedSent(ana, "TRANSACTIONAL", DAILY_LIMIT, EARLIER);
+    await seedSentEmails(ana, DAILY_LIMIT, {
+      kind: "TRANSACTIONAL",
+      provider: "resend",
+      sentAt: EARLIER,
+    });
     stubMail("console");
     await setPerMinute(1);
 
