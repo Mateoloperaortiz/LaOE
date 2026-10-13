@@ -788,17 +788,28 @@ function withWritableMessage(args: unknown[]): unknown[] {
 }
 
 /**
+ * El método con que pino le pregunta a lo que un hijo va a fijar por cada una de sus claves
+ * (`bindings.hasOwnProperty(key)`, en `asChindings`). Una clave propia con ese nombre lo tapa y pino
+ * lanza: no se le pasa.
+ */
+const ASKED_BY_PINO = "hasOwnProperty";
+
+/**
  * Lo que un logger hijo va a fijar, como un objeto que pino sabe leer (ADR-129 regla 6). Pino lo
  * serializa al crear el hijo y por ahí no pasa `hooks.logMethod`: con un objeto sin prototipo, con una
  * clave que lanza al leerla o con un `Proxy`, lanzaba él. Se copian las claves propias que se enumeran,
  * que son las que pino fija. La que lanza al leerla sale `[oculto]`, y de lo que no deja ni listar sus
- * claves no se fija nada. Los valores no se tocan: pasan por el serializador de `err` y por las rutas
- * ocultas, como siempre.
+ * claves no se fija nada. Tampoco se fija una clave propia `hasOwnProperty` (`ASKED_BY_PINO`), aunque
+ * se deje leer. Los valores no se tocan: pasan por el serializador de `err` y por las rutas ocultas,
+ * como siempre.
  */
 function readableBindings(bindings: unknown): Record<string, unknown> {
   const entries: [string, unknown][] = [];
   try {
     for (const key of Object.keys(bindings as object)) {
+      if (key === ASKED_BY_PINO) {
+        continue;
+      }
       try {
         entries.push([key, (bindings as Record<string, unknown>)[key]]);
       } catch {

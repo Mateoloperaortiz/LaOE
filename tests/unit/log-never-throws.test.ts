@@ -490,6 +490,31 @@ describe("un logger hijo y las dos lecturas del error tampoco lanzan", () => {
     ]);
   });
 
+  it("una clave `hasOwnProperty` en lo que le piden fijar no tumba a `child` ni a `setBindings`: esa clave no se fija, y las demás sí", async () => {
+    const { lines } = await captureLogs(async () => {
+      child(logger, { hasOwnProperty: "x", pedido: "p-1" }).warn("un hijo");
+      // Un objeto llano que se deja leer, como llega de un texto de afuera.
+      child(logger, JSON.parse('{"hasOwnProperty":1,"pedido":"p-2"}')).warn("de un texto");
+      const fixed = child(logger, { pedido: "p-3" });
+      fixed.setBindings({ hasOwnProperty: 1, intento: 2 });
+      fixed.warn("sigue");
+    });
+
+    expect(lines.map(({ record }) => record)).toEqual([
+      { level: 40, time: expect.any(Number), pedido: "p-1", msg: "un hijo" },
+      { level: 40, time: expect.any(Number), pedido: "p-2", msg: "de un texto" },
+      { level: 40, time: expect.any(Number), pedido: "p-3", intento: 2, msg: "sigue" },
+    ]);
+  });
+
+  it("lo que se pasa por opciones al crear un hijo es configuración, no lo que se pide anotar: sigue lanzando", () => {
+    const withOptions = (options: unknown) => () =>
+      logger.child({ pedido: "p-1" }, options as pino.ChildLoggerOptions);
+
+    expect(withOptions({ level: "no-existe" })).toThrow("unknown level no-existe");
+    expect(withOptions(Object.create(null))).toThrow("options.hasOwnProperty is not a function");
+  });
+
   it("lo que un hijo fija y se deja leer sale como salía: el error recortado, las claves ocultas y las que pino reserva", async () => {
     const { lines } = await captureLogs(async () => {
       child(logger, {
