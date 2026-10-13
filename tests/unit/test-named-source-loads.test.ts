@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { type UnnamedLoad, unnamedSourceLoads } from "../../scripts/lib/test-suite-metrics";
+import { type UnnamedLoad, unnamedSourceLoads } from "../../scripts/lib/test-source-loads";
 
 // Una prueba que carga un archivo de `src` con `import("…")` nombra lo que toma:
 // `const { nombre } = await import("…")`. Si no, knip da por usado el archivo entero y deja de avisar
