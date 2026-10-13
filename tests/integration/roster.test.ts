@@ -404,6 +404,36 @@ describe("importación del roster", () => {
     ]);
   });
 
+  // De la revisión del ciclo 15 (ADR-127 regla 1): la propuesta de líder sale de la fila que se aplica.
+  // A quien sigue de baja el roster no le cambia los comités (ADR-118 regla 11), y su fila proponía
+  // igual el permiso: la acción se lo concedía después del commit a quien no quedó en el comité.
+  it.each([
+    { endReason: "EXPULSION" as const, left: "fue expulsado", listedAs: "Activo", stays: [] },
+    { endReason: "EXPULSION" as const, left: "fue expulsado", listedAs: "Honorario", stays: [] },
+    { endReason: "RESIGNATION" as const, left: "renunció", listedAs: "Activo", stays: ["pixel"] },
+  ])("a quien $left y figura como $listedAs y General de un comité se le propone el permiso de líder solo si el roster lo deja en ese comité", async ({
+    endReason,
+    listedAs,
+    stays,
+  }) => {
+    const { termId, code, adminId, juan } = await rosterConBaja(endReason);
+
+    const next = await preview(
+      adminId,
+      termId,
+      csv([
+        `Ana;Pérez;prueba.ana@eafit.edu.co;;Derecho;A3;${code};Activo;General de A3`,
+        `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};${listedAs};General de PIXEL`,
+      ]),
+    );
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, next.jobId);
+
+    const proposed = ["prueba.ana@eafit.edu.co", ...stays.map(() => "prueba.juan@eafit.edu.co")];
+    expect(next.proposals.map((proposal) => proposal.email)).toEqual(proposed);
+    expect(applied.proposals.map((proposal) => proposal.email)).toEqual(proposed);
+    expect((await estadoYComites(juan)).comites).toEqual(stays);
+  });
+
   // ADR-120 regla 2: la auditoría y el evento `person.imported` dicen que la importación le cambió
   // algo a la persona. Una fila que queda igual no los deja (DT-288).
   it("una fila que no cambia nada no audita ni emite la importación, y la que sí cambia las sigue dejando", async () => {

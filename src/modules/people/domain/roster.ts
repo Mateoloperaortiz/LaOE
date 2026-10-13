@@ -368,6 +368,11 @@ async function buildPreview(
     if (row.group === "ERROR" || !row.email) {
       continue;
     }
+    // A quien sigue de baja el roster no le cambia los comités (ADR-118 regla 11): su fila no deja a
+    // nadie de General, y el permiso se concede a quien la fila dejó en el comité (ADR-127 regla 1).
+    if (staysInactive(existing.get(row.email), row.status)) {
+      continue;
+    }
     for (const item of row.committees ?? []) {
       for (const role of item.roles.filter((role) => role.roleCode === "GENERAL")) {
         proposals.push({
