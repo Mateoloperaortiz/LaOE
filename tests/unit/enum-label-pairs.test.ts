@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { proposalReason } from "@/modules/permanence/domain/permanence-pure";
 import { tList } from "@/shared/copy";
 import {
   DOMAIN_REASONS,
@@ -266,11 +267,20 @@ describe("el par de largo distinto de T-801 que armaba la pestaña de permanenci
     expect(UNEVEN_PAIRS.map((pair) => pair.code)).not.toContain(DOMAIN_REASONS.code);
   });
 
-  it("la lista sigue trayendo sus seis motivos, y las posiciones que se leían por decisión caben en ella", () => {
+  it("la lista sigue trayendo sus seis motivos, y la posición que leía cada decisión es el motivo que hoy le da el dominio", () => {
     expect(tList(DOMAIN_REASONS.code)).toHaveLength(DOMAIN_REASONS.pieces);
     const positions = Object.values(DOMAIN_REASONS.positions);
     expect(new Set(positions).size).toBe(positions.length);
     expect(Math.max(...positions)).toBeLessThan(DOMAIN_REASONS.pieces);
+    // Continuar, la prueba y la salida de un comité llevan su motivo en la propuesta: el dominio no
+    // lee el resultado para darlo, así que acá va vacío.
+    const unread = {} as Parameters<typeof proposalReason>[0];
+    for (const [decision, position] of Object.entries(DOMAIN_REASONS.positions)) {
+      expect(
+        proposalReason(unread, decision as Parameters<typeof proposalReason>[1]),
+        decision,
+      ).toBe(position);
+    }
   });
 });
 
