@@ -322,6 +322,53 @@ async function warnInhabilities(
   }
 }
 
+type RowCommittees = NonNullable<PreviewRow["committees"]>;
+
+/**
+ * Con qué nombre sale una persona en su propuesta de líder: el de la fila y, donde la fila no lo trae,
+ * el de la persona que encontró quien llama (`stored`).
+ */
+function proposalName(
+  row: PreviewRow,
+  stored: { firstName: string; lastName: string } | undefined,
+): string {
+  return `${row.firstName ?? stored?.firstName ?? ""} ${row.lastName ?? stored?.lastName ?? ""}`.trim();
+}
+
+/**
+ * Las propuestas de líder de una fila: una por cada cargo de General, titular o codirección, de los
+ * comités de `written`, y de ningún otro lado (ADR-127 regla 1). Es la única función que arma una
+ * propuesta, y la llaman dos, cada una con su lista:
+ *
+ * - La vista previa (`buildPreview`), con lo que `committeesToWrite` responde sobre su lectura sin
+ *   candados. Es un anuncio: lo que GH revisa y marca antes de aplicar. Puede anunciar una propuesta
+ *   que la aplicación no confirme.
+ * - La importación aplicada (`applyRosterImportAs`), con la lista que `applyRow` le pasó a
+ *   `setCommitteeMembershipsIfChanged` en su transacción, o ninguna si no lo llamó. De ahí sale el
+ *   resumen, que es de donde la acción concede el permiso.
+ */
+function leaderProposalsOf(
+  row: PreviewRow,
+  personName: string,
+  written: RowCommittees | null,
+): LeaderProposal[] {
+  const email = row.email;
+  if (!email || !written) {
+    return [];
+  }
+  return written.flatMap((item) =>
+    item.roles
+      .filter((role) => role.roleCode === "GENERAL")
+      .map((role) => ({
+        email,
+        personName,
+        committeeId: item.committeeId,
+        committeeName: item.name,
+        coDirector: role.coDirector,
+      })),
+  );
+}
+
 async function buildPreview(
   cells: string[][],
   mapping: Array<RosterColumn | null> | null,
@@ -368,21 +415,14 @@ async function buildPreview(
     if (row.group === "ERROR" || !row.email) {
       continue;
     }
-    // La propuesta sale de los comités que la fila deja escritos, y de ningún otro lado: el permiso
-    // se le concede a quien la fila dejó en el comité (ADR-127 regla 1). No propone la fila de quien
-    // sigue de baja ni la que da de baja a alguien, que no le cambian los comités (ADR-118 regla 11).
-    for (const item of committeesToWrite(existing.get(row.email), row) ?? []) {
-      for (const role of item.roles.filter((role) => role.roleCode === "GENERAL")) {
-        proposals.push({
-          email: row.email,
-          personName:
-            `${row.firstName ?? existing.get(row.email)?.firstName ?? ""} ${row.lastName ?? existing.get(row.email)?.lastName ?? ""}`.trim(),
-          committeeId: item.committeeId,
-          committeeName: item.name,
-          coDirector: role.coDirector,
-        });
-      }
-    }
+    // Lo que esta lectura, sin candados, dice que la fila le dejaría escrito a la persona: no propone
+    // la fila de quien sigue de baja ni la que da de baja a alguien, que no le cambian los comités
+    // (ADR-118 regla 11). Es el anuncio de la vista previa. El resumen de una importación aplicada no
+    // sale de acá: lo arma `applyRosterImportAs` con lo que cada fila escribió (ADR-127 regla 1).
+    const current = existing.get(row.email);
+    proposals.push(
+      ...leaderProposalsOf(row, proposalName(row, current), committeesToWrite(current, row)),
+    );
   }
   return { headers, mapping: resolvedMapping, validation, rows, proposals, existing };
 }
@@ -706,6 +746,26 @@ function onlyChanges(current: LockedPerson, patch: PersonPatch): PersonPatch {
   return changes;
 }
 
+/** Lo que una fila dejó hecho al aplicarse. */
+interface AppliedRow {
+  outcome: "created" | "updated" | "unchanged";
+  /** El nombre de la persona para su propuesta de líder, con la persona que esta fila tomó. */
+  personName: string;
+  /**
+   * La lista de comités que la fila le pasó a `setCommitteeMembershipsIfChanged`, y `null` si no lo
+   * llamó. Solo se llena después de que el comando responde, haya escrito o haya encontrado ya esas
+   * mismas pertenencias. De acá salen las propuestas de líder del resumen: no propone a nadie para un
+   * comité que su fila no le pasó al comando en esta transacción.
+   */
+  committeesWritten: RowCommittees | null;
+}
+
+const NOTHING_APPLIED: AppliedRow = {
+  outcome: "unchanged",
+  personName: "",
+  committeesWritten: null,
+};
+
 async function applyRow(
   ctx: CommandContext,
   row: PreviewRow,
@@ -713,10 +773,10 @@ async function applyRow(
   termCode: string,
   termsByCode: Map<string, string>,
   jobId: string,
-): Promise<"created" | "updated" | "unchanged"> {
+): Promise<AppliedRow> {
   const email = row.email;
   if (!email) {
-    return "unchanged";
+    return NOTHING_APPLIED;
   }
   const reason = `roster ${termCode}`;
   const existing = await lockPersonByEmail(ctx, email);
@@ -727,13 +787,18 @@ async function applyRow(
   // Quien ya estaba de baja y esta fila no lo saca de ahí: se decide con la membresía leída acá, no
   // con la de la vista previa.
   let keepsOut = false;
-  // Los comités que la fila le deja escritos, con esa misma membresía. Quien no tiene ninguna, la
+  // Los comités que la fila le va a escribir, con esa misma membresía. Quien no tiene ninguna, la
   // persona nueva o la que existía sin ella, la recibe en el estado de la fila.
-  let committeesWritten = committeesToWrite(undefined, row);
+  let toWrite = committeesToWrite(undefined, row);
+  // Los que le escribió: sigue en `null` hasta que el comando de los comités responde.
+  let committeesWritten: RowCommittees | null = null;
+  // El nombre es el de la fila y, donde no lo trae, el de la persona tomada acá con su candado, no
+  // el de la lectura por el pool de la validación.
+  const personName = proposalName(row, existing);
   if (!existing) {
     const entryTermId = row.entryTerm ? termsByCode.get(row.entryTerm) : undefined;
     if (!entryTermId) {
-      return "unchanged";
+      return NOTHING_APPLIED;
     }
     const [created] = await ctx.tx
       .insert(person)
@@ -781,7 +846,7 @@ async function applyRow(
       .from(membership)
       .where(eq(membership.personId, personId));
     keepsOut = staysInactive(current, row.status);
-    committeesWritten = committeesToWrite(current, row);
+    toWrite = committeesToWrite(current, row);
     if (!current) {
       const entryTermId = (row.entryTerm ? termsByCode.get(row.entryTerm) : undefined) ?? termId;
       await insertRosterMembership(ctx, { personId, status, entryTermId, termId });
@@ -859,17 +924,21 @@ async function applyRow(
   // Los comités se cambian solo a quien queda con membresía vigente (ADR-118 regla 11), y lo decide
   // `committeesToWrite` con la membresía que la fila encontró y el estado que trae, no solo con el
   // que pide: quien sigue de baja (el archivo no trae ESTADO, o fue expulsado y el roster no lo
-  // reactiva) conserva su fila tal cual. La vista previa ya lo avisó (T-2208, T-3247). Es la misma
-  // lista de la que sale la propuesta de líder (ADR-127 regla 1). El comando vuelve a leer la
-  // membresía con su candado y responde T-3246 si no está vigente: la importación cae entera antes
-  // que dejar a alguien de baja en un comité. A quien ya tiene esas mismas pertenencias no se le
-  // escribe nada: se valida igual, y no queda auditoría ni evento de sus comités (ADR-120 regla 2).
-  if (committeesWritten) {
+  // reactiva) conserva su fila tal cual. La vista previa ya lo avisó (T-2208, T-3247). El comando
+  // vuelve a leer la membresía con su candado y responde T-3246 si no está vigente: la importación
+  // cae entera antes que dejar a alguien de baja en un comité. A quien ya tiene esas mismas
+  // pertenencias no se le escribe nada: se valida igual, y no queda auditoría ni evento de sus
+  // comités (ADR-120 regla 2).
+  //
+  // La lista que el comando aceptó es la que la fila devuelve, y de ella sale la propuesta de líder
+  // del resumen (ADR-127 regla 1). La vista previa pudo anunciar otra cosa con su lectura sin
+  // candados; la que vale para conceder es esta.
+  if (toWrite) {
     await setCommitteeMembershipsIfChanged(
       ctx,
       personId,
       termId,
-      committeesWritten.map((item) => ({
+      toWrite.map((item) => ({
         committeeId: item.committeeId,
         roleCode: item.roleCode,
         roles: item.roles.map((role) => ({ roleCode: role.roleCode, coDirector: role.coDirector })),
@@ -879,11 +948,12 @@ async function applyRow(
       // Inhabilidades (ADR-060 regla 11): el roster de ADMIN las fuerza y quedan auditadas con su motivo.
       { reason },
     );
+    committeesWritten = toWrite;
   }
   // La auditoría y el evento dicen que la importación le cambió algo a la persona: una fila que
   // quedó igual no los deja (ADR-120 regla 2). El trabajo conserva la fila en su vista previa.
   if (outcome === "unchanged") {
-    return outcome;
+    return { outcome, personName, committeesWritten };
   }
   await ctx.audit({
     action: "person.imported",
@@ -902,7 +972,7 @@ async function applyRow(
       notes: row.notes ?? null,
     }),
   );
-  return outcome;
+  return { outcome, personName, committeesWritten };
 }
 
 /**
@@ -942,7 +1012,14 @@ function rejectedIn(rows: readonly PreviewRow[]): Map<number, string[]> {
  *
  * Valida dos veces por el camino de la vista previa (ADR-127 regla 1). La primera pasada, sin
  * candados, prepara: dice de quién tomar el consultivo y qué términos y cargos crear. La segunda, con
- * los consultivos tomados, decide: es la que se aplica, se resume y se guarda.
+ * los consultivos tomados, decide qué filas se aplican, y sus filas son las que el trabajo guarda.
+ *
+ * Las propuestas de líder del resumen no salen de ninguna de las dos: salen de la lista de comités
+ * que cada fila le pasó al comando de los comités en esta transacción, y que el comando aceptó
+ * (`applyRow`). Las dos pasadas leen por el pool, y quien recibe un correo del archivo después de
+ * `lockRosterMembers` no tiene su consultivo tomado: la validación puede proponer a alguien a quien
+ * la fila después no le escribe nada. El trabajo aplicado guarda las propuestas del resumen, no las
+ * de la validación.
  */
 export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<ApplySummary> {
   const job = await getImportJob(jobId);
@@ -996,20 +1073,24 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
       // Los que de verdad se crearon, también los que solo pedía una fila que la segunda pasada sacó.
       termsCreated: prepared.validation.missingTerms,
       rolesCreated,
-      proposals: decided.proposals,
+      proposals: [],
     };
     for (const row of decided.rows) {
       if (row.group === "ERROR") {
         summary.skipped += 1;
         continue;
       }
-      const outcome = await applyRow(ctx, row, termId, termCode, termsByCode, jobId);
-      summary[outcome] += 1;
+      const applied = await applyRow(ctx, row, termId, termCode, termsByCode, jobId);
+      summary[applied.outcome] += 1;
+      summary.proposals.push(
+        ...leaderProposalsOf(row, applied.personName, applied.committeesWritten),
+      );
     }
     await updateImportJob(ctx, jobId, {
       status: "APPLIED",
       appliedAt: new Date(),
-      payload: payloadOf(decided, current.data.format),
+      // Las filas son las de la segunda pasada; las propuestas, las del resumen.
+      payload: { ...payloadOf(decided, current.data.format), proposals: summary.proposals },
       summary: { ...summary, leaders: { granted: [], failed: [] } },
     });
     return summary;

@@ -10,6 +10,7 @@ import {
   lockMembershipCycle,
   recordSanctionAs,
   setProbationAs,
+  updatePersonAs,
 } from "@/modules/people";
 import {
   committee,
@@ -331,6 +332,43 @@ describe("la importación del roster vuelve a validar con los candados de las pe
       .from(person)
       .where(eq(person.email, incoming));
     expect(await stateOf(created?.id ?? "")).toEqual({ status: "ACTIVE", committees: ["a3"] });
+    expect(await stateOf(member.id)).toEqual({ status: "ACTIVE", committees: ["a3"] });
+  });
+
+  // La carrera que ejecutó la tercera revisión del ciclo 15 (DT-386). La validación lee por el pool y
+  // encuentra el correo de la segunda fila sin dueño: fila nueva, con su propuesta. Los consultivos
+  // se toman de quien tenía un correo del archivo en ese momento, así que el de la persona expulsada
+  // no está tomado y GH le corrige el correo sin hacer cola. Al aplicarse, la fila encuentra a esa
+  // persona, que sigue de baja, y no le escribe ningún comité. El resumen salía de la validación y
+  // la proponía igual; ahora sale de lo que cada fila escribió.
+  it("la persona expulsada que recibe el correo de una fila nueva mientras la importación se aplica no queda propuesta de líder: el resumen propone solo lo que la importación escribió", async () => {
+    const { admin, member, expelledId, incoming, jobId } = await newGeneralScenario();
+    const before = await getRosterPreview(jobId);
+    expect(before?.proposals).toEqual([expect.objectContaining({ email: incoming })]);
+
+    const imported = await applyWithRowHeld(admin, jobId, member.id, () =>
+      updatePersonAs(admin, expelledId, {
+        firstName: "Equis",
+        lastName: "Vieja",
+        email: incoming,
+        kind: "STUDENT",
+      }),
+    );
+
+    expect(outcome(imported)).toBe("ok");
+    // Sin propuesta de líder en el resumen: es de ahí de donde la acción concede el permiso.
+    expect(imported).toMatchObject({
+      value: { created: 0, updated: 2, skipped: 0, proposals: [] },
+    });
+    // Ni en lo que el trabajo aplicado guarda.
+    expect(await getRosterPreview(jobId)).toMatchObject({ status: "APPLIED", proposals: [] });
+    // La fila encontró a la persona expulsada: no la reactivó ni la dejó en el comité.
+    const [found] = await db()
+      .select({ id: person.id })
+      .from(person)
+      .where(eq(person.email, incoming));
+    expect(found?.id).toBe(expelledId);
+    expect(await stateOf(expelledId)).toEqual({ status: "INACTIVE", committees: [] });
     expect(await stateOf(member.id)).toEqual({ status: "ACTIVE", committees: ["a3"] });
   });
 
