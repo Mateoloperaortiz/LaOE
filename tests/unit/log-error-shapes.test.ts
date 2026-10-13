@@ -546,8 +546,11 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     expect(reads).toBe(8);
   });
 
-  // Tres grafos en los que un objeto con un error adentro aparece por dos caminos: uno en el que un
-  // objeto de más arriba lo vuelve a nombrar, y otro en el que no.
+  // El resultado de recortar un objeto no depende del camino por el que se llega a él: de cada lista y
+  // de cada objeto sale una sola copia, registrada antes de bajar, y quien lo vuelve a nombrar nombra
+  // esa copia. En los tres primeros grafos un objeto con un error adentro aparece por dos caminos, uno
+  // en el que un objeto de más arriba lo vuelve a nombrar y otro en el que no: por el segundo salía el
+  // de origen, una regresión de `f4c099f4`. El cuarto, el inciso (j) de DT-399, salía desde antes.
 
   /** El error de un cliente HTTP: la respuesta nombra a su solicitud y ella a la respuesta. */
   const httpClientError = () => {
@@ -573,6 +576,84 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     return carrying({ a: holder, b: inner });
   };
 
+  /** Un objeto del error que se nombra a sí mismo. */
+  const namingItself = () => {
+    const detail: Record<string, unknown> = { failure: queryError() };
+    detail.self = detail;
+    return carrying({ detail });
+  };
+
+  it.each([
+    [
+      "en la respuesta del error de un cliente HTTP, que nombra a su solicitud y ella a la respuesta",
+      httpClientError,
+    ],
+    ["en uno de dos objetos que se nombran entre sí", twoNamingEachOther],
+    [
+      "en el objeto al que nombra un error que cuelga de él y, aparte, del error de la línea",
+      errorNamingItsHolder,
+    ],
+    ["dentro de un objeto del error que se nombra a sí mismo", namingItself],
+  ])("un error de consulta %s no sale por ningún camino", async (_title, err) => {
+    const [entry] = await written(() => error({ err: err() }, "falló"));
+
+    expect(entry?.record.msg).toBe("falló");
+    expect(placesOf(entry?.record)).toEqual([]);
+    expect(entry?.line).not.toContain(VALUE);
+  });
+
+  it("el objeto que se vuelve a nombrar sale por su copia y el ciclo se conserva: pino lo corta donde se repite", async () => {
+    const [client, itself] = await written(() => {
+      error({ err: httpClientError() }, "falló");
+      error({ err: namingItself() }, "falló");
+    });
+
+    expect(errOf(client)).toEqual({
+      type: "Error",
+      message: "fuera",
+      stack: expect.any(String),
+      response: { status: 500, failure: TRIMMED, request: { path: "/x", res: "[Circular]" } },
+      request: { path: "/x", res: { status: 500, failure: TRIMMED, request: "[Circular]" } },
+    });
+    expect(errOf(itself)).toEqual({
+      type: "Error",
+      message: "fuera",
+      stack: expect.any(String),
+      detail: { failure: TRIMMED, self: "[Circular]" },
+    });
+  });
+
+  it("una clave propia `__proto__` de un objeto que cuelga sale como una clave más, con lo suyo recortado", async () => {
+    const detail = Object.defineProperty({ paso: 1 }, "__proto__", {
+      value: { intento: 2, failure: queryError() },
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+    const [entry] = await written(() => error({ err: carrying({ detail }) }, "falló"));
+
+    expect(entry?.line).toContain(
+      '"detail":{"paso":1,"__proto__":{"intento":2,"failure":{"type":"Error","message":',
+    );
+    expect(entry?.line).not.toContain(VALUE);
+  });
+
+  it("el objeto que un elemento de `errors` dejó a medio leer no sale a medias por otro campo: el error entero sale oculto, como salía", async () => {
+    const shared = Object.defineProperty({ paso: 1 }, "roto", {
+      enumerable: true,
+      get: () => {
+        throw new Error("no se deja leer");
+      },
+    });
+    const listed = Object.assign(new Error("dentro"), { ctx: shared });
+    const [entry] = await written(() =>
+      error({ err: carrying({ errors: [listed], detail: shared }) }, "falló"),
+    );
+
+    expect(entry?.record.msg).toBe("falló");
+    expect(entry?.record.err).toBe("[oculto]");
+  });
+
   // Lo que el recorte todavía no alcanza: fija por dónde sale hoy el valor. Quien cierre uno de estos
   // caminos va a ver caer su caso, y cambia lo que espera.
   it.each([
@@ -589,33 +670,6 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
       "bajo una clave de la línea que no es `err`",
       () => ({ failure: queryError() }),
       ["failure.params.0"],
-    ],
-    [
-      // El objeto se recorta, pero donde se nombra a sí mismo sigue el de origen, sin recortar.
-      "dentro de un objeto del error que se nombra a sí mismo",
-      () => {
-        const detail: Record<string, unknown> = { failure: queryError() };
-        detail.self = detail;
-        return { err: carrying({ detail }) };
-      },
-      ["err.detail.self.failure.params.0"],
-    ],
-    // Los tres que siguen son una regresión de `f4c099f4`: lo ya recortado se guarda, y el objeto que
-    // solo nombra a uno de más arriba se guardaba como llegó, con el error adentro sin recortar.
-    [
-      "en la respuesta del error de un cliente HTTP, por donde la solicitud la vuelve a nombrar",
-      () => ({ err: httpClientError() }),
-      ["err.request.res.failure.params.0"],
-    ],
-    [
-      "en uno de dos objetos que se nombran entre sí, por donde el otro lo vuelve a nombrar",
-      () => ({ err: twoNamingEachOther() }),
-      ["err.b.p.failure.params.0"],
-    ],
-    [
-      "en el objeto al que nombra un error, por donde ese error cuelga aparte del de la línea",
-      () => ({ err: errorNamingItsHolder() }),
-      ["err.b.ctx.failure.params.0"],
     ],
     [
       "en lo que escribe el `toJSON` de un objeto del error",

@@ -457,9 +457,11 @@ const WRITTEN_BY_PINO = ["type", "message", "stack"];
 const CIRCULAR = "[Circular]";
 
 /**
- * Lo que ya se recortó al escribir un error: cada objeto que cuelga de él se recorre una vez, y donde
- * vuelve a aparecer sale lo mismo. Sin esto el recorrido seguiría cada camino que no repite un objeto,
- * y con objetos que se nombran entre sí (una respuesta con sus sockets) no terminaría.
+ * Lo que ya se escribió de cada objeto que cuelga de un error, por objeto. Una lista o un objeto entra
+ * con su copia antes de que el recorrido baje a lo que trae, y un error entra ya recortado. Así cada
+ * objeto se recorre una vez por escritura y sale siempre lo mismo, se llegue a él por donde se llegue:
+ * sin esto el recorrido seguiría cada camino que no repite un objeto, y con objetos que se nombran
+ * entre sí (una respuesta con sus sockets) no terminaría.
  */
 type Trimmed = Map<object, unknown>;
 
@@ -467,11 +469,17 @@ type Trimmed = Map<object, unknown>;
  * `value`, que cuelga de un error registrado, con cada cosa con forma de error recortada como un error
  * (ADR-129 regla 5): en un campo del error, en una lista o en un objeto, hasta `HANGING_LIMIT` niveles
  * contando el error. Lo que queda más adentro no se mira y sale `[oculto]`, traiga o no un error: de
- * ahí para abajo no hay cómo decir que no trae ninguno. `above` es el camino desde ese error. Lo que
- * le pasaron al registro no se toca: de la lista o del objeto que trae un error sale una copia, y lo
- * que no trae ninguno vuelve tal cual, así que se escribe como se escribía. No entra a lo que se
- * escribe a sí mismo con `toJSON` (una fecha, un `Buffer`). El error que ya se está escribiendo más
- * arriba no se escribe otra vez, y lo que ya se recortó (`done`) no se recorre de nuevo.
+ * ahí para abajo no hay cómo decir que no trae ninguno. `above` es el camino desde ese error.
+ *
+ * De una lista o de un objeto sale siempre una copia, traiga o no un error (`trimmedCopy`), y de un
+ * error su copia recortada: en la línea no queda ninguna lista ni ningún objeto de los que le pasaron
+ * al registro, y a ellos no se los toca. Lo único que vuelve tal cual es lo que no es un objeto y lo
+ * que se escribe a sí mismo con `toJSON` (una fecha, un `Buffer`), a lo que el recorte no entra.
+ *
+ * Lo que ya tiene copia (`done`) no se recorre de nuevo: sale esa copia. Vale para lo ya recorrido y
+ * para la lista o el objeto de más arriba, que se nombra entonces por su copia y el ciclo se conserva:
+ * lo acota el serializador de pino al escribir, como acotaba el de origen. El error que ya se está
+ * escribiendo más arriba no se escribe otra vez.
  */
 function trimmedHanging(value: unknown, above: readonly object[], done: Trimmed): unknown {
   if (typeof value !== "object" || value === null) {
@@ -480,47 +488,65 @@ function trimmedHanging(value: unknown, above: readonly object[], done: Trimmed)
   if (above.length >= HANGING_LIMIT) {
     return REDACTED;
   }
-  if (above.includes(value)) {
-    return isErrorLike(value) ? CIRCULAR : value;
-  }
   if (done.has(value)) {
     return done.get(value);
   }
-  const trimmed = trimmedOnce(value, above, done);
-  done.set(value, trimmed);
-  return trimmed;
-}
-
-/** `trimmedHanging` para el objeto que todavía no se recorrió en esta escritura. */
-function trimmedOnce(value: object, above: readonly object[], done: Trimmed): unknown {
+  if (above.includes(value)) {
+    // De lo que está más arriba, lo único sin copia todavía es el error que se está escribiendo.
+    return CIRCULAR;
+  }
   if (isErrorLike(value)) {
-    return trimmedError(value, above, done);
+    const trimmed = trimmedError(value, above, done);
+    done.set(value, trimmed);
+    return trimmed;
   }
   if (typeof (value as { toJSON?: unknown }).toJSON === "function") {
     return value;
   }
+  return trimmedCopy(value, above, done);
+}
+
+/**
+ * La copia de una lista o de un objeto que cuelga de un error, con lo que trae ya recortado. Entra a
+ * `done` antes de bajar: lo que desde adentro vuelve a nombrar a `value` nombra esta copia, nunca al de
+ * origen. Lleva lo que escribe JSON, los elementos de la lista o las claves propias que se enumeran, y
+ * cada una se lee una vez.
+ */
+function trimmedCopy(value: object, above: readonly object[], done: Trimmed): unknown {
   const path = [...above, value];
   if (Array.isArray(value)) {
-    const items = value.map((item: unknown) => trimmedHanging(item, path, done));
-    return items.some((item, index) => item !== value[index]) ? items : value;
+    return trimmedItems(value, done, (item) => trimmedHanging(item, path, done));
   }
-  let copy: Record<string, unknown> | undefined;
+  const copy: Record<string, unknown> = {};
+  done.set(value, copy);
   for (const key of Object.keys(value)) {
-    const inner = (value as Record<string, unknown>)[key];
-    const trimmed = trimmedHanging(inner, path, done);
-    if (trimmed !== inner) {
-      copy ??= { ...value };
-      copy[key] = trimmed;
-    }
+    // Con `defineProperty`, una clave propia `__proto__` sigue siendo una clave y no cambia el prototipo.
+    Object.defineProperty(copy, key, {
+      value: trimmedHanging((value as Record<string, unknown>)[key], path, done),
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
   }
-  return copy ?? value;
+  return copy;
+}
+
+/** La copia de `list`, que entra a `done` antes de recortar sus elementos, cada uno con `trim`. */
+function trimmedItems(list: unknown[], done: Trimmed, trim: (item: unknown) => unknown): unknown[] {
+  const items: unknown[] = [];
+  done.set(list, items);
+  for (let index = 0; index < list.length; index += 1) {
+    items.push(trim(list[index]));
+  }
+  return items;
 }
 
 /**
  * Un elemento con forma de error de la lista `errors`, recortado como un error. `listed` es el camino
  * hasta esa lista: el error que ya se está escribiendo más arriba no se escribe otra vez, como en
  * cualquier lista que cuelga del error (ADR-129 regla 5). Sin ese camino, el agregado al que nombra
- * uno de sus errores se recorría sin fin. El que no se deja leer sale `[oculto]`, él solo.
+ * uno de sus errores se recorría sin fin. El que no se deja leer sale `[oculto]`, él solo: las copias
+ * que quedaron a medio armar al leerlo se olvidan, para que nadie las tome por terminadas.
  */
 function trimmedListed(inner: Error, listed: readonly object[], done: Trimmed): unknown {
   if (listed.includes(inner)) {
@@ -529,10 +555,14 @@ function trimmedListed(inner: Error, listed: readonly object[], done: Trimmed): 
   if (done.has(inner)) {
     return done.get(inner);
   }
+  const known = done.size;
   let trimmed: unknown;
   try {
     trimmed = trimmedError(inner, listed, done);
   } catch {
+    for (const added of [...done.keys()].slice(known)) {
+      done.delete(added);
+    }
     trimmed = REDACTED;
   }
   done.set(inner, trimmed);
@@ -588,11 +618,16 @@ function trimmedError(
   const listedByPino = Array.isArray(grouped) && Array.isArray(serialized.aggregateErrors);
   if (listedByPino) {
     // Lo que en la lista no tiene forma de error pino lo deja tal cual: ahí se busca adentro, como
-    // en cualquier lista que cuelga del error.
+    // en cualquier lista que cuelga del error. La lista entra a `done` con su copia, como cualquier
+    // otra: lo que la vuelva a nombrar desde adentro nombra la copia.
     const listed = [...path, grouped];
-    serialized.aggregateErrors = grouped.map((inner: unknown) =>
-      isErrorLike(inner) ? trimmedListed(inner, listed, done) : trimmedHanging(inner, listed, done),
-    );
+    serialized.aggregateErrors = done.has(grouped)
+      ? done.get(grouped)
+      : trimmedItems(grouped, done, (inner) =>
+          isErrorLike(inner)
+            ? trimmedListed(inner, listed, done)
+            : trimmedHanging(inner, listed, done),
+        );
     // Pino lista los errores de `errors` en `aggregateErrors`, sea o no un `AggregateError`. Si esa
     // lista además se enumera, la copia cruda al lado: sale una vez, recortada.
     delete serialized.errors;
