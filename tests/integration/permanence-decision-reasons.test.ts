@@ -11,6 +11,7 @@ import {
   recomputeSnapshots,
 } from "@/modules/permanence";
 import { permanenceDecision } from "@/modules/permanence/schema";
+import { seedTerm } from "../factories";
 import { type ClosingWorld, closingWorld, type Profile } from "../helpers/closing-world";
 import { truncateAll } from "./db";
 
@@ -118,6 +119,33 @@ describe("el motivo con que el cierre propuso se guarda con la decisión confirm
       reason: "",
     });
     expect(await savedReasons(below)).toEqual({ committee: 0, person: 0 });
+  });
+
+  it("la lectura de las decisiones de una persona rechaza el resultado de otra persona o el de otro término, en vez de resolver con él un motivo (DT-398)", async () => {
+    const { termId, actor, member, closePoints } = await closingWorld();
+    const exits = await member("sale.ajeno@eafit.edu.co", { level: "MEETS", sanctioned: true });
+    const stays = await member("sigue.ajeno@eafit.edu.co", { level: "MEETS" });
+    await closePoints();
+    await confirmAllProposedAs(actor, termId);
+    const otherTermId = await seedTerm("2025-1");
+    const [own, ofAnother, ofAnotherTerm] = [
+      await getPersonPermanence(exits, termId),
+      await getPersonPermanence(stays, termId),
+      await getPersonPermanence(exits, otherTermId),
+    ];
+    if (!own || !ofAnother || !ofAnotherTerm) {
+      throw new Error("falta una vista de permanencia");
+    }
+
+    // Con la vista de esa persona en ese término responde, y trae el motivo de su salida.
+    const decisions = await listPersonDecisions(exits, termId, own);
+    expect(decisions.find((decision) => decision.committeeId === null)?.proposalReason).toBe(5);
+    // Con la de otra persona o la de otro término no resuelve nada: lanza antes de leer.
+    const refusal = "no es el de esa persona en ese término";
+    await expect(listPersonDecisions(exits, termId, ofAnother)).rejects.toThrow(refusal);
+    await expect(listPersonDecisions(exits, termId, ofAnotherTerm)).rejects.toThrow(refusal);
+    // También cuando no hay ninguna decisión que leer: la comprobación no depende de las filas.
+    await expect(listPersonDecisions(exits, otherTermId, own)).rejects.toThrow(refusal);
   });
 });
 
@@ -263,7 +291,7 @@ async function observe(saved: boolean) {
       if (!before || !today || !view) {
         throw new Error("el cierre o la Persona 360 no traen a la persona");
       }
-      const decisions = await listPersonDecisions(personId, w.termId, view.result);
+      const decisions = await listPersonDecisions(personId, w.termId, view);
       const [committee, person] = [
         decisions.find((decision) => decision.committeeId !== null),
         decisions.find((decision) => decision.committeeId === null),

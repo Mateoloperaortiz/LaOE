@@ -3,7 +3,7 @@
 - Estado: Aceptada
 - Fecha: 2026-10-13
 - Relacionadas: ADR-028, ADR-036, ADR-060, ADR-109, ADR-128
-- Enmienda: ADR-128 (regla 1: la precedencia de las causas de una salida de la OE deja de estar en `exitReason` y pasa a `forcedExitReason`, que responde nulo cuando nada obliga a salir y de la que sale también la causal de la baja; Consecuencias: `applyDecisions` ya no escribe esa condición a mano)
+- Enmienda: ADR-128 (regla 1: la precedencia de las causas de una salida de la OE deja de estar en `exitReason` y pasa a `forcedExitReason`, que responde nulo cuando nada obliga a salir y de la que sale también la causal de la baja; Consecuencias: `applyDecisions` ya no escribe esa condición a mano; regla 1 y Consecuencias: `listPersonDecisions` recibe la vista de la persona en el término, no su resultado suelto, y lanza si no es la de quien le nombran)
 
 ## Contexto
 
@@ -20,6 +20,8 @@ Antes de tocarla se caracterizó por los comandos de verdad, contra Postgres y c
 - **Tres bordes que nadie tenía escritos.** A quien GH decide sacar contra la propuesta le toca la causal del snapshot igual. Lo que cambia después de aplicar el cierre y antes de que corra el trabajo no mueve nada, porque el snapshot ya está congelado. Y quien ya estaba de baja cuando corre el trabajo conserva la causal de esa baja: `endMembership` no escribe sobre una membresía terminada.
 - **La caracterización muerde.** Sin la mitad de la obligatoria perdida caen 2 de sus 6 pruebas, sin la de la advertencia caen 5, y leyendo el motivo guardado en vez del snapshot caen 4.
 
+**La lectura de las decisiones de una persona resolvía el motivo sobre el resultado que le pasaran, fuera de quien fuera (DT-398, inciso b).** `listPersonDecisions(personId, termId, result)` (`closing.ts`) lee las decisiones de esa persona en ese término y, para una decisión confirmada antes de que el motivo se guardara, lo resuelve sobre `result` con el respaldo de las filas viejas (ADR-128 regla 1). No comprobaba que `result` fuera el de esa persona, y no podía comprobar el término: `PersonPermanence` trae `personId` y no trae de qué término es. Ejecutado antes del arreglo (`tests/integration/permanence-decision-reasons.test.ts`): con el resultado de otra persona respondía sus dos decisiones sin decir nada. Su único llamador de `src`, la pestaña de permanencia de la Persona 360, le pasaba el de `getPersonPermanence` de la misma persona y el mismo término, y las dos pruebas de integración que la llaman también: no había un caso mal en uso, había una función que aceptaba lo que no era suyo.
+
 ## Decisión
 
 1. **El motivo de una salida de la OE y la causal de su baja salen de una sola función del dominio, y la causal se sigue decidiendo sobre el snapshot que el cierre congeló.** `forcedExitReason` (`permanence-pure.ts`, privada) dice qué obliga a salir, de la causa que más pesa a la que menos: una obligatoria perdida (4), la falta grave más otra sanción (5), o nada (nulo). `proposeDecisions` saca de ella el motivo de su propuesta: con algo que obligue propone la salida con ese motivo, y sin nada que obligue la propone con el 3 solo si a la persona no le queda un comité donde cumpla o esté en prueba. `exitEndReason(result)` saca de ella la causal: `EXPULSION` si algo obliga y `PERMANENCE` si no. `applyDecisions` deja de escribir la condición y llama a `exitEndReason` con el snapshot de la persona; sin snapshot la baja sigue quedando por permanencia. El 3 deja de hacer de centinela de «nada obliga a salir»: eso lo dice el nulo.
@@ -30,8 +32,11 @@ Antes de tocarla se caracterizó por los comandos de verdad, contra Postgres y c
 
    **Por qué se toca `permanence-pure.ts`.** [ADR-109](ADR-109-refactor-progresivo-con-ledger-de-deuda.md) regla 10 lo cuenta entre lo que ya es profundo y no se toca. No se parte ni se reordena: gana la función que le faltaba para que una regla que ya era suya, la precedencia de las causas de una salida, no tuviera una segunda copia fuera del archivo, en el paso que escribe la baja. La copia de afuera era la que se iba; el archivo queda con una regla más adentro y la misma interfaz, más `exitEndReason`, que solo importa `closing.ts`.
 
+2. **`listPersonDecisions` recibe lo que la pantalla muestra de esa persona en ese término y rechaza lo que no lo es.** Su tercer parámetro deja de ser el resultado suelto y pasa a ser la vista de `getPersonPermanence`, de la que lee el resultado y el término. Si el resultado es de otra persona o la vista es de otro término, lanza antes de consultar nada, también cuando no hay ninguna decisión que leer. Es un error de quien la llama y no un texto para nadie: lanza un `Error` llano, no un `DomainError`. La pestaña de la Persona 360 y las dos pruebas que la llaman pasan la vista entera; lo que muestran no cambia.
+
 ## Consecuencias
 
 - Quien cambie una causa de salida o su precedencia la cambia en un solo sitio, y mueve a la vez el motivo que se propone y la causal que se guarda. Eso es lo que se buscaba, y es también un riesgo nuevo: un cambio que quiera tocar solo el motivo mostrado mueve ahora quién queda expulsado. `tests/integration/permanence-exit-end-reason.test.ts` cae con cualquiera de los dos.
 - La diferencia entre el motivo guardado y la causal de la baja sigue en producción como estaba (decisión abierta 80, DT-402). La página del cierre no avisa cuando la salida confirmada se sigue proponiendo por otra causa: `drifted` compara lo propuesto, no su motivo.
 - El mundo del cierre que arman las pruebas (un término vencido, un comité con su tabla, una asamblea celebrada y los comandos con que GH cambia los hechos) vive en `tests/helpers/closing-world.ts` y lo comparten la prueba del motivo guardado y la de la causal.
+- `listPersonDecisions` sale por el `index.ts` de `permanence` con otra firma: quien la llame con un resultado suelto ya no compila. No tiene otro llamador que la pestaña y sus pruebas.

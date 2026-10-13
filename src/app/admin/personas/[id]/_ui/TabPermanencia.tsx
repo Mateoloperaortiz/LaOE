@@ -59,7 +59,7 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
     getPeopleByIds([...evaluatorIds]),
     listManualCredits(termId, personId),
     loadRules(termId),
-    listPersonDecisions(personId, termId, view.result),
+    listPersonDecisions(personId, termId, view),
   ]);
   const manualRules = rules.filter(
     (rule) =>

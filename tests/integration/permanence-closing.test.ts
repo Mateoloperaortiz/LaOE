@@ -126,7 +126,7 @@ async function decisionsOf(personId: string, termId: string) {
   if (!view) {
     throw new Error("el término no tiene hechos de permanencia");
   }
-  return listPersonDecisions(personId, termId, view.result);
+  return listPersonDecisions(personId, termId, view);
 }
 
 /** Retiene la fila del término: el cierre se detiene al estamparlo, con su transacción ya abierta. */

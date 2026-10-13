@@ -25,6 +25,7 @@ import {
   type ProposalReason,
   proposalReason,
   proposeDecisions,
+  type TermLike,
 } from "./permanence-pure";
 import {
   freezeSnapshots,
@@ -139,15 +140,23 @@ export interface PersonDecisionView {
 
 /**
  * Las decisiones confirmadas de una persona en un término, para la Persona 360 (T-831). El motivo
- * automático de cada una es el que se guardó con ella al confirmar (ADR-128 regla 1). `result` es el
- * resultado que la pantalla muestra, vivo o congelado, y solo lo lee una decisión confirmada antes de
- * que el motivo se guardara, que lo saca de ahí con su respaldo (`proposalReason`).
+ * automático de cada una es el que se guardó con ella al confirmar (ADR-128 regla 1). `view` es lo que
+ * la pantalla muestra de esa persona en ese término (`getPersonPermanence`), con su resultado vivo o
+ * congelado: solo lo lee una decisión confirmada antes de que el motivo se guardara, que lo saca de ahí
+ * con su respaldo (`proposalReason`). Con el resultado de otra persona o el de otro término saldría el
+ * motivo de otro, así que lanza antes de leer nada (ADR-129 regla 2).
  */
 export async function listPersonDecisions(
   personId: string,
   termId: string,
-  result: PersonPermanence,
+  view: { term: Pick<TermLike, "id">; result: PersonPermanence },
 ): Promise<PersonDecisionView[]> {
+  const { result } = view;
+  if (result.personId !== personId || view.term.id !== termId) {
+    throw new Error(
+      "El resultado de permanencia que se pasó no es el de esa persona en ese término",
+    );
+  }
   const rows = await getDb()
     .select()
     .from(permanenceDecision)
