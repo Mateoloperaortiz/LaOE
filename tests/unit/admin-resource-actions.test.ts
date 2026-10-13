@@ -22,12 +22,14 @@ vi.mock("next/navigation", () => ({
     throw new Error(`redirect:${path}`);
   },
 }));
-vi.mock("@/modules/identity", async () => ({
-  ...(await import("@/modules/identity/domain/guards")),
-  ...(await import("@/modules/identity/domain/errors")),
-  ...(await import("@/modules/identity/domain/pure")),
-  getActor: state.actor,
-}));
+// Lo que la action toma de `identity` va nombrado, con el código de verdad: un archivo esparcido
+// entero le tapaba a knip los exports sin uso de `guards.ts`, `errors.ts` y `pure.ts` (DT-356).
+vi.mock("@/modules/identity", async () => {
+  const { assertAdmin, hasRecentStepUp } = await import("@/modules/identity/domain/guards");
+  const { ForbiddenError } = await import("@/modules/identity/domain/errors");
+  const { safeNextPath } = await import("@/modules/identity/domain/pure");
+  return { assertAdmin, ForbiddenError, getActor: state.actor, hasRecentStepUp, safeNextPath };
+});
 vi.mock("@/shared/admin-kit", async () => await import("@/shared/admin-kit/types"));
 vi.mock("@/app/admin/_kit/registry", () => ({ getResource: state.resource }));
 const initial: FormState = { ok: false, message: null, errors: {}, values: {} };

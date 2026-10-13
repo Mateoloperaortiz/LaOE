@@ -19,11 +19,13 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("@/modules/content", () => ({ findPublicPage: state.page }));
-vi.mock("@/modules/identity", async () => ({
-  ...(await import("@/modules/identity/domain/guards")),
-  ...(await import("@/modules/identity/domain/errors")),
-  getActor: state.actor,
-}));
+// Lo que la action toma de `identity` va nombrado, con el código de verdad: un archivo esparcido
+// entero le tapaba a knip los exports sin uso de `guards.ts` y `errors.ts` (DT-356).
+vi.mock("@/modules/identity", async () => {
+  const { assertAdmin, hasRecentStepUp } = await import("@/modules/identity/domain/guards");
+  const { ForbiddenError } = await import("@/modules/identity/domain/errors");
+  return { assertAdmin, ForbiddenError, getActor: state.actor, hasRecentStepUp };
+});
 vi.mock("@/modules/system", async () => ({
   ...(await import("@/modules/system/domain/privacy-pure")),
   setPrivacyPolicyVersionAs: state.save,

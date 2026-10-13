@@ -8,9 +8,10 @@ import { DomainError } from "@/shared/lib/errors";
 // Lo que es seguro registrar de un carnet que no se pudo emitir (DT-228, ADR-120 regla 13). Que el
 // dominio lance de verdad estas clases lo fijan `tests/integration/wallet-google.test.ts` y
 // `tests/integration/wallet-apple.test.ts`; acá va solo la clasificación.
-vi.mock("@/modules/identity", async () => ({
-  ForbiddenError: (await import("@/modules/identity/domain/errors")).ForbiddenError,
-}));
+vi.mock("@/modules/identity", async () => {
+  const { ForbiddenError } = await import("@/modules/identity/domain/errors");
+  return { ForbiddenError };
+});
 
 const withCode = (message: string, code: unknown) => Object.assign(new Error(message), { code });
 

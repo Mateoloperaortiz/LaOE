@@ -8,9 +8,10 @@ import { WalletError } from "@/shared/adapters/wallet-error";
 // solo conoce la emisión viven en el módulo `wallet`, que los lanza por su fábrica. Es una regla de
 // tipos: la sostiene el compilador (`npm run typecheck` falla si una línea marcada deja de ser un
 // error), y acá queda además que el error que sale es el mismo de siempre.
-vi.mock("@/modules/identity", async () => ({
-  ForbiddenError: (await import("@/modules/identity/domain/errors")).ForbiddenError,
-}));
+vi.mock("@/modules/identity", async () => {
+  const { ForbiddenError } = await import("@/modules/identity/domain/errors");
+  return { ForbiddenError };
+});
 
 describe("los motivos de un fallo de billetera", () => {
   it("un adaptador lanza los suyos sin decir nada más", () => {

@@ -9,10 +9,10 @@ const state = vi.hoisted(() => ({
   issue: vi.fn(),
 }));
 vi.mock("@/env", () => ({ getEnv: () => ({ APP_URL: "https://oe-sintetica.example" }) }));
-vi.mock("@/modules/identity", async () => ({
-  getActor: state.actor,
-  ForbiddenError: (await import("@/modules/identity/domain/errors")).ForbiddenError,
-}));
+vi.mock("@/modules/identity", async () => {
+  const { ForbiddenError } = await import("@/modules/identity/domain/errors");
+  return { getActor: state.actor, ForbiddenError };
+});
 // El registro es el de verdad: lo que se afirma es la línea que sale, ya serializada. Y lo que es
 // seguro escribir lo decide el módulo, no la prueba (DT-228, ADR-120 regla 13).
 // Acá queda un solo caso de fallo, que dice que la ruta registra con su plataforma y vuelve al

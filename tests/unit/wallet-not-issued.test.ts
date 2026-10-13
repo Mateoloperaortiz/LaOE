@@ -13,9 +13,10 @@ import { captureLogs, type LoggedLine } from "../helpers/logs";
 //
 // El registro es el de verdad: lo que se afirma es la línea que sale, ya serializada. Y lo que es
 // seguro escribir lo decide el módulo, no la prueba (DT-228).
-vi.mock("@/modules/identity", async () => ({
-  ForbiddenError: (await import("@/modules/identity/domain/errors")).ForbiddenError,
-}));
+vi.mock("@/modules/identity", async () => {
+  const { ForbiddenError } = await import("@/modules/identity/domain/errors");
+  return { ForbiddenError };
+});
 vi.mock("@/modules/wallet", async () => ({
   walletFailure: (await import("@/modules/wallet/domain/failure")).walletFailure,
 }));
