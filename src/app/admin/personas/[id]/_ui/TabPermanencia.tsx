@@ -59,7 +59,7 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
     getPeopleByIds([...evaluatorIds]),
     listManualCredits(termId, personId),
     loadRules(termId),
-    listPersonDecisions(personId, termId),
+    listPersonDecisions(personId, termId, view.result),
   ]);
   const manualRules = rules.filter(
     (rule) =>
@@ -118,16 +118,7 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
                 ) : null}
                 {t("T-831", {
                   decisión: decisionLabels[decision.decision] ?? decision.decision,
-                  motivo:
-                    decision.reason ||
-                    (reasonLabels[
-                      decision.proposed === "EXIT_OE"
-                        ? view.result.mandatory.met
-                          ? 3
-                          : 4
-                        : DECISIONS.indexOf(decision.proposed)
-                    ] ??
-                      ""),
+                  motivo: decision.reason || (reasonLabels[decision.proposalReason] ?? ""),
                   quien: decision.decidedByName,
                   fecha: formatDateTime(decision.decidedAt),
                 })}

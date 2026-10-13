@@ -61,12 +61,6 @@ const NOT_LABELS = "No empareja un enum con sus etiquetas:";
 // ya tenga. La lista es por expresión y por archivo: otra lectura en uno de estos archivos también cae.
 const EXCEPTIONS: Exception[] = [
   {
-    path: "src/app/admin/personas/[id]/_ui/TabPermanencia.tsx",
-    form: "indexOf",
-    read: 'reasonLabels[decision.proposed==="EXIT_OE"?view.result.mandatory.met?3:4:DECISIONS.indexOf(decision.proposed)]',
-    reason: `${UNEVEN} T-801 trae seis motivos para cuatro decisiones, y \`EXIT_OE\` lee el 3 o el 4 según la asamblea obligatoria.`,
-  },
-  {
     path: "src/app/admin/gamificacion/campanas/page.tsx",
     form: "positionConstant",
     read: "stateLabels[STATE_INDEX[campaign.state]]",
@@ -230,6 +224,12 @@ const EXCEPTIONS: Exception[] = [
     form: "computedIndex",
     read: "reasonLabels[row.personReason]",
     reason: `${DOMAIN_NUMBER} el motivo automático de una propuesta del cierre, una de las seis piezas de T-801.`,
+  },
+  {
+    path: "src/app/admin/personas/[id]/_ui/TabPermanencia.tsx",
+    form: "computedIndex",
+    read: "reasonLabels[decision.proposalReason]",
+    reason: `${DOMAIN_NUMBER} el motivo automático de una decisión confirmada del cierre, que la lectura de la pestaña trae resuelto (ADR-128 regla 1); antes lo armaba la pestaña con la posición de la decisión.`,
   },
   {
     path: "src/app/app/gh-points/page.tsx",

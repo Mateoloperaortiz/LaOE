@@ -22,6 +22,7 @@ import {
   type PersonPermanence,
   type Proposal,
   type ProposalReason,
+  proposalReason,
   proposeDecisions,
 } from "./permanence-pure";
 import {
@@ -125,17 +126,25 @@ export interface PersonDecisionView {
   committeeId: string | null;
   committeeName: string;
   proposed: DecisionKind;
+  /** El motivo automático de lo que se propuso, en el orden de T-801 (ADR-128 regla 1). */
+  proposalReason: ProposalReason;
   decision: DecisionKind;
+  /** El motivo que GH escribió; vacío si confirmó la propuesta tal cual. */
   reason: string;
   decidedByName: string;
   decidedAt: Date;
   appliedAt: Date | null;
 }
 
-/** Las decisiones confirmadas de una persona en un término, para la Persona 360 (T-831). */
+/**
+ * Las decisiones confirmadas de una persona en un término, para la Persona 360 (T-831). `result` es
+ * el resultado que la pantalla muestra, vivo o congelado: de la decisión se guarda qué se propuso y no
+ * por qué, y el motivo automático de cada una se resuelve acá, sobre ese resultado (ADR-128 regla 1).
+ */
 export async function listPersonDecisions(
   personId: string,
   termId: string,
+  result: PersonPermanence,
 ): Promise<PersonDecisionView[]> {
   const rows = await getDb()
     .select()
@@ -154,6 +163,7 @@ export async function listPersonDecisions(
     committeeId: row.committeeId,
     committeeName: row.committeeId ? (names.get(row.committeeId) ?? "") : "",
     proposed: row.proposed,
+    proposalReason: proposalReason(result, row.proposed),
     decision: row.decision,
     reason: row.reason ?? "",
     decidedByName: row.decidedById ? (people.get(row.decidedById)?.fullName ?? "") : "",

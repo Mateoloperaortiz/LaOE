@@ -1039,24 +1039,9 @@ export type UnevenPair = {
   seen: boolean;
 };
 
-const DECISIONS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"];
-
 /** Los pares que no son uno a uno: la lista y el orden tienen distinto largo. Quedan fuera de
  * `tLabels` (spec #242, «Implementation Decisions»): ninguno se recorta ni se alarga. */
 export const UNEVEN_PAIRS: readonly UnevenPair[] = [
-  // Seis motivos del cierre para cuatro decisiones: EXIT_OE lee la 3 o la 4 según la asamblea
-  // obligatoria, y la 5 solo la lee el motivo que calcula el dominio.
-  {
-    code: "T-801",
-    order: "DECISIONS",
-    file: "src/app/admin/personas/[id]/_ui/TabPermanencia.tsx",
-    tuple: DECISIONS,
-    pieces: 6,
-    positions: { CONTINUES: 0, PROBATION: 1, EXIT_COMMITTEE: 2 },
-    read: 'reasonLabels[decision.proposed==="EXIT_OE"?view.result.mandatory.met?3:4:DECISIONS.indexOf',
-    seen: true,
-  },
-
   // La consola no nombra EXCUSED: una asistencia excusada cae al respaldo y muestra el código. Desde
   // el ticket #317 sus cuatro estados leen por valor el `Record` del par uno a uno (DT-364).
   {
@@ -1070,6 +1055,39 @@ export const UNEVEN_PAIRS: readonly UnevenPair[] = [
     seen: true,
   },
 ];
+
+/** El par de largo distinto que armaba la pestaña de permanencia de la Persona 360: los seis motivos
+ * automáticos del cierre (T-801) con las cuatro decisiones. Tres decisiones leían su posición y
+ * `EXIT_OE` la 3 o la 4 según la asamblea obligatoria. No era la etiqueta de un valor: era una copia
+ * de la regla con la que el cierre propone, y a la sexta pieza no llegaba (DT-388). La pestaña ya no
+ * arma el subíndice: lee el número que el dominio le da con cada decisión, como la página del cierre
+ * (ADR-128 regla 1), y esa lectura es de las de «un número que calcula el dominio» (ADR-126 regla
+ * 13). Acá queda la posición que leía cada propuesta que se leía por su posición, que es el motivo
+ * que hoy le da el dominio (lo fija tests/unit/permanence-pure.test.ts), y lo que la pestaña ya no
+ * escribe. */
+export const DOMAIN_REASONS: {
+  code: ListCode;
+  order: string;
+  file: string;
+  /** Cuántas piezas trae hoy la lista. */
+  pieces: number;
+  /** La posición que leía cada decisión que se leía por su posición en el orden. */
+  positions: Record<string, number>;
+  /** Cómo lee hoy el archivo, y lo que ya no escribe. */
+  read: string;
+  gone: readonly string[];
+  /** Si lo veía alguna de las expresiones de la spec. */
+  seen: boolean;
+} = {
+  code: "T-801",
+  order: "DECISIONS",
+  file: "src/app/admin/personas/[id]/_ui/TabPermanencia.tsx",
+  pieces: 6,
+  positions: { CONTINUES: 0, PROBATION: 1, EXIT_COMMITTEE: 2 },
+  read: "reasonLabels[decision.proposalReason]",
+  gone: ["DECISIONS.indexOf", "mandatory.met"],
+  seen: true,
+};
 
 /** Los pares de largo distinto que la migración deshizo (ADR-126 reglas 2 y 9): sus valores son
  * parte de los de un par uno a uno de la misma lista y leen en él la misma pieza. La página del

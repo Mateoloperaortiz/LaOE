@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { tList } from "@/shared/copy";
 import {
+  DOMAIN_REASONS,
   INDEX_PAIRS,
   INDEXED_BUT_NOT_LABELS,
   type IndexPair,
@@ -131,11 +132,13 @@ const inlineCopies = copies.filter(
 describe("la tabla de los pares", () => {
   it("trae los 85 pares que salen de las expresiones de la spec y 19 que esas expresiones no ven", () => {
     expect(PAIRS).toHaveLength(81);
-    expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(2);
-    // Los que completan los 85 son el par de largo distinto de T-791, que la migración deshizo, y
-    // el de T-427, que dejó el `zip` por posiciones escritas.
+    expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(1);
+    // Los que completan los 85 son el par de largo distinto de T-791, que la migración deshizo, el
+    // de T-427, que dejó el `zip` por posiciones escritas, y el de T-801, que dejó de ser un par: la
+    // pestaña de permanencia lee el número que le da el dominio.
     expect(UNDONE_UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(1);
     expect(UNZIPPED_FIELDS.code).toBe("T-427");
+    expect(DOMAIN_REASONS).toMatchObject({ code: "T-801", seen: true });
     // Dieciocho uno a uno y el de largo distinto de T-566, también deshecho; el de T-2174 entró
     // con DT-370.
     expect(UNSEEN_PAIRS).toHaveLength(18);
@@ -253,6 +256,24 @@ describe("los pares que no son uno a uno", () => {
   });
 });
 
+describe("el par de largo distinto de T-801 que armaba la pestaña de permanencia", () => {
+  it("la pestaña ya no arma el subíndice con la posición de la decisión: lee el número que le da el dominio", () => {
+    const source = sourceOf(DOMAIN_REASONS.file);
+    for (const written of DOMAIN_REASONS.gone) {
+      expect(source).not.toContain(squash(written));
+    }
+    expect(source).toContain(squash(DOMAIN_REASONS.read));
+    expect(UNEVEN_PAIRS.map((pair) => pair.code)).not.toContain(DOMAIN_REASONS.code);
+  });
+
+  it("la lista sigue trayendo sus seis motivos, y las posiciones que se leían por decisión caben en ella", () => {
+    expect(tList(DOMAIN_REASONS.code)).toHaveLength(DOMAIN_REASONS.pieces);
+    const positions = Object.values(DOMAIN_REASONS.positions);
+    expect(new Set(positions).size).toBe(positions.length);
+    expect(Math.max(...positions)).toBeLessThan(DOMAIN_REASONS.pieces);
+  });
+});
+
 describe("los pares de largo distinto que la migración deshizo", () => {
   it.each(
     UNDONE_UNEVEN_PAIRS,
@@ -347,7 +368,8 @@ describe("las constantes que guardan la posición de cada valor", () => {
       "T-2473 × FAMILY_INDEX de src/app/app/gh-points/coleccion/page.tsx",
       "T-2511 × STATE_INDEX de src/app/admin/gamificacion/campanas/page.tsx",
     ]);
-    expect(UNEVEN_PAIRS.length + uneven.length).toBe(4);
+    // Eran cuatro con el de T-801, que dejó la pestaña de permanencia (ADR-128 regla 1).
+    expect(UNEVEN_PAIRS.length + uneven.length).toBe(3);
     expect(UNDONE_UNEVEN_PAIRS).toHaveLength(2);
   });
 });

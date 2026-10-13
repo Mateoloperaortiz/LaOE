@@ -35,8 +35,10 @@ import { truncateAll } from "./db";
 // pestaña muestra. Va por el camino de verdad: el cierre propone, GH confirma con los comandos del
 // módulo y la pantalla se monta entera contra Postgres; solo se reemplaza quién tiene la sesión.
 //
-// Esta es la caracterización: lo que la pestaña muestra HOY, también donde no coincide con el motivo
-// por el que el cierre propuso. Esos casos dicen «hoy» en el título y nombran su fila del ledger.
+// El motivo lo resuelve el dominio, con la misma regla con la que el cierre propone (ADR-128 regla 1).
+// La pestaña lo armaba por su cuenta y no coincidía en tres casos: la salida por sanciones mostraba
+// «no le queda un comité», y a un nuevo con la inducción pendiente le mostraba «faltó a una asamblea
+// obligatoria», saliera por sanciones o por quedarse sin comité.
 
 const session = vi.hoisted(() => ({ personId: "" }));
 
@@ -235,7 +237,7 @@ describe("el motivo de una decisión del cierre en la pestaña de permanencia de
     ]);
   });
 
-  it("hoy, a quien sale por una falta grave más otra sanción le muestra que no le queda un comité, antes y después de aplicar el cierre (DT-388)", async () => {
+  it("a quien sale por una falta grave más otra sanción le muestra ese motivo, antes y después de aplicar el cierre", async () => {
     const { termId, actor, member, sanction, closePoints, proposalOf } = await setup();
     const warned = await member("sancionado.motivos@eafit.edu.co", { credit: 60 });
     await sanction(warned);
@@ -248,15 +250,14 @@ describe("el motivo de una decisión del cierre en la pestaña de permanencia de
     });
     await confirmAllProposedAs(actor, termId);
 
-    const shown = [line("A3", "CONTINUES", met), line(null, "EXIT_OE", noCommitteeLeft)];
+    const shown = [line("A3", "CONTINUES", met), line(null, "EXIT_OE", sanctions)];
     expect(await decisionsShown(warned, termId)).toEqual(shown);
     // Aplicado el cierre, la pestaña lee el resultado congelado.
     await closeTermPermanenceAs(actor, termId);
     expect(await decisionsShown(warned, termId)).toEqual(shown);
-    expect(sanctions).not.toBe(noCommitteeLeft);
   });
 
-  it("hoy, a un nuevo que sale por sanciones y tiene la inducción pendiente le muestra que faltó a una asamblea obligatoria (DT-388)", async () => {
+  it("a un nuevo que sale por sanciones le muestra ese motivo aunque tenga la inducción pendiente", async () => {
     const { termId, actor, member, sanction, closePoints, proposalOf } = await setup();
     const warned = await member("nuevo-sancionado.motivos@eafit.edu.co", {
       credit: 60,
@@ -275,11 +276,11 @@ describe("el motivo de una decisión del cierre en la pestaña de permanencia de
 
     expect(await decisionsShown(warned, termId)).toEqual([
       line("A3", "EXIT_COMMITTEE", belowBand),
-      line(null, "EXIT_OE", lostAssembly),
+      line(null, "EXIT_OE", sanctions),
     ]);
   });
 
-  it("hoy, a un nuevo que se queda sin comité y tiene la inducción pendiente le muestra que faltó a una asamblea obligatoria, aunque no perdió ninguna (DT-388)", async () => {
+  it("a un nuevo que se queda sin comité le muestra ese motivo: la inducción pendiente no es una asamblea perdida", async () => {
     const { termId, actor, member, closePoints, proposalOf } = await setup();
     const below = await member("nuevo-sin-comite.motivos@eafit.edu.co", {
       credit: 10,
@@ -297,7 +298,7 @@ describe("el motivo de una decisión del cierre en la pestaña de permanencia de
 
     expect(await decisionsShown(below, termId)).toEqual([
       line("A3", "EXIT_COMMITTEE", belowBand),
-      line(null, "EXIT_OE", lostAssembly),
+      line(null, "EXIT_OE", noCommitteeLeft),
     ]);
   });
 

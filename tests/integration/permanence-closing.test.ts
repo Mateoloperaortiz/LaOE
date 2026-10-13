@@ -13,6 +13,7 @@ import {
   confirmAllProposedAs,
   confirmDecisionsAs,
   freezeSnapshots,
+  getPersonPermanence,
   listClosingRows,
   listCompliance,
   listPersonDecisions,
@@ -117,6 +118,15 @@ async function setup() {
   await seedCheckIn(assembly.id, people.sale);
   await recomputeSnapshots(termId);
   return { termId, a3, pixel, gh, people };
+}
+
+/** Las decisiones de una persona como las lee la Persona 360: sobre el resultado que la pestaña muestra. */
+async function decisionsOf(personId: string, termId: string) {
+  const view = await getPersonPermanence(personId, termId);
+  if (!view) {
+    throw new Error("el término no tiene hechos de permanencia");
+  }
+  return listPersonDecisions(personId, termId, view.result);
 }
 
 /** Retiene la fila del término: el cierre se detiene al estamparlo, con su transacción ya abierta. */
@@ -295,7 +305,7 @@ describe("cierre de permanencia", () => {
     // y la línea de tiempo recibe una interacción por decisión.
     await drainOutbox();
     expect(await applyDecisions(termId, nextTermId)).toBe(0);
-    const decisions = await listPersonDecisions(people.sale, termId);
+    const decisions = await decisionsOf(people.sale, termId);
     expect(decisions.every((row) => row.appliedAt !== null)).toBe(true);
     expect(decisions.map((row) => row.decision).sort()).toEqual(
       ["CONTINUES", "EXIT_COMMITTEE", "PROBATION"].sort(),
@@ -834,7 +844,7 @@ describe("cierre de permanencia", () => {
           sale: { status: "ACTIVE", probation: [pixel], left: [a3] },
         }[victim],
       );
-      const unmarked = await listPersonDecisions(personId, termId);
+      const unmarked = await decisionsOf(personId, termId);
       expect(unmarked.length).toBeGreaterThan(0);
       expect(unmarked.every((row) => row.appliedAt === null)).toBe(true);
       // Se reanuda: lo que el poller hace al reintentar `permanence.closed`.

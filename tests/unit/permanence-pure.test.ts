@@ -22,6 +22,7 @@ import {
   type PermanenceConfig,
   type PersonFacts,
   personStanding,
+  proposalReason,
   proposeDecisions,
   round2,
   ruleApplies,
@@ -1247,6 +1248,47 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
       committees: [{ committeeId: "a3", proposed: "EXIT_COMMITTEE", reason: 2 }],
       person: { proposed: "EXIT_OE", reason: 5 },
     });
+  });
+
+  it("el motivo de una propuesta ya confirmada es el de lo que se propuso, y el de una salida de la OE es su causa en el resultado que se muestra (ADR-128 regla 1)", () => {
+    const closedTerm = { ...TERM, permanenceClosedAt: new Date() };
+    const termFacts = facts({
+      rules: [eventos],
+      occasions: [ordinary, election],
+      term: closedTerm,
+    });
+    const resultOf = (attended: string[], credit: number, expulsionWarning = false) =>
+      computePerson(
+        termFacts,
+        person({
+          committees: [committee("a3")],
+          attended: new Set(attended),
+          expulsionWarning,
+          credits: [{ ruleId: eventos.id, value: credit, reason: "" }],
+        }),
+        NOW,
+      );
+    const stays = resultOf(["ord", "elec"], 60);
+    const withoutCommittee = resultOf(["ord", "elec"], 10);
+    const absent = resultOf(["ord"], 60);
+    const warned = resultOf(["ord", "elec"], 60, true);
+    // Donde el cierre propone la salida, el motivo de la propuesta confirmada es el de esa propuesta.
+    const exits = [withoutCommittee, absent, warned];
+    expect(exits.map((result) => proposalReason(result, "EXIT_OE"))).toEqual([3, 4, 5]);
+    expect(exits.map((result) => proposalReason(result, "EXIT_OE"))).toEqual(
+      exits.map((result) => proposeDecisions(result).person.reason),
+    );
+    // Continuar, la prueba y la salida de un comité lo llevan en la propuesta, diga lo que diga hoy el resultado.
+    for (const result of [stays, ...exits]) {
+      expect(
+        (["CONTINUES", "PROBATION", "EXIT_COMMITTEE"] as const).map((proposed) =>
+          proposalReason(result, proposed),
+        ),
+      ).toEqual([0, 1, 2]);
+    }
+    // Una salida ya confirmada de quien hoy continuaría: ni perdió una obligatoria ni lo expulsan sus sanciones.
+    expect(proposeDecisions(stays).person).toEqual({ proposed: "CONTINUES", reason: 0 });
+    expect(proposalReason(stays, "EXIT_OE")).toBe(3);
   });
 
   it("una obligatoria con excusa aceptada no se pierde ni expulsa (ADR-060 regla 5)", () => {

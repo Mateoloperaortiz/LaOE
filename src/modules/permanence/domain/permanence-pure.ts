@@ -977,35 +977,57 @@ export interface Proposal {
   person: { proposed: "CONTINUES" | "EXIT_OE"; reason: ProposalReason };
 }
 
-/** Propuesta del cierre (ADR-028): por comité según el estado final; por persona si no queda comité o faltó a una obligatoria. */
+/** El motivo de continuar, de quedar en prueba y de salir de un comité: lo lleva la propuesta misma. */
+const KIND_REASON = {
+  CONTINUES: 0,
+  PROBATION: 1,
+  EXIT_COMMITTEE: 2,
+} as const satisfies Record<CommitteeDecision, ProposalReason>;
+
+/**
+ * Por qué sale de la OE quien sale, de la causa que más pesa a la que menos. Faltar es no tener registro
+ * en una obligatoria que sí se celebró y no tiene reemplazo programado; una obligatoria que nunca se
+ * registró en el sistema no expulsa a nadie. Una falta grave viva más cualquier otra sanción viva
+ * expulsa (Regl. art. 69.3; ADR-060 regla 6). Sin ninguna de las dos, sale quien se queda sin un comité
+ * donde cumpla o esté en prueba.
+ */
+function exitReason(result: PersonPermanence): 3 | 4 | 5 {
+  if (result.mandatory.lost.length > 0) {
+    return 4;
+  }
+  return result.expulsionWarning ? 5 : 3;
+}
+
+/** Propuesta del cierre (ADR-028): por comité según el estado final; por persona si no queda comité, faltó a una obligatoria o la expulsan sus sanciones. */
 export function proposeDecisions(result: PersonPermanence): Proposal {
   const committees = result.results.map((item) => {
+    let proposed: CommitteeDecision = "EXIT_COMMITTEE";
     if (item.finalState === "CUMPLE") {
-      return { committeeId: item.committeeId, proposed: "CONTINUES" as const, reason: 0 as const };
+      proposed = "CONTINUES";
+    } else if (item.finalState === "PRUEBA") {
+      proposed = "PROBATION";
     }
-    if (item.finalState === "PRUEBA") {
-      return { committeeId: item.committeeId, proposed: "PROBATION" as const, reason: 1 as const };
-    }
-    return {
-      committeeId: item.committeeId,
-      proposed: "EXIT_COMMITTEE" as const,
-      reason: 2 as const,
-    };
+    return { committeeId: item.committeeId, proposed, reason: KIND_REASON[proposed] };
   });
-  // Faltar es no tener registro en una obligatoria que sí se celebró y no tiene reemplazo programado;
-  // una obligatoria que nunca se registró en el sistema no expulsa a nadie.
-  if (result.mandatory.lost.length > 0) {
-    return { committees, person: { proposed: "EXIT_OE", reason: 4 } };
-  }
-  // Una falta grave viva más cualquier otra sanción viva expulsa (Regl. art. 69.3; ADR-060 regla 6).
-  if (result.expulsionWarning) {
-    return { committees, person: { proposed: "EXIT_OE", reason: 5 } };
-  }
+  const reason = exitReason(result);
   const stays = committees.some((item) => item.proposed !== "EXIT_COMMITTEE");
   return {
     committees,
-    person: stays ? { proposed: "CONTINUES", reason: 0 } : { proposed: "EXIT_OE", reason: 3 },
+    person:
+      reason === 3 && stays
+        ? { proposed: "CONTINUES", reason: KIND_REASON.CONTINUES }
+        : { proposed: "EXIT_OE", reason },
   };
+}
+
+/**
+ * El motivo automático de una propuesta que ya se confirmó, con la regla con la que el cierre propone
+ * (ADR-128 regla 1). De la decisión se guarda qué se propuso y no por qué: continuar, la prueba y la
+ * salida de un comité llevan su motivo en la propuesta, y la salida de la OE lo saca de su causa en
+ * `result`, que es el resultado que la pantalla muestra.
+ */
+export function proposalReason(result: PersonPermanence, proposed: DecisionKind): ProposalReason {
+  return proposed === "EXIT_OE" ? exitReason(result) : KIND_REASON[proposed];
 }
 
 /** Sumas de una tabla frente al nominal: veteranos (todos + veteranos) y nuevos (todos + nuevos). */
