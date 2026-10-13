@@ -22,6 +22,7 @@ import {
   positionalLabelCounts,
   positionalLabelReads,
 } from "../../scripts/lib/label-position-metrics";
+import { COMPUTED_INDEX_READS } from "./computed-index-lists.table";
 import { PAIRS, UNSEEN_PAIRS } from "./enum-label-pairs.table";
 import { FALLBACKS_BY_FILE } from "./label-fallbacks.table";
 
@@ -52,14 +53,14 @@ interface Exception {
 const UNEVEN = "Par de largo distinto, que queda fuera de `tLabels` (ADR-126 regla 2, DT-373):";
 const BY_HAND =
   "Constante de posiciones que fija `INDEX_PAIRS` de la tabla de pares y espera su migración (DT-366):";
-const DOMAIN_NUMBER =
-  "El subíndice es un número que calcula el dominio o que está escrito en el sitio, no un valor de un enum (DT-369):";
 const NOT_LABELS = "No empareja un enum con sus etiquetas:";
 
 // Las únicas lecturas por posición que quedan en `src`. Antes de sumar una acá, leela por valor: si
 // es la etiqueta de un valor de un enum, `tLabels(código, ENUM)[valor]` con el respaldo que el sitio
 // ya tenga. La lista es por expresión y por archivo: otra lectura en uno de estos archivos también cae.
-const EXCEPTIONS: Exception[] = [
+// Las de subíndice calculado no van acá: viven en `computed-index-lists.table.ts`, donde cada una
+// nombra la lista que lee, y esa lista tiene su fila en `computed-index-lists.test.ts` (ADR-128 regla 8).
+const OTHER_FORMS: (Exception & { form: Exclude<PositionalForm, "computedIndex"> })[] = [
   {
     path: "src/app/admin/gamificacion/campanas/page.tsx",
     form: "positionConstant",
@@ -163,104 +164,11 @@ const EXCEPTIONS: Exception[] = [
     read: "row[column]",
     reason: `${NOT_LABELS} lee de cada fila de un CSV la columna que encontró en el encabezado.`,
   },
-  {
-    path: "src/modules/competition/domain/staff-import.ts",
-    form: "computedIndex",
-    read: 'tList("T-3048")[day-1]',
-    reason: `${DOMAIN_NUMBER} la jornada de The Games.`,
-  },
-  {
-    path: "src/modules/competition/domain/powers.ts",
-    form: "computedIndex",
-    read: "dayName(problem.day)",
-    times: 2,
-    reason: `${DOMAIN_NUMBER} la jornada de The Games, por el ayudante que lee T-3048.`,
-  },
-  {
-    path: "src/app/admin/the-games/[id]/_ui/Powers.tsx",
-    form: "computedIndex",
-    read: "dayName(day)",
-    times: 2,
-    reason: `${DOMAIN_NUMBER} la jornada de The Games, que el sitio recorre con \`[1, 2]\`.`,
-  },
-  {
-    path: "src/app/admin/the-games/[id]/_ui/Powers.tsx",
-    form: "computedIndex",
-    read: "columns[day]",
-    reason: `${DOMAIN_NUMBER} la columna de cada jornada, que el sitio recorre con \`[1, 2]\`.`,
-  },
-  {
-    path: "src/app/admin/the-games/[id]/_ui/Powers.tsx",
-    form: "computedIndex",
-    read: "days[day-1]",
-    reason: `${DOMAIN_NUMBER} la jornada de The Games, que el sitio recorre con \`[1, 2]\`.`,
-  },
-  {
-    path: "src/app/admin/the-games/[id]/_ui/Setup.tsx",
-    form: "computedIndex",
-    read: "days[day-1]",
-    reason: `${DOMAIN_NUMBER} la jornada de The Games.`,
-  },
-  {
-    path: "src/modules/participation/components/Panal.tsx",
-    form: "computedIndex",
-    read: 'tList("T-2739")[panalRank(score,puzzle.maxScore)]',
-    reason: `${DOMAIN_NUMBER} el rango del Panal.`,
-  },
-  {
-    path: "src/app/admin/asambleas/page.tsx",
-    form: "computedIndex",
-    read: "ladderLabels[row.ladder]",
-    reason: `${DOMAIN_NUMBER} el escalón de la representación de un comité en las asambleas.`,
-  },
-  {
-    path: "src/app/admin/comites/[slug]/_ui/Personas.tsx",
-    form: "computedIndex",
-    read: "ladderLabels[representation.ladder]",
-    reason: `${DOMAIN_NUMBER} el escalón de la representación de un comité en las asambleas.`,
-  },
-  {
-    path: "src/app/admin/permanencia/cierre/page.tsx",
-    form: "computedIndex",
-    read: "reasonLabels[row.personReason]",
-    reason: `${DOMAIN_NUMBER} el motivo automático de una propuesta del cierre, una de las seis piezas de T-801.`,
-  },
-  {
-    path: "src/app/admin/personas/[id]/_ui/TabPermanencia.tsx",
-    form: "computedIndex",
-    read: "reasonLabels[decision.proposalReason]",
-    reason: `${DOMAIN_NUMBER} el motivo automático de una decisión confirmada del cierre, que la lectura de la pestaña trae resuelto (ADR-128 regla 1); antes lo armaba la pestaña con la posición de la decisión.`,
-  },
-  {
-    path: "src/app/app/gh-points/page.tsx",
-    form: "computedIndex",
-    read: "levelLabels[level.index+1]",
-    reason: `${DOMAIN_NUMBER} el nivel que sigue al del miembro.`,
-  },
-  {
-    path: "src/app/app/gh-points/page.tsx",
-    form: "computedIndex",
-    read: "levelLabels[level.index]",
-    reason: `${DOMAIN_NUMBER} el nivel del miembro.`,
-  },
-  {
-    path: "src/app/app/gh-points/coleccion/page.tsx",
-    form: "computedIndex",
-    read: "conditions[level.badge.level-1]",
-    reason: `${DOMAIN_NUMBER} el nivel de una insignia.`,
-  },
-  {
-    path: "src/app/app/juegos/page.tsx",
-    form: "computedIndex",
-    read: "estados[juego.estado]",
-    reason: `${DOMAIN_NUMBER} el estado de cada juego de la biblioteca, que la página calcula como 0, 1 o 2.`,
-  },
-  {
-    path: "src/modules/people/domain/roster-pure.ts",
-    form: "computedIndex",
-    read: 'text(assignments.error,{sigla:values.role,sugerencia:"—"})',
-    reason: `${DOMAIN_NUMBER} la posición del error que devuelve el validador de asignaciones.`,
-  },
+];
+
+const EXCEPTIONS: Exception[] = [
+  ...OTHER_FORMS,
+  ...COMPUTED_INDEX_READS.map((read) => ({ ...read, form: "computedIndex" as const })),
 ];
 
 function sourceFiles(dir: string): { path: string; text: string }[] {
@@ -613,6 +521,14 @@ describe("las lecturas por posición de una lista del catálogo de textos", () =
   it("no repite una excepción y cada una dice por qué", () => {
     expect(new Set(EXCEPTIONS.map(key)).size).toBe(EXCEPTIONS.length);
     expect(EXCEPTIONS.filter((exception) => exception.reason.trim().length < 20)).toEqual([]);
+  });
+
+  it("una excepción de subíndice calculado no entra por fuera de su tabla, donde nombra su lista", () => {
+    const forms: PositionalForm[] = OTHER_FORMS.map((exception) => exception.form);
+    expect(forms).not.toContain("computedIndex");
+    expect(EXCEPTIONS.filter((exception) => exception.form === "computedIndex")).toHaveLength(
+      COMPUTED_INDEX_READS.length,
+    );
   });
 
   it("cuenta por forma lo mismo que nombran las excepciones: es la fila de audit:metrics", () => {

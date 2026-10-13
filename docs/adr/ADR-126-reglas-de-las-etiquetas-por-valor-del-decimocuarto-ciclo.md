@@ -390,4 +390,6 @@ Regla 2: su tabla traía a T-801 con `DECISIONS` de `TabPermanencia.tsx` entre l
 
 Regla 13: su tabla contaba 4 lecturas en «Pares de largo distinto (regla 2): T-801, T-2511 y T-2473», de formas `indexOf` y `positionConstant`. Quedan 3, las de T-2511 y T-2473, todas `positionConstant`. La de T-801 pasa a la fila de «un número que calcula el dominio», que sube de 17 a 18. Las lecturas que la regla admite siguen siendo 36, y la fila de la spec da `0 · 3 · 4 · 0`.
 
-Ver [ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) regla 1.
+Regla 13 y Consecuencias (DT-369): decían que a las lecturas de un número que calcula el dominio les faltaba «una prueba que compare el largo de cada lista con el rango del número que la lee». Existe: `tests/unit/computed-index-lists.test.ts` trae una fila por cada una de sus doce listas. Las excepciones `computedIndex` de la regla 11 son las mismas 18 lecturas y pasan a `tests/unit/computed-index-lists.table.ts`, que las dos pruebas importan y donde cada una nombra la lista que lee.
+
+Ver [ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) reglas 1 y 8.

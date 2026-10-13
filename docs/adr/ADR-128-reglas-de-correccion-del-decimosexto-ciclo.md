@@ -3,7 +3,7 @@
 - Estado: Aceptada
 - Fecha: 2026-10-13
 - Relacionadas: ADR-024, ADR-028, ADR-036, ADR-060, ADR-109, ADR-119, ADR-120, ADR-123, ADR-124, ADR-125, ADR-126, ADR-127
-- Enmienda: ADR-126 (regla 2: T-801 con las cuatro decisiones deja de ser un par de largo distinto, porque la pestaña de permanencia ya no empareja la lista con ese orden; regla 13: los pares de largo distinto que siguen por posición pasan de 4 lecturas a 3 y las de un número que calcula el dominio de 17 a 18); ADR-127 (regla 8: el error que cuelga de un objeto interpolado y escribe su propio `toJSON` ya no sale por él, deja solo su código; y a la línea sin mensaje cuyo `err` es un objeto con un texto por `message` le llega ese mensaje ya recortado, como a la de un `Error`; regla 13 y Consecuencias: lo firmado de T-545 y T-670 deja de sumarse a mano, y «el total de asambleas obligatorias se calcula en un solo sitio» no era cierto, porque el Desglose de permanencia lo suma aparte; regla 12: la carga con nombre vale para toda prueba y todo archivo de `src`, y una prueba la vigila; regla 6: un `import` estático de Next arriba de un archivo que un `index.ts` reexporta no resuelve en la E2E, y sí cargan con él los scripts y el poller; regla 10: el motivo de salida y el último semestre de la inactiva que siembra la fábrica van en un objeto de opciones, y que la persona sea exalumna deja de ser una nota: la fábrica lanza si no lo es)
+- Enmienda: ADR-126 (regla 2: T-801 con las cuatro decisiones deja de ser un par de largo distinto, porque la pestaña de permanencia ya no empareja la lista con ese orden; regla 13: los pares de largo distinto que siguen por posición pasan de 4 lecturas a 3 y las de un número que calcula el dominio de 17 a 18, que ya tienen la prueba que compara el largo de su lista con el rango de ese número); ADR-127 (regla 8: el error que cuelga de un objeto interpolado y escribe su propio `toJSON` ya no sale por él, deja solo su código; y a la línea sin mensaje cuyo `err` es un objeto con un texto por `message` le llega ese mensaje ya recortado, como a la de un `Error`; regla 13 y Consecuencias: lo firmado de T-545 y T-670 deja de sumarse a mano, y «el total de asambleas obligatorias se calcula en un solo sitio» no era cierto, porque el Desglose de permanencia lo suma aparte; regla 12: la carga con nombre vale para toda prueba y todo archivo de `src`, y una prueba la vigila; regla 6: un `import` estático de Next arriba de un archivo que un `index.ts` reexporta no resuelve en la E2E, y sí cargan con él los scripts y el poller; regla 10: el motivo de salida y el último semestre de la inactiva que siembra la fábrica van en un objeto de opciones, y que la persona sea exalumna deja de ser una nota: la fábrica lanza si no lo es)
 
 ## Contexto
 
@@ -51,6 +51,8 @@ La fila y [ADR-127](ADR-127-reglas-de-correccion-del-decimoquinto-ciclo.md) regl
 - El enlace de acceso de quien sale no lo borra la baja en su transacción: lo borra su handler cuando corre el outbox (`src/modules/identity/jobs.ts`). Después de `endMembershipAs` y sin drenar, el enlace sigue guardado y `resolveAccessGrant` responde nulo por `canSignIn`, que sale del estado de la membresía.
 - Los catorce archivos de integración y la E2E de acceso que ya sembraban una inactiva por la fábrica traían a la persona exalumna.
 - El motivo de salida y el último semestre eran el cuarto y el quinto parámetro posicional de `seedMemberships` y de `seedMembership`: para pasar el último semestre había que escribir el motivo, y con un estado que no fuera `INACTIVE` los dos se ignoraban en silencio. La matriz de elegibilidad del registro propio los pasaba con cualquier estado.
+
+**Nada comparaba el largo de una lista del catálogo con el rango del número que la lee (DT-369).** [ADR-126](ADR-126-reglas-de-las-etiquetas-por-valor-del-decimocuarto-ciclo.md) regla 13 dejó nombradas como ajenas a un enum las lecturas que llevan de subíndice un número que calcula el dominio, y dijo lo que les faltaba: una prueba que compare el largo de cada lista con ese rango. Con la regla 1 de esta ADR son 18 lecturas sobre doce listas. La fila decía que con un subíndice de tipo `number` la tupla de `tList` no cuida el largo, y eso vale para 13. Medido el 2026-10-13 con `tsc` y ocho de esas listas sin su última pieza en el generado: en cinco lecturas el subíndice es una unión de números escritos y `tsc` ya rechaza la lista corta (el escalón de la representación, dos; el motivo del cierre, dos; el estado de un juego de la biblioteca). En las otras trece no dice nada: la jornada de The Games (ocho), el rango del Panal, los dos niveles de GH Points, el nivel de una insignia y el error del validador de asignaciones.
 
 ## Decisión
 
@@ -128,6 +130,32 @@ La fila y [ADR-127](ADR-127-reglas-de-correccion-del-decimoquinto-ciclo.md) regl
 
    Enmienda [ADR-127](ADR-127-reglas-de-correccion-del-decimoquinto-ciclo.md) regla 10 en la firma y en quién cuida a la persona. Decía que quien siembra la inactiva deja a la persona como exalumna, sin que nada lo hiciera cumplir, y que la fábrica recibe el último semestre en un quinto parámetro. La fila que la fábrica siembra no cambia.
 
+8. **Cada lista del catálogo que se lee con un número que calcula el dominio tiene una fila que dice cuántas piezas pide y de dónde sale ese número, y una lectura nueva no entra sin la suya.** `tests/unit/computed-index-lists.test.ts` trae una fila por lista:
+
+   | Lista | Piezas | El número que la lee | De dónde sale su rango | Cómo lo mira la prueba |
+   | --- | --- | --- | --- | --- |
+   | T-3048 | 2 | La jornada de The Games | El tipo `Day` (`src/modules/competition/domain/schedule-pure.ts`) | Tipo |
+   | T-3078 | 4 | La columna de cada jornada, entre la del equipo y la de las entregadas | El mismo tipo, más dos | Tipo |
+   | T-2739 | 10 | El rango del Panal | `panalRank` sobre `PANAL_RANK_PERCENTAGES` (`src/modules/participation/panal-engine.ts`) | Función |
+   | T-2250 | 4 | El escalón de la representación de un comité | `representationLadder` (`src/modules/participation/domain/committee-assembly.ts`) | Función |
+   | T-801 | 6 | El motivo automático de una propuesta del cierre | El tipo `ProposalReason` (`src/modules/permanence/domain/permanence-pure.ts`) | Tipo |
+   | T-2475, T-2477, T-2479 y T-2481 | 3 | El nivel de una insignia | El `check` `badge_definition_level_range` (`src/modules/participation/schema.ts`) | Texto |
+   | T-082 | 5 | El nivel de GH Points | Los cortes de `points.levels` que siembra `drizzle/0005_participacion_y_gh_points.sql`, por `levelFor` | Texto |
+   | T-2623 | 3 | El estado de un juego de la biblioteca | El tipo `Estado`, local a `src/app/app/juegos/page.tsx` | Texto |
+   | T-165 | 10 | El error del validador de asignaciones | Los `error: n` que devuelve `parseRoleAssignments` (`src/modules/people/domain/roster-pure.ts`) | Texto |
+
+   La prueba mira el rango de tres maneras, y la fila dice cuál:
+
+   - **Función**: llama a la función que da el número y junta lo que devuelve.
+   - **Tipo**: enumera el tipo exportado en un objeto `satisfies Record<Tipo, true>`. Un valor nuevo en el tipo no compila hasta sumarlo a la prueba, y entonces su fila pide una pieza más.
+   - **Texto**: lee el número del texto de un archivo, porque no hay nada que importar. Si el archivo deja de escribirlo así, la prueba cae ahí en vez de pasar sin mirar. Es la más floja de las tres: nada ata ese texto a lo que hay guardado en una base.
+
+   Ninguna fila lee su lista. La prueba se la pasa, entera y sin su última pieza, y con la segunda el caso tiene que caer: así una fila no pasa por comparar la lista consigo misma.
+
+   Las excepciones `computedIndex` de [ADR-126](ADR-126-reglas-de-las-etiquetas-por-valor-del-decimocuarto-ciclo.md) regla 11 salen de `tests/unit/label-positions.test.ts` y viven en `tests/unit/computed-index-lists.table.ts`, que las dos pruebas importan. Son las mismas 18 lecturas, y cada una nombra además la lista que lee. La prueba nueva cae si una lectura no nombra ninguna lista, si nombra una que no tiene fila, si una fila ya no la lee nadie o si el archivo de la lectura no escribe el código de esa lista. La de las posiciones cae si una excepción de esa forma se escribe por fuera de la tabla.
+
+   No cambia ningún archivo de `src`.
+
 ## Consecuencias
 
 - GH lee en la Persona 360 el mismo motivo que en la página del cierre para una misma propuesta.
@@ -158,3 +186,6 @@ La fila y [ADR-127](ADR-127-reglas-de-correccion-del-decimoquinto-ciclo.md) regl
 - Las dos pruebas que dan la baja pasan ahora por todo lo que la baja hace en su transacción (persona exalumna, sesiones revocadas, pertenencias cerradas, consentimientos) y no solo por el estado. Ninguna drena el outbox, así que lo que hace el handler de la baja, como borrar el enlace, no corre en ellas.
 - Lo que el trinquete no mira: la tabla que llega por una variable o por un parámetro (`const tabla = membership`), y el `insert` suelto de una inactiva, que ya cuida `tests/unit/test-factory-tables.test.ts`. Tampoco mira a la persona: un `update(person)` que devuelva a miembro a quien se sembró exalumno no cae.
 - Quedan fuera a propósito dos cosas que la fila nombraba de paso. `scripts/seed.ts`, la siembra de desarrollo, no es una prueba ni un `update`: escribe con `insert` la fila con la que la importación del roster da de alta a quien llega ya retirado (`src/modules/people/domain/roster.ts`: fecha, motivo, último semestre y la época en cero), que es un camino de la casa. Y `tests/integration/alumni.test.ts` le reescribe la fecha de salida a sus tres personas con un `update` que no toca el estado, y deja a una saliendo antes de su término de ingreso (DT-397).
+- Una lista que pierde una pieza, o un rango que gana un valor, cae en las unitarias. Con un corte más en `PANAL_RANK_PERCENTAGES` o un quinto escalón en `representationLadder` caen 2 de los 33 casos de `tests/unit/computed-index-lists.test.ts`; con un cuarto nivel en el `check` de las insignias, 4; y con una posición nueva en el validador de asignaciones, un cuarto estado de un juego o un sexto corte sembrado de GH Points, 1. Con `Day` o `ProposalReason` ensanchados la prueba no compila. Y con cada lista sin su última pieza, en memoria, cae el caso de esa lista: son doce casos de la misma prueba.
+- Una lectura nueva con un subíndice calculado pide dos cosas: su excepción en la tabla, con su lista, y la fila de esa lista. Con una excepción sembrada sin fila caen 2 casos de la prueba nueva y 2 de `tests/unit/label-positions.test.ts`; escrita por fuera de la tabla, 3 de esta última.
+- Lo que esa red no ve. El nivel de GH Points se compara con los cinco cortes que sembró la migración: `points.levels` es configuración guardada, y lo que haya hoy en producción no se mira. Ningún llamador de `src` la escribe; si una migración nueva la cambia, la prueba cae y pide mirar T-082. El nivel de una insignia se compara con el `check` como lo escribe el esquema, no con el de la base. La prueba ata cada lectura a su lista por el código que su archivo escribe, y cada lista a su rango a mano: una lectura nueva de una lista que ya tiene fila, hecha con otro número, pasa con nombrar esa lista. Queda en DT-369.
