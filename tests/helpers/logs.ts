@@ -44,6 +44,11 @@ export async function captureLogs<T>(
   }
 }
 
+/** Lo que una línea trae bajo `err`, o un objeto vacío si no trae nada. */
+export function errOf(entry: LoggedLine | undefined): Record<string, unknown> {
+  return (entry?.record.err ?? {}) as Record<string, unknown>;
+}
+
 /** Las líneas con ese mensaje, en el orden en que salieron. */
 export function recordsOf(lines: LoggedLine[], msg: string): Record<string, unknown>[] {
   return lines.filter((entry) => entry.record.msg === msg).map((entry) => entry.record);

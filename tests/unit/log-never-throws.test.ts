@@ -1,7 +1,7 @@
 import pino from "pino";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { logger, printableError, withoutQueryValues } from "@/shared/log";
-import { captureLogs, type LoggedLine } from "../helpers/logs";
+import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // DT-390, ADR-128 regla 2: el registro no lanza por lo que le piden anotar. Lanzaba con un `Error` cuyo
 // `message` no es un texto cuando `DATABASE_URL` está escrita, que en producción es siempre: el recorte
@@ -60,10 +60,6 @@ async function logged(make: () => Error): Promise<LoggedLine[]> {
   });
   expect(lines).toHaveLength(3);
   return lines;
-}
-
-function errOf(entry: LoggedLine | undefined): Record<string, unknown> {
-  return (entry?.record.err ?? {}) as Record<string, unknown>;
 }
 
 describe("con `DATABASE_URL` escrita, un error cuyo `message` no es un texto se registra sin lanzar", () => {

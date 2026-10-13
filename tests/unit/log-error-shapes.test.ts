@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { logger } from "@/shared/log";
-import { captureLogs, type LoggedLine } from "../helpers/logs";
+import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // DT-381, incisos (c) y (d), ADR-128 regla 3: dos formas de error por las que los valores de una
 // consulta todavía llegaban al registro. El error que escribe su propio `toJSON` y cuelga de un objeto
@@ -47,10 +47,6 @@ const error = logger.error.bind(logger) as (...args: unknown[]) => void;
 async function written(run: () => void): Promise<LoggedLine[]> {
   const { lines } = await captureLogs(async () => run());
   return lines;
-}
-
-function errOf(entry: LoggedLine | undefined): Record<string, unknown> {
-  return (entry?.record.err ?? {}) as Record<string, unknown>;
 }
 
 describe("el error que escribe su propio `toJSON` y cuelga de un objeto interpolado", () => {
