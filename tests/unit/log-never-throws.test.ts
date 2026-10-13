@@ -1,6 +1,12 @@
 import pino from "pino";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { logger, printableError, withoutQueryValues } from "@/shared/log";
+import {
+  carriesQueryError,
+  errorCode,
+  logger,
+  printableError,
+  withoutQueryValues,
+} from "@/shared/log";
 import { captureLogs, errOf, type LoggedLine } from "../helpers/logs";
 
 // DT-390, ADR-128 regla 2: el registro no lanza por lo que le piden anotar. Lanzaba con un `Error` cuyo
@@ -412,5 +418,145 @@ describe("un símbolo donde va el mensaje de la línea", () => {
     expect(lines.map((line) => (JSON.parse(line) as { msg: string }).msg)).toEqual([
       "van Symbol(s) y undefined",
     ]);
+  });
+});
+
+// DT-394, ADR-129 regla 6: lo que el registro todavía podía lanzar. `logger.child` lanzaba si lo que
+// le piden fijar no se deja leer: pino lo serializa al crear el hijo, y por ahí no pasa ningún paso
+// propio. Y `errorCode` y `carriesQueryError`, que no escriben nada, leían el error sin red.
+describe("un logger hijo y las dos lecturas del error tampoco lanzan", () => {
+  /** `logger.child` sin los tipos de pino, que no admiten cualquier cosa por lo que se fija. */
+  const child = (parent: typeof logger, bindings: unknown) =>
+    parent.child(bindings as pino.Bindings);
+
+  const refuse = (): never => {
+    throw new Error("no me leas");
+  };
+
+  /** Un objeto que lanza con cualquier cosa que le pregunten. */
+  const unreadableObject = () =>
+    new Proxy(
+      { pedido: "p-1" },
+      {
+        get: refuse,
+        has: refuse,
+        ownKeys: refuse,
+        getPrototypeOf: refuse,
+        getOwnPropertyDescriptor: refuse,
+      },
+    );
+
+  /** Un objeto con una clave que lanza al leerla. */
+  const withUnreadableKey = () => ({
+    pedido: "p-1",
+    get dato(): string {
+      return refuse();
+    },
+  });
+
+  it("`logger.child` no lanza con un objeto sin prototipo, con una clave que lanza al leerla ni con un `Proxy`: fija lo que se deja leer, y oculto lo que no", async () => {
+    const { lines } = await captureLogs(async () => {
+      child(logger, Object.assign(Object.create(null), { pedido: "p-1" })).warn("sin prototipo");
+      child(logger, withUnreadableKey()).warn("una clave que lanza");
+      child(logger, unreadableObject()).warn("un proxy");
+      child(logger, undefined).warn("nada que fijar");
+      child(child(logger, { pedido: "p-1" }), withUnreadableKey()).warn("un nieto");
+    });
+
+    expect(lines.map(({ record }) => record)).toEqual([
+      { level: 40, time: expect.any(Number), pedido: "p-1", msg: "sin prototipo" },
+      {
+        level: 40,
+        time: expect.any(Number),
+        pedido: "p-1",
+        dato: HIDDEN,
+        msg: "una clave que lanza",
+      },
+      { level: 40, time: expect.any(Number), msg: "un proxy" },
+      { level: 40, time: expect.any(Number), msg: "nada que fijar" },
+      { level: 40, time: expect.any(Number), pedido: "p-1", dato: HIDDEN, msg: "un nieto" },
+    ]);
+  });
+
+  it("`setBindings`, que fija por el mismo camino, tampoco lanza", async () => {
+    const { lines } = await captureLogs(async () => {
+      const fixed = child(logger, { pedido: "p-1" });
+      fixed.setBindings(withUnreadableKey());
+      fixed.warn("sigue");
+    });
+
+    expect(lines.map(({ record }) => record)).toEqual([
+      { level: 40, time: expect.any(Number), pedido: "p-1", dato: HIDDEN, msg: "sigue" },
+    ]);
+  });
+
+  it("lo que un hijo fija y se deja leer sale como salía: el error recortado, las claves ocultas y las que pino reserva", async () => {
+    const { lines } = await captureLogs(async () => {
+      child(logger, {
+        pedido: "p-1",
+        err: Object.assign(new Error(`Failed query: ${QUERY}\nparams: ${VALUE}`), {
+          query: QUERY,
+          params: [VALUE],
+        }),
+        token: "t-1",
+        cuenta: { password: "p-1", intento: 2 },
+        sinValor: undefined,
+        level: "reservada",
+      }).warn("sigue");
+      child(logger, { err: unreadable() }).warn("un error ilegible");
+    });
+
+    expect(lines.map(({ record }) => record)).toEqual([
+      {
+        level: 40,
+        time: expect.any(Number),
+        pedido: "p-1",
+        err: {
+          type: "Error",
+          message: `Failed query: ${QUERY}`,
+          stack: expect.any(String),
+          query: QUERY,
+        },
+        token: HIDDEN,
+        cuenta: { password: HIDDEN, intento: 2 },
+        msg: "sigue",
+      },
+      { level: 40, time: expect.any(Number), err: HIDDEN, msg: "un error ilegible" },
+    ]);
+  });
+
+  it("`errorCode` no lanza con un error que no se deja leer: no hay código que dar", () => {
+    const withUnreadableCode = () =>
+      Object.defineProperty(new Error("falló"), "code", { get: refuse });
+
+    expect(errorCode(withUnreadableCode())).toBeUndefined();
+    expect(errorCode(new Error("fuera", { cause: withUnreadableCode() }))).toBeUndefined();
+    expect(errorCode(unreadable())).toBeUndefined();
+    expect(errorCode(new Error("fuera", { cause: unreadable() }))).toBeUndefined();
+    // Y el que se deja leer sigue dando el suyo, o el de su causa.
+    expect(errorCode(Object.assign(new Error("falló"), { code: "57P01" }))).toBe("57P01");
+    expect(
+      errorCode(new Error("fuera", { cause: Object.assign(new Error("dentro"), { code: -61 }) })),
+    ).toBe(-61);
+  });
+
+  // `onRequestError` registra solo el error de consulta (`src/instrumentation.ts`). Qué más registra es
+  // la decisión abierta 42: el error que no se deja leer queda del lado de lo que hoy no se registra.
+  it("`carriesQueryError` no lanza con un error que no se deja leer: no cuenta como un error de consulta (decisión abierta 42)", () => {
+    const failedQuery = () =>
+      Object.assign(new Error(`Failed query: ${QUERY}\nparams: ${VALUE}`), {
+        query: QUERY,
+        params: [VALUE],
+      });
+
+    expect(carriesQueryError(unreadable())).toBe(false);
+    expect(carriesQueryError(new Error("fuera", { cause: unreadable() }))).toBe(false);
+    expect(
+      carriesQueryError(Object.defineProperty(new Error("falló"), "query", { get: refuse })),
+    ).toBe(false);
+    // Y el que se deja leer sigue contando, él o su causa.
+    expect(carriesQueryError(failedQuery())).toBe(true);
+    expect(carriesQueryError(new Error("fuera", { cause: failedQuery() }))).toBe(true);
+    expect(carriesQueryError(new Error("otro"))).toBe(false);
   });
 });

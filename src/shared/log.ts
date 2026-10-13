@@ -261,10 +261,17 @@ function causeCode(error: Error): string | number | undefined {
   return undefined;
 }
 
-/** El código de un error, o el de su causa más cercana que traiga uno. */
+/**
+ * El código de un error, o el de su causa más cercana que traiga uno. No lanza (ADR-129 regla 6): del
+ * error que no se deja leer (un `Proxy`, un `code` que lanza al leerlo) no hay código que dar.
+ */
 export function errorCode(error: Error): string | number | undefined {
-  const own = (error as { code?: unknown }).code;
-  return isErrorCode(own) ? own : causeCode(error);
+  try {
+    const own = (error as { code?: unknown }).code;
+    return isErrorCode(own) ? own : causeCode(error);
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -292,16 +299,23 @@ function isQueryError(error: unknown): error is QueryError {
 /**
  * Si el error, o alguna de sus causas hasta cinco niveles, es un error de consulta. Recorre solo lo
  * que es un `Error`: lo que tiene su forma sin serlo se recorta al escribirlo, y acá no cuenta.
+ *
+ * No lanza (ADR-129 regla 6): el error que no se deja leer tampoco cuenta. De él no se puede decir que
+ * sea de una consulta, y quien pregunta registra solo esos.
  */
 export function carriesQueryError(error: unknown): boolean {
-  let current: unknown = error;
-  for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
-    if (isQueryError(current)) {
-      return true;
+  try {
+    let current: unknown = error;
+    for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
+      if (isQueryError(current)) {
+        return true;
+      }
+      current = current.cause;
     }
-    current = current.cause;
+    return false;
+  } catch {
+    return false;
   }
-  return false;
 }
 
 /**
@@ -748,6 +762,30 @@ function withWritableMessage(args: unknown[]): unknown[] {
     : args;
 }
 
+/**
+ * Lo que un logger hijo va a fijar, como un objeto que pino sabe leer (ADR-129 regla 6). Pino lo
+ * serializa al crear el hijo y por ahí no pasa `hooks.logMethod`: con un objeto sin prototipo, con una
+ * clave que lanza al leerla o con un `Proxy`, lanzaba él. Se copian las claves propias que se enumeran,
+ * que son las que pino fija. La que lanza al leerla sale `[oculto]`, y de lo que no deja ni listar sus
+ * claves no se fija nada. Los valores no se tocan: pasan por el serializador de `err` y por las rutas
+ * ocultas, como siempre.
+ */
+function readableBindings(bindings: unknown): Record<string, unknown> {
+  const entries: [string, unknown][] = [];
+  try {
+    for (const key of Object.keys(bindings as object)) {
+      try {
+        entries.push([key, (bindings as Record<string, unknown>)[key]]);
+      } catch {
+        entries.push([key, REDACTED]);
+      }
+    }
+  } catch {
+    // No deja listar sus claves, o no es un objeto: no hay qué fijar.
+  }
+  return Object.fromEntries(entries);
+}
+
 // JSON en producción, CI y archivos; el formateador con worker queda para la terminal local.
 export const logger = pino({
   // `||` y no `??`: una variable vacía vale como ausente, igual que en `env.ts` (ADR-121 regla 8).
@@ -801,3 +839,20 @@ export const logger = pino({
       }
     : {}),
 });
+
+// `logger.child(…)` y `logger.setBindings(…)` no lanzan por lo que les piden fijar (ADR-129 regla 6).
+// Se envuelven en el logger que se exporta: pino crea cada hijo con su padre de prototipo, así que los
+// hijos, y los hijos de un hijo, heredan estas dos funciones.
+const pinoChild = logger.child;
+logger.child = function child<Levels extends string = never>(
+  this: unknown,
+  bindings: pino.Bindings,
+  options?: pino.ChildLoggerOptions<Levels>,
+): pino.Logger<Levels> {
+  return Reflect.apply(pinoChild, this, [readableBindings(bindings), options]);
+};
+
+const pinoSetBindings = logger.setBindings;
+logger.setBindings = function setBindings(this: unknown, bindings: pino.Bindings): void {
+  Reflect.apply(pinoSetBindings, this, [readableBindings(bindings)]);
+};
