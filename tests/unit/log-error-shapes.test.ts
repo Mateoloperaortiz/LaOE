@@ -686,6 +686,32 @@ describe("la línea sin mensaje que trae su propia clave `msg`", () => {
     expect(errOf(lines[3]).msg).toBe("un campo del error");
   });
 
+  // Un borde de la regla: el `msg` que pino no escribe. Con él pino tampoco toma el mensaje del error,
+  // así que no queda la clave de quien llamó ni la del error. Antes de la regla salía la del error.
+  it("si su `msg` es un símbolo o una función, que pino no escribe, sale sin clave `msg`, y el mensaje de su error queda en `err.message`", async () => {
+    const lines = await written(() => {
+      error({ err: new Error("del error"), msg: Symbol("s") });
+      error({ err: queryError(), msg: () => "x" });
+    });
+
+    expect(lines.map(({ line }) => msgKeys(line))).toEqual([0, 0]);
+    expect(lines.map((line) => errOf(line).message)).toEqual(["del error", FAILED_QUERY]);
+    for (const { line } of lines) {
+      expect(line).not.toContain(VALUE);
+    }
+  });
+
+  // DT-404: el paso propio mira la línea, no lo que fijó el hijo.
+  it("la línea sin mensaje de un hijo que fija `msg` sale como salía: pino escribe la del hijo y después la del error (DT-404)", async () => {
+    const lines = await written(() => {
+      logger.child({ msg: "fijado por el hijo" }).error({ err: new Error("del error") });
+    });
+
+    expect(lines.map(({ line }) => msgKeys(line))).toEqual([2]);
+    expect(lines[0]?.line).toContain('"msg":"fijado por el hijo"');
+    expect(lines.map(({ record }) => record.msg)).toEqual(["del error"]);
+  });
+
   it("con mensaje, la línea que además trae su clave `msg` sale como salía: pino escribe las dos", async () => {
     const lines: string[] = [];
     const target = logger as unknown as Record<symbol, { write(line: string): void } | undefined>;
