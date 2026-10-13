@@ -4,6 +4,7 @@ import {
   type CommitteeResult,
   type CriterionResult,
   type MandatoryView,
+  mandatoryCounts,
   type PersonPermanence,
   WORK_GROUP_KINDS,
   type WorkGroupKind,
@@ -234,14 +235,7 @@ function Criterios({
 
 function Obligatorias({ mandatory }: { mandatory: MandatoryView }) {
   const kinds = tLabels("T-546", ASSEMBLY_KINDS);
-  const total =
-    mandatory.required.ordinary +
-    (mandatory.required.boardElection ? 1 : 0) +
-    (mandatory.required.runoff ? 1 : 0);
-  const attended =
-    Math.min(mandatory.attended.ordinary, mandatory.required.ordinary) +
-    (mandatory.required.boardElection && mandatory.attended.boardElection ? 1 : 0) +
-    (mandatory.required.runoff && mandatory.attended.runoff ? 1 : 0);
+  const { attended, total } = mandatoryCounts(mandatory);
   const kindLabel = (kind: "ORDINARY" | "BOARD_ELECTION" | "RUNOFF") => kinds[kind] ?? kind;
   const next = mandatory.upcoming[0];
   return (

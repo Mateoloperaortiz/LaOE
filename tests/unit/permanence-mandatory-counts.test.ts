@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { attendedRequired, requiredTotal } from "@/modules/participation/domain/assembly-pure";
-import type { MandatoryView, PersonPermanence } from "@/modules/permanence";
+import { type MandatoryView, mandatoryCounts, type PersonPermanence } from "@/modules/permanence";
 import { Desglose } from "@/modules/permanence/components/Desglose";
 import { t } from "@/shared/copy";
 import { copyPattern } from "../helpers/copy";
@@ -13,8 +13,9 @@ import { copyPattern } from "../helpers/copy";
 // cumplimiento. Acá `requiredTotal` y `attendedRequired`, de `participation`, se comparan con las dos
 // en todas las combinaciones de lo exigido y lo firmado, y con lo que el Desglose dibuja de verdad.
 //
-// Las dos copias van escritas como estaban en `refactor/ciclo-16`: una vez que el código llama a las
-// funciones, son lo único que queda para decir que no cambió ningún número.
+// Las dos copias van escritas como estaban en `refactor/ciclo-16`: desde que el código llama a las
+// funciones por `mandatoryCounts` (ADR-129 regla 4), son lo único que queda para decir que no cambió
+// ningún número.
 
 // El Desglose trae la marca, y la marca carga sus fuentes con Next.
 vi.mock("next/font/local", () => ({ default: () => ({ className: "", variable: "" }) }));
@@ -52,17 +53,12 @@ function byTheFunctions(mandatory: MandatoryView): Counts {
     requiredOrdinary: mandatory.required.ordinary,
     requiresBoardElection: mandatory.required.boardElection,
     requiresRunoff: mandatory.required.runoff,
-    adjusted: false,
-    reason: null,
   };
   return {
     attended: attendedRequired(requirement, {
       ordinaryAttended: mandatory.attended.ordinary,
       boardElectionAttended: mandatory.attended.boardElection,
       runoffAttended: mandatory.attended.runoff,
-      compliant: false,
-      missing: [],
-      attendedTotal: 0,
     }),
     total: requiredTotal(requirement),
   };
@@ -165,6 +161,13 @@ describe("las asambleas obligatorias de un resultado de permanencia, contra las 
 
   it("y lo mismo que la cuenta a mano de la mesa de cumplimiento, que también va a su CSV", () => {
     expect(differences((mandatory) => complianceAsItWas({ mandatory }))).toEqual([]);
+  });
+
+  it("mandatoryCounts, por donde permanence las llama, da lo mismo que cada una de las dos cuentas a mano", () => {
+    expect(differences(mandatoryCounts, desgloseAsItWas)).toEqual([]);
+    expect(differences(mandatoryCounts, (mandatory) => complianceAsItWas({ mandatory }))).toEqual(
+      [],
+    );
   });
 
   it("el Desglose dibuja en T-124 lo que dicen las funciones en todas las combinaciones", () => {

@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { getPeopleByIds, listCommitteesByIds } from "@/modules/people";
 import { getTerm } from "@/modules/terms";
+import { mandatoryCounts } from "./mandatory-counts";
 import type { CommitteeResult, PermanenceState } from "./permanence-pure";
 import { listSnapshots, type SnapshotView } from "./snapshots";
 
@@ -42,17 +43,6 @@ export interface ComplianceRow {
   frozenAt: Date | null;
 }
 
-function mandatoryCounts(view: SnapshotView): { attended: number; total: number } {
-  const m = view.mandatory;
-  return {
-    attended:
-      Math.min(m.attended.ordinary, m.required.ordinary) +
-      (m.required.boardElection && m.attended.boardElection ? 1 : 0) +
-      (m.required.runoff && m.attended.runoff ? 1 : 0),
-    total: m.required.ordinary + (m.required.boardElection ? 1 : 0) + (m.required.runoff ? 1 : 0),
-  };
-}
-
 function matches(row: ComplianceRow, filter: ComplianceFilter): boolean {
   switch (filter) {
     case "por-debajo":
@@ -92,7 +82,7 @@ export async function listCompliance(
   const rows: ComplianceRow[] = [];
   for (const view of snapshots) {
     const person = people.get(view.personId);
-    const mandatory = mandatoryCounts(view);
+    const mandatory = mandatoryCounts(view.mandatory);
     const base = {
       personId: view.personId,
       personName: person?.fullName ?? "",

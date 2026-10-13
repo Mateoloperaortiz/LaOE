@@ -60,6 +60,7 @@ export {
   findMacroeventGroup,
   prepareMacroeventGroupAs,
 } from "./domain/macroevents";
+export { mandatoryCounts } from "./domain/mandatory-counts";
 export { getPersonPermanence } from "./domain/my-permanence";
 export { runNotices } from "./domain/notices";
 export {
