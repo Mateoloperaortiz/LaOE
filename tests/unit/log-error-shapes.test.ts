@@ -427,6 +427,18 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     });
   });
 
+  it("un texto, un número o un booleano hecho objeto que cuelga de un error sale por sus claves, como ya lo escribía pino dentro de un ciclo, y no por su valor", async () => {
+    const [entry] = await written(() =>
+      error(
+        { err: carrying({ detail: { text: Object("ab"), count: Object(3), ok: Object(true) } }) },
+        "falló",
+      ),
+    );
+
+    // Es lo único que la copia escribe distinto del objeto de origen: JSON lo escribía por su valor.
+    expect(errOf(entry).detail).toEqual({ text: { 0: "a", 1: "b" }, count: {}, ok: {} });
+  });
+
   it("dos errores que se nombran uno al otro salen una vez cada uno, como los escribe pino, y recortados", async () => {
     const first = Object.assign(new Error("primero"), { code: "57P01" });
     const second = Object.assign(queryError(), { other: first });
