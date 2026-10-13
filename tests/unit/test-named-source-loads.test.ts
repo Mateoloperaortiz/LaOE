@@ -244,7 +244,7 @@ describe("lo que las pruebas cargan de src", () => {
     ).toEqual([]);
   });
 
-  it("rechaza la variable que guarda la carga si se le lee un miembro con una clave que no es un texto, aunque además se le lea otro por nombre; si se desestructura con resto, o si sale exportada", () => {
+  it("rechaza la variable que guarda la carga si se le lee un miembro con una clave que no es un texto, aunque además se le lea otro por nombre; si se desestructura con resto, o si sale exportada, por un `export { … }` o en su propia declaración", () => {
     expect(
       loadsIn(
         [
@@ -260,6 +260,10 @@ describe("lo que las pruebas cargan de src", () => {
           "export { log };",
           'const feed = await import("@/shared/brand/feed");',
           "export { feed as brand };",
+          // El `export` de la declaración la saca entera igual, aunque después se le lea un miembro.
+          'export const held = await import("@/shared/lib/errors");',
+          "held.AppError;",
+          'export let later = await import("@/db/tx");',
         ].join("\n"),
       ),
     ).toEqual([
@@ -268,6 +272,30 @@ describe("lo que las pruebas cargan de src", () => {
       "wholeFile @/shared/lib/dates",
       "wholeFile @/shared/log",
       "wholeFile @/shared/brand/feed",
+      "wholeFile @/shared/lib/errors",
+      "wholeFile @/db/tx",
+    ]);
+  });
+
+  it("rechaza la desestructuración con una clave calculada, que no nombra lo que toma: sobre la carga, sobre la variable que la guarda, en una lista o sobre un import * as; con la clave escrita entre corchetes, pasa", () => {
+    expect(
+      loadsIn(
+        [
+          'const { [key]: taken } = await import("@/shared/kit/types");',
+          'const route = await import("@/app/api/v1/the-games/hub/route");',
+          "const { [method]: handler } = route;",
+          'const [{ [name]: first }] = await Promise.all([import("@/db/client")]);',
+          'import * as dates from "@/shared/lib/dates";',
+          "dates.addDays;",
+          "const { [unit]: add } = dates;",
+          'const { ["logger"]: logger } = await import("@/shared/log");',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "wholeFile @/shared/kit/types",
+      "wholeFile @/app/api/v1/the-games/hub/route",
+      "wholeFile @/db/client",
+      "wholeFile @/shared/lib/dates",
     ]);
   });
 

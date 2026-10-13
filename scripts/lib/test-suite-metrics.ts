@@ -272,6 +272,24 @@ function declaredFrom(expression: ts.Expression): ts.VariableDeclaration | null 
 }
 
 /**
+ * Si una desestructuración nombra cada miembro que toma. Una clave calculada (`{ [clave]: x }`) no
+ * nombra nada; entre corchetes y con el texto escrito ahí (`{ ["nombre"]: x }`), sí.
+ */
+function namesItsKeys(pattern: ts.ObjectBindingPattern): boolean {
+  return pattern.elements.every(
+    ({ propertyName }) =>
+      propertyName === undefined ||
+      !ts.isComputedPropertyName(propertyName) ||
+      ts.isStringLiteralLike(propertyName.expression),
+  );
+}
+
+/** Si la variable que guarda la carga sale exportada en su declaración: `export const ruta = await import("…")`. */
+function exportedWhereDeclared(declaration: ts.VariableDeclaration): boolean {
+  return (ts.getCombinedModifierFlags(declaration) & ts.ModifierFlags.Export) !== 0;
+}
+
+/**
  * Qué hace con una carga guardada un nombre igual al de su variable: le lee un miembro por su
  * nombre o la desestructura (`named`); la usa de tipo (`type`, `typeof ruta`); la pasa entera como
  * argumento de una llamada (`argument`); la usa entera de otra forma (`whole`), o es ajeno
@@ -295,8 +313,12 @@ function howUsed(use: ts.Identifier): Use {
     parent.initializer === use &&
     ts.isObjectBindingPattern(parent.name)
   ) {
-    // Con resto (`const { GET, ...otros } = ruta`) knip tampoco sigue.
-    return parent.name.elements.some((element) => element.dotDotDotToken) ? "whole" : "named";
+    // Con resto (`const { GET, ...otros } = ruta`) knip tampoco sigue. Con una clave calculada
+    // (`const { [metodo]: x } = ruta`) sí sigue, pero la prueba no nombra lo que toma.
+    return parent.name.elements.some((element) => element.dotDotDotToken) ||
+      !namesItsKeys(parent.name)
+      ? "whole"
+      : "named";
   }
   if (ts.isTypeQueryNode(parent)) {
     return "type";
@@ -368,7 +390,8 @@ function namedInList(list: ts.ArrayLiteralExpression, load: ts.Expression): bool
     element !== undefined &&
     ts.isBindingElement(element) &&
     !element.dotDotDotToken &&
-    ts.isObjectBindingPattern(element.name)
+    ts.isObjectBindingPattern(element.name) &&
+    namesItsKeys(element.name)
   );
 }
 
@@ -385,8 +408,8 @@ function unnamedForm(load: ts.CallExpression): UnnamedLoad["form"] | null {
   const declaration = declaredFrom(load);
   if (declaration) {
     const named = ts.isIdentifier(declaration.name)
-      ? readByNameOnly(declaration.name)
-      : ts.isObjectBindingPattern(declaration.name);
+      ? !exportedWhereDeclared(declaration) && readByNameOnly(declaration.name)
+      : ts.isObjectBindingPattern(declaration.name) && namesItsKeys(declaration.name);
     return named ? null : "wholeFile";
   }
   if (ts.isArrayLiteralExpression(load.parent) && namedInList(load.parent, load)) {
@@ -419,7 +442,7 @@ function srcSpecifier(from: string, specifier: ts.Expression | undefined): strin
  * solo las formas con las que knip sigue marcando un export sin uso del archivo, medidas con knip
  * 6.34 y un export sembrado por archivo:
  *
- * - `const { nombre } = await import("…")`, también con resto;
+ * - `const { nombre } = await import("…")`, también con resto, con cada clave escrita;
  * - la carga con `await` guardada en una variable a la que después solo se le leen miembros por
  *   nombre (`ruta.GET`, `ruta?.GET`, `ruta["GET"]`) o que se desestructura sin resto;
  * - la de una lista `const [{ a }, { b }] = await Promise.all([…])`;
@@ -440,7 +463,8 @@ function srcSpecifier(from: string, specifier: ts.Expression | undefined): strin
  * miembro leído por nombre (solo de argumento, esparcido, guardado en otra variable o usado solo de
  * tipo), o con uno y además leído con una clave que no es un texto, guardado en otra variable o
  * desestructurado con resto; y el `export * from` de una prueba, con `as` o sin él. Sale además lo
- * que no se midió, y lo que knip sí sigue pero no nombra: la variable devuelta o exportada entera y
+ * que no se midió, y lo que knip sí sigue pero no nombra: la variable devuelta o exportada entera, en un `export { … }` o en
+ * su declaración; la desestructuración con una clave calculada (`{ [clave]: x }`), y
  * el `import * as` que, con un miembro leído, además se esparce o pasa por un `satisfies`. La regla
  * es nombrar.
  */
