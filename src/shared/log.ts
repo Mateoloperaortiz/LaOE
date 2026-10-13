@@ -5,6 +5,38 @@ const pretty = !isProduction && !process.env.CI && process.stdout.isTTY;
 
 const REDACTED = "[oculto]";
 
+/** Lo que sale en lugar de una línea que no se pudo revisar, o que no se dejó escribir. */
+const UNREVIEWED_LINE = "registro: una línea no se pudo revisar y no se escribió";
+
+/**
+ * `value` como texto. Es como el registro escribe un mensaje o una traza que no lo son (ADR-128
+ * regla 2): lo que dice `String(value)`, y vacío si no hay nada, que es como un `Error` se escribe a
+ * sí mismo sin mensaje. Lo que no se deja convertir (un `toString` que lanza, un objeto sin prototipo)
+ * no se escribe: sale `[oculto]`. No lanza.
+ */
+function asText(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value === undefined) {
+    return "";
+  }
+  try {
+    return String(value);
+  } catch {
+    return REDACTED;
+  }
+}
+
+/** El mensaje o la traza de `error`, como texto. Si leerlo lanza (un getter, un `Proxy`), `[oculto]`. */
+function textOf(error: object, field: "message" | "stack"): string {
+  try {
+    return asText((error as Record<string, unknown>)[field]);
+  } catch {
+    return REDACTED;
+  }
+}
+
 /**
  * El código de un error es un texto o un número (`57P01`, `ECONNRESET`, `-61`). Otra cosa bajo esa
  * clave no es un código, y lo que cuelgue de ella no se deja leer (ADR-120 regla 9).
@@ -115,7 +147,7 @@ function withoutHiddenKeys(line: string): string {
     hideKeys(record, "line");
     return `${JSON.stringify(record)}\n`;
   } catch {
-    return `${JSON.stringify({ level: 50, time: Date.now(), msg: "registro: una línea no se pudo revisar y no se escribió" })}\n`;
+    return `${JSON.stringify({ level: 50, time: Date.now(), msg: UNREVIEWED_LINE })}\n`;
   }
 }
 
@@ -247,18 +279,18 @@ export function carriesQueryError(error: unknown): boolean {
 const QUOTES_A_VALUE = /^(?:22|28)[0-9A-Z]{3}$|^3D000$|^53300$/;
 
 /**
- * El mensaje de un error de Postgres sin el valor que cita: el de una conversión («invalid input
+ * `message`, el mensaje de un error de Postgres ya como texto, sin el valor que cita: el de una conversión («invalid input
  * syntax for type date: "…"») o el de una conexión que no abrió («password authentication failed for
  * user "…"», «database "…" does not exist»). Se oculta desde la primera comilla hasta la última: el
  * valor puede traer comillas y Postgres no las escapa. Cualquier otro mensaje vuelve igual, porque
  * ahí lo que va entre comillas es el nombre de una restricción o de una columna, que es lo que sirve
  * para depurar.
  */
-function withoutQuotedValue(error: Error): string {
+function withoutQuotedValue(error: Error, message: string): string {
   const code = (error as { code?: unknown }).code;
   return typeof code === "string" && QUOTES_A_VALUE.test(code)
-    ? error.message.replace(/"[\s\S]*"/, `"${REDACTED}"`)
-    : error.message;
+    ? message.replace(/"[\s\S]*"/, `"${REDACTED}"`)
+    : message;
 }
 
 /** El código con que Node rechaza un certificado que no nombra al host al que iba la conexión. */
@@ -454,28 +486,62 @@ function replaceOutsideStackFrames(text: string, written: string, replacement: s
  *
  * Es el recorte del serializador de `err`, y lo usa también quien guarda el texto de un error fuera
  * del registro: el poller, en `outbox.last_error` (ADR-119 regla 16).
+ *
+ * No lanza (ADR-128 regla 2). `text` y el mensaje de cada error se leen como texto (`asText`), sean lo
+ * que sean. Y si el error no se deja leer, o sus valores no se dejan escribir, no hay con qué recortar
+ * y el texto no sale: devuelve `[oculto]`.
  */
 export function withoutQueryValues(error: Error, text: string): string {
-  let clean = text;
-  let current: unknown = error;
-  for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
-    if (isQueryError(current)) {
-      // Lo mismo que escribe Drizzle: `params: ${params}`.
-      clean = clean.split(`\nparams: ${current.params.join(",")}`).join("");
+  try {
+    let clean = asText(text);
+    let current: unknown = error;
+    for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
+      if (isQueryError(current)) {
+        // Lo mismo que escribe Drizzle: `params: ${params}`.
+        clean = clean.split(`\nparams: ${current.params.join(",")}`).join("");
+      }
+      const message = textOf(current, "message");
+      const hidden = withoutQuotedValue(current, message);
+      if (hidden !== message) {
+        clean = clean.split(message).join(hidden);
+      }
+      for (const target of connectionTarget(current).written) {
+        clean = replaceOutsideStackFrames(clean, target, REDACTED);
+      }
+      current = current.cause;
     }
-    const hidden = withoutQuotedValue(current);
-    if (hidden !== current.message) {
-      clean = clean.split(current.message).join(hidden);
+    for (const quoted of configuredNames()) {
+      clean = replaceOutsideStackFrames(clean, quoted, `"${REDACTED}"`);
     }
-    for (const target of connectionTarget(current).written) {
-      clean = replaceOutsideStackFrames(clean, target, REDACTED);
-    }
-    current = current.cause;
+    return clean;
+  } catch {
+    return REDACTED;
   }
-  for (const quoted of configuredNames()) {
-    clean = replaceOutsideStackFrames(clean, quoted, `"${REDACTED}"`);
+}
+
+/**
+ * `error` como lo serializa pino: su tipo, su mensaje y su traza con las causas dobladas adentro, y
+ * sus campos. Para pino un error cuyo `message` no es un texto no tiene forma de error y lo devuelve
+ * tal cual, sin copiarlo; y con uno congelado, o con uno cuyo `message` lanza al leerlo, lanza él. En
+ * los tres casos serializa una vista del error: un objeto que hereda todo de él y fija su mensaje y su
+ * traza como textos (ADR-128 regla 2). Así lo que se recorta después es siempre la copia de pino,
+ * nunca el error que le pasaron al registro.
+ */
+function serializedByPino(error: Error): ReturnType<typeof pino.stdSerializers.err> {
+  try {
+    const serialized = pino.stdSerializers.err(error);
+    if ((serialized as unknown) !== error) {
+      return serialized;
+    }
+  } catch {
+    // Pino no pudo con el error tal cual: sigue con la vista.
   }
-  return clean;
+  return pino.stdSerializers.err(
+    Object.create(error, {
+      message: { value: textOf(error, "message") },
+      stack: { value: textOf(error, "stack") },
+    }) as Error,
+  );
 }
 
 /**
@@ -491,12 +557,14 @@ export function withoutQueryValues(error: Error, text: string): string {
  * (ADR-120 regla 10): pino copia `address`, `port` y `hostname` del error como campos, o `host`,
  * `reason` y `cert` si el certificado no nombra al host, y lista aparte cada intento de una conexión
  * que probó varias direcciones.
+ *
+ * Lanza si el error no se deja leer: de eso se ocupa `serializeError`.
  */
-function serializeError(error: unknown): unknown {
-  const serialized = pino.stdSerializers.err(error as Error);
+function trimmedError(error: unknown): unknown {
   if (!(error instanceof Error)) {
-    return serialized;
+    return pino.stdSerializers.err(error as Error);
   }
+  const serialized = serializedByPino(error);
   if (serialized.code === undefined) {
     const code = causeCode(error);
     if (code !== undefined) {
@@ -519,20 +587,37 @@ function serializeError(error: unknown): unknown {
 }
 
 /**
+ * El serializador de `err`. No lanza (ADR-128 regla 2): lo que no se deja leer (un `Proxy`, un campo
+ * que lanza al leerlo) no se escribe, sale `[oculto]`, y la línea conserva su mensaje y lo demás.
+ */
+function serializeError(error: unknown): unknown {
+  try {
+    return trimmedError(error);
+  } catch {
+    return REDACTED;
+  }
+}
+
+/**
  * Una copia de `error` que se puede imprimir fuera del registro: su nombre, y su mensaje y su traza
  * como los deja el serializador, con las causas dobladas adentro y sin valores, más su código o el
  * de su causa. No lleva nada de lo que el error trae colgado: ni `params`, ni la causa con su
- * `detail` (ADR-120 regla 12).
+ * `detail` (ADR-120 regla 12). Del error que no se deja leer queda una copia que solo dice `[oculto]`
+ * (ADR-128 regla 2).
  */
 export function printableError(error: Error): Error {
-  const serialized = serializeError(error) as { message: string; stack: string; code?: unknown };
-  const copy = new Error(serialized.message);
-  copy.name = error.name;
-  copy.stack = serialized.stack;
-  if (serialized.code !== undefined) {
-    Object.assign(copy, { code: serialized.code });
+  try {
+    const serialized = trimmedError(error) as { message: string; stack: string; code?: unknown };
+    const copy = new Error(serialized.message);
+    copy.name = error.name;
+    copy.stack = serialized.stack;
+    if (serialized.code !== undefined) {
+      Object.assign(copy, { code: serialized.code });
+    }
+    return copy;
+  } catch {
+    return new Error(REDACTED);
   }
-  return copy;
 }
 
 // JSON en producción, CI y archivos; el formateador con worker queda para la terminal local.
@@ -546,13 +631,24 @@ export const logger = pino({
     // El primer argumento, si es un objeto, es el de la línea, y a esa la revisa `streamWrite`. Los
     // demás son el mensaje y lo que se le interpola.
     logMethod(args, method) {
-      const reviewed = args.map((arg, index) => (index === 0 ? arg : reviewedForMessage(arg)));
-      // A la línea que llega sin mensaje pino le pone en `msg` el de su error, tal cual: con el tramo
-      // `params: …` de una consulta y con el valor que cita una conversión. Llega ya recortado, como
-      // sale en `err.message` de esa misma línea, y sin nada que interpolarle (ADR-127 regla 8).
-      const error = reviewed[1] === undefined ? errorOfLine(reviewed[0]) : undefined;
-      const line = error ? [reviewed[0], withoutQueryValues(error, error.message)] : reviewed;
-      method.apply(this, line as typeof args);
+      try {
+        const reviewed = args.map((arg, index) => (index === 0 ? arg : reviewedForMessage(arg)));
+        // A la línea que llega sin mensaje pino le pone en `msg` el de su error, tal cual: con el
+        // tramo `params: …` de una consulta y con el valor que cita una conversión. Llega ya
+        // recortado y como texto, como sale en `err.message` de esa misma línea, y sin nada que
+        // interpolarle (ADR-127 regla 8, ADR-128 regla 2).
+        const error = reviewed[1] === undefined ? errorOfLine(reviewed[0]) : undefined;
+        const line = error
+          ? [reviewed[0], withoutQueryValues(error, textOf(error, "message"))]
+          : reviewed;
+        method.apply(this, line as typeof args);
+      } catch {
+        // El registro no lanza por lo que le piden anotar (ADR-128 regla 2). La línea que no se pudo
+        // revisar, o que pino no pudo escribir (un `Proxy`, una clave que lanza al leerla), no sale:
+        // sale este aviso en su lugar, con el nivel con que se pidió. Si lanza también, lo que falla
+        // es el destino y no lo que se pidió anotar, y ese fallo sí sale.
+        method.call(this, UNREVIEWED_LINE);
+      }
     },
     // Lo que las rutas de abajo no alcanzan: todo lo que no está suelto en la línea (ADR-120 regla 9),
     // el código de `err` y las cabeceras de sesión de `req` (ADR-127 regla 9).
