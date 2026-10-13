@@ -135,7 +135,7 @@ function moduleNames(): string[] {
     .sort();
 }
 
-const indexOf = (module: string) => `src/modules/${module}/index.ts`;
+const indexFileOf = (module: string) => `src/modules/${module}/index.ts`;
 
 /**
  * Lo que la E2E carga de `src`, leído de sus `import`: parte de la configuración de Playwright y de
@@ -206,7 +206,7 @@ let sources: string[];
 beforeAll(() => {
   modules = moduleNames();
   e2e = e2eImports();
-  const indexes = new Set(modules.map(indexOf));
+  const indexes = new Set(modules.map(indexFileOf));
   sources = e2e.leaves.filter((file) => !indexes.has(file));
   // El control es un archivo con el `import` estático arriba, en una carpeta temporal que ve los
   // paquetes del repo y es ESM como la casa: dice que eso es justo lo que no carga, y que la prueba
@@ -221,7 +221,7 @@ beforeAll(() => {
       'import { cookies } from "next/headers";\nexport const read = cookies;\n',
     );
     run = loadInNode([
-      ...modules.map((name): [string, string] => [name, indexOf(name)]),
+      ...modules.map((name): [string, string] => [name, indexFileOf(name)]),
       ...sources.map((file): [string, string] => [file, file]),
       [CONTROL, control],
     ]);

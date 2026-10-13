@@ -113,7 +113,7 @@ type RequiredAssemblies = Pick<
   AssemblyRequirementView,
   "requiredOrdinary" | "requiresBoardElection" | "requiresRunoff"
 >;
-type SignedAssemblies = Pick<
+type AttendedAssemblies = Pick<
   AssemblyCompliance,
   "ordinaryAttended" | "boardElectionAttended" | "runoffAttended"
 >;
@@ -140,7 +140,7 @@ export function requiredTotal(requirement: RequiredAssemblies): number {
  */
 export function attendedRequired(
   requirement: RequiredAssemblies,
-  compliance: SignedAssemblies,
+  compliance: AttendedAssemblies,
 ): number {
   return (
     Math.min(compliance.ordinaryAttended, requirement.requiredOrdinary) +

@@ -13,7 +13,7 @@ import { Insignia, Progreso } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 
-// Desglose de permanencia compartido por /app/permanencia, la Persona 360 y la vista del líder:
+// Desglose de permanencia compartido por /app/permanencia y la pestaña Permanencia de la Persona 360:
 // resultado por comité frente a su umbral, criterios generales y del comité, y obligatorias.
 // Recibe el resultado ya calculado y los nombres resueltos; no toca la base.
 
