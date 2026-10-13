@@ -271,6 +271,21 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
       "dentro de un objeto del error, a cinco niveles",
       () => ({ err: carrying({ n1: { n2: { n3: { n4: queryError() } } } }) }),
     ],
+    [
+      "dentro de un objeto del error, a más de cinco niveles",
+      () => ({
+        err: carrying({ n1: { n2: { n3: { n4: { n5: queryError() } } } } }),
+      }),
+    ],
+    ["por una cadena de campos de error, a más de cinco niveles", () => ({ err: hanging(5) })],
+    [
+      "en el resultado de un lote que cuelga del error, a seis niveles",
+      () => ({
+        err: carrying({
+          detail: { batches: [{ results: [null, { reason: queryError() }] }] },
+        }),
+      }),
+    ],
     ["como causa a más de cinco niveles", () => ({ err: buried(6) })],
     ["como causa a veinte niveles", () => ({ err: buried(20) })],
     ["como causa que es una función", () => ({ err: carrying({ cause: () => queryError() }) })],
@@ -472,6 +487,38 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
     }
   });
 
+  /** `leaf` dentro de `levels` objetos, uno adentro del otro, colgando del error. */
+  function nested(levels: number, leaf: unknown): Error {
+    let current = leaf;
+    for (let level = 0; level < levels; level += 1) {
+      current = { inner: current };
+    }
+    return carrying({ detail: current });
+  }
+
+  /** Lo que la línea trae al fondo de esos `levels` objetos. */
+  function leafOf(entry: LoggedLine | undefined, levels: number): unknown {
+    let current: unknown = errOf(entry).detail;
+    for (let level = 0; level < levels; level += 1) {
+      current = (current as { inner?: unknown } | undefined)?.inner;
+    }
+    return current;
+  }
+
+  it("lo que cuelga se recorre hasta cien niveles contando el error, y lo que queda más adentro no se mira: sale oculto, traiga o no un error", async () => {
+    const [within, beyond, plain] = await written(() => {
+      // El error, 98 objetos y la hoja: cien niveles.
+      error({ err: nested(98, queryError()) }, "falló");
+      error({ err: nested(99, queryError()) }, "falló");
+      error({ err: nested(99, { intento: 2 }) }, "falló");
+    });
+
+    expect(leafOf(within, 98)).toEqual(TRIMMED);
+    expect(leafOf(beyond, 99)).toBe("[oculto]");
+    expect(leafOf(plain, 99)).toBe("[oculto]");
+    expect([within, beyond, plain].flatMap((entry) => placesOf(entry?.record))).toEqual([]);
+  });
+
   // Lo que el recorte todavía no alcanza: fija por dónde sale hoy el valor. Quien cierre uno de estos
   // caminos va a ver caer su caso, y cambia lo que espera.
   it.each([
@@ -488,24 +535,6 @@ describe("lo que cuelga de un error registrado se recorta como un error (DT-399)
       "bajo una clave de la línea que no es `err`",
       () => ({ failure: queryError() }),
       ["failure.params.0"],
-    ],
-    [
-      "dentro de un objeto del error, a más de cinco niveles",
-      () => ({
-        err: carrying({ n1: { n2: { n3: { n4: { n5: queryError() } } } } }),
-      }),
-      ["err.n1.n2.n3.n4.n5.params.0"],
-    ],
-    [
-      // A pino lo que cuelga de un campo de error lo serializa como un error, con su mensaje y su
-      // traza: pasado el tope, sale por los tres lados.
-      "por una cadena de campos de error, a más de cinco niveles",
-      () => ({ err: hanging(5) }),
-      [
-        "err.original.original.original.original.original.message",
-        "err.original.original.original.original.original.stack",
-        "err.original.original.original.original.original.params.0",
-      ],
     ],
     [
       "en lo que escribe el `toJSON` de un objeto del error",

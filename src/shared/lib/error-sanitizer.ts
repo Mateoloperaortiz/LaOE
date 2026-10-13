@@ -66,10 +66,17 @@ export function isErrorLike(value: unknown): value is Error {
   );
 }
 
+/**
+ * Cuántas causas miran `causeCode` y `carriesQueryError`, que recorren solo lo que es un `Error`. No
+ * es un tope del recorte (`CAUSE_CHAIN_LIMIT`, `HANGING_LIMIT`): estas dos deciden qué se registra y
+ * con qué código, no qué se escribe de un error (ADR-129 regla 5, «Lo que no cambia»).
+ */
+const CODE_LOOKUP_DEPTH = 5;
+
 /** El código de la causa más cercana que traiga uno. */
 function causeCode(error: Error): string | number | undefined {
   let current: unknown = error.cause;
-  for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
+  for (let depth = 0; depth < CODE_LOOKUP_DEPTH && current instanceof Error; depth += 1) {
     const code = (current as { code?: unknown }).code;
     if (isErrorCode(code)) {
       return code;
@@ -124,7 +131,7 @@ function isQueryError(error: unknown): error is QueryError {
 export function carriesQueryError(error: unknown): boolean {
   try {
     let current: unknown = error;
-    for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
+    for (let depth = 0; depth < CODE_LOOKUP_DEPTH && current instanceof Error; depth += 1) {
       if (isQueryError(current)) {
         return true;
       }
@@ -432,8 +439,12 @@ function serializedByPino(error: Error): ReturnType<typeof pino.stdSerializers.e
   );
 }
 
-/** Cuántos niveles mira el recorte en lo que cuelga de un error, contándolo a él. */
-const HANGING_DEPTH = 5;
+/**
+ * Cuántos niveles recorre el recorte en lo que cuelga de un error, contándolo a él: el tope de las
+ * causas, y como él falla cerrado (ADR-129 regla 5). Está para la estructura que no se acaba, no para
+ * una de verdad: el resultado de un lote colgado de un error tiene media docena de niveles.
+ */
+const HANGING_LIMIT = 100;
 
 /**
  * Lo que el serializador de pino escribe en su copia y no es un campo del error. `aggregateErrors`
@@ -447,15 +458,19 @@ const CIRCULAR = "[Circular]";
 
 /**
  * `value`, que cuelga de un error registrado, con cada cosa con forma de error recortada como un error
- * (ADR-129 regla 5): en un campo del error, en una lista o en un objeto, hasta `HANGING_DEPTH` niveles
- * contando el error. `above` es el camino desde ese error. Lo que le pasaron al registro no se toca:
+ * (ADR-129 regla 5): en un campo del error, en una lista o en un objeto, hasta `HANGING_LIMIT` niveles
+ * contando el error. Lo que queda más adentro no se mira y sale `[oculto]`, traiga o no un error: de
+ * ahí para abajo no hay cómo decir que no trae ninguno. `above` es el camino desde ese error. Lo que le pasaron al registro no se toca:
  * de la lista o del objeto que trae un error sale una copia, y lo que no trae ninguno vuelve tal cual,
  * así que se escribe como se escribía. No entra a lo que se escribe a sí mismo con `toJSON` (una
  * fecha, un `Buffer`). El error que ya se está escribiendo más arriba no se escribe otra vez.
  */
 function trimmedHanging(value: unknown, above: readonly object[]): unknown {
-  if (typeof value !== "object" || value === null || above.length >= HANGING_DEPTH) {
+  if (typeof value !== "object" || value === null) {
     return value;
+  }
+  if (above.length >= HANGING_LIMIT) {
+    return REDACTED;
   }
   if (above.includes(value)) {
     return isErrorLike(value) ? CIRCULAR : value;
