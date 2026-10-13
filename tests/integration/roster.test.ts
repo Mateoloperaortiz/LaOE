@@ -38,7 +38,9 @@ import { DomainError } from "@/shared/lib/errors";
 import {
   currentTermCode,
   seedCommittee,
+  seedCommitteeMembership,
   seedMember,
+  seedMembership,
   seedMembershipTerm,
   seedPerson,
   seedTerm,
@@ -432,6 +434,153 @@ describe("importación del roster", () => {
     expect(next.proposals.map((proposal) => proposal.email)).toEqual(proposed);
     expect(applied.proposals.map((proposal) => proposal.email)).toEqual(proposed);
     expect((await estadoYComites(juan)).comites).toEqual(stays);
+  });
+
+  // A quién le deja escritos los comités una fila, por cómo está hoy la persona y cómo figura en el
+  // archivo (ADR-118 regla 11): solo a quien la fila deja con membresía vigente. Es la caracterización
+  // de lo que la aplicación escribe y de lo que el diff anuncia, fijada antes de que los dos lean la
+  // misma función (ADR-127 regla 1). La persona figura siempre en A3 y de General de A3; quien hoy
+  // tiene membresía vigente ya está en A3, sin cargo.
+  type Left = "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE" | "ROW_IN_ERROR";
+  type Today =
+    | "NOBODY"
+    | "NO_MEMBERSHIP"
+    | "ACTIVE"
+    | "ON_LEAVE"
+    | "HONORARY"
+    | "GRADUATION"
+    | "RESIGNATION"
+    | "PERMANENCE"
+    | "STUDENT_STATUS_LOST"
+    | "OTHER"
+    | "EXPULSION";
+  /** Cómo figura en el archivo: la palabra de la columna ESTADO, o `null` si el archivo no la trae. */
+  const LISTED = [
+    ["en un archivo sin ESTADO", null],
+    ["como Activo", "Activo"],
+    ["en Licencia", "Licencia"],
+    ["como Honorario", "Honorario"],
+    ["como Retirado", "Retirado"],
+  ] as const;
+  type Listed = (typeof LISTED)[number][0];
+  const leaves = (
+    noColumn: Left,
+    active: Left,
+    onLeave: Left,
+    honorary: Left,
+    retired: Left,
+  ): Record<Listed, Left> => ({
+    "en un archivo sin ESTADO": noColumn,
+    "como Activo": active,
+    "en Licencia": onLeave,
+    "como Honorario": honorary,
+    "como Retirado": retired,
+  });
+  // El estado que el archivo trae es el que queda, salvo para quien está de baja: sin ESTADO o como
+  // retirado sigue de baja, y a quien fue expulsado no lo reactiva ningún estado (ADR-060 regla 3).
+  const fileDecides = (noColumn: Left) =>
+    leaves(noColumn, "ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE");
+  const LEFT_BY_ROW: Array<[who: string, today: Today, left: Record<Listed, Left>]> = [
+    // Sin ESTADO el archivo no trae las columnas de una persona nueva: su fila queda en error.
+    ["no existe", "NOBODY", fileDecides("ROW_IN_ERROR")],
+    ["existe sin membresía", "NO_MEMBERSHIP", fileDecides("ACTIVE")],
+    ["está activo", "ACTIVE", fileDecides("ACTIVE")],
+    ["está en licencia", "ON_LEAVE", fileDecides("ON_LEAVE")],
+    ["es honorario", "HONORARY", fileDecides("HONORARY")],
+    ["se graduó", "GRADUATION", fileDecides("INACTIVE")],
+    ["renunció", "RESIGNATION", fileDecides("INACTIVE")],
+    ["salió por permanencia", "PERMANENCE", fileDecides("INACTIVE")],
+    ["perdió la calidad de estudiante", "STUDENT_STATUS_LOST", fileDecides("INACTIVE")],
+    ["salió por otro motivo", "OTHER", fileDecides("INACTIVE")],
+    [
+      "fue expulsado",
+      "EXPULSION",
+      leaves("INACTIVE", "INACTIVE", "INACTIVE", "INACTIVE", "INACTIVE"),
+    ],
+  ];
+  const IN_FORCE: readonly Today[] = ["ACTIVE", "ON_LEAVE", "HONORARY"];
+
+  /** Cómo quedó la persona de un correo: su estado y, de cada pertenencia viva, el comité y el cargo. */
+  async function leftAs(email: string) {
+    const [row] = await db()
+      .select({ id: person.id, status: membership.status })
+      .from(person)
+      .leftJoin(membership, eq(membership.personId, person.id))
+      .where(eq(person.email, email));
+    if (!row) {
+      return null;
+    }
+    const open = await db()
+      .select({ slug: committee.slug, roleCode: committeeMembership.roleCode })
+      .from(committeeMembership)
+      .innerJoin(committee, eq(committee.id, committeeMembership.committeeId))
+      .where(and(eq(committeeMembership.personId, row.id), isNull(committeeMembership.leftAt)));
+    return { status: row.status, committees: open.map((item) => `${item.slug}:${item.roleCode}`) };
+  }
+
+  it.each(
+    LEFT_BY_ROW.flatMap(([who, today, left]) =>
+      LISTED.map(([listedAs, word]) => [who, listedAs, today, word, left[listedAs]] as const),
+    ),
+  )("a quien %s y figura %s y General de su comité, la fila le escribe los comités solo si lo deja con membresía vigente", async (_who, _listedAs, today, word, left) => {
+    const termId = await seedTerm();
+    const code = currentTermCode();
+    const a3 = await seedCommittee("a3");
+    const adminId = await seedMember("admin@eafit.edu.co");
+    const email = "prueba.juan@eafit.edu.co";
+    if (today !== "NOBODY") {
+      const hasMembership = today !== "NO_MEMBERSHIP";
+      const inForce = IN_FORCE.includes(today);
+      const juan = await seedPerson(email, {
+        firstName: "Juan",
+        lastName: "Gómez",
+        program: "Economía",
+        stage: !hasMembership ? "APPLICANT" : inForce ? "MEMBER" : "ALUMNI",
+      });
+      if (today === "ACTIVE" || today === "ON_LEAVE" || today === "HONORARY") {
+        await seedMembership(juan, termId, today);
+        await seedCommitteeMembership(juan, a3, termId);
+      } else if (today !== "NO_MEMBERSHIP") {
+        await seedMembership(juan, termId, "INACTIVE", today);
+      }
+    }
+
+    const shown = await preview(
+      adminId,
+      termId,
+      word === null
+        ? csv(
+            [`Juan;Gómez;${email};;Economía;A3;${code};General de A3`],
+            HEADER.replace(";ESTADO", ""),
+          )
+        : csv([`Juan;Gómez;${email};;Economía;A3;${code};${word};General de A3`]),
+    );
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, shown.jobId);
+
+    const row = shown.rows.find((item) => item.email === email);
+    if (left === "ROW_IN_ERROR") {
+      expect(row?.group).toBe("ERROR");
+      expect(applied).toMatchObject({ created: 0, updated: 0, skipped: 1 });
+      expect(await leftAs(email)).toBeNull();
+      return;
+    }
+    expect(applied.skipped).toBe(0);
+    const written = left !== "INACTIVE";
+    expect(await leftAs(email)).toEqual({
+      status: left,
+      committees: written ? ["a3:GENERAL"] : [],
+    });
+    // El diff anuncia el cambio de comités donde la aplicación los escribe, y solo ahí. De una
+    // persona nueva no anuncia columnas, y de quien sigue de baja no anuncia nada.
+    if (today === "NOBODY") {
+      expect(row).toMatchObject({ group: "NEW", changes: [] });
+      return;
+    }
+    const statusChanges = IN_FORCE.includes(today)
+      ? left !== today
+      : today === "NO_MEMBERSHIP" || written;
+    const changes = [...(statusChanges ? ["status"] : []), ...(written ? ["committees"] : [])];
+    expect(row).toMatchObject({ group: changes.length > 0 ? "CHANGED" : "UNCHANGED", changes });
   });
 
   // ADR-120 regla 2: la auditoría y el evento `person.imported` dicen que la importación le cambió
