@@ -345,7 +345,12 @@ async function upsertDecision(
   await ctx.tx.insert(permanenceDecision).values(values);
 }
 
-/** Confirma las decisiones de una persona: la propuesta tal cual, o un cambio con motivo (T-805). */
+/**
+ * Confirma las decisiones de una persona: la propuesta tal cual, o un cambio con motivo (T-805). Con
+ * cada decisión guarda el motivo automático con que el cierre la propuso, el de `row`, también cuando
+ * GH decide otra cosa: después de confirmar los hechos pueden cambiar, y ese motivo ya no se puede
+ * volver a sacar de ellos (ADR-128 regla 1).
+ */
 export async function confirmDecisions(
   ctx: CommandContext,
   termId: string,
@@ -375,6 +380,7 @@ export async function confirmDecisions(
       ...base,
       committeeId: committee.committeeId,
       proposed: committee.proposed,
+      proposalReason: committee.reason,
       decision: chosenFor(committee),
     });
   }
@@ -382,6 +388,7 @@ export async function confirmDecisions(
     ...base,
     committeeId: null,
     proposed: row.personProposed,
+    proposalReason: row.personReason,
     decision: input.person,
   });
   await ctx.audit({
