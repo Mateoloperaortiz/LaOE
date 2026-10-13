@@ -5,6 +5,7 @@ import { requireActor } from "@/modules/identity";
 import {
   ASSEMBLY_KINDS,
   assemblyStatusFor,
+  attendedRequired,
   balanceFor,
   levelFor,
   listEntriesFor,
@@ -82,12 +83,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const assemblyKindLabels = tLabels("T-546", ASSEMBLY_KINDS);
   const [firmada, pendienteAsamblea, noFuiste] = tList("T-547");
   const requiredTotalCount = requiredTotal(assemblies.requirement);
-  const attendedRequired =
-    Math.min(assemblies.compliance.ordinaryAttended, assemblies.requirement.requiredOrdinary) +
-    (assemblies.requirement.requiresBoardElection && assemblies.compliance.boardElectionAttended
-      ? 1
-      : 0) +
-    (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended ? 1 : 0);
+  const attendedRequiredCount = attendedRequired(assemblies.requirement, assemblies.compliance);
   const level = levelFor(total, cutoffs);
   const nextLabel = level.next === null ? null : (levelLabels[level.index + 1] ?? "");
   // «Tu próximo reto» es de quien tiene membresía, con la gamificación encendida.
@@ -294,7 +290,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
           {t("T-544")}
         </h2>
         <p className="font-semibold">
-          {t("T-545", { n: attendedRequired, total: requiredTotalCount })}
+          {t("T-545", { n: attendedRequiredCount, total: requiredTotalCount })}
         </p>
         {assemblies.assemblies.length === 0 ? (
           <p className="text-tinta-suave">{t("T-643")}</p>

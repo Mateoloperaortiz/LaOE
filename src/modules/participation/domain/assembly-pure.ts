@@ -112,3 +112,22 @@ export function requiredTotal(requirement: AssemblyRequirementView): number {
     (requirement.requiresRunoff ? 1 : 0)
   );
 }
+
+/**
+ * Cuántas de las asambleas que exige el requisito lleva firmadas la persona: la `n` de «{n} de
+ * {total}», con `requiredTotal` como total, y el único sitio que la cuenta (ADR-128 regla 4). Las
+ * ordinarias cuentan hasta las que el requisito exige, y la elección de junta y la segunda vuelta
+ * solo si las exige: una firmada de más, o una que el requisito ajustado no pide, no suma, así que
+ * nunca pasa del total. Firmada es aprobada: una excusa cumple el requisito (`assemblyCompliance`)
+ * y no cuenta acá.
+ */
+export function attendedRequired(
+  requirement: AssemblyRequirementView,
+  compliance: AssemblyCompliance,
+): number {
+  return (
+    Math.min(compliance.ordinaryAttended, requirement.requiredOrdinary) +
+    (requirement.requiresBoardElection && compliance.boardElectionAttended ? 1 : 0) +
+    (requirement.requiresRunoff && compliance.runoffAttended ? 1 : 0)
+  );
+}

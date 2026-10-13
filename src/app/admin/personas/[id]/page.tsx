@@ -22,6 +22,7 @@ import {
 } from "@/modules/identity";
 import {
   assemblyStatusFor,
+  attendedRequired,
   balanceFor,
   getOccasionsByIds,
   listAchievementsForPerson,
@@ -205,18 +206,7 @@ export default async function PersonaPage({
             assemblies={
               assemblies
                 ? t("T-670", {
-                    n:
-                      Math.min(
-                        assemblies.compliance.ordinaryAttended,
-                        assemblies.requirement.requiredOrdinary,
-                      ) +
-                      (assemblies.requirement.requiresBoardElection &&
-                      assemblies.compliance.boardElectionAttended
-                        ? 1
-                        : 0) +
-                      (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended
-                        ? 1
-                        : 0),
+                    n: attendedRequired(assemblies.requirement, assemblies.compliance),
                     total: requiredTotal(assemblies.requirement),
                   })
                 : null

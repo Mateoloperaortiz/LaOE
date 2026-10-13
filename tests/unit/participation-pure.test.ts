@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  type AssemblyRequirementView,
+  type AttendedAssembly,
   assemblyCompliance,
+  attendedRequired,
   requiredTotal,
   termAssemblyRequirement,
 } from "@/modules/participation/domain/assembly-pure";
@@ -483,6 +486,91 @@ describe("asambleas", () => {
       { assemblyKind: "BOARD_ELECTION", status: "APPROVED" },
     ]);
     expect(pending.missing).toEqual(["ORDINARY", "RUNOFF"]);
+  });
+
+  describe("las obligatorias que la persona lleva firmadas (ADR-128 regla 4)", () => {
+    const requires = (
+      requiredOrdinary: number,
+      requiresBoardElection: boolean,
+      requiresRunoff: boolean,
+    ): AssemblyRequirementView => ({
+      requiredOrdinary,
+      requiresBoardElection,
+      requiresRunoff,
+      adjusted: true,
+      reason: null,
+    });
+    const withStatus = (
+      status: AttendedAssembly["status"],
+      kinds: AttendedAssembly["assemblyKind"][],
+    ): AttendedAssembly[] => kinds.map((assemblyKind) => ({ assemblyKind, status }));
+    const signed = (...kinds: AttendedAssembly["assemblyKind"][]) => withStatus("APPROVED", kinds);
+    /** La cuenta como la piden las pantallas: sobre el cumplimiento que arma el dominio. */
+    const count = (requirement: AssemblyRequirementView, attended: AttendedAssembly[]) =>
+      attendedRequired(requirement, assemblyCompliance(requirement, attended));
+
+    it("las ordinarias firmadas cuentan hasta las que exige el requisito, y ni una más", () => {
+      expect(count(requires(2, false, false), [])).toBe(0);
+      expect(count(requires(2, false, false), signed("ORDINARY"))).toBe(1);
+      expect(count(requires(2, false, false), signed("ORDINARY", "ORDINARY"))).toBe(2);
+      expect(count(requires(2, false, false), signed("ORDINARY", "ORDINARY", "ORDINARY"))).toBe(2);
+      expect(count(requires(0, false, false), signed("ORDINARY", "ORDINARY"))).toBe(0);
+    });
+
+    it("la elección de junta y la segunda vuelta firmadas suman una cada una cuando el requisito las exige", () => {
+      const requirement = requires(1, true, true);
+      expect(count(requirement, signed("BOARD_ELECTION"))).toBe(1);
+      expect(count(requirement, signed("RUNOFF"))).toBe(1);
+      expect(count(requirement, signed("ORDINARY", "BOARD_ELECTION", "RUNOFF"))).toBe(3);
+      // Dos elecciones firmadas en el término son una sola obligatoria.
+      expect(count(requirement, signed("BOARD_ELECTION", "BOARD_ELECTION"))).toBe(1);
+    });
+
+    it("la firmada que el requisito no exige no cuenta", () => {
+      const both = signed("BOARD_ELECTION", "RUNOFF");
+      expect(count(requires(1, false, false), both)).toBe(0);
+      expect(count(requires(1, true, false), both)).toBe(1);
+      expect(count(requires(1, false, true), both)).toBe(1);
+      expect(count(requires(1, true, true), both)).toBe(2);
+    });
+
+    it("firmada es aprobada: una excusa cumple el requisito y no cuenta, y tampoco una pendiente, una rechazada ni una anulada", () => {
+      const requirement = requires(1, true, true);
+      const all: AttendedAssembly["assemblyKind"][] = ["ORDINARY", "BOARD_ELECTION", "RUNOFF"];
+      const excused = withStatus("EXCUSED", all);
+      expect(assemblyCompliance(requirement, excused).compliant).toBe(true);
+      expect(count(requirement, excused)).toBe(0);
+      for (const status of ["PENDING", "REJECTED", "CANCELLED"] as const) {
+        expect(count(requirement, withStatus(status, all))).toBe(0);
+      }
+    });
+
+    it("nunca pasa del total que exige el requisito, y sin excusas lo iguala justo cuando la persona cumple", () => {
+      for (const requiredOrdinary of [0, 1, 2, 3]) {
+        for (const requiresBoardElection of [false, true]) {
+          for (const requiresRunoff of [false, true]) {
+            const requirement = requires(requiredOrdinary, requiresBoardElection, requiresRunoff);
+            const total = requiredTotal(requirement);
+            for (const ordinaries of [0, 1, 2, 3, 4]) {
+              for (const election of [false, true]) {
+                for (const runoff of [false, true]) {
+                  const attended = signed(
+                    ...Array.from({ length: ordinaries }, () => "ORDINARY" as const),
+                    ...(election ? (["BOARD_ELECTION"] as const) : []),
+                    ...(runoff ? (["RUNOFF"] as const) : []),
+                  );
+                  const compliance = assemblyCompliance(requirement, attended);
+                  const n = attendedRequired(requirement, compliance);
+                  expect(n).toBeGreaterThanOrEqual(0);
+                  expect(n).toBeLessThanOrEqual(total);
+                  expect(n === total).toBe(compliance.compliant);
+                }
+              }
+            }
+          }
+        }
+      }
+    });
   });
 });
 

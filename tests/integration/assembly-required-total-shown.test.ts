@@ -13,9 +13,10 @@ import { truncateAll } from "./db";
 // pantallas se montan enteras contra Postgres; solo se reemplaza quién tiene la sesión.
 //
 // Y cuántas de esas lleva firmadas la persona, la `n` de los dos textos, que cada pantalla también
-// suma a mano (DT-385, la otra mitad de C6): las ordinarias firmadas hasta las que exige el
+// sumaba a mano (DT-385, la otra mitad de C6): las ordinarias firmadas hasta las que exige el
 // requisito, más la elección de junta y la segunda vuelta si el requisito las exige y están
-// firmadas. Queda fijada por las dos pantallas antes de sacar esa cuenta a una función.
+// firmadas. Quedó fijada por las dos pantallas, sobre las dos copias, antes de que pasaran a llamar a
+// `attendedRequired` (ADR-128 regla 4).
 
 const session = vi.hoisted(() => ({ member: "", admin: "" }));
 
