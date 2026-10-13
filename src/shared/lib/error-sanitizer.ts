@@ -467,11 +467,11 @@ type Trimmed = Map<object, unknown>;
  * `value`, que cuelga de un error registrado, con cada cosa con forma de error recortada como un error
  * (ADR-129 regla 5): en un campo del error, en una lista o en un objeto, hasta `HANGING_LIMIT` niveles
  * contando el error. Lo que queda más adentro no se mira y sale `[oculto]`, traiga o no un error: de
- * ahí para abajo no hay cómo decir que no trae ninguno. `above` es el camino desde ese error. Lo que le pasaron al registro no se toca:
- * de la lista o del objeto que trae un error sale una copia, y lo que no trae ninguno vuelve tal cual,
- * así que se escribe como se escribía. No entra a lo que se escribe a sí mismo con `toJSON` (una
- * fecha, un `Buffer`). El error que ya se está escribiendo más arriba no se escribe otra vez, y lo que
- * ya se recortó (`done`) no se recorre de nuevo.
+ * ahí para abajo no hay cómo decir que no trae ninguno. `above` es el camino desde ese error. Lo que
+ * le pasaron al registro no se toca: de la lista o del objeto que trae un error sale una copia, y lo
+ * que no trae ninguno vuelve tal cual, así que se escribe como se escribía. No entra a lo que se
+ * escribe a sí mismo con `toJSON` (una fecha, un `Buffer`). El error que ya se está escribiendo más
+ * arriba no se escribe otra vez, y lo que ya se recortó (`done`) no se recorre de nuevo.
  */
 function trimmedHanging(value: unknown, above: readonly object[], done: Trimmed): unknown {
   if (typeof value !== "object" || value === null) {
