@@ -186,11 +186,11 @@ describe("lo que tiene forma de error sin serlo, bajo `err`", () => {
   });
 });
 
-// Lo que sigue no es un arreglo: fija por dónde sale hoy el valor de una consulta cuando el error que
-// lo trae no está donde el recorte mira, que es la raíz de `err` y sus causas hasta cinco niveles
-// (ADR-128 regla 3). Son caminos de antes del ciclo 16, que encontró la revisión de su rama (DT-399).
-// Quien los cierre va a ver caer estos casos, y cambia lo que esperan.
-describe("lo que el recorte todavía no alcanza: por dónde sale hoy el valor de una consulta (DT-399)", () => {
+// DT-399, ADR-129 regla 5: el recorte miraba la raíz de `err` y sus causas con forma de error, hasta
+// cinco niveles, y el valor de una consulta salía si el error que lo trae colgaba de otro campo del
+// error, de su lista `errors` o de un objeto del error, o si era una causa más honda o una función.
+// Estos casos fijaban por dónde salía; ahora dicen que no sale, y abajo queda lo que todavía sale.
+describe("lo que cuelga de un error registrado se recorta como un error (DT-399)", () => {
   /** Las rutas de la línea escrita en las que aparece el valor de la consulta. */
   function placesOf(value: unknown, path = ""): string[] {
     if (typeof value === "string") {
@@ -213,32 +213,143 @@ describe("lo que el recorte todavía no alcanza: por dónde sale hoy el valor de
     return current;
   }
 
+  /** Un error con `fields` colgando. */
+  const carrying = (fields: Record<string, unknown>) => Object.assign(new Error("fuera"), fields);
+
+  /** Como sale un error de consulta ya recortado. */
+  const TRIMMED = {
+    type: "Error",
+    message: FAILED_QUERY,
+    stack: expect.any(String) as unknown,
+    query: QUERY,
+  };
+
   it.each([
     [
       "que cuelga de un campo del error que no es `cause`",
-      () => ({ err: Object.assign(new Error("fuera"), { original: queryError() }) }),
-      ["err.original.message", "err.original.stack", "err.original.params.0"],
+      () => ({ err: carrying({ original: queryError() }) }),
     ],
     [
       "en la lista `errors` de un error que no es un `AggregateError`",
-      () => ({ err: Object.assign(new Error("fuera"), { errors: [queryError()] }) }),
-      ["err.errors.0.params.0"],
+      () => ({ err: carrying({ errors: [queryError()] }) }),
     ],
     [
       "dentro de un objeto que cuelga del error",
-      () => ({ err: Object.assign(new Error("fuera"), { detail: { failures: [queryError()] } }) }),
-      ["err.detail.failures.0.params.0"],
+      () => ({ err: carrying({ detail: { failures: [queryError()] } }) }),
     ],
-    ["como causa a más de cinco niveles", () => ({ err: buried(6) }), ["err.message", "err.stack"]],
     [
-      "como causa que es una función",
-      () => ({ err: Object.assign(new Error("fuera"), { cause: () => queryError() }) }),
-      ["err.stack"],
+      "dentro de un objeto del error, a cinco niveles",
+      () => ({ err: carrying({ n1: { n2: { n3: { n4: queryError() } } } }) }),
     ],
+    ["como causa a más de cinco niveles", () => ({ err: buried(6) })],
+    ["como causa a veinte niveles", () => ({ err: buried(20) })],
+    ["como causa que es una función", () => ({ err: carrying({ cause: () => queryError() }) })],
+    [
+      "como causa de la causa que es una función",
+      () => ({
+        err: carrying({
+          cause: () => new Error("dentro", { cause: queryError() }),
+        }),
+      }),
+    ],
+  ])("un error de consulta %s sale sin sus valores", async (_title, line) => {
+    const [entry] = await written(() => error(line(), "falló"));
+
+    expect(entry?.record.msg).toBe("falló");
+    expect(placesOf(entry?.record)).toEqual([]);
+  });
+
+  it("lo que cuelga sigue saliendo: como un error, sin lo que el recorte quita, y la lista `errors` una sola vez", async () => {
+    const detail = { failures: [queryError()], intento: 2 };
+    const [entry] = await written(() =>
+      error(
+        {
+          err: carrying({
+            original: queryError(),
+            errors: [queryError()],
+            detail,
+          }),
+        },
+        "falló",
+      ),
+    );
+
+    expect(errOf(entry)).toEqual({
+      type: "Error",
+      message: "fuera",
+      stack: expect.any(String),
+      aggregateErrors: [TRIMMED],
+      original: TRIMMED,
+      detail: { failures: [TRIMMED], intento: 2 },
+    });
+    // Lo que le pasaron al registro queda como llegó: lo que se recorta es una copia.
+    expect(detail.failures[0]).toBeInstanceOf(Error);
+    expect(detail.failures[0]).toMatchObject({ query: QUERY, params: [VALUE] });
+  });
+
+  it("lo que cuelga de un error y no trae ninguno sale como salía", async () => {
+    const [entry] = await written(() =>
+      error(
+        {
+          err: carrying({
+            cause: "un texto",
+            detail: {
+              intento: 2,
+              pasos: ["a", { b: 1 }, null],
+              cuando: new Date("2026-10-13T15:00:00.000Z"),
+            },
+          }),
+        },
+        "falló",
+      ),
+    );
+
+    expect(errOf(entry)).toEqual({
+      type: "Error",
+      message: "fuera",
+      stack: expect.any(String),
+      cause: "un texto",
+      detail: {
+        intento: 2,
+        pasos: ["a", { b: 1 }, null],
+        cuando: "2026-10-13T15:00:00.000Z",
+      },
+    });
+  });
+
+  it("dos errores que se nombran uno al otro salen una vez cada uno, como los escribe pino, y recortados", async () => {
+    const first = Object.assign(new Error("primero"), { code: "57P01" });
+    const second = Object.assign(queryError(), { other: first });
+    Object.assign(first, { other: second });
+    const [entry] = await written(() => error({ err: first }, "falló"));
+
+    expect(errOf(entry)).toEqual({
+      type: "Error",
+      message: "primero",
+      stack: expect.any(String),
+      code: "57P01",
+      other: TRIMMED,
+    });
+  });
+
+  it("el error que vuelve a aparecer dentro de lo que cuelga de él no se escribe otra vez", async () => {
+    const failed = queryError();
+    Object.assign(failed, { detail: { owner: failed, intento: 2 } });
+    const [entry] = await written(() => error({ err: failed }, "falló"));
+
+    expect(errOf(entry)).toEqual({
+      ...TRIMMED,
+      detail: { owner: "[Circular]", intento: 2 },
+    });
+  });
+
+  // Lo que el recorte todavía no alcanza: fija por dónde sale hoy el valor. Quien cierre uno de estos
+  // caminos va a ver caer su caso, y cambia lo que espera.
+  it.each([
     [
       "como causa asignada cuyo `message` no es un texto",
       () => ({
-        err: Object.assign(new Error("fuera"), {
+        err: carrying({
           cause: { message: 42, query: QUERY, params: [VALUE] },
         }),
       }),
@@ -249,7 +360,23 @@ describe("lo que el recorte todavía no alcanza: por dónde sale hoy el valor de
       () => ({ failure: queryError() }),
       ["failure.params.0"],
     ],
-  ])("un error de consulta %s", async (_title, line, places) => {
+    [
+      "dentro de un objeto del error, a más de cinco niveles",
+      () => ({
+        err: carrying({ n1: { n2: { n3: { n4: { n5: queryError() } } } } }),
+      }),
+      ["err.n1.n2.n3.n4.n5.params.0"],
+    ],
+    [
+      "en lo que escribe el `toJSON` de un objeto del error",
+      () => ({
+        err: carrying({
+          detail: { toJSON: () => ({ failure: queryError() }) },
+        }),
+      }),
+      ["err.detail.failure.params.0"],
+    ],
+  ])("todavía sale el valor de un error de consulta %s", async (_title, line, places) => {
     const [entry] = await written(() => error(line(), "falló"));
 
     expect(placesOf(entry?.record)).toEqual(places);
@@ -259,7 +386,7 @@ describe("lo que el recorte todavía no alcanza: por dónde sale hoy el valor de
     ["en la raíz", () => queryError()],
     ["como causa", () => new Error("fuera", { cause: queryError() })],
     ["como causa a cinco niveles", () => buried(4)],
-  ])("y donde el recorte sí mira no sale: %s", async (_title, err) => {
+  ])("y donde el recorte ya miraba sigue sin salir: %s", async (_title, err) => {
     const [entry] = await written(() => error({ err: err() }, "falló"));
 
     expect(placesOf(entry?.record)).toEqual([]);

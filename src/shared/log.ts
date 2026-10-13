@@ -48,8 +48,9 @@ function isErrorCode(value: unknown): value is string | number {
 /**
  * Lo que el registro recorta como un error: un `Error`, o lo que pino serializa como si lo fuera, un
  * objeto con un texto por `message` (ADR-128 regla 3). Así llega un error de otro contexto de
- * ejecución, donde `instanceof Error` no vale. Vale donde alguien dijo que eso es un error: bajo `err`
- * y como causa de otro. En cualquier otra parte un objeto con `message` es un dato.
+ * ejecución, donde `instanceof Error` no vale. Vale donde alguien dijo que eso es un error: bajo `err`,
+ * como causa de otro y en lo que cuelga de un error registrado (ADR-129 regla 5). En cualquier otra
+ * parte un objeto con `message` es un dato.
  */
 function isErrorLike(value: unknown): value is Error {
   return (
@@ -264,6 +265,15 @@ function causeCode(error: Error): string | number | undefined {
 export function errorCode(error: Error): string | number | undefined {
   const own = (error as { code?: unknown }).code;
   return isErrorCode(own) ? own : causeCode(error);
+}
+
+/**
+ * La causa de `error` que pino dobla en su mensaje y en su traza: lo que cuelga de `cause` o, si es
+ * una función, lo que devuelve, al modo de VError (ADR-129 regla 5). Pino la llama igual.
+ */
+function foldedCause(error: Error): unknown {
+  const cause: unknown = error.cause;
+  return typeof cause === "function" ? (cause.call(error) as unknown) : cause;
 }
 
 type QueryError = Error & { query: string; params: unknown[] };
@@ -502,7 +512,8 @@ function replaceOutsideStackFrames(text: string, written: string, replacement: s
 /**
  * `text` es el mensaje o la traza de `error`, con sus causas dobladas adentro. Lo devuelve sin los
  * valores de la consulta que falló y sin los datos de una conexión que no abrió, mirando el error y
- * sus causas hasta cinco niveles: el tramo `params: …` que escribe Drizzle, el valor que cita un
+ * cada causa que pino dobló ahí, sin tope (ADR-129 regla 5): el tramo `params: …` que escribe Drizzle,
+ * el valor que cita un
  * error de Postgres (el de una conversión, o el usuario y la base de una conexión rechazada), el
  * destino que Node escribe en un error de red o en un certificado que no nombra al host, y el usuario
  * y la base de la conexión configurada donde PostgreSQL los cite (ADR-120 regla 10). Todo se quita
@@ -514,7 +525,9 @@ function replaceOutsideStackFrames(text: string, written: string, replacement: s
  * del registro: el poller, en `outbox.last_error` (ADR-119 regla 16).
  *
  * Recorre también lo que tiene forma de error sin serlo (`isErrorLike`, ADR-128 regla 3): pino dobla
- * en el mensaje y en la traza la causa que tiene un texto por `message`, sea o no un `Error`.
+ * en el mensaje y en la traza la causa que tiene un texto por `message`, sea o no un `Error`, y la que
+ * devuelve una causa que es una función (`foldedCause`). Para donde para pino: en la causa que no
+ * tiene forma de error o en la que ya recorrió.
  *
  * No lanza (ADR-128 regla 2). `text` y el mensaje de cada error se leen como texto (`asText`), sean lo
  * que sean. Y si el error no se deja leer, o sus valores no se dejan escribir, no hay con qué recortar
@@ -523,8 +536,10 @@ function replaceOutsideStackFrames(text: string, written: string, replacement: s
 export function withoutQueryValues(error: Error, text: string): string {
   try {
     let clean = asText(text);
+    const walked = new Set<unknown>();
     let current: unknown = error;
-    for (let depth = 0; depth < 5 && isErrorLike(current); depth += 1) {
+    while (isErrorLike(current) && !walked.has(current)) {
+      walked.add(current);
       if (isQueryError(current)) {
         // Lo mismo que escribe Drizzle: `params: ${params}`.
         clean = clean.split(`\nparams: ${current.params.join(",")}`).join("");
@@ -537,7 +552,7 @@ export function withoutQueryValues(error: Error, text: string): string {
       for (const target of connectionTarget(current).written) {
         clean = replaceOutsideStackFrames(clean, target, REDACTED);
       }
-      current = current.cause;
+      current = foldedCause(current);
     }
     for (const quoted of configuredNames()) {
       clean = replaceOutsideStackFrames(clean, quoted, `"${REDACTED}"`);
@@ -573,6 +588,53 @@ function serializedByPino(error: Error): ReturnType<typeof pino.stdSerializers.e
   );
 }
 
+/** Cuántos niveles mira el recorte en lo que cuelga de un error, contándolo a él. */
+const HANGING_DEPTH = 5;
+
+/** Lo que el serializador de pino escribe en su copia y no es un campo del error. */
+const WRITTEN_BY_PINO = ["type", "message", "stack", "aggregateErrors"];
+
+/** Lo que escribe en lugar de un ciclo el serializador de pino que no lanza con ellos. */
+const CIRCULAR = "[Circular]";
+
+/**
+ * `value`, que cuelga de un error registrado, con cada cosa con forma de error recortada como un error
+ * (ADR-129 regla 5): en un campo del error, en una lista o en un objeto, hasta `HANGING_DEPTH` niveles
+ * contando el error. `above` es el camino desde ese error. Lo que le pasaron al registro no se toca:
+ * de la lista o del objeto que trae un error sale una copia, y lo que no trae ninguno vuelve tal cual,
+ * así que se escribe como se escribía. No entra a lo que se escribe a sí mismo con `toJSON` (una
+ * fecha, un `Buffer`). El error que ya se está escribiendo más arriba no se escribe otra vez.
+ */
+function trimmedHanging(value: unknown, above: readonly object[]): unknown {
+  if (typeof value !== "object" || value === null || above.length >= HANGING_DEPTH) {
+    return value;
+  }
+  if (above.includes(value)) {
+    return isErrorLike(value) ? CIRCULAR : value;
+  }
+  if (isErrorLike(value)) {
+    return trimmedError(value, above);
+  }
+  if (typeof (value as { toJSON?: unknown }).toJSON === "function") {
+    return value;
+  }
+  const path = [...above, value];
+  if (Array.isArray(value)) {
+    const items = value.map((item: unknown) => trimmedHanging(item, path));
+    return items.some((item, index) => item !== value[index]) ? items : value;
+  }
+  let copy: Record<string, unknown> | undefined;
+  for (const key of Object.keys(value)) {
+    const inner = (value as Record<string, unknown>)[key];
+    const trimmed = trimmedHanging(inner, path);
+    if (trimmed !== inner) {
+      copy ??= { ...value };
+      copy[key] = trimmed;
+    }
+  }
+  return copy ?? value;
+}
+
 /**
  * El serializador de pino dobla la causa dentro del mensaje y de la traza, y pierde su código. Drizzle
  * envuelve cada error de Postgres en un `DrizzleQueryError`, así que sin esto el `57P01` de una
@@ -587,9 +649,13 @@ function serializedByPino(error: Error): ReturnType<typeof pino.stdSerializers.e
  * `reason` y `cert` si el certificado no nombra al host, y lista aparte cada intento de una conexión
  * que probó varias direcciones.
  *
+ * Lo que cuelga del error se recorta igual (ADR-129 regla 5, `trimmedHanging`): pino serializa como
+ * un error el campo que tiene forma de error, sin recortarlo, y copia tal cual la lista y el objeto
+ * que traen uno. `above` es el camino desde el error de la línea, vacío si es él.
+ *
  * Lanza si el error no se deja leer: de eso se ocupa `serializeError`.
  */
-function trimmedError(error: unknown): unknown {
+function trimmedError(error: unknown, above: readonly object[] = []): unknown {
   // Lo que no tiene forma de error sale como llegó: pino lo devuelve tal cual.
   if (!isErrorLike(error)) {
     return pino.stdSerializers.err(error as Error);
@@ -611,7 +677,26 @@ function trimmedError(error: unknown): unknown {
   }
   const grouped = (error as { errors?: unknown }).errors;
   if (Array.isArray(grouped) && Array.isArray(serialized.aggregateErrors)) {
-    serialized.aggregateErrors = grouped.map(serializeError);
+    serialized.aggregateErrors = grouped.map((inner: unknown) => serializeError(inner));
+    // Pino lista los errores de `errors` en `aggregateErrors`, sea o no un `AggregateError`. Si esa
+    // lista además se enumera, la copia cruda al lado: sale una vez, recortada.
+    delete serialized.errors;
+  }
+  const path = [...above, error];
+  for (const key of Object.keys(serialized)) {
+    if (WRITTEN_BY_PINO.includes(key)) {
+      continue;
+    }
+    const hanging = (error as unknown as Record<string, unknown>)[key];
+    if (isErrorLike(hanging) && path.includes(hanging)) {
+      // Dos errores que se nombran uno al otro: pino no repite el que ya está escribiendo.
+      delete serialized[key];
+      continue;
+    }
+    const trimmed = trimmedHanging(hanging, path);
+    if (trimmed !== hanging) {
+      serialized[key] = trimmed;
+    }
   }
   return serialized;
 }
@@ -650,6 +735,19 @@ export function printableError(error: Error): Error {
   }
 }
 
+/**
+ * Los argumentos de una línea, con su mensaje como algo que pino sabe escribir. El mensaje es el
+ * primero, o el segundo si el primero es el objeto de la línea o no hay. Un símbolo ahí sale como su
+ * texto (`asText`, ADR-128 regla 2): pino lo pasa tal cual a la línea, que queda con `"msg":undefined`
+ * y deja de ser JSON (ADR-129 regla 5). Lo que se interpola en el mensaje no cambia.
+ */
+function withWritableMessage(args: unknown[]): unknown[] {
+  const at = typeof args[0] === "object" || args[0] === undefined ? 1 : 0;
+  return typeof args[at] === "symbol"
+    ? args.map((arg, index) => (index === at ? asText(arg) : arg))
+    : args;
+}
+
 // JSON en producción, CI y archivos; el formateador con worker queda para la terminal local.
 export const logger = pino({
   // `||` y no `??`: una variable vacía vale como ausente, igual que en `env.ts` (ADR-121 regla 8).
@@ -662,7 +760,9 @@ export const logger = pino({
     // demás son el mensaje y lo que se le interpola.
     logMethod(args, method) {
       try {
-        const reviewed = args.map((arg, index) => (index === 0 ? arg : reviewedForMessage(arg)));
+        const reviewed = withWritableMessage(
+          args.map((arg, index) => (index === 0 ? arg : reviewedForMessage(arg))),
+        );
         // A la línea que llega sin mensaje pino le pone en `msg` el de su error, tal cual: con el
         // tramo `params: …` de una consulta y con el valor que cita una conversión. Llega ya
         // recortado y como texto, como sale en `err.message` de esa misma línea, y sin nada que

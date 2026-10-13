@@ -362,3 +362,55 @@ describe("sin `DATABASE_URL`, un error cuyo `message` no es un texto se escribe 
     }
   });
 });
+
+// DT-399, ADR-129 regla 5: un símbolo donde va el mensaje. Pino lo pasaba tal cual a la línea, que
+// salía con `"msg":undefined` y dejaba de ser JSON. `captureLogs` lee cada línea como JSON, y con un
+// destino que lanza sale el aviso en su lugar: acá el destino guarda el texto y lo lee la prueba.
+describe("un símbolo donde va el mensaje de la línea", () => {
+  function rawLines(run: () => void): string[] {
+    const target = logger as unknown as Record<symbol, { write(line: string): void } | undefined>;
+    const original = target[pino.symbols.streamSym];
+    const lines: string[] = [];
+    target[pino.symbols.streamSym] = {
+      write(line) {
+        lines.push(line);
+      },
+    };
+    try {
+      run();
+    } finally {
+      target[pino.symbols.streamSym] = original;
+    }
+    return lines;
+  }
+
+  it("se escribe como su texto, y la línea sigue siendo JSON", () => {
+    const lines = rawLines(() => {
+      error({ evento: "ev-1" }, Symbol("s"));
+      error(Symbol("s"));
+      error(undefined, Symbol());
+      error({ err: new Error("del error") }, Symbol("s"));
+    });
+
+    expect(lines).toHaveLength(4);
+    for (const line of lines) {
+      expect(line).not.toContain("undefined");
+    }
+    expect(lines.map((line) => JSON.parse(line) as Record<string, unknown>)).toMatchObject([
+      { level: 50, evento: "ev-1", msg: "Symbol(s)" },
+      { level: 50, msg: "Symbol(s)" },
+      { level: 50, msg: "Symbol()" },
+      { level: 50, err: { message: "del error" }, msg: "Symbol(s)" },
+    ]);
+  });
+
+  it("interpolado en el mensaje sale como ya salía", () => {
+    const lines = rawLines(() => {
+      info("van %s y %o", Symbol("s"), Symbol("s"));
+    });
+
+    expect(lines.map((line) => (JSON.parse(line) as { msg: string }).msg)).toEqual([
+      "van Symbol(s) y undefined",
+    ]);
+  });
+});
