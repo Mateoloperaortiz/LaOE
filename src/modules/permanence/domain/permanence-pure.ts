@@ -1015,9 +1015,10 @@ function forcedExitReason(
 }
 
 /**
- * La causal con que queda guardada la baja de quien el cierre saca de la OE (ADR-060 regla 3; ADR-129
- * regla 1): una expulsión si algo lo obliga a salir, y si no, la salida por permanencia de quien se
- * queda sin comité o de quien GH decide sacar. Lee lo mismo de un resultado que de su snapshot.
+ * La causal con que queda guardada la baja de quien el cierre saca de la OE (ADR-060 regla 3, como la
+ * enmienda ADR-129 regla 1): una expulsión si algo lo obliga a salir, y si no, la salida por
+ * permanencia de quien se queda sin comité o de quien GH decide sacar. Lee lo mismo de un resultado
+ * que de su snapshot.
  */
 export function exitEndReason(
   result: Pick<PersonPermanence, "mandatory" | "expulsionWarning">,

@@ -1,6 +1,6 @@
 # ADR-109: Refactor progresivo con ledger de deuda técnica
 
-- Estado: Aceptada (enmendada por ADR-116)
+- Estado: Aceptada (enmendada por ADR-116 y ADR-129)
 - Fecha: 2026-10-07
 - Relacionadas: ADR-079, ADR-080, ADR-081, ADR-082, ADR-083, ADR-084, ADR-085, ADR-108
 
@@ -42,3 +42,7 @@ Ese mismo día Mateo fijó el objetivo: llevar el repo a un estado sólido, mant
 ## Enmienda (2026-10-08, ADR-116)
 
 Regla 6: pedía un commit por ticket. Desde el ciclo 4 un ticket junta varias filas del ledger y cada fila entra en su propio commit, con su prueba en rojo primero y en verde al final (regla 5): 8 commits para #143 en el ciclo 4 y 48 para los 10 tickets del ciclo 5. Ahora la regla dice lo que se hace: los commits de un ciclo son atómicos, cada uno deja las pruebas en verde y nombra su ticket con `Refs`, y no se aplastan por ticket. El ciclo sigue en una rama de integración y sale por un solo PR que nombra sus tickets. Ver [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 22.
+
+## Enmienda (2026-10-13, ADR-129)
+
+Regla 10: decía que lo que ya es profundo no se toca, y cuenta ahí a `permanence-pure.ts`. Ese archivo se tocó tres veces, cada una con su razón escrita en la ADR de su ciclo: el arreglo de un defecto en el ciclo 16 ([ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) regla 1) y, en el ciclo 17, la regla que ya era suya y tenía una segunda copia fuera del archivo, y el nombre de los valores que ya decidía ([ADR-129](ADR-129-reglas-de-consolidacion-del-decimoseptimo-ciclo.md) reglas 1 y 3). La letra dejó de describir lo que se hace, y ahora lo dice: lo que ya es profundo no se parte ni se reordena por este plan. Sí recibe tres cosas, y cada vez la ADR del ciclo dice cuál es: el arreglo de un defecto, con su prueba en rojo antes; la regla que ya era suya y estaba escrita otra vez fuera, que entra para que la copia de afuera se vaya; y el nombre de un valor que el archivo ya decidía. Su interfaz no cambia más que por lo que una de esas tres le pida. Lo demás de la regla sigue igual: partir un archivo solo por su tamaño no es un refactor de este plan.

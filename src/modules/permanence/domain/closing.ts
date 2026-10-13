@@ -537,10 +537,10 @@ export async function applyDecisions(termId: string, nextTermId: string): Promis
     };
     const reason = personRow?.reason ?? "";
     if (personRow?.decision === "EXIT_OE") {
-      // Lo que obliga a salir expulsa y quedarse sin comité es permanencia (ADR-060 regla 3). La causal
-      // sale de la regla del dominio que da el motivo de la salida, sobre el snapshot que el cierre
-      // congeló y no sobre el motivo guardado al confirmar (ADR-129 regla 1; decisión abierta 80). Sin
-      // snapshot no hay de dónde decir que es una expulsión.
+      // Lo que obliga a salir expulsa y quedarse sin comité es permanencia (ADR-060 regla 3, como la
+      // enmienda ADR-129). La causal sale de la regla del dominio que da el motivo de la salida, sobre
+      // el snapshot que el cierre congeló y no sobre el motivo guardado al confirmar (ADR-129 regla 1;
+      // decisión abierta 80). Sin snapshot no hay de dónde decir que es una expulsión.
       const snapshot = await getSnapshot(personId, termId);
       await endMembershipAs(actor, personId, {
         endReason: snapshot === null ? "PERMANENCE" : exitEndReason(snapshot),

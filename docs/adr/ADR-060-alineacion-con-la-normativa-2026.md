@@ -1,6 +1,6 @@
 # ADR-060: Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026
 
-- Estado: Aceptada (2026-09-13), enmendada por ADR-061, ADR-073, ADR-111, ADR-112 y ADR-118; implementación por tramos N26-T0 a N26-T11 en el [roadmap](../09-roadmap.md#normativa-2026-adr-060)
+- Estado: Aceptada (2026-09-13), enmendada por ADR-061, ADR-073, ADR-111, ADR-112, ADR-118 y ADR-129; implementación por tramos N26-T0 a N26-T11 en el [roadmap](../09-roadmap.md#normativa-2026-adr-060)
 - Fecha: 2026-09-13
 - Enmienda: ADR-024 (punto 2: la elección de junta obligatoria se deriva de que exista la ocasión, no del semestre), ADR-027 (banda de prueba por condición), ADR-028 (punto 1: consecuencias por condición y expulsión como causal propia), ADR-029 y ADR-058 (catálogo de cargos 2026, cargos retirados y `ROSTER` para Logística), ADR-030 (reactivar: el expulsado no vuelve), ADR-031 y ADR-037 (solicitud de excusa; tarea por vencimiento de licencia), ADR-036 (regla 9: la prueba se fija por comité), ADR-046 (licencia con vencimiento y capacidades de un cargo de mesa en licencia), ADR-056 (condición del semestre con comité opcional), ADR-057 (etiqueta "Comunicaciones y Mercadeo"), ADR-059 (presupuesto ordinario y extraordinario, aprobación, presolicitud y aval de evento), 02-crm, 03-modelo, 05-acceso, 12-permanencia, 13-importacion, glosario y 14-copy (bloque T-2206 en adelante)
 - Relacionadas: ADR-002, ADR-003, ADR-012, ADR-014, ADR-025, ADR-026, ADR-042, ADR-047
@@ -77,3 +77,9 @@ La regla 7 pedía que el titular y el suplente fueran miembros activos del comit
 La regla 9 no decía en qué término queda la mesa de una edición. ADR-118 regla 9 lo fija: en el que contiene la fecha de la edición. Si ese término todavía no existe la mesa no se nombra y la pantalla lo dice; ya no cae al término vigente.
 
 La regla 5 da para la excusa «hasta tres días hábiles después» y no decía sobre qué día se cuentan. ADR-118 regla 12 lo fija: sobre el día civil de Colombia, no el de UTC, que desde las 7 p. m. ya es el siguiente. Los festivos siguen contando como hábiles y el plazo vence a la misma hora en que empezó la ocasión: las dos cosas siguen en la decisión abierta 33.
+
+## Enmienda (2026-10-13, ADR-129)
+
+La regla 3 decía que el cierre da de baja con `EXPULSION` a quien faltó a una asamblea obligatoria y con `PERMANENCE` a quien no le queda comité. Nombraba una sola de las dos causas que expulsan y una sola de las dos salidas por permanencia. Desde el tramo de faltas y sanciones (`53452644`, 2026-09-13; regla 6) el cierre expulsa también por la advertencia de expulsión, la falta grave viva más otra sanción viva, y `tests/integration/sanctions.test.ts` lo fija desde entonces. [ADR-129](ADR-129-reglas-de-consolidacion-del-decimoseptimo-ciclo.md) regla 1 lo deja escrito: la baja del cierre queda con `EXPULSION` si en el snapshot algo obliga a salir (una obligatoria perdida, o la advertencia de expulsión de la regla 6) y con `PERMANENCE` si nada obliga: quien queda sin comité, y quien GH decide sacar sin que nada lo obligue. Las dos cosas salen de una sola función del dominio, la misma que da el motivo de la salida.
+
+No cambia ninguna causal: es la conducta de antes, que no estaba escrita acá. La causal se decide sobre el snapshot que el cierre congela al aplicar y no sobre el motivo con que se confirmó la salida; cuál de los dos manda es la decisión abierta 80. Lo demás de la regla 3 no cambia: reactivar a una persona expulsada sigue bloqueado y `STUDENT_STATUS_LOST` sigue siendo reversible.
