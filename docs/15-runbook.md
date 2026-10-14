@@ -974,3 +974,19 @@ El origen explícito tiene que coincidir con `APP_URL`. El checkpoint se vincula
 Las fotos reales solo se cargan a producción. Staging, pruebas y fixtures usan imágenes sintéticas. El bucket y su copia mensual guardan las variantes; los originales y checkpoints permanecen privados en la estación.
 
 Si el túnel SSH se corta durante una carga larga, el proceso termina y conserva el progreso confirmado. Restablecer el túnel del mismo Postgres y repetir la carga con el mismo plan. La reanudación comprueba las variantes del bucket y los datos y pertenencias de la foto en la base; si todo coincide, no vuelve a registrar ni auditar la foto. Una pertenencia faltante o con otro orden se repara en borrador, y un objeto ausente se repone con los bytes locales verificados. No publicar manualmente un lote incompleto.
+
+### Publicación de DÍAS 2026, 2026-10-14
+
+Código entregado por PR [#364](https://github.com/Mateoloperaortiz/LaOE/pull/364) y [#365](https://github.com/Mateoloperaortiz/LaOE/pull/365), seguimiento [#363](https://github.com/Mateoloperaortiz/LaOE/issues/363). SHA de la aplicación en producción: `b0e9c48f5aabd4de7e49b6ac42498d1b65b16edb`.
+
+| Compuerta | Evidencia | Resultado |
+| --- | --- | --- |
+| CI completo de main | [38623448028](https://github.com/Mateoloperaortiz/LaOE/actions/runs/38623448028) | SUCCESS, todos los checks; antes de promover el mismo SHA |
+| Staging sintético | Deployment `62ff182d-c839-4816-bf9e-6f69f1e3220f`; [smoke 38625734628](https://github.com/Mateoloperaortiz/LaOE/actions/runs/38625734628) | SUCCESS, health con el SHA exacto, 51 fotos sintéticas, paginación 48 + 3 y bytes privados |
+| Promoción | [38625881708](https://github.com/Mateoloperaortiz/LaOE/actions/runs/38625881708) | SUCCESS, reutiliza el CI completo del SHA validado |
+| Producción | Deployment `f1330621-004c-439b-ab95-fba0e128cf89`; [smoke 38626516170](https://github.com/Mateoloperaortiz/LaOE/actions/runs/38626516170) | SUCCESS, health `ok` con el SHA exacto y 53 marcas de migración verificadas |
+| Importación | Operador ADMIN existente; preparación y checkpoint privados | 6.863 fotos READY, 13 álbumes, 9.244 pertenencias, 20 destacadas, 27.452 variantes, 5.077.708.206 bytes; colección PUBLISHED tras validar todo el plan |
+| Verificación independiente | `gallery-20261014/independent-production-evidence.json`, privado fuera del repo | 26/26: inventario exacto, metadatos, dimensiones, bytes, orden, portadas, banner, destacadas y ausencia de referencias en MediaAsset; fotos y metadatos anónimos 401, `private, no-store`, `Vary: Cookie`, sin Location |
+| UI real | `gallery-20261014/production-ui-evidence.json` y capturas privadas | Integrante con sesión existente, escritorio y celular de 390 px sin desborde; imágenes cargadas, álbum 48 → 96, visor a 2400 px, teclado, foco y deslizamiento |
+
+Se excluyeron carpetas de jugadores y todos los videos. Los 9.551 archivos elegibles producen 6.863 fotos únicas; las 2.688 repeticiones conservan sus pertenencias sin repetir objetos. Originales y preparación permanecen privados fuera del repo. El corte SSH conservó 5.264 fotos; la reanudación volvió a verificar el destino y completó la publicación. Las portadas editoriales de la maqueta y el banner aprobado de la Mesa se conservaron.
