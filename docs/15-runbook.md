@@ -957,3 +957,18 @@ Desde [ADR-115](adr/ADR-115-reglas-de-campanas-y-tareas-de-gh.md) reglas 5 y 6, 
 - **Levantar el corte.** Con el botón «Levantar el corte» de esa pantalla. Queda en `audit_log` (`config.updated`, con quién y su IP). Rige enseguida en el proceso que recibió la acción y a los 30 segundos, lo que dura la caché de configuración, en los demás. Tiene sentido cuando se sabe que el proveedor ya acepta: se subió el plan, o el cupo del mes cerró antes de lo que supone el corte (DT-184). Si vuelve a rechazar, el corte se escribe otra vez.
 - **Cambiar el margen.** En la misma pantalla: un entero de cero en adelante, con auditoría. Un margen igual o mayor que el cupo no deja salir ninguna campaña, y la pantalla de cada campaña en curso lo dice. Para volver al de por defecto, el botón «Volver al margen por defecto», que aparece cuando hay uno fijado: quita la fila, con auditoría, y el margen vuelve a seguir a `RESEND_DAILY_LIMIT`.
 - **Volver a una versión anterior a ADR-116.** No hay que tocar la base. El corte con causa vive en `campaigns.quotaCut`, que la versión anterior no lee: para ella no hay corte, y si el proveedor sigue rechazando escribe el suyo en `campaigns.quotaExhaustedAt` con el primer rechazo. Al volver a esta versión, ese corte se sigue leyendo.
+
+## Fotos privadas de Mi OE (ADR-130)
+
+La preparación se hace en la estación con los originales fuera del repo. `npm run fotos:importar -- preparar --help` describe origen, carpeta privada de salida, colección, banner, selección y conteos esperados. El proceso excluye jugadores, videos y archivos ocultos, deduplica por SHA-256 y genera variantes WebP sin metadatos. Un error impide declarar completo el manifiesto; repetir el comando verifica y reanuda las copias existentes. No modifica los originales ni necesita credenciales remotas.
+
+Antes de importar, exigir CI completo, staging y promoción del SHA exacto según este runbook. Cargar variables únicamente del servicio `web` y del entorno confirmado; sustituir su `DATABASE_URL` por el túnel de ese Postgres. Conservar credenciales y salidas privadas fuera del repo. No pasar `.env` local ni ejecutar seeds en producción. El operador debe ser un ADMIN global vigente ya existente; el importador vuelve a comprobar su permiso y membresía cada 25 fotos y antes de configurar/publicar.
+
+```sh
+npm run fotos:importar -- importar --output <carpeta-privada> --actor-id <ADMIN-existente> --target-origin <origen-APP_URL> --publish --concurrency 3
+npm run fotos:importar -- verificar --output <carpeta-privada> --actor-id <ADMIN-existente> --target-origin <origen-APP_URL> --concurrency 3
+```
+
+El origen explícito tiene que coincidir con `APP_URL`. El checkpoint se vincula al destino y al manifiesto y acredita una foto solo después de confirmar bucket y transacción. Reanudar vuelve a consultar base y objetos; no confía solo en el JSON. La carga permanece en borrador hasta validar todos los conteos, pertenencias, portadas, banner y destacadas. Una colección publicada admite reintentos idénticos; cambios requieren preparar un borrador explícito y se rechazan desde esta CLI. `verificar` solo lee: comprueba variantes remotas, selección y paginación completa. Comprobar también que una petición sin sesión a `/api/fotos/<id>` responda 401 con `private, no-store`, sin redirección al bucket.
+
+Las fotos reales solo se cargan a producción. Staging, pruebas y fixtures usan imágenes sintéticas. El bucket y su copia mensual guardan las variantes; los originales y checkpoints permanecen privados en la estación.

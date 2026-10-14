@@ -160,7 +160,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-060 | Saludo | ¿Qué más, {nombre preferido}? | MATEO | Propuesta |
-| T-061 | Pestañas de navegación | Inicio · Eventos · Comités · Personas · Egresados · GH Points · Permanencia · Solicitudes · Convocatorias · Normativa · Carnet · Ajustes · Juegos | COM | Propuesta |
+| T-061 | Pestañas de navegación | Inicio · Eventos · Comités · Personas · Egresados · GH Points · Permanencia · Solicitudes · Convocatorias · Normativa · Carnet · Ajustes · Juegos · Fotos | COM | Propuesta |
 | T-062 | Agenda, título | Tu semana | MATEO | Propuesta |
 | T-063 | Agenda vacía | No tenés nada esta semana. Pegate a un evento o pasá por tu comité. | MATEO | Propuesta |
 | T-064 | Barra de permanencia en el inicio | Permanencia en {comité}: {n} % de {umbral} % | GH | Propuesta |
@@ -2866,3 +2866,46 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3202 | The Games: Vitrina de la tabla | La vitrina muestra la tabla de posiciones y el podio. · La vitrina no muestra la tabla ni el podio; la rotación, sus resultados y el recorrido de cada equipo siguen a la vista. | MATEO | Propuesta |
 | T-3203 | The Games: Publicar la tabla | Mostrar la tabla · Ocultar la tabla | MATEO | Propuesta |
 | T-3204 | The Games: Ayuda de la vitrina de la tabla | Ocultala mientras se juega para que los equipos compitan sin estar pendientes de la tabla. El podio se oculta con ella: para proyectarlo, mostrala antes. | MATEO | Propuesta |
+
+## Fotos privadas de Mi OE (ADR-130)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-3270 | Fotos: nombre y navegación | Fotos | MATEO | Aprobado |
+| T-3271 | Fotos: acceso | Solo integrantes | MATEO | Aprobado |
+| T-3272 | Fotos: banner | Lo que vivimos, en fotos. Volvé a ese parche. | MATEO | Aprobado |
+| T-3273 | Fotos: mesa del banner | Mesa DÍAS 2026 | MATEO | Aprobado |
+| T-3274 | Fotos: pestaña de destacadas | Destacadas | MATEO | Aprobado |
+| T-3275 | Fotos: pestaña de álbumes | Álbumes | MATEO | Aprobado |
+| T-3276 | Fotos: título de destacadas | Así se vivió | MATEO | Aprobado |
+| T-3277 | Fotos: ayuda de destacadas | Una primera selección de momentos. | MATEO | Aprobado |
+| T-3278 | Fotos: ver álbumes | Ver álbumes | MATEO | Aprobado |
+| T-3279 | Fotos: seguir explorando | Seguí por los álbumes | MATEO | Aprobado |
+| T-3280 | Fotos: ayuda de álbumes | Encontrá cada momento de DÍAS. | MATEO | Aprobado |
+| T-3281 | Fotos: título de álbumes | Los álbumes de DÍAS | MATEO | Aprobado |
+| T-3282 | Fotos: cantidad | {n} fotos | MATEO | Propuesta |
+| T-3283 | Fotos: volver | Volvé a {coleccion} | MATEO | Propuesta |
+| T-3284 | Fotos: abrir foto | Abrí la foto {n} | MATEO | Propuesta |
+| T-3285 | Fotos: abrir álbum | Abrí el álbum {album} | MATEO | Propuesta |
+| T-3286 | Fotos: cerrar visor | Cerrar foto | MATEO | Propuesta |
+| T-3287 | Fotos: anterior | Foto anterior | MATEO | Propuesta |
+| T-3288 | Fotos: siguiente | Foto siguiente | MATEO | Propuesta |
+| T-3289 | Fotos: posición | {actual} de {total} | MATEO | Propuesta |
+| T-3290 | Fotos: cargar otra tanda | Cargar más fotos | MATEO | Propuesta |
+| T-3291 | Fotos: carga | Cargando fotos… | MATEO | Propuesta |
+| T-3292 | Fotos: carga fallida | No pudimos cargar las fotos. Volvé a intentar. | MATEO | Propuesta |
+| T-3293 | Fotos: reintento | Volvé a intentar | MATEO | Propuesta |
+| T-3294 | Fotos: colección vacía | Todavía no hay fotos publicadas. | MATEO | Propuesta |
+| T-3295 | Fotos: álbum vacío | Este álbum todavía no tiene fotos. | MATEO | Propuesta |
+| T-3296 | Fotos: pie | Fotos de {coleccion} · Comunidad OE | MATEO | Aprobado |
+| T-3297 | Fotos: nombre accesible del visor | Visor de fotos | MATEO | Propuesta |
+| T-3298 | Fotos: cerrar | Cerrar | MATEO | Propuesta |
+| T-3299 | Fotos: ubicación | Comunidad | MATEO | Propuesta |
+| T-3300 | Fotos: escritura restringida | Esta operación solo la puede hacer ADMIN. | MATEO | Propuesta |
+| T-3301 | Fotos: colección inexistente | La colección de fotos no existe. | MATEO | Propuesta |
+| T-3302 | Fotos: relación inválida | La foto no pertenece a esta colección. | MATEO | Propuesta |
+| T-3303 | Fotos: portada inválida | La portada debe ser una foto de este álbum. | MATEO | Propuesta |
+| T-3304 | Fotos: variantes inválidas | Las variantes de la foto no son válidas. | MATEO | Propuesta |
+| T-3305 | Fotos: publicación incompleta | La colección todavía no está completa para publicarla. | MATEO | Propuesta |
+| T-3306 | Fotos: álbum inexistente | El álbum de fotos no existe. | MATEO | Propuesta |
+| T-3307 | Fotos: cambio sobre colección publicada | La colección ya está publicada. Prepará sus cambios en borrador antes de volver a publicarla. | MATEO | Propuesta |

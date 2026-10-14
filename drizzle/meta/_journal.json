@@ -365,6 +365,13 @@
       "when": 1791900567604,
       "tag": "0051_decision_motivo_de_la_propuesta",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1791994895958,
+      "tag": "0052_fotos_privadas",
+      "breakpoints": true
     }
   ]
 }
