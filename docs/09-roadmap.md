@@ -24,6 +24,16 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | --- | --- | --- |
 | 2026-10-06 | Skills de ingeniería | Las skills que usan los agentes (`to-spec`, `to-tickets`, `triage`, `wayfinder`, `domain-modeling`) ya saben dónde vive cada cosa. **Tracker:** GitHub Issues de `Mateoloperaortiz/LaOE`, que hasta hoy no tenía ningún issue; son la cola de trabajo y este archivo sigue siendo el registro de lo entregado. **Etiquetas:** las cinco de triage por defecto; `needs-triage`, `needs-info`, `ready-for-agent` y `ready-for-human` se crearon con `gh label create`. **Dominio:** las skills esperan un `GLOSSARY.md` o un `CONTEXT.md` en la raíz y ADR numeradas `0001-…`; `docs/agents/domain.md` las manda a `docs/glosario.md` y a `docs/adr/ADR-NNN-…`, con la regla de enmendar. **Cierre:** un ticket de implementación se cierra cuando su cambio está en producción, no al mezclar el PR; el PR lo nombra con `Refs #N`, sin `Closes`. Queda como [ADR-108](adr/ADR-108-los-issues-de-github-son-la-cola-de-trabajo.md). Solo documentación: sin código y sin migración. Las cinco etiquetas `wayfinder:*` no se crearon: van antes del primer mapa. La misma configuración quedó en `dias` (D-051). |
 
+## Avisos de seguridad de dependencias · `en curso`
+
+- [x] Subir `next` a 16.3.8 y `sharp` a 0.35.5, y dejar en versión corregida `brace-expansion`, `source-map-js` y `smol-toml`.
+- [x] Verificar en local: `npm run check` y las E2E de vista previa, acceso, check-in, medios y evidencias.
+- [ ] Publicar: mezclar a `main`, comprobar staging y promover a producción.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-07 | Next y sharp | `npm audit`, corrido durante el descubrimiento de seguridad del refactor progresivo, marcó 13 avisos: uno crítico, cinco altos y siete moderados. El crítico es [GHSA-vcvr-r3jv-pc5j](https://github.com/advisories/GHSA-vcvr-r3jv-pc5j), ejecución remota de código en `ImageResponse` de `next/og`, para `next` de 16.2.0 a 16.3.5: la casa corría 16.3.4 y usa `next/og` en las imágenes de vista previa de ocho rutas públicas. `next` queda en 16.3.8, el último parche de la misma menor. `sharp` pasa de 0.35.4 a 0.35.5 por [GHSA-wq5f-xc86-pv6w](https://github.com/advisories/GHSA-wq5f-xc86-pv6w) (librsvg): con `sharp` se procesan las evidencias que suben los miembros y los medios del admin. Tres transitivas con avisos de denegación de servicio quedan corregidas con `npm update`, sin tocar `package.json`. No se usó `npm audit fix` porque además subía `drizzle-kit` y `passkit-generator`. Quedan ocho avisos, ninguno crítico, con su razón: `node-forge` por `passkit-generator` (alto, sin versión corregida; es verificación de firmas y la casa solo firma pases de Apple, hoy apagado), `esbuild` por `drizzle-kit` (moderado, solo en desarrollo) y `uuid` por `exceljs` (moderado; la corrección que ofrece npm es bajar una versión mayor de `exceljs`). Verificado en un worktree propio: `npm run check` en verde (856 unitarias, 11 del extractor, 603 de integración y build) y 23 escenarios E2E de `seo`, `login`, `checkin`, `medios` y `gamificacion`, incluida la imagen `og:image` que responde PNG. Ticket [#115](https://github.com/Mateoloperaortiz/LaOE/issues/115). |
+
 ## Acceso a permanencia desde Comités · `lista`
 
 - [x] Mostrar «Permanencia» junto a «Editar» en cada fila y enlazar el nombre al panel del comité.
