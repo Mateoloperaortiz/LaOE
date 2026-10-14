@@ -72,6 +72,9 @@ let directory: string;
 let objects: Map<string, { contentType: string; byteSize: number }>;
 type SavedPhoto = {
   id: string;
+  collectionId: string;
+  alt: string;
+  albums: { slug: string; sortOrder: number }[];
   width: number;
   height: number;
   variants: Record<
@@ -90,7 +93,20 @@ beforeEach(async () => {
   mocks.permissions.mockResolvedValue([{ code: "ADMIN", committeeId: null }]);
   mocks.collection.mockResolvedValue({ id: "syntheticcollection" });
   mocks.album.mockResolvedValue({ id: "syntheticalbum" });
-  mocks.find.mockImplementation(async (_actor: unknown, hash: string) => saved.get(hash) ?? null);
+  mocks.find.mockImplementation(async (_actor: unknown, hash: string, collectionId?: string) => {
+    const row = saved.get(hash);
+    return row
+      ? {
+          ...row,
+          albums:
+            collectionId === undefined
+              ? null
+              : collectionId === row.collectionId
+                ? structuredClone(row.albums)
+                : [],
+        }
+      : null;
+  });
   mocks.put.mockImplementation(async (key: string, bytes: Uint8Array, contentType: string) => {
     objects.set(key, { contentType, byteSize: bytes.length });
   });
@@ -100,6 +116,9 @@ beforeEach(async () => {
       const id = saved.get(photo.sourceHash)?.id ?? `syntheticphoto${saved.size}`;
       saved.set(photo.sourceHash, {
         id,
+        collectionId: photo.collectionId,
+        alt: photo.alt,
+        albums: structuredClone(photo.albums),
         width: photo.width,
         height: photo.height,
         variants: photo.variants,
@@ -361,7 +380,53 @@ describe("carga privada reanudable", () => {
     objects.clear();
     await importGallery(options());
     expect(mocks.put.mock.calls.length).toBe(puts + 1);
+    expect(mocks.register).toHaveBeenCalledTimes(2);
+  });
+
+  it("la reanudación coteja DB y HEAD sin registrar de nuevo fotos completas, aunque el checkpoint diga otra cosa", async () => {
+    await fixture(2);
+    await importGallery({ ...options(), publish: false });
+    const checkpoint = JSON.parse(await readFile(progressPath(), "utf8"));
+    checkpoint.registered = {};
+    await writeGalleryJson(progressPath(), checkpoint);
+    const before = mocks.head.mock.calls.length;
+    await importGallery({ ...options(), publish: false });
+    expect(mocks.register).toHaveBeenCalledTimes(2);
+    expect(mocks.put).toHaveBeenCalledTimes(2);
+    expect(mocks.head.mock.calls.length).toBe(before + 2);
+    expect(mocks.find).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isAdmin: true }),
+      expect.any(String),
+      "syntheticcollection",
+    );
+    expect(Object.keys(JSON.parse(await readFile(progressPath(), "utf8")).registered)).toHaveLength(
+      2,
+    );
+  });
+
+  it.each([
+    "faltante",
+    "orden incorrecto",
+  ])("repara una pertenencia %s y deja intactas las demás fotos", async (failure) => {
+    const { entries } = await fixture(2);
+    await importGallery({ ...options(), publish: false });
+    const hash = entries[0]?.sourceHash;
+    const photo = hash ? saved.get(hash) : null;
+    if (!photo) throw new Error("missing saved synthetic photo");
+    photo.albums = failure === "faltante" ? [] : [{ slug: "feria", sortOrder: 999 }];
+    await importGallery({ ...options(), publish: false });
     expect(mocks.register).toHaveBeenCalledTimes(3);
+    expect(mocks.put).toHaveBeenCalledTimes(2);
+    expect(saved.get(hash ?? "")?.albums).toEqual([{ slug: "feria", sortOrder: 0 }]);
+  });
+
+  it("el checkpoint no omite una foto ausente de la base", async () => {
+    await fixture();
+    await importGallery({ ...options(), publish: false });
+    saved.clear();
+    await importGallery({ ...options(), publish: false });
+    expect(mocks.register).toHaveBeenCalledTimes(2);
+    expect(saved.size).toBe(1);
   });
 
   it("un objeto que no confirma no se registra ni se publica", async () => {

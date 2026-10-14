@@ -177,20 +177,59 @@ export async function upsertGalleryAlbumAs(
   });
 }
 
-export async function findGalleryPhotoForImportAs(actor: GalleryAdminActor, hash: string) {
+/** La colección opcional permite acreditar una reanudación sin escribir ni auditar la comparación. */
+export async function findGalleryPhotoForImportAs(
+  actor: GalleryAdminActor,
+  hash: string,
+  collectionId?: string,
+) {
   assertGalleryAdmin(actor);
   sourceHash.parse(hash);
-  const [row] = await getDb()
+  if (collectionId !== undefined) identifier.parse(collectionId);
+  const db = getDb();
+  const columns = {
+    id: galleryPhoto.id,
+    width: galleryPhoto.width,
+    height: galleryPhoto.height,
+    alt: galleryPhoto.alt,
+    variants: galleryPhoto.variants,
+  };
+  const ready = and(eq(galleryPhoto.sourceHash, hash), eq(galleryPhoto.status, "READY"));
+  if (collectionId === undefined) {
+    const [row] = await db.select(columns).from(galleryPhoto).where(ready).limit(1);
+    return row ? { ...row, albums: null } : null;
+  }
+  // Una sola lectura acredita foto y relaciones del mismo snapshot, sin otra ida a la base.
+  const scoped = db
     .select({
-      id: galleryPhoto.id,
-      width: galleryPhoto.width,
-      height: galleryPhoto.height,
-      variants: galleryPhoto.variants,
+      photoId: galleryAlbumPhoto.photoId,
+      slug: galleryAlbum.slug,
+      sortOrder: galleryAlbumPhoto.sortOrder,
     })
+    .from(galleryAlbumPhoto)
+    .innerJoin(galleryAlbum, eq(galleryAlbum.id, galleryAlbumPhoto.albumId))
+    .where(eq(galleryAlbum.collectionId, collectionId))
+    .as("import_album_relations");
+  const rows = await db
+    .select({ ...columns, albumSlug: scoped.slug, albumSortOrder: scoped.sortOrder })
     .from(galleryPhoto)
-    .where(and(eq(galleryPhoto.sourceHash, hash), eq(galleryPhoto.status, "READY")))
-    .limit(1);
-  return row ?? null;
+    .leftJoin(scoped, eq(scoped.photoId, galleryPhoto.id))
+    .where(ready)
+    .orderBy(asc(scoped.slug));
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    width: row.width,
+    height: row.height,
+    alt: row.alt,
+    variants: row.variants,
+    albums: rows.flatMap(({ albumSlug, albumSortOrder }) =>
+      albumSlug !== null && albumSortOrder !== null
+        ? [{ slug: albumSlug, sortOrder: albumSortOrder }]
+        : [],
+    ),
+  };
 }
 
 export async function registerGalleryPhotoAs(
