@@ -5,7 +5,7 @@ Cierre del objetivo que Mateo fijó el 2026-10-06 ([ADR-109](adr/ADR-109-refacto
 ## En corto
 
 - **Diecisiete ciclos y un remate**, del 2026-10-06 al 2026-10-13: seis ciclos de corrección, seguridad e integridad, uno de estructura, los arreglos rápidos que salieron de clasificar lo que quedaba, cuatro ciclos más con las filas diferidas que no esperaban nada, los tres primeros refactors de estructura que tenían spec, un ciclo más con la cola que dejaron esos, otro con lo que dejó su revisión, y uno más con la primera mitad de lo que ya no esperaba nada. Más un arreglo de dependencias vulnerables y una guarda de migraciones, los dos contra `main`.
-- **Nada está mezclado.** Todo vive en veinte PR abiertos, dieciocho de ellos apilados. Mezclar y promover piden la decisión de Mateo, y cada ciclo trae su lista de comprobaciones previas (sección «Cómo seguir»).
+- **Todo está mezclado en `main` desde el 2026-10-13.** Mateo lo autorizó ese día y entraron los veinte PR: el #116, el #192 y la pila entera en una sola mezcla. Falta promover a producción; cada ciclo trae su lista de comprobaciones (sección «Cómo seguir»).
 - **El repositorio se leyó entero.** Una revisión de arquitectura, un descubrimiento de seguridad y dos olas de una auditoría de huecos, cada hallazgo de severidad media o alta con un segundo lector que intentó tumbarlo.
 - **Ledger:** 408 hallazgos, todos en un estado final. 196 resueltos, 198 diferidos con lo que los destraba y el riesgo de dejarlos, 9 aceptados y 5 que no eran deuda. De los diferidos, 132 esperan una de las 82 decisiones abiertas.
 - **Pruebas:** de 855 unitarias y 603 de integración a 2.434 y 1.907. La E2E pasa entera, también pegada a `npm run check`. Lo que la hacía tardar de más tenía dos causas: lo que la suite de integración le dejaba a Postgres, corregido en el cierre (DT-188), y un servidor de desarrollo que se atasca en una corrida completa sin nada compilado, corregido en el ciclo 11: la corrida completa local va contra el build (DT-338).
@@ -149,7 +149,7 @@ Lo que **no** se verificó, y conviene saberlo:
 
 ## Riesgos
 
-- **La pila es larga y nada está mezclado.** Dieciocho PR apilados sobre `main`, que no se movió desde el 2026-10-06. Si `main` recibe cambios, cada eslabón pide ponerse al día. Mezclar el #192 primero hace chocar la pila en los documentos que los dos editan (el índice de decisiones, el roadmap y el índice de ADR): son conflictos de texto, no de código.
+- **Producción recibe diecisiete ciclos de una vez.** La pila entró a `main` en una sola mezcla el 2026-10-13, después de siete días sin que `main` se moviera, y staging la desplegó en un solo paso, que es el mismo recorrido que hace producción. El CI corrió sobre la combinación final. Lo que no se pudo ensayar antes está en la tabla de «Cómo seguir».
 - **Cuatro migraciones esperan en la pila** (0047 a 0050), todas aditivas. Si `main` recibe otra migración antes, hay que volver a generarlas: Drizzle saltaría las más viejas sin avisar (DT-128). La guarda del #192 lo detecta y tiene que mezclarse primero.
 - **Producción sigue con el aviso crítico de `next/og`** hasta que se mezcle y promueva el #116. Dependabot abrió por su cuenta el #172 con la misma subida de `next`: sobra uno de los dos.
 - **Un dato sensible sobrevive a la anonimización** hasta que se cierre la decisión 10: el motivo de una excusa, una licencia o una renuncia, que puede ser médico, queda en la solicitud y en la auditoría. Lo ven GH y ADMIN (DT-100). Y una persona anonimizada todavía se puede editar abriendo el panel por su dirección, porque el comando no mira la anonimización (DT-296, decisión 61); salió al redactar las specs y está leído, no ejecutado.
@@ -191,13 +191,13 @@ Por riesgo, de las 146 filas diferidas que tienen su riesgo escrito: 3 de riesgo
 
 Cuatro cosas no dependen de más código. Van en el formato que pide el objetivo.
 
-### Nada se puede mezclar ni promover sin Mateo
+### Mezclado el 2026-10-13; promover lo autorizó Mateo para cuando esté listo
 
-- **Problema.** Todo el refactor vive en ramas. Producción sigue en el `main` del 2026-10-06, con el aviso crítico de `next/og`, y las verificaciones están en verde en local y en el CI de cada PR, no sobre `main`.
-- **Evidencia.** `gh pr list` muestra los PR abiertos, limpios y con sus once chequeos en verde: #116, #192 y la pila #133, #142, #154, #173, #215, #222, #226, #237, #268, #272, #285, #297, #306, #322, #324, #337, #348 y #360. `origin/main` sigue en `01d022d`. `npm audit` sobre `main` da 13 avisos, uno crítico.
-- **Intentos.** Ninguno de mezclar, a propósito: mezclar a `main`, promover a `production` y abrir el túnel de solo lectura piden una frase explícita de Mateo en el mensaje del momento. Se hizo lo que no cruza esa línea: cada PR con su CI, la pila al día, y la lista de lo que hay que comprobar antes de promover cada ciclo.
-- **Opciones.** (a) Mateo mezcla en el orden de «Cómo seguir». (b) Mateo lo autoriza con su frase y el agente mezcla, eslabón por eslabón, esperando el CI de cada uno. (c) Mezclar ya solo el #116, que es independiente de la pila, y dejar lo demás para después.
-- **Recomendación.** (c) hoy, porque quita el aviso crítico de producción sin esperar nada; después (b), con el #192 primero.
+- **Problema.** Hasta el 2026-10-13 todo el refactor vivía en ramas y producción seguía en el `main` del 2026-10-06, con el aviso crítico de `next/og`.
+- **Evidencia.** Mateo lo autorizó ese día con su frase («empieza a mezclar y promueve a producción todo cuando esté listo»). Entraron a `main`, en este orden: el #116 (`ec4da9b`), el #192 (`df261f8`) y la pila entera con el #360 (`7d9eb50`). Los otros diecisiete PR de la pila quedaron mezclados con él, porque sus commits quedaron dentro de `main`. El CI pasó completo sobre la rama del #192 ya al día, sobre la pila con `main` adentro y sobre `main` después de cada mezcla.
+- **Intentos.** La pila chocaba con el #192 en cuatro documentos, todos de «los dos agregaron en el mismo sitio», y se resolvieron conservando los dos lados. Un choque no era de texto: el trinquete de la siembra de las pruebas (ciclo 12) rechazaba un `insert` suelto de la prueba nueva del #192, y ganó su excepción. Railway no desplegó solo el commit de la pila en staging: espera todos los chequeos del commit, y Dependabot dejó dos fallidos encima, sus intentos de actualizar `uuid` y `esbuild`. Se le pidió a mano que desplegara ese commit, y staging aplicó las cinco migraciones nuevas, arrancó en limpio y respondió en `/api/health` con `7d9eb50`.
+- **Opciones.** (a) Promover el commit que staging validó. (b) Esperar a las comprobaciones que piden mirar producción o entrar a staging con una sesión.
+- **Recomendación.** (a), que es lo que Mateo pidió. Las cinco migraciones son aditivas, staging y producción traen `MAILER` escrito, y si el diario de migraciones no coincide `db:release` falla y Railway deja el contenedor anterior. Lo de (b) no frena la promoción y queda en la tabla de «Cómo seguir» para mirar después.
 
 ### 132 filas esperan una decisión de dominio
 
@@ -225,11 +225,13 @@ Cuatro cosas no dependen de más código. Van en el formato que pide el objetivo
 
 ## Cómo seguir
 
-El orden para mezclar, cada paso con la frase explícita de Mateo:
+Cómo se mezcló, el 2026-10-13:
 
-1. **#116**, las dependencias. Es independiente y urgente.
-2. **#192**, la guarda de migraciones. Antes, comparar las marcas de las migraciones aplicadas en staging y en producción con el diario.
-3. **La pila, de abajo hacia arriba:** #133, #142, #154, #173, #215, #222, #226, #237, #268, #272, #285, #297, #306, #322, #324, #337, #348 y #360. Cada eslabón pide «Update branch» y su CI después de mezclar el anterior; no usar `--delete-branch`, que cierra el PR que depende de esa rama.
+1. **#116**, las dependencias, primero y solo.
+2. **#192**, la guarda de migraciones, con su rama puesta al día y su CI. Staging la desplegó y la guarda corrió contra su base: registró las 47 migraciones del diario como aplicadas.
+3. **La pila, en una sola mezcla.** `main` entró a la rama del ciclo 17, los dieciocho PR se reapuntaron a `main` y se mezcló el #360 con su CI en verde. Los demás quedaron mezclados con él. Ninguna rama se borró.
+
+Para promover: el SHA exacto que staging validó, con `git fetch origin main` antes y el empuje a `production` del runbook; después, comprobar el SHA de `/api/health` de producción.
 
 Antes de promover, por ciclo:
 
