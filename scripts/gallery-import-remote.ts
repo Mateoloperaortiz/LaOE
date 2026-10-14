@@ -271,14 +271,17 @@ async function importBatch<T>(
   if (failed) throw failure;
 }
 
-function remoteVariantsFor(photo: PreparedPhoto, existing: ExistingPhoto): RemoteVariants {
-  const localVariants = Object.fromEntries(
+function localVariantsFor(photo: PreparedPhoto): RemoteVariants {
+  return Object.fromEntries(
     photo.variants.map(({ path: _path, sha256: _hash, ...variant }) => [
       `w${variant.width}`,
       variant,
     ]),
   );
-  const parsed = remoteVariantsSchema.safeParse(existing?.variants ?? localVariants);
+}
+
+function remoteVariantsFor(photo: PreparedPhoto, existing: ExistingPhoto): RemoteVariants {
+  const parsed = remoteVariantsSchema.safeParse(existing?.variants ?? localVariantsFor(photo));
   if (!parsed.success) {
     throw new GalleryImportError("Las variantes remotas no cumplen el contrato de WebP privadas");
   }
@@ -307,6 +310,42 @@ function remoteVariantsFor(photo: PreparedPhoto, existing: ExistingPhoto): Remot
   return variants;
 }
 
+function alreadyRegistered(
+  existing: ExistingPhoto,
+  photo: PreparedPhoto,
+  alt: string,
+  albums: { slug: string; sortOrder: number }[],
+): existing is NonNullable<ExistingPhoto> {
+  if (
+    !existing ||
+    existing.alt !== alt ||
+    existing.width !== photo.width ||
+    existing.height !== photo.height ||
+    !existing.albums ||
+    existing.albums.length !== albums.length
+  )
+    return false;
+  const expectedAlbums = new Map(albums.map((album) => [album.slug, album.sortOrder]));
+  if (
+    new Set(existing.albums.map((album) => album.slug)).size !== albums.length ||
+    existing.albums.some((album) => expectedAlbums.get(album.slug) !== album.sortOrder)
+  )
+    return false;
+  const local = localVariantsFor(photo);
+  if (Object.keys(existing.variants).length !== Object.keys(local).length) return false;
+  return Object.entries(local).every(([name, expected]) => {
+    const stored = existing.variants[name];
+    return (
+      stored !== undefined &&
+      stored.key === expected.key &&
+      stored.width === expected.width &&
+      stored.height === expected.height &&
+      stored.byteSize === expected.byteSize &&
+      stored.contentType === expected.contentType
+    );
+  });
+}
+
 async function importPhoto(
   actor: ImportActor,
   output: string,
@@ -315,7 +354,7 @@ async function importPhoto(
   albums: { slug: string; title: string; sortOrder: number }[],
   collectionTitle: string,
 ): Promise<string> {
-  const existing = await findGalleryPhotoForImportAs(actor, photo.sourceHash);
+  const existing = await findGalleryPhotoForImportAs(actor, photo.sourceHash, collectionId);
   const variants = remoteVariantsFor(photo, existing);
   for (const variant of Object.values(variants)) {
     const local = photo.variants.find((item) => item.width === variant.width);
@@ -339,14 +378,18 @@ async function importPhoto(
   }
   const primary = albums[0];
   if (!primary) throw new GalleryImportError("Una foto no pertenece a ningún álbum");
+  const alt = `${collectionTitle} · ${primary.title} · ${primary.sortOrder + 1}`;
+  const relations = albums.map(({ slug, sortOrder }) => ({ slug, sortOrder }));
+  // Se compara el estado vivo completo, después de confirmar o reparar todos sus objetos.
+  if (alreadyRegistered(existing, photo, alt, relations)) return existing.id;
   const saved = await registerGalleryPhotoAs(actor, {
     collectionId,
     sourceHash: photo.sourceHash,
     width: photo.width,
     height: photo.height,
-    alt: `${collectionTitle} · ${primary.title} · ${primary.sortOrder + 1}`,
+    alt,
     variants,
-    albums: albums.map(({ slug, sortOrder }) => ({ slug, sortOrder })),
+    albums: relations,
   });
   return saved.id;
 }

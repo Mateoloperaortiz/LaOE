@@ -215,6 +215,67 @@ describe("colección privada de fotos", () => {
     expect(await getGalleryCollection("primera")).toBeNull();
   });
 
+  it("consulta pertenencias exactas de una colección sin incluir las de otra ni emitir auditoría", async () => {
+    const actor = await adminActor();
+    const first = await upsertGalleryCollectionAs(actor, {
+      slug: "consulta-primera",
+      title: "Primera",
+      description: "Sintética",
+    });
+    const second = await upsertGalleryCollectionAs(actor, {
+      slug: "consulta-segunda",
+      title: "Segunda",
+      description: "Sintética",
+    });
+    for (const collection of [first, second]) {
+      await upsertGalleryAlbumAs(actor, {
+        collectionId: collection.id,
+        slug: "momentos",
+        title: "Momentos",
+        caption: "",
+        sortOrder: 0,
+      });
+    }
+    await upsertGalleryAlbumAs(actor, {
+      collectionId: first.id,
+      slug: "seleccion",
+      title: "Selección",
+      caption: "",
+      sortOrder: 1,
+    });
+    const prepared = await preparedPhoto("consulta-primera");
+    const photo = await registerGalleryPhotoAs(actor, {
+      ...prepared,
+      collectionId: first.id,
+      albums: [
+        { slug: "momentos", sortOrder: 3 },
+        { slug: "seleccion", sortOrder: 7 },
+      ],
+    });
+    await registerGalleryPhotoAs(actor, {
+      ...prepared,
+      collectionId: second.id,
+      albums: [{ slug: "momentos", sortOrder: 5 }],
+    });
+    const before = (await getDb().select({ n: count() }).from(auditLog))[0]?.n;
+    expect(await findGalleryPhotoForImportAs(actor, prepared.sourceHash, first.id)).toMatchObject({
+      id: photo.id,
+      alt: prepared.alt,
+      albums: [
+        { slug: "momentos", sortOrder: 3 },
+        { slug: "seleccion", sortOrder: 7 },
+      ],
+    });
+    expect(
+      (await findGalleryPhotoForImportAs(actor, prepared.sourceHash, second.id))?.albums,
+    ).toEqual([{ slug: "momentos", sortOrder: 5 }]);
+    expect((await findGalleryPhotoForImportAs(actor, prepared.sourceHash))?.albums).toBeNull();
+    await expect(
+      findGalleryPhotoForImportAs({ ...actor, isAdmin: false }, prepared.sourceHash, first.id),
+    ).rejects.toBeInstanceOf(DomainError);
+    expect((await getDb().select({ n: count() }).from(auditLog))[0]?.n).toBe(before);
+  });
+
   it("repetir una importación publicada es un no-op y los cambios quedan rechazados", async () => {
     const actor = await adminActor();
     const collectionInput = { slug: "publicada", title: "Prueba", description: "Fotos sintéticas" };
