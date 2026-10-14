@@ -5,6 +5,7 @@ import { form, formSubmission } from "@/modules/forms/schema";
 import { person } from "@/modules/people/schema";
 import { appConfig } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
+import { seedForm } from "../factories";
 import { test } from "./fixtures";
 import { drenarOutbox } from "./outbox";
 
@@ -24,21 +25,14 @@ test.beforeEach(async () => {
     .from(appConfig)
     .where(eq(appConfig.key, "privacy.policyVersion"));
   originalVersion = config?.value ?? "prueba-v1";
-  const [created] = await getDb()
-    .insert(form)
-    .values({
-      slug,
-      title: "Política de prueba E2E",
-      audience: "PUBLIC",
-      status: "OPEN",
-      consentRequired: true,
-      fields: [],
-      actions: { createPerson: true },
-    })
-    .onConflictDoUpdate({ target: form.slug, set: { status: "OPEN" } })
-    .returning({ id: form.id });
-  if (!created) throw new Error("formulario de prueba");
-  formId = created.id;
+  formId = await seedForm(slug, {
+    title: "Política de prueba E2E",
+    audience: "PUBLIC",
+    status: "OPEN",
+    consentRequired: true,
+    fields: [],
+    actions: { createPerson: true },
+  });
 });
 test.afterEach(async () => {
   await drenarOutbox();

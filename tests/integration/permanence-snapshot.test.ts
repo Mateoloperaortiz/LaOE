@@ -3,7 +3,6 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { checkInSelfAs } from "@/modules/participation";
 import {
   computePerson,
@@ -20,7 +19,6 @@ import {
 import { permanenceSnapshot } from "@/modules/permanence/schema";
 import { outbox } from "@/modules/system/schema";
 import { closeTermPermanence, closeTermPoints } from "@/modules/terms";
-import { truncateAll } from "./db";
 import {
   seedCheckIn,
   seedCommittee,
@@ -31,7 +29,9 @@ import {
   seedPerson,
   seedRule,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Recompute por outbox (ADR-036 regla 5): clave por persona o por término, snapshot igual a la función
 // pura, sin recalcular términos cerrados ni filas congeladas; la vista en vivo coincide con el snapshot.
@@ -76,10 +76,11 @@ describe("snapshot de permanencia", () => {
     const occasion = await seedOccasion(termId, { category: "INTEGRATION", points: 0 });
     const outcome = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
     expect(outcome.ok && outcome.status).toBe("APPROVED");
-    // Los handlers cruzados encolan el recompute de la persona (segundo drain lo corre).
-    await drain(50);
+    // Un solo lote del poller con el reloj fijo: el recompute que encolan los handlers cruzados nace
+    // después y queda pendiente para contarlo. El drenado lo corre.
+    expect((await drain(50)).failed).toBe(0);
     expect(await pending("permanence.recompute", `permanence:${termId}:${personId}`)).toBe(1);
-    await drain(50);
+    await drainOutbox();
     expect(await pending("permanence.recompute")).toBe(0);
     const snapshot = await getSnapshot(personId, termId);
     expect(snapshot).not.toBeNull();
@@ -119,7 +120,7 @@ describe("snapshot de permanencia", () => {
       { bypassLock: true },
     );
     expect(await pending("permanence.recompute", `permanence:${termId}:*`)).toBe(1);
-    await drain(50);
+    await drainOutbox();
     const snapshots = await listSnapshots(termId);
     expect(snapshots.map((item) => item.personId).sort()).toEqual([other, personId].sort());
     expect(snapshots.find((item) => item.personId === other)).toMatchObject({ probation: true });
@@ -136,7 +137,7 @@ describe("snapshot de permanencia", () => {
     const { termId, personId } = await setup();
     expect(await getSnapshot(personId, termId)).toBeNull();
     await enqueueEvent(getDb(), { type: "permanence.daily", payload: {} });
-    await drain(50);
+    await drainOutbox();
     expect(await pending("permanence.daily")).toBe(0);
     expect(await getSnapshot(personId, termId)).not.toBeNull();
   });

@@ -1,15 +1,12 @@
 import { randomBytes } from "node:crypto";
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { game2048Completed } from "@/domain-events/participation";
-import { getMembershipRef } from "@/modules/people";
-import { findTermContaining, getTerm, lockOpenTermPoints } from "@/modules/terms";
+import { findTermContaining } from "@/modules/terms";
 import { t } from "@/shared/copy";
-import { startOfTodayIn } from "@/shared/lib/dates";
-import { DomainError } from "@/shared/lib/errors";
 import {
   GAME2048_MAX_MOVES,
   GAME2048_RULES_VERSION,
@@ -25,8 +22,16 @@ import type {
   Game2048Status,
   TodayGame2048,
 } from "../game2048-types";
-import { game2048Run, pointEntry } from "../schema";
-import { dayKeyFor, GAMIFICATION_TIMEZONE } from "./gamification-pure";
+import { game2048Run } from "../schema";
+import {
+  type DailyGameRules,
+  isEligibleToPlay,
+  lockDailyGame,
+  refusalToContinue,
+  startDailyGame,
+} from "./daily-game-guard";
+import { dayKeyFor, nextDayAt } from "./gamification-pure";
+import { creditGame } from "./ledger";
 
 // 2048 diario (ADR-075). El servidor nunca lee un puntaje del cliente: reparte la semilla, recibe la
 // lista de movimientos y rejuega la partida entera con el motor puro. Se puede jugar sin límite; el
@@ -46,14 +51,14 @@ const finishSchema = z.object({
   requestId,
 });
 
-function nextDayAt(now: Date): string {
-  return new Date(startOfTodayIn(GAMIFICATION_TIMEZONE, now).getTime() + 86_400_000).toISOString();
-}
-
-async function eligible(personId: string, exec: Executor): Promise<boolean> {
-  const membership = await getMembershipRef(personId, exec);
-  return membership?.status === "ACTIVE" || membership?.status === "HONORARY";
-}
+/** Lo que el 2048 le declara a la guardia de la partida diaria (ADR-119 regla 7). */
+const DAILY_RULES = {
+  // Serializa por persona: el crédito del día y la partida abierta se deciden de a uno.
+  lock: { key: "game2048", per: "PERSON" },
+  startWhenClosed: "SAVED_FIRST",
+  expiredAndClosed: "EXPIRED",
+  movedTerm: "NOT_ELIGIBLE",
+} as const satisfies DailyGameRules;
 
 /** Proyección explícita: la semilla y la lista de movimientos no salen por aquí. */
 function runView(row: RunRow, now: Date): Game2048RunView {
@@ -75,26 +80,6 @@ function startedView(row: RunRow, now: Date): Game2048StartedView {
   return { ...runView(row, now), seed: row.seed, rulesVersion: row.rulesVersion };
 }
 
-/** Mantiene el FOR SHARE aun cuando el semestre ya cerró, para poder reconocer reintentos. */
-async function lockTerm(ctx: CommandContext, termId: string): Promise<boolean> {
-  try {
-    await lockOpenTermPoints(ctx.tx, termId);
-    return true;
-  } catch (error) {
-    if (error instanceof DomainError && (await getTerm(termId, ctx.tx))?.pointsClosedAt) {
-      return false;
-    }
-    throw error;
-  }
-}
-
-/** Serializa por persona: el crédito del día y la partida abierta se deciden de a uno. */
-async function lockPerson(ctx: CommandContext, personId: string): Promise<void> {
-  await ctx.tx.execute(
-    sql`select pg_advisory_xact_lock(hashtextextended(${`game2048:${personId}`}, 0))`,
-  );
-}
-
 /** Lectura sin crear partidas; el personId siempre lo resuelve el servidor desde la sesión. */
 export async function getTodayGame2048(personId: string): Promise<TodayGame2048> {
   const now = new Date();
@@ -102,7 +87,7 @@ export async function getTodayGame2048(personId: string): Promise<TodayGame2048>
   return getDb().transaction(
     async (db): Promise<TodayGame2048> => {
       const current = await findTermContaining(day, db);
-      const allowed = await eligible(personId, db);
+      const allowed = await isEligibleToPlay(personId, db);
       const mine = await db
         .select()
         .from(game2048Run)
@@ -115,7 +100,7 @@ export async function getTodayGame2048(personId: string): Promise<TodayGame2048>
         .reduce((top, row) => (row.score > top ? row.score : top), 0);
       return {
         day,
-        nextAvailableAt: nextDayAt(now),
+        nextAvailableAt: nextDayAt(day),
         termId: current?.id ?? null,
         availability: !allowed
           ? "NOT_ELIGIBLE"
@@ -160,20 +145,15 @@ export async function startGame2048As(
     return { ok: false, reason: "INVALID_INPUT" };
   }
   return runCommand(actor, async (ctx) => {
-    const day = dayKeyFor(new Date());
-    const current = await findTermContaining(day, ctx.tx);
-    if (!current) {
-      return { ok: false, reason: "NO_TERM" };
+    const start = await startDailyGame(ctx, DAILY_RULES, {
+      personId: actor.personId,
+      now: () => new Date(),
+      expectedDay: null,
+    });
+    if (!start.ok) {
+      return { ok: false, reason: start.reason };
     }
-    const open = await lockTerm(ctx, current.id);
-    await lockPerson(ctx, actor.personId);
-    const now = new Date();
-    if (dayKeyFor(now) !== day) {
-      return { ok: false, reason: "EXPIRED" };
-    }
-    if (!(await eligible(actor.personId, ctx.tx))) {
-      return { ok: false, reason: "NOT_ELIGIBLE" };
-    }
+    const { day, term: current, open, now } = start;
     const [existing] = await ctx.tx
       .select()
       .from(game2048Run)
@@ -254,10 +234,13 @@ export async function finishGame2048As(
   }
 
   return runCommand(actor, async (ctx) => {
+    // El reloj se lee al llegar, antes de los candados (decisión abierta 50).
     const now = new Date();
     const day = dayKeyFor(now);
-    const open = await lockTerm(ctx, stored.termId);
-    await lockPerson(ctx, actor.personId);
+    const open = await lockDailyGame(ctx, DAILY_RULES, {
+      personId: actor.personId,
+      termId: stored.termId,
+    });
     const [row] = await ctx.tx
       .select()
       .from(game2048Run)
@@ -275,16 +258,15 @@ export async function finishGame2048As(
     if (row.status !== "IN_PROGRESS") {
       return { ok: false, reason: "FINISHED", run: runView(row, now) };
     }
-    const current = await findTermContaining(day, ctx.tx);
-    const vigente =
-      open && row.day === day && current?.id === row.termId && !current?.pointsClosedAt;
-    if (!vigente || !(await eligible(actor.personId, ctx.tx))) {
+    const refusal = await refusalToContinue(ctx, DAILY_RULES, {
+      personId: actor.personId,
+      game: row,
+      open,
+      now,
+    });
+    if (refusal) {
       const expired = await expireRun(ctx, row, now);
-      return {
-        ok: false,
-        reason: row.day === day ? (open ? "NOT_ELIGIBLE" : "TERM_CLOSED") : "EXPIRED",
-        run: runView(expired, now),
-      };
+      return { ok: false, reason: refusal, run: runView(expired, now) };
     }
     // Ya acreditada hoy: la partida se guarda igual, simplemente no acredita otra vez.
     const [creditedToday] = await ctx.tx
@@ -318,14 +300,13 @@ export async function finishGame2048As(
       throw new Error("No se pudo guardar la partida de 2048");
     }
     if (points > 0) {
-      await ctx.tx.insert(pointEntry).values({
+      await creditGame(ctx, {
+        game: "GAME2048",
+        runId: row.id,
         personId: actor.personId,
         termId: row.termId,
-        game2048RunId: row.id,
-        kind: "GAME2048",
         points,
         reason: t("T-2654", { fecha: row.day, puntaje: replay.score }),
-        createdById: actor.personId,
       });
       await ctx.emit(
         eventOf(game2048Completed, {

@@ -7,11 +7,10 @@ import {
   listChallengesForMember,
   loadGamificationSettings,
   type MemberChallengeCard,
-  resolveMemberContext,
 } from "@/modules/participation";
 import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
 import { getCurrentTerm } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { Vacio } from "../../_ui/Vacio";
 
 // Retos del miembro (ADR-067 regla 3): los del semestre actual filtrados por su público y por
@@ -55,10 +54,9 @@ export default async function RetosPage({ searchParams }: PageProps<"/app/gh-poi
       </div>
     );
   }
-  const member = await resolveMemberContext(actor.personId, term.id);
-  const cards = await listChallengesForMember(actor.personId, term.id, member);
+  const cards = await listChallengesForMember(actor.personId, term.id);
   const filtered = cards.filter((card) => matches(card, filtro));
-  const labels = tList("T-2448");
+  const labels = tLabels("T-2448", FILTROS);
 
   return (
     <div className="flex flex-col gap-8">
@@ -68,7 +66,7 @@ export default async function RetosPage({ searchParams }: PageProps<"/app/gh-poi
       </header>
 
       <nav aria-label={t("T-2406")} className="flex flex-wrap gap-2">
-        {FILTROS.map((value, index) => (
+        {FILTROS.map((value) => (
           <Link
             key={value}
             href={`/app/gh-points/retos?filtro=${value}`}
@@ -77,7 +75,7 @@ export default async function RetosPage({ searchParams }: PageProps<"/app/gh-poi
               value === filtro ? "bg-oe-navy text-oe-paper" : "border border-borde text-titulo"
             }`}
           >
-            {labels[index] ?? value}
+            {labels[value] ?? value}
           </Link>
         ))}
       </nav>

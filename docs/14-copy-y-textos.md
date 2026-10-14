@@ -71,6 +71,8 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-037 | Expresión de marca del manual, cierre de éxitos y estados vacíos | ¡OE OE OE! | COM | Aprobado por el manual |
 | T-038 | Navegación del portal público | Inicio · La OE · Cartelera · Eventos · Comités · Unirse | COM | Propuesta |
 | T-039 | Nombres de los cuatro macroeventos (identidades permanentes) | Días EAFIT · Inventiva · EnFemenino · Subsidios-OE | COM | Aprobado por el manual |
+| T-3252 | Formularios: la acción no respondió, por la red o por un fallo que la casa no atrapó (ADR-118) | No pudimos confirmar el envío. Revisá la conexión e intentá de nuevo. | MATEO | Propuesta |
+| T-3263 | Cerrar sesión: el pedido de salida no tuvo respuesta (ADR-122) | No pudimos confirmar que tu sesión se cerró. Revisá la conexión e intentá de nuevo. | MATEO | Propuesta |
 
 ### Portal público · fase 1 (cartelera, eventos, comités, imágenes para compartir)
 
@@ -149,6 +151,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-054 | Correo del código, cuerpo | Hola, {nombre}. Tu código es **{código}** y vence en 10 minutos. Si no fuiste vos, ignorá este correo. | MATEO | Propuesta |
 | T-2092 | Correo del código, pie | Organización Estudiantil · Universidad EAFIT · Bloque 29 of. 525 · Este es un mensaje automático de seguridad: te llega porque alguien pidió un código para entrar a Mi OE con tu dirección. | MATEO | Propuesta |
 | T-055 | Step-up (acción sensible de admin) | Esta acción pide un código nuevo. Te lo mandamos al correo. | MATEO | Propuesta |
+| T-3211 | Pantalla a la que se vuelve tras el ingreso o el paso de seguridad que pidió una descarga (exportes del admin, Mis datos, PDF de normativa, evidencia de un reto y pases de billetera; ADR-113) | La descarga quedó pendiente porque primero había que confirmar que sos vos. Pedila otra vez desde acá. | MATEO | Propuesta |
 
 ## 4. Mi OE
 
@@ -360,6 +363,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-558 | Check-in: título de la pestaña del navegador | Registro de asistencia | MATEO | Propuesta |
 | T-559 | GH Points: etiqueta del puesto propio | Tu puesto | GH | Propuesta |
 | T-560 | GH Points: columnas de los tableros de personas | Puesto · Nombre · GH Points | MATEO | Propuesta |
+| T-3269 | Check-in: quien abre el enlace no tiene una membresía que admita el registro (ADR-123) | No tenés una membresía activa este semestre: el registro no está disponible. | GH | Propuesta |
 
 ### Mi OE · fase 4 (permanencia, avisos, cartelera del comité, insignias)
 
@@ -487,6 +491,8 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-1108 | Notificaciones: activadas ahora | ¡De una! Este dispositivo ya recibe notificaciones. | MATEO | Propuesta |
 | T-1109 | Notificaciones: falló activar | No pudimos activar las notificaciones. Intentá otra vez en un ratico. | MATEO | Propuesta |
 | T-1110 | Dispositivos: quitado | Listo, ese dispositivo ya no recibe notificaciones. | MATEO | Propuesta |
+| T-3208 | Notificaciones: el endpoint del dispositivo ya es de otra persona (ADR-113) | Este dispositivo ya recibe notificaciones a nombre de otra persona. | MATEO | Propuesta |
+| T-3209 | Notificaciones: tope de dispositivos por persona (ADR-113) | Ya tenés 10 dispositivos con notificaciones. Quitá uno en Ajustes para activar este. | MATEO | Propuesta |
 
 ## 5. Administración
 
@@ -559,6 +565,9 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-297 | Términos: columna semestre | Semestre | MATEO | Propuesta |
 | T-298 | Términos: fechas invertidas | El fin debe ser posterior al inicio. | MATEO | Propuesta |
 | T-299 | Paleta ⌘K: botón que la abre | Buscar (⌘K) | MATEO | Propuesta |
+| T-3248 | Exporte CSV: última fila de un archivo recortado (ADR-118) | Archivo recortado: van {n} filas de {total}. Filtrá el listado y volvé a exportar para sacar el resto. | MATEO | Propuesta |
+| T-3249 | Listados: aviso de que el CSV va a salir recortado (ADR-118) | El CSV sale recortado: trae {n} filas y este listado tiene {total}. Filtrá antes de exportar para que salga completo. | MATEO | Propuesta |
+| T-3254 | Términos: fechas que se cruzan con las de otro término (ADR-118) | Esas fechas se cruzan con las de {término}: dos términos no pueden compartir un día. Ajustá el inicio o el fin. | MATEO | Propuesta |
 
 ### Admin de Contenido (páginas, cartelera, eventos, ediciones y medios)
 
@@ -604,6 +613,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-367 | Páginas, eventos y ediciones: identificador repetido | Ya existe otro con ese identificador. | MATEO | Propuesta |
 | T-368 | Eventos y ediciones: opción sin portada | Sin portada (cartel tipográfico) | MATEO | Propuesta |
 | T-369 | Eventos: enlace a las ediciones desde la fila | Ediciones ({n}) | MATEO | Propuesta |
+| T-3207 | Medios y evidencias: motivo de una imagen que no se procesó (no se pudo leer · no es un formato admitido · pasa del tope de píxeles · no se pudo codificar · decodificada no cabe en el presupuesto de memoria; ADR-113) | No se pudo decodificar la imagen. · El archivo no es una imagen JPG, PNG o WebP. · La imagen tiene más de 40 megapíxeles. · No se pudo codificar la imagen. · La imagen pide demasiada memoria para abrirla. Reducila y subila de nuevo. | MATEO | Propuesta |
 
 ### Admin de Personas y CRM (fase 2: personas, Persona 360, importación, cargos, etiquetas, tareas, segmentos, documentos)
 
@@ -710,6 +720,8 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-518 | Documentos: error de subida | No se pudo subir el PDF. Intentá de nuevo. | MATEO | Propuesta |
 | T-519 | Documentos: archivo fuera de tamaño | El PDF debe pesar entre 1 KB y 20 MB. | MATEO | Propuesta |
 | T-520 | Documentos: subida confirmada | De una: el PDF quedó guardado. Ahora cargá los artículos. | MATEO | Propuesta |
+| T-3210 | Importación: aplicar, descartar o cambiar las columnas de una que ya se aplicó o se descartó (ADR-113) | Esta importación ya no está en revisión. Para repetirla, subí el archivo de nuevo. | MATEO | Propuesta |
+| T-3212 | Importación: registrar los permisos de líder de una que no está aplicada (ADR-114) | Esta importación no está aplicada, así que no hay permisos de líder que registrar. Aplicala primero o, si se descartó o falló, subí el archivo de nuevo. | MATEO | Propuesta |
 
 ### Admin de Participación (fase 3: ocasiones, consola, anfitrión, ledger, rankings, asambleas, cierre, vista de líder, alias)
 
@@ -832,6 +844,9 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-675 | Ocasiones: la fecha de inicio no cae en ningún semestre | No hay un semestre que contenga esa fecha. Crealo primero en Términos. | MATEO | Propuesta |
 | T-676 | Consola: decisión que no aplica al estado del registro | Esa decisión no aplica: el registro está {estado}. | MATEO | Propuesta |
 | T-677 | Migración: motivo del requisito de asambleas heredado de un semestre ya cerrado | Requisito heredado de GHPOINTS (regla anterior). | MATEO | Propuesta |
+| T-3251 | Anfitrión: la lectura del carnet no llegó a la casa (ADR-118) | No pudimos registrar la lectura. Revisá la conexión y volvé a escanear el carnet. | MATEO | Propuesta |
+| T-3256 | Anfitrión: la foto del carnet no abre (ADR-120) | No pudimos abrir esa foto. Tomá otra, escaneá el carnet con la cámara o buscá a la persona por nombre. | MATEO | Propuesta |
+| T-3260 | Consola: el sondeo falló y lo que muestra dejó de valer (ADR-122) | Esta pantalla dejó de actualizarse: el QR y el código que mostraba ya no valen. Recargá la página y, si te pide ingresar, entrá de nuevo. | MATEO | Propuesta |
 
 ### Admin de Permanencia (fase 4: reglas, grupos, evaluaciones, puntajes, créditos, cumplimiento, cierre, vista de líder, junta)
 
@@ -980,6 +995,10 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-848 | Junta: ocasiones celebradas (unidad) | celebradas | MATEO | Propuesta |
 | T-849 | Junta: check-ins aprobados (unidad) | check-ins | MATEO | Propuesta |
 | T-850 | Junta: promedio por ocasión (unidad) | por ocasión | MATEO | Propuesta |
+| T-3213 | Evaluaciones: la persona ya salió del grupo (ADR-116) | Esta persona ya salió del grupo: no se puede evaluar. Si fue un error, agregala otra vez al grupo. | MATEO | Propuesta |
+| T-3214 | Grupo: alta a mano, la persona entró (ADR-116) | Listo: la persona entró al grupo. | MATEO | Propuesta |
+| T-3215 | Grupo: alta a mano, la persona volvió después de haber salido (ADR-116) | Listo: la persona volvió al grupo. Su evaluación quedó pendiente otra vez. | MATEO | Propuesta |
+| T-3216 | Grupo: alta a mano, la persona ya estaba (ADR-116) | Esa persona ya estaba en el grupo: no cambió nada. | MATEO | Propuesta |
 
 ### Admin de admisión, aliados y contactos (fase 5: formularios, organizaciones, pipelines, solicitudes, convocatorias, tablero)
 
@@ -1140,6 +1159,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1060 | Kanban: sin responsable | Sin responsable | MATEO | Propuesta |
 | T-1061 | Correo de solicitud: la decisión dentro de T-205 (aprobada · rechazada) | aprobó · no aprobó | GH | Propuesta |
 | T-1062 | Correo de solicitud: el motivo dentro de T-205 (solo al rechazar) | Motivo: {motivo}. | GH | Propuesta |
+| T-3217 | Tarea de GH: inscripción aceptada que no entró al grupo, título (ADR-116) | La inscripción de {nombre} a «{convocatoria}» quedó aceptada, pero no entró al grupo: {motivo} | MATEO | Propuesta |
 
 ### Admin de Comunicaciones (fase 6: push en la cartelera, plantillas, campañas, mensajes, encuesta en ocasiones, PWA)
 
@@ -1158,7 +1178,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1121 | Plantillas: prueba enviada | De una: te mandamos la prueba a {correo}. | MATEO | Propuesta |
 | T-1122 | Plantillas: identificador repetido | Ya existe una plantilla con ese identificador. | MATEO | Propuesta |
 | T-1123 | Campañas: título | Campañas | MATEO | Propuesta |
-| T-1124 | Campañas: intro | Una campaña manda una plantilla a un segmento, en lotes de {n} correos por minuto y siempre con enlace de baja. | MATEO | Propuesta |
+| T-1124 | Campañas: intro | Una campaña manda una plantilla a un segmento, en lotes de hasta {n} correos por minuto mientras quepan en el cupo del día, y siempre con enlace de baja. | MATEO | Propuesta |
 | T-1125 | Campañas: columnas | Nombre · Plantilla · Segmento · Estado · Programada · Enviados | MATEO | Propuesta |
 | T-1126 | Campañas: campos | Nombre · Plantilla · Segmento | MATEO | Propuesta |
 | T-1127 | Campañas: estados (borrador, programada, enviando, enviada, cancelada) | Borrador · Programada · Enviando · Enviada · Cancelada | MATEO | Propuesta |
@@ -1170,7 +1190,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1133 | Campaña: progreso | {enviados} de {total} enviados · {fallidos} fallidos · {omitidos} omitidos | MATEO | Propuesta |
 | T-1134 | Campaña: destinatarios, columnas | Persona · Estado · Motivo · Enviado | MATEO | Propuesta |
 | T-1135 | Campaña: estados de destinatario (pendiente, enviado, fallido, omitido) | Pendiente · Enviado · Fallido · Omitido | MATEO | Propuesta |
-| T-1136 | Campaña: motivos de omisión (sin correo, baja, sin consentimiento, cancelada) | Sin correo · Se dio de baja · Sin consentimiento de comunicaciones · Campaña cancelada | MATEO | Propuesta |
+| T-1136 | Campaña: motivos de omisión (sin correo, baja, sin consentimiento, cancelada, anonimizada) | Sin correo · Se dio de baja · Sin consentimiento de comunicaciones · Campaña cancelada · Datos eliminados | MATEO | Propuesta |
 | T-1137 | Campaña: solo se edita en borrador | Una campaña programada o enviada no se edita. Creá otra. | MATEO | Propuesta |
 | T-1138 | Campaña: sin destinatarios | El segmento no tiene destinatarios con correo. | MATEO | Propuesta |
 | T-1139 | Campaña: programada (aviso) | Programada para el {fecha}. Los lotes salen desde esa hora. | MATEO | Propuesta |
@@ -1211,6 +1231,34 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1174 | PWA: nombre completo (manifest) | Mi OE · Organización Estudiantil EAFIT | COM | Propuesta |
 | T-1175 | Campaña: sección de destinatarios (título) | Destinatarios | MATEO | Propuesta |
 | T-1176 | Campaña: título de la sección con la estimación, la fecha y los botones de envío | Envío | MATEO | Propuesta |
+| T-3219 | Campaña en curso: cuántos destinatarios faltan (ADR-116) | Pendientes por enviar: {n}. | MATEO | Propuesta |
+| T-3220 | Campaña en curso: lo pendiente espera por un corte del proveedor | Están en espera: {proveedor} rechazó un correo por {causa} y ningún lote sale hasta el {fecha}. | MATEO | Propuesta |
+| T-3221 | Campaña en curso: lo pendiente espera el cupo del otro día | Están en espera: hoy ya no caben más correos de campaña en el cupo del día. Siguen el {fecha}. | MATEO | Propuesta |
+| T-3222 | Campaña en curso: el margen cubre todo el cupo del día | Están en espera: el margen para lo transaccional cubre todo el cupo del día y así no sale ninguna campaña. Bajalo en el cupo de correo. | MATEO | Propuesta |
+| T-3223 | Campaña en curso: nada detiene lo pendiente | Salen en los próximos lotes. | MATEO | Propuesta |
+| T-3224 | Cupo de correo: título de la pantalla y enlace desde Campañas (ADR-116) | Cupo de correo | MATEO | Propuesta |
+| T-3225 | Cupo de correo: causas de un corte, para completar una frase (ráfaga, cupo del día, cupo del mes) | demasiados envíos seguidos · el cupo del día · el cupo del mes | MATEO | Propuesta |
+| T-3226 | Cupo de correo: proveedores (consola, Resend, SES) | La consola · Resend · SES | MATEO | Propuesta |
+| T-3227 | Cupo de correo: intro | Las campañas comparten el cupo del día con los correos transaccionales y les dejan un margen. Acá ves cuánto cabe hoy y, si el proveedor cortó los envíos, hasta cuándo. | MATEO | Propuesta |
+| T-3228 | Cupo de correo: secciones (hoy, margen, corte) | Hoy · Margen · Corte por cuota | MATEO | Propuesta |
+| T-3229 | Cupo de correo: datos de hoy (proveedor, cupo, enviados, margen, lo que cabe) | Salen por · Cupo del día · Enviados hoy · Margen para lo transaccional · Caben hoy en campañas | MATEO | Propuesta |
+| T-3230 | Cupo de correo: el proveedor no lleva cupo del día | {proveedor} no lleva cupo del día acá: el margen no frena las campañas mientras salgan por ahí. | MATEO | Propuesta |
+| T-3231 | Cupo de correo: margen por defecto | {n} (por defecto: un tercio del cupo) | MATEO | Propuesta |
+| T-3232 | Cupo de correo: formulario del margen (campo, botón) | Margen para lo transaccional · Guardar margen | MATEO | Propuesta |
+| T-3233 | Cupo de correo: ayuda del margen | Son los correos del cupo del día que una campaña no toca. Con un margen igual o mayor que el cupo no sale ninguna campaña. | MATEO | Propuesta |
+| T-3234 | Cupo de correo: margen guardado | Listo, el margen quedó en {n}. | MATEO | Propuesta |
+| T-3235 | Cupo de correo: margen inválido | El margen es un número entero, de cero en adelante. | MATEO | Propuesta |
+| T-3236 | Cupo de correo: sin corte vigente | No hay corte vigente. | MATEO | Propuesta |
+| T-3237 | Cupo de correo: corte vigente | {proveedor} rechazó un correo de campaña por {causa} el {desde}. Ningún lote sale hasta el {hasta}. | MATEO | Propuesta |
+| T-3238 | Cupo de correo: levantar el corte (botón) | Levantar el corte | MATEO | Propuesta |
+| T-3239 | Cupo de correo: ayuda de levantar el corte | Levantalo solo si sabés que el proveedor ya está recibiendo: si vuelve a rechazar, el corte se escribe otra vez. | MATEO | Propuesta |
+| T-3240 | Cupo de correo: corte levantado | Corte levantado. El próximo lote vuelve a intentar. | MATEO | Propuesta |
+| T-3241 | Cupo de correo: no había corte que levantar | No había un corte vigente para levantar. | MATEO | Propuesta |
+| T-3242 | Cupo de correo: volver al margen por defecto (botón) | Volver al margen por defecto | MATEO | Propuesta |
+| T-3243 | Cupo de correo: el margen volvió al de por defecto | Listo, el margen vuelve a ser el de por defecto: un tercio del cupo del día. | MATEO | Propuesta |
+| T-3250 | Plantillas y campañas: la prueba que el proveedor rechazó (ADR-118) | No pudimos mandar la prueba a {correo}: el proveedor de correo la rechazó. Revisá el motivo en Mensajes antes de programar un envío. | MATEO | Propuesta |
+| T-3257 | Campaña en curso: hoy solo cabe una parte de lo pendiente (ADR-120) | Hoy no caben todos en el cupo del día. Salen hoy: hasta {hoy}. Quedan en espera: {resto} o más. Siguen el {fecha}. | MATEO | Propuesta |
+| T-3259 | Cupo de correo: el día es el del proveedor y cuándo vuelve a empezar la cuenta (ADR-121) | Ojo: {proveedor} no cuenta el día como acá. El suyo va en hora UTC y en Colombia empieza a las 7:00 p. m. La cuenta de hoy vuelve a empezar el {fecha}. | MATEO | Propuesta |
 
 ### Mi OE · fase 8 (carnet en billeteras)
 
@@ -1266,7 +1314,7 @@ Los badges conservan sus textos oficiales; el resto de la interfaz usa voseo. Re
 | T-186 | Permanencia, "no alcanza" | Hablá con GH · Con lo que queda del semestre no llegás al mínimo en {comité}. | GH | Propuesta; texto sensible |
 | T-187 | Cierre de semestre | Cerró {término} · Entrá a ver tu resultado en cada comité. | GH | Propuesta |
 | T-188 | Evaluación pendiente (a evaluadores) | Tenés {n} evaluaciones pendientes · La ventana cierra el {fecha}. | GH | Propuesta |
-| T-189 | Solicitud respondida | Tu solicitud de {tipo} fue {aprobada/rechazada} · Entrá a ver la respuesta. | GH | Propuesta |
+| T-189 | Solicitud respondida | Tu solicitud fue {decisión} · Pediste {tipo}. Entrá a ver la respuesta. | GH | Propuesta; el tipo va en el cuerpo para que la decisión quepa entera en los 40 caracteres del título con cualquier tipo de T-894 |
 | T-190 | Convocatoria abierta | Se abrió {convocatoria} · {cupo} cupos, cierra el {fecha}. ¡Pilas! | GH | Propuesta |
 | T-191 | Encuesta tras la actividad | ¿Cómo estuvo {actividad}? · Contanos en un ratico. | COM | Propuesta |
 | T-192 | Reconocimiento | ¡Destacado del mes! · {nombre} es el destacado de {comité}. ¡Qué berraco! | COM | Propuesta |
@@ -1635,7 +1683,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2094 | Ingresar, campo de contraseña | Contraseña | MATEO | Propuesta |
 | T-2095 | Ingresar, botón | Entrar | MATEO | Propuesta |
 | T-2096 | Ingresar, error de credenciales (igual si el correo no existe, si no tiene contraseña o si está equivocada) | Correo o contraseña incorrectos. | MATEO | Propuesta |
-| T-2097 | Ingresar, bloqueo temporal por intentos | Demasiados intentos. Esperá 15 minutos y volvé a probar. | MATEO | Propuesta |
+| T-2097 | Ingresar, paso de seguridad con contraseña y cambio de contraseña en Ajustes: bloqueo temporal por intentos (ADR-051, ADR-114) | Demasiados intentos. Esperá 15 minutos y volvé a probar. | MATEO | Propuesta |
 | T-2098 | Ingresar, ayuda fija de primer ingreso y olvido (nunca depende del correo tecleado) | ¿Primera vez acá o perdiste la contraseña? Pedile tu enlace de acceso a Gestión Humana o a cualquier persona de la junta. | MATEO | Propuesta |
 | T-2099 | Ingresar, enlace al método alterno | Entrar con un código al correo institucional | MATEO | Propuesta |
 | T-2100 | Ingresar por código, aviso del filtro de EAFIT | El correo de EAFIT está reteniendo nuestros mensajes, así que el código puede no llegarte. Si no llega, pedile tu enlace de acceso a la junta. | MATEO | Propuesta |
@@ -1680,6 +1728,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2134 | Activación, bienvenida (solo cuando es la primera contraseña) | ¡Bienvenido a la OE! Elegí tu contraseña y entrás a Mi OE: ahí están tus comités, tus GH Points y tu permanencia. | MATEO | Propuesta |
 | T-2133 | Ingresar por código, enlace de vuelta | Entrar con tu contraseña | MATEO | Propuesta |
 | T-2132 | Push: enlace de acceso emitido (título · cuerpo) | Emitieron tu enlace de acceso · Si no lo pediste, avisale a la junta ya mismo. | MATEO | Propuesta |
+| T-3206 | Emisión, persona con permisos que quien emite no tiene (ADR-113) | Esta persona tiene permisos que vos no tenés. Su enlace de acceso solo lo emite un ADMIN: pedíselo a uno. | MATEO | Propuesta |
 
 ## Alta y condición del semestre desde la Persona 360 (ADR-056)
 
@@ -1949,6 +1998,13 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2391 | GT/GAP: Área sin especificar | Área por completar | GH | Confirmado |
 | T-2392 | GT/GAP: Sin equipos | Todavía no hay equipos o apoyos registrados en este semestre. | GH | Confirmado |
 | T-2393 | GT/GAP: Ayuda de pertenencia | La participación se muestra en el perfil al registrarla. El porcentaje de permanencia requiere desempeño acreditado por GH. | GH | Confirmado |
+| T-3218 | Persona 360, Membresía: hasta cuándo fue la suspensión de una sanción, vigente o no (ADR-116) | Suspensión de derechos y beneficios hasta el {fecha} | MATEO | Propuesta |
+| T-3244 | Mesa directiva: el semestre de la edición todavía no existe (ADR-118) | El semestre de esta edición todavía no existe. Crealo antes de nombrar su mesa. | MATEO | Propuesta |
+| T-3245 | Membresía: se pide un estado que la persona ya tiene (ADR-118) | Esa persona ya está en ese estado: no se cambió nada. | MATEO | Propuesta |
+| T-3246 | Comités de la persona: está de baja o no tiene membresía (ADR-118) | No se pueden cambiar los comités de quien está de baja o no tiene membresía. | MATEO | Propuesta |
+| T-3247 | Importación del roster: aviso por persona de baja con comités en un archivo sin ESTADO (ADR-118) | {nombre} está de baja y este archivo no trae la columna ESTADO: el roster no la reactiva ni le cambia los comités. | GH | Propuesta |
+| T-3258 | Membresía: se pide cambiar el estado de quien ya está de baja (ADR-120) | Esa persona ya está de baja: no se cambió nada. Para que vuelva, reactivala. | MATEO | Propuesta |
+| T-3265 | Importación del roster: error de la fila que pasa a honorario a quien está en prueba o con los derechos suspendidos (ADR-123) | {nombre} está en periodo de prueba o con derechos suspendidos y no puede pasar a honorario (Reglamento, art. 73). Esta fila no se importa: corregí su estado. | MATEO | Propuesta |
 
 ### Cargos vigentes e historial (14/09/2026)
 
@@ -2146,7 +2202,7 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2576 | Colección: origen de un logro | Asistencia a {actividad} · Reto {reto} · Wordle del {fecha} · Historia de la OE · Edición especial | MATEO | Propuesta |
 | T-2577 | Reto: cuenta para insignia | Cuenta para Relámpago | MATEO | Propuesta |
 | T-2578 | Boosters: cuál usar (selector) | Sin booster · {booster} (vence el {fecha}) | MATEO | Propuesta |
-| T-2579 | Reto presencial: asistencia rechazada (motivo automático) | Tu asistencia en {actividad} no fue aprobada. | MATEO | Propuesta |
+| T-2579 | Reto presencial y premio de la asistencia: asistencia rechazada (motivo automático) | Tu asistencia en {actividad} no fue aprobada. | MATEO | Propuesta |
 | T-2580 | Reto presencial: asistencia anulada (motivo automático) | Tu asistencia en {actividad} fue anulada: {motivo} | MATEO | Propuesta |
 | T-2581 | Reto cancelado: motivo automático de la participación | El reto se canceló: {motivo} | MATEO | Propuesta |
 | T-2582 | Admin retos: columnas de la lista | Reto · Formato · Estado · Abre · Cierra · Premio · Participantes · Pendientes | MATEO | Propuesta |
@@ -2162,6 +2218,14 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2592 | Admin panel: sin corridas | Todavía no se corrió la conciliación. | MATEO | Propuesta |
 | T-2593 | Admin panel: error de la corrida | Error: {mensaje} | MATEO | Propuesta |
 | T-2594 | Admin cierre: estadísticas de gamificación del standing | Retos completados · Puntos de boosters | MATEO | Propuesta |
+| T-3205 | Reto presencial: asistencia excusada (motivo automático, ADR-111) | Tu asistencia en {actividad} quedó excusada. | MATEO | Propuesta |
+| T-3253 | Reto: el envío de la trivia o de la evidencia no tuvo respuesta (ADR-118) | No recibimos la confirmación. Reintentá el envío tal como está: si ya se guardó, no contará dos veces. | MATEO | Propuesta |
+| T-3261 | Evidencia: el texto no tiene el largo pedido (ADR-122) | Tu texto debe tener entre {min} y {max} caracteres. Ajustalo y enviá de nuevo. | MATEO | Propuesta |
+| T-3262 | Evidencia: la casa no aceptó el contenido del envío (ADR-122) | No pudimos recibir tu evidencia así. Revisá el texto y las imágenes, y enviala de nuevo. | MATEO | Propuesta |
+| T-3264 | Evidencia: imagen de menos de 5 KB (ADR-122) | Esa imagen pesa menos de 5 KB. Subí una de entre 5 KB y 5 MB. | MATEO | Propuesta |
+| T-3266 | Retos: estados de una entrega (en el orden del modelo; ADR-123) | Pendiente · Completado · Rechazado · Anulado | MATEO | Propuesta |
+| T-3267 | Retos y asistencias: estados de un premio (en el orden del modelo; ADR-123) | Reservado · Entregado · Liberado · Anulado | MATEO | Propuesta |
+| T-3268 | Admin panel: reanudar una conciliación que no quedó con error (ADR-123) | Esa conciliación no se puede reanudar: está {estado}. | MATEO | Propuesta |
 
 ## Directorio de comités de Mi OE
 
@@ -2557,6 +2621,7 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2923 | The Games: Hoja muy larga | La hoja pegada es demasiado larga. Pegá solo las cuatro columnas de una jornada. | MATEO | Propuesta |
 | T-2924 | The Games: Importación bloqueada | No se importó nada. Corregí la hoja y volvé a importarla. | MATEO | Propuesta |
 | T-2925 | The Games: Importación con advertencias | La hoja no tiene errores, pero sí advertencias. Revisalas y, si están bien, confirmá para importarla. | MATEO | Propuesta |
+| T-3255 | The Games: Apuesta ya resuelta con otro ganador (ADR-118) | Esta apuesta ya está resuelta con otro ganador. No se cambió nada: el ganador y los pagos siguen como estaban. | MATEO | Propuesta |
 
 ## Capitanes de The Games (ADR-095)
 

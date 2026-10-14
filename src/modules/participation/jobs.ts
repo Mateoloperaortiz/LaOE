@@ -1,3 +1,4 @@
+import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import {
@@ -15,7 +16,11 @@ import {
 } from "@/domain-events/participation";
 import { membershipChanged, personAnonymized } from "@/domain-events/people";
 import { type JobContext, onEvent, onEvents, registerHandler } from "@/jobs/registry";
-import { listLiveCommitteeIds, listTermCommitteeMembers } from "@/modules/people";
+import {
+  listLiveCommitteeIds,
+  listTermCommitteeMembers,
+  purgeIfMembershipEnded,
+} from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { findTermByCode, getCurrentTerm, nextTermCode } from "@/modules/terms";
 import {
@@ -24,6 +29,7 @@ import {
   clearFeaturedBadges,
   recomputeBadgesFor,
 } from "./domain/badges";
+import { clearExcuseReasonsFor } from "./domain/check-ins";
 import { scrubStandingName } from "./domain/closing";
 import { recomputeCommitteeAssembly } from "./domain/committee-assembly";
 import { deleteEvidenceFor, processEvidenceFile } from "./domain/evidence";
@@ -80,10 +86,10 @@ registerHandler("participation.auto-close", async (_payload, ctx) => {
 
 // Recordatorios a personas (ADR-038 regla 9): actividades de hoy, reuniones y asambleas de mañana,
 // asamblea en dos horas. La hora del tick viaja en `at` (el scheduler la pone); así una prueba puede
-// fijarla.
+// fijarla. Si falta o no se lee vale la del poller (`ctx.now`, ADR-118 regla 2), no la del proceso.
 registerHandler("participation.reminders", async (payload, ctx) => {
-  const at = typeof payload.at === "string" ? new Date(payload.at) : new Date();
-  const result = await runReminders(Number.isNaN(at.getTime()) ? new Date() : at);
+  const at = typeof payload.at === "string" ? new Date(payload.at) : ctx.now;
+  const result = await runReminders(Number.isNaN(at.getTime()) ? ctx.now : at);
   if (result.due > 0) {
     ctx.log.info(result, "recordatorios encolados");
   }
@@ -180,20 +186,34 @@ onEvents([checkinApproved, checkinCancelled, checkinExcused], async ({ occasionI
 });
 
 // Al anonimizar, el nombre congelado en los standings pasa a T-223 (ADR-030): people no toca
-// tablas de participation. Las invitaciones de encuesta tampoco son historia.
+// tablas de participation. Las invitaciones de encuesta tampoco son historia, y el motivo de una
+// asistencia excusada es texto de la persona y puede decir de su salud (ADR-114 regla 4): se vacía
+// antes de las evidencias, que dependen del bucket y pueden dejar el handler a medias.
 onEvent(personAnonymized, async ({ personId }, ctx) => {
   const changed = await scrubStandingName(personId);
-  const invites = await deleteSurveyInvitesFor(personId);
+  const invites = await deleteSurveyInvitesFor(getDb(), personId);
   const featured = await clearFeaturedBadges(personId);
+  const excuses = await clearExcuseReasonsFor(personId);
   const evidence = await deleteEvidenceFor(personId);
-  ctx.log.info({ personId, changed, invites, featured, evidence }, "standings anonimizados");
+  ctx.log.info(
+    { personId, changed, invites, featured, excuses, evidence },
+    "participación anonimizada",
+  );
 });
 
+// Solo si la baja sigue vigente cuando corre el evento (ADR-118 regla 5): uno atrasado no se lleva
+// las invitaciones de quien ya volvió.
 onEvent(membershipChanged, async ({ personId, to }, ctx) => {
   if (to !== "INACTIVE") {
     return;
   }
-  const invites = await deleteSurveyInvitesFor(personId);
+  const invites = await purgeIfMembershipEnded(personId, (command) =>
+    deleteSurveyInvitesFor(command.tx, personId),
+  );
+  if (invites === null) {
+    ctx.log.info({ personId }, "baja atrasada: la persona ya volvió y conserva sus invitaciones");
+    return;
+  }
   ctx.log.info({ personId, invites }, "invitaciones de encuesta borradas al salir");
 });
 

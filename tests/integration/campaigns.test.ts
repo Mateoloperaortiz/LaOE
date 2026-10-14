@@ -2,8 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import {
   cancelCampaignAs,
   createCampaignAs,
@@ -22,10 +20,10 @@ import {
 } from "@/modules/comms";
 import { campaignRecipient, message } from "@/modules/comms/schema";
 import { recordConsentAs } from "@/modules/people";
-import { membership, person, segment } from "@/modules/people/schema";
 import type { MailMessage, MailTransport } from "@/shared/adapters/mail";
+import { seedMember, seedMemberships, seedPerson, seedSegment, seedTerm } from "../factories";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // Campañas (ADR-038 regla 8): audiencia congelada con elegibilidad por motivo, lotes por minuto por
 // el transporte de desbordamiento, baja por token y cancelación en curso.
@@ -40,12 +38,6 @@ function fakeTransport(name: MailTransport["name"], sent: MailMessage[]): MailTr
       return { id: `${name}_${sent.length}` };
     },
   };
-}
-
-async function seedSegment(name: string, filter: Record<string, unknown>): Promise<string> {
-  const [row] = await db().insert(segment).values({ name, filter }).returning({ id: segment.id });
-  if (!row) throw new Error("seed segment");
-  return row.id;
 }
 
 async function seedTemplate(slug = "prueba"): Promise<string> {
@@ -81,17 +73,15 @@ describe("campañas", () => {
     const termId = await seedTerm();
     const activa = await seedMember("activa@eafit.edu.co", { firstName: "Ana" });
     const baja = await seedMember("baja@eafit.edu.co");
-    const egresadoSin = await seedMember("egresado.sin@eafit.edu.co");
-    const egresadoCon = await seedMember("egresado.con@eafit.edu.co", {
+    const egresadoSin = await seedPerson("egresado.sin@eafit.edu.co", { stage: "ALUMNI" });
+    const egresadoCon = await seedPerson("egresado.con@eafit.edu.co", {
+      stage: "ALUMNI",
       personalEmail: "egresado@gmail.com",
     });
-    for (const id of [egresadoSin, egresadoCon]) {
-      await db().update(membership).set({ status: "INACTIVE" }).where(eq(membership.personId, id));
-      await db().update(person).set({ stage: "ALUMNI" }).where(eq(person.id, id));
-    }
+    await seedMemberships([egresadoSin, egresadoCon], termId, "INACTIVE");
     await recordConsentAs(SYSTEM_ACTOR, egresadoCon, "COMMUNICATIONS", "SELF");
     await updatePreferencesAs(
-      { personId: baja },
+      { personId: baja, ip: null },
       {
         emailCampaigns: false,
         pushAnnouncements: true,
@@ -100,7 +90,7 @@ describe("campañas", () => {
         pushWordle: true,
       },
     );
-    const segmentId = await seedSegment("todos", {});
+    const segmentId = await seedSegment("todos");
     const templateId = await seedTemplate();
     const { id } = await createCampaignAs(SYSTEM_ACTOR, {
       name: "Lanzamiento",
@@ -113,8 +103,7 @@ describe("campañas", () => {
 
     await scheduleCampaignAs(SYSTEM_ACTOR, id, new Date());
     expect((await getCampaign(id))?.status).toBe("SCHEDULED");
-    const result = await drain(20); // campaign.start
-    expect(result.failed).toBe(0);
+    await drainOutbox(); // campaign.start
     const campaign = await getCampaign(id);
     expect(campaign).toMatchObject({
       status: "SENT",
@@ -153,7 +142,7 @@ describe("campañas", () => {
     for (let i = 0; i < 5; i += 1) {
       ids.push(await seedMember(`lote${i}@eafit.edu.co`));
     }
-    const segmentId = await seedSegment("lote", {});
+    const segmentId = await seedSegment("lote");
     const templateId = await seedTemplate("lote");
     const { id } = await createCampaignAs(SYSTEM_ACTOR, { name: "Lote", templateId, segmentId });
     await scheduleCampaignAs(SYSTEM_ACTOR, id, new Date(Date.now() - 1000));
@@ -171,8 +160,8 @@ describe("campañas", () => {
     const first = ids[0] ?? "";
     const token = (await getPreferences(first)).unsubscribeToken ?? "";
     expect(token.length).toBeGreaterThan(10);
-    expect(await unsubscribeByToken(token)).toBe(true);
-    expect(await unsubscribeByToken("no-existe-este-token-xx")).toBe(false);
+    expect(await unsubscribeByToken(token, null)).toBe(true);
+    expect(await unsubscribeByToken("no-existe-este-token-xx", null)).toBe(false);
     expect((await getPreferences(first)).emailCampaigns).toBe(false);
 
     const second = await createCampaignAs(SYSTEM_ACTOR, { name: "Segunda", templateId, segmentId });

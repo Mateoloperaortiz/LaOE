@@ -2,15 +2,10 @@ import { expect } from "@playwright/test";
 import { and, asc, eq, isNull, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { task } from "@/modules/crm/schema";
-import {
-  committee,
-  committeeMembership,
-  committeeRoleAssignment,
-  membership,
-  person,
-} from "@/modules/people/schema";
+import { committee, committeeMembership, membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedCommitteeRole, seedMembership, seedPerson } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_CALENDAR, E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -55,33 +50,18 @@ async function direct(roleCode: string, coDirector = false): Promise<void> {
       ),
     );
   if (!row) throw new Error("El miembro de pruebas no está en su comité base");
-  await db.insert(committeeRoleAssignment).values({
-    membershipId: row.id,
-    personId: member.id,
-    committeeId: home.id,
-    termId: current.id,
-    roleCode,
-    coDirector,
-  });
-  await db
-    .update(committeeMembership)
-    .set({ roleCode: coDirector ? "MIEMBRO" : roleCode })
-    .where(eq(committeeMembership.id, row.id));
-  const [nuevo] = await db
-    .insert(person)
-    .values({
-      email: NEW_EMAIL,
+  await seedCommitteeRole(row.id, roleCode, coDirector);
+  const [known] = await db
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.email, NEW_EMAIL));
+  if (!known) {
+    const nuevo = await seedPerson(NEW_EMAIL, {
       firstName: "Director",
       lastName: "Nuevo",
-      stage: "MEMBER",
       source: "E2E",
-    })
-    .onConflictDoNothing()
-    .returning({ id: person.id });
-  if (nuevo) {
-    await db
-      .insert(membership)
-      .values({ personId: nuevo.id, status: "ACTIVE", firstTermId: current.id });
+    });
+    await seedMembership(nuevo, current.id);
   }
   await closeDb();
 }

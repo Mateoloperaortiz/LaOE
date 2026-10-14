@@ -6,7 +6,7 @@ import type { CommandContext } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { boosterGranted } from "@/domain-events/participation";
 import { getTerm } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   BOOSTER_STATES,
@@ -65,7 +65,7 @@ export interface BoosterView {
 const boosterErrors = () => tList("T-2466");
 
 function stateLabel(state: BoosterState): string {
-  return tList("T-2455")[BOOSTER_STATES.indexOf(state)] ?? state;
+  return tLabels("T-2455", BOOSTER_STATES)[state] ?? state;
 }
 
 interface BoosterFetchRow {
@@ -205,6 +205,11 @@ export async function setBoosterTarget(
     now?: Date | undefined;
     /** El check-in válido continúa si otra entrega ya reservó o consumió el booster propio. */
     allowUnavailable?: boolean;
+    /**
+     * La asistencia que se está registrando con este booster (ADR-119 regla 3): ya está insertada
+     * cuando se apunta y no cuenta como participación previa en su ocasión.
+     */
+    forCheckInId?: string | undefined;
   },
   context: { member: MemberContext | null; settings: GamificationSettings },
 ): Promise<BoosterRow> {
@@ -311,6 +316,7 @@ export async function setBoosterTarget(
           eq(checkIn.occasionId, occasionId),
           eq(checkIn.personId, input.personId),
           inArray(checkIn.status, ["PENDING", "APPROVED"]),
+          input.forCheckInId ? ne(checkIn.id, input.forCheckInId) : undefined,
         ),
       )
       .limit(1);
@@ -362,13 +368,12 @@ export async function setBoosterTarget(
 export async function listBoosterTargetsForMember(
   personId: string,
   termId: string,
-  member: MemberContext | null,
   now = new Date(),
 ): Promise<{
   challenges: MemberChallengeCard[];
   occasions: Array<{ id: string; publicId: string; title: string; startsAt: Date; points: number }>;
 }> {
-  const cards = await listChallengesForMember(personId, termId, member, now);
+  const cards = await listChallengesForMember(personId, termId, now);
   const challenges = cards.filter(
     (card) =>
       (card.state === "OPEN" || card.state === "SCHEDULED") &&

@@ -1,12 +1,11 @@
 import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { personAnonymized } from "@/domain-events/people";
 import { task } from "@/modules/crm/schema";
+import { assembliesResource } from "@/modules/participation/admin";
 import {
   adjustRequirement,
   assemblyOverview,
@@ -27,8 +26,6 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { getTerm } from "@/modules/terms/domain/terms";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
-import { copyExact } from "../helpers/copy";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -36,7 +33,10 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { copyExact } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 
@@ -73,8 +73,8 @@ describe("asambleas", () => {
     expect(before.compliance.compliant).toBe(false);
     expect(before.assemblies.map((item) => item.status)).toEqual([null, null]);
 
-    await checkInSelfAs({ personId }, { publicId: ordinary.publicId });
-    await checkInSelfAs({ personId }, { publicId: election.publicId });
+    await checkInSelfAs({ personId, ip: null }, { publicId: ordinary.publicId });
+    await checkInSelfAs({ personId, ip: null }, { publicId: election.publicId });
     const after = await assemblyStatusFor(personId, current);
     expect(after.compliance.ordinaryAttended).toBe(1);
     expect(after.compliance.boardElectionAttended).toBe(true);
@@ -84,7 +84,7 @@ describe("asambleas", () => {
     // Ajuste: exige dos ordinarias; deja de cumplir. Vuelve a ajustar sin duplicar filas.
     await expect(
       adjustRequirementAs(
-        { personId },
+        { personId, ip: null },
         {
           termId,
           personId,
@@ -96,7 +96,7 @@ describe("asambleas", () => {
       ),
     ).rejects.toThrow(t("T-628"));
     await adjustRequirementAs(
-      { personId },
+      { personId, ip: null },
       {
         termId,
         personId,
@@ -136,6 +136,106 @@ describe("asambleas", () => {
     ).toEqual([[personId, true, true]]);
   });
 
+  it("la mesa de GH y su exporte le ponen a quien no tiene ajuste el requisito del término: sus ordinarias y cada especial que exista sin cancelar", async () => {
+    const termId = await seedTerm(currentTermCode());
+    // Dos ordinarias y no la que trae un término por defecto: el número sale del término.
+    await db().update(term).set({ requiredOrdinaryAssemblies: 2 }).where(eq(term.id, termId));
+    const current = await termRow(termId);
+    const unadjusted = await seedMember("sin-ajuste@eafit.edu.co", {
+      firstName: "Ana",
+      lastName: "Sin Ajuste",
+    });
+    const adjusted = await seedMember("ajustado@eafit.edu.co", {
+      firstName: "Beto",
+      lastName: "Ajustado",
+    });
+    // La elección en borrador ya existe y se exige; la segunda vuelta cancelada no exige nada.
+    await seedOccasion(termId, {
+      kind: "ASSEMBLY",
+      assemblyKind: "BOARD_ELECTION",
+      status: "DRAFT",
+      points: 0,
+      title: "Elección",
+    });
+    await seedOccasion(termId, {
+      kind: "ASSEMBLY",
+      assemblyKind: "RUNOFF",
+      status: "CANCELLED",
+      points: 0,
+      title: "Segunda vuelta",
+    });
+    // El ajuste dice lo contrario del término en sus tres valores: ninguno se le pega al otro.
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      adjustRequirement(ctx, {
+        termId,
+        personId: adjusted,
+        requiredOrdinary: 0,
+        requiresBoardElection: false,
+        requiresRunoff: true,
+        reason: "licencia",
+      }),
+    );
+
+    const overview = await assemblyOverview(current);
+    const termRequirement = {
+      requiredOrdinary: 2,
+      requiresBoardElection: true,
+      requiresRunoff: false,
+      adjusted: false,
+      reason: null,
+    };
+    expect(overview.map((row) => [row.personId, row.requirement])).toEqual([
+      [unadjusted, termRequirement],
+      [
+        adjusted,
+        {
+          requiredOrdinary: 0,
+          requiresBoardElection: false,
+          requiresRunoff: true,
+          adjusted: true,
+          reason: "licencia",
+        },
+      ],
+    ]);
+    // Ese requisito es el que decide qué le falta a cada quien, y es el mismo que ve el miembro.
+    expect(overview.map((row) => row.compliance.missing)).toEqual([
+      ["ORDINARY", "BOARD_ELECTION"],
+      ["RUNOFF"],
+    ]);
+    expect((await assemblyStatusFor(unadjusted, current)).requirement).toEqual(termRequirement);
+
+    const listed = await assembliesResource.list({
+      q: "",
+      page: 1,
+      pageSize: 100,
+      filters: { termId },
+    });
+    expect(listed.rows.map((row) => assembliesResource.exportRow(row))).toEqual([
+      {
+        nombre: "Ana Sin Ajuste",
+        ordinarias_requeridas: 2,
+        ordinarias_firmadas: 0,
+        eleccion_requerida: "si",
+        eleccion_firmada: "no",
+        segunda_vuelta_requerida: "no",
+        segunda_vuelta_firmada: "no",
+        cumple: "no",
+        ajustado: "no",
+      },
+      {
+        nombre: "Beto Ajustado",
+        ordinarias_requeridas: 0,
+        ordinarias_firmadas: 0,
+        eleccion_requerida: "no",
+        eleccion_firmada: "no",
+        segunda_vuelta_requerida: "si",
+        segunda_vuelta_firmada: "no",
+        cumple: "no",
+        ajustado: "si",
+      },
+    ]);
+  });
+
   it("cierra los puntos: bloquea con ocasiones abiertas, congela el standing y rechaza ajustes después", async () => {
     const termId = await seedTerm(currentTermCode());
     const oldTermId = await seedTerm("2019-1");
@@ -149,17 +249,17 @@ describe("asambleas", () => {
     const committeeId = await seedCommittee("c1");
     await seedCommitteeMembership(nueva, committeeId, termId);
     const open = await seedOccasion(termId, { points: 10, title: "Abierta" });
-    await checkInSelfAs({ personId: nueva }, { publicId: open.publicId });
+    await checkInSelfAs({ personId: nueva, ip: null }, { publicId: open.publicId });
     await adjustPointsAs(
-      { personId: admin },
+      { personId: admin, ip: null },
       { personId: veterano, termId, points: 25, reason: "bono" },
     );
 
-    await expect(closeTermPointsAs({ personId: admin }, termId)).rejects.toThrow(
+    await expect(closeTermPointsAs({ personId: admin, ip: null }, termId)).rejects.toThrow(
       t("T-646", { n: 1 }),
     );
-    await closeOccasionAs({ personId: admin }, open.id);
-    await drain(50);
+    await closeOccasionAs({ personId: admin, ip: null }, open.id);
+    await drainOutbox();
     const summary = await closingSummary(termId);
     expect(summary).toEqual({
       openOccasions: 0,
@@ -170,7 +270,7 @@ describe("asambleas", () => {
       pointsAwarded: 35,
     });
 
-    await closeTermPointsAs({ personId: admin }, termId);
+    await closeTermPointsAs({ personId: admin, ip: null }, termId);
     expect((await termRow(termId)).pointsClosedAt).toBeInstanceOf(Date);
     const standing = await getTermStanding(termId);
     if (!standing) throw new Error("sin standing");
@@ -194,9 +294,14 @@ describe("asambleas", () => {
       .where(eq(outbox.eventType, "term.points-closed"));
     expect(events).toHaveLength(1);
 
-    await expect(closeTermPointsAs({ personId: admin }, termId)).rejects.toThrow(t("T-629"));
+    await expect(closeTermPointsAs({ personId: admin, ip: null }, termId)).rejects.toThrow(
+      t("T-629"),
+    );
     await expect(
-      adjustPointsAs({ personId: admin }, { personId: nueva, termId, points: 5, reason: "tarde" }),
+      adjustPointsAs(
+        { personId: admin, ip: null },
+        { personId: nueva, termId, points: 5, reason: "tarde" },
+      ),
     ).rejects.toThrow(t("T-629"));
     const closedOccasion = await getOccasion(open.id);
     expect(closedOccasion?.status).toBe("CLOSED");
@@ -206,7 +311,7 @@ describe("asambleas", () => {
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       ctx.emit(eventOf(personAnonymized, { actorId: null, personId: nueva })),
     );
-    await drain(50);
+    await drainOutbox();
     const scrubbed = await getTermStanding(termId);
     expect(scrubbed?.topNew[0]?.name).toBe(t("T-223"));
     expect(scrubbed?.topVeteran[0]?.name).toBe("Vete Rano");
@@ -227,7 +332,7 @@ describe("asambleas", () => {
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       ctx.emit({ type: "participation.auto-close", payload: {} }),
     );
-    await drain(50);
+    await drainOutbox();
     expect((await getOccasion(stale.id))?.status).toBe("CLOSED");
     expect((await getOccasion(recent.id))?.status).toBe("OPEN");
 
@@ -238,8 +343,7 @@ describe("asambleas", () => {
       await runCommand(SYSTEM_ACTOR, (ctx) =>
         ctx.emit({ type: "participation.term-check", payload: { run } }),
       );
-      await drain(50);
-      await drain(50);
+      await drainOutbox();
     }
     const tasks = await db().select().from(task).where(eq(task.kind, "GENERAL"));
     expect(tasks).toHaveLength(1);

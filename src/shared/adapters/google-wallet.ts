@@ -1,5 +1,6 @@
 import { createPrivateKey, sign } from "node:crypto";
 import { getEnv } from "@/env";
+import { WalletError } from "./wallet-error";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const API_URL = "https://walletobjects.googleapis.com/walletobjects/v1/";
@@ -33,7 +34,7 @@ export function isGoogleWalletConfigured(): boolean {
 function signJwt(claims: Record<string, unknown>): string {
   const env = getEnv();
   if (!isGoogleWalletConfigured() || !env.GOOGLE_WALLET_SA_KEY_BASE64) {
-    throw new Error("Google Wallet sin configurar");
+    throw new WalletError("NOT_CONFIGURED", "Google Wallet sin configurar");
   }
   try {
     const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url");
@@ -42,7 +43,7 @@ function signJwt(claims: Record<string, unknown>): string {
     const key = createPrivateKey(Buffer.from(env.GOOGLE_WALLET_SA_KEY_BASE64, "base64"));
     return `${message}.${sign("RSA-SHA256", Buffer.from(message), key).toString("base64url")}`;
   } catch {
-    throw new Error("No se pudo firmar el token de Google Wallet");
+    throw new WalletError("SIGNING_FAILED", "No se pudo firmar el token de Google Wallet");
   }
 }
 
@@ -60,7 +61,7 @@ async function send(url: string, init: RequestInit): Promise<Response> {
     });
   } catch {
     // No reenviar mensajes que puedan incluir Authorization, JWT o datos del cuerpo.
-    throw new Error("Google Wallet no respondió dentro del plazo");
+    throw new WalletError("PROVIDER_UNREACHABLE", "Google Wallet no respondió dentro del plazo");
   }
 }
 
@@ -82,12 +83,18 @@ async function fetchAccessToken(): Promise<string> {
       assertion,
     }).toString(),
   });
-  if (!response.ok) throw new Error(`Google Wallet: autorización HTTP ${response.status}`);
+  if (!response.ok) {
+    throw new WalletError(
+      "PROVIDER_AUTH",
+      `Google Wallet: autorización HTTP ${response.status}`,
+      response.status,
+    );
+  }
   let body: unknown;
   try {
     body = await response.json();
   } catch {
-    throw new Error("Google Wallet: autorización inválida");
+    throw new WalletError("PROVIDER_AUTH", "Google Wallet: autorización inválida");
   }
   if (
     typeof body !== "object" ||
@@ -100,7 +107,7 @@ async function fetchAccessToken(): Promise<string> {
     !Number.isFinite(body.expires_in) ||
     body.expires_in <= 0
   )
-    throw new Error("Google Wallet: autorización inválida");
+    throw new WalletError("PROVIDER_AUTH", "Google Wallet: autorización inválida");
   tokenCache = { token: body.access_token, expiresAt: Date.now() + body.expires_in * 1000 };
   return body.access_token;
 }
@@ -141,7 +148,7 @@ export async function googleWalletRequest(
       body: response.status === 204 ? null : await response.json(),
     };
   } catch {
-    throw new Error("Google Wallet: respuesta inválida");
+    throw new WalletError("PROVIDER_RESPONSE", "Google Wallet: respuesta inválida");
   }
 }
 

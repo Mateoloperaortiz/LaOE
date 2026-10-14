@@ -1,5 +1,14 @@
-import { createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from "node:crypto";
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  randomInt,
+  scrypt,
+  timingSafeEqual,
+} from "node:crypto";
 import { promisify } from "node:util";
+import { stripAccents } from "@/shared/lib/accents";
+import { APP_SCREEN, internalPath } from "@/shared/lib/internal-path";
 import { COMMON_PASSWORDS } from "../data/common-passwords";
 
 // Reglas de acceso sin I/O (ADR-010, ADR-051): códigos, contraseñas, hashes, tokens, destino
@@ -10,6 +19,8 @@ export const OTP_MAX_ATTEMPTS = 5;
 export const OTP_WINDOW_MS = 15 * 60_000;
 export const OTP_MAX_PER_EMAIL = 5;
 export const OTP_MAX_PER_IP = 12;
+export const OTP_FAILED_WINDOW_MS = 24 * 60 * 60_000;
+export const OTP_MAX_FAILED_PER_EMAIL = 15;
 export const SESSION_REMEMBERED_MS = 90 * 24 * 60 * 60_000;
 export const SESSION_SHORT_MS = 24 * 60 * 60_000;
 export const SESSION_TOUCH_INTERVAL_MS = 10 * 60_000;
@@ -18,9 +29,40 @@ export const PASSWORD_MIN_LENGTH = 10;
 export const ACCESS_GRANT_TTL_MS = 60 * 60_000;
 export const LOGIN_MAX_PER_EMAIL = 10;
 export const LOGIN_MAX_PER_IP = 30;
+// Contraseñas equivocadas de quien ya tiene sesión (ADR-114, regla 2): los números del ingreso,
+// en una cuenta aparte.
+export const PERSON_PASSWORD_MAX_FAILED = 10;
+export const PERSON_PASSWORD_WINDOW_MS = 15 * 60_000;
 
 export function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
+}
+
+/**
+ * Clave del contador de contraseñas equivocadas de quien tiene sesión (ADR-114, regla 2). Se guarda
+ * donde el ingreso sin sesión guarda el correo y no puede ser uno: `normalizeEmail` nunca devuelve
+ * una mayúscula, así que nadie sin sesión escribe ni cuenta esta clave.
+ */
+export function personAttemptKey(personId: string): string {
+  return `PERSON:${personId}`;
+}
+
+const EMAIL_LOG_DIGEST_LENGTH = 16;
+
+/**
+ * Resumen del correo para los registros (ADR-114, regla 5): lo que se escribe en lugar del correo que
+ * alguien tecleó sin sesión. Es el mismo para el mismo correo, así que los intentos se siguen
+ * correlacionando, y es un HMAC con la clave del servidor y un separador propio: sin la clave no se
+ * recalcula, ni probando uno por uno los correos del roster. Sin clave no hay resumen.
+ */
+export function emailLogDigest(secret: string, email: string): string {
+  if (!secret) {
+    throw new Error("emailLogDigest: falta la clave del servidor");
+  }
+  return createHmac("sha256", `identity-log-email:${secret}`)
+    .update(normalizeEmail(email))
+    .digest("hex")
+    .slice(0, EMAIL_LOG_DIGEST_LENGTH);
 }
 
 /** Seis dígitos aleatorios; fuera de producción puede fijarse con OTP_FIXED_CODE. */
@@ -41,6 +83,24 @@ export function codeMatches(
   const actual = Buffer.from(hashCode(secret, email, code), "hex");
   const expected = Buffer.from(expectedHash, "hex");
   return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+/**
+ * Intentos que trae un código nuevo sin pasar el tope acumulado del correo (ADR-113, regla 3): los
+ * de siempre o, si son menos, los que le quedan al correo en la ventana. Cero es no emitir, y una
+ * cuenta que no es un número no da intentos: el tope falla cerrado.
+ */
+export function otpAttemptBudget(failedInWindow: number): number {
+  const left = OTP_MAX_FAILED_PER_EMAIL - failedInWindow;
+  return left >= 1 ? Math.min(OTP_MAX_ATTEMPTS, Math.floor(left)) : 0;
+}
+
+/**
+ * Hash de un reto señuelo (ADR-113, regla 2): tiene la forma de un SHA-256 y no sale de ningún
+ * código, así que ninguno lo cumple.
+ */
+export function decoyCodeHash(): string {
+  return randomBytes(32).toString("hex");
 }
 
 // Contraseña propia (ADR-051, reglas 1 y 12). `N = 2^15` es un punto medio deliberado entre la
@@ -115,10 +175,7 @@ export interface PasswordContext {
 
 /** Quita tildes y baja a minúsculas para comparar contra la lista y contra los datos propios. */
 function fold(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+  return stripAccents(value).toLowerCase();
 }
 
 /**
@@ -156,23 +213,15 @@ export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-/** Solo rutas del mismo origen; nunca /ingresar ni /api (05-acceso.md). */
+/**
+ * Destino después del ingreso o de un paso de seguridad: solo una pantalla de la aplicación, nunca
+ * /ingresar ni /api (05-acceso.md). La ruta la decide `internalPath` (ADR-114, regla 1).
+ */
 export function safeNextPath(input: unknown, fallback = "/app"): string {
-  if (typeof input !== "string" || input.length === 0 || input.length > 2_000) {
+  if (typeof input !== "string" || input.length > 2_000) {
     return fallback;
   }
-  if (!input.startsWith("/") || input.startsWith("//") || input.startsWith("/\\")) {
-    return fallback;
-  }
-  if (/\s/.test(input)) {
-    return fallback;
-  }
-  const path = input.split(/[?#]/)[0] ?? "";
-  const blocked = ["/ingresar", "/api"];
-  if (blocked.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) {
-    return fallback;
-  }
-  return input;
+  return internalPath(input, APP_SCREEN) ?? fallback;
 }
 
 export interface DeviceDescription {

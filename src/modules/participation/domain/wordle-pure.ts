@@ -49,12 +49,3 @@ export function wordleReward(attempt: number): number {
     ? 7 - attempt
     : 0;
 }
-
-/** Colombia no cambia de huso en verano: su día empieza a las 05:00 UTC. */
-export function wordleDay(now = new Date()): string {
-  return new Date(now.getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-
-export function nextWordleAt(day: string): string {
-  return new Date(new Date(`${day}T05:00:00.000Z`).getTime() + 86_400_000).toISOString();
-}

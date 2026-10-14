@@ -6,6 +6,7 @@ import { closeDb, getDb } from "@/db/client";
 import { mediaAsset } from "@/modules/content/schema";
 import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
+import { failConfirmations, rejectBucketUploads } from "./bucket-helper";
 import { test } from "./fixtures";
 
 // Criterio de la fase 1 (09-roadmap.md): una portada de 5 MB sube directo al bucket y se sirve por
@@ -59,7 +60,8 @@ test("un ADMIN sube una portada de 5 MB directo al bucket y se sirve con 302 al 
   const [asset] = await buscar();
   await closeDb();
   expect(asset?.status).toBe("READY");
-  expect(Object.keys(asset?.variants ?? {}).sort()).toEqual(["w480", "w960"]);
+  // `full` es la variante completa, la que se entrega en lugar del original (ADR-114 regla 8).
+  expect(Object.keys(asset?.variants ?? {}).sort()).toEqual(["full", "w480", "w960"]);
 
   await page.reload();
   const fila = page.getByRole("row", { name: new RegExp(nombre) });
@@ -110,4 +112,94 @@ test("la imagen y su visibilidad se conservan después de un fallo", async ({ pa
   await expect.poll(() => attempts).toBe(2);
   await expect(panel.getByRole("alert")).toBeVisible();
   await sinViolaciones(page);
+});
+
+const smallImage = (compressionLevel: number) =>
+  sharp({ create: { width: 80, height: 80, channels: 3, background: "#94b6f0" } })
+    .png({ compressionLevel })
+    .toBuffer();
+
+test("sin archivo, con uno que no es imagen o con uno que no pesa lo debido, la subida no llega a pedirse", async ({
+  page,
+}) => {
+  let presigns = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/api/media/presign")) presigns += 1;
+  });
+  await page.goto("/admin/medios");
+  await page.getByRole("link", { name: t("T-356"), exact: true }).click();
+  const panel = page.getByRole("dialog");
+  const submit = panel.locator('button[type="submit"]', { hasText: t("T-356") });
+  await submit.click();
+  await expect(panel.getByRole("alert")).toHaveText(t("T-1466"));
+  await panel.getByLabel(t("T-356")).setInputFiles({
+    name: "e2e-notas.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("No es una imagen"),
+  });
+  await expect(panel.getByRole("alert")).toHaveCount(0);
+  await submit.click();
+  await expect(panel.getByRole("alert")).toHaveText(t("T-361"));
+  const tiny = await smallImage(9);
+  expect(tiny.byteLength).toBeLessThan(5 * 1024);
+  await panel
+    .getByLabel(t("T-356"))
+    .setInputFiles({ name: "e2e-diminuta.png", mimeType: "image/png", buffer: tiny });
+  await submit.click();
+  await expect(panel.getByRole("alert")).toHaveText(t("T-362"));
+  expect(presigns).toBe(0);
+});
+
+test("si el bucket rechaza la imagen se avisa con el texto de siempre, no se confirma y nada se pierde", async ({
+  page,
+}) => {
+  let confirmations = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/api/media/confirm")) confirmations += 1;
+  });
+  const bucket = await rejectBucketUploads(page, "/api/media/presign");
+  await page.goto("/admin/medios");
+  await page.getByRole("link", { name: t("T-356"), exact: true }).click();
+  const panel = page.getByRole("dialog");
+  await panel.getByLabel(t("T-356")).setInputFiles({
+    name: "e2e-rechazada.png",
+    mimeType: "image/png",
+    buffer: await smallImage(0),
+  });
+  await panel.getByLabel(t("T-365")).selectOption("PRIVATE");
+  await panel.locator('button[type="submit"]', { hasText: t("T-356") }).click();
+  await expect(panel.getByRole("alert")).toHaveText(t("T-363"));
+  expect(bucket.uploads).toBe(1);
+  expect(confirmations).toBe(0);
+  await expect(panel.getByLabel(t("T-365"))).toHaveValue("PRIVATE");
+  expect(
+    await panel
+      .getByLabel(t("T-356"))
+      .evaluate((input: HTMLInputElement) => input.files?.[0]?.name),
+  ).toBe("e2e-rechazada.png");
+});
+
+test("si la confirmación de la imagen falla se muestra lo que dijo el servidor y, si no dijo nada, el texto de siempre", async ({
+  page,
+}) => {
+  const confirm = await failConfirmations(
+    page,
+    "/api/media/confirm",
+    "Confirmación de prueba rechazada.",
+  );
+  await page.goto("/admin/medios");
+  await page.getByRole("link", { name: t("T-356"), exact: true }).click();
+  const panel = page.getByRole("dialog");
+  await panel.getByLabel(t("T-356")).setInputFiles({
+    name: "e2e-sin-confirmar.png",
+    mimeType: "image/png",
+    buffer: await smallImage(0),
+  });
+  const submit = panel.locator('button[type="submit"]', { hasText: t("T-356") });
+  await submit.click();
+  await expect(panel.getByRole("alert")).toHaveText("Confirmación de prueba rechazada.");
+  await submit.click();
+  await expect(panel.getByRole("alert")).toHaveText(t("T-363"));
+  expect(confirm.confirmations).toBe(2);
+  await expect(panel.getByText(t("T-360"))).toHaveCount(0);
 });

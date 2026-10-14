@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
 import type { FormField } from "@/modules/forms";
+import { answersFromFormData } from "@/modules/forms/components/answers";
 import { FormFields } from "@/modules/forms/components/FormFields";
+import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { answerSurveyAction } from "./actions";
 import { initialSurveyState, type SurveyFormState } from "./state";
 
@@ -29,9 +30,15 @@ const inputClass =
   "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-base text-tinta focus:border-titulo focus:outline-none";
 
 export function FormularioEncuesta(props: FormularioEncuestaProps) {
-  const [state, action, pending] = useActionState<SurveyFormState, FormData>(
+  const [state, action, pending] = useGuardedActionState<SurveyFormState, FormData>(
     answerSurveyAction,
     initialSurveyState,
+    ({ previous, payload, message }) => ({
+      ...previous,
+      errors: {},
+      values: answersFromFormData(payload, props.fields),
+      message,
+    }),
   );
   if (state.done) {
     return (
@@ -54,6 +61,11 @@ export function FormularioEncuesta(props: FormularioEncuestaProps) {
   return (
     <form action={action} className="flex max-w-2xl flex-col gap-6" noValidate>
       <input type="hidden" name="token" value={props.token} />
+      {state.message ? (
+        <p role="alert" className="rounded-xl bg-oe-orange px-4 py-3 font-semibold text-oe-navy">
+          {state.message}
+        </p>
+      ) : null}
       <FormFields
         key={JSON.stringify(state.values)}
         fields={props.fields}

@@ -2,9 +2,8 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
-import { drain } from "@/jobs/poller";
+import { drainOutbox } from "../helpers/outbox";
 import "@/modules/crm/jobs";
-import { mediaAsset } from "@/modules/content/schema";
 import { listInteractions } from "@/modules/crm/domain/interactions";
 import { task } from "@/modules/crm/schema";
 import { recordConsent } from "@/modules/people/domain/consents";
@@ -23,15 +22,16 @@ import { person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { addBusinessDays } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
+  seedMediaAsset,
   seedMember,
   seedMembership,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 
@@ -41,18 +41,18 @@ describe("datos propios desde Ajustes", () => {
 
   it("edita el celular y el correo personal, audita y deja huella en la línea de tiempo", async () => {
     const me = await seedMember("yo@eafit.edu.co", { firstName: "Yo", lastName: "Misma" });
-    await runCommand({ personId: me }, (ctx) =>
+    await runCommand({ personId: me, ip: null }, (ctx) =>
       updateOwnContact(ctx, me, { phone: "300 123 4567", personalEmail: "Yo@Gmail.com" }),
     );
     const [row] = await db().select().from(person).where(eq(person.id, me));
     expect(row).toMatchObject({ phone: "+573001234567", personalEmail: "yo@gmail.com" });
     const audits = await db().select().from(auditLog).where(eq(auditLog.entityId, me));
     expect(audits.map((entry) => entry.action)).toContain("person.updated");
-    await drain(20);
+    await drainOutbox();
     const timeline = await listInteractions(me);
     expect(timeline.length).toBeGreaterThanOrEqual(1);
     await expect(
-      runCommand({ personId: me }, (ctx) =>
+      runCommand({ personId: me, ip: null }, (ctx) =>
         updateOwnContact(ctx, me, { phone: "12", personalEmail: "" }),
       ),
     ).rejects.toThrow(DomainError);
@@ -61,40 +61,24 @@ describe("datos propios desde Ajustes", () => {
   it("solo acepta como foto un medio privado que la misma persona subió a photos/<id>/", async () => {
     const me = await seedMember("foto@eafit.edu.co");
     const other = await seedMember("otra@eafit.edu.co");
-    const [own] = await db()
-      .insert(mediaAsset)
-      .values({
-        visibility: "PRIVATE",
-        objectKey: `photos/${me}/abcdefghij.jpg`,
-        originalFilename: "yo.jpg",
-        contentType: "image/jpeg",
-        byteSize: 10_000,
-        uploadedById: me,
-        status: "READY",
-      })
-      .returning({ id: mediaAsset.id });
-    const [foreign] = await db()
-      .insert(mediaAsset)
-      .values({
-        visibility: "PRIVATE",
-        objectKey: `photos/${other}/abcdefghij.jpg`,
-        originalFilename: "otra.jpg",
-        contentType: "image/jpeg",
-        byteSize: 10_000,
-        uploadedById: other,
-        status: "READY",
-      })
-      .returning({ id: mediaAsset.id });
+    const own = await seedMediaAsset(`photos/${me}/abcdefghij.jpg`, {
+      originalFilename: "yo.jpg",
+      uploadedById: me,
+    });
+    const foreign = await seedMediaAsset(`photos/${other}/abcdefghij.jpg`, {
+      originalFilename: "otra.jpg",
+      uploadedById: other,
+    });
     await expect(
-      runCommand({ personId: me }, (ctx) => setOwnPhoto(ctx, me, foreign?.id ?? "")),
+      runCommand({ personId: me, ip: null }, (ctx) => setOwnPhoto(ctx, me, foreign)),
     ).rejects.toThrow(DomainError);
-    await runCommand({ personId: me }, (ctx) => setOwnPhoto(ctx, me, own?.id ?? ""));
+    await runCommand({ personId: me, ip: null }, (ctx) => setOwnPhoto(ctx, me, own));
     const [row] = await db()
       .select({ photo: person.photoAssetId })
       .from(person)
       .where(eq(person.id, me));
-    expect(row?.photo).toBe(own?.id);
-    await runCommand({ personId: me }, (ctx) => setOwnPhoto(ctx, me, null));
+    expect(row?.photo).toBe(own);
+    await runCommand({ personId: me, ip: null }, (ctx) => setOwnPhoto(ctx, me, null));
     const [cleared] = await db()
       .select({ photo: person.photoAssetId })
       .from(person)
@@ -104,13 +88,12 @@ describe("datos propios desde Ajustes", () => {
 
   it("la solicitud de eliminación abre una sola tarea para GH con vencimiento a 15 días hábiles", async () => {
     const me = await seedMember("borrar@eafit.edu.co", { firstName: "Bea", lastName: "Borrar" });
-    const first = await runCommand({ personId: me }, (ctx) => requestDeletion(ctx, me));
+    const first = await runCommand({ personId: me, ip: null }, (ctx) => requestDeletion(ctx, me));
     expect(first.created).toBe(true);
-    const second = await runCommand({ personId: me }, (ctx) => requestDeletion(ctx, me));
+    const second = await runCommand({ personId: me, ip: null }, (ctx) => requestDeletion(ctx, me));
     expect(second.created).toBe(false);
     expect(second.requestedAt.getTime()).toBe(first.requestedAt.getTime());
-    await drain(20);
-    await drain(20);
+    await drainOutbox();
     const tasks = await db()
       .select()
       .from(task)
@@ -147,7 +130,7 @@ describe("directorio y comités internos", () => {
     await seedCommitteeMembership(bruno, pixel, termId);
     await db().update(person).set({ photoAssetId: "foto-ana" }).where(eq(person.id, ana));
     await db().update(person).set({ photoAssetId: "foto-bruno" }).where(eq(person.id, bruno));
-    await runCommand({ personId: ana }, (ctx) =>
+    await runCommand({ personId: ana, ip: null }, (ctx) =>
       recordConsent(ctx, ana, { purpose: "DIRECTORY_PHOTO", source: "SELF" }),
     );
 

@@ -49,6 +49,9 @@ export const appConfig = pgTable("app_config", {
   updatedAt: updatedAt(),
 });
 
+/** El índice que deja un solo pendiente por clave de deduplicación: lo nombra quien traduce su rechazo. */
+export const OUTBOX_PENDING_KEY_INDEX = "outbox_dedupe_key_pending_unique";
+
 export const outbox = pgTable(
   "outbox",
   {
@@ -56,6 +59,9 @@ export const outbox = pgTable(
     eventType: text().notNull(),
     payload: jsonb().$type<Record<string, unknown>>().notNull(),
     dedupeKey: text(),
+    // La clave que la fila tenía cuando el poller la tomó (ADR-118 regla 3). Mientras corre no la lleva
+    // en `dedupeKey`; acá queda para devolvérsela, también si el proceso muere con ella tomada.
+    takenDedupeKey: text(),
     attempts: integer().notNull().default(0),
     nextAttemptAt: timestampTz().notNull().defaultNow(),
     processedAt: timestampTz(),
@@ -64,8 +70,9 @@ export const outbox = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
-    // Un solo pendiente por clave: una ráfaga de check-ins colapsa en un recompute.
-    uniqueIndex("outbox_dedupe_key_pending_unique")
+    // Un solo pendiente por clave: una ráfaga de check-ins colapsa en un recompute. El poller le quita
+    // la clave a la fila mientras la tiene tomada (ADR-118 regla 3), así que «pendiente» es «sin tomar».
+    uniqueIndex(OUTBOX_PENDING_KEY_INDEX)
       .on(t.dedupeKey)
       .where(sql`${t.processedAt} is null and ${t.deadLetterAt} is null`),
     index("outbox_pending_idx")
@@ -93,7 +100,7 @@ export const importJob = pgTable(
   "import_job",
   {
     id: id(),
-    type: text().notNull(), // ROSTER, GHPOINTS
+    type: text().notNull(), // ROSTER, GHPOINTS_ATTENDANCE (`ImportJobType`)
     status: importJobStatus().notNull().default("PREVIEW"),
     filename: text().notNull(),
     fileKey: text(), // imports/AAAA/MM/<id>.<ext> en el bucket privado

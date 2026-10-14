@@ -1,13 +1,19 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { accessGrantIssued } from "@/domain-events/identity";
-import { getMemberSummary } from "@/modules/people";
+import {
+  canParticipate,
+  getMemberSummary,
+  lockMembershipCycles,
+  SIGN_IN_STATUSES,
+  type WalletMemberState,
+} from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
-import { accessGrant, credential } from "../schema";
+import { accessGrant, credential, permission } from "../schema";
 import {
   ACCESS_GRANT_TTL_MS,
   checkPassword,
@@ -37,6 +43,11 @@ export interface IssuedAccessGrant {
 /**
  * Emite el enlace y consume los que la persona tuviera vivos: hay uno solo a la vez, así que ante
  * la duda de si el anterior llegó bien, se emite otro y el viejo deja de servir.
+ *
+ * Todo lo que decide se lee en la transacción y con su candado tomado, en este orden (ADR-122 regla
+ * 5): `access-grant:<destinatario>`, que frena una concesión; después los consultivos del ciclo de
+ * membresía (`wallet-member`) del destinatario y, si la regla de privilegio aplica, de quien emite,
+ * de menor a mayor `id`; y recién ahí el estado de los dos y los permisos.
  */
 export async function issueAccessGrant(
   ctx: CommandContext,
@@ -46,9 +57,28 @@ export async function issueAccessGrant(
   if (ctx.actor.personId === input.personId) {
     throw new DomainError(t("T-2126"));
   }
-  const member = await getMemberSummary(input.personId);
-  if (!member?.canSignIn) {
+  // La concesión de un permiso toma el mismo candado: la comparación de abajo no lee los permisos
+  // de antes de una concesión que ya está escribiendo (ADR-119 regla 17).
+  await lockAccessGrantsOf(ctx.tx, input.personId);
+  // Sin emisor es el arranque del sistema (ADR-051 regla 16): el camino de vuelta de un ADMIN. Y con
+  // ese candado nadie le concede nada al destinatario: si no tiene permisos, la regla de privilegio
+  // no aplica y a quien emite no se lo espera, como antes.
+  const issuerId = ctx.actor.personId;
+  const privilegeRuleApplies = issuerId !== null && (await hasPermissions(ctx.tx, input.personId));
+  // De menor a mayor `id` (`lockMembershipCycles`): dos emisiones cruzadas, cada uno para el otro, y la
+  // importación del roster los piden en el mismo orden y no se interbloquean.
+  const states = await lockMembershipCycles(
+    ctx.tx,
+    privilegeRuleApplies ? [input.personId, issuerId] : [input.personId],
+  );
+  // El destinatario se lee con el candado de su ciclo de membresía: una baja que va en vuelo termina
+  // primero y esto responde T-2127; una que llega después espera, y lo que depura borra este enlace.
+  const recipient = states.get(input.personId);
+  if (!recipient || !SIGN_IN_STATUSES.includes(recipient.status)) {
     throw new DomainError(t("T-2127"));
+  }
+  if (privilegeRuleApplies) {
+    await assertNoPrivilegeGain(ctx, issuerId, states.get(issuerId) ?? null, input.personId);
   }
   await ctx.tx
     .update(accessGrant)
@@ -98,9 +128,76 @@ export function issueAccessGrantAs(
   return runCommand(actor, (ctx) => issueAccessGrant(ctx, input));
 }
 
-/** Borra los enlaces de una persona: los llaman el retiro y la anonimización, como a la credencial. */
-export async function deleteAccessGrantsFor(personId: string): Promise<number> {
-  const rows = await getDb()
+/**
+ * Quien emite ve el enlace y puede entrar como su destinatario (amenaza aceptada de ADR-051), así
+ * que el enlace no le puede dar permisos que no tiene: si el destinatario tiene alguno de más, solo
+ * ADMIN emite (ADR-113 regla 1). Los permisos se leen acá, en la transacción, y no de la sesión de
+ * quien llama. De quien emite cuentan los que hoy operan (en licencia, ninguno, como en
+ * `resolveActor`); del destinatario, todos los guardados, porque vuelven a operar con él.
+ *
+ * El estado de quien emite llega leído con el candado de su ciclo de membresía tomado (ADR-120 regla
+ * 5): la emisión que llega mientras sale a licencia o lo dan de baja espera y decide con lo que quedó
+ * confirmado. Sus permisos se leen acá, después de ese candado, que es el que toma revocarle uno
+ * (ADR-122 regla 5): una revocación que va en vuelo termina primero. Va después del candado del
+ * destinatario (`lockAccessGrantsOf`), y ningún camino toma los dos en el otro orden.
+ */
+async function assertNoPrivilegeGain(
+  ctx: CommandContext,
+  issuerId: string,
+  issuer: WalletMemberState | null,
+  recipientId: string,
+): Promise<void> {
+  const rows = await ctx.tx
+    .select({
+      personId: permission.personId,
+      code: permission.code,
+      committeeId: permission.committeeId,
+    })
+    .from(permission)
+    .where(inArray(permission.personId, [issuerId, recipientId]));
+  const wanted = rows.filter((row) => row.personId === recipientId);
+  if (wanted.length === 0) {
+    return;
+  }
+  const held = canParticipate(issuer?.status)
+    ? rows.filter((row) => row.personId === issuerId)
+    : [];
+  if (held.some((row) => row.code === "ADMIN")) {
+    return;
+  }
+  const covered = wanted.every((want) =>
+    held.some((have) => have.code === want.code && have.committeeId === want.committeeId),
+  );
+  if (!covered) {
+    throw new DomainError(t("T-3206"));
+  }
+}
+
+async function hasPermissions(tx: Tx, personId: string): Promise<boolean> {
+  const [row] = await tx
+    .select({ id: permission.id })
+    .from(permission)
+    .where(eq(permission.personId, personId))
+    .limit(1);
+  return row !== undefined;
+}
+
+/**
+ * Candado de los enlaces de una persona: emitirle uno y concederle un permiso van de a uno, así que
+ * ningún enlace nace con los permisos de antes de una concesión simultánea (ADR-119 regla 17).
+ */
+export async function lockAccessGrantsOf(tx: Tx, personId: string): Promise<void> {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`access-grant:${personId}`}, 0))`,
+  );
+}
+
+/**
+ * Borra los enlaces de una persona: los llaman el retiro y la anonimización, como a la credencial, y
+ * la concesión de un permiso (ADR-119 regla 17).
+ */
+export async function deleteAccessGrantsFor(exec: Executor, personId: string): Promise<number> {
+  const rows = await exec
     .delete(accessGrant)
     .where(eq(accessGrant.personId, personId))
     .returning({ id: accessGrant.id });

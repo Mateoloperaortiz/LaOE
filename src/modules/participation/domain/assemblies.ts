@@ -9,7 +9,7 @@ import {
   type AssemblyCompliance,
   type AssemblyRequirementView,
   assemblyCompliance,
-  defaultRequirement,
+  termAssemblyRequirement,
 } from "./assembly-pure";
 import type { OccasionRow } from "./occasions";
 
@@ -64,16 +64,12 @@ export async function assemblyStatusFor(
   term: TermLike,
 ): Promise<PersonAssemblyStatus> {
   const assemblies = await listTermAssemblies(term.id);
-  const existing = {
-    hasBoardElection: assemblies.some((item) => item.assemblyKind === "BOARD_ELECTION"),
-    hasRunoff: assemblies.some((item) => item.assemblyKind === "RUNOFF"),
-  };
   const [adjustment] = await getDb()
     .select()
     .from(assemblyRequirement)
     .where(and(eq(assemblyRequirement.termId, term.id), eq(assemblyRequirement.personId, personId)))
     .limit(1);
-  const requirement = adjustment ? toView(adjustment) : defaultRequirement(term, existing);
+  const requirement = adjustment ? toView(adjustment) : termAssemblyRequirement(term, assemblies);
   const checkIns =
     assemblies.length === 0
       ? []
@@ -106,6 +102,32 @@ export async function assemblyStatusFor(
   };
 }
 
+/**
+ * El ajuste del requisito de asambleas de cada persona pedida que tenga uno en el término. Lee esos
+ * ajustes y nada más: lo que trae no depende de cuánta gente tenga la OE. Quien no aparece va con el
+ * requisito del término (`termAssemblyRequirement`), que arma quien llama con las ocasiones que ya
+ * leyó (ADR-123 regla 13). No mira si la persona es miembro activo; eso también lo decide quien
+ * llama.
+ */
+export async function assemblyAdjustmentsFor(
+  termId: string,
+  personIds: readonly string[],
+): Promise<Map<string, AssemblyRequirementView>> {
+  if (personIds.length === 0) {
+    return new Map();
+  }
+  const adjustments = await getDb()
+    .select()
+    .from(assemblyRequirement)
+    .where(
+      and(
+        eq(assemblyRequirement.termId, termId),
+        inArray(assemblyRequirement.personId, [...personIds]),
+      ),
+    );
+  return new Map(adjustments.map((row) => [row.personId, toView(row)]));
+}
+
 export interface AssemblyOverviewRow {
   personId: string;
   name: string;
@@ -121,10 +143,7 @@ export async function assemblyOverview(term: TermLike): Promise<AssemblyOverview
     listTermAssemblies(term.id),
     getDb().select().from(assemblyRequirement).where(eq(assemblyRequirement.termId, term.id)),
   ]);
-  const existing = {
-    hasBoardElection: assemblies.some((item) => item.assemblyKind === "BOARD_ELECTION"),
-    hasRunoff: assemblies.some((item) => item.assemblyKind === "RUNOFF"),
-  };
+  const fallback = termAssemblyRequirement(term, assemblies);
   const kindByOccasion = new Map(assemblies.map((item) => [item.id, item.assemblyKind]));
   const checkIns =
     assemblies.length === 0
@@ -160,7 +179,7 @@ export async function assemblyOverview(term: TermLike): Promise<AssemblyOverview
   return members
     .map((member) => {
       const adjustment = adjustmentByPerson.get(member.personId);
-      const requirement = adjustment ? toView(adjustment) : defaultRequirement(term, existing);
+      const requirement = adjustment ? toView(adjustment) : fallback;
       return {
         personId: member.personId,
         name: member.fullName.trim(),

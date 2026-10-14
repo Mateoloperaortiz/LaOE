@@ -5,6 +5,8 @@ export interface SurveyFormState {
   state: "OPEN" | "ANSWERED" | "EXPIRED" | "NOT_FOUND";
   errors: Record<string, string>;
   values: Record<string, unknown>;
+  /** La acción no respondió (ADR-118 regla 20): lo arma el navegador, no la action. */
+  message?: string;
 }
 
 export const initialSurveyState: SurveyFormState = {

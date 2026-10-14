@@ -2,7 +2,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
-import { t, tList } from "@/shared/copy";
+import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   committeeMembership,
@@ -12,6 +12,7 @@ import {
   membership,
   person,
 } from "../schema";
+import { lockMembershipCycle } from "./wallet-member";
 
 // Representación de los comités ante la Asamblea Directiva (Est. art. 16.2 y 33.3; Regl. art. 14;
 // ADR-060 regla 7): un titular y un suplente por comité y término, miembros activos del comité. Quien
@@ -20,10 +21,6 @@ import {
 
 export const REPRESENTATIVE_ROLES = ["TITULAR", "SUPLENTE"] as const;
 export type RepresentativeRole = (typeof REPRESENTATIVE_ROLES)[number];
-
-export function representativeRoleLabel(role: RepresentativeRole): string {
-  return tList("T-2246")[REPRESENTATIVE_ROLES.indexOf(role)] ?? role;
-}
 
 export const representativeInputSchema = z.object({
   committeeId: z.string().trim().min(1),
@@ -68,20 +65,34 @@ export async function setRepresentative(
     return;
   }
   if (input.personId) {
-    const [eligible] = await ctx.tx
+    // La elegibilidad se lee bajo candado y se escribe en la misma transacción (ADR-118 regla 6):
+    // primero la membresía, que la baja y el cambio de comités toman antes de cerrar nada, y después
+    // la pertenencia, que todo cierre actualiza. Es el orden de ellos. Quien llega segundo espera: el
+    // nombramiento ve la salida confirmada y responde T-2255, o el cierre ve el nombramiento y lo retira.
+    //
+    // Antes que la membresía, el consultivo del ciclo de membresía (ADR-123 regla 6): la representación
+    // que se escribe abajo referencia la fila de `person`, que una anonimización toma antes que la
+    // membresía. Sin él, el nombramiento y la anonimización de la misma persona se quedaban
+    // esperándose (DT-341).
+    await lockMembershipCycle(ctx.tx, input.personId);
+    const [member] = await ctx.tx
+      .select({ status: membership.status })
+      .from(membership)
+      .where(eq(membership.personId, input.personId))
+      .for("share");
+    const [seat] = await ctx.tx
       .select({ id: committeeMembership.id })
       .from(committeeMembership)
-      .innerJoin(membership, eq(membership.personId, committeeMembership.personId))
       .where(
         and(
           eq(committeeMembership.committeeId, input.committeeId),
           eq(committeeMembership.termId, input.termId),
           eq(committeeMembership.personId, input.personId),
           isNull(committeeMembership.leftAt),
-          eq(membership.status, "ACTIVE"),
         ),
-      );
-    if (!eligible) {
+      )
+      .for("share");
+    if (member?.status !== "ACTIVE" || !seat) {
       throw new DomainError(t("T-2255"), "personId");
     }
     // Una persona ocupa un solo rol: si era el otro, lo deja.

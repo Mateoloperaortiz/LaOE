@@ -9,21 +9,20 @@ import { wordleCompleted } from "@/domain-events/participation";
 import {
   challengeInputSchema,
   createChallengeAs,
+  EVIDENCE_TEXT_MAX,
+  EVIDENCE_TEXT_MIN,
   publishChallengeAs,
 } from "@/modules/participation";
-import {
-  achievement,
-  boosterItem,
-  occasion,
-  pointEntry,
-  wordleGame,
-} from "@/modules/participation/schema";
+import { achievement, boosterItem, pointEntry } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import { headObject } from "@/shared/adapters/storage";
 import { t, tList } from "@/shared/copy";
 import { utcToBogotaInput } from "@/shared/lib/dates";
+import { seedOccasion, seedWordleGame } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
+import { rejectBucketUploads } from "./bucket-helper";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
 import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
@@ -285,26 +284,144 @@ test("evidencia: el miembro entrega texto e imagen y el admin la aprueba", async
   await sinViolaciones(page);
 });
 
+test("evidencia: un archivo rechazado o una subida fallida se avisan con su texto, no dejan imagen y el selector queda vacío", async ({
+  page,
+}) => {
+  const id = await crearReto({
+    kind: "EVIDENCE",
+    title: "e2e-Misión con subidas fallidas",
+    description: "Contá qué hiciste.",
+    ...ventana(),
+    basePoints: 10,
+  });
+  let presigns = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/api/retos/evidencia/presign")) presigns += 1;
+  });
+  await page.goto(`/app/gh-points/retos/${id}`);
+  const form = page.locator("form").filter({ has: page.locator('input[type="file"]') });
+  const picker = form.locator('input[type="file"]');
+  /** Un selector que conserva el archivo rechazado no avisa si se vuelve a elegir ese mismo. */
+  const pickedFiles = () => picker.evaluate((input: HTMLInputElement) => input.files?.length);
+  await picker.setInputFiles({
+    name: "e2e-notas.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("No es una imagen"),
+  });
+  await expect(form.getByRole("alert")).toHaveText(tList("T-2430")[0]);
+  expect(await pickedFiles()).toBe(0);
+  const tiny = await sharp({
+    create: { width: 80, height: 80, channels: 3, background: "#001f3e" },
+  })
+    .png()
+    .toBuffer();
+  expect(tiny.byteLength).toBeLessThan(5 * 1024);
+  await picker.setInputFiles({ name: "e2e-diminuta.png", mimeType: "image/png", buffer: tiny });
+  await expect(form.getByRole("alert")).toHaveText(t("T-3264"));
+  expect(await pickedFiles()).toBe(0);
+  await picker.setInputFiles({
+    name: "e2e-enorme.png",
+    mimeType: "image/png",
+    buffer: Buffer.alloc(5 * 1024 * 1024 + 1),
+  });
+  await expect(form.getByRole("alert")).toHaveText(tList("T-2430")[1]);
+  expect(await pickedFiles()).toBe(0);
+  expect(presigns).toBe(0);
+
+  const png = await sharp(randomBytes(320 * 180 * 3), {
+    raw: { width: 320, height: 180, channels: 3 },
+  })
+    .png({ compressionLevel: 0 })
+    .toBuffer();
+  const evidence = { name: "e2e-evidencia-fallida.png", mimeType: "image/png", buffer: png };
+  // La evidencia no repite lo que diga el servidor: cualquier fallo lleva su propio texto.
+  await page.route("**/api/retos/evidencia/presign", (route) =>
+    route.fulfill({ status: 403, json: { error: "Mensaje de prueba del servidor." } }),
+  );
+  await picker.setInputFiles(evidence);
+  await expect(form.getByRole("alert")).toHaveText(tList("T-2430")[3]);
+  expect(presigns).toBe(1);
+  expect(await picker.evaluate((input: HTMLInputElement) => input.files?.length)).toBe(0);
+  await page.unroute("**/api/retos/evidencia/presign");
+
+  const bucket = await rejectBucketUploads(page, "/api/retos/evidencia/presign");
+  await picker.setInputFiles(evidence);
+  await expect.poll(() => bucket.uploads).toBe(1);
+  await expect(form.getByRole("alert")).toHaveText(tList("T-2430")[3]);
+  expect(await picker.evaluate((input: HTMLInputElement) => input.files?.length)).toBe(0);
+  await expect(page.getByRole("img", { name: evidence.name })).toHaveCount(0);
+  await expect(picker).toBeEnabled();
+});
+
+test("evidencia: quitar de la lista una imagen ya subida la borra del bucket", async ({ page }) => {
+  const id = await crearReto({
+    kind: "EVIDENCE",
+    title: "e2e-Misión con una imagen quitada",
+    description: "Contá qué hiciste.",
+    ...ventana(),
+    basePoints: 10,
+  });
+  await page.goto(`/app/gh-points/retos/${id}`);
+  const png = await sharp(randomBytes(640 * 360 * 3), {
+    raw: { width: 640, height: 360, channels: 3 },
+  })
+    .png({ compressionLevel: 0 })
+    .toBuffer();
+  const presigned = page.waitForResponse(
+    (response) => response.url().includes("/api/retos/evidencia/presign") && response.ok(),
+  );
+  await page
+    .getByLabel(t("T-2429"))
+    .setInputFiles({ name: "e2e-evidencia-quitada.png", mimeType: "image/png", buffer: png });
+  const { key } = (await (await presigned).json()) as { key: string };
+  const preview = page.getByRole("img", { name: "e2e-evidencia-quitada.png" });
+  await expect(preview).toBeVisible();
+  expect(await headObject(key)).not.toBeNull();
+
+  await page.getByRole("button", { name: t("T-1489"), exact: true }).click();
+  await expect(preview).toHaveCount(0);
+  // La casa lo borra sin que la pantalla espere la respuesta (ADR-122 regla 20).
+  await expect.poll(() => headObject(key)).toBeNull();
+});
+
+test("evidencia: un texto que queda corto sin los espacios de los bordes avisa con el largo pedido", async ({
+  page,
+}) => {
+  const id = await crearReto({
+    kind: "EVIDENCE",
+    title: "e2e-Misión con un texto corto",
+    description: "Contá qué hiciste.",
+    ...ventana(),
+    basePoints: 10,
+  });
+  await page.goto(`/app/gh-points/retos/${id}`);
+  // El navegador cuenta los espacios y deja enviar; el formulario no (ADR-122 regla 16).
+  await page.getByLabel(t("T-2428")).fill(`e2e-corto${" ".repeat(EVIDENCE_TEXT_MIN)}`);
+  await page.getByRole("button", { name: tList("T-2420")[2] }).click();
+  await expect(
+    page.getByText(t("T-3261", { min: EVIDENCE_TEXT_MIN, max: EVIDENCE_TEXT_MAX })),
+  ).toBeVisible();
+  await expect(page.getByText(t("T-2426"))).toHaveCount(0);
+  // No se entregó nada: al recargar el formulario sigue ahí.
+  await page.reload();
+  await expect(page.getByLabel(t("T-2428"))).toBeVisible();
+});
+
 test("presencial: el check-in de la actividad completa el reto solo", async ({ page }) => {
   const termId = await currentTermId();
   const now = Date.now();
-  const [ocasion] = await getDb()
-    .insert(occasion)
-    .values({
-      publicId: "e2ereto001",
-      termId,
-      title: "e2e-Actividad con reto",
-      category: "INTEGRATION",
-      location: "Bloque 38",
-      points: 20,
-      status: "OPEN",
-      approval: "AUTO",
-      startsAt: new Date(now),
-      checkInOpensAt: new Date(now - 3_600_000),
-      checkInClosesAt: new Date(now + 3_600_000),
-    })
-    .returning({ id: occasion.id });
-  if (!ocasion) throw new Error("sin ocasión");
+  const ocasion = await seedOccasion(termId, {
+    publicId: "e2ereto001",
+    title: "e2e-Actividad con reto",
+    category: "INTEGRATION",
+    location: "Bloque 38",
+    points: 20,
+    status: "OPEN",
+    approval: "AUTO",
+    startsAt: new Date(now),
+    checkInOpensAt: new Date(now - 3_600_000),
+    checkInClosesAt: new Date(now + 3_600_000),
+  });
   const id = await crearReto({
     kind: "PRESENTIAL",
     title: "e2e-Reto presencial",
@@ -394,23 +511,18 @@ test("campaña: el admin cubre una actividad y el check-in suma el extra", async
 }) => {
   const termId = await currentTermId();
   const now = Date.now();
-  const [ocasion] = await getDb()
-    .insert(occasion)
-    .values({
-      publicId: "e2eboost01",
-      termId,
-      title: "e2e-Actividad con campaña",
-      category: "INTEGRATION",
-      location: "Bloque 38",
-      points: 10,
-      status: "OPEN",
-      approval: "AUTO",
-      startsAt: new Date(now),
-      checkInOpensAt: new Date(now - 3_600_000),
-      checkInClosesAt: new Date(now + 3_600_000),
-    })
-    .returning({ id: occasion.id });
-  if (!ocasion) throw new Error("sin ocasión");
+  await seedOccasion(termId, {
+    publicId: "e2eboost01",
+    title: "e2e-Actividad con campaña",
+    category: "INTEGRATION",
+    location: "Bloque 38",
+    points: 10,
+    status: "OPEN",
+    approval: "AUTO",
+    startsAt: new Date(now),
+    checkInOpensAt: new Date(now - 3_600_000),
+    checkInClosesAt: new Date(now + 3_600_000),
+  });
 
   // Campaña +50 % por la interfaz admin, con ventana ya vigente.
   const admin = await adminPage(browser);
@@ -460,6 +572,49 @@ test("trivia en móvil: radios por teclado y sin scroll horizontal", async ({ pa
   );
   await sinViolaciones(page);
   await page.screenshot({ path: "test-results/reto-trivia-mobile.png", fullPage: true });
+});
+
+test("colección: cerrar el aviso de una insignia sin conexión deja la página en pie y el aviso vuelve a salir", async ({
+  page,
+}) => {
+  const member = await personId(E2E_MEMBER_EMAIL);
+  await getDb().delete(boosterItem).where(eq(boosterItem.personId, member));
+  await getDb().delete(achievement).where(eq(achievement.personId, member));
+  const id = await crearReto({
+    kind: "TRIVIA",
+    title: "e2e-Trivia insignia sin conexión",
+    description: "Una pregunta.",
+    passPercent: 100,
+    questions: [{ prompt: "e2e-¿Cuánto es 6 + 6?", options: ["12", "13"], correctIndex: 0 }],
+    ...ventana(),
+    basePoints: 5,
+  });
+  await page.goto(`/app/gh-points/retos/${id}`);
+  await page.getByRole("radio", { name: "12", exact: true }).press(" ");
+  await page.getByRole("button", { name: tList("T-2420")[1] }).press("Enter");
+  await expect(page.getByText(copyPattern("T-2422", { aciertos: 1, total: 1 }))).toBeVisible();
+  await drenarOutbox(); // challenge.completed → recompute → Relámpago 1 + booster
+  await drenarOutbox(); // badge.unlocked
+
+  await page.goto("/app/gh-points/coleccion");
+  await expect(page.getByRole("dialog").getByText(t("T-2495"))).toBeVisible();
+  // El pedido que marca la insignia como vista no llega a la casa.
+  await page.route("**/app/gh-points/coleccion", (route) =>
+    route.request().method() === "POST" ? route.abort() : route.continue(),
+  );
+  const rejected = page.waitForEvent("requestfailed", (request) => request.method() === "POST");
+  await page.keyboard.press("Escape");
+  await rejected;
+  // Cuando termina la transición del cierre, el botón del aviso deja de estar ocupado: el aviso
+  // sigue montado, cerrado, y la colección sigue en pie.
+  await expect(page.locator("dialog", { hasText: t("T-2495") }).locator("button")).toBeEnabled();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-2471"));
+
+  // El pedido nunca llegó, así que la insignia sigue sin ver: el aviso sale en la siguiente visita.
+  await page.unroute("**/app/gh-points/coleccion");
+  await page.reload();
+  await expect(page.getByRole("dialog").getByText(t("T-2495"))).toBeVisible();
 });
 
 test("colección: la insignia abre el diálogo una vez, se destaca y sale en el directorio", async ({
@@ -537,25 +692,21 @@ test("colección en móvil y movimiento reducido: alternativa estática sin anim
   await getDb().delete(achievement).where(eq(achievement.personId, miembro));
 
   // Palabra a palabra 1: un Wordle ganado en base + el evento que lo publica.
-  const [game] = await getDb()
-    .insert(wordleGame)
-    .values({
-      personId: miembro,
-      day: "2026-01-15",
-      termId,
+  const game = {
+    id: await seedWordleGame(miembro, termId, "2026-01-15", {
       answer: "PRUEB",
       dictionaryVersion: "e2e",
       rulesVersion: "e2e",
       status: "WON",
       completedAt: new Date(),
-    })
-    .returning({ id: wordleGame.id });
+    }),
+  };
   await runCommand(SYSTEM_ACTOR, (ctx) =>
     ctx.emit(
       eventOf(wordleCompleted, {
         personId: miembro,
         termId,
-        gameId: game?.id ?? "",
+        gameId: game.id,
         day: "2026-01-15",
         attempts: 4,
         points: 5,
@@ -592,18 +743,13 @@ test("conciliación: el admin simula y aplica, y la insignia histórica aparece 
   // como Palabra a palabra 1 histórica (sin booster ni aviso, ADR-067 regla 11).
   const miembro = await personId(E2E_MEMBER_EMAIL);
   const termId = await currentTermId();
-  await getDb()
-    .insert(wordleGame)
-    .values({
-      personId: miembro,
-      day: "2024-11-05",
-      termId,
-      answer: "TESTO",
-      dictionaryVersion: "e2e",
-      rulesVersion: "e2e",
-      status: "WON",
-      completedAt: new Date("2024-11-05T20:00:00Z"),
-    });
+  await seedWordleGame(miembro, termId, "2024-11-05", {
+    answer: "TESTO",
+    dictionaryVersion: "e2e",
+    rulesVersion: "e2e",
+    status: "WON",
+    completedAt: new Date("2024-11-05T20:00:00Z"),
+  });
 
   const admin = await adminPage(browser);
   await admin.goto("/admin/gamificacion");

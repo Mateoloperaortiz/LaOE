@@ -15,11 +15,14 @@ import {
   sudokuCompleted,
   wordleCompleted,
 } from "@/domain-events/participation";
+import { BOOSTER_KINDS } from "@/modules/participation";
 import { fill, rule, type TimelineRule } from "./kit";
 
 // Participación: check-ins, retos, insignias, boosters, juegos y movimientos del libro de puntos.
 
-const BOOSTER_KINDS = ["PLUS_50", "PLUS_100"];
+// Un booster de un tipo sin nombre lleva el del primer tipo y, solo si la lista no llegó, su código:
+// es el respaldo que tenía cuando leía la lista por posición (decisión abierta 75).
+const [FIRST_BOOSTER_KIND] = BOOSTER_KINDS;
 
 export const PARTICIPATION_RULES: readonly TimelineRule[] = [
   rule(checkinApproved, ({ occasionId, occasionTitle, points, category }, { labels }) => ({
@@ -86,7 +89,7 @@ export const PARTICIPATION_RULES: readonly TimelineRule[] = [
       return null;
     }
     const booster =
-      labels.boosterNames?.[BOOSTER_KINDS.indexOf(kind)] ?? labels.boosterNames?.[0] ?? kind;
+      labels.boosterNames?.[kind] ?? labels.boosterNames?.[FIRST_BOOSTER_KIND] ?? kind;
     return {
       kind: "PARTICIPATION",
       summary: fill(labels.participationTexts[10] ?? "", { booster }),

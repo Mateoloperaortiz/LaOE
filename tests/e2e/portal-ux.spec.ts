@@ -6,6 +6,7 @@ import { pipeline } from "@/modules/crm/schema";
 import { form } from "@/modules/forms/schema";
 import { committee } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
+import { seedCommittee, seedForm, seedPipeline } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
@@ -57,11 +58,7 @@ test("comités: busca nombre sin tildes y sigla, limpia y conserva la búsqueda 
   const db = getDb();
   const slug = `e2e-explora-${randomBytes(4).toString("hex")}`;
   const name = `Comité de Exploración ${slug}`;
-  const [fixture] = await db
-    .insert(committee)
-    .values({ slug, name, status: "ACTIVE", publicationStatus: "PUBLISHED" })
-    .returning();
-  if (!fixture) throw new Error("No se creó el comité sintético");
+  const fixture = { id: await seedCommittee(slug, name) };
   try {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/comites");
@@ -128,38 +125,31 @@ test("el hero y Unirse reflejan convocatoria cerrada, prospecto y admisión vige
       "href",
       "/eventos",
     );
-    const [prospect] = await db
-      .insert(form)
-      .values({
-        slug: `${prefix}-prospecto`,
+    const prospectSlug = `${prefix}-prospecto`;
+    const prospect = {
+      id: await seedForm(prospectSlug, {
         title: "Interés sintético en la OE",
         status: "OPEN",
         actions: { createPerson: true },
-      })
-      .returning();
-    if (!prospect) throw new Error("No se creó el formulario de prospecto");
+      }),
+      slug: prospectSlug,
+    };
     createdForms.push(prospect.id);
     await page.reload();
     await expect(page.getByRole("link", { name: t("T-868") })).toHaveAttribute(
       "href",
       `/f/${prospect.slug}`,
     );
-    const [flow] = await db
-      .insert(pipeline)
-      .values({ name: prefix, kind: "ADMISSION" })
-      .returning();
-    if (!flow) throw new Error("No se creó el pipeline de admisión");
-    pipelineId = flow.id;
-    const [admission] = await db
-      .insert(form)
-      .values({
-        slug: `${prefix}-admision`,
+    pipelineId = (await seedPipeline(prefix, "ADMISSION", [])).id;
+    const admissionSlug = `${prefix}-admision`;
+    const admission = {
+      id: await seedForm(admissionSlug, {
         title: "Admisión sintética a la OE",
         status: "OPEN",
         actions: { createPerson: true, pipelineId },
-      })
-      .returning();
-    if (!admission) throw new Error("No se creó el formulario de admisión");
+      }),
+      slug: admissionSlug,
+    };
     createdForms.push(admission.id);
     await page.reload();
     await expect(page.getByRole("link", { name: t("T-027"), exact: true })).toHaveAttribute(

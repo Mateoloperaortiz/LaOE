@@ -1,6 +1,6 @@
 # ADR-023: Operación: entorno de pruebas, copia externa y correo con desbordamiento
 
-- Estado: Aceptada (enmendada por ADR-038, ADR-039, ADR-050)
+- Estado: Aceptada (enmendada por ADR-038, ADR-039, ADR-050, ADR-115 y ADR-116)
 - Fecha: 2026-09-02
 - Enmienda: ADR-021 (puntos "Entornos", "Respaldos" y "Presupuesto") y ADR-015 (enrutamiento del correo)
 
@@ -37,3 +37,11 @@ La corrida manual del servicio backup se inicia en Railway desde Casa Digital �
 ## Enmienda (2026-09-10, ADR-050)
 
 El correo transaccional del código de acceso usa el envoltorio común de ADR-038 con un pie transaccional propio, sin el pie legal de campañas ni lenguaje de lista de correo, y declara que es automático con `Auto-Submitted` y `X-Auto-Response-Suppress`. El transporte y el desbordamiento no cambian. Ver [ADR-050](ADR-050-correo-transaccional-del-codigo.md).
+
+## Enmienda (2026-10-07, ADR-115)
+
+La regla 3 mandaba las campañas siempre por SES, y desde ADR-039 salen por Resend sin contar su cupo. Ahora, cuando una campaña sale por Resend, el lote no pasa de `RESEND_DAILY_LIMIT` menos un margen reservado para lo transaccional (`campaigns.transactionalReserve`, un tercio del cupo si nadie lo fija), contando lo que Resend aceptó hoy en Colombia, transaccional y de campaña: lo que no cabe sigue pendiente para el otro día. Un rechazo por cuota de Resend a un correo de campaña no lo deja fallido: su destinatario sigue pendiente y ningún lote sale hasta el otro día. El contador del día cuenta por la hora de envío (`sentAt`). El enrutamiento de lo transaccional y el desbordamiento no cambian. Ver [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md), reglas 5 y 6.
+
+## Enmienda (2026-10-08, ADR-116)
+
+La regla 3 describe un solo adaptador con dos transportes, sin reglas de negocio. El mensaje que reciben gana un campo opcional, la clave de idempotencia del proveedor: Resend la recibe en el encabezado `Idempotency-Key` y durante 24 horas no entrega dos veces el correo que la repita con el mismo contenido; SES no tiene nada equivalente y la ignora, igual que la consola. El adaptador solo la transporta: la arma `comms` con el entorno, la clave del registro y la persona ([ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 18). El desbordamiento a SES sigue como estaba, y el correo que desborda sale sin esa protección.

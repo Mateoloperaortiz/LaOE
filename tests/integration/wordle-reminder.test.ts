@@ -1,8 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import {
   DEFAULT_PREFERENCES,
   saveSubscriptionAs,
@@ -11,12 +9,13 @@ import {
 } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import { runWordleReminder, startWordleAs } from "@/modules/participation";
-import { wordleDay } from "@/modules/participation/domain/wordle-pure";
+import { dayKeyFor } from "@/modules/participation/domain/gamification-pure";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
+import { seedMember, seedTerm } from "../factories";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // Aviso diario del Wordle (ADR-074): a los activos que todavía no abrieron la partida, una sola vez
 // por día, con el interruptor propio `pushWordle` y solo mientras haya puntos abiertos.
@@ -25,7 +24,7 @@ const db = () => getDb();
 
 async function subscribe(personId: string, endpoint: string) {
   await saveSubscriptionAs(
-    { personId },
+    { personId, ip: null },
     { endpoint, keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
     null,
   );
@@ -56,18 +55,18 @@ describe("aviso diario del Wordle", () => {
       [yaJugo, "yajugo"],
       [sinGanas, "singanas"],
     ] as const) {
-      await subscribe(personId, `https://push.example/${endpoint}`);
+      await subscribe(personId, `https://fcm.googleapis.com/fcm/send/${endpoint}`);
     }
     // El interruptor propio apaga solo esto (regla 4).
     await updatePreferencesAs(
-      { personId: sinGanas },
+      { personId: sinGanas, ip: null },
       { ...DEFAULT_PREFERENCES, pushWordle: false },
     );
-    expect((await startWordleAs({ personId: yaJugo })).ok).toBe(true);
+    expect((await startWordleAs({ personId: yaJugo, ip: null })).ok).toBe(true);
 
-    const day = wordleDay();
+    const day = dayKeyFor(new Date());
     expect(await runWordleReminder()).toEqual({ day, audience: 2, enqueued: 1 });
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
     const rows = await db().select().from(message);
     expect(rows.map((row) => row.personId)).toEqual([juega]);
     expect(rows[0]).toMatchObject({
@@ -77,7 +76,7 @@ describe("aviso diario del Wordle", () => {
       dedupeKey: `wordle:${day}`,
       subject: tList("T-2620")[0],
     });
-    expect(delivered).toEqual(["https://push.example/juega"]);
+    expect(delivered).toEqual(["https://fcm.googleapis.com/fcm/send/juega"]);
     // El aviso lleva al tablero, que desde ADR-075 vive en la biblioteca de juegos.
     const encolados = await db().select().from(outbox);
     const aviso = encolados.find((row) => row.eventType === "notification.requested");
@@ -85,21 +84,29 @@ describe("aviso diario del Wordle", () => {
 
     // El mismo día otra vez: el outbox no duplica y comms descarta la clave ya entregada.
     expect((await runWordleReminder()).enqueued).toBe(1);
-    await drain(20);
+    await drainOutbox();
     expect(await db().select().from(message)).toHaveLength(1);
     expect(delivered).toHaveLength(1);
   });
 
   it("no encola nada sin término vigente ni con los puntos del término ya cerrados", async () => {
-    expect(await runWordleReminder()).toEqual({ day: wordleDay(), audience: 0, enqueued: 0 });
+    expect(await runWordleReminder()).toEqual({
+      day: dayKeyFor(new Date()),
+      audience: 0,
+      enqueued: 0,
+    });
 
     const termId = await seedTerm();
     const persona = await seedMember("cerrado@eafit.edu.co");
-    await subscribe(persona, "https://push.example/cerrado");
+    await subscribe(persona, "https://fcm.googleapis.com/fcm/send/cerrado");
     await db().update(term).set({ pointsClosedAt: new Date() }).where(eq(term.id, termId));
 
-    expect(await runWordleReminder()).toEqual({ day: wordleDay(), audience: 0, enqueued: 0 });
-    await drain(20);
+    expect(await runWordleReminder()).toEqual({
+      day: dayKeyFor(new Date()),
+      audience: 0,
+      enqueued: 0,
+    });
+    await drainOutbox();
     expect(await db().select().from(message)).toHaveLength(0);
     expect(delivered).toHaveLength(0);
   });

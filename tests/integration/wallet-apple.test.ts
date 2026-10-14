@@ -3,12 +3,13 @@ import { inflateRawSync } from "node:zlib";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb } from "@/db/client";
 import { type Env, getEnv } from "@/env";
-import { getCarnetCredential, rotateCarnetTokenAs } from "@/modules/identity";
+import { ForbiddenError, getCarnetCredential, rotateCarnetTokenAs } from "@/modules/identity";
 import { buildApplePass } from "@/modules/wallet/domain/apple";
+import { walletFailure } from "@/modules/wallet/domain/failure";
 import { listPassesFor } from "@/modules/wallet/domain/passes";
 import * as appleAdapter from "@/shared/adapters/apple-pass";
+import { seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 import { walletActor } from "./wallet-fixtures";
 
 function unzip(buffer: Buffer): Map<string, Buffer> {
@@ -95,15 +96,40 @@ describe("emisión Apple Wallet", () => {
       await rotateCarnetTokenAs(walletActor(personId));
       return result;
     });
-    await expect(buildApplePass(personId)).rejects.toThrow("QR cambió");
+    await expect(buildApplePass(personId)).rejects.toMatchObject({
+      reason: "CHANGED_DURING_ISSUE",
+      message: expect.stringContaining("QR cambió"),
+    });
     expect(await listPassesFor(personId)).toEqual([]);
     expect((await getCarnetCredential(personId))?.revision).toBe(2);
+  });
+
+  it("a quien está en licencia no se le emite, y la ruta no lo cuenta como fallo", async () => {
+    // Lo que llega a la ruta es el `ForbiddenError` de la reserva de la credencial (DT-228, ADR-120
+    // regla 13).
+    const personId = await seedPerson("apple-en-licencia@eafit.edu.co");
+    await seedMembership(personId, await seedTerm(), "ON_LEAVE");
+    const rejection: unknown = await buildApplePass(personId).catch((e) => e);
+    expect(rejection).toBeInstanceOf(ForbiddenError);
+    expect(walletFailure(rejection)).toEqual({ reason: "REFUSED", errorType: "ForbiddenError" });
+    expect(await listPassesFor(personId)).toEqual([]);
+  });
+
+  it("un certificado que no firma llega a la ruta con su motivo, sin el error del proveedor", async () => {
+    const personId = await seedMember("apple-no-firma@eafit.edu.co");
+    getEnv().APPLE_PASS_CERT_BASE64 = Buffer.from("certificado-sintetico").toString("base64");
+    const rejection: unknown = await buildApplePass(personId).catch((e) => e);
+    expect(walletFailure(rejection)).toEqual({ reason: "SIGNING_FAILED" });
+    expect(await listPassesFor(personId)).toEqual([]);
   });
 
   it("sin configuración no crea ni token ni registro", async () => {
     const personId = await seedMember("apple-apagado@eafit.edu.co");
     delete getEnv().APPLE_PASS_TYPE_ID;
-    await expect(buildApplePass(personId)).rejects.toThrow("no está configurado");
+    await expect(buildApplePass(personId)).rejects.toMatchObject({
+      reason: "NOT_CONFIGURED",
+      message: expect.stringContaining("no está configurado"),
+    });
     expect(await listPassesFor(personId)).toEqual([]);
     expect(await getCarnetCredential(personId)).toBeNull();
   });

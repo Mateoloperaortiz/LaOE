@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { isDownloadPending } from "@/app/_lib/download";
 import { getEnv } from "@/env";
 import { getPreferences, listSubscriptionsFor } from "@/modules/comms";
 import { DeviceMark } from "@/modules/comms/components/DeviceMark";
@@ -26,7 +27,7 @@ import { PhotoUploader } from "@/modules/people/components/PhotoUploader";
 import { getPrivacyPolicyState, requireConfig } from "@/modules/system";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { BarraTitulo, Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import {
   consentAction,
@@ -60,6 +61,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
   const guardado = typeof params.guardado === "string" ? params.guardado : "";
   const error = typeof params.error === "string" ? params.error : "";
   const confirmar = params.confirmar === "1";
+  const downloadPending = isDownloadPending(params);
   const [who, consents, sessions, deletionDays, policy, devices, preferences, tieneClave] =
     await Promise.all([
       getPersonRecord(actor.personId),
@@ -89,11 +91,12 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
     { name: "emailCampaigns", label: prefCampañas, checked: preferences.emailCampaigns },
   ];
   const secciones = tList("T-133");
-  const availableSections = SECCIONES.map((id, index) => ({
+  const sectionLabels = tLabels("T-133", SECCIONES);
+  const availableSections = SECCIONES.map((id) => ({
     id,
-    label: secciones[index] ?? id,
+    label: sectionLabels[id] ?? id,
   })).filter((section) => section.id !== "calendario" || calendarUrl !== null);
-  const purposeLabels = tList("T-516");
+  const purposeLabels = tLabels("T-516", CONSENT_PURPOSES);
   const [autorizar, retirar] = tList("T-413");
   const aviso = (seccion: string) =>
     guardado === seccion ? (
@@ -109,7 +112,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
         label={t("T-418")}
         sections={availableSections}
         initialSection={
-          confirmar
+          confirmar || downloadPending
             ? "privacidad"
             : error === "policy-pending"
               ? "consentimientos"
@@ -383,7 +386,9 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
                     key={state.purpose}
                     className="flex flex-col gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5"
                   >
-                    <h3 className="text-display-md">{purposeLabels[index] ?? state.purpose}</h3>
+                    <h3 className="text-display-md">
+                      {purposeLabels[state.purpose] ?? state.purpose}
+                    </h3>
                     <p className="max-w-prose text-sm">
                       {t(texto, { v: policy.version ?? "—", versión: policy.version ?? "—" })}
                     </p>
@@ -433,9 +438,12 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
           <BarraTitulo color="sky" className="self-start">
             <span id="privacidad-titulo">{secciones[5]}</span>
           </BarraTitulo>
-          <a href="/api/mis-datos" download className="boton-secundario self-start">
+          <a href="/api/mis-datos" className="boton-secundario self-start">
             {t("T-135")}
           </a>
+          {downloadPending ? (
+            <output className="block text-sm font-semibold text-titulo">{t("T-3211")}</output>
+          ) : null}
           {who?.deletionRequestedAt ? (
             <p className="max-w-prose font-semibold">
               {t("T-416", { fecha: formatDate(who.deletionRequestedAt), n: deletionDays })}

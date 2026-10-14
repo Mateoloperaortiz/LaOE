@@ -13,7 +13,7 @@ import { requireAdminActor } from "@/modules/identity";
 import { getCurrentTerm, nextTermCode } from "@/modules/terms";
 import { Pagination } from "@/shared/admin-kit";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { PanelSolicitud } from "./_ui/PanelSolicitud";
 
@@ -78,10 +78,10 @@ export default async function Page({ searchParams }: PageProps<"/admin/solicitud
   const listParams = { estado, tipo, pagina: page > 1 ? String(page) : "" };
   const listHref = buildHref(listParams);
   const columns = tList("T-998");
-  const statusFilters = tList("T-999");
-  const kindFilters = tList("T-1057");
+  const statusValues = [...REQUEST_STATUSES, "ALL"] as const;
+  const statusFilters = tLabels("T-999", statusValues);
+  const kindFilters = tLabels("T-1057", REQUEST_KINDS);
   const [previous, next] = tList("T-258");
-  const statusValues = [...REQUEST_STATUSES, "ALL"];
   const decidedLabel = decidida
     ? t("T-1008", { estado: (tList("T-876")[decidida === "APPROVED" ? 1 : 2] ?? "").toLowerCase() })
     : null;
@@ -104,14 +104,14 @@ export default async function Page({ searchParams }: PageProps<"/admin/solicitud
       ) : null}
       <div className="flex flex-col gap-4 rounded-xl border border-borde bg-fondo p-4">
         <nav aria-label={columns[4] ?? ""} className="flex flex-wrap gap-2">
-          {statusValues.map((value, index) => (
+          {statusValues.map((value) => (
             <Link
               key={value}
               href={buildHref({ ...listParams, estado: value, pagina: "" })}
               aria-current={estado === value ? "page" : undefined}
               className={`rounded-full px-3 py-1 text-sm font-semibold ${estado === value ? "bg-oe-navy text-oe-paper" : "bg-fondo-suave"}`}
             >
-              {statusFilters[index]}
+              {statusFilters[value]}
             </Link>
           ))}
         </nav>
@@ -121,16 +121,16 @@ export default async function Page({ searchParams }: PageProps<"/admin/solicitud
             aria-current={tipo === "" ? "page" : undefined}
             className={`rounded-full px-3 py-1 text-sm ${tipo === "" ? "bg-fondo-suave font-semibold" : ""}`}
           >
-            {statusFilters[4]}
+            {tList("T-999")[4]}
           </Link>
-          {REQUEST_KINDS.map((value, index) => (
+          {REQUEST_KINDS.map((value) => (
             <Link
               key={value}
               href={buildHref({ ...listParams, tipo: value, pagina: "" })}
               aria-current={tipo === value ? "page" : undefined}
               className={`rounded-full px-3 py-1 text-sm ${tipo === value ? "bg-fondo-suave font-semibold" : ""}`}
             >
-              {kindFilters[index]}
+              {kindFilters[value]}
             </Link>
           ))}
         </nav>

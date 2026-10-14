@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import {
   type BaseRow,
   type CaptainRow,
+  COMPETITION_STATUSES,
   type CompetitionRow,
   hubAddress,
   type RegistrationCandidate,
@@ -14,7 +15,7 @@ import { ImportarCapitanes } from "@/modules/competition/components/ImportarCapi
 import { ImportarPersonal } from "@/modules/competition/components/ImportarPersonal";
 import { TarjetasCodigo } from "@/modules/competition/components/TarjetasCodigo";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { importCaptainsAction, importStaffAction, issueCodesAction } from "../actions";
 import { OperationForm, type PanelContext, Section, Submit, TeamChip } from "./shared";
@@ -66,27 +67,26 @@ export function Resumen({
   forms: Array<{ id: string; label: string }>;
   isAdmin: boolean;
 }) {
-  const statuses = tList("T-2804");
-  const statusIndex = ["DRAFT", "LIVE", "FINISHED", "ARCHIVED"].indexOf(competition.status);
+  const statuses = tLabels("T-2804", COMPETITION_STATUSES);
   const [nombre, dia1, dia2, formulario, apuestas, puntos, propio] = tList("T-2806");
-  const actions = tList("T-2808");
+  const actions = tLabels("T-2808", COMPETITION_STATUSES);
   const closed = competition.status === "FINISHED" || competition.status === "ARCHIVED";
   return (
     <Section title={tList("T-2805")[0] ?? ""}>
       <p>
         {t("T-2810", {
-          estado: statuses[statusIndex] ?? competition.status,
+          estado: statuses[competition.status] ?? competition.status,
           equipos: counts.teams,
           bases: counts.bases,
           rotaciones: counts.rotations,
         })}
       </p>
       <div className="flex flex-wrap gap-3">
-        {(["DRAFT", "LIVE", "FINISHED", "ARCHIVED"] as const).map((status, index) =>
+        {COMPETITION_STATUSES.map((status, index) =>
           status === competition.status || (closed && !isAdmin && index < 2) ? null : (
             <OperationForm key={status} context={context} operation="status" hidden={{ status }}>
               <Submit variant={status === "LIVE" ? "primario" : "secundario"}>
-                {actions[index]}
+                {actions[status]}
               </Submit>
             </OperationForm>
           ),

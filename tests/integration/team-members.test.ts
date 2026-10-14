@@ -3,7 +3,6 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { event } from "@/modules/events/schema";
 import { getSnapshot, recomputeSnapshots } from "@/modules/permanence";
 import { getGroupDetail, removeMember } from "@/modules/permanence/domain/groups";
 import { prepareMacroeventGroup } from "@/modules/permanence/domain/macroevents";
@@ -14,24 +13,21 @@ import {
 import { permanenceRule, workGroup, workGroupMembership } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
+  seedEvent,
   seedMember,
   seedRule,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 async function setup() {
   const termId = await seedTerm();
   const personId = await seedMember("equipo@example.com");
   const evaluatorId = await seedMember("gh@example.com");
-  const [macro] = await getDb()
-    .insert(event)
-    .values({ name: "Inventiva", slug: "inventiva" })
-    .returning();
-  if (!macro) throw new Error("Falta evento sintético");
+  const macro = { id: await seedEvent("inventiva", "Inventiva") };
   const gt = await runCommand(SYSTEM_ACTOR, (ctx) => prepareMacroeventGroup(ctx, macro.id, termId));
   const gap = await runCommand(SYSTEM_ACTOR, (ctx) =>
     prepareMacroeventGroup(ctx, macro.id, termId, "GAP"),
@@ -39,7 +35,7 @@ async function setup() {
   return {
     termId,
     personId,
-    actor: { personId: evaluatorId },
+    actor: { personId: evaluatorId, ip: null },
     gt: gt.id,
     gap: gap.id,
     eventId: macro.id,
@@ -159,6 +155,75 @@ describe("áreas y acreditación de GT/GAP", () => {
       evaluatedById: null,
       areas: ["GESTION_HUMANA"],
     });
+  });
+
+  // Volver por la pantalla del macroevento es volver a la misma pertenencia, por el mismo camino que
+  // las demás (ADR-116 regla 5; ADR-119 regla 21). Que vuelva pendiente y no con la evaluación que
+  // tenía es la decisión abierta 32: se conserva como estaba.
+  it("quien vuelve por la pantalla del macroevento conserva su fecha de ingreso, vuelve pendiente (decisión abierta 32) y deja la auditoría de su regreso", async () => {
+    const s = await setup();
+    await saveMacroeventMemberAs(
+      s.actor,
+      s.gt,
+      { personId: s.personId, areas: ["PUBLICIDAD"], credit: true },
+      admin,
+    );
+    // La fecha de ingreso se corre al pasado: la del regreso no se puede confundir con ella.
+    const joinedAt = new Date("2026-08-01T15:00:00.000Z");
+    const mine = eq(workGroupMembership.personId, s.personId);
+    await getDb().update(workGroupMembership).set({ joinedAt }).where(mine);
+    const [evaluated] = await getDb().select().from(workGroupMembership).where(mine);
+    if (!evaluated) throw new Error("Falta la pertenencia evaluada");
+    expect(evaluated.evaluation).toBe("GOOD");
+    await runCommand(s.actor, (ctx) => removeMember(ctx, s.gt, s.personId));
+
+    await saveMacroeventMemberAs(
+      s.actor,
+      s.gt,
+      { personId: s.personId, areas: ["GESTION_HUMANA"] },
+      admin,
+    );
+
+    const [back] = await getDb().select().from(workGroupMembership).where(mine);
+    expect(back).toMatchObject({
+      id: evaluated.id,
+      joinedAt,
+      leftAt: null,
+      evaluation: "PENDING",
+      evaluatedAt: null,
+      evaluatedById: null,
+      note: null,
+      areas: ["GESTION_HUMANA"],
+    });
+    // La evaluación, quién la puso y cuándo quedan en la auditoría del regreso.
+    const returned = await getDb()
+      .select({ entityId: auditLog.entityId, before: auditLog.before, after: auditLog.after })
+      .from(auditLog)
+      .where(eq(auditLog.action, "work-group.member-returned"));
+    expect(returned).toEqual([
+      {
+        entityId: evaluated.id,
+        before: expect.objectContaining({
+          evaluation: "GOOD",
+          evaluatedById: evaluated.evaluatedById,
+          evaluatedAt: evaluated.evaluatedAt?.toISOString(),
+        }),
+        after: { groupId: s.gt, personId: s.personId, evaluation: "PENDING" },
+      },
+    ]);
+    // La de las áreas sigue diciendo que fue un regreso, y la entrada al grupo se avisa una vez.
+    const areas = await getDb()
+      .select({ after: auditLog.after })
+      .from(auditLog)
+      .where(eq(auditLog.action, "work-group.member-areas-set"));
+    expect(areas.map((row) => row.after)).toContainEqual({
+      areas: ["GESTION_HUMANA"],
+      rejoined: true,
+    });
+    const joins = (await getDb().select({ payload: outbox.payload }).from(outbox)).filter(
+      (row) => (row.payload as { change?: string }).change === "JOINED",
+    );
+    expect(joins).toHaveLength(2);
   });
 
   it("acreditar el GT deja el criterio GAP en su peso completo (ADR-071)", async () => {

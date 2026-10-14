@@ -1,6 +1,6 @@
 # ADR-012: Outbox transaccional; efectos fuera del commit
 
-- Estado: Aceptada (enmendada por ADR-021, ADR-038, ADR-040, ADR-079 y ADR-084)
+- Estado: Aceptada (enmendada por ADR-021, ADR-038, ADR-040, ADR-079, ADR-084, ADR-113 y ADR-118)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-001, ADR-009, ADR-021
 
@@ -38,3 +38,13 @@ La transacción del poller solo sostiene el bloqueo de la fila: los handlers tra
 ## Enmienda (2026-09-19, ADR-084)
 
 Un evento de dominio tiene contrato: nombre y esquema del payload en `src/domain-events/`, un archivo por módulo productor. El productor emite con `eventOf(contrato, payload)` y el compilador comprueba el payload; el consumidor escucha con `onEvent(contrato, handler)` y recibe el payload validado y tipado. La migración va por familias. Detalle en [ADR-084](ADR-084-catalogo-tipado-de-eventos-de-dominio.md).
+
+## Enmienda (2026-10-07, ADR-113)
+
+La decisión dejaba los dead letters «con opción de reintentar» y un solo pendiente por `dedupeKey`, sin decir qué pasa cuando las dos cosas se cruzan: un dead letter deja libre su clave, el mismo trabajo se vuelve a encolar, y reintentar el dead letter chocaba con el índice único y respondía con el error de la base. Ahora ese reintento da el dead letter por atendido: lo marca procesado sin correrlo, deja el pendiente como está y lo nombra en la auditoría del reintento. Lo decide el índice dentro de la transacción del comando, así que vale también si el mismo trabajo se encola mientras corre el reintento. El reintento de un dead letter sin clave, o cuya clave no tiene pendiente, no cambia. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 8.
+
+## Enmienda (2026-10-08, ADR-118)
+
+La decisión mandaba a dead letter «tras cinco fallos», y un fallo solo se contaba cuando el poller alcanzaba a anotarlo: un evento que tumbaba el proceso no sumaba nunca (DT-212). Según [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 1, el intento se cuenta al tomar la fila, en una transacción que confirma antes de correr los handlers, y el dead letter llega tras cinco intentos, hayan fallado o no hayan terminado.
+
+La decisión decía además que «`dedupeKey` con unique parcial evita duplicar trabajos pendientes». Pendiente era también el evento que el poller ya estaba entregando: un cambio que llegaba con su recálculo en curso emitía la misma clave, no encolaba nada y no se recalculaba (DT-211). Según ADR-118 regla 3, la clave cubre lo que está en cola: la toma se la quita a la fila, el emit que llega mientras corre entra como evento nuevo y se entrega después, y la fila recupera su clave al terminar, salvo que falle y otro pendiente ya la ocupe. Mientras está tomada, la clave queda guardada en la fila (`outbox.taken_dedupe_key`), y el poller se la devuelve al arrancar si el proceso murió con ella: sin eso, el emit siguiente de un evento con clave entraba como evento nuevo y la cuenta de cinco intentos empezaba otra vez. Si al arrancar otro pendiente ya ocupa esa clave, porque el emit llegó con el evento en curso, ese pendiente hereda los intentos y la espera de la fila, y la fila queda atendida sin correr: de una clave no quedan dos cuentas de intentos.

@@ -7,7 +7,6 @@ import { eventOf } from "@/domain-events/define";
 import { scoreRecompute } from "@/domain-events/participation";
 import { permission } from "@/modules/identity/schema";
 import {
-  committee,
   committeeMembership,
   committeeRole,
   committeeRoleAssignment,
@@ -16,36 +15,17 @@ import {
   person,
 } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
-import { term } from "@/modules/terms/schema";
+import { seedCommittee, seedMembership, seedPermission, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
 
-async function createPerson(email: string) {
-  const [row] = await db()
-    .insert(person)
-    .values({ email, firstName: "Persona", lastName: "Sintética", stage: "MEMBER" })
-    .returning({ id: person.id });
-  if (!row) throw new Error("sin persona");
-  return row.id;
-}
+const createPerson = (email: string) => seedPerson(email);
+const createTerm = () => seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
 
-async function createTerm(code = "2026-2") {
-  const [row] = await db()
-    .insert(term)
-    .values({ code, semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
-    .returning({ id: term.id });
-  if (!row) throw new Error("sin término");
-  return row.id;
-}
-
-async function createCommittee(slug: string) {
-  const [row] = await db()
-    .insert(committee)
-    .values({ slug, name: slug.toUpperCase() })
-    .returning({ id: committee.id });
-  if (!row) throw new Error("sin comité");
-  return row.id;
+/** Un comité sin publicar, que es como nace una fila de `committee`. */
+function createCommittee(slug: string) {
+  return seedCommittee(slug, slug.toUpperCase(), { publicationStatus: "DRAFT" });
 }
 
 describe("restricciones que no negocia el esquema", () => {
@@ -64,7 +44,7 @@ describe("restricciones que no negocia el esquema", () => {
   it("permite una sola membresía por persona", async () => {
     const personId = await createPerson("m@eafit.edu.co");
     const termId = await createTerm();
-    await db().insert(membership).values({ personId, firstTermId: termId });
+    await seedMembership(personId, termId);
     await expect(
       db().insert(membership).values({ personId, firstTermId: termId }),
     ).rejects.toSatisfy((error) => isUniqueViolation(error, "membership_person_unique"));
@@ -73,11 +53,11 @@ describe("restricciones que no negocia el esquema", () => {
   it("no duplica permisos globales ni por comité, y exige comité solo al líder", async () => {
     const personId = await createPerson("p@eafit.edu.co");
     const committeeId = await createCommittee("a3");
-    await db().insert(permission).values({ personId, code: "ADMIN" });
+    await seedPermission(personId, "ADMIN");
     await expect(db().insert(permission).values({ personId, code: "ADMIN" })).rejects.toSatisfy(
       (error) => isUniqueViolation(error, "permission_global_unique"),
     );
-    await db().insert(permission).values({ personId, code: "COMMITTEE_LEADER", committeeId });
+    await seedPermission(personId, "COMMITTEE_LEADER", committeeId);
     await expect(
       db().insert(permission).values({ personId, code: "COMMITTEE_LEADER", committeeId }),
     ).rejects.toSatisfy((error) => isUniqueViolation(error, "permission_committee_unique"));

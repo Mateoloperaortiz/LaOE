@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   audienceIncludes,
-  badgeProgress,
   boosterExpiresAt,
   boosterPercent,
   boosterState,
@@ -11,7 +10,7 @@ import {
   gradeTrivia,
   isVoluntaryOccasion,
   memberChallengeStatus,
-  unlockedLevel,
+  nextDayAt,
   weekKeyFor,
 } from "@/modules/participation/domain/gamification-pure";
 import type {
@@ -175,6 +174,13 @@ describe("economía de la gamificación (ADR-067)", () => {
     expect(dayKeyFor(new Date("2026-09-15T05:00:00Z"))).toBe("2026-09-15");
   });
 
+  it("cambia el reto a medianoche de Bogotá incluso al cambiar año y semestre", () => {
+    expect(dayKeyFor(new Date("2027-01-01T04:59:59.999Z"))).toBe("2026-12-31");
+    expect(dayKeyFor(new Date("2027-01-01T05:00:00.000Z"))).toBe("2027-01-01");
+    expect(nextDayAt("2026-06-30")).toBe("2026-07-01T05:00:00.000Z");
+    expect(nextDayAt("2028-02-28")).toBe("2028-02-29T05:00:00.000Z");
+  });
+
   it("deriva el estado del reto desde la fila persistida y la ventana", () => {
     const window = {
       opensAt: new Date("2026-09-20T05:00:00Z"),
@@ -272,18 +278,5 @@ describe("economía de la gamificación (ADR-067)", () => {
     expect(boosterState({ status: "RESERVED", expiresAt: past }, now)).toBe("RESERVED");
     expect(boosterState({ status: "CONSUMED", expiresAt: past }, now)).toBe("CONSUMED");
     expect(boosterState({ status: "REVOKED", expiresAt: future }, now)).toBe("REVOKED");
-  });
-
-  it("cuenta niveles y progreso de insignias por umbrales", () => {
-    const thresholds = [1, 5, 15];
-    expect(unlockedLevel(0, thresholds)).toBe(0);
-    expect(unlockedLevel(1, thresholds)).toBe(1);
-    expect(unlockedLevel(4, thresholds)).toBe(1);
-    expect(unlockedLevel(5, thresholds)).toBe(2);
-    expect(unlockedLevel(15, thresholds)).toBe(3);
-    expect(unlockedLevel(40, thresholds)).toBe(3);
-    expect(badgeProgress(0, thresholds)).toEqual({ level: 0, next: 1, current: 0 });
-    expect(badgeProgress(3, thresholds)).toEqual({ level: 1, next: 5, current: 3 });
-    expect(badgeProgress(15, thresholds)).toEqual({ level: 3, next: null, current: 15 });
   });
 });

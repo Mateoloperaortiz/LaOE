@@ -21,7 +21,7 @@ function Cell({ value }: { value: CellValue }) {
   if (value === null) return <span className="text-tinta-suave">—</span>;
   if (typeof value === "object") {
     if ("href" in value) {
-      return value.href.startsWith("/admin") ? (
+      const link = value.href.startsWith("/admin") ? (
         <Link href={value.href} className="font-semibold">
           {value.text}
         </Link>
@@ -29,6 +29,14 @@ function Cell({ value }: { value: CellValue }) {
         <a href={value.href} target="_blank" rel="noopener noreferrer" className="font-semibold">
           {value.text}
         </a>
+      );
+      return value.note ? (
+        <>
+          {link}
+          <span className="mt-1 block text-xs font-semibold text-tinta-suave">{value.note}</span>
+        </>
+      ) : (
+        link
       );
     }
     return <Insignia fondo={value.badge}>{value.text}</Insignia>;

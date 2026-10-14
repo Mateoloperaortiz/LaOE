@@ -1,4 +1,12 @@
-import { type CopyValues, fillCopy, type SplitCopyList, splitCopyList } from "./format";
+import {
+  type CopyLabels,
+  type CopyValues,
+  fillCopy,
+  type PairedWithList,
+  pairCopyLabels,
+  type SplitCopyList,
+  splitCopyList,
+} from "./format";
 import { textosCliente } from "./textos.client.generated";
 
 // Textos para lo que corre en el navegador (ADR-081): misma API que `@/shared/copy` sobre el subconjunto
@@ -18,3 +26,13 @@ export type ClientCopyList<Code extends ClientCopyCode> = ClientCopyCode extends
 export function tList<const Code extends ClientCopyCode>(code: Code): ClientCopyList<Code> {
   return splitCopyList(textosCliente[code]) as ClientCopyList<Code>;
 }
+
+/** Las etiquetas de un enum por valor, como `tLabels` de `@/shared/copy` (ADR-126 regla 3). */
+export function tLabels<const Code extends ClientCopyCode, const Values extends readonly string[]>(
+  code: Code,
+  values: Values & PairedWithList<ClientCopyList<Code>, Values>,
+): CopyLabels<Values[number]> {
+  return pairCopyLabels(splitCopyList(textosCliente[code]), values) as CopyLabels<Values[number]>;
+}
+
+export { labelsFromProps } from "./format";

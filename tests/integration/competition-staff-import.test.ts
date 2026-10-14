@@ -32,15 +32,15 @@ import { addMacroeventDirector } from "@/modules/people/domain/appointments";
 import { membership } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedMember, seedTerm, seedVeteran } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm, seedVeteran } from "./factories";
 
 // El personal desde la hoja del GAP (ADR-101): revisar y guardar por jornada, reemplazar solo esa
 // jornada, la huella de la revisión, los permisos y, sobre todo, que el apoyo de una base no dé
 // ningún acceso. Todos los nombres son inventados.
 
-const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true });
-const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false });
+const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true, ip: null });
+const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false, ip: null });
 
 async function seedDiasEdition(): Promise<string> {
   const evento = await runCommand(SYSTEM_ACTOR, (ctx) =>

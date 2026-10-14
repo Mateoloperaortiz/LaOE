@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { activateAction } from "./actions";
 import { initialActivateState } from "./state";
 
@@ -20,7 +20,11 @@ const campo =
   "rounded-xl border-2 border-borde bg-fondo px-4 py-3 text-lg text-tinta focus:border-titulo focus:outline-none";
 
 export function ActivateForm({ token, labels }: Props) {
-  const [state, action, pending] = useActionState(activateAction, initialActivateState);
+  const [state, action, pending] = useGuardedActionState(
+    activateAction,
+    initialActivateState,
+    ({ previous, message }) => ({ ...previous, error: message }),
+  );
 
   return (
     <form action={action} className="flex flex-col gap-5" noValidate>

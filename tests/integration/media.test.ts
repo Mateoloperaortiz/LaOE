@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import sharp from "sharp";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
@@ -13,20 +12,19 @@ import {
 } from "@/modules/content/domain/media";
 import { processMedia } from "@/modules/content/domain/media-process";
 import { mediaAsset } from "@/modules/content/schema";
+import { lockPersonAnonymization } from "@/modules/people";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
+import { tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { IMAGE_MAX_OUTPUT_PIXELS } from "@/shared/lib/image-decoder";
+import { noisePng, uploadAsBrowser } from "../helpers/media";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
 // Contra Garage en local: la subida directa se simula con fetch y FormData, como hace el navegador.
 
 const keys: string[] = [];
-
-async function noisePng(width: number, height: number): Promise<Buffer> {
-  return sharp(randomBytes(width * height * 3), { raw: { width, height, channels: 3 } })
-    .png({ compressionLevel: 0 })
-    .toBuffer();
-}
 
 async function uploadDirect(
   bytes: Buffer | string,
@@ -36,22 +34,34 @@ async function uploadDirect(
 ) {
   const prepared = await prepareUpload({ filename, contentType, byteSize, visibility: "PUBLIC" });
   keys.push(prepared.key);
-  const form = new FormData();
-  for (const [name, value] of Object.entries(prepared.fields)) {
-    form.append(name, value);
-  }
-  const part = typeof bytes === "string" ? bytes : Uint8Array.from(bytes);
-  form.append("file", new Blob([part], { type: contentType }), filename);
-  const response = await fetch(prepared.url, { method: "POST", body: form });
-  expect([200, 201, 204]).toContain(response.status);
+  await uploadAsBrowser(prepared, { bytes, contentType, filename });
   return prepared.key;
 }
+
+/** Lo que compone la capa de la app: content pregunta y people responde con la persona tomada. */
+const ownerCheck = { lockOwner: lockPersonAnonymization };
 
 describe("medios", () => {
   beforeEach(truncateAll);
   afterAll(async () => {
     await Promise.all(keys.map((key) => deleteObject(key).catch(() => undefined)));
     await closeDb();
+  });
+
+  it("un medio cuyo tipo guardado no es de los admitidos queda fallido con el motivo del catálogo", async () => {
+    const [row] = await getDb()
+      .insert(mediaAsset)
+      .values({
+        objectKey: "uploads/tipo-de-antes.gif",
+        originalFilename: "tipo-de-antes.gif",
+        contentType: "image/gif",
+        byteSize: 10_000,
+      })
+      .returning({ id: mediaAsset.id });
+    const id = row?.id ?? "";
+    expect(await processMedia(id)).toBe("failed");
+    const [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
+    expect(asset).toMatchObject({ status: "FAILED", error: tList("T-3207")[1] });
   });
 
   it("rechaza tipos y tamaños fuera de regla antes de firmar", async () => {
@@ -78,7 +88,12 @@ describe("medios", () => {
     const key = await uploadDirect(png, "image/png", "portada.png", png.byteLength);
 
     const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
-      confirmUpload(ctx, { key, filename: "portada.png", visibility: "PUBLIC" }),
+      confirmUpload(
+        ctx,
+        { key, filename: "portada.png", visibility: "PUBLIC", purpose: "media" },
+        { by: "ADMIN" },
+        ownerCheck,
+      ),
     );
     let [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
     expect(asset).toMatchObject({
@@ -96,7 +111,12 @@ describe("medios", () => {
     // Confirmar dos veces la misma clave falla con el texto del inventario.
     await expect(
       runCommand(SYSTEM_ACTOR, (ctx) =>
-        confirmUpload(ctx, { key, filename: "portada.png", visibility: "PUBLIC" }),
+        confirmUpload(
+          ctx,
+          { key, filename: "portada.png", visibility: "PUBLIC", purpose: "media" },
+          { by: "ADMIN" },
+          ownerCheck,
+        ),
       ),
     ).rejects.toBeInstanceOf(DomainError);
 
@@ -106,7 +126,8 @@ describe("medios", () => {
     expect(await processMedia(id)).toBe("ready");
     [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
     expect(asset).toMatchObject({ status: "READY", width: 1200, height: 800, error: null });
-    expect(Object.keys(asset?.variants ?? {}).sort()).toEqual(["w480", "w960"]); // 1600 agrandaría
+    // 1600 agrandaría; `full` es la completa, que se entrega en lugar del original (ADR-114 regla 8).
+    expect(Object.keys(asset?.variants ?? {}).sort()).toEqual(["full", "w480", "w960"]);
     for (const variant of Object.values(asset?.variants ?? {})) {
       keys.push(variant.key);
       expect(await headObject(variant.key)).toMatchObject({ contentType: "image/webp" });
@@ -125,8 +146,9 @@ describe("medios", () => {
     }
     const between = await resolveMediaRedirect(id, 700, { authenticated: false });
     expect(between.status === 302 && between.url).toContain("w480.webp");
-    const original = await resolveMediaRedirect(id, null, { authenticated: false });
-    expect(original.status === 302 && original.url).toContain(key);
+    const whole = await resolveMediaRedirect(id, null, { authenticated: false });
+    expect(whole.status === 302 && whole.url).toContain(`variants/${id}/full.webp`);
+    expect(whole.status === 302 && whole.url).not.toContain(key);
 
     expect(await getPublicMediaRef(id)).toMatchObject({ id, width: 1200, height: 800 });
     expect(await listReadyPublicMedia()).toEqual([{ id, label: "portada.png · 1200×800" }]);
@@ -136,7 +158,12 @@ describe("medios", () => {
     const text = "esto no es una imagen ".repeat(400); // > 5 KB
     const key = await uploadDirect(text, "image/png", "falso.png", Buffer.byteLength(text));
     const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
-      confirmUpload(ctx, { key, filename: "falso.png", visibility: "PRIVATE" }),
+      confirmUpload(
+        ctx,
+        { key, filename: "falso.png", visibility: "PRIVATE", purpose: "media" },
+        { by: "ADMIN" },
+        ownerCheck,
+      ),
     );
     expect(await processMedia(id)).toBe("failed");
     const [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
@@ -147,7 +174,12 @@ describe("medios", () => {
     const png = await noisePng(300, 200);
     const privateKey = await uploadDirect(png, "image/png", "privada.png", png.byteLength);
     const created = await runCommand(SYSTEM_ACTOR, (ctx) =>
-      confirmUpload(ctx, { key: privateKey, filename: "privada.png", visibility: "PRIVATE" }),
+      confirmUpload(
+        ctx,
+        { key: privateKey, filename: "privada.png", visibility: "PRIVATE", purpose: "media" },
+        { by: "ADMIN" },
+        ownerCheck,
+      ),
     );
     expect(await processMedia(created.id)).toBe("ready");
     expect(await resolveMediaRedirect(created.id, null, { authenticated: false })).toEqual({
@@ -158,7 +190,81 @@ describe("medios", () => {
     if (allowed.status === 302) {
       expect(allowed.cacheControl).toBe("private, max-age=300");
     }
-    // Sin variantes (300 px de ancho no admite ninguna) se sirve el original y no es pública.
+    // Sin variantes de ancho (300 px no admite ninguna) se sirve la completa, y no es pública.
     expect(await getPublicMediaRef(created.id)).toBeNull();
+  });
+
+  it("un medio de más píxeles que el tope queda fallido con su motivo y sin variantes", async () => {
+    // 40.008.000 píxeles de un solo color: 0,5 MB, dentro del tamaño que admite la subida.
+    const png = await sharp({
+      create: { width: 8000, height: 5001, channels: 3, background: { r: 10, g: 120, b: 200 } },
+    })
+      .png()
+      .toBuffer();
+    const key = await uploadDirect(png, "image/png", "enorme.png", png.byteLength);
+    const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
+      confirmUpload(
+        ctx,
+        { key, filename: "enorme.png", visibility: "PUBLIC", purpose: "media" },
+        { by: "ADMIN" },
+        ownerCheck,
+      ),
+    );
+
+    // El job corre por el outbox y termina: un fallo del handler rompería el drenado.
+    await drainOutbox();
+
+    const [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
+    expect(asset).toMatchObject({ status: "FAILED", error: tList("T-3207")[2] });
+    expect(asset?.variants).toEqual({});
+    expect(await headObject(`variants/${id}/w480.webp`)).toBeNull();
+    expect(await resolveMediaRedirect(id, 480, { authenticated: false })).toEqual({ status: 404 });
+    expect(await drainOutbox()).toEqual({ processed: 0, failed: 0 });
+  });
+
+  it("un medio alto y angosto queda listo con cada variante dentro del tope de píxeles de salida", async () => {
+    // 1600 × 16.000 con transparencia: 25,6 megapíxeles que pasan el tope de entrada y el presupuesto
+    // de memoria. Reducir a un ancho no le acotaba el alto (DT-107, ADR-119 regla 10).
+    const png = await sharp({
+      create: {
+        width: 1600,
+        height: 16_000,
+        channels: 4,
+        background: { r: 10, g: 120, b: 200, alpha: 0.5 },
+      },
+    })
+      .png()
+      .toBuffer();
+    const key = await uploadDirect(png, "image/png", "alta.png", png.byteLength);
+    const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
+      confirmUpload(
+        ctx,
+        { key, filename: "alta.png", visibility: "PUBLIC", purpose: "media" },
+        { by: "ADMIN" },
+        ownerCheck,
+      ),
+    );
+
+    await drainOutbox();
+
+    const [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
+    expect(asset).toMatchObject({ status: "READY", width: 1600, height: 16_000 });
+    const sizes = Object.fromEntries(
+      Object.entries(asset?.variants ?? {}).map(([name, variant]) => [
+        name,
+        `${variant.width}x${variant.height}`,
+      ]),
+    );
+    // La de 480 y la completa ya cabían; las de 960 y 1600 salen enteras, reducidas al tope.
+    expect(sizes).toEqual({
+      w480: "480x4800",
+      w960: "809x8090",
+      w1600: "809x8090",
+      full: "256x2560",
+    });
+    for (const variant of Object.values(asset?.variants ?? {})) {
+      expect(variant.width * variant.height).toBeLessThanOrEqual(IMAGE_MAX_OUTPUT_PIXELS);
+      keys.push(variant.key);
+    }
   });
 });

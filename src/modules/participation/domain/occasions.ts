@@ -6,11 +6,12 @@ import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { occasionClosed, scoreRecompute } from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { checkIn, occasion } from "../schema";
+import { occasion } from "../schema";
 import {
+  canOpenOccasion,
   canTransitionOccasion,
   defaultWindow,
   OCCASION_STATUSES,
@@ -95,8 +96,14 @@ export interface OccasionContext {
   window: WindowConfig;
 }
 
-function statusLabel(status: OccasionStatus): string {
-  return tList("T-568")[OCCASION_STATUSES.indexOf(status)] ?? status;
+/**
+ * El error de «esa acción no aplica» (T-578), con el estado de la ocasión como lo nombra la interfaz
+ * (T-568) y en minúscula: «la ocasión está cancelada». Lo responden abrir, cerrar y cancelar, y
+ * registrar o decidir una asistencia (check-ins.ts): es el único sitio que arma ese texto.
+ */
+export function occasionStateError(status: OccasionStatus): DomainError {
+  const label = tLabels("T-568", OCCASION_STATUSES)[status] ?? status;
+  return new DomainError(t("T-578", { estado: label.toLowerCase() }));
 }
 
 function toValues(input: OccasionInput, context: OccasionContext) {
@@ -288,13 +295,30 @@ async function transition(
     throw new DomainError(t("T-260"));
   }
   if (!canTransitionOccasion(before.status, to)) {
-    throw new DomainError(t("T-578", { estado: statusLabel(before.status).toLowerCase() }));
+    throw occasionStateError(before.status);
   }
   return before;
 }
 
-export async function openOccasion(ctx: CommandContext, id: string): Promise<void> {
+/** Quién abre una ocasión: ADMIN, o un líder que la opera (ADR-035). */
+export interface OccasionOpener {
+  isAdmin: boolean;
+}
+
+/**
+ * Un líder abre por sí mismo solo la ocasión sin puntos (T-653). Lo decide el comando, con la fila ya
+ * tomada, y no la pantalla con la ocasión que leyó antes (ADR-122 regla 2): unos puntos que cambian
+ * entre esa lectura y el comando ya no pasan. Falla cerrado: quien no llega como ADMIN es líder.
+ */
+export async function openOccasion(
+  ctx: CommandContext,
+  id: string,
+  opener: OccasionOpener,
+): Promise<void> {
   const before = await transition(ctx, id, "OPEN");
+  if (!canOpenOccasion({ isAdmin: opener?.isAdmin === true }, before)) {
+    throw new DomainError(t("T-653"));
+  }
   const rotatingSecret =
     before.requireRotatingCode && !before.rotatingSecret
       ? newRotatingSecret()
@@ -531,15 +555,6 @@ export async function searchOccasions(q: string, limit = 8): Promise<OccasionRef
     .where(or(sql`similarity(${occasion.title}, ${q}) > 0.2`, ilike(occasion.title, `%${q}%`)))
     .orderBy(sql`similarity(${occasion.title}, ${q}) desc`, asc(occasion.startsAt))
     .limit(limit);
-}
-
-/** Cuántos check-ins aprobados tiene una ocasión (para pruebas y listados). */
-export async function countApproved(occasionId: string): Promise<number> {
-  const [row] = await getDb()
-    .select({ n: count() })
-    .from(checkIn)
-    .where(and(eq(checkIn.occasionId, occasionId), eq(checkIn.status, "APPROVED")));
-  return row?.n ?? 0;
 }
 
 /** Ocasiones abiertas del término cuya ventana no venció, de la más próxima a la más lejana (agenda de Mi OE). */

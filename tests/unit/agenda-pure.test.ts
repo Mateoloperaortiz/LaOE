@@ -60,4 +60,32 @@ describe("agendaEntries", () => {
     expect(ics).toContain("UID:edicion-e1@oeeafit.com");
     expect(ics).toContain("DTSTART:20260912T230000Z");
   });
+
+  // DT-129 (#164): el título y el lugar de una ocasión los escribe quien la organiza.
+  it("una ocasión con un retorno de carro en el título o el lugar no mete propiedades en el calendario personal", () => {
+    const entries = agendaEntries(
+      [
+        {
+          id: "o1",
+          publicId: "abc123def4",
+          title: "Asamblea\rATTACH:https://ejemplo.invalid/archivo",
+          description: "Orden del día\u0000",
+          location: "Bloque 29\rX-INYECTADA:1",
+          startsAt: new Date("2026-09-12T23:00:00Z"),
+          endsAt: null,
+          updatedAt: stamp,
+        },
+      ],
+      [],
+      base,
+      host,
+    );
+    const lines = buildIcs({ name: "Mi agenda OE", prodId: "-//OE//ES", events: entries })
+      .split(/\r\n|\r|\n/)
+      .filter((line) => line !== "");
+    expect(lines.filter((line) => /^(ATTACH|X-INYECTADA)/.test(line))).toEqual([]);
+    expect(lines).toContain("SUMMARY:Asamblea\\nATTACH:https://ejemplo.invalid/archivo");
+    expect(lines).toContain("LOCATION:Bloque 29\\nX-INYECTADA:1");
+    expect(lines).toContain("DESCRIPTION:Orden del día");
+  });
 });

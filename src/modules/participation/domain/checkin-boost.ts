@@ -47,7 +47,9 @@ export async function applyCheckInBoost(
 
   if (outcome === "REJECTED") {
     if (existing?.status === "RESERVED") {
-      await releaseReward(ctx, existing.id, input.reason ?? t("T-2432", { motivo: "" }));
+      // Rechazar no exige motivo: sin él, el premio dice lo mismo que la entrega del reto presencial.
+      const reason = input.reason ?? t("T-2579", { actividad: row.title });
+      await releaseReward(ctx, existing.id, reason);
     }
     return;
   }

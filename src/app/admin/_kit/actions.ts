@@ -4,6 +4,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import {
   assertAdmin,
   ForbiddenError,
@@ -22,7 +23,9 @@ import { DomainError } from "@/shared/lib/errors";
 import { getResource } from "./registry";
 
 // Acción genérica del admin kit: valida con Zod, resuelve el actor, exige ADMIN (y step-up si el
-// recurso lo pide) y llama a los comandos del módulo. Nunca toca la base directamente.
+// recurso lo pide) y llama a los comandos del módulo. Nunca toca la base directamente. El actor que
+// recibe el recurso lo arma `actorContext`, con la IP del request (ADR-082 regla 2; ADR-116 regla 10):
+// así la auditoría de lo que se escribe por el kit dice desde dónde se hizo.
 
 async function requireAdminForAction(returnTo: string) {
   const actor = await getActor();
@@ -86,17 +89,18 @@ export async function saveResourceAction(
     }
     return { ok: false, message: t("T-260"), errors, values };
   }
+  const commandActor = await actorContext(actor);
   try {
     if (id) {
       if (!resource.update) {
         throw new DomainError(t("T-240"));
       }
-      await resource.update({ personId: actor.personId, isAdmin: actor.isAdmin }, id, parsed.data);
+      await resource.update(commandActor, id, parsed.data);
     } else {
       if (!resource.create) {
         throw new DomainError(t("T-240"));
       }
-      await resource.create({ personId: actor.personId, isAdmin: actor.isAdmin }, parsed.data);
+      await resource.create(commandActor, parsed.data);
     }
   } catch (error) {
     if (error instanceof DomainError) {
@@ -127,12 +131,9 @@ export async function rowActionAction(formData: FormData): Promise<void> {
   if (resource.stepUp && !hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(returnTo)}`);
   }
+  const commandActor = await actorContext(actor);
   try {
-    await resource.runRowAction(
-      { personId: actor.personId, isAdmin: actor.isAdmin },
-      actionKey,
-      id,
-    );
+    await resource.runRowAction(commandActor, actionKey, id);
   } catch (error) {
     if (error instanceof DomainError) {
       revalidateReturn(returnTo);

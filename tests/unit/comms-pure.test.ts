@@ -1,17 +1,52 @@
 import { describe, expect, it } from "vitest";
 import {
+  ADDRESS_MARK,
   DEFAULT_PREFERENCES,
   NOTIFICATION_MAX_RECIPIENTS,
+  notificationExpired,
   notificationRequestedSchema,
   shouldDeliver,
   splitPush,
+  withoutAddresses,
 } from "@/modules/comms/domain/pure";
 import {
   campaignEligibility,
   markdownToMailHtml,
   markdownToPlain,
   renderTemplate,
+  sendEligibility,
 } from "@/modules/comms/domain/templates-pure";
+
+describe("withoutAddresses (ADR-114 regla 5)", () => {
+  it("quita toda dirección de correo de un texto ajeno y deja lo demás", () => {
+    expect(
+      withoutAddresses("Resend: validation_error: no se entrega a ana.r7k2@eafit.edu.co"),
+    ).toBe(`Resend: validation_error: no se entrega a ${ADDRESS_MARK}`);
+    expect(withoutAddresses("proveedor caído")).toBe("proveedor caído");
+    expect(withoutAddresses("")).toBe("");
+  });
+
+  it.each([
+    "Ana.R7K2@Eafit.Edu.Co",
+    "<ana.r7k2@eafit.edu.co>",
+    '"ana.r7k2@eafit.edu.co",',
+    "to=ana.r7k2%40eafit.edu.co",
+    "(ana.r7k2+oe@eafit.edu.co);otra.p4m9@correo.example",
+    "ana.r7k2@",
+    "@eafit.edu.co",
+  ])("no deja ni media dirección cuando viene escrita como %s", (written) => {
+    const clean = withoutAddresses(`Rechazada: ${written} no está verificada`);
+    expect(clean).toBe(`Rechazada: ${ADDRESS_MARK} no está verificada`);
+    expect(clean.toLowerCase()).not.toContain("ana.r7k2");
+    expect(clean).not.toContain("eafit");
+  });
+
+  it("quita cada dirección de un texto que trae varias", () => {
+    expect(withoutAddresses("a.b1c2@uno.example y d.e3f4@dos.example fallaron")).toBe(
+      `${ADDRESS_MARK} y ${ADDRESS_MARK} fallaron`,
+    );
+  });
+});
 
 describe("shouldDeliver (ADR-038 regla 2)", () => {
   it("cada tipo de push obedece a su preferencia y lo transaccional llega siempre", () => {
@@ -171,5 +206,73 @@ describe("plantillas de correo (ADR-038 regla 8)", () => {
       ok: false,
       reason: "NO_EMAIL",
     });
+  });
+});
+
+describe("elegibilidad al enviar (ADR-115 regla 7)", () => {
+  const member = {
+    anonymized: false,
+    email: "a@eafit.edu.co",
+    personalEmail: "a@example.com",
+    membershipStatus: "ACTIVE",
+    hasCommunicationsConsent: false,
+  };
+
+  it("quien sigue en el roster recibe en su correo institucional, con o sin consentimiento", () => {
+    expect(sendEligibility(member)).toEqual({ ok: true, address: "a@eafit.edu.co" });
+    expect(sendEligibility({ ...member, membershipStatus: "ON_LEAVE" }).ok).toBe(true);
+  });
+
+  it("quien se anonimizó no recibe, tenga los datos que tenga", () => {
+    expect(sendEligibility({ ...member, anonymized: true })).toEqual({
+      ok: false,
+      reason: "ANONYMIZED",
+    });
+    expect(
+      sendEligibility({ ...member, anonymized: true, hasCommunicationsConsent: true }),
+    ).toEqual({ ok: false, reason: "ANONYMIZED" });
+  });
+
+  it("quien salió del roster solo recibe con consentimiento vivo, y en su correo personal si lo tiene", () => {
+    const left = { ...member, membershipStatus: "INACTIVE" };
+    expect(sendEligibility(left)).toEqual({ ok: false, reason: "NO_CONSENT" });
+    expect(sendEligibility({ ...left, hasCommunicationsConsent: true })).toEqual({
+      ok: true,
+      address: "a@example.com",
+    });
+    expect(
+      sendEligibility({ ...left, hasCommunicationsConsent: true, personalEmail: null }),
+    ).toEqual({ ok: true, address: "a@eafit.edu.co" });
+    expect(sendEligibility({ ...left, membershipStatus: null })).toEqual({
+      ok: false,
+      reason: "NO_CONSENT",
+    });
+  });
+
+  it("sin ningún correo no hay a dónde escribirle", () => {
+    expect(sendEligibility({ ...member, email: null })).toEqual({ ok: false, reason: "NO_EMAIL" });
+  });
+});
+
+describe("notificationExpired (ADR-122 regla 9)", () => {
+  const now = new Date("2026-09-14T23:00:00.000Z");
+
+  it("un aviso sin vencimiento no vence nunca", () => {
+    expect(notificationExpired(undefined, now)).toBe(false);
+  });
+
+  it("vence desde su instante, incluido: un milisegundo antes todavía no", () => {
+    expect(notificationExpired("2026-09-14T23:00:00.001Z", now)).toBe(false);
+    expect(notificationExpired("2026-09-14T23:00:00.000Z", now)).toBe(true);
+    expect(notificationExpired("2026-09-14T22:59:59.999Z", now)).toBe(true);
+  });
+
+  it("un vencimiento que no se lee como instante cuenta como vencido: no se entrega", () => {
+    expect(notificationExpired("mañana a las seis", now)).toBe(true);
+    expect(notificationExpired("", now)).toBe(true);
+  });
+
+  it("con un reloj que no da la hora, un aviso con vencimiento tampoco se entrega", () => {
+    expect(notificationExpired("2026-09-14T23:00:00.001Z", new Date(Number.NaN))).toBe(true);
   });
 });

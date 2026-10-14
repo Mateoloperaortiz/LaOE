@@ -24,6 +24,8 @@ export {
 export {
   HUB_API_PATH,
   HUB_COOKIE,
+  HubBetError,
+  type HubBetRejection,
   type HubSession,
   type HubState,
   hubStateSchema,

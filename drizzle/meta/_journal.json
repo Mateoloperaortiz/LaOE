@@ -330,6 +330,41 @@
       "when": 1790969843656,
       "tag": "0046_the_games_tabla_oculta",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1791411542117,
+      "tag": "0047_campana_reclamo_del_lote",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1791415548540,
+      "tag": "0048_campana_motivo_anonimizado",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1791423524966,
+      "tag": "0049_tarea_clave_de_motivo",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791561177995,
+      "tag": "0050_outbox_clave_tomada",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1791900567604,
+      "tag": "0051_decision_motivo_de_la_propuesta",
+      "breakpoints": true
     }
   ]
 }

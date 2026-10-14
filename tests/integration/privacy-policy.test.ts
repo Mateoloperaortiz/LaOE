@@ -8,7 +8,6 @@ import { request, task } from "@/modules/crm/schema";
 import { createSubmission, getFormView, getPublicForm, submitFormAs } from "@/modules/forms";
 import { editionRegistration, formSubmission } from "@/modules/forms/schema";
 import { requestOtp, resolveActor, verifyOtp } from "@/modules/identity";
-import { permission } from "@/modules/identity/schema";
 import { checkInSelfAs } from "@/modules/participation";
 import { admitPersonAs, endMembershipAs, recordConsent, revokeConsentAs } from "@/modules/people";
 import {
@@ -20,23 +19,22 @@ import {
 } from "@/modules/people/schema";
 import { getPrivacyPolicyState, PrivacyPolicyPendingError, requireConfig } from "@/modules/system";
 import { appConfig, auditLog, outbox } from "@/modules/system/schema";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
+  seedConfig,
   seedForm,
   seedMember,
   seedOccasion,
+  seedPermission,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 
 async function setPolicy(version: string): Promise<void> {
-  await db()
-    .insert(appConfig)
-    .values({ key: "privacy.policyVersion", value: version })
-    .onConflictDoUpdate({ target: appConfig.key, set: { value: version } });
+  await seedConfig("privacy.policyVersion", version);
 }
 
 describe("política pendiente (ADR-039)", () => {
@@ -112,6 +110,7 @@ describe("política pendiente (ADR-039)", () => {
         identity: { firstName: "Persona", lastName: "Prueba", email: "nuevo@eafit.edu.co" },
         answers: {},
         consent: true,
+        ip: null,
       }),
     ).toMatchObject({ ok: false, code: "POLICY_PENDING" });
     for (const table of [
@@ -143,6 +142,7 @@ describe("política pendiente (ADR-039)", () => {
         identity: { firstName: "Persona", lastName: "Prueba", email: "nuevo@eafit.edu.co" },
         answers: {},
         consent: true,
+        ip: null,
       }),
     ).toMatchObject({ ok: true });
     expect((await db().select().from(formSubmission))[0]?.policyVersion).toBe("prueba-v2");
@@ -151,7 +151,7 @@ describe("política pendiente (ADR-039)", () => {
 
   it("un formulario interno sin consentimiento sigue abierto, y uno que lo exige no se puede omitir desde otro comando", async () => {
     const personId = await seedMember("form.interno@eafit.edu.co");
-    const actor = { personId, email: "form.interno@eafit.edu.co", firstName: "Persona" };
+    const actor = { personId, email: "form.interno@eafit.edu.co", firstName: "Persona", ip: null };
     await seedForm("sin-consentimiento", { audience: "MEMBERS", consentRequired: false });
     const requiredId = await seedForm("con-consentimiento", {
       audience: "MEMBERS",
@@ -161,7 +161,9 @@ describe("política pendiente (ADR-039)", () => {
     const required = await getFormView(requiredId);
     if (!form || !required) throw new Error("formulario de prueba");
     await setPolicy("pendiente");
-    expect(await submitFormAs(actor, form, { answers: {}, consent: false })).toMatchObject({
+    expect(
+      await submitFormAs(actor, form, { answers: {}, consent: false, ip: null }),
+    ).toMatchObject({
       ok: true,
     });
     await expect(
@@ -196,7 +198,7 @@ describe("política pendiente (ADR-039)", () => {
     const personId = await seedMember("retiro.politica@eafit.edu.co");
     await setPolicy("pendiente");
     await expect(
-      createRequestAs({ personId }, "RESIGNATION", {
+      createRequestAs({ personId, ip: null }, "RESIGNATION", {
         reason: "Retiro de prueba",
         memorialConsent: true,
         contactConsent: false,
@@ -204,7 +206,7 @@ describe("política pendiente (ADR-039)", () => {
     ).rejects.toBeInstanceOf(PrivacyPolicyPendingError);
     expect(await db().select().from(request)).toHaveLength(0);
     expect(await db().select().from(task)).toHaveLength(0);
-    await createRequestAs({ personId }, "RESIGNATION", {
+    await createRequestAs({ personId, ip: null }, "RESIGNATION", {
       reason: "Retiro de prueba",
       memorialConsent: false,
       contactConsent: false,
@@ -231,7 +233,7 @@ describe("política pendiente (ADR-039)", () => {
     const personId = await seedMember(email);
     const termId = await seedTerm();
     const occasion = await seedOccasion(termId);
-    await db().insert(permission).values({ personId, code: "ADMIN" });
+    await seedPermission(personId, "ADMIN");
     setMailTransportsForTests({
       primary: { name: "console", send: async () => ({ id: null }) },
       overflow: null,
@@ -248,7 +250,9 @@ describe("política pendiente (ADR-039)", () => {
     expect(login.ok).toBe(true);
     if (!login.ok) return;
     expect(await resolveActor(login.token)).toMatchObject({ personId, isAdmin: true });
-    expect(await checkInSelfAs({ personId }, { publicId: occasion.publicId })).toMatchObject({
+    expect(
+      await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId }),
+    ).toMatchObject({
       ok: true,
     });
     expect(await db().select().from(consent)).toHaveLength(0);

@@ -1,9 +1,7 @@
 import { and, eq } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import "@/jobs/handlers";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
 import {
   createRequestAs,
   decideExcuseForCommitteeAs,
@@ -18,7 +16,6 @@ import { closeTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
-import { truncateAll } from "./db";
 import {
   seedCheckIn,
   seedCommittee,
@@ -26,7 +23,9 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Excusa válida como solicitud (ADR-060 regla 5): plazo de tres días hábiles, una pendiente por ocasión,
 // aceptar escribe un check-in excusado que no expulsa por una obligatoria ni cuenta como falta, y la
@@ -35,17 +34,6 @@ import {
 const db = () => getDb();
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
-
-async function drenar(): Promise<void> {
-  for (let batch = 0; batch < 20; batch += 1) {
-    const result = await drain(50);
-    expect(result.failed).toBe(0);
-    if (result.processed === 0) {
-      return;
-    }
-  }
-  throw new Error("El outbox no terminó");
-}
 
 async function setup() {
   const termId = await seedTerm();
@@ -103,7 +91,7 @@ describe("excusas válidas", () => {
       reason: "No pude presentar el soporte antes",
       lateSubmission: true,
     });
-    const actor = { personId: f.gh };
+    const actor = { personId: f.gh, ip: null };
     await expect(
       decideExcuseForCommitteeAs(actor, submitted.id, f.a3, {
         decision: "APPROVED",
@@ -128,6 +116,44 @@ describe("excusas válidas", () => {
     expect(
       (await db().select().from(checkIn).where(eq(checkIn.occasionId, f.old.id)))[0]?.status,
     ).toBe("EXCUSED");
+  });
+
+  it("la excusa de una ocasión del viernes a las 7 p. m. se recibe todavía el miércoles en la mañana", async () => {
+    // El plazo cuenta días hábiles sobre el día civil de Colombia (ADR-118 regla 12). Miércoles 14 de
+    // octubre de 2026 a las 10:00 de Colombia: contado en UTC el plazo había vencido el martes a las 19:00.
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-14T15:00:00Z") });
+    try {
+      const termId = await seedTerm();
+      const personId = await seedMember("viernes@eafit.edu.co");
+      const startsAt = new Date("2026-10-10T00:00:00Z"); // viernes 9 a las 19:00 de Colombia
+      const friday = await seedOccasion(termId, {
+        category: "INTEGRATION",
+        status: "CLOSED",
+        startsAt,
+        checkInOpensAt: new Date(startsAt.getTime() - HOUR),
+        checkInClosesAt: new Date(startsAt.getTime() + HOUR),
+      });
+      const created = await createRequestAs({ personId, ip: null }, "EXCUSE", {
+        occasionId: friday.id,
+        cause: "WORK",
+        reason: "Turno en el trabajo",
+      });
+      const [stored] = await db().select().from(request).where(eq(request.id, created.id));
+      expect(stored).toMatchObject({ status: "PENDING", occasionId: friday.id });
+      // Pasada esa misma hora del miércoles ya no entra sin marcarla tardía: la hora de corte es la de
+      // la ocasión (decisión abierta 33, tercera pregunta).
+      vi.setSystemTime(new Date("2026-10-15T00:00:01Z"));
+      const other = await seedMember("tarde@eafit.edu.co");
+      await expect(
+        createRequestAs({ personId: other, ip: null }, "EXCUSE", {
+          occasionId: friday.id,
+          cause: "WORK",
+          reason: "Turno en el trabajo",
+        }),
+      ).rejects.toThrow(t("T-2219"));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("se presenta dentro del plazo, una pendiente por ocasión, y abre una tarea para GH", async () => {
@@ -193,7 +219,7 @@ describe("excusas válidas", () => {
       .where(and(eq(checkIn.occasionId, f.election.id), eq(checkIn.personId, f.personId)));
     expect(row).toMatchObject({ status: "EXCUSED", source: "ADMIN", decidedById: f.gh });
     expect(row?.reason).toContain("Accidente de un familiar");
-    await drenar();
+    await drainOutbox();
     const after = await getSnapshot(f.personId, f.termId);
     expect(after?.mandatory).toMatchObject({ lost: [], excused: ["BOARD_ELECTION"], met: false });
     const timeline = await db()

@@ -1,3 +1,10 @@
+import {
+  APP_TIME_ZONE,
+  addDays,
+  dateKeyIn,
+  daysBetween,
+  midpointDay,
+} from "@/shared/lib/dates-pure";
 import type { AppliesTo, Computation, OccasionFilter, Rule, WorkGroupKind } from "./params";
 
 // Cálculo de permanencia sin I/O (ADR-025 a ADR-028, ADR-036 regla 4): recibe reglas y hechos y
@@ -235,15 +242,12 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-/** Fecha en clave YYYY-MM-DD a partir de un instante, en UTC (las fechas del término ya son de calendario). */
-function dayKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function addDays(dayKeyValue: string, days: number): string {
-  const base = new Date(`${dayKeyValue}T00:00:00Z`);
-  base.setUTCDate(base.getUTCDate() + days);
-  return dayKey(base);
+/**
+ * Día civil de Colombia (AAAA-MM-DD) de un instante: el «hoy» de ADR-020. Recortar el instante en UTC
+ * adelanta el día cinco horas, de 19:00 a 24:00 de Colombia.
+ */
+function dayKey(at: Date): string {
+  return dateKeyIn(APP_TIME_ZONE, at);
 }
 
 /** Condición de la persona en un comité (ADR-027): nuevo, en prueba, transferencia o activo. */
@@ -262,6 +266,31 @@ export function conditionFor(person: {
     return "TRANSFER";
   }
   return "ACTIVE";
+}
+
+/** Lo que el roster del término dice de la persona; viene igual en la fila de cada comité suyo. */
+export interface RosterStandingRow {
+  status: MembershipStatus;
+  /** Nuevo en el término: ya viene decidido en el roster de `people` (ADR-121 regla 4). */
+  isNew: boolean;
+  /** Prueba en todos los comités; la de un solo comité va en su `CommitteeFact`. */
+  probation: boolean;
+}
+
+/**
+ * Estado, condición de nuevo y prueba de la persona en el término, a partir de sus filas del roster.
+ * Quién es nuevo no se decide acá: lo dice `people`, con la misma función que usa la guarda de
+ * cargos, y llega en cada fila. Los tres datos son de la persona y no del comité, así que alcanza con
+ * la primera fila; sin filas no hay membresía que contar.
+ */
+export function personStanding(
+  rows: readonly RosterStandingRow[],
+): Pick<PersonFacts, "status" | "isNew" | "probation"> {
+  const first = rows[0];
+  if (!first) {
+    return { status: "INACTIVE", isNew: false, probation: false };
+  }
+  return { status: first.status, isNew: first.isNew, probation: first.probation };
 }
 
 /** Banda de riesgo de los estados abiertos (ADR-036 regla 4): aviso, no consecuencia. */
@@ -735,6 +764,31 @@ export function finalStateFor(
   return total >= threshold - probationMargin ? "PRUEBA" : "NO_CUMPLE";
 }
 
+/** Lo que un snapshot guarda del resultado de una persona: la parte general y la de cada comité. */
+export interface SnapshotResults {
+  general: CriterionResult[];
+  results: CommitteeResult[];
+}
+
+/**
+ * El resultado tal como queda al cerrar la permanencia (ADR-116 regla 6): el estado de cada comité es
+ * el final y ya no queda nada posible. Es lo que da `computePerson` con el término cerrado en el mismo
+ * instante, sin volver a leer los hechos: lo logrado, el umbral y el detalle de cada criterio no cambian.
+ */
+export function closedResults(open: SnapshotResults): SnapshotResults {
+  const settle = (criterion: CriterionResult): CriterionResult => ({ ...criterion, remaining: 0 });
+  return {
+    general: open.general.map(settle),
+    results: open.results.map((result) => ({
+      ...result,
+      remaining: 0,
+      margin: round2(result.total - result.threshold),
+      state: result.finalState,
+      criteria: result.criteria.map(settle),
+    })),
+  };
+}
+
 function sum(values: number[]): number {
   return round2(values.reduce((acc, value) => acc + value, 0));
 }
@@ -913,45 +967,120 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
   };
 }
 
-/** Motivo automático de una propuesta, en el orden de T-801. */
-export type ProposalReason = 0 | 1 | 2 | 3 | 4 | 5;
-
 export type CommitteeDecision = Exclude<DecisionKind, "EXIT_OE">;
+
+/**
+ * Los motivos automáticos de una propuesta del cierre, cada uno con su número: la posición de su texto
+ * en T-801 y lo que guarda `permanence_decision.proposal_reason`, con su `check` de 0 a 5. Los números no
+ * se mueven: cambiar uno cambia qué texto muestra una decisión ya guardada (ADR-129 regla 3). Continuar,
+ * la prueba y la salida de un comité llevan el nombre de su decisión, y por eso se leen con ella.
+ */
+export const PROPOSAL_REASON = {
+  CONTINUES: 0,
+  PROBATION: 1,
+  EXIT_COMMITTEE: 2,
+  /** Sale de la OE porque no le queda un comité donde cumpla o esté en prueba. */
+  NO_COMMITTEE: 3,
+  /** Sale de la OE porque perdió una asamblea obligatoria. */
+  MANDATORY_LOST: 4,
+  /** Sale de la OE por una falta grave vigente más otra sanción. */
+  SANCTIONS: 5,
+} as const satisfies Record<
+  CommitteeDecision | "NO_COMMITTEE" | "MANDATORY_LOST" | "SANCTIONS",
+  number
+>;
+
+/** Motivo automático de una propuesta, en el orden de T-801. */
+export type ProposalReason = (typeof PROPOSAL_REASON)[keyof typeof PROPOSAL_REASON];
 
 export interface Proposal {
   committees: Array<{ committeeId: string; proposed: CommitteeDecision; reason: ProposalReason }>;
   person: { proposed: "CONTINUES" | "EXIT_OE"; reason: ProposalReason };
 }
 
-/** Propuesta del cierre (ADR-028): por comité según el estado final; por persona si no queda comité o faltó a una obligatoria. */
+/**
+ * La causa que obliga a salir de la OE, de la que más pesa a la que menos; nulo si ninguna obliga. Faltar
+ * es no tener registro en una obligatoria que sí se celebró y no tiene reemplazo programado; una
+ * obligatoria que nunca se registró en el sistema no expulsa a nadie. Una falta grave viva más cualquier
+ * otra sanción viva expulsa (Regl. art. 69.3; ADR-060 regla 6). Es la única regla de «por qué sale»
+ * (ADR-129 regla 1): de ella saca el cierre el motivo de su propuesta y la baja su causal.
+ */
+function forcedExitReason(
+  result: Pick<PersonPermanence, "mandatory" | "expulsionWarning">,
+): typeof PROPOSAL_REASON.MANDATORY_LOST | typeof PROPOSAL_REASON.SANCTIONS | null {
+  if (result.mandatory.lost.length > 0) {
+    return PROPOSAL_REASON.MANDATORY_LOST;
+  }
+  return result.expulsionWarning ? PROPOSAL_REASON.SANCTIONS : null;
+}
+
+/**
+ * La causal con que queda guardada la baja de quien el cierre saca de la OE (ADR-060 regla 3, como la
+ * enmienda ADR-129 regla 1): una expulsión si algo lo obliga a salir, y si no, la salida por
+ * permanencia de quien se queda sin comité o de quien GH decide sacar. Lee lo mismo de un resultado
+ * que de su snapshot.
+ */
+export function exitEndReason(
+  result: Pick<PersonPermanence, "mandatory" | "expulsionWarning">,
+): "EXPULSION" | "PERMANENCE" {
+  return forcedExitReason(result) === null ? "PERMANENCE" : "EXPULSION";
+}
+
+/** Propuesta del cierre (ADR-028): por comité según el estado final; por persona si no queda comité, faltó a una obligatoria o la expulsan sus sanciones. */
 export function proposeDecisions(result: PersonPermanence): Proposal {
   const committees = result.results.map((item) => {
+    let proposed: CommitteeDecision = "EXIT_COMMITTEE";
     if (item.finalState === "CUMPLE") {
-      return { committeeId: item.committeeId, proposed: "CONTINUES" as const, reason: 0 as const };
+      proposed = "CONTINUES";
+    } else if (item.finalState === "PRUEBA") {
+      proposed = "PROBATION";
     }
-    if (item.finalState === "PRUEBA") {
-      return { committeeId: item.committeeId, proposed: "PROBATION" as const, reason: 1 as const };
-    }
-    return {
-      committeeId: item.committeeId,
-      proposed: "EXIT_COMMITTEE" as const,
-      reason: 2 as const,
-    };
+    return { committeeId: item.committeeId, proposed, reason: PROPOSAL_REASON[proposed] };
   });
-  // Faltar es no tener registro en una obligatoria que sí se celebró y no tiene reemplazo programado;
-  // una obligatoria que nunca se registró en el sistema no expulsa a nadie.
-  if (result.mandatory.lost.length > 0) {
-    return { committees, person: { proposed: "EXIT_OE", reason: 4 } };
-  }
-  // Una falta grave viva más cualquier otra sanción viva expulsa (Regl. art. 69.3; ADR-060 regla 6).
-  if (result.expulsionWarning) {
-    return { committees, person: { proposed: "EXIT_OE", reason: 5 } };
-  }
+  const forced = forcedExitReason(result);
   const stays = committees.some((item) => item.proposed !== "EXIT_COMMITTEE");
+  // Sin nada que obligue, sale quien se queda sin un comité donde cumpla o esté en prueba.
   return {
     committees,
-    person: stays ? { proposed: "CONTINUES", reason: 0 } : { proposed: "EXIT_OE", reason: 3 },
+    person:
+      forced === null && stays
+        ? { proposed: "CONTINUES", reason: PROPOSAL_REASON.CONTINUES }
+        : { proposed: "EXIT_OE", reason: forced ?? PROPOSAL_REASON.NO_COMMITTEE },
   };
+}
+
+/**
+ * Respaldo para las decisiones confirmadas antes de que el motivo de la propuesta se guardara con ellas
+ * (migración 0051; DT-392 y DT-401): de esas solo queda qué se propuso. Continuar, la prueba y la salida
+ * de un comité llevan su motivo en la propuesta. La salida de la OE no, y se saca de `result`, el
+ * resultado que la pantalla muestra: si ese resultado la sigue proponiendo, es su causa de hoy. Si ya no
+ * la propone, no queda de dónde sacar por qué se propuso, y se muestra lo que mostraba la pestaña de la
+ * Persona 360 antes de ADR-128, que elegía con `mandatory.met`: una fila vieja no pasa a decir nada que
+ * no dijera. No es una regla del cierre y no decide nada: una decisión nueva nunca pasa por acá.
+ */
+function unsavedProposalReason(result: PersonPermanence, proposed: DecisionKind): ProposalReason {
+  if (proposed !== "EXIT_OE") {
+    return PROPOSAL_REASON[proposed];
+  }
+  const today = proposeDecisions(result).person;
+  if (today.proposed === "EXIT_OE") {
+    return today.reason;
+  }
+  return result.mandatory.met ? PROPOSAL_REASON.NO_COMMITTEE : PROPOSAL_REASON.MANDATORY_LOST;
+}
+
+/**
+ * El motivo automático que se muestra junto a una decisión ya confirmada (ADR-128 regla 1). `saved` es
+ * el motivo con que el cierre la propuso, que `confirmDecisions` guarda con la decisión: si está, es
+ * ese, cambien como cambien los hechos después de confirmar. Solo le falta a una decisión confirmada
+ * antes de que se guardara, y esa lo saca de `result` con su respaldo.
+ */
+export function proposalReason(
+  saved: ProposalReason | null,
+  result: PersonPermanence,
+  proposed: DecisionKind,
+): ProposalReason {
+  return saved ?? unsavedProposalReason(result, proposed);
 }
 
 /** Sumas de una tabla frente al nominal: veteranos (todos + veteranos) y nuevos (todos + nuevos). */
@@ -1041,19 +1170,8 @@ export function noticesFor(
     }
   }
   if (!closed) {
-    const midpoint = addDays(
-      term.startsOn,
-      Math.floor(
-        (new Date(`${term.endsOn}T00:00:00Z`).getTime() -
-          new Date(`${term.startsOn}T00:00:00Z`).getTime()) /
-          86_400_000 /
-          2,
-      ),
-    );
-    const daysLeft = Math.ceil(
-      (new Date(`${term.endsOn}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) /
-        86_400_000,
-    );
+    const midpoint = midpointDay(term.startsOn, term.endsOn);
+    const daysLeft = daysBetween(today, term.endsOn);
     for (const item of result.results) {
       const values = {
         n: Math.round(item.total),

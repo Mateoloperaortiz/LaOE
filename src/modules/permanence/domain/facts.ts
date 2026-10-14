@@ -1,17 +1,17 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
-  assemblyOverview,
-  defaultRequirement,
+  assemblyAdjustmentsFor,
   listApprovedCheckInsForPersonInTerm,
   listApprovedCheckInsForTerm,
   listExcusedCheckInsForPersonInTerm,
   listExcusedCheckInsForTerm,
   listOccasionsForTerm,
+  termAssemblyRequirement,
 } from "@/modules/participation";
 import { listExpulsionWarnings, listTermRoster, type TermRosterRow } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
-import { getTerm } from "@/modules/terms";
+import { getTerm, type TermRow } from "@/modules/terms";
 import {
   leaderScore,
   manualCredit,
@@ -21,17 +21,20 @@ import {
   workGroupMembership,
 } from "../schema";
 import { toRule } from "./params";
-import type {
-  AssemblyRequirementFact,
-  GroupFact,
-  OccasionFact,
-  PermanenceConfig,
-  PersonFacts,
-  TermFacts,
+import {
+  type AssemblyRequirementFact,
+  type GroupFact,
+  type OccasionFact,
+  type PermanenceConfig,
+  type PersonFacts,
+  personStanding,
+  type TermFacts,
 } from "./permanence-pure";
 
 // Cargadores de hechos (ADR-036 regla 5): todo lo que el cálculo necesita, leído en serie (pool de
-// diez) desde los módulos por su API pública y desde las tablas propias. Sin lógica de negocio.
+// diez) desde los módulos por su API pública y desde las tablas propias. Acá se lee y se arma; lo
+// que se decide con lo leído vive en `permanence-pure.ts`: con qué estado, condición de nuevo y prueba
+// llega la persona lo dice `personStanding`. Quién es nuevo ya viene decidido en el roster de `people`.
 
 export async function loadPermanenceConfig(): Promise<PermanenceConfig> {
   return {
@@ -92,12 +95,16 @@ export async function loadRules(termId: string) {
   return rows.map((row) => toRule(row));
 }
 
-/** Los hechos del término: reglas, ocasiones, grupos y configuración; null si el término no existe. */
-export async function loadTermFacts(termId: string): Promise<TermFacts | null> {
-  const term = await getTerm(termId);
+/**
+ * Los hechos del término: reglas, ocasiones, grupos y configuración; null si el término no existe.
+ * Quien ya leyó el término lo pasa entero y no se vuelve a leer (ADR-121 regla 11).
+ */
+export async function loadTermFacts(termOrId: string | TermRow): Promise<TermFacts | null> {
+  const term = typeof termOrId === "string" ? await getTerm(termOrId) : termOrId;
   if (!term) {
     return null;
   }
+  const termId = term.id;
   const config = await loadPermanenceConfig();
   const rules = await loadRules(termId);
   const occasions: OccasionFact[] = (await listOccasionsForTerm(termId)).map((row) => ({
@@ -232,30 +239,18 @@ export async function loadPeopleFacts(
     })
     .from(manualCredit)
     .where(and(eq(manualCredit.termId, termId), inArray(manualCredit.personId, ids)));
-  const hasRunoff = facts.occasions.some(
-    (item) => item.assemblyKind === "RUNOFF" && item.status !== "CANCELLED",
-  );
-  const fallback: AssemblyRequirementFact = defaultRequirement(facts.term, {
-    hasBoardElection: facts.occasions.some(
-      (item) => item.assemblyKind === "BOARD_ELECTION" && item.status !== "CANCELLED",
-    ),
-    hasRunoff,
-  });
-  const requirements = new Map<string, AssemblyRequirementFact>();
-  for (const row of await assemblyOverview(facts.term)) {
-    requirements.set(row.personId, row.requirement);
-  }
+  // El requisito «del término» sale de las ocasiones que ya se leyeron, con la misma función que usa
+  // `participation` para su mesa de asambleas (ADR-123 regla 13).
+  const fallback: AssemblyRequirementFact = termAssemblyRequirement(facts.term, facts.occasions);
+  // Solo los ajustes de las personas pedidas: antes se leía el cumplimiento de todos los activos de la
+  // OE para quedarse con el requisito de cada una (ADR-121 regla 3).
+  const adjustments = await assemblyAdjustmentsFor(termId, ids);
   return ids.map((personId) => {
     const rows = roster.get(personId) ?? [];
-    const first = rows[0];
+    const standing = personStanding(rows);
     return {
       personId,
-      status: first?.status ?? "INACTIVE",
-      // La mesa de un comité nuevo se reporta como activa aunque sea nueva (Est. art. 5 par. 1).
-      isNew:
-        (first?.firstTermId === termId || (first?.resumedNew ?? false)) &&
-        !(first?.reportAsVeteran ?? false),
-      probation: first?.probation ?? false,
+      ...standing,
       committees: rows.map((row) => ({
         committeeId: row.committeeId,
         roleCode: row.roleCode,
@@ -277,7 +272,10 @@ export async function loadPeopleFacts(
       credits: credits
         .filter((item) => item.personId === personId)
         .map(({ personId: _p, ...rest }) => rest),
-      assemblyRequirement: requirements.get(personId) ?? fallback,
+      // El ajuste es del miembro activo. Quien no lo está llega con el requisito del término aunque
+      // tenga un ajuste: así lo entregaba la lectura de toda la OE, que solo traía activos.
+      assemblyRequirement:
+        (standing.status === "ACTIVE" ? adjustments.get(personId) : undefined) ?? fallback,
     };
   });
 }

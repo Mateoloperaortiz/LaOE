@@ -9,6 +9,12 @@ export interface JobContext {
   id: string;
   attempt: number;
   log: pino.Logger;
+  /**
+   * El instante de esta entrega según el reloj del poller, leído cuando arranca el handler (ADR-118
+   * regla 2). El handler que decide por la hora usa este y no `new Date()`: así una prueba lo adelanta
+   * con `drainOutbox({ now })` sin esperar.
+   */
+  now: Date;
 }
 
 export type JobHandler = (payload: Record<string, unknown>, ctx: JobContext) => Promise<void>;

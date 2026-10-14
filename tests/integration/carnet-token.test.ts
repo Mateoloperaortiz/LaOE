@@ -2,7 +2,6 @@ import { count, eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
 import type { Actor } from "@/modules/identity/domain/actor";
 import { issueCarnet, readCarnet } from "@/modules/identity/domain/carnet";
 import {
@@ -15,6 +14,7 @@ import {
   rotateCarnetTokenAs,
 } from "@/modules/identity/domain/carnet-token";
 import { ForbiddenError } from "@/modules/identity/domain/errors";
+import { drainOutbox } from "../helpers/outbox";
 import "@/modules/identity/jobs";
 import { carnetToken } from "@/modules/identity/schema";
 import {
@@ -26,12 +26,15 @@ import {
 import { getWalletMemberState } from "@/modules/people/domain/wallet-member";
 import { person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
+import { leaveUntilSoon, seedMember, seedPerson } from "../factories";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { leaveUntilSoon, seedMember, seedPerson } from "./factories";
 
-function actorFor(personId: string, isAdmin = false): Actor {
+/** La sesión como la entrega `sessionActorContext`: con la IP del request, que acá no hay. */
+function actorFor(personId: string, isAdmin = false): Actor & { ip: string | null } {
   return {
     personId,
+    ip: null,
     sessionId: "sesion-sintetica",
     email: "sintetica@eafit.edu.co",
     name: "Persona",
@@ -78,6 +81,7 @@ describe("credenciales del carnet de billetera", () => {
 
   it("crea una sola credencial ante solicitudes simultáneas y solo devuelve datos persistidos", async () => {
     const personId = await seedMember("simultanea@eafit.edu.co");
+    await warmPool(5);
     const tokens = await Promise.all(
       Array.from({ length: 5 }, () => getOrCreateCarnetToken(personId)),
     );
@@ -175,7 +179,7 @@ describe("credenciales del carnet de billetera", () => {
     await expect(rotateCarnetTokenAs(actorFor(personId))).rejects.toBeInstanceOf(ForbiddenError);
     expect(await resolveCarnetToken(token)).toBe(personId);
     expect((await getWalletMemberState(getDb(), personId))?.walletEpoch).toBe(0);
-    await drain(20);
+    await drainOutbox();
     expect((await getCarnetCredential(personId))?.token).toBe(token);
   });
 
@@ -198,7 +202,7 @@ describe("credenciales del carnet de billetera", () => {
     const current = await getOrCreateCarnetToken(personId);
     expect(current).not.toBe(original);
     expect(await getCarnetMetadata(personId)).toMatchObject({ walletEpoch: 1, revision: 1 });
-    expect((await drain(30)).failed).toBe(0);
+    await drainOutbox();
     expect(await deleteCarnetTokenFor(personId)).toBe(0);
     expect(await resolveCarnetToken(current)).toBe(personId);
   });
@@ -228,7 +232,7 @@ describe("credenciales del carnet de billetera", () => {
     await expect(
       runCommand(SYSTEM_ACTOR, (ctx) => reactivateMembership(ctx, personId, {})),
     ).rejects.toThrow();
-    expect((await drain(30)).failed).toBe(0);
+    await drainOutbox();
     expect(await getCarnetCredential(personId)).toBeNull();
   });
 

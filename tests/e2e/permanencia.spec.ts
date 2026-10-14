@@ -1,11 +1,10 @@
 import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { occasion } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
-import { workGroup, workGroupMembership } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedOccasion, seedWorkGroup, seedWorkGroupMembership } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -28,22 +27,17 @@ test.describe("miembro", () => {
       .where(eq(term.code, E2E_TERM.code));
     if (!current) throw new Error("sin término");
     const now = Date.now();
-    const [row] = await db
-      .insert(occasion)
-      .values({
-        termId: current.id,
-        publicId: `e2ei${String(now % 1_000_000).padStart(6, "0")}`,
-        title: "e2e-Integración de permanencia",
-        kind: "ACTIVITY",
-        category: "INTEGRATION",
-        points: 0,
-        status: "OPEN",
-        startsAt: new Date(now),
-        checkInOpensAt: new Date(now - 3_600_000),
-        checkInClosesAt: new Date(now + 3_600_000),
-      })
-      .returning({ publicId: occasion.publicId });
-    if (!row) throw new Error("sin ocasión");
+    const row = await seedOccasion(current.id, {
+      publicId: `e2ei${String(now % 1_000_000).padStart(6, "0")}`,
+      title: "e2e-Integración de permanencia",
+      kind: "ACTIVITY",
+      category: "INTEGRATION",
+      points: 0,
+      status: "OPEN",
+      startsAt: new Date(now),
+      checkInOpensAt: new Date(now - 3_600_000),
+      checkInClosesAt: new Date(now + 3_600_000),
+    });
     publicId = row.publicId;
     await closeDb();
   });
@@ -97,18 +91,10 @@ test.describe("miembro", () => {
       .from(term)
       .where(eq(term.code, E2E_TERM.code));
     if (!member || !current) throw new Error("sin miembro o término");
-    const [grupo] = await db
-      .insert(workGroup)
-      .values({ termId: current.id, kind: "GT_MACROEVENT", name: "e2e-GT que cumple el GAP" })
-      .returning({ id: workGroup.id });
-    if (!grupo) throw new Error("sin grupo");
-    await db.insert(workGroupMembership).values({
-      groupId: grupo.id,
-      personId: member.id,
-      evaluation: "GOOD",
-      evaluatedById: member.id,
-      evaluatedAt: new Date(),
-    });
+    const grupo = {
+      id: await seedWorkGroup(current.id, "e2e-GT que cumple el GAP", { kind: "GT_MACROEVENT" }),
+    };
+    await seedWorkGroupMembership(grupo.id, member.id, "GOOD", member.id);
     await closeDb();
 
     await page.goto("/app/permanencia");

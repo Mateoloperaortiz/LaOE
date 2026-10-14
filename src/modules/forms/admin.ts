@@ -162,21 +162,20 @@ export const formsResource: ResourceDefinition<FormListRow, FormInput> = {
     consentRequired: row.consentRequired ? "on" : "",
     thanks: row.thanks ?? "",
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createForm(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateForm(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createForm(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateForm(ctx, id, input)),
   rowActions: [
     { key: "open", label: abrir, applies: (row) => row.status !== "OPEN" },
     { key: "close", label: cerrar, applies: (row) => row.status === "OPEN" },
   ],
   runRowAction: async (actor, actionKey, id) => {
     if (actionKey === "open" || actionKey === "close") {
-      await runCommand({ personId: actor.personId }, (ctx) =>
+      await runCommand(actor, (ctx) =>
         setFormStatus(ctx, id, actionKey === "open" ? "OPEN" : "CLOSED"),
       );
     }
   },
+  personalData: false,
   exportRow: (row) => ({
     identificador: row.slug,
     titulo: row.title,

@@ -2,8 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { createRequestAs } from "@/modules/crm";
 import {
   checkInSelfAs,
@@ -23,7 +21,6 @@ import {
 } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -32,23 +29,14 @@ import {
   seedOccasion,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Un comité desactivado sale de la app (ADR-073): no se ofrece para elegir, no recibe pertenencias
 // nuevas, no compite en el ranking y no acumula faltas de asamblea; lo que ya existe se puede cerrar.
 
 const db = () => getDb();
-
-async function drenar(): Promise<void> {
-  for (let batch = 0; batch < 20; batch += 1) {
-    const result = await drain(50);
-    expect(result.failed).toBe(0);
-    if (result.processed === 0) {
-      return;
-    }
-  }
-  throw new Error("El outbox no terminó");
-}
 
 describe("comité desactivado", () => {
   beforeEach(truncateAll);
@@ -129,9 +117,9 @@ describe("comité desactivado", () => {
     // Quedó activo en el comité desactivado, como pasó en producción antes del arreglo.
     await seedCommitteeMembership(tres, sos, termId);
     const ocasion = await seedOccasion(termId, { points: 10 });
-    await checkInSelfAs({ personId: uno }, { publicId: ocasion.publicId });
-    await closeOccasionAs({ personId: uno }, ocasion.id);
-    await drenar();
+    await checkInSelfAs({ personId: uno, ip: null }, { publicId: ocasion.publicId });
+    await closeOccasionAs({ personId: uno, ip: null }, ocasion.id);
+    await drainOutbox();
 
     const filas = await db()
       .select()
@@ -164,7 +152,7 @@ describe("comité desactivado", () => {
       checkInOpensAt: new Date(startsAt.getTime() - 3_600_000),
       checkInClosesAt: new Date(startsAt.getTime() + 3_600_000),
     });
-    await closeOccasionAs({ personId: uno }, asamblea.id);
+    await closeOccasionAs({ personId: uno, ip: null }, asamblea.id);
     await recomputeCommitteeAssembly(asamblea.id);
 
     const filas = await db()
@@ -184,7 +172,7 @@ describe("comité desactivado", () => {
     await seedCommitteeMembership(personId, a3, termId);
 
     await expect(
-      createRequestAs({ personId }, "TRANSFER", {
+      createRequestAs({ personId, ip: null }, "TRANSFER", {
         leaveCommitteeIds: [a3],
         joinCommitteeIds: [sos],
         reason: "Me interesa más ese comité",

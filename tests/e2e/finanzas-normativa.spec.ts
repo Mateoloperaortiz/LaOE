@@ -27,7 +27,7 @@ test("finanzas exige presolicitud, registra el gasto y pide aval para trasladar"
     .orderBy(asc(committee.name))
     .limit(1);
   if (!home) throw new Error("Falta comité sintético");
-  const actor = { personId: null };
+  const actor = { personId: null, ip: null };
   const { id } = await createBudgetAs(actor, {
     committeeId: home.id,
     year: Number(E2E_CALENDAR.day.slice(0, 4)),

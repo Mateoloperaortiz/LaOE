@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 
 // Importación de miembros a un grupo desde un CSV de correos (ADR-036 regla 6): dos pasos en el
 // cliente (vista previa y confirmación) sin guardar nada hasta confirmar; el CSV viaja como texto.
@@ -48,7 +48,11 @@ const inputClass =
   "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";
 
 export function ImportadorGrupo({ groupId, action, labels }: Props) {
-  const [state, formAction, pending] = useActionState(action, EMPTY_IMPORT);
+  const [state, formAction, pending] = useGuardedActionState(
+    action,
+    EMPTY_IMPORT,
+    ({ previous, message }) => ({ ...previous, error: message, applied: null }),
+  );
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-tinta-suave">{labels.help}</p>

@@ -1,6 +1,5 @@
 import { runCommand } from "@/db/tx";
 import { listReadyPublicMedia } from "@/modules/content";
-import { listCommitteesForSelection } from "@/modules/people";
 import { MULTI_SEPARATOR } from "@/shared/admin-kit";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
@@ -142,10 +141,9 @@ export const eventsResource: ResourceDefinition<EventListRow, EventInput> = {
     publicationStatus: row.publicationStatus,
     sortOrder: String(row.sortOrder),
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createEvent(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateEvent(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createEvent(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateEvent(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     identificador: row.slug,
     nombre: row.name,
@@ -162,11 +160,7 @@ export const eventsResource: ResourceDefinition<EventListRow, EventInput> = {
 const [editionsPlural, editionsSingular] = tList("T-333");
 
 async function editionFields(): Promise<FieldDefinition[]> {
-  const [events, committees, cover] = await Promise.all([
-    listAllEvents(),
-    listCommitteesForSelection(),
-    coverField(),
-  ]);
+  const [events, cover] = await Promise.all([listAllEvents(), coverField()]);
   return [
     {
       name: "eventId",
@@ -197,12 +191,8 @@ async function editionFields(): Promise<FieldDefinition[]> {
       help: t("T-337"),
     },
     cover,
-    {
-      name: "committeeIds",
-      label: t("T-354"),
-      type: "multiselect",
-      options: committees.map((item) => ({ value: item.id, label: item.name })),
-    },
+    // Las opciones las pone el registro del admin: `events` no importa `people` (ADR-110).
+    { name: "committeeIds", label: t("T-354"), type: "multiselect", options: [] },
     { name: "registrationUrl", label: t("T-353"), type: "url" },
     {
       name: "publicationStatus",
@@ -262,10 +252,9 @@ export const editionsResource: ResourceDefinition<EditionListRow, EditionInput> 
     registrationUrl: row.registrationUrl ?? "",
     publicationStatus: row.publicationStatus,
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createEdition(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateEdition(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createEdition(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateEdition(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     evento: row.eventName,
     nombre: row.name,

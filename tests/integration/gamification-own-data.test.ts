@@ -3,15 +3,18 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { finishSudokuAs, startSudokuAs } from "@/modules/participation/domain/sudoku";
+import { badgeDefinition, sudokuRun } from "@/modules/participation/schema";
 import {
-  achievement,
-  badgeDefinition,
-  challengeEvidenceFile,
-  reward,
-  sudokuRun,
-} from "@/modules/participation/schema";
+  seedAchievement,
+  seedBooster,
+  seedChallenge,
+  seedChallengeEvidenceFile,
+  seedMember,
+  seedParticipation,
+  seedReward,
+  seedTerm,
+} from "../factories";
 import { truncateAll } from "./db";
-import { seedBooster, seedChallenge, seedMember, seedParticipation, seedTerm } from "./factories";
 
 // "Mis datos" (ADR-034 regla 12, ADR-067 regla 16): el export incluye la actividad de la
 // gamificación — entregas, evidencias, boosters, logros y premios — sin los campos internos
@@ -20,6 +23,9 @@ import { seedBooster, seedChallenge, seedMember, seedParticipation, seedTerm } f
 const db = () => getDb();
 let currentPerson = "";
 
+// La ruta arma el actor del comando con la IP del request (ADR-082 regla 2): fuera de Next, las
+// cabeceras son estas.
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("@/modules/identity", async (importOriginal) => {
   const mod = await importOriginal<typeof import("@/modules/identity")>();
   return {
@@ -57,29 +63,15 @@ describe("mis datos: gamificación", () => {
       answers: [1, 0, 2],
       score: 3,
     });
-    await db()
-      .insert(challengeEvidenceFile)
-      .values({
-        participationId,
-        ordinal: 1,
-        objectKey: `evidence/${personId}/aaaaaaaaaa.webp`,
-        contentType: "image/webp",
-        byteSize: 10_000,
-        status: "READY",
-      });
-    await db().insert(reward).values({
-      personId,
-      termId,
-      source: "CHALLENGE",
-      participationId,
-      basePoints: 10,
-      baseGranted: 10,
+    await seedChallengeEvidenceFile(participationId, `evidence/${personId}/aaaaaaaaaa.webp`, {
+      contentType: "image/webp",
+      status: "READY",
+    });
+    await seedReward(personId, termId, participationId, {
       extraPoints: 5,
       status: "GRANTED",
       dayKey: "2026-08-10",
       weekKey: "2026-08-10",
-      capDaily: 20,
-      capWeekly: 60,
       decidedAt: new Date(),
     });
     await seedBooster(personId, termId, "PLUS_50");
@@ -87,18 +79,13 @@ describe("mis datos: gamificación", () => {
       .select()
       .from(badgeDefinition)
       .where(eq(badgeDefinition.code, "EN_PARCHE_1"));
-    await db()
-      .insert(achievement)
-      .values({
-        personId,
-        badgeId: badge?.id ?? "",
-        termId,
-        sourceKind: "CHECKIN",
-        sourceRef: "ref-test",
-        historical: true,
-      });
+    await seedAchievement(personId, badge?.id ?? "", termId, {
+      sourceKind: "CHECKIN",
+      sourceRef: "ref-test",
+      historical: true,
+    });
 
-    const response = await GET(new Request("https://test.local/api/mis-datos"));
+    const response = await GET();
     expect(response.status).toBe(200);
     const body = (await response.json()) as Record<string, unknown>;
     const serialized = JSON.stringify(body);
@@ -146,24 +133,24 @@ describe("mis datos: gamificación", () => {
     currentPerson = personId;
     // Una resuelta con ayudas y otra abierta: ni la abierta lleva su tablero a la exportación.
     const resuelta = await startSudokuAs(
-      { personId },
+      { personId, ip: null },
       { requestId: randomUUID(), difficulty: "EASY", assisted: true },
     );
     if (!resuelta.ok) throw new Error(resuelta.reason);
     const [fila] = await db().select().from(sudokuRun).where(eq(sudokuRun.id, resuelta.run.id));
     if (!fila) throw new Error("Partida de prueba ausente");
     const cierre = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: fila.id, grid: fila.solution, requestId: randomUUID() },
     );
     expect(cierre.ok).toBe(true);
     const abierta = await startSudokuAs(
-      { personId },
+      { personId, ip: null },
       { requestId: randomUUID(), difficulty: "HARD", assisted: true },
     );
     if (!abierta.ok) throw new Error(abierta.reason);
 
-    const response = await GET(new Request("https://test.local/api/mis-datos"));
+    const response = await GET();
     expect(response.status).toBe(200);
     const body = (await response.json()) as { sudokuRuns: Array<Record<string, unknown>> };
     expect(body.sudokuRuns).toHaveLength(2);

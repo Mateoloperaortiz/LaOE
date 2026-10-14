@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { getPeopleByIds } from "@/modules/people";
 import { listAllTerms } from "@/modules/terms";
@@ -51,30 +51,50 @@ export async function listCheckInsForExport(params: {
       ),
     );
   }
+  const db = getDb();
+  if (params.q) {
+    // El nombre vive en `people`: la búsqueda se resuelve primero a las personas con asistencia en ese
+    // alcance y después se pagina sobre ellas, para que el tope no la deje a medias (ADR-118 regla 13).
+    const scope = conditions.length > 0 ? and(...conditions) : undefined;
+    const candidates = await db
+      .selectDistinct({ personId: checkIn.personId })
+      .from(checkIn)
+      .where(scope);
+    const names = await getPeopleByIds(candidates.map((item) => item.personId));
+    const needle = params.q.toLowerCase();
+    const matching = candidates
+      .map((item) => item.personId)
+      .filter((id) => (names.get(id)?.fullName?.trim() ?? "").toLowerCase().includes(needle));
+    if (matching.length === 0) {
+      return { rows: [], total: 0 };
+    }
+    conditions.push(inArray(checkIn.personId, matching));
+  }
   const where = conditions.length > 0 ? and(...conditions) : undefined;
-  const rows = await getDb()
-    .select({ row: checkIn, occasionTitle: occasion.title })
-    .from(checkIn)
-    .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
-    .where(where)
-    .orderBy(desc(checkIn.at))
-    .limit(params.pageSize)
-    .offset((params.page - 1) * params.pageSize);
+  const [rows, [total]] = await Promise.all([
+    db
+      .select({ row: checkIn, occasionTitle: occasion.title })
+      .from(checkIn)
+      .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
+      .where(where)
+      .orderBy(desc(checkIn.at))
+      .limit(params.pageSize)
+      .offset((params.page - 1) * params.pageSize),
+    db.select({ n: count() }).from(checkIn).where(where),
+  ]);
   const people = await getPeopleByIds(rows.map((item) => item.row.personId));
-  const mapped = rows
-    .map((item) => ({
-      id: item.row.id,
-      personName: people.get(item.row.personId)?.fullName?.trim() ?? "",
-      email: people.get(item.row.personId)?.email ?? "",
-      occasionTitle: item.occasionTitle,
-      occasionId: item.row.occasionId,
-      at: item.row.at,
-      source: item.row.source,
-      status: item.row.status,
-      reason: item.row.reason,
-    }))
-    .filter((item) => !params.q || item.personName.toLowerCase().includes(params.q.toLowerCase()));
-  return { rows: mapped, total: mapped.length };
+  const mapped = rows.map((item) => ({
+    id: item.row.id,
+    personName: people.get(item.row.personId)?.fullName?.trim() ?? "",
+    email: people.get(item.row.personId)?.email ?? "",
+    occasionTitle: item.occasionTitle,
+    occasionId: item.row.occasionId,
+    at: item.row.at,
+    source: item.row.source,
+    status: item.row.status,
+    reason: item.row.reason,
+  }));
+  return { rows: mapped, total: total?.n ?? 0 };
 }
 
 // Export de participaciones en retos (ADR-067 regla 16): cabeceras T-2570, con datos personales.
@@ -111,7 +131,7 @@ export async function listParticipationsForExport(params: {
   }
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const db = getDb();
-  const [rows, terms] = await Promise.all([
+  const [rows, terms, [total]] = await Promise.all([
     db
       .select({
         participation: challengeParticipation,
@@ -128,6 +148,11 @@ export async function listParticipationsForExport(params: {
       .limit(params.pageSize)
       .offset((params.page - 1) * params.pageSize),
     listAllTerms(),
+    db
+      .select({ n: count() })
+      .from(challengeParticipation)
+      .innerJoin(challenge, eq(challenge.id, challengeParticipation.challengeId))
+      .where(where),
   ]);
   const termCode = new Map(terms.map((term) => [term.id, term.code]));
   const peopleIds = [
@@ -153,7 +178,7 @@ export async function listParticipationsForExport(params: {
       : null,
     reason: item.participation.reason,
   }));
-  return { rows: mapped, total: mapped.length };
+  return { rows: mapped, total: total?.n ?? 0 };
 }
 
 // Export de insignias (ADR-067 regla 16): cabeceras T-2571, una fila por logro con su persona.
@@ -176,14 +201,18 @@ export async function listAchievementsForExport(params: {
   pageSize: number;
 }): Promise<{ rows: AchievementExportRow[]; total: number }> {
   const where = params.termId ? eq(achievement.termId, params.termId) : undefined;
-  const rows = await getDb()
-    .select({ achievement, badge: badgeDefinition })
-    .from(achievement)
-    .innerJoin(badgeDefinition, eq(badgeDefinition.id, achievement.badgeId))
-    .where(where)
-    .orderBy(desc(achievement.unlockedAt))
-    .limit(params.pageSize)
-    .offset((params.page - 1) * params.pageSize);
+  const db = getDb();
+  const [rows, [total]] = await Promise.all([
+    db
+      .select({ achievement, badge: badgeDefinition })
+      .from(achievement)
+      .innerJoin(badgeDefinition, eq(badgeDefinition.id, achievement.badgeId))
+      .where(where)
+      .orderBy(desc(achievement.unlockedAt))
+      .limit(params.pageSize)
+      .offset((params.page - 1) * params.pageSize),
+    db.select({ n: count() }).from(achievement).where(where),
+  ]);
   const people = await getPeopleByIds(rows.map((item) => item.achievement.personId));
   const mapped = rows.map((item) => ({
     id: item.achievement.id,
@@ -196,5 +225,5 @@ export async function listAchievementsForExport(params: {
     historical: item.achievement.historical,
     revokedAt: item.achievement.revokedAt,
   }));
-  return { rows: mapped, total: mapped.length };
+  return { rows: mapped, total: total?.n ?? 0 };
 }

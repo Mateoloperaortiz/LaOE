@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
-import { rankCommittees, rankPeople } from "@/modules/participation";
+import { peopleBoards, rankCommittees } from "@/modules/participation";
 import { listCommitteesByIds } from "@/modules/people";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
@@ -32,9 +32,11 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
       </div>
     );
   }
+  // Los dos tableros de personas salen de una sola lectura de los activos (ADR-123 regla 12).
+  const people = peopleBoards(term.id);
   const [nuevos, veteranos, comites] = await Promise.all([
-    rankPeople(term.id, "NEW"),
-    rankPeople(term.id, "VETERAN"),
+    people.rank("NEW"),
+    people.rank("VETERAN"),
     rankCommittees(term.id),
   ]);
   const committees = await listCommitteesByIds(comites.map((item) => item.row.committeeId));

@@ -14,21 +14,20 @@ import {
   listBoostersFor,
   loadGamificationSettings,
   type MemberChallengeDetail,
-  resolveMemberContext,
 } from "@/modules/participation";
 import { EvidenceUploader } from "@/modules/participation/components/EvidenceUploader";
 import { RewardBreakdown } from "@/modules/participation/components/RewardBreakdown";
 import { Trivia } from "@/modules/participation/components/Trivia";
 import { getCurrentTerm } from "@/modules/terms";
 import { Cartel, Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { CircleCheckIcon } from "@/shared/ui/icons/CircleCheckIcon";
 import { CircleDotIcon } from "@/shared/ui/icons/CircleDotIcon";
 import { Markdown } from "@/shared/ui/Markdown";
 import { Vacio } from "../../../_ui/Vacio";
 import { setBoosterTargetAction } from "../../boosters/actions";
-import { submitEvidenceAction, submitTriviaAction } from "./actions";
+import { discardEvidenceUploadAction, submitEvidenceAction, submitTriviaAction } from "./actions";
 
 // Detalle de un reto en Mi OE (ADR-067 reglas 3 a 6): la consigna en Markdown, la actividad
 // vinculada de los presenciales y el bloque de acción según formato y estado de la entrega.
@@ -205,6 +204,7 @@ function EvidenceBlock({ challenge }: { challenge: MemberChallengeDetail }) {
       maxBytes={EVIDENCE_MAX_BYTES}
       allowedTypes={Object.keys(EVIDENCE_TYPES)}
       onSubmit={submitEvidenceAction}
+      onDiscard={discardEvidenceUploadAction}
     />
   );
 }
@@ -231,8 +231,7 @@ export default async function RetoDetallePage({
       </div>
     );
   }
-  const member = await resolveMemberContext(actor.personId, term.id);
-  const challenge = await getChallengeForMember(id, actor.personId, member);
+  const challenge = await getChallengeForMember(id, actor.personId);
   if (!challenge) {
     notFound();
   }
@@ -248,7 +247,7 @@ export default async function RetoDetallePage({
   const targeted = available.find(
     (item) => item.target?.kind === "CHALLENGE" && item.target.id === challenge.id,
   );
-  const boosterNames = tList("T-2451");
+  const boosterNames = tLabels("T-2451", BOOSTER_KINDS);
   const selectorLabels = tList("T-2578");
 
   return (
@@ -281,7 +280,7 @@ export default async function RetoDetallePage({
           {targeted ? (
             <p className="text-sm font-semibold">
               {t("T-2415", {
-                booster: boosterNames[BOOSTER_KINDS.indexOf(targeted.kind)] ?? targeted.kind,
+                booster: boosterNames[targeted.kind] ?? targeted.kind,
               })}
             </p>
           ) : null}
@@ -299,10 +298,7 @@ export default async function RetoDetallePage({
                 {available.map((item) => (
                   <option key={item.id} value={item.id}>
                     {(selectorLabels[1] ?? "")
-                      .replace(
-                        "{booster}",
-                        boosterNames[BOOSTER_KINDS.indexOf(item.kind)] ?? item.kind,
-                      )
+                      .replace("{booster}", boosterNames[item.kind] ?? item.kind)
                       .replace("{fecha}", formatDate(item.expiresAt))}
                   </option>
                 ))}

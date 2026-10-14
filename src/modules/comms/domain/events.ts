@@ -19,9 +19,10 @@ import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { committeeAudience, membersAudience } from "./audiences";
-import { type DeliveryStats, deliverNotification } from "./notify";
+import { type DeliveryStats, deliverNotification, emptyDeliveryStats } from "./notify";
 import { type NotificationKind, splitPush } from "./pure";
 import { type SendReceipt, sendTransactionalEmail } from "./send";
+import { unlessAnonymized } from "./unless-anonymized";
 
 // Push por evento (ADR-038 reglas 6 y 7): cada evento de dominio se traduce a una notificación del bus
 // con su texto del inventario (14-copy §6), su URL, su tipo y su clave de deduplicación.
@@ -35,14 +36,7 @@ async function notify(
   tag?: string,
 ): Promise<DeliveryStats> {
   if (personIds.length === 0) {
-    return {
-      sent: 0,
-      failed: 0,
-      alreadySent: 0,
-      skippedByPreference: 0,
-      withoutDevice: 0,
-      removedDevices: 0,
-    };
+    return emptyDeliveryStats();
   }
   const { title, body } = splitPush(text);
   return deliverNotification({
@@ -102,7 +96,7 @@ export async function pushRequestDecided(
     [payload.personId],
     t("T-189", {
       tipo: payload.kindLabel,
-      "aprobada/rechazada": payload.status === "APPROVED" ? aprobada : rechazada,
+      decisión: payload.status === "APPROVED" ? aprobada : rechazada,
     }),
     "/app/solicitudes",
     `request:${payload.requestId}`,
@@ -112,17 +106,23 @@ export async function pushRequestDecided(
 /**
  * Se emitió un enlace de acceso para esta persona (T-2132, ADR-051). Transaccional: llega aunque
  * la persona haya apagado las notificaciones, porque es la única forma de que se entere si el
- * enlace lo pidió alguien más. La clave incluye el instante: cada emisión avisa.
+ * enlace lo pidió alguien más. La clave es la de su evento (ADR-116 regla 17): cada emisión es un evento
+ * y avisa, y un reintento de ese evento, que trae el mismo id, no avisa otra vez. Sin id falla: la clave
+ * sería la misma para todos los enlaces de esa persona y el primer aviso taparía los siguientes.
  */
 export async function pushAccessGrantIssued(
   payload: EventPayload<typeof accessGrantIssued>,
+  eventId: string,
 ): Promise<DeliveryStats> {
+  if (eventId.trim() === "") {
+    throw new Error("El aviso del enlace de acceso llegó sin el id de su evento");
+  }
   return notify(
     "TRANSACTIONAL",
     [payload.personId],
     t("T-2132"),
     "/app/ajustes",
-    `access-grant:${payload.personId}:${Date.now()}`,
+    `access-grant:${payload.personId}:${eventId}`,
   );
 }
 
@@ -159,7 +159,8 @@ export async function pushRecognition(
 
 /**
  * Resultado de permanencia por correo (ADR-038 regla 10): solo la fila por persona y solo cuando
- * cumple (T-202). Prueba (T-203) y salida (T-204) esperan el texto de GH. Idempotente por clave.
+ * cumple (T-202). Prueba (T-203) y salida (T-204) esperan el texto de GH. Idempotente por clave. La
+ * persona se lee retenida y así sigue mientras sale el correo y queda su registro (ADR-119 regla 11).
  */
 export async function emailPermanenceOutcome(
   payload: EventPayload<typeof permanenceDecided>,
@@ -167,27 +168,30 @@ export async function emailPermanenceOutcome(
   if (payload.committeeId || payload.decision !== "CONTINUES") {
     return null;
   }
-  const [ref, term] = await Promise.all([
-    listMailingRefs([payload.personId]).then((refs) => refs.get(payload.personId)),
-    getTerm(payload.termId),
-  ]);
-  if (!ref || !term || ref.anonymized) {
+  const term = await getTerm(payload.termId);
+  if (!term) {
     return null;
   }
-  const { title, body } = splitPush(t("T-202", { término: term.code }));
-  const link = `${getEnv().APP_URL}/app/permanencia`;
-  const pie = t("T-208").replace("{enlace de baja si aplica}", "").trim();
-  return sendTransactionalEmail(
-    {
-      personId: payload.personId,
-      to: ref.email,
-      subject: title,
-      text: `${renderPlain(body)}\n\n${t("T-699")}: ${link}\n\n${pie}`,
-      html: `<p>${renderHtml(body)}</p><p><a href="${link}">${t("T-699")}</a></p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
-    },
-    new Date(),
-    { dedupeKey: `permanence-outcome:${payload.termId}` },
-  );
+  return unlessAnonymized(payload.personId, async () => {
+    const ref = (await listMailingRefs([payload.personId])).get(payload.personId);
+    if (!ref || ref.anonymized) {
+      return null;
+    }
+    const { title, body } = splitPush(t("T-202", { término: term.code }));
+    const link = `${getEnv().APP_URL}/app/permanencia`;
+    const pie = t("T-208").replace("{enlace de baja si aplica}", "").trim();
+    return sendTransactionalEmail(
+      {
+        personId: payload.personId,
+        to: ref.email,
+        subject: title,
+        text: `${renderPlain(body)}\n\n${t("T-699")}: ${link}\n\n${pie}`,
+        html: `<p>${renderHtml(body)}</p><p><a href="${link}">${t("T-699")}</a></p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
+      },
+      new Date(),
+      { dedupeKey: `permanence-outcome:${payload.termId}` },
+    );
+  });
 }
 
 /** Recorta un valor interpolado para que el push quepa en sus límites (título 40, cuerpo 120). */

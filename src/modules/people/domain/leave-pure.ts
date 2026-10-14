@@ -1,4 +1,5 @@
-import { addDays, addYears } from "./sanction-pure";
+import { addDays } from "@/shared/lib/dates-pure";
+import { addYears } from "./sanction-pure";
 
 // Licencia con vencimiento (Est. art. 5.4 y 11.3; ADR-060 regla 10), sin I/O: la ventana del regreso
 // y si una licencia ya venció. Las fechas son claves YYYY-MM-DD en Bogotá.

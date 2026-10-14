@@ -81,6 +81,8 @@ export default async function AnfitrionPage({
                 stop: stop ?? "",
                 upload: upload ?? "",
                 cameraError: t("T-617"),
+                photoError: t("T-3256"),
+                scanError: t("T-3251"),
               }}
               onScan={scanAction.bind(null, id)}
             />

@@ -66,7 +66,9 @@ const envSchema = z
       .regex(/^\d{6}$/, "OTP_FIXED_CODE debe tener 6 dígitos")
       .optional(),
 
-    MAILER: z.enum(["console", "resend"]).default("console"),
+    // Sin valor por defecto acá: fuera de producción cae a `console` (abajo, en el `transform`) y en
+    // producción tiene que venir escrito (ADR-121 regla 9).
+    MAILER: z.enum(["console", "resend"]).optional(),
     EMAIL_FROM: z.string().min(3),
     RESEND_API_KEY: z.string().optional(),
     // Resend gratis permite 100 correos al día: desde 95 el mismo mensaje sale por SES (ADR-023).
@@ -136,6 +138,15 @@ const envSchema = z
         code: "custom",
         path: ["DB_IDLE_IN_TRANSACTION_TIMEOUT_MS"],
         message: "Debe ser mayor que JOBS_HANDLER_TIMEOUT_MS (ADR-079)",
+      });
+    }
+    // Con un valor por defecto, borrar o renombrar `MAILER` en el servicio dejaba el correo en la
+    // consola sin que nada fallara: cada código de ingreso y cada enlace iban a parar al registro.
+    if (env.NODE_ENV === "production" && env.MAILER === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["MAILER"],
+        message: "MAILER debe venir explícito en producción: console o resend",
       });
     }
     if (env.MAILER === "resend" && !env.RESEND_API_KEY) {
@@ -212,6 +223,7 @@ const envSchema = z
   })
   .transform((env) => ({
     ...env,
+    MAILER: env.MAILER ?? "console",
     GOOGLE_WALLET_CLASS_SUFFIX: env.GOOGLE_WALLET_CLASS_SUFFIX ?? "carnet-oe",
   }));
 

@@ -87,3 +87,20 @@ export const workGroupMembershipChanged = defineEvent(
     change: z.string(),
   }),
 );
+
+/**
+ * Una inscripción aceptada a una convocatoria interna no pudo entrar a su grupo: la condición cambió
+ * entre aceptar y el trabajo que agrega (ADR-116 regla 7). `reason` es el motivo que dio el dominio, ya
+ * redactado; crm abre con él la tarea para GH.
+ */
+export const groupAdmissionFailed = defineEvent(
+  "work-group-admission.failed",
+  z.object({
+    actorId,
+    personId: id,
+    groupId: id,
+    callId: id,
+    callTitle: z.string(),
+    reason: z.string().min(1),
+  }),
+);

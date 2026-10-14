@@ -17,11 +17,6 @@ export const FIELD_TYPES = [
   "RATING",
 ] as const;
 
-export type FieldType = (typeof FIELD_TYPES)[number];
-
-/** Claves que, al crear la persona, se copian a sus datos (celular y programa). */
-export const RESERVED_KEYS = ["phone", "program"] as const;
-
 /** Nombre del campo trampa del formulario público: un humano no lo ve ni lo llena. */
 export const HONEYPOT_FIELD = "sitio_web";
 
@@ -283,25 +278,4 @@ export const publicIdentitySchema = z.object({
   email,
 });
 
-/** Lee del FormData los valores de los campos tipados (con el prefijo `f.`) para validarlos. */
-export function answersFromFormData(
-  formData: FormData,
-  fields: FormField[],
-  prefix = "f.",
-): Record<string, unknown> {
-  const raw: Record<string, unknown> = {};
-  for (const field of fields) {
-    const name = `${prefix}${field.key}`;
-    if (field.type === "MULTISELECT") {
-      raw[field.key] = formData
-        .getAll(name)
-        .filter((item): item is string => typeof item === "string");
-    } else if (field.type === "CHECKBOX") {
-      raw[field.key] = formData.get(name) === "on";
-    } else {
-      const value = formData.get(name);
-      raw[field.key] = typeof value === "string" ? value : "";
-    }
-  }
-  return raw;
-}
+export { answersFromFormData } from "../form-data";

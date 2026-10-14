@@ -1,3 +1,28 @@
+import type { Instrumentation } from "next";
+
+/**
+ * El error de consulta que una action, una ruta o un render dejan escapar queda en el registro de la
+ * casa, por su serializador (ADR-120 regla 12). Next lo imprime además por su cuenta, con
+ * `console.error` y antes de llamar acá. La línea nombra la ruta por su patrón: nunca la dirección
+ * pedida, que puede traer un token en un segmento o en la consulta, ni los encabezados, que traen la
+ * cookie. Los demás errores sin capturar no se registran acá: qué se hace con ellos es la decisión
+ * abierta 42, y hasta que se cierre siguen como estaban, en la salida de Next.
+ */
+export const onRequestError: Instrumentation.onRequestError = async (error, request, context) => {
+  if (process.env.NEXT_RUNTIME === "edge") {
+    return;
+  }
+  const { carriesQueryError } = await import("@/shared/lib/error-sanitizer");
+  const { logger } = await import("@/shared/log");
+  if (!carriesQueryError(error)) {
+    return;
+  }
+  logger.error(
+    { err: error, route: context.routePath, routeType: context.routeType, method: request.method },
+    "error sin capturar en una ruta",
+  );
+};
+
 export async function register() {
   // Solo en el runtime de Node (no en edge ni en el navegador).
   if (process.env.NEXT_RUNTIME !== "nodejs") {

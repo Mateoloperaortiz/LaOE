@@ -6,11 +6,12 @@ import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { type AdjustRequirementInput, adjustRequirement } from "./assemblies";
-import type { CheckInDecision } from "./check-in-pure";
+import { AlreadyCheckedIn, BoosterDenied } from "./check-in-transition";
 import {
-  AlreadyCheckedIn,
+  type BatchDecision,
   cancelOccasionCheckIns,
   checkInSelf,
+  type DecideInput,
   decideCheckIn,
   decideMany,
   findCheckIn,
@@ -29,6 +30,7 @@ import {
   getOccasionByPublicId,
   type OccasionContext,
   type OccasionInput,
+  type OccasionOpener,
   openOccasion,
   rotateSecret,
   type SeriesInput,
@@ -73,8 +75,9 @@ export async function updateOccasionAs(
   return runCommand(actor, (ctx) => updateOccasion(ctx, id, input, context));
 }
 
-export function openOccasionAs(actor: Actor, id: string): Promise<void> {
-  return runCommand(actor, (ctx) => openOccasion(ctx, id));
+/** `opener` dice si quien abre es ADMIN: un líder abre solo la ocasión sin puntos (ADR-122 regla 2). */
+export function openOccasionAs(actor: Actor, id: string, opener: OccasionOpener): Promise<void> {
+  return runCommand(actor, (ctx) => openOccasion(ctx, id, opener));
 }
 
 export function closeOccasionAs(actor: Actor, id: string): Promise<void> {
@@ -90,13 +93,9 @@ export async function cancelOccasionAs(
   const settings = await loadGamificationSettings();
   return runCommand(actor, async (ctx) => {
     const before = await cancelOccasion(ctx, id, reason);
-    const cancelledCheckIns = await cancelOccasionCheckIns(
-      ctx,
-      before,
-      reason.trim(),
-      new Date(),
+    const cancelledCheckIns = await cancelOccasionCheckIns(ctx, before, reason.trim(), {
       settings,
-    );
+    });
     return { cancelledCheckIns };
   });
 }
@@ -136,6 +135,9 @@ export async function checkInSelfAs(
         return { ok: false, reason: "ALREADY", existing };
       }
     }
+    if (error instanceof BoosterDenied) {
+      return { ok: false, reason: "BOOSTER", message: error.message };
+    }
     throw error;
   }
 }
@@ -159,20 +161,24 @@ export async function hostCheckInAs(
 
 export async function decideCheckInAs(
   actor: Actor & { personId: string },
-  input: { checkInId: string; decision: CheckInDecision; reason?: string | null },
+  input: Pick<DecideInput, "checkInId" | "occasionId" | "decision" | "reason" | "seenStatus">,
 ): Promise<void> {
   const settings = await loadGamificationSettings();
   return runCommand(actor, (ctx) => decideCheckIn(ctx, input, { settings }));
 }
 
+/** `occasionId` es la ocasión desde cuya consola se decide el lote (ADR-122 regla 1). */
 export async function decideManyAs(
   actor: Actor & { personId: string },
+  occasionId: string,
   checkInIds: string[],
-  decision: CheckInDecision,
+  decision: BatchDecision,
   reason?: string | null,
 ): Promise<number> {
   const settings = await loadGamificationSettings();
-  return runCommand(actor, (ctx) => decideMany(ctx, checkInIds, decision, reason, { settings }));
+  return runCommand(actor, (ctx) =>
+    decideMany(ctx, occasionId, checkInIds, decision, reason, { settings }),
+  );
 }
 
 export function setRotatingCodeAs(actor: Actor, id: string, enabled: boolean): Promise<void> {

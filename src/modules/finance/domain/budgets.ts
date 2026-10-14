@@ -4,7 +4,7 @@ import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { listCommitteesByIds } from "@/modules/people";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   budgetExpense,
@@ -187,8 +187,8 @@ export async function listCommitteeBudgets(
   return withCommittees(rows);
 }
 
-function toValues(raw: BudgetInput) {
-  const input = budgetInputSchema.parse(raw);
+/** Lo que se escribe al crear y en borrador: ahí el tipo que llega es el del presupuesto. */
+function toValues(input: z.output<typeof budgetInputSchema>) {
   return {
     committeeId: input.committeeId,
     year: input.year,
@@ -200,7 +200,7 @@ function toValues(raw: BudgetInput) {
 }
 
 export async function createBudget(ctx: CommandContext, raw: BudgetInput): Promise<{ id: string }> {
-  const values = toValues(raw);
+  const values = toValues(budgetInputSchema.parse(raw));
   const [refs] = [await listCommitteesByIds([values.committeeId])];
   if (refs.length === 0) {
     throw new DomainError(t("T-032"), "committeeId");
@@ -247,13 +247,17 @@ export async function updateBudget(
   raw: BudgetInput,
 ): Promise<void> {
   const current = await lockBudget(ctx, id);
-  const values = toValues(raw);
+  const input = budgetInputSchema.parse(raw);
+  const values = toValues(input);
   const patch =
     current.status === "DRAFT"
       ? values
       : {
           notes: values.notes,
-          title: values.title || current.title,
+          // Fuera de borrador el tipo no se edita, así que la actividad la decide el guardado y no el
+          // que llega (ADR-123 regla 4): un extraordinario toma la que llega, o conserva la suya si
+          // llega vacía, y un ordinario no lleva.
+          title: current.kind === "EXTRAORDINARY" ? input.title || current.title : "",
           submittedOn: values.submittedOn,
         };
   try {
@@ -268,7 +272,17 @@ export async function updateBudget(
     action: "budget.updated",
     entityType: "committee_budget",
     entityId: id,
-    before: { status: current.status, notes: current.notes, title: current.title },
+    // El antes lleva todo lo que una edición puede cambiar, también lo que este estado no deja tocar:
+    // con las dos puntas se reconstruye qué fecha de presentación, año o comité había (ADR-122 regla 8).
+    before: {
+      status: current.status,
+      committeeId: current.committeeId,
+      year: current.year,
+      kind: current.kind,
+      title: current.title,
+      notes: current.notes,
+      submittedOn: current.submittedOn,
+    },
     after: patch,
   });
 }
@@ -531,9 +545,9 @@ export async function getBudgetSummary(id: string): Promise<BudgetSummary | null
 }
 
 export function budgetKindLabel(kind: BudgetRow["kind"]): string {
-  return tList("T-2286")[BUDGET_KINDS.indexOf(kind)] ?? kind;
+  return tLabels("T-2286", BUDGET_KINDS)[kind] ?? kind;
 }
 
 export function budgetStatusLabel(status: BudgetRow["status"]): string {
-  return tList("T-2202")[BUDGET_STATUSES.indexOf(status)] ?? status;
+  return tLabels("T-2202", BUDGET_STATUSES)[status] ?? status;
 }

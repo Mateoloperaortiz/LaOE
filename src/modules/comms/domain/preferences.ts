@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
 import { notificationPreference } from "../schema";
 import { DEFAULT_PREFERENCES, type PreferenceFlags } from "./pure";
 
@@ -184,8 +184,12 @@ export async function unsubscribeTokenExists(token: string): Promise<boolean> {
   return row !== undefined;
 }
 
-/** Baja de campañas por el token del pie del correo (sin sesión); devuelve false si no existe. */
-export async function unsubscribeByToken(token: string): Promise<boolean> {
+/**
+ * Baja de campañas por el token del pie del correo (sin sesión); devuelve false si no existe. `ip` es
+ * la del request que la pulsó y la pasa la puerta, como texto o nula (ADR-123 regla 2): dice desde
+ * dónde llegó la baja, no quién la pulsó, que en el clic único puede ser el proveedor del correo.
+ */
+export async function unsubscribeByToken(token: string, ip: string | null): Promise<boolean> {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) {
     return false;
   }
@@ -197,7 +201,8 @@ export async function unsubscribeByToken(token: string): Promise<boolean> {
   if (!row) {
     return false;
   }
-  await runCommand({ personId: row.personId }, async (ctx) => {
+  // Sin sesión: actúa el dueño del token, con la IP del request que trajo la puerta.
+  await runCommand({ personId: row.personId, ip }, async (ctx) => {
     await ctx.tx
       .update(notificationPreference)
       .set({ emailCampaigns: false })
@@ -213,8 +218,8 @@ export async function unsubscribeByToken(token: string): Promise<boolean> {
 }
 
 /** Al salir de la OE o anonimizarse (ADR-030): las preferencias no son historia. */
-export async function deletePreferencesFor(personId: string): Promise<number> {
-  const rows = await getDb()
+export async function deletePreferencesFor(exec: Executor, personId: string): Promise<number> {
+  const rows = await exec
     .delete(notificationPreference)
     .where(eq(notificationPreference.personId, personId))
     .returning({ id: notificationPreference.id });

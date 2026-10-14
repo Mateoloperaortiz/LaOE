@@ -3,9 +3,11 @@ import { join } from "node:path";
 import { getDb } from "@/db/client";
 import { getEnv } from "@/env";
 import { getOrCreateCarnetCredential } from "@/modules/identity";
-import { getWalletMemberState, lockWalletMember } from "@/modules/people";
+import { getWalletMemberState, lockMembershipCycle } from "@/modules/people";
 import { isApplePassConfigured, signPass } from "@/shared/adapters/apple-pass";
+import { WalletError } from "@/shared/adapters/wallet-error";
 import { loadCarnetData } from "./carnet-data";
+import { issueError } from "./failure";
 import { buildApplePassJson } from "./pass-pure";
 import { recordPassIssued } from "./passes";
 
@@ -38,7 +40,7 @@ function appleAssets(): Promise<Record<string, Buffer>> {
 export async function buildApplePass(personId: string): Promise<Buffer> {
   const env = getEnv();
   if (!isApplePassConfigured() || !env.APPLE_PASS_TYPE_ID || !env.APPLE_TEAM_ID) {
-    throw new Error("Apple Wallet no está configurado");
+    throw new WalletError("NOT_CONFIGURED", "Apple Wallet no está configurado");
   }
   const data = await getDb().transaction(async (tx) => {
     await getOrCreateCarnetCredential(tx, personId);
@@ -54,7 +56,7 @@ export async function buildApplePass(personId: string): Promise<Buffer> {
   });
   // La firma no sostiene el lock de membresía; si cambió la persona, no se entrega el pase viejo.
   await getDb().transaction(async (tx) => {
-    await lockWalletMember(tx, personId);
+    await lockMembershipCycle(tx, personId);
     const state = await getWalletMemberState(tx, personId);
     if (
       !state ||
@@ -63,9 +65,11 @@ export async function buildApplePass(personId: string): Promise<Buffer> {
       state.status === "ON_LEAVE" ||
       state.walletEpoch !== data.walletEpoch
     )
-      throw new Error("La membresía cambió durante la emisión");
+      throw issueError("CHANGED_DURING_ISSUE", "La membresía cambió durante la emisión");
     const current = await loadCarnetData(personId, tx);
-    if (current.revision !== data.revision) throw new Error("El QR cambió durante la emisión");
+    if (current.revision !== data.revision) {
+      throw issueError("CHANGED_DURING_ISSUE", "El QR cambió durante la emisión");
+    }
     await recordPassIssued(tx, "APPLE", personId, data);
   });
   return bytes;

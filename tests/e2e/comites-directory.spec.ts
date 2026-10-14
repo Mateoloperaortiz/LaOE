@@ -1,8 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { expect } from "@playwright/test";
-import { getDb } from "@/db/client";
-import { committee } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
+import { seedCommittee } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
@@ -12,12 +11,7 @@ test.use({ storageState: "tests/e2e/.auth/member.json" });
 test("busca sin tildes, conserva los comités propios y permite recuperar la lista", async ({
   page,
 }) => {
-  await getDb().insert(committee).values({
-    slug: "e2e-agora",
-    name: "Ágora de prueba",
-    status: "ACTIVE",
-    presentation: null,
-  });
+  await seedCommittee("e2e-agora", "Ágora de prueba", { publicationStatus: "DRAFT" });
   await page.goto("/app/comites");
   const own = page.getByRole("region", { name: t("T-375"), exact: true });
   const others = page.getByRole("region", { name: t("T-382"), exact: true });
@@ -93,10 +87,8 @@ test("nombres extensos y presentaciones largas conservan la acción y el conteni
   page,
 }) => {
   const name = "Comité sintético de Diseño, Ciencias y Comunicación Interdisciplinaria";
-  await getDb().insert(committee).values({
-    slug: "e2e-contenido-extenso",
-    name,
-    status: "ACTIVE",
+  await seedCommittee("e2e-contenido-extenso", name, {
+    publicationStatus: "DRAFT",
     logoKey: "conexion",
     presentation:
       "Presentación sintética para comprobar cómo se muestran los textos extensos en el directorio. Incluye varias oraciones y palabras de diferente longitud. La ficha completa conserva todo el contenido, mientras la tarjeta muestra solamente un resumen para facilitar la exploración.",

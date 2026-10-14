@@ -1,15 +1,13 @@
 import Link from "next/link";
-import { COMMITTEE_AREAS, type CommitteeArea } from "@/modules/people";
+import { COMMITTEE_AREA_KEYS, type CommitteeArea } from "@/modules/people";
 import { AdminSectionSelect } from "@/shared/admin-kit/AdminSectionSelect";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 
 // Áreas de la vista del comité (ADR-058): una pestaña por área donde el actor tiene alguna capacidad,
 // en el orden de T-2174; en pantallas angostas, el mismo selector que usan las pestañas de la Persona 360.
 
 export function areaLabel(area: CommitteeArea): string {
-  const labels = tList("T-2174");
-  const index = COMMITTEE_AREAS.findIndex((item) => item.key === area);
-  return labels[index] ?? area;
+  return tLabels("T-2174", COMMITTEE_AREA_KEYS)[area] ?? area;
 }
 
 export function Areas({

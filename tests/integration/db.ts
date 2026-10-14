@@ -1,70 +1,149 @@
-import { and, isNull, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { badgeDefinition } from "@/modules/participation/schema";
+import type { Tx } from "@/db/tx";
 import { clearConfigCache } from "@/modules/system/domain/config";
-import { appConfig } from "@/modules/system/schema";
+import { errorCode } from "@/shared/lib/error-sanitizer";
+import { TEST_POLICY_VERSION } from "../factories/policy-version";
 
-// Deja las tablas vacías entre pruebas. `cascade` arrastra a app_config y badge_definition
-// (referencias a person), así que los catálogos de las migraciones se restauran después.
-// Los valores de la migración 0030: una prueba que activa gamificación no debe filtrarlo a la siguiente.
-const GAMIFICATION_SEED: Record<string, unknown> = {
-  "gamification.enabled": false,
-  "gamification.caps": { daily: 20, weekly: 60 },
-  "gamification.defaults": { trivia: 5, presential: 10, evidence: 10, passPercent: 80 },
-};
+// Deja la base de pruebas como recién migrada entre una prueba y la siguiente: las tablas de `public`
+// sin filas y los catálogos de migración como en la foto que tomó la preparación de la suite (ADR-124).
+
+// Los catálogos que llenan las migraciones y que las pruebas necesitan. Son los únicos nombres de tabla
+// escritos en este archivo, y `tests/unit/test-emptying-table-names.test.ts` no admite otros. No se
+// pueden deducir: las migraciones también llenan `page` y `event` con filas literales, y esas quedan
+// vacías. Un catálogo nuevo que una migración llene se suma acá; si no, queda vacío y su prueba falla
+// a la vista.
+const CATALOGS = ["app_config", "badge_definition", "committee_role", "macroevent_role"];
+
+// Dónde queda la foto de los catálogos: un esquema de la base de pruebas que no es `public`, así el
+// vaciado no la alcanza, ni es de los que crea `e2e-baseline.test.ts`.
+const BASELINE_SCHEMA = "catalog_baseline";
+
+/**
+ * Guarda la foto de los catálogos como los dejan las migraciones (ADR-124 regla 2). La toma
+ * `global-setup.ts` después de migrar, una vez por corrida. Vive en la base y no en memoria porque
+ * ese es otro proceso que el de las pruebas. Cubre solo los catálogos: con todo `public` volverían
+ * las filas de `page` y `event`. La versión de la política queda en su valor de prueba.
+ */
+export async function saveCatalogBaseline(): Promise<void> {
+  const baseline = sql.identifier(BASELINE_SCHEMA);
+  await getDb().transaction(async (tx) => {
+    await tx.execute(sql`drop schema if exists ${baseline} cascade`);
+    await tx.execute(sql`create schema ${baseline}`);
+    for (const table of CATALOGS) {
+      const name = sql.identifier(table);
+      await tx.execute(sql`create table ${baseline}.${name} as table public.${name}`);
+    }
+    const versioned = await tx.execute(sql`
+      update ${baseline}.app_config set value = to_jsonb(${TEST_POLICY_VERSION}::text)
+      where key = 'privacy.policyVersion'
+    `);
+    if (versioned.rowCount !== 1) {
+      throw new Error(
+        "La foto de los catálogos no encontró privacy.policyVersion: ¿una migración le cambió el nombre?",
+      );
+    }
+  });
+}
+
+const CATALOG_TABLES = CATALOGS.map((table) => `public.${table}`);
+
+// Lo que haya en los catálogos sale antes de llenarlos. Tras el vaciado no queda nada; solo trae filas
+// si algo escribió entre el borrado y el llenado, o si otro vaciado ya los llenó.
+const EMPTY_CATALOGS_SQL = `with ${CATALOG_TABLES.map(
+  (table, index) => `d${index} as (delete from ${table})`,
+).join(", ")} select 1`;
+
+// Una sola sentencia vuelve a llenar los cuatro catálogos con las filas de la foto, en el orden en que
+// la foto las guarda. Las claves foráneas se revisan al terminar la sentencia, así que el cargo que
+// nombra a otro como su reemplazo no depende del orden.
+const REFILL_SQL = `with ${CATALOGS.map(
+  (table, index) =>
+    `c${index} as (insert into public.${table} select * from ${BASELINE_SCHEMA}.${table})`,
+).join(", ")} select 1`;
+
+// Cuánto espera el vaciado un candado antes de soltar los que ya tomó y volver a pedirlos, y cuántas
+// veces lo intenta: cerca de un minuto en total, lo que antes le daba el `statement_timeout`.
+const LOCK_WAIT_MS = 250;
+const LOCK_ATTEMPTS = 240;
+
+// Lo que dice PostgreSQL cuando el vaciado no consiguió su candado: se cansó de esperarlo (`55P03`) o
+// lo eligió a él para romper un interbloqueo (`40P01`).
+const LOCK_NOT_TAKEN = new Set<unknown>(["55P03", "40P01"]);
+
+/**
+ * Corre `work` en una transacción que tiene `tables` bajo `ACCESS EXCLUSIVE`, el candado que tomaba
+ * `TRUNCATE`, y sin los disparadores de las claves foráneas (el PostgreSQL de pruebas usa un
+ * superusuario, como la E2E). Espera a quien todavía escribe en ellas, pero no retiene nada mientras
+ * espera (ADR-124 regla 7): pide los candados en orden y, si uno tarda, suelta los que ya tenía y
+ * vuelve a empezar. Quien escribe puede necesitar, para terminar, leer por otra conexión una tabla que
+ * el vaciado ya tomó, y esa espera cruzada PostgreSQL no la ve.
+ */
+async function underLock<T>(tables: string[], work: (tx: Tx) => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await getDb().transaction(async (tx) => {
+        await tx.execute(sql`
+          select set_config('session_replication_role', 'replica', true),
+                 set_config('lock_timeout', ${`${LOCK_WAIT_MS}ms`}, true)
+        `);
+        await tx.execute(sql.raw(`lock table ${tables.join(", ")} in access exclusive mode`));
+        return work(tx);
+      });
+    } catch (error) {
+      const gaveUpItsTurn = error instanceof Error && LOCK_NOT_TAKEN.has(errorCode(error));
+      if (!gaveUpItsTurn || attempt === LOCK_ATTEMPTS) {
+        throw error;
+      }
+    }
+  }
+}
+
+/**
+ * Las tablas que se vacían: todas las de `public` (ADR-124 reglas 1 y 3). La lista sale de PostgreSQL
+ * en cada vaciado, así que una tabla nueva entra sola, referencie o no a otra. El filtro por esquema
+ * importa: en la misma base viven `drizzle`, con el registro de migraciones, la foto de los catálogos
+ * y los esquemas que crea `e2e-baseline.test.ts`. Los nombres salen con su esquema, para que las
+ * sentencias alcancen lo mismo que el filtro.
+ */
+async function tablesToEmpty(): Promise<string[]> {
+  const { rows } = await getDb().execute<{ name: string }>(sql`
+    select format('%I.%I', schemaname, tablename) as name
+    from pg_tables
+    where schemaname = 'public'
+    order by 1
+  `);
+  return rows.map((row) => row.name);
+}
 
 export async function truncateAll(): Promise<void> {
-  const db = getDb();
-  const config = await db.select().from(appConfig);
-  // Solo el catálogo sembrado: las ediciones especiales de una prueba referencian
-  // ocasiones/retos que el truncate borra y no deben sobrevivir.
-  const badges = await db
-    .select()
-    .from(badgeDefinition)
-    .where(
-      and(isNull(badgeDefinition.specialChallengeId), isNull(badgeDefinition.specialOccasionId)),
+  const tables = await tablesToEmpty();
+  // Borrar y no truncar: `TRUNCATE` le crea a PostgreSQL un archivo nuevo por tabla, por TOAST y por
+  // índice en cada prueba, y la suite le dejaba al checkpoint siguiente cerca de un millón (DT-188).
+  // Todo en una transacción y bajo candado: sin los disparadores de las claves foráneas el orden entre
+  // tablas no importa. Una sola sentencia borra todas y devuelve cuáles tenían filas.
+  const used = await underLock(tables, async (tx) => {
+    const { rows } = await tx.execute<{ name: string }>(
+      sql.raw(`with ${tables.map((table, index) => `d${index} as (delete from ${table} returning 1)`).join(", ")}
+        ${tables.map((table, index) => `select '${table}' as name where exists (select 1 from d${index})`).join(" union all ")}`),
     );
-  await db.execute(sql`
-    truncate table
-      competition_power_use, competition_power_grant,
-      competition_credit_entry, competition_bet, competition_market_option, competition_market,
-      competition_announcement, competition_point_entry, competition_extra_jury_score,
-      competition_extra, competition_result,
-      competition_matchup, competition_rotation, competition_support, competition_staff,
-      competition_base, competition_team_captain, competition_team, competition,
-      budget_transfer, budget_expense, budget_prerequest, event_approval, budget_line, committee_budget,
-      audit_log, outbox, campaign_recipient, message, campaign, email_template,
-      push_subscription, notification_preference, calendar_token, carnet_token, wallet_pass,
-      occasion_survey_response, occasion_survey_invite, import_job, legacy_alias,
-      internal_call_entry, internal_call, request, card, pipeline_stage, pipeline,
-      organization_tag, organization_contact, organization, edition_registration, form_submission, form,
-      permanence_decision, permanence_snapshot, manual_credit, leader_score,
-      work_group_membership, work_group_evaluator, work_group, permanence_table, permanence_rule, recognition,
-      point_entry, panal_word, panal_game, sudoku_run, game2048_run, wordle_attempt, wordle_game, check_in, committee_participation, term_standing, assembly_requirement, occasion,
-      session, otp_challenge, permission, credential, access_grant, login_attempt,
-      document_article, document,
-      interaction, task, person_tag, tag, segment, onboarding_progress,
-      edition_committee, event_edition, event, media_asset, announcement, page,
-      consent, appointment, membership_term,
-      committee_role_assignment, committee_membership, membership_event, membership, person, committee, term
-    restart identity cascade
-  `);
-  if (config.length > 0) {
-    await db
-      .insert(appConfig)
-      .values(
-        config.map((row) => ({
-          key: row.key,
-          value:
-            row.key === "privacy.policyVersion"
-              ? "prueba-v1"
-              : (GAMIFICATION_SEED[row.key] ?? row.value),
-        })),
-      )
-      .onConflictDoNothing();
+    return rows.map((row) => row.name);
+  });
+  // `VACUUM` devuelve a cero páginas las tablas que tenían filas, sin darles un archivo nuevo: las
+  // filas de la prueba siguiente vuelven a quedar en el orden en que se insertan, como tras un truncado.
+  // Sin esto el orden físico deja de coincidir con el de inserción y una prueba que lee sin `order by`
+  // se vuelve inestable.
+  if (used.length > 0) {
+    await getDb().execute(sql.raw(`vacuum ${used.join(", ")}`));
   }
-  if (badges.length > 0) {
-    await db.insert(badgeDefinition).values(badges).onConflictDoNothing();
-  }
+  // Los catálogos se borraron con las demás tablas y vuelven de la foto, no de lo que dejó la prueba
+  // anterior (ADR-124 regla 3). Van después del `VACUUM`, sobre páginas en blanco: así quedan en el
+  // orden de la foto, tenga el tamaño que tenga cada uno. Y van bajo su candado, borrando antes lo que
+  // encuentren: lo que algo haya escrito desde el borrado, u otro vaciado que ya los llenó, no choca
+  // con las filas de la foto. Si un vaciado falla antes de llegar acá, el siguiente los repone igual.
+  await underLock(CATALOG_TABLES, async (tx) => {
+    await tx.execute(sql.raw(EMPTY_CATALOGS_SQL));
+    await tx.execute(sql.raw(REFILL_SQL));
+  });
   clearConfigCache();
 }

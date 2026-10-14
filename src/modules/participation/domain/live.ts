@@ -1,14 +1,17 @@
 import QRCode from "qrcode";
 import { getEnv } from "@/env";
 import { getPeopleByIds } from "@/modules/people";
-import { CHECK_IN_STATUSES, type CheckInSource, type CheckInStatus } from "./check-in-pure";
-import { listCheckIns } from "./check-ins";
+import type { CheckInSource, CheckInStatus } from "./check-in-pure";
+import { countCheckInsByStatus, listRecentCheckIns } from "./check-ins";
 import type { OccasionStatus } from "./occasion-pure";
-import { getOccasion } from "./occasions";
+import type { OccasionRow } from "./occasions";
 import { rotatingCodeAt, secondsUntilRotation } from "./rotating-code-pure";
 
 // Contador en vivo de la consola (ADR-035 regla 16): un JSON que el cliente pide cada pocos segundos,
 // con el QR regenerado en servidor para que embeba el código rotativo vigente.
+
+/** Cuántos registros recientes lista la consola. */
+const RECENT_SHOWN = 10;
 
 export interface LiveCheckIn {
   id: string;
@@ -36,23 +39,26 @@ export function checkInLink(publicId: string, code: string | null): string {
   return url.toString();
 }
 
+/** Lo que el snapshot toma de la ocasión. */
+type LiveOccasion = Pick<
+  OccasionRow,
+  "id" | "publicId" | "status" | "requireRotatingCode" | "rotatingSecret"
+>;
+
+/**
+ * El snapshot de la consola de una ocasión que su llamador ya leyó para decidir quién la opera: no la
+ * vuelve a leer (ADR-123 regla 11). Si existe y quién la ve lo responde quien llama.
+ */
 export async function buildLiveSnapshot(
-  occasionId: string,
+  row: LiveOccasion,
   now = new Date(),
-): Promise<LiveSnapshot | null> {
-  const row = await getOccasion(occasionId);
-  if (!row) {
-    return null;
-  }
-  const checkIns = await listCheckIns(row.id);
-  const counts = Object.fromEntries(CHECK_IN_STATUSES.map((status) => [status, 0])) as Record<
-    CheckInStatus,
-    number
-  >;
-  for (const item of checkIns) {
-    counts[item.status] += 1;
-  }
-  const recentRows = checkIns.slice(0, 10);
+): Promise<LiveSnapshot> {
+  // La consola lo pide cada pocos segundos mientras la gente se registra: se le pide a la base lo que
+  // se muestra, cinco conteos y diez filas, no todas las asistencias de la ocasión. Son dos lecturas
+  // seguidas: un registro que entre entre una y otra puede salir en la lista un sondeo antes que en
+  // su conteo.
+  const counts = await countCheckInsByStatus(row.id);
+  const recentRows = await listRecentCheckIns(row.id, RECENT_SHOWN);
   const people = await getPeopleByIds(recentRows.map((item) => item.personId));
   const code =
     row.requireRotatingCode && row.rotatingSecret

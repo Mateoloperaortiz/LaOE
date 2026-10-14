@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 
 // Emisión de los códigos de equipo (ADR-089 regla 3): la acción los devuelve una sola vez y aquí se
 // arman las tarjetas para imprimir. No viajan en una URL ni quedan guardados en el navegador.
@@ -34,7 +34,11 @@ function formatCode(code: string): string {
 }
 
 export function TarjetasCodigo({ competitionId, action, labels }: Props) {
-  const [state, submit, pending] = useActionState(action, { codes: [], error: null });
+  const [state, submit, pending] = useGuardedActionState(
+    action,
+    { codes: [], error: null },
+    ({ previous, message }) => ({ ...previous, error: message }),
+  );
   return (
     <div className="flex flex-col gap-4">
       <p className="max-w-prose text-sm text-tinta-suave">{labels.warning}</p>

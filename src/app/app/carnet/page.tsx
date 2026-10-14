@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import QRCode from "qrcode";
+import { isDownloadPending } from "@/app/_lib/download";
 import { getCarnetMetadata, issueCarnet, requireActor } from "@/modules/identity";
 import { canParticipate, getMyMembership, getPersonRecord } from "@/modules/people";
 import { isStalePass, listPassesFor, walletAvailability } from "@/modules/wallet";
@@ -33,6 +34,7 @@ export default async function CarnetPage({ searchParams }: PageProps<"/app/carne
   const params = await searchParams;
   const saved = params.guardado === "carnet";
   const error = typeof params.error === "string" ? params.error : "";
+  const downloadPending = isDownloadPending(params);
   const [mine, who, credential, passes] = await Promise.all([
     getMyMembership(actor.personId),
     getPersonRecord(actor.personId),
@@ -103,6 +105,9 @@ export default async function CarnetPage({ searchParams }: PageProps<"/app/carne
           ) : null}
           {saved ? (
             <output className="block text-sm font-semibold text-titulo">{t("T-1195")}</output>
+          ) : null}
+          {downloadPending ? (
+            <output className="block text-sm font-semibold text-titulo">{t("T-3211")}</output>
           ) : null}
           {error === "google" || error === "apple" ? (
             <p role="alert" className="rounded-xl bg-oe-orange px-4 py-3 text-sm text-oe-navy">

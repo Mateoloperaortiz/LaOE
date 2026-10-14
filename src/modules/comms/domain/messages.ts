@@ -1,5 +1,6 @@
 import { and, count, desc, eq, ilike, inArray, isNotNull, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import type { Executor } from "@/db/tx";
 import { getPeopleByIds, searchPeople } from "@/modules/people";
 import { campaign, message } from "../schema";
 
@@ -55,9 +56,15 @@ export interface MessageInsert {
   sentAt?: Date | null;
 }
 
-/** Registra un envío; con `dedupeKey` no duplica la fila de esa persona (devuelve null si ya existía). */
-export async function recordMessage(input: MessageInsert): Promise<string | null> {
-  const rows = await getDb()
+/**
+ * Registra un envío; con `dedupeKey` no duplica la fila de esa persona (devuelve null si ya existía).
+ * `exec` es la transacción de quien retiene a la persona mientras registra (ADR-120 regla 8).
+ */
+export async function recordMessage(
+  input: MessageInsert,
+  exec: Executor = getDb(),
+): Promise<string | null> {
+  const rows = await exec
     .insert(message)
     .values({
       personId: input.personId,
@@ -75,6 +82,35 @@ export async function recordMessage(input: MessageInsert): Promise<string | null
     .onConflictDoNothing()
     .returning({ id: message.id });
   return rows[0]?.id ?? null;
+}
+
+export interface RecordedMessage {
+  id: string;
+  status: MessageStatus;
+  provider: string;
+  providerId: string | null;
+  error: string | null;
+  sentAt: Date | null;
+}
+
+/** El mensaje que ya quedó registrado para esa persona con esa clave, si existe. */
+export async function findRecordedMessage(
+  personId: string,
+  dedupeKey: string,
+): Promise<RecordedMessage | null> {
+  const [row] = await getDb()
+    .select({
+      id: message.id,
+      status: message.status,
+      provider: message.provider,
+      providerId: message.providerId,
+      error: message.error,
+      sentAt: message.sentAt,
+    })
+    .from(message)
+    .where(and(eq(message.personId, personId), eq(message.dedupeKey, dedupeKey)))
+    .limit(1);
+  return row ?? null;
 }
 
 /** Personas que ya tienen un mensaje con esa clave: el bus las salta (idempotencia por persona). */

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getHubState } from "@/modules/competition";
 import { t } from "@/shared/copy";
+import { logUnavailable } from "../unavailable";
 import { hubJson, hubPreflight, sessionOf } from "./shared";
 
 // El estado del hub de capitanes para DÍAS (ADR-096): saldo, apuestas abiertas y apuestas del equipo
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       return hubJson(request, METHODS, { error: hadCookie ? t("T-3038") : null }, 401);
     }
     return hubJson(request, METHODS, state);
-  } catch {
+  } catch (error) {
+    logUnavailable("GET /api/v1/the-games/hub", error);
     return hubJson(request, METHODS, { error: "no disponible" }, 503);
   }
 }

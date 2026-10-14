@@ -15,8 +15,8 @@ import {
 } from "@/modules/permanence";
 import { outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedAppointment, seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedAppointment, seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
 // Grupos de trabajo (ADR-036 regla 6): siembra idempotente con líderes por cargo, altas solo de
 // activos, roles derivados, importación por CSV y recompute por persona.
@@ -48,13 +48,13 @@ describe("grupos de trabajo", () => {
     });
     const [cap, cgh, cml] = rows.map((row) => row.id);
     if (!cap || !cgh || !cml) throw new Error("faltan comités de trabajo");
-    expect(await addMembersAs(admin, cap, [persona])).toBe(1);
-    expect(await addMembersAs(admin, cgh, [persona])).toBe(1);
+    expect((await addMembersAs(admin, cap, [persona])).added).toBe(1);
+    expect((await addMembersAs(admin, cgh, [persona])).added).toBe(1);
     await expect(addMembersAs(admin, cml, [persona])).rejects.toThrow(
       t("T-2284", { nombre: "Tere Tres" }),
     );
     // Repetir donde ya está no cuenta.
-    expect(await addMembersAs(admin, cap, [persona])).toBe(0);
+    expect((await addMembersAs(admin, cap, [persona])).added).toBe(0);
   });
 
   it("siembra los siete comités de trabajo con el líder de su cargo y no los repite", async () => {
@@ -93,8 +93,8 @@ describe("grupos de trabajo", () => {
         createGroupAs(admin, { termId, kind: "WORK_COMMITTEE", name: "Otro", code: "CAP" }),
       ),
     ).rejects.toThrow(t("T-758"));
-    expect(await addMembersAs(admin, id, [active])).toBe(1);
-    expect(await addMembersAs(admin, id, [active])).toBe(0);
+    expect((await addMembersAs(admin, id, [active])).added).toBe(1);
+    expect((await addMembersAs(admin, id, [active])).added).toBe(0);
     await expect(addMembersAs(admin, id, [onLeave])).rejects.toThrow(
       t("T-752", { nombre: "Persona Sintética" }),
     );
@@ -113,7 +113,7 @@ describe("grupos de trabajo", () => {
     const termId = await seedTerm();
     const one = await seedMember("uno@eafit.edu.co");
     await seedMember("dos@eafit.edu.co");
-    const inactive = await seedPerson("baja@eafit.edu.co");
+    const inactive = await seedPerson("baja@eafit.edu.co", { stage: "ALUMNI" });
     await seedMembership(inactive, termId, "INACTIVE");
     const { id } = await createGroupAs(admin, {
       termId,

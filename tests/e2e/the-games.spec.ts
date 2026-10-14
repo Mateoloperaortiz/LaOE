@@ -23,10 +23,11 @@ import {
 } from "@/modules/competition";
 import { HUB_TERMS_VERSION } from "@/modules/competition/domain/hub-pure";
 import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
-import { event, eventEdition } from "@/modules/events/schema";
-import { membership, person } from "@/modules/people/schema";
+import { event } from "@/modules/events/schema";
+import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedEdition, seedMembership, seedPerson } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM, withinTermInput } from "./calendar";
 import { test } from "./fixtures";
@@ -48,17 +49,12 @@ async function seedCompetition(slug: string) {
   const db = getDb();
   const [dias] = await db.select().from(event).where(eq(event.slug, "dias-eafit"));
   if (!dias) throw new Error("Falta el evento dias-eafit");
-  const [edition] = await db
-    .insert(eventEdition)
-    .values({
-      eventId: dias.id,
-      slug: `edicion-${slug}`,
-      name: `Edición ${slug}`,
+  const edition = {
+    id: await seedEdition(dias.id, `edicion-${slug}`, `Edición ${slug}`, {
       startsAt: new Date(`${withinTermInput()}-05:00`),
-    })
-    .returning({ id: eventEdition.id });
-  if (!edition) throw new Error("No se creó la edición");
-  const admin: CompetitionActor = { personId: await personId(E2E_EMAIL), isAdmin: true };
+    }),
+  };
+  const admin: CompetitionActor = { personId: await personId(E2E_EMAIL), isAdmin: true, ip: null };
   const { id } = await createCompetitionAs(admin, {
     editionId: edition.id,
     slug,
@@ -87,6 +83,9 @@ test.describe("operador", () => {
     page,
     request,
   }) => {
+    // Recorre toda la operación de una jornada y tarda de 17 a 20 s: con el límite de 30 s se quedaba
+    // sin tiempo cuando la máquina estaba cargada.
+    test.setTimeout(90_000);
     const { id } = await seedCompetition("the-games-e2e");
     await page.goto("/admin/the-games");
     await page.getByRole("link", { name: "The Games de prueba" }).click();
@@ -514,14 +513,9 @@ test.describe("hub de capitanes", () => {
 async function seedHelper(email: string, firstName: string, lastName: string): Promise<void> {
   const db = getDb();
   const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
-  const [row] = await db
-    .insert(person)
-    .values({ email, firstName, lastName, stage: "MEMBER", source: "E2E" })
-    .returning({ id: person.id });
-  if (!current || !row) throw new Error("No se creó el miembro sintético");
-  await db
-    .insert(membership)
-    .values({ personId: row.id, status: "ACTIVE", firstTermId: current.id });
+  if (!current) throw new Error("No se creó el miembro sintético");
+  const personId = await seedPerson(email, { firstName, lastName, source: "E2E" });
+  await seedMembership(personId, current.id);
 }
 
 test.describe("personal desde la hoja del GAP", () => {

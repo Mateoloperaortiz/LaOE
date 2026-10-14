@@ -1,40 +1,58 @@
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedOccasion } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
+import { cameraRequests, cameraTracks, grantCamera, holdCamera } from "./camera";
 import { test } from "./fixtures";
 
 // Consola de la ocasión y modo anfitrión como ADMIN (ADR-035): QR, contador, alta manual y el
-// anfitrión que registra a una persona sin sesión por nombre.
+// anfitrión que registra a una persona sin sesión por nombre. Y el lector del carnet montado, por el
+// camino de la cámara, con un permiso que la prueba contesta cuando quiere (ADR-127 regla 5).
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
 let occasionId = "";
+
+/** Abre el modo anfitrión con el permiso de la cámara pendiente y toca «Escanear». */
+async function scanWithPermissionPending(page: Page): Promise<void> {
+  await holdCamera(page);
+  await page.goto(`/admin/ocasiones/${occasionId}/anfitrion`);
+  // El toque que cae antes de que la página hidrate se pierde: se repite hasta que el lector pide la cámara.
+  // Un toque de más no pide otra: mientras el permiso sigue pendiente, la guardia del arranque lo frena.
+  await expect(async () => {
+    await page.getByRole("button", { name: tList("T-616")[0], exact: true }).click();
+    expect(await cameraRequests(page)).toBe(1);
+  }).toPass();
+}
+
+/** Sale del modo anfitrión por su enlace a la consola: la navegación desmonta el lector sin recargar. */
+async function leaveToConsole(page: Page): Promise<void> {
+  const title = t("T-584", { título: "e2e-Consola de prueba" });
+  await page.getByRole("link", { name: title, exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+  // Es la misma página y el mismo pedido: si se hubiera recargado, la cuenta habría vuelto a cero.
+  expect(await cameraRequests(page)).toBe(1);
+}
 
 test.beforeEach(async () => {
   const db = getDb();
   const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("sin término");
   const now = Date.now();
-  const [row] = await db
-    .insert(occasion)
-    .values({
-      publicId: "e2econsol1",
-      termId: current.id,
-      title: "e2e-Consola de prueba",
-      category: "TALK",
-      points: 10,
-      status: "OPEN",
-      startsAt: new Date(now),
-      checkInOpensAt: new Date(now - 3_600_000),
-      checkInClosesAt: new Date(now + 3_600_000),
-    })
-    .returning({ id: occasion.id });
-  if (!row) throw new Error("sin ocasión");
+  const row = await seedOccasion(current.id, {
+    publicId: "e2econsol1",
+    title: "e2e-Consola de prueba",
+    category: "TALK",
+    points: 10,
+    status: "OPEN",
+    startsAt: new Date(now),
+    checkInOpensAt: new Date(now - 3_600_000),
+    checkInClosesAt: new Date(now + 3_600_000),
+  });
   occasionId = row.id;
   await closeDb();
 });
@@ -86,4 +104,116 @@ test("la consola muestra el QR y el contador, y el modo anfitrión registra por 
   await page.getByRole("button", { name: tList("T-588")[0] }).click();
   await expect(page.getByText(copyPattern("T-587"))).toBeVisible();
   await expect(page.getByRole("button", { name: tList("T-588")[1] })).toBeVisible();
+});
+
+test("la consola avisa cuando el sondeo responde con error y deja de mostrar el QR y el código como vigentes", async ({
+  page,
+}) => {
+  await page.goto(`/admin/ocasiones/${occasionId}`);
+  await page.getByRole("button", { name: tList("T-588")[0] }).click();
+  const code = page.getByText(copyPattern("T-587"));
+  const qr = page.getByRole("img", { name: t("T-586") });
+  // El enlace es lo que codifica el QR: lleva el código rotativo en claro (`?c=`).
+  const link = page.getByText(copyPattern("T-611"));
+  await expect(code).toBeVisible();
+  await expect(qr).toBeVisible();
+  await expect(link).toContainText("?c=");
+
+  // La sesión del anfitrión vence a mitad del evento: cada sondeo responde 401.
+  await page.route("**/api/ocasiones/*/live", (route) =>
+    route.fulfill({ status: 401, json: { error: "sin sesión" } }),
+  );
+  const notice = page.getByText(t("T-3260"));
+  await expect(notice).toBeVisible({ timeout: 15_000 });
+  await expect(qr).toHaveCount(0);
+  await expect(code).toHaveCount(0);
+  // El código tampoco queda a la vista dentro del enlace.
+  await expect(link).toHaveCount(0);
+  await expect(page.getByText("?c=")).toHaveCount(0);
+  await sinViolaciones(page);
+
+  // La casa vuelve a responder: la consola se recupera sola en el siguiente sondeo.
+  await page.unroute("**/api/ocasiones/*/live");
+  await expect(qr).toBeVisible({ timeout: 15_000 });
+  await expect(code).toBeVisible();
+  await expect(link).toContainText("?c=");
+  await expect(notice).toHaveCount(0);
+});
+
+test("el lector del carnet enciende la cámara cuando llega el permiso, y «Detener» la apaga", async ({
+  page,
+}) => {
+  await scanWithPermissionPending(page);
+  const scan = page.getByRole("button", { name: tList("T-616")[0], exact: true });
+  const stop = page.getByRole("button", { name: tList("T-616")[1], exact: true });
+  const video = page.locator("video");
+  // Mientras el navegador pregunta, nada cambia: sigue «Escanear» y el video oculto.
+  await expect(scan).toBeEnabled();
+  await expect(video).toBeHidden();
+  expect(await cameraTracks(page)).toEqual([]);
+
+  await grantCamera(page);
+  await expect(stop).toBeVisible();
+  await expect(scan).toHaveCount(0);
+  await expect(video).toBeVisible();
+  expect(await cameraTracks(page)).toEqual(["live"]);
+
+  await stop.click();
+  await expect(scan).toBeEnabled();
+  await expect(video).toBeHidden();
+  expect(await cameraTracks(page)).toEqual(["ended"]);
+  // Otro toque abre una cámara nueva, y la anterior sigue apagada.
+  await scan.click();
+  await expect.poll(() => cameraRequests(page)).toBe(2);
+  await grantCamera(page);
+  await expect(stop).toBeVisible();
+  expect(await cameraTracks(page)).toEqual(["ended", "live"]);
+});
+
+test("salir de la pantalla del anfitrión con la cámara encendida la apaga", async ({ page }) => {
+  await scanWithPermissionPending(page);
+  await grantCamera(page);
+  await expect(page.getByRole("button", { name: tList("T-616")[1], exact: true })).toBeVisible();
+  expect(await cameraTracks(page)).toEqual(["live"]);
+
+  await leaveToConsole(page);
+
+  await expect.poll(() => cameraTracks(page)).toEqual(["ended"]);
+});
+
+test("salir de la pantalla del anfitrión mientras el navegador pide el permiso deja la cámara apagada", async ({
+  page,
+}) => {
+  await scanWithPermissionPending(page);
+
+  await leaveToConsole(page);
+  await grantCamera(page);
+
+  // El flujo llega a un lector que ya no está: nadie más lo puede apagar.
+  await expect.poll(() => cameraTracks(page)).toEqual(["ended"]);
+});
+
+test("una foto que llega mientras el navegador pide el permiso deja la cámara sin arrancar", async ({
+  page,
+}) => {
+  await scanWithPermissionPending(page);
+  const scan = page.getByRole("button", { name: tList("T-616")[0], exact: true });
+  const stop = page.getByRole("button", { name: tList("T-616")[1], exact: true });
+
+  // Una foto apaga la cámara antes de responder (ADR-120 regla 15), traiga lo que traiga. Esta no abre.
+  await page.getByLabel(tList("T-616")[2] ?? "").setInputFiles({
+    name: "e2e-foto-que-no-abre.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("e2e: esto no es una imagen"),
+  });
+  const unreadable = page.getByRole("alert").filter({ hasText: t("T-3256") });
+  await expect(unreadable).toBeVisible();
+
+  await grantCamera(page);
+
+  await expect.poll(() => cameraTracks(page)).toEqual(["ended"]);
+  await expect(scan).toBeEnabled();
+  await expect(stop).toHaveCount(0);
+  await expect(page.locator("video")).toBeHidden();
+  await expect(unreadable).toBeVisible();
 });

@@ -1,9 +1,8 @@
 import { and, eq, isNull } from "drizzle-orm";
+import { DrizzleQueryError } from "drizzle-orm/errors";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
 import * as badges from "@/modules/participation/domain/badges";
@@ -13,12 +12,13 @@ import {
   resumeReconciliation,
   startReconciliation,
 } from "@/modules/participation/domain/reconciliation";
-import { achievement, boosterItem, checkIn, wordleGame } from "@/modules/participation/schema";
-import { outbox } from "@/modules/system/schema";
+import { achievement, boosterItem, checkIn } from "@/modules/participation/schema";
+import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedCheckIn, seedMember, seedOccasion, seedTerm, seedWordleGame } from "../factories";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedMember, seedOccasion, seedTerm } from "./factories";
 
 // Conciliación histórica (ADR-067 reglas 11 y 13): el barrido por lotes reconoce insignias por
 // hechos de cualquier semestre — importados incluidos, reuniones de comité no — sin puntos,
@@ -32,25 +32,14 @@ async function startRun(mode: "DRY_RUN" | "APPLY"): Promise<string> {
 }
 
 async function seedImportedCheckIn(occasionId: string, personId: string, at: Date) {
-  const [row] = await db()
-    .insert(checkIn)
-    .values({ occasionId, personId, status: "APPROVED", source: "IMPORT", at })
-    .returning();
+  const id = await seedCheckIn(occasionId, personId, "APPROVED", { source: "IMPORT", at });
+  const [row] = await db().select().from(checkIn).where(eq(checkIn.id, id));
   if (!row) throw new Error("seed import");
   return row;
 }
 
 async function seedWordleWin(personId: string, termId: string, at: Date) {
-  await db().insert(wordleGame).values({
-    personId,
-    day: "2024-05-10",
-    termId,
-    answer: "PRUEB",
-    dictionaryVersion: "test",
-    rulesVersion: "test",
-    status: "WON",
-    completedAt: at,
-  });
+  await seedWordleGame(personId, termId, "2024-05-10", { status: "WON", completedAt: at });
 }
 
 /** Tres miembros: uno con una asistencia voluntaria importada de 2023-1 (más una reunión de
@@ -77,7 +66,7 @@ describe("conciliación histórica", () => {
   it("DRY_RUN no escribe logros y termina DONE con las cifras", async () => {
     await seedUniverse();
     const runId = await startRun("DRY_RUN");
-    await drain(30);
+    await drainOutbox();
 
     const run = await getReconciliationRun(runId);
     expect(run?.status).toBe("DONE");
@@ -91,7 +80,7 @@ describe("conciliación histórica", () => {
   it("APPLY inserta logros históricos sin booster, sin push y sin línea de tiempo", async () => {
     const { asistente, wordlero, fact, wordleAt } = await seedUniverse();
     const runId = await startRun("APPLY");
-    await drain(30);
+    await drainOutbox();
 
     const run = await getReconciliationRun(runId);
     expect(run?.status).toBe("DONE");
@@ -116,9 +105,9 @@ describe("conciliación histórica", () => {
   it("una segunda APPLY no desbloquea nada ni duplica logros", async () => {
     await seedUniverse();
     await startRun("APPLY");
-    await drain(30);
+    await drainOutbox();
     const segundo = await startRun("APPLY");
-    await drain(30);
+    await drainOutbox();
 
     const run = await getReconciliationRun(segundo);
     expect(run?.status).toBe("DONE");
@@ -130,11 +119,11 @@ describe("conciliación histórica", () => {
   it("revoca el logro cuando el hecho desaparece", async () => {
     const { asistente, fact } = await seedUniverse();
     await startRun("APPLY");
-    await drain(30);
+    await drainOutbox();
 
     await db().update(checkIn).set({ status: "CANCELLED" }).where(eq(checkIn.id, fact.id));
     const runId = await startRun("APPLY");
-    await drain(30);
+    await drainOutbox();
 
     const run = await getReconciliationRun(runId);
     expect(run?.status).toBe("DONE");
@@ -152,7 +141,7 @@ describe("conciliación histórica", () => {
     await expect(startRun("APPLY")).rejects.toSatisfy(
       (error) => error instanceof DomainError && error.message === t("T-2561"),
     );
-    await drain(30);
+    await drainOutbox();
     // Una vez DONE vuelve a poder arrancar.
     await expect(startRun("APPLY")).resolves.toBeTypeOf("string");
   });
@@ -174,7 +163,7 @@ describe("conciliación histórica", () => {
       `reconcile:${runId}:1`,
     ]);
 
-    await drain(30);
+    await drainOutbox();
     const run = await getReconciliationRun(runId);
     expect(run?.status).toBe("DONE");
     expect(run?.processed).toBe(3);
@@ -182,6 +171,41 @@ describe("conciliación histórica", () => {
       (run?.report as { batches?: number } | null)?.batches,
       "dos lotes: el manual de 2 y el que drenó el resto",
     ).toBe(2);
+  });
+
+  it("el error de una corrida FAILED se guarda sin los valores de la consulta que falló, en la corrida y en su auditoría", async () => {
+    // Lo que tumba un lote suele ser una consulta, y Drizzle escribe sus valores en el mensaje del
+    // error: quedaban en `badge_reconciliation_run.error`, a la vista en el admin, y en la auditoría
+    // (DT-295 inciso i, ADR-120 regla 11).
+    await seedUniverse();
+    const runId = await startRun("APPLY");
+    const query = 'select "id" from "achievement" where "person_id" = $1 and "detail" = $2';
+    const values = ["valor.privado@eafit.edu.co", "203.0.113.7"];
+    const cause = Object.assign(new Error("terminating connection due to administrator command"), {
+      code: "57P01",
+    });
+    const spy = vi
+      .spyOn(badges, "recomputeBadgesFor")
+      .mockRejectedValueOnce(new DrizzleQueryError(query, values, cause));
+    await drainOutbox();
+    // El fallo salió del recálculo de insignias, que es donde la prueba lo puso.
+    expect(badges.recomputeBadgesFor).toHaveBeenCalled();
+    spy.mockRestore();
+
+    const run = await getReconciliationRun(runId);
+    expect(run?.status).toBe("FAILED");
+    // El SQL se queda, con sus marcadores: es lo que sirve para saber qué falló.
+    expect(run?.error).toContain(query);
+    const [audited] = await db()
+      .select()
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "reconciliation.failed"), eq(auditLog.entityId, runId)));
+    const auditedError = JSON.stringify(audited?.after);
+    expect(auditedError).toContain("Failed query");
+    for (const value of values) {
+      expect(run?.error).not.toContain(value);
+      expect(auditedError).not.toContain(value);
+    }
   });
 
   it("un error deja la corrida FAILED y reanudarla la termina", async () => {
@@ -193,7 +217,7 @@ describe("conciliación histórica", () => {
     const spy = vi
       .spyOn(badges, "recomputeBadgesFor")
       .mockRejectedValueOnce(new Error("fallo sintético"));
-    await drain(30);
+    await drainOutbox();
     spy.mockRestore();
 
     let run = await getReconciliationRun(runId);
@@ -201,7 +225,7 @@ describe("conciliación histórica", () => {
     expect(run?.error).toContain("fallo sintético");
 
     await runCommand(SYSTEM_ACTOR, (ctx) => resumeReconciliation(ctx, runId));
-    await drain(30);
+    await drainOutbox();
 
     run = await getReconciliationRun(runId);
     expect(run?.status).toBe("DONE");

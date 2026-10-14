@@ -1,11 +1,10 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { interaction } from "@/modules/crm/schema";
 import { getTermStanding } from "@/modules/participation/domain/closing";
 import { closeTermPointsAs } from "@/modules/participation/domain/commands";
+import { dayKeyFor } from "@/modules/participation/domain/gamification-pure";
 import {
   getTodayPanal,
   listPanalGamesFor,
@@ -16,20 +15,22 @@ import {
   panalPuzzleForDay,
   panalPuzzleView,
 } from "@/modules/participation/domain/panal-dictionary";
-import { wordleDay } from "@/modules/participation/domain/wordle-pure";
 import { panalWordScore } from "@/modules/participation/panal-engine";
 import { panalGame, panalWord, pointEntry } from "@/modules/participation/schema";
 import { membership } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { seedMember, seedPerson } from "../factories";
+import { heldThenSettled, holdTransaction } from "../helpers/locks";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember, seedPerson } from "./factories";
 
 const db = () => getDb();
 const submit = (personId: string, gameId: string, word: string) =>
-  submitPanalWordAs({ personId }, { gameId, word });
+  submitPanalWordAs({ personId, ip: null }, { gameId, word });
 async function start(personId: string) {
-  const result = await startPanalAs({ personId }, wordleDay());
+  const result = await startPanalAs({ personId, ip: null }, dayKeyFor(new Date()));
   if (!result.ok) throw new Error(result.reason);
   return result.game;
 }
@@ -60,6 +61,7 @@ describe("Panal diario persistido", () => {
 
   it("inicios concurrentes crean una única partida y una sola auditoría", async () => {
     const id = await seedMember("panal.inicio@eafit.edu.co");
+    await warmPool(10);
     const games = await Promise.all(Array.from({ length: 12 }, () => start(id)));
     expect(new Set(games.map((game) => game.id)).size).toBe(1);
     expect(await db().select().from(panalGame)).toHaveLength(1);
@@ -72,6 +74,7 @@ describe("Panal diario persistido", () => {
     const id = await seedMember("panal.reintento@eafit.edu.co");
     const game = await start(id);
     const [first = "", second = ""] = panalPuzzleForDay(game.day).words;
+    await warmPool(8);
     const responses = await Promise.all(
       Array.from({ length: 8 }, () => submit(id, game.id, first.toLowerCase())),
     );
@@ -82,6 +85,33 @@ describe("Panal diario persistido", () => {
       score: panalWordScore(first) + panalWordScore(second),
     });
     expect(await db().select().from(panalWord)).toHaveLength(2);
+  });
+
+  it("una palabra que encuentra la partida tomada por otro escritor la espera y la vuelve a leer: ya estaba, no la guarda dos veces", async () => {
+    const id = await seedMember("panal.espera@eafit.edu.co");
+    const game = await start(id);
+    const [word = ""] = panalPuzzleForDay(game.day).words;
+    // El otro escritor es sintético: guarda la misma palabra con la fila de la partida tomada y sin el
+    // consultivo de la persona, que hoy toman todos los comandos del Panal y por eso cubre a la prueba
+    // de arriba. Así lo único que hace esperar al envío es el `for update` de la partida (DT-335).
+    const held = await holdTransaction(async (tx) => {
+      await tx
+        .select({ id: panalGame.id })
+        .from(panalGame)
+        .where(eq(panalGame.id, game.id))
+        .for("update");
+      await tx.insert(panalWord).values({ gameId: game.id, word });
+    });
+    const { during, after } = await heldThenSettled(held, () => submit(id, game.id, word));
+
+    // Sin la partida bajo candado el envío no ve la palabra, la guarda encima y choca con el índice
+    // único: falla en vez de responder que ya estaba.
+    expect(during).toBe("hizo cola");
+    expect(after).toMatchObject({ status: "fulfilled", value: { ok: true, added: false } });
+    expect(await db().select().from(panalWord)).toHaveLength(1);
+    expect(
+      await db().select().from(auditLog).where(eq(auditLog.action, "panal.word-found")),
+    ).toHaveLength(0);
   });
 
   it("rechaza reglas inválidas, palabras desconocidas y partidas ajenas", async () => {
@@ -103,9 +133,9 @@ describe("Panal diario persistido", () => {
     expect(await submit(id, game.id, puzzle.center.repeat(20))).toMatchObject({
       reason: "UNKNOWN_WORD",
     });
-    expect(await submitPanalWordAs({ personId: id }, { gameId: game.id, word: 123 })).toMatchObject(
-      { reason: "INVALID_INPUT" },
-    );
+    expect(
+      await submitPanalWordAs({ personId: id, ip: null }, { gameId: game.id, word: 123 }),
+    ).toMatchObject({ reason: "INVALID_INPUT" });
     expect(await db().select().from(panalWord)).toHaveLength(0);
   });
 
@@ -133,7 +163,7 @@ describe("Panal diario persistido", () => {
     expect(
       await db().select().from(outbox).where(eq(outbox.eventType, "panal.completed")),
     ).toHaveLength(1);
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
     const timeline = await db().select().from(interaction).where(eq(interaction.personId, id));
     expect(timeline.some((row) => JSON.stringify(row.metadata).includes(game.id))).toBe(true);
     await submit(id, game.id, puzzle.words[0] ?? "");
@@ -152,6 +182,7 @@ describe("Panal diario persistido", () => {
       await submit(id, game.id, word);
       score += panalWordScore(word);
     }
+    await warmPool();
     const result = await Promise.all(
       puzzle.words.slice(i).map((word) => submit(id, game.id, word)),
     );
@@ -186,7 +217,9 @@ describe("Panal diario persistido", () => {
     vi.setSystemTime(new Date("2026-09-24T05:00:01Z"));
     expect(await submit(id, game.id, words[1] ?? "")).toMatchObject({ reason: "EXPIRED" });
     expect(await submit(id, game.id, words[0] ?? "")).toMatchObject({ ok: true, added: false });
-    expect(await startPanalAs({ personId: id }, game.day)).toMatchObject({ reason: "EXPIRED" });
+    expect(await startPanalAs({ personId: id, ip: null }, game.day)).toMatchObject({
+      reason: "EXPIRED",
+    });
     const tomorrow = await getTodayPanal(id);
     expect(tomorrow.game).toBeNull();
     expect(tomorrow.checkpointsEnabled).toBe(true);
@@ -198,7 +231,9 @@ describe("Panal diario persistido", () => {
   it("exige elegibilidad en inicio y envío y falla cerrado con versiones desconocidas", async () => {
     const stranger = await seedPerson("panal.sinmembresia@eafit.edu.co");
     const id = await seedMember("panal.elegibilidad@eafit.edu.co");
-    expect(await startPanalAs({ personId: stranger }, wordleDay())).toMatchObject({
+    expect(
+      await startPanalAs({ personId: stranger, ip: null }, dayKeyFor(new Date())),
+    ).toMatchObject({
       reason: "NOT_ELIGIBLE",
     });
     const game = await start(id);
@@ -227,9 +262,10 @@ describe("Panal diario persistido", () => {
     }
     const [row] = await db().select().from(panalGame).where(eq(panalGame.id, game.id));
     if (!row) throw new Error("Falta partida");
+    await warmPool();
     const [result] = await Promise.all([
       submit(id, game.id, puzzle.words[i] ?? ""),
-      closeTermPointsAs({ personId: id }, row.termId),
+      closeTermPointsAs({ personId: id, ip: null }, row.termId),
     ]);
     const standing = await getTermStanding(row.termId);
     expect(standing?.stats.pointsAwarded).toBe(result.ok ? 6 : 3);
@@ -274,6 +310,7 @@ describe("Panal diario persistido", () => {
     const game = await start(id);
     const words = panalPuzzleForDay(game.day).words;
     for (const word of words.slice(0, limit - 1)) await submit(id, game.id, word);
+    await warmPool(8);
     const result = await Promise.all(
       Array.from({ length: 8 }, () => submit(id, game.id, words[limit - 1] ?? "")),
     );
@@ -326,7 +363,7 @@ describe("Panal diario persistido", () => {
     const results = await Promise.all(Array.from({ length: 5 }, () => start(id)));
     expect(results.every((result) => result.points === 6)).toBe(true);
     expect(await credits()).toHaveLength(3);
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
     const timeline = await db().select().from(interaction).where(eq(interaction.personId, id));
     expect(
       timeline.filter((entry) => JSON.stringify(entry.metadata).includes(game.id)),

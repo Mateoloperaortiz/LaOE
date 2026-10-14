@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import { requireEvaluator } from "@/app/_authz/group";
 import { single } from "@/app/_lib/search";
-import { evaluationWindow, listEvaluationTray, loadPermanenceConfig } from "@/modules/permanence";
+import {
+  evaluationWindow,
+  listEvaluationTray,
+  loadPermanenceConfig,
+  WORK_GROUP_KINDS,
+} from "@/modules/permanence";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { evaluateAction } from "./actions";
 
@@ -19,14 +24,7 @@ type Search = Record<string, string | string[] | undefined>;
 
 const inputClass =
   "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";
-const GROUP_KINDS = [
-  "WORK_COMMITTEE",
-  "GT_MACROEVENT",
-  "GAP",
-  "GAP_OE",
-  "BARRA_BRAVA",
-  "NEW_MEMBER_TASK",
-];
+const EVALUATIONS = ["PENDING", "GOOD", "INSUFFICIENT"] as const;
 
 export default async function EvaluacionesPage({
   searchParams,
@@ -53,8 +51,8 @@ export default async function EvaluacionesPage({
   const error = single(search.error);
   const guardado = single(search.guardado) === "1";
   const [bueno, insuficiente] = tList("T-167");
-  const evaluationLabels = tList("T-750");
-  const kindLabels = tList("T-725");
+  const evaluationLabels: Readonly<Record<string, string>> = tLabels("T-750", EVALUATIONS);
+  const kindLabels: Readonly<Record<string, string>> = tLabels("T-725", WORK_GROUP_KINDS);
   const pending = groups.reduce((acc, group) => acc + group.pending, 0);
   const opensOn = formatDate(new Date(`${window.opensOn}T12:00:00Z`));
 
@@ -119,7 +117,7 @@ export default async function EvaluacionesPage({
           >
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-display-md">{group.name}</h2>
-              <Insignia fondo="sky">{kindLabels[GROUP_KINDS.indexOf(group.kind)] ?? ""}</Insignia>
+              <Insignia fondo="sky">{kindLabels[group.kind] ?? ""}</Insignia>
               {group.pending > 0 ? <Insignia fondo="naranja">{group.pending}</Insignia> : null}
             </div>
             {group.members.length === 0 ? (
@@ -142,9 +140,7 @@ export default async function EvaluacionesPage({
                               : "paper"
                         }
                       >
-                        {evaluationLabels[
-                          ["PENDING", "GOOD", "INSUFFICIENT"].indexOf(member.evaluation)
-                        ] ?? ""}
+                        {evaluationLabels[member.evaluation] ?? ""}
                       </Insignia>
                     </div>
                     {member.evaluatedAt ? (

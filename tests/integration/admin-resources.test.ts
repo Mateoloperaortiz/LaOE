@@ -22,8 +22,8 @@ import { createTerm, findTermContaining, updateTerm } from "@/modules/terms/doma
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 const db = () => getDb();
 
@@ -140,7 +140,7 @@ describe("permisos", () => {
       firstName: "Otra",
       lastName: "Persona",
     });
-    const actor = { personId: adminId };
+    const actor = { personId: adminId, ip: null };
     const first = await runCommand(actor, (ctx) =>
       grantPermission(ctx, { email: "Admin@eafit.edu.co", code: "ADMIN" }),
     );

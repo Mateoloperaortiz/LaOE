@@ -8,7 +8,7 @@ import { test } from "./fixtures";
 // del dispositivo. Como miembro sin permisos.
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
-const ENDPOINT = "https://push.example.invalid/e2e-dispositivo";
+const ENDPOINT = "https://fcm.googleapis.com/fcm/send/e2e-dispositivo";
 
 // El aviso T-1082 del guardado anterior sigue en pantalla mientras corre el siguiente, así que no
 // sirve de espera: una recarga en ese momento lee las preferencias de antes. Next responde la acción

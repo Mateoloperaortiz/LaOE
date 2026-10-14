@@ -1,14 +1,15 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { SYSTEM_ACTOR } from "@/db/tx";
+import { grantPermissionAs } from "@/modules/identity";
 import { consumeAccessGrant } from "@/modules/identity/domain/access-grant";
 import { findPasswordHash } from "@/modules/identity/domain/password";
-import { hashPassword, verifyPassword } from "@/modules/identity/domain/pure";
-import { accessGrant, credential } from "@/modules/identity/schema";
-import { membership, person } from "@/modules/people/schema";
+import { verifyPassword } from "@/modules/identity/domain/pure";
+import { accessGrant } from "@/modules/identity/schema";
 import { auditLog } from "@/modules/system/schema";
-import { term } from "@/modules/terms/schema";
 import { BootstrapAccessError, bootstrapAccess } from "../../scripts/lib/bootstrap-access";
+import { seedCredential, seedMembership, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
 
 // Arranque del acceso (ADR-051, regla 16): el único camino de vuelta cuando nadie puede entrar.
@@ -19,20 +20,14 @@ async function seedMember(
   email: string,
   status: "ACTIVE" | "INACTIVE" = "ACTIVE",
 ): Promise<string> {
-  let [current] = await db().select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
-  if (!current) {
-    [current] = await db()
-      .insert(term)
-      .values({ code: "2026-2", semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
-      .returning({ id: term.id });
-  }
-  const [who] = await db()
-    .insert(person)
-    .values({ email, firstName: "Junta", lastName: "Sintética", stage: "MEMBER" })
-    .returning({ id: person.id });
-  if (!who || !current) throw new Error("seed");
-  await db().insert(membership).values({ personId: who.id, status, firstTermId: current.id });
-  return who.id;
+  const termId = await seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
+  // Quien salió queda exalumno, como lo deja la baja (DT-351).
+  const personId = await seedPerson(email, {
+    firstName: "Junta",
+    ...(status === "INACTIVE" ? { stage: "ALUMNI" as const } : {}),
+  });
+  await seedMembership(personId, termId, status);
+  return personId;
 }
 
 describe("bootstrapAccess", () => {
@@ -57,6 +52,17 @@ describe("bootstrapAccess", () => {
     expect(await findPasswordHash(personId)).not.toBeNull();
   });
 
+  it("emite también para un ADMIN: es su camino de vuelta", async () => {
+    const personId = await seedMember("arranque@eafit.edu.co");
+    await grantPermissionAs(SYSTEM_ACTOR, { email: "arranque@eafit.edu.co", code: "ADMIN" });
+
+    const result = await bootstrapAccess({ email: "arranque@eafit.edu.co", kind: "RECOVERY" });
+
+    expect(result.personId).toBe(personId);
+    const [fila] = await db().select().from(accessGrant);
+    expect(fila).toMatchObject({ personId, issuedById: null, kind: "RECOVERY" });
+  });
+
   it("queda auditado como emisión del sistema, sin emisor", async () => {
     await seedMember("arranque@eafit.edu.co");
 
@@ -75,9 +81,7 @@ describe("bootstrapAccess", () => {
   it("acepta RECOVERY para quien ya tiene contraseña", async () => {
     const personId = await seedMember("arranque@eafit.edu.co");
     const previous = "caracol anterior 91";
-    await db()
-      .insert(credential)
-      .values({ personId, passwordHash: await hashPassword(previous) });
+    await seedCredential(personId, previous);
 
     const result = await bootstrapAccess({ email: "arranque@eafit.edu.co", kind: "RECOVERY" });
 

@@ -3,7 +3,7 @@ import type { MemberEdition } from "@/modules/events";
 import { findOpenRegistrationForm, isRegistered } from "@/modules/forms";
 import { OCCASION_CATEGORIES, type OccasionRow, windowState } from "@/modules/participation";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime } from "@/shared/lib/dates";
 import { ArrowUpRightIcon } from "@/shared/ui/icons/ArrowUpRightIcon";
 import { PlusIcon } from "@/shared/ui/icons/PlusIcon";
@@ -21,7 +21,7 @@ type AgendaItem = {
 } & ({ occasion: OccasionRow; edition?: never } | { edition: MemberEdition; occasion?: never });
 
 export function agendaItems(occasions: OccasionRow[], editions: MemberEdition[]): AgendaItem[] {
-  const categories = tList("T-521");
+  const categories = tLabels("T-521", OCCASION_CATEGORIES);
   return [
     ...occasions.map((occasion) => ({
       key: `ocasion-${occasion.id}`,
@@ -29,7 +29,7 @@ export function agendaItems(occasions: OccasionRow[], editions: MemberEdition[])
       label:
         occasion.kind === "ASSEMBLY"
           ? (tList("T-522")[1] ?? "")
-          : (categories[OCCASION_CATEGORIES.indexOf(occasion.category)] ?? ""),
+          : (categories[occasion.category] ?? ""),
       startsAt: occasion.startsAt,
       endsAt: occasion.endsAt,
       location: occasion.location,

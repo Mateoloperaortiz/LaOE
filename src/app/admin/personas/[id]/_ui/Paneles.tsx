@@ -18,7 +18,7 @@ import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminMultiSelect } from "@/shared/admin-kit/AdminMultiSelect";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
 import {
   addAppointmentAction,
@@ -282,7 +282,7 @@ export function Paneles({
   }
 
   if (accion === "baja" && membership && membership.status !== "INACTIVE") {
-    const motivos = tList("T-436");
+    const motivos = tLabels("T-436", END_REASONS);
     const [galeria, contacto] = tList("T-437");
     return (
       <ResourcePanel title={acciones[2] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
@@ -300,9 +300,9 @@ export function Paneles({
                 defaultValue=""
               >
                 <option value="">—</option>
-                {END_REASONS.map((code, index) => (
+                {END_REASONS.map((code) => (
                   <option key={code} value={code}>
-                    {motivos[index] ?? code}
+                    {motivos[code] ?? code}
                   </option>
                 ))}
               </select>
@@ -617,7 +617,7 @@ export function Paneles({
     const [campoTipo, campoCausal, campoReferencia, campoFecha, campoHasta, campoComite] =
       tList("T-2230");
     const [registrar] = tList("T-2232");
-    const kinds = tList("T-2229");
+    const kinds = tLabels("T-2229", SANCTION_KINDS);
     const selectedTerm = my.term ?? terms[0] ?? null;
     const personCommittees = [
       ...new Map(
@@ -636,9 +636,9 @@ export function Paneles({
             <input type="hidden" name="termId" value={selectedTerm?.id ?? ""} />
             <Campo id="campo-kind-sancion" label={campoTipo ?? ""}>
               <select id="campo-kind-sancion" name="kind" required className={inputClass}>
-                {SANCTION_KINDS.map((code, index) => (
+                {SANCTION_KINDS.map((code) => (
                   <option key={code} value={code}>
-                    {kinds[index] ?? code}
+                    {kinds[code] ?? code}
                   </option>
                 ))}
               </select>
@@ -726,7 +726,7 @@ export function Paneles({
   }
 
   if (accion === "cargo") {
-    const kinds = tList("T-444");
+    const kinds = tLabels("T-444", APPOINTMENT_KINDS);
     const [agregar] = tList("T-447");
     const [excepcion, excepcionAyuda] = tList("T-2283");
     const cargosTitulo = t("T-2398");
@@ -747,7 +747,7 @@ export function Paneles({
                 <option value="">—</option>
                 {BOARD_APPOINTMENT_KINDS.map((kind) => (
                   <option key={kind} value={kind}>
-                    {kinds[APPOINTMENT_KINDS.indexOf(kind)] ?? kind}
+                    {kinds[kind] ?? kind}
                   </option>
                 ))}
               </select>
@@ -800,7 +800,7 @@ export function Paneles({
   // Premios OE (Regl. art. 71; ADR-060 regla 13): ADMIN registra la categoría del año.
   if (accion === "premio" && membership && membership.status !== "INACTIVE") {
     const [titulo, categoria, otorgar] = tList("T-2321");
-    const categorias = tList("T-2320");
+    const categorias = tLabels("T-2320", OE_AWARDS);
     return (
       <ResourcePanel title={titulo ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
@@ -810,9 +810,9 @@ export function Paneles({
             <Campo id="campo-award" label={categoria ?? ""}>
               <select id="campo-award" name="award" required className={inputClass} defaultValue="">
                 <option value="">—</option>
-                {OE_AWARDS.map((code, index) => (
+                {OE_AWARDS.map((code) => (
                   <option key={code} value={code}>
-                    {categorias[index] ?? code}
+                    {categorias[code] ?? code}
                   </option>
                 ))}
               </select>

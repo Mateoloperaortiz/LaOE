@@ -119,8 +119,9 @@ export const budgetsResource: ResourceDefinition<BudgetListRow, BudgetInput> = {
     submittedOn: row.submittedOn ?? "",
     notes: row.notes,
   }),
-  create: (actor, input) => createBudgetAs({ personId: actor.personId }, input),
-  update: (actor, id, input) => updateBudgetAs({ personId: actor.personId }, id, input),
+  create: (actor, input) => createBudgetAs(actor, input),
+  update: (actor, id, input) => updateBudgetAs(actor, id, input),
+  personalData: false,
   exportRow: (row) => ({
     comité: row.committeeName,
     año: row.year,

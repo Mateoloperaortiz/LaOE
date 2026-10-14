@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { type LoginState, loginAction } from "../actions";
 
 export interface LoginLabels {
@@ -21,7 +21,16 @@ const errorClase = "rounded-lg bg-oe-orange px-3 py-2 text-sm font-semibold text
 
 // Ingreso con la contraseña propia (ADR-051). Un solo paso; los textos llegan del servidor.
 export function LoginForm({ initialState, labels }: Props) {
-  const [state, action, pending] = useActionState(loginAction, initialState);
+  const [state, action, pending] = useGuardedActionState(
+    loginAction,
+    initialState,
+    ({ previous, payload, message }) => ({
+      ...previous,
+      email: submittedText(payload, "email"),
+      error: message,
+      fieldError: null,
+    }),
+  );
 
   return (
     <form action={action} className="flex flex-col gap-5" noValidate>

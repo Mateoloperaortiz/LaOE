@@ -32,7 +32,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminMultiSelect } from "@/shared/admin-kit/AdminMultiSelect";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
 import {
@@ -86,7 +86,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
   const now = new Date();
   const policy = await getPrivacyPolicyState();
   const base = `/admin/pipelines/${id}`;
-  const kindLabels = tList("T-964");
+  const kindLabels = tLabels("T-964", PIPELINE_KINDS);
   const [moverA] = tList("T-971");
   const [respuestaTitulo, notasTitulo, tareasTitulo, datosTitulo] = tList("T-975");
   const [monto, contraprestacion] = tList("T-976");
@@ -163,9 +163,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-display-lg">{pipeline.name}</h1>
-          <Insignia fondo="sky">
-            {kindLabels[PIPELINE_KINDS.indexOf(pipeline.kind)] ?? pipeline.kind}
-          </Insignia>
+          <Insignia fondo="sky">{kindLabels[pipeline.kind] ?? pipeline.kind}</Insignia>
           {pipeline.isArchived ? <Insignia fondo="paper">{t("T-995")}</Insignia> : null}
         </div>
         <div className="flex flex-wrap items-center gap-3">

@@ -3,11 +3,8 @@ import { and, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { itemPattern } from "../helpers/copy";
-import "@/jobs/handlers";
 import { eventOf } from "@/domain-events/define";
 import { occasionClosed, wordleCompleted } from "@/domain-events/participation";
-import { drain } from "@/jobs/poller";
 import { saveSubscriptionAs, setPushSenderForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
@@ -20,8 +17,7 @@ import {
   recomputeBadgesFor,
   setFeatured,
 } from "@/modules/participation/domain/badges";
-
-import { checkInSelfAs, decideCheckInAs } from "@/modules/participation/domain/commands";
+import { checkInSelfAs } from "@/modules/participation/domain/commands";
 import {
   createSpecialBadgeAs,
   publishChallengeAs,
@@ -33,17 +29,14 @@ import {
   badgeDefinition,
   boosterItem,
   challengeParticipation,
-  challengeQuestion,
   challenge as challengeTable,
   checkIn,
-  wordleGame,
 } from "@/modules/participation/schema";
 import { membership } from "@/modules/people/schema";
 import { setConfig, setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
-import { truncateAll } from "./db";
 import {
   seedChallenge,
   seedCheckIn,
@@ -51,8 +44,14 @@ import {
   seedMember,
   seedOccasion,
   seedParticipation,
+  seedQuestion,
   seedTerm,
-} from "./factories";
+  seedWordleGame,
+} from "../factories";
+import { decideInOwnOccasion } from "../helpers/check-ins";
+import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Colección de insignias (ADR-067 reglas 9, 10, 15 y 17): los hechos que sostienen cada familia,
 // el desbloqueo idempotente con su booster, la revocación cuando el hecho desaparece, destacadas,
@@ -63,7 +62,7 @@ const db = () => getDb();
 /** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 async function enableGamification(personId: string): Promise<void> {
-  await setConfigAs({ personId }, "gamification.enabled", true);
+  await setConfigAs({ personId, ip: null }, "gamification.enabled", true);
 }
 
 async function achievementsOf(personId: string) {
@@ -91,6 +90,14 @@ async function outboxOf(type: string) {
   return db().select().from(outbox).where(eq(outbox.eventType, type));
 }
 
+/** Quién firma cada auditoría de una acción: el actor del sistema no tiene persona ni IP. */
+async function auditSignersOf(action: string) {
+  return db()
+    .select({ actorId: auditLog.actorId, ip: auditLog.ip })
+    .from(auditLog)
+    .where(eq(auditLog.action, action));
+}
+
 async function messagesOf(personId: string) {
   return db().select().from(message).where(eq(message.personId, personId));
 }
@@ -101,10 +108,8 @@ async function interactionsOf(personId: string) {
 
 /** Check-in aprobado importado de GHPOINTS (ADR-067: las importadas cuentan como hechos). */
 async function seedImportedCheckIn(occasionId: string, personId: string, at: Date) {
-  const [row] = await db()
-    .insert(checkIn)
-    .values({ occasionId, personId, status: "APPROVED", source: "IMPORT", at })
-    .returning();
+  const id = await seedCheckIn(occasionId, personId, "APPROVED", { source: "IMPORT", at });
+  const [row] = await db().select().from(checkIn).where(eq(checkIn.id, id));
   if (!row) throw new Error("seed import");
   return row;
 }
@@ -164,30 +169,14 @@ describe("insignias: hechos", () => {
     await seedParticipation(await seedChallenge(termId), personId, { status: "COMPLETED" });
     await seedParticipation(await seedChallenge(termId), personId, { status: "PENDING" });
     await seedParticipation(await seedChallenge(termId), personId, { status: "REJECTED" });
-    await db()
-      .insert(wordleGame)
-      .values({
-        personId,
-        day: "2024-05-10",
-        termId,
-        answer: "PRUEB",
-        dictionaryVersion: "test",
-        rulesVersion: "test",
-        status: "WON",
-        completedAt: new Date("2024-05-10T20:00:00Z"),
-      });
-    await db()
-      .insert(wordleGame)
-      .values({
-        personId,
-        day: "2024-05-11",
-        termId,
-        answer: "PRUEB",
-        dictionaryVersion: "test",
-        rulesVersion: "test",
-        status: "LOST",
-        completedAt: new Date("2024-05-11T20:00:00Z"),
-      });
+    await seedWordleGame(personId, termId, "2024-05-10", {
+      status: "WON",
+      completedAt: new Date("2024-05-10T20:00:00Z"),
+    });
+    await seedWordleGame(personId, termId, "2024-05-11", {
+      status: "LOST",
+      completedAt: new Date("2024-05-11T20:00:00Z"),
+    });
 
     const facts = await badgeFactsFor(personId);
     expect(facts.RELAMPAGO).toHaveLength(1);
@@ -199,15 +188,7 @@ describe("insignias: hechos", () => {
 /** Trivia publicada con una pregunta de dos opciones; la correcta es la 0. */
 async function seedTrivia(termId: string): Promise<string> {
   const challengeId = await seedChallenge(termId);
-  await db()
-    .insert(challengeQuestion)
-    .values({
-      challengeId,
-      ordinal: 1,
-      prompt: "¿Pregunta?",
-      options: ["Sí", "No"],
-      correctIndex: 0,
-    });
+  await seedQuestion(challengeId);
   return challengeId;
 }
 
@@ -319,8 +300,8 @@ describe("insignias: desbloqueo y revocación", () => {
     const checkInId = await seedCheckIn(occ.id, personId);
     await recomputeBadgesFor(personId, { historical: false });
 
-    await decideCheckInAs(
-      { personId: adminId },
+    await decideInOwnOccasion(
+      { personId: adminId, ip: null },
       { checkInId, decision: "CANCEL", reason: "error de registro" },
     );
     const delta = await recomputeBadgesFor(personId, { historical: false });
@@ -350,8 +331,8 @@ describe("insignias: desbloqueo y revocación", () => {
       .set({ status: "CONSUMED" })
       .where(eq(boosterItem.id, booster?.id ?? ""));
 
-    await decideCheckInAs(
-      { personId: adminId },
+    await decideInOwnOccasion(
+      { personId: adminId, ip: null },
       { checkInId, decision: "CANCEL", reason: "error de registro" },
     );
     const delta = await recomputeBadgesFor(personId, { historical: false });
@@ -367,6 +348,24 @@ describe("insignias: desbloqueo y revocación", () => {
     const review = await listRevokedWithUsedBooster(termId);
     expect(review).toHaveLength(1);
     expect(review[0]?.personId).toBe(personId);
+  });
+
+  it("el recálculo firma como el sistema: las auditorías del desbloqueo y de la revocación quedan sin actor ni IP, no a nombre de la persona que gana o pierde el logro", async () => {
+    const termId = await seedTerm();
+    const personId = await seedMember("firma1@test.dev");
+    const adminId = await seedMember("firma1-admin@test.dev");
+    const checkInId = await seedCheckIn((await seedOccasion(termId)).id, personId);
+
+    await recomputeBadgesFor(personId, { historical: false });
+    expect(await auditSignersOf("achievement.unlocked")).toEqual([{ actorId: null, ip: null }]);
+
+    await decideInOwnOccasion(
+      { personId: adminId, ip: null },
+      { checkInId, decision: "CANCEL", reason: "error de registro" },
+    );
+    await recomputeBadgesFor(personId, { historical: false });
+    expect(await auditSignersOf("achievement.revoked")).toEqual([{ actorId: null, ip: null }]);
+    expect(await auditSignersOf("achievement.unlocked")).toEqual([{ actorId: null, ip: null }]);
   });
 });
 
@@ -386,24 +385,16 @@ describe("insignias: destacadas, vistas y colección", () => {
     await seedCheckIn((await seedOccasion(termId, { committeeId: committeeA })).id, personId);
     await seedCheckIn((await seedOccasion(termId, { committeeId: committeeB })).id, personId);
     await seedParticipation(await seedChallenge(termId), personId, { status: "COMPLETED" });
-    await db()
-      .insert(wordleGame)
-      .values({
-        personId,
-        day: "2024-07-01",
-        termId,
-        answer: "PRUEB",
-        dictionaryVersion: "test",
-        rulesVersion: "test",
-        status: "WON",
-        completedAt: new Date("2024-07-01T18:00:00Z"),
-      });
+    await seedWordleGame(personId, termId, "2024-07-01", {
+      status: "WON",
+      completedAt: new Date("2024-07-01T18:00:00Z"),
+    });
     await recomputeBadgesFor(personId, { historical: true });
     const logros = await liveAchievementsOf(personId);
     expect(logros).toHaveLength(4);
 
     for (const logro of logros.slice(0, 3)) {
-      await runCommand({ personId }, (ctx) =>
+      await runCommand({ personId, ip: null }, (ctx) =>
         setFeatured(ctx, { personId, achievementId: logro.id, featured: true }),
       );
     }
@@ -416,16 +407,16 @@ describe("insignias: destacadas, vistas y colección", () => {
     expect(posiciones).toEqual([1, 2, 3]);
 
     await expect(
-      runCommand({ personId }, (ctx) =>
+      runCommand({ personId, ip: null }, (ctx) =>
         setFeatured(ctx, { personId, achievementId: logros[3]?.id ?? "", featured: true }),
       ),
     ).rejects.toMatchObject({ message: expect.stringContaining(t("T-2493")) });
 
     // Quitar una libera su posición y la cuarta la puede ocupar.
-    await runCommand({ personId }, (ctx) =>
+    await runCommand({ personId, ip: null }, (ctx) =>
       setFeatured(ctx, { personId, achievementId: logros[0]?.id ?? "", featured: false }),
     );
-    await runCommand({ personId }, (ctx) =>
+    await runCommand({ personId, ip: null }, (ctx) =>
       setFeatured(ctx, { personId, achievementId: logros[3]?.id ?? "", featured: true }),
     );
     expect((await listFeaturedBadgesFor([personId])).get(personId)).toHaveLength(3);
@@ -446,7 +437,7 @@ describe("insignias: destacadas, vistas y colección", () => {
     expect(enParche?.levels[0]?.achievement?.id).toBe(logro?.id);
     expect(enParche?.levels[0]?.origin).not.toBe("");
 
-    await runCommand({ personId }, (ctx) => markSeen(ctx, personId, [logro?.id ?? ""]));
+    await runCommand({ personId, ip: null }, (ctx) => markSeen(ctx, personId, [logro?.id ?? ""]));
     collection = await collectionFor(personId);
     expect(collection.unseen).toHaveLength(0);
     const [after] = await achievementsOf(personId);
@@ -471,7 +462,7 @@ describe("ediciones especiales", () => {
     await seedCheckIn(occ.id, ausente, "REJECTED");
 
     const { id } = await createSpecialBadgeAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       {
         name: "Edición relámpago",
         description: "La primera edición de prueba",
@@ -507,7 +498,7 @@ describe("ediciones especiales", () => {
     });
     await seedCheckIn(occ.id, asistente);
     await createSpecialBadgeAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       {
         name: "Especial de cierre",
         description: "",
@@ -521,7 +512,7 @@ describe("ediciones especiales", () => {
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       ctx.emit(eventOf(occasionClosed, { occasionId: occ.id, termId, points: 10 })),
     );
-    await drain(30);
+    await drainOutbox();
     const logros = await liveAchievementsOf(asistente);
     expect(logros).toHaveLength(1);
   });
@@ -547,19 +538,18 @@ describe("flujo en vivo por el outbox", () => {
     const personId = await seedMember("flujo1@test.dev");
     await enableGamification(personId);
     await saveSubscriptionAs(
-      { personId },
+      { personId, ip: null },
       {
-        endpoint: "https://push.test/flujo1",
+        endpoint: "https://fcm.googleapis.com/fcm/send/flujo1",
         keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
       },
       null,
     );
     const occ = await seedOccasion(termId, { points: 10, title: "Actividad del parche" });
 
-    const result = await checkInSelfAs({ personId }, { publicId: occ.publicId });
+    const result = await checkInSelfAs({ personId, ip: null }, { publicId: occ.publicId });
     expect(result.ok).toBe(true);
-    await drain(40);
-    await drain(40); // badge.unlocked se emite durante el primer drenado
+    await drainOutbox();
 
     const logros = await liveAchievementsOf(personId);
     expect(logros).toHaveLength(1);
@@ -586,32 +576,23 @@ describe("flujo en vivo por el outbox", () => {
     await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "gamification.enabled", true));
     const termId = await seedTerm();
     const personId = await seedMember("flujo2@test.dev");
-    const [game] = await db()
-      .insert(wordleGame)
-      .values({
-        personId,
-        day: "2024-06-01",
-        termId,
-        answer: "PRUEB",
-        dictionaryVersion: "test",
-        rulesVersion: "test",
-        status: "WON",
-        completedAt: new Date("2024-06-01T18:00:00Z"),
-      })
-      .returning();
+    const gameId = await seedWordleGame(personId, termId, "2024-06-01", {
+      status: "WON",
+      completedAt: new Date("2024-06-01T18:00:00Z"),
+    });
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       ctx.emit(
         eventOf(wordleCompleted, {
           personId,
           termId,
-          gameId: game?.id ?? "",
+          gameId,
           day: "2024-06-01",
           attempts: 3,
           points: 5,
         }),
       ),
     );
-    await drain(30);
+    await drainOutbox();
     const logros = await liveAchievementsOf(personId);
     expect(logros).toHaveLength(1);
     const [badge] = await db()
@@ -634,13 +615,13 @@ describe("flujo en vivo por el outbox", () => {
       .where(eq(membership.personId, veterano));
     const keys = () => ({ p256dh: "p".repeat(32), auth: "a".repeat(16) });
     await saveSubscriptionAs(
-      { personId: nuevo },
-      { endpoint: "https://push.test/nuevo", keys: keys() },
+      { personId: nuevo, ip: null },
+      { endpoint: "https://fcm.googleapis.com/fcm/send/nuevo", keys: keys() },
       null,
     );
     await saveSubscriptionAs(
-      { personId: veterano },
-      { endpoint: "https://push.test/viejo", keys: keys() },
+      { personId: veterano, ip: null },
+      { endpoint: "https://fcm.googleapis.com/fcm/send/viejo", keys: keys() },
       null,
     );
     await enableGamification(nuevo);
@@ -650,8 +631,8 @@ describe("flujo en vivo por el outbox", () => {
       .update(challengeTable)
       .set({ status: "DRAFT", publishedAt: null, audience: "NEW" })
       .where(eq(challengeTable.id, challengeId));
-    await publishChallengeAs({ personId: adminId }, challengeId);
-    await drain(30);
+    await publishChallengeAs({ personId: adminId, ip: null }, challengeId);
+    await drainOutbox();
 
     const pushNuevo = (await messagesOf(nuevo)).find(
       (item) => item.dedupeKey === `challenge:${challengeId}`,
@@ -664,12 +645,11 @@ describe("flujo en vivo por el outbox", () => {
 
     // Completar la trivia: push T-2567 + interacción PARTICIPATION + insignia Relámpago 1.
     const result = await submitTriviaAs(
-      { personId: nuevo },
+      { personId: nuevo, ip: null },
       { challengeId, requestId: randomUUID(), answers: [0] },
     );
     expect(result.ok).toBe(true);
-    await drain(40);
-    await drain(40);
+    await drainOutbox();
 
     const completed = await db()
       .select()
@@ -699,9 +679,9 @@ describe("flujo en vivo por el outbox", () => {
     const adminId = await seedMember("flujo4-admin@test.dev");
     const personId = await seedMember("flujo4@test.dev");
     await saveSubscriptionAs(
-      { personId },
+      { personId, ip: null },
       {
-        endpoint: "https://push.test/flujo4",
+        endpoint: "https://fcm.googleapis.com/fcm/send/flujo4",
         keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
       },
       null,
@@ -719,14 +699,14 @@ describe("flujo en vivo por el outbox", () => {
       );
 
     await reviewParticipationAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       {
         participationId: pending?.id ?? "",
         decision: "REJECT",
         reason: "No se ve la actividad",
       },
     );
-    await drain(30);
+    await drainOutbox();
 
     const pushRechazo = (await messagesOf(personId)).find((item) =>
       item.dedupeKey?.endsWith(":rejected"),

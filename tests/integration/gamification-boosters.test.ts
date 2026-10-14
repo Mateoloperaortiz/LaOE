@@ -8,11 +8,7 @@ import {
   grantBoosterForAchievement,
   listCampaignsAdmin,
 } from "@/modules/participation/domain/boosters";
-import {
-  checkInSelfAs,
-  decideCheckInAs,
-  hostCheckInAs,
-} from "@/modules/participation/domain/commands";
+import { checkInSelfAs, hostCheckInAs } from "@/modules/participation/domain/commands";
 import {
   cancelCampaignAs,
   createCampaignsAs,
@@ -24,12 +20,10 @@ import {
 import { boosterExpiresAt } from "@/modules/participation/domain/gamification-pure";
 import { balanceFor } from "@/modules/participation/domain/ledger";
 import {
-  achievement,
   badgeDefinition,
   boostCampaign,
   boosterItem,
   challengeParticipation,
-  challengeQuestion,
   checkIn,
   pointEntry,
   reward,
@@ -38,15 +32,19 @@ import { setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
+  seedAchievement,
   seedBooster,
   seedChallenge,
   seedCheckIn,
   seedMember,
   seedOccasion,
+  seedQuestion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { decideInOwnOccasion } from "../helpers/check-ins";
+import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
+import { truncateAll } from "./db";
 
 // Boosters y campañas (ADR-067 reglas 4, 6, 7, 8 y 17): apuntado, economía del impulso en
 // retos y asistencias, concurrencia, administración manual y ciclo de vida de campañas.
@@ -54,7 +52,7 @@ import {
 const db = () => getDb();
 
 async function enableGamification(personId: string): Promise<void> {
-  await setConfigAs({ personId }, "gamification.enabled", true);
+  await setConfigAs({ personId, ip: null }, "gamification.enabled", true);
 }
 
 async function boosterOf(id: string) {
@@ -91,20 +89,15 @@ async function entriesOf(personId: string, termId: string) {
 /** Trivia publicada con una pregunta de dos opciones; la correcta es la 0. */
 async function seedTrivia(termId: string, overrides: Parameters<typeof seedChallenge>[1] = {}) {
   const challengeId = await seedChallenge(termId, overrides);
-  await db()
-    .insert(challengeQuestion)
-    .values({
-      challengeId,
-      ordinal: 1,
-      prompt: "¿Pregunta?",
-      options: ["Sí", "No"],
-      correctIndex: 0,
-    });
+  await seedQuestion(challengeId);
   return challengeId;
 }
 
 async function answerTrivia(personId: string, challengeId: string) {
-  return submitTriviaAs({ personId }, { challengeId, requestId: randomUUID(), answers: [0] });
+  return submitTriviaAs(
+    { personId, ip: null },
+    { challengeId, requestId: randomUUID(), answers: [0] },
+  );
 }
 
 describe("boosters: apuntado (setBoosterTarget)", () => {
@@ -118,15 +111,21 @@ describe("boosters: apuntado (setBoosterTarget)", () => {
     const challengeId = await seedChallenge(termId);
     const boosterId = await seedBooster(personId, termId);
 
-    const aimed = await setBoosterTargetAs({ personId }, { boosterId, target: { challengeId } });
+    const aimed = await setBoosterTargetAs(
+      { personId, ip: null },
+      { boosterId, target: { challengeId } },
+    );
     expect(aimed.targetChallengeId).toBe(challengeId);
 
     const occasion = await seedOccasion(termId);
-    await setBoosterTargetAs({ personId }, { boosterId, target: { occasionId: occasion.id } });
+    await setBoosterTargetAs(
+      { personId, ip: null },
+      { boosterId, target: { occasionId: occasion.id } },
+    );
     expect((await boosterOf(boosterId))?.targetOccasionId).toBe(occasion.id);
     expect((await boosterOf(boosterId))?.targetChallengeId).toBeNull();
 
-    await setBoosterTargetAs({ personId }, { boosterId, target: null });
+    await setBoosterTargetAs({ personId, ip: null }, { boosterId, target: null });
     const cleared = await boosterOf(boosterId);
     expect(cleared?.targetChallengeId).toBeNull();
     expect(cleared?.targetOccasionId).toBeNull();
@@ -142,7 +141,7 @@ describe("boosters: apuntado (setBoosterTarget)", () => {
     // Booster ajeno.
     const foreign = await seedBooster(otherId, termId);
     await expect(
-      setBoosterTargetAs({ personId }, { boosterId: foreign, target: { challengeId } }),
+      setBoosterTargetAs({ personId, ip: null }, { boosterId: foreign, target: { challengeId } }),
     ).rejects.toThrow(t("T-032"));
 
     // Vencido (AVAILABLE con expiresAt pasado → EXPIRED derivado).
@@ -150,45 +149,57 @@ describe("boosters: apuntado (setBoosterTarget)", () => {
       expiresAt: new Date(Date.now() - 3_600_000),
     });
     await expect(
-      setBoosterTargetAs({ personId }, { boosterId: expired, target: { challengeId } }),
+      setBoosterTargetAs({ personId, ip: null }, { boosterId: expired, target: { challengeId } }),
     ).rejects.toThrow(tList("T-2466")[1] ?? "");
 
     // Usado (CONSUMED).
     const used = await seedBooster(personId, termId, "PLUS_50", { status: "CONSUMED" });
     await expect(
-      setBoosterTargetAs({ personId }, { boosterId: used, target: { challengeId } }),
+      setBoosterTargetAs({ personId, ip: null }, { boosterId: used, target: { challengeId } }),
     ).rejects.toThrow(tList("T-2466")[2] ?? "");
 
     // Reto sin puntos.
     const noPoints = await seedChallenge(termId, { basePoints: 0 });
     const own = await seedBooster(personId, termId);
     await expect(
-      setBoosterTargetAs({ personId }, { boosterId: own, target: { challengeId: noPoints } }),
+      setBoosterTargetAs(
+        { personId, ip: null },
+        { boosterId: own, target: { challengeId: noPoints } },
+      ),
     ).rejects.toThrow(tList("T-2466")[3] ?? "");
 
     // Ya participó del reto.
     const answered = await seedTrivia(termId);
     await answerTrivia(personId, answered);
     await expect(
-      setBoosterTargetAs({ personId }, { boosterId: own, target: { challengeId: answered } }),
+      setBoosterTargetAs(
+        { personId, ip: null },
+        { boosterId: own, target: { challengeId: answered } },
+      ),
     ).rejects.toThrow(tList("T-2466")[4] ?? "");
 
     // Ya hizo check-in en la ocasión.
     const occasion = await seedOccasion(termId);
     await seedCheckIn(occasion.id, personId);
     await expect(
-      setBoosterTargetAs({ personId }, { boosterId: own, target: { occasionId: occasion.id } }),
+      setBoosterTargetAs(
+        { personId, ip: null },
+        { boosterId: own, target: { occasionId: occasion.id } },
+      ),
     ).rejects.toThrow(tList("T-2466")[4] ?? "");
 
     // Ocasión no voluntaria (reunión de comité) o sin puntos.
     const meeting = await seedOccasion(termId, { category: "COMMITTEE_MEETING" });
     await expect(
-      setBoosterTargetAs({ personId }, { boosterId: own, target: { occasionId: meeting.id } }),
+      setBoosterTargetAs(
+        { personId, ip: null },
+        { boosterId: own, target: { occasionId: meeting.id } },
+      ),
     ).rejects.toThrow(tList("T-2466")[3] ?? "");
     const noPointsOccasion = await seedOccasion(termId, { points: 0 });
     await expect(
       setBoosterTargetAs(
-        { personId },
+        { personId, ip: null },
         { boosterId: own, target: { occasionId: noPointsOccasion.id } },
       ),
     ).rejects.toThrow(tList("T-2466")[3] ?? "");
@@ -202,16 +213,16 @@ describe("boosters: apuntado (setBoosterTarget)", () => {
 
     // Bandera apagada.
     await expect(
-      setBoosterTargetAs({ personId }, { boosterId, target: { challengeId } }),
+      setBoosterTargetAs({ personId, ip: null }, { boosterId, target: { challengeId } }),
     ).rejects.toThrow(t("T-2442"));
 
     await enableGamification(personId);
-    await setBoosterTargetAs({ personId }, { boosterId, target: { challengeId } });
+    await setBoosterTargetAs({ personId, ip: null }, { boosterId, target: { challengeId } });
 
     // Un segundo booster al mismo objetivo viola el único (persona, objetivo).
     const second = await seedBooster(personId, termId);
     await expect(
-      setBoosterTargetAs({ personId }, { boosterId: second, target: { challengeId } }),
+      setBoosterTargetAs({ personId, ip: null }, { boosterId: second, target: { challengeId } }),
     ).rejects.toThrow(tList("T-2466")[0] ?? "");
   });
 });
@@ -226,7 +237,7 @@ describe("boosters: economía del impulso en retos", () => {
     await enableGamification(personId);
     const challengeId = await seedTrivia(termId);
     const boosterId = await seedBooster(personId, termId, "PLUS_50");
-    await setBoosterTargetAs({ personId }, { boosterId, target: { challengeId } });
+    await setBoosterTargetAs({ personId, ip: null }, { boosterId, target: { challengeId } });
 
     const result = await answerTrivia(personId, challengeId);
     expect(result.ok).toBe(true);
@@ -261,7 +272,7 @@ describe("boosters: economía del impulso en retos", () => {
     await enableGamification(adminId);
     const challengeId = await seedTrivia(termId);
     const { ids } = await createCampaignsAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       campaignInputSchema.parse({
         name: "Campaña sintética",
         percent: 50,
@@ -272,7 +283,7 @@ describe("boosters: economía del impulso en retos", () => {
       }),
     );
     const boosterId = await seedBooster(personId, termId, "PLUS_50");
-    await setBoosterTargetAs({ personId }, { boosterId, target: { challengeId } });
+    await setBoosterTargetAs({ personId, ip: null }, { boosterId, target: { challengeId } });
 
     await answerTrivia(personId, challengeId);
     const { reward: row } = await rewardOfParticipation(challengeId, personId);
@@ -295,7 +306,7 @@ describe("boosters: economía del impulso en retos", () => {
     await enableGamification(adminId);
     const challengeId = await seedTrivia(termId);
     await createCampaignsAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       campaignInputSchema.parse({
         name: "Campaña total",
         percent: 100,
@@ -306,7 +317,7 @@ describe("boosters: economía del impulso en retos", () => {
       }),
     );
     const boosterId = await seedBooster(personId, termId, "PLUS_50");
-    await setBoosterTargetAs({ personId }, { boosterId, target: { challengeId } });
+    await setBoosterTargetAs({ personId, ip: null }, { boosterId, target: { challengeId } });
 
     await answerTrivia(personId, challengeId);
     const { reward: row } = await rewardOfParticipation(challengeId, personId);
@@ -330,32 +341,43 @@ describe("boosters: economía del impulso en retos", () => {
     const challengeA = await seedTrivia(termId, { title: "Reto A" });
     const challengeB = await seedTrivia(termId, { title: "Reto B" });
     const boosterId = await seedBooster(personId, termId, "PLUS_50");
-    await setBoosterTargetAs({ personId }, { boosterId, target: { challengeId: challengeA } });
+    await setBoosterTargetAs(
+      { personId, ip: null },
+      { boosterId, target: { challengeId: challengeA } },
+    );
 
-    // Carrera: enviar A mientras se re-apunta a B y se envía B. Gane quien gane,
-    // el booster solo puede terminar consumido por un premio.
-    // El re-apunte puede ganarle al envío de A o llegar tarde: ambas entregas deben
-    // completar (la que pierde el booster sigue sin él) y el booster se consume una vez.
-    const [submitA, submitB] = await Promise.all([
-      answerTrivia(personId, challengeA).catch(() => null),
-      (async () => {
-        try {
-          await setBoosterTargetAs(
-            { personId },
-            { boosterId, target: { challengeId: challengeB } },
-          );
-        } catch {
-          // Si A ganó la carrera, el booster ya está reservado/consumido.
-        }
-        return answerTrivia(personId, challengeB).catch(() => null);
-      })(),
-    ]);
-    expect(submitA).toMatchObject({ ok: true });
+    // La prueba retiene la fila del booster y fija el orden: el envío de A llega primero y el re-apunte a
+    // B hace cola detrás. Al soltarla, A se lo lleva; el re-apunte vuelve a leer el booster con la fila
+    // ya suya, lo encuentra usado y se rechaza. De los dos `for update` ve uno: sin el del re-apunte
+    // (`setBoosterTarget`) cae, porque entra con lo que leyó antes y mueve un booster ya consumido. Sin
+    // el de la reserva (`lockConsumableBooster`) sigue en verde: A espera igual la fila en su escritura
+    // condicionada al estado, que es la que cubre esta carrera (DT-335).
+    const held = await holdTransaction((tx) =>
+      tx
+        .select({ id: boosterItem.id })
+        .from(boosterItem)
+        .where(eq(boosterItem.id, boosterId))
+        .for("update"),
+    );
+    const [submitA, retarget] = await firstThenSecond(
+      held,
+      () => answerTrivia(personId, challengeA),
+      () =>
+        setBoosterTargetAs(
+          { personId, ip: null },
+          { boosterId, target: { challengeId: challengeB } },
+        ),
+    );
+    // A se llevó el booster; la entrega de B completa igual, sin él.
+    const submitB = await answerTrivia(personId, challengeB);
+    expect(submitA).toMatchObject({ status: "fulfilled", value: { ok: true } });
+    expect(outcome(retarget)).toBe(tList("T-2466")[2]);
     expect(submitB).toMatchObject({ ok: true });
 
     const consumed = await boosterOf(boosterId);
     expect(consumed?.status).toBe("CONSUMED");
     expect(consumed?.consumedRewardId).not.toBeNull();
+    expect(consumed?.targetChallengeId).toBe(challengeA);
 
     // Exactamente un premio consumió el booster; ambas participaciones existen.
     const rows = await db().select().from(reward).where(eq(reward.boosterItemId, boosterId));
@@ -365,6 +387,55 @@ describe("boosters: economía del impulso en retos", () => {
       .from(challengeParticipation)
       .where(eq(challengeParticipation.personId, personId));
     expect(participations.filter((p) => p.status === "COMPLETED")).toHaveLength(2);
+  });
+
+  it("el re-apunte que llega antes que la entrega gana: la entrega espera el booster, lo vuelve a leer apuntado a otro reto y sigue sin él", async () => {
+    const termId = await seedTerm();
+    const personId = await seedMember("boost.reapunte@eafit.edu.co");
+    await enableGamification(personId);
+    const challengeA = await seedTrivia(termId, { title: "Reto A" });
+    const challengeB = await seedTrivia(termId, { title: "Reto B" });
+    const boosterId = await seedBooster(personId, termId, "PLUS_50");
+    await setBoosterTargetAs(
+      { personId, ip: null },
+      { boosterId, target: { challengeId: challengeA } },
+    );
+
+    // El orden inverso al de la prueba de arriba: el re-apunte a B llega primero y la entrega de A hace
+    // cola detrás. Acá la escritura condicionada al estado no alcanza, porque el re-apunte deja el
+    // booster disponible: lo único que le muestra a la entrega que ya no apunta a su reto es el
+    // `for update` de la reserva (`lockConsumableBooster`). Sin él entra con lo que leyó antes y
+    // gasta en A un booster apuntado a B (DT-335).
+    const held = await holdTransaction((tx) =>
+      tx
+        .select({ id: boosterItem.id })
+        .from(boosterItem)
+        .where(eq(boosterItem.id, boosterId))
+        .for("update"),
+    );
+    const [retarget, submitA] = await firstThenSecond(
+      held,
+      () =>
+        setBoosterTargetAs(
+          { personId, ip: null },
+          { boosterId, target: { challengeId: challengeB } },
+        ),
+      () => answerTrivia(personId, challengeA),
+    );
+    expect(outcome(retarget)).toBe("ok");
+    expect(submitA).toMatchObject({ status: "fulfilled", value: { ok: true } });
+
+    // El booster sigue disponible y apuntado a B; el premio de A salió sin la parte personal.
+    expect(await boosterOf(boosterId)).toMatchObject({
+      status: "AVAILABLE",
+      targetChallengeId: challengeB,
+      consumedRewardId: null,
+    });
+    const { reward: row } = await rewardOfParticipation(challengeA, personId);
+    expect(row).toMatchObject({ personalPercent: 0, boosterItemId: null });
+    expect(
+      await db().select().from(reward).where(eq(reward.boosterItemId, boosterId)),
+    ).toHaveLength(0);
   });
 });
 
@@ -390,16 +461,19 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     const adminId = await seedMember("boost.base.alta.admin@eafit.edu.co");
     const personId = await seedMember("boost.base.alta@eafit.edu.co");
     await enableGamification(adminId);
-    await setConfigAs({ personId: adminId }, "gamification.caps", { daily, weekly: 500 });
+    await setConfigAs({ personId: adminId, ip: null }, "gamification.caps", { daily, weekly: 500 });
     const occasion = await seedOccasion(termId, { points: 30, approval: "AUTO" });
     const boosterId = await seedBooster(personId, termId, kind);
-    await setBoosterTargetAs({ personId }, { boosterId, target: { occasionId: occasion.id } });
+    await setBoosterTargetAs(
+      { personId, ip: null },
+      { boosterId, target: { occasionId: occasion.id } },
+    );
 
     const result =
       source === "SELF_QR"
-        ? await checkInSelfAs({ personId }, { publicId: occasion.publicId })
+        ? await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId })
         : await hostCheckInAs(
-            { personId: adminId },
+            { personId: adminId, ip: null },
             { occasionId: occasion.id, personId, personName: "Persona sintética", source },
           );
     if (!("checkInId" in result)) throw new Error("check-in falló");
@@ -415,7 +489,9 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     expect(attendance).toMatchObject({ status: "APPROVED", source });
 
     // Reintentar desde el QR no duplica ni el registro ni sus puntos.
-    expect(await checkInSelfAs({ personId }, { publicId: occasion.publicId })).toMatchObject({
+    expect(
+      await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId }),
+    ).toMatchObject({
       ok: false,
       reason: "ALREADY",
     });
@@ -432,9 +508,12 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     await enableGamification(personId);
     const occasion = await seedOccasion(termId, { points: 10, approval: "AUTO" });
     const boosterId = await seedBooster(personId, termId, "PLUS_50");
-    await setBoosterTargetAs({ personId }, { boosterId, target: { occasionId: occasion.id } });
+    await setBoosterTargetAs(
+      { personId, ip: null },
+      { boosterId, target: { occasionId: occasion.id } },
+    );
 
-    const result = await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+    const result = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
     expect(result.ok).toBe(true);
 
     // Ledger: 10 CHECKIN (asistencia normal) + 5 BOOST (floor(10 × 0.5)).
@@ -475,15 +554,18 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     // Camino feliz: PENDING → APPROVED.
     const occasion = await seedOccasion(termId, { points: 10, approval: "MANUAL" });
     const boosterId = await seedBooster(personId, termId, "PLUS_50");
-    await setBoosterTargetAs({ personId }, { boosterId, target: { occasionId: occasion.id } });
-    const pending = await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+    await setBoosterTargetAs(
+      { personId, ip: null },
+      { boosterId, target: { occasionId: occasion.id } },
+    );
+    const pending = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
     if (!pending.ok) throw new Error("check-in manual falló");
     const [reserved] = await rewardsFor(pending.checkInId);
     expect(reserved?.status).toBe("RESERVED");
     expect((await boosterOf(boosterId))?.status).toBe("RESERVED");
 
-    await decideCheckInAs(
-      { personId: adminId },
+    await decideInOwnOccasion(
+      { personId: adminId, ip: null },
       { checkInId: pending.checkInId, decision: "APPROVE" },
     );
     const [granted] = await rewardsFor(pending.checkInId);
@@ -496,13 +578,16 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     const occasion2 = await seedOccasion(termId, { points: 10, approval: "MANUAL" });
     const booster2 = await seedBooster(person2, termId, "PLUS_50");
     await setBoosterTargetAs(
-      { personId: person2 },
+      { personId: person2, ip: null },
       { boosterId: booster2, target: { occasionId: occasion2.id } },
     );
-    const rejected = await checkInSelfAs({ personId: person2 }, { publicId: occasion2.publicId });
+    const rejected = await checkInSelfAs(
+      { personId: person2, ip: null },
+      { publicId: occasion2.publicId },
+    );
     if (!rejected.ok) throw new Error("check-in manual 2 falló");
-    await decideCheckInAs(
-      { personId: adminId },
+    await decideInOwnOccasion(
+      { personId: adminId, ip: null },
       { checkInId: rejected.checkInId, decision: "REJECT", reason: "No asistió" },
     );
     const [released] = await rewardsFor(rejected.checkInId);
@@ -518,13 +603,16 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     await enableGamification(adminId);
     const occasion = await seedOccasion(termId, { points: 10, approval: "AUTO" });
     const boosterId = await seedBooster(personId, termId, "PLUS_50");
-    await setBoosterTargetAs({ personId }, { boosterId, target: { occasionId: occasion.id } });
-    const done = await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+    await setBoosterTargetAs(
+      { personId, ip: null },
+      { boosterId, target: { occasionId: occasion.id } },
+    );
+    const done = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
     if (!done.ok) throw new Error("check-in falló");
     expect(await balanceFor(personId, termId)).toBe(15);
 
-    await decideCheckInAs(
-      { personId: adminId },
+    await decideInOwnOccasion(
+      { personId: adminId, ip: null },
       { checkInId: done.checkInId, decision: "CANCEL", reason: "Error de registro" },
     );
     const [reversed] = await rewardsFor(done.checkInId);
@@ -542,20 +630,26 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     await enableGamification(adminId);
     const occasion = await seedOccasion(termId, { points: 10, approval: "MANUAL" });
     const boosterId = await seedBooster(personId, termId, "PLUS_50");
-    await setBoosterTargetAs({ personId }, { boosterId, target: { occasionId: occasion.id } });
-    const pending = await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+    await setBoosterTargetAs(
+      { personId, ip: null },
+      { boosterId, target: { occasionId: occasion.id } },
+    );
+    const pending = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
     if (!pending.ok) throw new Error("check-in manual falló");
-    await decideCheckInAs(
-      { personId: adminId },
+    await decideInOwnOccasion(
+      { personId: adminId, ip: null },
       { checkInId: pending.checkInId, decision: "REJECT", reason: "Dudoso" },
     );
     expect((await rewardsFor(pending.checkInId))[0]?.status).toBe("RELEASED");
     expect((await boosterOf(boosterId))?.status).toBe("AVAILABLE");
 
     // Se re-apunta y se re-aprueba: la fila RELEASED revive, no se inserta otra.
-    await setBoosterTargetAs({ personId }, { boosterId, target: { occasionId: occasion.id } });
-    await decideCheckInAs(
-      { personId: adminId },
+    await setBoosterTargetAs(
+      { personId, ip: null },
+      { boosterId, target: { occasionId: occasion.id } },
+    );
+    await decideInOwnOccasion(
+      { personId: adminId, ip: null },
       { checkInId: pending.checkInId, decision: "APPROVE" },
     );
     const rewards = await rewardsFor(pending.checkInId);
@@ -575,7 +669,7 @@ describe("boosters: asistencia impulsada (check-in)", () => {
       expiresAt: new Date(Date.now() - 3_600_000),
       targetOccasionId: occasion.id,
     });
-    const result = await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+    const result = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
     expect(result.ok).toBe(true);
     const [checkInRow] = await db().select().from(checkIn).where(eq(checkIn.personId, personId));
     if (!checkInRow) throw new Error("sin check-in");
@@ -592,7 +686,7 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     const zero = await seedOccasion(termId, { points: 0 });
     const person2 = await seedMember("boost.novol@eafit.edu.co");
     for (const occ of [meeting, assembly, zero]) {
-      const res = await checkInSelfAs({ personId: person2 }, { publicId: occ.publicId });
+      const res = await checkInSelfAs({ personId: person2, ip: null }, { publicId: occ.publicId });
       expect(res.ok).toBe(true);
     }
     const rows = await db().select().from(reward);
@@ -606,7 +700,10 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     const occasion = await seedOccasion(termId, { points: 10, approval: "AUTO" });
     const boosterId = await seedBooster(personId, termId, "PLUS_50");
 
-    const result = await checkInSelfAs({ personId }, { publicId: occasion.publicId, boosterId });
+    const result = await checkInSelfAs(
+      { personId, ip: null },
+      { publicId: occasion.publicId, boosterId },
+    );
     expect(result).toMatchObject({ ok: true });
     const applied = await boosterOf(boosterId);
     expect(applied?.status).toBe("CONSUMED");
@@ -617,7 +714,7 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     const occasion2 = await seedOccasion(termId, { points: 10, approval: "AUTO" });
     const foreign = await seedBooster(other, termId);
     const denied = await checkInSelfAs(
-      { personId },
+      { personId, ip: null },
       { publicId: occasion2.publicId, boosterId: foreign },
     );
     expect(denied).toMatchObject({ ok: false, reason: "BOOSTER" });
@@ -649,7 +746,7 @@ describe("campañas de impulso", () => {
     // Sin objetivos.
     await expect(
       createCampaignsAs(
-        { personId: adminId },
+        { personId: adminId, ip: null },
         campaignInputSchema.parse({
           name: "Vacía",
           percent: 50,
@@ -663,7 +760,7 @@ describe("campañas de impulso", () => {
     // Ventana invertida.
     await expect(
       createCampaignsAs(
-        { personId: adminId },
+        { personId: adminId, ip: null },
         campaignInputSchema.parse({
           name: "Invertida",
           percent: 50,
@@ -680,7 +777,7 @@ describe("campañas de impulso", () => {
     const foreign = await seedChallenge(otherTerm);
     await expect(
       createCampaignsAs(
-        { personId: adminId },
+        { personId: adminId, ip: null },
         campaignInputSchema.parse({
           name: "Ajena",
           percent: 50,
@@ -692,7 +789,7 @@ describe("campañas de impulso", () => {
     ).rejects.toThrow(tList("T-2539")[2] ?? "");
 
     const { ids } = await createCampaignsAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       campaignInputSchema.parse({
         name: "Doble objetivo",
         percent: 25,
@@ -721,7 +818,7 @@ describe("campañas de impulso", () => {
     // Campaña pasada (+100) no aplica; la vigente +50 sí; una futura +25 espera.
     const base = { challengeIds: [challengeId], occasionIds: [], percent: 50 };
     await createCampaignsAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       campaignInputSchema.parse({
         ...base,
         name: "Pasada",
@@ -731,7 +828,7 @@ describe("campañas de impulso", () => {
       }),
     );
     const { ids } = await createCampaignsAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       campaignInputSchema.parse({
         ...base,
         name: "Vigente",
@@ -741,7 +838,7 @@ describe("campañas de impulso", () => {
       }),
     );
     await createCampaignsAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       campaignInputSchema.parse({
         ...base,
         name: "Futura",
@@ -753,7 +850,7 @@ describe("campañas de impulso", () => {
 
     // Vigente +25 y +50 solapadas → gana la mayor.
     await createCampaignsAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       campaignInputSchema.parse({
         ...base,
         name: "Vigente menor",
@@ -771,7 +868,7 @@ describe("campañas de impulso", () => {
     expect(row?.campaignId).toBe(campaignId);
 
     // Cancelación: pasa a CANCELLED y deja de aplicar.
-    await cancelCampaignAs({ personId: adminId }, campaignId);
+    await cancelCampaignAs({ personId: adminId, ip: null }, campaignId);
     const [cancelled] = await db()
       .select()
       .from(boostCampaign)
@@ -801,11 +898,14 @@ describe("boosters: administración", () => {
     if (!termRow) throw new Error("sin término");
 
     await expect(
-      grantBoosterAs({ personId: adminId }, { personId, termId, kind: "PLUS_50", reason: "   " }),
+      grantBoosterAs(
+        { personId: adminId, ip: null },
+        { personId, termId, kind: "PLUS_50", reason: "   " },
+      ),
     ).rejects.toThrow();
 
     const granted = await grantBoosterAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       { personId, termId, kind: "PLUS_100", reason: "Reconocimiento sintético" },
     );
     expect(granted.status).toBe("AVAILABLE");
@@ -826,13 +926,9 @@ describe("boosters: administración", () => {
     // Las insignias canónicas ya vienen sembradas por la migración: se reutiliza una.
     const [badge] = await db().select({ id: badgeDefinition.id }).from(badgeDefinition).limit(1);
     if (!badge) throw new Error("sin insignias sembradas");
-    const [unlocked] = await db()
-      .insert(achievement)
-      .values({ personId, badgeId: badge.id, termId, sourceKind: "MANUAL" })
-      .returning({ id: achievement.id });
-    if (!unlocked) throw new Error("sin logro");
+    const unlocked = { id: await seedAchievement(personId, badge.id, termId) };
 
-    const first = await runCommand({ personId }, (ctx) =>
+    const first = await runCommand({ personId, ip: null }, (ctx) =>
       grantBoosterForAchievement(ctx, {
         personId,
         termId,
@@ -843,7 +939,7 @@ describe("boosters: administración", () => {
     expect(first?.kind).toBe("PLUS_50");
     expect(first?.sourceAchievementId).toBe(unlocked.id);
 
-    const second = await runCommand({ personId }, (ctx) =>
+    const second = await runCommand({ personId, ip: null }, (ctx) =>
       grantBoosterForAchievement(ctx, {
         personId,
         termId,
@@ -864,16 +960,29 @@ describe("boosters: administración", () => {
     const consumed = await seedBooster(personId, termId, "PLUS_50", { status: "CONSUMED" });
 
     await expect(
-      revokeBoosterAs({ personId: adminId }, { boosterId: consumed, reason: "Prueba" }),
+      revokeBoosterAs({ personId: adminId, ip: null }, { boosterId: consumed, reason: "Prueba" }),
     ).rejects.toThrow();
 
     await revokeBoosterAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       { boosterId: available, reason: "Otorgado por error" },
     );
     const revoked = await boosterOf(available);
     expect(revoked?.status).toBe("REVOKED");
     expect(revoked?.revokedById).toBe(adminId);
     expect(revoked?.revokeReason).toBe("Otorgado por error");
+  });
+
+  // El error nombra el estado con la palabra de T-2455, por su posición literal en la lista (el
+  // orden lo fija tests/unit/enum-label-pairs.test.ts). Fijado antes de leerla por valor (DT-011).
+  it("revocar un booster consumido responde con su estado como lo nombra T-2455", async () => {
+    const termId = await seedTerm();
+    const adminId = await seedMember("boost.revoca.estado@eafit.edu.co");
+    const personId = await seedMember("boost.revoca.estado.miembro@eafit.edu.co");
+    const consumed = await seedBooster(personId, termId, "PLUS_50", { status: "CONSUMED" });
+
+    await expect(
+      revokeBoosterAs({ personId: adminId, ip: null }, { boosterId: consumed, reason: "Prueba" }),
+    ).rejects.toThrow(t("T-676", { estado: (tList("T-2455")[2] ?? "").toLowerCase() }));
   });
 });

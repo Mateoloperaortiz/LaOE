@@ -1,5 +1,5 @@
 import type { TimelineFilter } from "@/modules/crm";
-import { tList } from "@/shared/copy";
+import { tLabels } from "@/shared/copy";
 
 // Etiquetas compartidas por la cabecera, las pestañas y los paneles de la Persona 360.
 
@@ -23,11 +23,8 @@ export function isTab(value: string): value is Tab {
 }
 
 export function tabLabels(): Record<Tab, string> {
-  const names = tList("T-432");
-  return Object.fromEntries(TABS.map((tab, index) => [tab, names[index] ?? tab])) as Record<
-    Tab,
-    string
-  >;
+  const names = tLabels("T-432", TABS);
+  return Object.fromEntries(TABS.map((tab) => [tab, names[tab] ?? tab])) as Record<Tab, string>;
 }
 
 export const END_REASONS = [

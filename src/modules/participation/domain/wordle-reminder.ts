@@ -8,7 +8,7 @@ import { findTermContaining } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { splitTitleBody } from "@/shared/copy/render";
 import { wordleGame } from "../schema";
-import { wordleDay } from "./wordle-pure";
+import { dayKeyFor } from "./gamification-pure";
 
 // Aviso diario del Wordle (ADR-074): el programado `wordle` recuerda la partida del día a los activos
 // y honorarios que todavía no la abrieron, y solo mientras el término vigente tenga los puntos
@@ -23,7 +23,7 @@ export interface WordleReminderResult {
 
 /** Un tick del programado `wordle`; `now` es la hora del tick (el scheduler la manda en `at`). */
 export async function runWordleReminder(now = new Date()): Promise<WordleReminderResult> {
-  const day = wordleDay(now);
+  const day = dayKeyFor(now);
   const db = getDb();
   const term = await findTermContaining(day, db);
   // La misma condición de `AVAILABLE` (ADR-041 regla 1): sin esto el push abre un tablero apagado.

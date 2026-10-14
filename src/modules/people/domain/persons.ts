@@ -2,7 +2,7 @@ import { and, asc, count, eq, exists, ilike, inArray, isNull, or, sql } from "dr
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import type { CommandContext, Executor } from "@/db/tx";
+import type { CommandContext, Executor, Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { personEmailChanged, personUpdated } from "@/domain-events/people";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -406,4 +406,23 @@ export async function getPersonRecord(
 ): Promise<PersonRecord | null> {
   const [row] = await exec.select().from(person).where(eq(person.id, id)).limit(1);
   return row ?? null;
+}
+
+/**
+ * Para quien va a escribir texto que la persona aportó (ADR-114 regla 4): dice si ya fue anonimizada
+ * y la toma con candado compartido de fila hasta el fin de la transacción. `anonymizePerson` la toma
+ * `for update`, así que se serializan: o la anonimización ya pasó y se ve aquí, o espera a que esta
+ * transacción termine y su aviso encuentra el texto ya escrito. Compartido y no `for update`: no hace
+ * cola con quien solo referencia a la persona por clave foránea. `null` si la persona no existe.
+ */
+export async function lockPersonAnonymization(
+  tx: Tx,
+  personId: string,
+): Promise<{ anonymized: boolean } | null> {
+  const [row] = await tx
+    .select({ anonymizedAt: person.anonymizedAt })
+    .from(person)
+    .where(eq(person.id, personId))
+    .for("share");
+  return row ? { anonymized: row.anonymizedAt !== null } : null;
 }

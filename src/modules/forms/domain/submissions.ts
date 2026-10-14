@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gt, ilike, inArray, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { registrationCreated, submissionReceived } from "@/domain-events/forms";
 import { getEdition } from "@/modules/events";
@@ -129,11 +129,13 @@ export async function createSubmission(
       }
     }
   }
+  // Sin el correo: la entrada es de la entidad `form` y la anonimización no la limpia, así que el id de
+  // la persona junto a su correo la volvería a identificar. El id de la respuesta ya nombra el hecho.
   await ctx.audit({
     action: "submission.received",
     entityType: "form",
     entityId: input.form.id,
-    after: { submissionId: row.id, personId: input.personId, email: input.email },
+    after: { submissionId: row.id, personId: input.personId },
   });
   await ctx.emit(
     eventOf(submissionReceived, {
@@ -155,7 +157,8 @@ export interface SubmitInput {
   answers: Record<string, unknown>;
   consent: boolean;
   honeypot?: string | null;
-  ip?: string | null;
+  /** La IP del request, o `null` si no la trajo: va al tope por IP y al actor del comando. */
+  ip: string | null;
   userAgent?: string | null;
 }
 
@@ -189,7 +192,7 @@ async function countRecentByIp(ip: string, now: Date): Promise<number> {
  * ventana comprobados con el formulario bloqueado. Todo lo demás en una transacción.
  */
 export async function submitFormAs(
-  actor: (Actor & { personId: string; email: string; firstName: string }) | null,
+  actor: { personId: string; email: string; firstName: string } | null,
   target: PublicForm,
   input: SubmitInput,
   now = new Date(),
@@ -240,9 +243,7 @@ export async function submitFormAs(
       return { ok: false, code: "RATE_LIMITED", errors: {} };
     }
   }
-  const commandActor = actor
-    ? { personId: actor.personId, ip: input.ip ?? null }
-    : { personId: null, ip: input.ip ?? null };
+  const commandActor: Actor = { personId: actor?.personId ?? null, ip: input.ip };
   return runCommand(commandActor, async (ctx): Promise<SubmitResult> => {
     const [locked] = await ctx.tx.select().from(form).where(eq(form.id, target.id)).for("update");
     if (!locked) {
@@ -407,8 +408,8 @@ export async function listSubmissionsByPerson(personId: string): Promise<Submiss
 }
 
 /** Al salir de la OE o anonimizar se borran las respuestas (ADR-030); devuelve cuántas. */
-export async function deleteSubmissionsFor(personId: string): Promise<number> {
-  const rows = await getDb()
+export async function deleteSubmissionsFor(exec: Executor, personId: string): Promise<number> {
+  const rows = await exec
     .delete(formSubmission)
     .where(eq(formSubmission.personId, personId))
     .returning({ id: formSubmission.id });

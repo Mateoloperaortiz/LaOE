@@ -3,8 +3,6 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
 import {
@@ -25,8 +23,10 @@ import type { Game2048Move, Game2048State } from "@/modules/participation/game20
 import { game2048Run, pointEntry } from "@/modules/participation/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
 const db = () => getDb();
 const ORDER: Game2048Move[] = ["L", "U", "R", "D"];
@@ -76,7 +76,7 @@ function prefixUnder(seed: string, limit: number): { moves: string; score: numbe
  * motor o de la heurística la deja debajo, la prueba falla aquí y no con un síntoma más adelante.
  */
 async function openRun(personId: string, { overThreshold = false } = {}) {
-  const result = await startGame2048As({ personId }, { requestId: randomUUID() });
+  const result = await startGame2048As({ personId, ip: null }, { requestId: randomUUID() });
   if (!result.ok) throw new Error(result.reason);
   if (!overThreshold) return result.run;
   if (game2048Reward(playOut(SEED_OVER_THRESHOLD).state.score) === 0) {
@@ -103,7 +103,10 @@ async function playAndFinish(personId: string, options: { overThreshold?: boolea
   const run = await openRun(personId, options);
   const { state, moves } = playOut(run.seed);
   const requestId = randomUUID();
-  const result = await finishGame2048As({ personId }, { runId: run.id, moves, requestId });
+  const result = await finishGame2048As(
+    { personId, ip: null },
+    { runId: run.id, moves, requestId },
+  );
   return { run, state, moves, result, requestId };
 }
 
@@ -141,9 +144,9 @@ describe("2048 con replay verificado", () => {
   it("repetir el inicio devuelve la misma partida y la misma semilla", async () => {
     const personId = await seedMember("g2048.inicio@eafit.edu.co");
     const requestId = randomUUID();
-    const uno = await startGame2048As({ personId }, { requestId });
-    const dos = await startGame2048As({ personId }, { requestId });
-    const tres = await startGame2048As({ personId }, { requestId: randomUUID() });
+    const uno = await startGame2048As({ personId, ip: null }, { requestId });
+    const dos = await startGame2048As({ personId, ip: null }, { requestId });
+    const tres = await startGame2048As({ personId, ip: null }, { requestId: randomUUID() });
     if (!uno.ok || !dos.ok || !tres.ok) throw new Error("inicio denegado");
     expect(dos.run.id).toBe(uno.run.id);
     expect(dos.run.seed).toBe(uno.run.seed);
@@ -154,8 +157,11 @@ describe("2048 con replay verificado", () => {
 
   it("veinte inicios concurrentes dejan una sola partida", async () => {
     const personId = await seedMember("g2048.concurrencia-inicio@eafit.edu.co");
+    await warmPool(10);
     const results = await Promise.all(
-      Array.from({ length: 20 }, () => startGame2048As({ personId }, { requestId: randomUUID() })),
+      Array.from({ length: 20 }, () =>
+        startGame2048As({ personId, ip: null }, { requestId: randomUUID() }),
+      ),
     );
     expect(results.every((result) => result.ok)).toBe(true);
     expect(await db().select().from(game2048Run)).toHaveLength(1);
@@ -192,7 +198,7 @@ describe("2048 con replay verificado", () => {
     const { moves } = playOut(run.seed);
     // Un movimiento de más al final de una partida terminada es inerte: la lista deja de ser reproducible.
     const forjada = await finishGame2048As(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, moves: `${moves}L`, requestId: randomUUID() },
     );
     expect(forjada).toEqual({ ok: false, reason: "INVALID_MOVES" });
@@ -207,7 +213,10 @@ describe("2048 con replay verificado", () => {
     const run = await openRun(personId);
     for (const moves of ["LULX", "L".repeat(GAME2048_MAX_MOVES + 1)]) {
       expect(
-        await finishGame2048As({ personId }, { runId: run.id, moves, requestId: randomUUID() }),
+        await finishGame2048As(
+          { personId, ip: null },
+          { runId: run.id, moves, requestId: randomUUID() },
+        ),
       ).toEqual({ ok: false, reason: "INVALID_INPUT" });
     }
   });
@@ -218,13 +227,16 @@ describe("2048 con replay verificado", () => {
       overThreshold: true,
     });
     if (!result.ok) throw new Error(result.reason);
-    const otra = await finishGame2048As({ personId }, { runId: run.id, moves, requestId });
+    const otra = await finishGame2048As(
+      { personId, ip: null },
+      { runId: run.id, moves, requestId },
+    );
     expect(otra).toEqual(result);
     expect(await db().select().from(pointEntry)).toHaveLength(1);
 
     // El mismo requestId con otro contenido se rechaza.
     const conflicto = await finishGame2048As(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, moves: moves.slice(0, 4), requestId },
     );
     expect(conflicto.ok).toBe(false);
@@ -237,8 +249,8 @@ describe("2048 con replay verificado", () => {
     const run = await openRun(personId, { overThreshold: true });
     const { moves } = playOut(run.seed);
     const [uno, dos] = await Promise.all([
-      finishGame2048As({ personId }, { runId: run.id, moves, requestId: randomUUID() }),
-      finishGame2048As({ personId }, { runId: run.id, moves, requestId: randomUUID() }),
+      finishGame2048As({ personId, ip: null }, { runId: run.id, moves, requestId: randomUUID() }),
+      finishGame2048As({ personId, ip: null }, { runId: run.id, moves, requestId: randomUUID() }),
     ]);
     expect([uno.ok, dos.ok].filter(Boolean)).toHaveLength(1);
     const rechazado = uno.ok ? dos : uno;
@@ -299,7 +311,7 @@ describe("2048 con replay verificado", () => {
     const corta = prefixUnder(run.seed, 1_000);
     expect(corta.score).toBeLessThan(1_000);
     const flojo = await finishGame2048As(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, moves: corta.moves, requestId: randomUUID() },
     );
     if (!flojo.ok) throw new Error(flojo.reason);
@@ -322,7 +334,7 @@ describe("2048 con replay verificado", () => {
     // 05:00 UTC es la medianoche de Colombia: ya es otro día del juego.
     vi.setSystemTime(new Date("2027-01-01T06:00:00Z"));
     const result = await finishGame2048As(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, moves, requestId: randomUUID() },
     );
     expect(result.ok).toBe(false);
@@ -343,7 +355,7 @@ describe("2048 con replay verificado", () => {
       .set({ pointsClosedAt: new Date() })
       .where(eq(term.id, fila?.termId ?? ""));
     const result = await finishGame2048As(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, moves, requestId: randomUUID() },
     );
     expect(result.ok).toBe(false);
@@ -357,7 +369,7 @@ describe("2048 con replay verificado", () => {
     const personId = await seedPerson("g2048.licencia@eafit.edu.co");
     await seedMembership(personId, termId, "ON_LEAVE");
     expect((await getTodayGame2048(personId)).availability).toBe("NOT_ELIGIBLE");
-    const result = await startGame2048As({ personId }, { requestId: randomUUID() });
+    const result = await startGame2048As({ personId, ip: null }, { requestId: randomUUID() });
     expect(result).toEqual({ ok: false, reason: "NOT_ELIGIBLE" });
     expect(await db().select().from(game2048Run)).toHaveLength(0);
   });
@@ -368,7 +380,7 @@ describe("2048 con replay verificado", () => {
     const run = await openRun(mia);
     const { moves } = playOut(run.seed);
     const result = await finishGame2048As(
-      { personId: ajena },
+      { personId: ajena, ip: null },
       { runId: run.id, moves, requestId: randomUUID() },
     );
     expect(result).toEqual({ ok: false, reason: "NOT_FOUND" });
@@ -379,7 +391,7 @@ describe("2048 con replay verificado", () => {
     const personId = await seedMember("g2048.crm@eafit.edu.co");
     const { result } = await playAndFinish(personId, { overThreshold: true });
     if (!result.ok) throw new Error(result.reason);
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
 
     const [event] = await db()
       .select()
@@ -390,7 +402,7 @@ describe("2048 con replay verificado", () => {
       .update(outbox)
       .set({ processedAt: null, nextAttemptAt: new Date() })
       .where(eq(outbox.id, event.id));
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
 
     const timeline = await db()
       .select()

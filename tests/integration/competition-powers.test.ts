@@ -45,8 +45,10 @@ import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedMember } from "../factories";
+import { heldThenSettled, holdTransaction, outcome } from "../helpers/locks";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // Poderes de The Games (ADR-098): reparto y entrega por la operación, declaración del líder antes de
 // empezar la base, resultado oficial en el mismo libro sin crédito doble, reversión con recálculo,
@@ -473,6 +475,7 @@ describe("poderes de The Games (ADR-098)", () => {
     await startRotationAs(actor, id, first.id);
     const m = await matchupAt(first.id, bases[0] ?? "");
 
+    await warmPool();
     const same = await Promise.allSettled([
       declarePowerAs(judge, id, { matchupId: m.id, teamId: team(1), power: "DOUBLE_POINTS" }),
       declarePowerAs(actor, id, { matchupId: m.id, teamId: team(1), power: "DOUBLE_POINTS" }),
@@ -500,6 +503,45 @@ describe("poderes de The Games (ADR-098)", () => {
     for (const use of (await activeUses(first.id)).filter((item) => item.teamId === team(3))) {
       expect(use.createdAt.getTime()).toBeLessThanOrEqual(startedAt);
     }
+  });
+
+  it("un pedido que encuentra la tarjeta tomada por otro escritor la espera y la vuelve a leer: anulada, no registra el uso", async () => {
+    const { id, actor, adminId, team, bases, first, matchupAt, sheet } = await seedPowers();
+    await importPowerGrantsAs(actor, id, { text: sheet });
+    await deliverPowerGrantsAs(actor, id, { day: 1 });
+    await startRotationAs(actor, id, first.id);
+    const m = await matchupAt(first.id, bases[0] ?? "");
+    const [grant] = await getDb()
+      .select({ id: competitionPowerGrant.id })
+      .from(competitionPowerGrant)
+      .where(
+        and(
+          eq(competitionPowerGrant.teamId, team(1)),
+          eq(competitionPowerGrant.power, "DOUBLE_POINTS"),
+          eq(competitionPowerGrant.status, "DELIVERED"),
+        ),
+      );
+    if (!grant) throw new Error("sin tarjeta");
+
+    // El otro escritor es sintético: anula la tarjeta sin tomar la fila de la competencia ni la del
+    // enfrentamiento, que hoy toman todos los comandos que tocan un poder y por eso cubren a la prueba
+    // de arriba. Así lo único que hace esperar al pedido es el `for update` de la tarjeta en
+    // `declarePower` (DT-335).
+    const held = await holdTransaction((tx) =>
+      tx
+        .update(competitionPowerGrant)
+        .set({ status: "VOIDED", voidedAt: new Date(), voidedById: adminId, voidReason: "Prueba" })
+        .where(eq(competitionPowerGrant.id, grant.id)),
+    );
+    const { during, after } = await heldThenSettled(held, () =>
+      declarePowerAs(actor, id, { matchupId: m.id, teamId: team(1), power: "DOUBLE_POINTS" }),
+    );
+
+    // Sin la tarjeta bajo candado el pedido la lee entregada, no espera a nadie y registra un uso
+    // sobre una tarjeta anulada.
+    expect(during).toBe("hizo cola");
+    expect(outcome(after)).toBe(t("T-3053", { equipo: "Equipo 1" }));
+    expect(await activeUses(first.id)).toHaveLength(0);
   });
 
   it("el hub muestra las tarjetas del equipo, con su estado y su efecto, sin ids", async () => {

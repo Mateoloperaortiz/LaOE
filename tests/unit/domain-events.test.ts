@@ -33,7 +33,7 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
 }
 
 const log = { info() {}, warn() {}, debug() {}, error() {} } as never;
-const jobContext = { id: "outbox-sintetico", attempt: 1, log };
+const jobContext = { id: "outbox-sintetico", attempt: 1, log, now: new Date(0) };
 
 afterEach(() => resetHandlersForTests());
 
@@ -167,6 +167,33 @@ describe("contratos de participation y de comms", () => {
     expect(() =>
       notificationRequested.schema.parse({ ...pedido, recipients: demasiados }),
     ).toThrow();
+  });
+
+  it("el vencimiento de un pedido de notificación es opcional, y si viene es un instante ISO en UTC", async () => {
+    const { notificationRequested } = await import("@/domain-events/comms");
+    const pedido = {
+      kind: "REMINDER",
+      recipients: [{ personId: "p1" }],
+      title: "Hoy",
+      url: "/app",
+      dedupeKey: "k",
+    };
+    // Sin él pasa, y no nace con un valor por defecto: así llegan los pedidos de la versión anterior.
+    expect(notificationRequested.schema.parse(pedido)).not.toHaveProperty("expiresAt");
+    expect(
+      notificationRequested.schema.parse({ ...pedido, expiresAt: "2026-09-14T23:00:00.000Z" }),
+    ).toMatchObject({ expiresAt: "2026-09-14T23:00:00.000Z" });
+    for (const ilegible of ["", "mañana a las seis", "2026-09-14", "2026-09-14T18:00:00-05:00"]) {
+      expect(
+        () => notificationRequested.schema.parse({ ...pedido, expiresAt: ilegible }),
+        ilegible,
+      ).toThrow();
+    }
+    // Un campo que esta versión no conoce no hace fallar el pedido: por eso el poller anterior, que no
+    // conoce el vencimiento, sigue entregando lo que encola el nuevo mientras dura un despliegue.
+    expect(() =>
+      notificationRequested.schema.parse({ ...pedido, campoDeOtraVersion: 1 }),
+    ).not.toThrow();
   });
 });
 

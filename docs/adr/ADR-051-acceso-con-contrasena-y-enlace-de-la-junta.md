@@ -1,6 +1,6 @@
 # ADR-051: Acceso con contraseña propia y enlace de un solo uso de la junta
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-113, ADR-114, ADR-116, ADR-118)
 - Fecha: 2026-09-10
 - Enmienda: ADR-010, ADR-011, ADR-014 (seguridad), ADR-050
 - Relacionadas: ADR-012, ADR-023, ADR-034, ADR-038, ADR-047, ADR-048
@@ -65,3 +65,19 @@ La verificación de identidad previa a emitir la hace la junta por fuera del sis
 ## Frente a GHPOINTS
 
 GHPOINTS llegó a tener tres canales de login (Clerk, OTP, Entra) y ADR-010 nació para evitar esa dispersión. Acá quedan dos —contraseña y OTP— y no es una recaída: el segundo existe porque el primero no cubre el caso de quien pierde el acceso a su dispositivo, y ninguno de los dos es un proveedor de identidad externo. La sesión sigue siendo una sola, opaca y en servidor.
+
+## Enmienda (2026-10-07, ADR-113)
+
+La regla 4 decía quién emite un enlace, no para quién. [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md) regla 1 lo acota: si el destinatario tiene algún permiso técnico que quien emite no tiene, solo ADMIN emite. La junta sigue emitiendo para los miembros sin permisos y para quien tiene los mismos que ella. La comprobación vive en `issueAccessGrant`, que relee los permisos en la transacción y responde T-3206. La amenaza aceptada queda como estaba escrita: quien emite puede entrar como esa persona, pero ya no con más permisos que los suyos. El arranque de la regla 16 no cambia.
+
+## Enmienda (2026-10-07, ADR-114)
+
+La regla 9 puso un solo par de contadores, por correo y por IP, y el paso de seguridad de la regla 7 los compartía con el ingreso; la regla 8 comparaba la contraseña actual sin contar nada. [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 2 separa a quien ya tiene sesión: el paso de seguridad con contraseña y la contraseña actual del cambio gastan un contador de la persona, 10 fallos en 15 minutos, que vive en `login_attempt` con la clave de la persona en lugar del correo y se cuenta y se anota bajo un candado por persona. Ninguno de los dos mira ya los contadores por correo ni por IP, y con el tope gastado responden T-2097. El ingreso sin sesión conserva la regla 9 como estaba escrita.
+
+## Enmienda (2026-10-08, ADR-116)
+
+La regla 15 dice que la baja y la anonimización borran la contraseña y los enlaces de acceso, junto al carnet, las sesiones y los permisos. El token del calendario personal no estaba en esa lista y sobrevivía a la salida. [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 15 lo suma: también se borra, y quien vuelve genera un enlace nuevo. La licencia sigue sin tocar nada de esto.
+
+## Enmienda (2026-10-08, ADR-118)
+
+La regla 15 dice que la baja borra la contraseña y los enlaces de la persona, junto al carnet, las sesiones y los permisos. El handler decidía con el estado que traía el evento, y un evento de baja reintentado después de un alta le quitaba a la persona la contraseña, el enlace y los permisos que acababa de recibir. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 5 lo precisa: la contraseña, los enlaces, el enlace del calendario y los permisos se retiran, en una sola transacción, si la baja sigue vigente cuando corre el evento. El carnet no cambia, porque lleva época, y las sesiones se siguen cerrando con el estado del evento. Quien vuelve antes de que el evento termine conserva la contraseña, los enlaces vigentes y los permisos que tenía (decisión abierta 44).

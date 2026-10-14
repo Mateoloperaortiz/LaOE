@@ -1,4 +1,4 @@
-import { count, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
@@ -26,8 +26,8 @@ import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
+import { currentTermCode, seedOccasion, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { currentTermCode, seedOccasion, seedTerm } from "./factories";
 
 const db = () => getDb();
 
@@ -119,12 +119,14 @@ describe("ocasiones", () => {
   it("abre, cierra y cancela con auditoría; el cierre emite el recompute y bloquea el término cerrado", async () => {
     const termId = await seedTerm(currentTermCode());
     const created = await createOccasionAs(SYSTEM_ACTOR, parse({ requireRotatingCode: true }));
-    await openOccasionAs(SYSTEM_ACTOR, created.id);
+    await openOccasionAs(SYSTEM_ACTOR, created.id, { isAdmin: true });
     let row = await getOccasion(created.id);
     expect(row?.status).toBe("OPEN");
     expect(row?.rotatingSecret).toBeTruthy();
     expect(await countOpenOccasions(termId)).toBe(1);
-    await expect(openOccasionAs(SYSTEM_ACTOR, created.id)).rejects.toBeInstanceOf(DomainError);
+    await expect(
+      openOccasionAs(SYSTEM_ACTOR, created.id, { isAdmin: true }),
+    ).rejects.toBeInstanceOf(DomainError);
 
     await closeOccasionAs(SYSTEM_ACTOR, created.id);
     row = await getOccasion(created.id);
@@ -153,13 +155,41 @@ describe("ocasiones", () => {
     // Con los puntos del término cerrados no se abre nada más.
     const draft = await createOccasionAs(SYSTEM_ACTOR, parse({ title: "Otra" }));
     await db().update(term).set({ pointsClosedAt: new Date() }).where(eq(term.id, termId));
-    await expect(openOccasionAs(SYSTEM_ACTOR, draft.id)).rejects.toThrow(t("T-579"));
+    await expect(openOccasionAs(SYSTEM_ACTOR, draft.id, { isAdmin: true })).rejects.toThrow(
+      t("T-579"),
+    );
+  });
+
+  // DT-146 inciso (c), ADR-122 regla 2: la regla vivía solo en la action de la consola, sobre una
+  // ocasión leída antes de la transacción. El comando la decide con la fila ya tomada.
+  it("un líder abre por sí mismo solo la ocasión sin puntos; la que da GH Points la abre ADMIN, y lo decide el comando", async () => {
+    await seedTerm(currentTermCode());
+    const withPoints = await createOccasionAs(SYSTEM_ACTOR, parse());
+    const free = await createOccasionAs(SYSTEM_ACTOR, parse({ title: "Sin puntos", points: "0" }));
+
+    // Falla cerrado: sin decir quién abre, o con un valor que no se reconoce, se trata como líder.
+    for (const opener of [{ isAdmin: false }, undefined, null, {}, { isAdmin: "true" }]) {
+      await expect(openOccasionAs(SYSTEM_ACTOR, withPoints.id, opener as never)).rejects.toThrow(
+        t("T-653"),
+      );
+    }
+    expect((await getOccasion(withPoints.id))?.status).toBe("DRAFT");
+    const opened = await db()
+      .select({ id: auditLog.id })
+      .from(auditLog)
+      .where(and(eq(auditLog.entityId, withPoints.id), eq(auditLog.action, "occasion.opened")));
+    expect(opened).toEqual([]);
+
+    await openOccasionAs(SYSTEM_ACTOR, free.id, { isAdmin: false });
+    expect((await getOccasion(free.id))?.status).toBe("OPEN");
+    await openOccasionAs(SYSTEM_ACTOR, withPoints.id, { isAdmin: true });
+    expect((await getOccasion(withPoints.id))?.status).toBe("OPEN");
   });
 
   it("fuera de borrador solo cambian título, descripción y lugar", async () => {
     await seedTerm(currentTermCode());
     const created = await createOccasionAs(SYSTEM_ACTOR, parse());
-    await openOccasionAs(SYSTEM_ACTOR, created.id);
+    await openOccasionAs(SYSTEM_ACTOR, created.id, { isAdmin: true });
     const base = await getOccasion(created.id);
     if (!base) throw new Error("sin ocasión");
     const same = {

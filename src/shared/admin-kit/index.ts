@@ -8,6 +8,7 @@ export { ResourceTable } from "./ResourceTable";
 export { ResourceToolbar } from "./ResourceToolbar";
 export {
   type AnyResource,
+  EXPORT_ROW_LIMIT,
   type FormState,
   formDataToInput,
   formDataToValues,

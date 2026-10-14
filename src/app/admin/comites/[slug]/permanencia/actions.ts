@@ -150,7 +150,6 @@ export async function scoreAction(formData: FormData): Promise<void> {
   }
   try {
     await scoreCriterionAs(actor, ref, parsed.data, {
-      inCommittee: member !== undefined && ref.committeeId !== null,
       personName: member?.fullName ?? personId,
       committeeName: roster?.committee.name ?? slug,
     });
@@ -220,30 +219,37 @@ export async function decideExcuseAction(formData: FormData): Promise<void> {
 }
 
 // Faltas del comité (Regl. art. 69 par. 2; ADR-060 regla 6): quien tiene PERMANENCE registra una falta
-// a un miembro de su comité; la suspensión explícita y la revocación quedan para GH.
+// a un miembro de su comité; la suspensión explícita y la revocación quedan para GH. La action exige
+// la capacidad y declara el alcance; a quién y con qué tipo lo decide el comando (ADR-072 regla 1 y
+// ADR-112).
 export async function recordCommitteeSanctionAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
   const personId = idSchema.parse(formData.get("personId"));
   const returnTo = back(slug);
   const access = await requireCommitteeCapability(slug, "PERMANENCE", returnTo);
   const term = await getCurrentTerm();
-  if (!term || !access.roster.members.some((member) => member.personId === personId)) {
+  if (!term) {
     redirect(back(slug, { error: t("T-032") }));
   }
-  const parsed = sanctionInputSchema.safeParse({
+  const scope = {
+    by: "COMMITTEE",
+    committeeId: access.roster.committee.id,
     termId: term.id,
+  } as const;
+  const parsed = sanctionInputSchema.safeParse({
+    termId: scope.termId,
     kind: formText(formData, "kind"),
     cause: formText(formData, "cause"),
     reference: formText(formData, "reference") || null,
     occurredOn: formText(formData, "occurredOn"),
     suspendedUntil: null,
-    committeeId: access.roster.committee.id,
+    committeeId: scope.committeeId,
   });
-  if (!parsed.success || parsed.data.kind === "SUSPENSION" || parsed.data.kind === "OFFICE_BAN") {
+  if (!parsed.success) {
     redirect(back(slug, { error: t("T-260") }));
   }
   try {
-    await recordSanctionAs(await actorContext(access.actor), personId, parsed.data);
+    await recordSanctionAs(await actorContext(access.actor), personId, parsed.data, scope);
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(back(slug, { error: error.message }));

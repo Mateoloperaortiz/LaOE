@@ -9,6 +9,7 @@ import { actorContext } from "@/app/_lib/actor";
 import { formText } from "@/app/_lib/form";
 import { hasRecentStepUp, readCarnet } from "@/modules/identity";
 import {
+  CHECK_IN_STATUSES,
   cancelOccasionAs,
   canOpenOccasion,
   closeOccasionAs,
@@ -72,10 +73,12 @@ export async function lifecycleAction(formData: FormData): Promise<void> {
   const who = await actorContext(actor);
   await run(id, "consola", async () => {
     if (op === "open") {
+      // La comprobación previa conserva el orden de las respuestas de la pantalla; la que protege la
+      // regla es la del comando, con la fila tomada (ADR-122 regla 2).
       if (!canOpenOccasion(actor, occasion)) {
         throw new DomainError(t("T-653"));
       }
-      await openOccasionAs(who, id);
+      await openOccasionAs(who, id, { isAdmin: actor.isAdmin });
     } else if (op === "close") {
       await closeOccasionAs(who, id);
     }
@@ -106,11 +109,14 @@ export async function cancelAction(formData: FormData): Promise<void> {
 }
 
 const decisionSchema = z.enum(["APPROVE", "REJECT", "CANCEL"]);
+// El estado que mostraba la fila: el comando rechaza la decisión si ya no es ese (ADR-116 regla 1).
+const seenStatusSchema = z.enum(CHECK_IN_STATUSES);
 
 export async function decideAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("occasionId"));
   const checkInId = idSchema.parse(formData.get("checkInId"));
   const decision = decisionSchema.parse(formData.get("decision"));
+  const seenStatus = seenStatusSchema.parse(formData.get("seen"));
   const { actor } = await operator(id, "consola");
   if (!actor.isAdmin) {
     redirect("/app");
@@ -120,7 +126,13 @@ export async function decideAction(formData: FormData): Promise<void> {
     id,
     "consola",
     async () => {
-      await decideCheckInAs(await actorContext(actor), { checkInId, decision, reason });
+      await decideCheckInAs(await actorContext(actor), {
+        occasionId: id,
+        checkInId,
+        decision,
+        reason,
+        seenStatus,
+      });
       return undefined;
     },
     decision === "CANCEL" ? { accion: "anular", checkIn: checkInId } : {},
@@ -137,6 +149,7 @@ export async function approveAllAction(formData: FormData): Promise<void> {
     const pending = await listCheckIns(id, ["PENDING"]);
     await decideManyAs(
       await actorContext(actor),
+      id,
       pending.map((item) => item.id),
       "APPROVE",
     );

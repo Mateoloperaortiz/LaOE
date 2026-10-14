@@ -2,7 +2,7 @@ import { and, asc, eq, ilike, inArray, isNull, notExists, or, sql } from "drizzl
 import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import type { CommandContext, Executor } from "@/db/tx";
+import type { CommandContext, Executor, Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { committeeMembershipChanged, committeeRemovalRequested } from "@/domain-events/people";
 import { requireConfig } from "@/modules/system";
@@ -37,6 +37,7 @@ import {
 } from "./committee-role-assignments";
 import type { CommitteeRef } from "./committees";
 import { assertNoInhabilities, leadershipRolesOf } from "./inhabilities";
+import { lockMembershipCycle } from "./wallet-member";
 
 // La dirección del comité (ADR-058): qué comités dirige una persona y con qué capacidades, qué comités
 // quedaron sin un cargo obligatorio, quién puede entrar a un comité y los comandos con eje comité
@@ -395,6 +396,21 @@ async function targetPerson(exec: Executor, personId: string): Promise<TargetPer
   return { id: row.id, fullName: row.fullName?.trim() ?? "", status: row.status };
 }
 
+/**
+ * Toma la fila de la membresía de la persona: el candado de todo el que cambia sus comités o sus
+ * cargos (`setCommitteeMemberships`, la baja y la aprobación de un cambio de comité). En el orden del
+ * ciclo de membresía va después del consultivo `wallet-member`, que toman antes los dos que la llaman
+ * (el «Agregar» y el cambio de cargos; ADR-122 regla 4 y ADR-123 regla 6), y antes de lo que cuelga
+ * de ella (ADR-120 regla 3).
+ */
+async function lockMembership(tx: Tx, personId: string): Promise<void> {
+  await tx
+    .select({ personId: membership.personId })
+    .from(membership)
+    .where(eq(membership.personId, personId))
+    .for("update");
+}
+
 async function membershipIn(exec: Executor, personId: string, scope: RosterScope) {
   const [row] = await exec
     .select({ id: committeeMembership.id, leftAt: committeeMembership.leftAt })
@@ -421,6 +437,15 @@ export async function addCommitteeMember(
   now = new Date(),
 ): Promise<{ membershipId: string; revived: boolean }> {
   const { direction } = await requireDirection(ctx, scope, actor, "ROSTER");
+  // El consultivo del ciclo de membresía primero, como el cambio de cargos (ADR-123 regla 6): escribir
+  // la pertenencia referencia la fila de `person`, que quien anonimiza toma antes que la de la
+  // membresía y quien reactiva con correo nuevo toma después. Con solo la fila, el «Agregar» y una
+  // anonimización de la misma persona se quedaban esperándose (DT-328).
+  await lockMembershipCycle(ctx.tx, input.personId);
+  // La fila de la membresía, con el candado de `setCommitteeMemberships` y de la baja (ADR-118 regla
+  // 11): el estado y el cupo se leen después de tomarla. Una baja que llega a la vez no deja una
+  // pertenencia viva, y dos «Agregar» de la misma persona cuentan su cupo uno después del otro.
+  await lockMembership(ctx.tx, input.personId);
   const who = await targetPerson(ctx.tx, input.personId);
   if (who.status !== "ACTIVE") {
     throw new DomainError(t("T-2164"), "personId");
@@ -520,6 +545,16 @@ export async function setMemberRoles(
   now = new Date(),
 ): Promise<{ changed: boolean }> {
   const { direction } = await requireDirection(ctx, scope, actor, "ROSTER");
+  // El consultivo del ciclo de membresía primero (ADR-120 regla 3; ADR-122 regla 4): escribir un cargo
+  // referencia la fila de `person`, que quien anonimiza toma antes que la de la membresía y quien
+  // reactiva con correo nuevo toma después. Con este candado los tres corren de a uno por persona y el
+  // orden en que cada uno toma esas dos filas no los cruza.
+  await lockMembershipCycle(ctx.tx, input.personId);
+  // La pertenencia y sus cargos se leen con la fila de la membresía tomada (ADR-122 regla 4), como en
+  // «Agregar»: el que saca a la persona del comité o la da de baja termina primero y esto responde
+  // T-2173, y la aprobación de un cambio de comité, que copia estos cargos al término siguiente con
+  // esa misma fila tomada (ADR-121 regla 15), espera a este cambio o este la espera a ella.
+  await lockMembership(ctx.tx, input.personId);
   const who = await targetPerson(ctx.tx, input.personId);
   const existing = await membershipIn(ctx.tx, who.id, scope);
   if (!existing || existing.leftAt !== null) {

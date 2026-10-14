@@ -6,16 +6,21 @@ import {
   type RoleView,
 } from "@/modules/people";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { mediaUrl } from "@/shared/lib/media";
 
 // Tarjeta de una persona en el directorio y en los comités internos: nombre, foto con consentimiento
 // (o iniciales), comités con cargo y cargos de junta. Nunca correos ni celulares.
 
-const STATUS_CODES: MembershipStatus[] = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"];
+const STATUS_CODES = [
+  "ACTIVE",
+  "ON_LEAVE",
+  "HONORARY",
+  "INACTIVE",
+] as const satisfies readonly MembershipStatus[];
 
 export function estadoEtiqueta(status: MembershipStatus): string {
-  return tList("T-381")[STATUS_CODES.indexOf(status)] ?? status;
+  return tLabels("T-381", STATUS_CODES)[status] ?? status;
 }
 
 export function cargoEtiqueta(item: AppointmentLabelInput): string {

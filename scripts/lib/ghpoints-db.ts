@@ -211,7 +211,8 @@ export interface GhApplyOptions {
 
 /** Importación administrativa histórica. Ninguna escritura se hace durante la vista previa. */
 export async function applyGhImport(manifest: GhManifest, options: GhApplyOptions) {
-  return runCommand({ personId: options.actorId }, async (ctx) => {
+  // Un script no tiene request: el ADMIN que lo corre va sin IP.
+  return runCommand({ personId: options.actorId, ip: null }, async (ctx) => {
     // Lote administrativo acotado: bloquea escritores durante el cruce final y la carga.
     // Evita carreras con cambios de membresía, cierre, créditos y edición de las reglas.
     await ctx.tx.execute(sql`set local lock_timeout = '5s'`);

@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
+  type AssemblyRequirementView,
+  type AttendedAssembly,
   assemblyCompliance,
-  defaultRequirement,
+  attendedRequired,
   requiredTotal,
+  termAssemblyRequirement,
 } from "@/modules/participation/domain/assembly-pure";
 import {
+  canCancelWithOccasion,
   canTransitionCheckIn,
+  closedToSelf,
   initialStatus,
   outcomeFor,
+  type SelfCheckInFacts,
+  selfCheckInEligibilityDenial,
   statusForDecision,
 } from "@/modules/participation/domain/check-in-pure";
 import {
@@ -19,7 +26,6 @@ import {
   viabilityAlerts,
 } from "@/modules/participation/domain/committee-viability-pure";
 import {
-  balance,
   competitionRanks,
   levelFor,
   meanRate,
@@ -48,6 +54,7 @@ import {
   verifyRotatingCode,
 } from "@/modules/participation/domain/rotating-code-pure";
 import { eligibleByCommittee } from "@/modules/participation/domain/scores";
+import { midpointDay } from "@/shared/lib/dates-pure";
 
 describe("publicId", () => {
   it("genera diez caracteres del alfabeto sin ambiguos y valida el formato", () => {
@@ -168,11 +175,150 @@ describe("check-in", () => {
     expect(outcomeFor("APPROVED", 0)).toBe("APPROVED");
     expect(outcomeFor("PENDING", 10)).toBe("PENDING");
   });
+
+  it("cancelar la ocasión anula pendientes y aprobadas, y nada más", () => {
+    expect(canCancelWithOccasion("PENDING")).toBe(true);
+    expect(canCancelWithOccasion("APPROVED")).toBe(true);
+    expect(canCancelWithOccasion("REJECTED")).toBe(false);
+    expect(canCancelWithOccasion("CANCELLED")).toBe(false);
+    expect(canCancelWithOccasion("EXCUSED")).toBe(false);
+  });
+});
+
+describe("registro propio: por qué no procede (ADR-120 regla 17)", () => {
+  const TERM = "termino-de-la-ocasion";
+  const opensAt = new Date("2026-03-10T15:00:00Z");
+  const closesAt = new Date("2026-03-10T17:00:00Z");
+  const before = new Date("2026-03-10T14:59:59Z");
+  const during = new Date("2026-03-10T16:00:00Z");
+  const after = new Date("2026-03-10T17:00:01Z");
+
+  const nueva = { status: "ACTIVE", firstTermId: TERM } as const;
+  const veterana = { status: "ACTIVE", firstTermId: "termino-anterior" } as const;
+  const honoraria = { status: "HONORARY", firstTermId: "termino-anterior" } as const;
+  const enLicencia = { status: "ON_LEAVE", firstTermId: TERM } as const;
+  const deBaja = { status: "INACTIVE", firstTermId: TERM } as const;
+  const deBajaVeterana = { status: "INACTIVE", firstTermId: "termino-anterior" } as const;
+
+  type Over = Partial<Omit<SelfCheckInFacts, "occasion">> & {
+    occasion?: Partial<SelfCheckInFacts["occasion"]>;
+  };
+
+  /** Una persona activa y nueva frente a una ocasión abierta, en su ventana y con el término abierto. */
+  function facts(over: Over = {}): SelfCheckInFacts {
+    return {
+      termClosed: false,
+      membership: nueva,
+      now: during,
+      ...over,
+      occasion: {
+        status: "OPEN",
+        termId: TERM,
+        newMembersOnly: false,
+        checkInOpensAt: opensAt,
+        checkInClosesAt: closesAt,
+        ...over.occasion,
+      },
+    };
+  }
+
+  it.each<[string, Over, ReturnType<typeof selfCheckInEligibilityDenial>]>([
+    ["una activa se registra", {}, null],
+    ["una honoraria se registra", { membership: honoraria }, null],
+    [
+      "una veterana se registra si la ocasión no es solo para nuevos",
+      { membership: veterana },
+      null,
+    ],
+    [
+      "una nueva se registra en una ocasión solo para nuevos",
+      { occasion: { newMembersOnly: true } },
+      null,
+    ],
+    ["la ventana abre en su hora exacta", { now: opensAt }, null],
+    ["una ocasión en borrador", { occasion: { status: "DRAFT" } }, "DRAFT"],
+    ["una ocasión cancelada", { occasion: { status: "CANCELLED" } }, "CANCELLED"],
+    ["una ocasión cerrada", { occasion: { status: "CLOSED" } }, "CLOSED"],
+    ["el término con los puntos cerrados", { termClosed: true }, "TERM_CLOSED"],
+    ["antes de la ventana", { now: before }, "NOT_OPEN_YET"],
+    ["después de la ventana", { now: after }, "WINDOW_CLOSED"],
+    ["la ventana cierra en su hora exacta", { now: closesAt }, "WINDOW_CLOSED"],
+    ["una persona en licencia", { membership: enLicencia }, "NOT_ELIGIBLE"],
+    ["una persona de baja", { membership: deBaja }, "NOT_ELIGIBLE"],
+    ["quien no tiene membresía", { membership: null }, "NOT_ELIGIBLE"],
+    [
+      "una veterana en una ocasión solo para nuevos",
+      { membership: veterana, occasion: { newMembersOnly: true } },
+      "NEW_MEMBERS_ONLY",
+    ],
+  ])("un motivo por caso: %s", (_title, over, expected) => {
+    expect(selfCheckInEligibilityDenial(facts(over))).toBe(expected);
+  });
+
+  it.each<[string, Over, ReturnType<typeof selfCheckInEligibilityDenial>]>([
+    [
+      "el estado antes que el término",
+      { occasion: { status: "CANCELLED" }, termClosed: true },
+      "CANCELLED",
+    ],
+    ["el término antes que la ventana", { termClosed: true, now: after }, "TERM_CLOSED"],
+    ["la ventana antes que la membresía", { now: before, membership: deBaja }, "NOT_OPEN_YET"],
+    [
+      "la membresía antes que solo nuevos",
+      { membership: deBajaVeterana, occasion: { newMembersOnly: true } },
+      "NOT_ELIGIBLE",
+    ],
+    [
+      "sin membresía tampoco se responde solo nuevos",
+      { membership: null, occasion: { newMembersOnly: true } },
+      "NOT_ELIGIBLE",
+    ],
+    [
+      "con todos a la vez manda el estado",
+      {
+        occasion: { status: "DRAFT", newMembersOnly: true },
+        termClosed: true,
+        now: after,
+        membership: deBajaVeterana,
+      },
+      "DRAFT",
+    ],
+  ])("cuando aplican varios responde el primero: %s", (_title, over, expected) => {
+    expect(selfCheckInEligibilityDenial(facts(over))).toBe(expected);
+  });
+
+  it("con el término cerrado siempre hay motivo: el comando no escribe sin tomarlo", () => {
+    for (const status of ["OPEN", "DRAFT", "CLOSED", "CANCELLED"] as const) {
+      for (const now of [before, during, after]) {
+        for (const membership of [nueva, veterana, honoraria, enLicencia, deBaja, null]) {
+          for (const newMembersOnly of [true, false]) {
+            const denial = selfCheckInEligibilityDenial(
+              facts({ termClosed: true, now, membership, occasion: { status, newMembersOnly } }),
+            );
+            expect(denial, `${status} ${now.toISOString()}`).not.toBeNull();
+          }
+        }
+      }
+    }
+  });
+
+  it("falla cerrado ante un valor que no reconoce", () => {
+    // Un estado de ocasión o de membresía que el tipo todavía no conoce no abre el registro.
+    expect(closedToSelf("OPEN")).toBeNull();
+    expect(closedToSelf("ARCHIVED" as never)).toBe("ARCHIVED");
+    expect(selfCheckInEligibilityDenial(facts({ occasion: { status: "ARCHIVED" as never } }))).toBe(
+      "ARCHIVED",
+    );
+    expect(
+      selfCheckInEligibilityDenial(
+        facts({ membership: { status: "SUSPENDED" as never, firstTermId: TERM } }),
+      ),
+    ).toBe("NOT_ELIGIBLE");
+  });
 });
 
 describe("ledger y tableros", () => {
-  it("suma el saldo y ubica el nivel por cortes", () => {
-    expect(balance([{ points: 20 }, { points: -20 }, { points: 15 }])).toBe(15);
+  it("ubica el nivel por cortes", () => {
     const cutoffs = [0, 100, 250, 500, 1000];
     expect(levelFor(0, cutoffs)).toEqual({ index: 0, min: 0, next: 100, remaining: 100 });
     expect(levelFor(99, cutoffs)).toEqual({ index: 0, min: 0, next: 100, remaining: 1 });
@@ -276,28 +422,24 @@ describe("elegibles del score", () => {
 
 describe("asambleas", () => {
   it("deriva el requisito de las ocasiones del término: elección y segunda vuelta cuando existen (ADR-060 regla 13)", () => {
-    const none = defaultRequirement(
-      { requiredOrdinaryAssemblies: 1 },
-      { hasBoardElection: false, hasRunoff: false },
-    );
+    const none = termAssemblyRequirement({ requiredOrdinaryAssemblies: 1 }, []);
     expect(none).toMatchObject({
       requiredOrdinary: 1,
       requiresBoardElection: false,
       requiresRunoff: false,
     });
-    const election = defaultRequirement(
-      { requiredOrdinaryAssemblies: 1 },
-      { hasBoardElection: true, hasRunoff: false },
-    );
+    const election = termAssemblyRequirement({ requiredOrdinaryAssemblies: 1 }, [
+      { assemblyKind: "BOARD_ELECTION", status: "OPEN" },
+    ]);
     expect(election).toMatchObject({
       requiredOrdinary: 1,
       requiresBoardElection: true,
       requiresRunoff: false,
     });
-    const withRunoff = defaultRequirement(
-      { requiredOrdinaryAssemblies: 2 },
-      { hasBoardElection: true, hasRunoff: true },
-    );
+    const withRunoff = termAssemblyRequirement({ requiredOrdinaryAssemblies: 2 }, [
+      { assemblyKind: "BOARD_ELECTION", status: "OPEN" },
+      { assemblyKind: "RUNOFF", status: "OPEN" },
+    ]);
     expect(withRunoff.requiresRunoff).toBe(true);
     expect(requiredTotal(withRunoff)).toBe(4);
   });
@@ -312,10 +454,10 @@ describe("asambleas", () => {
     expect(isShortNotice(thursday, new Date("2026-09-22T15:00:00Z"))).toBe(false);
   });
   it("calcula el cumplimiento por persona y lo que falta en orden", () => {
-    const requirement = defaultRequirement(
-      { requiredOrdinaryAssemblies: 1 },
-      { hasBoardElection: true, hasRunoff: true },
-    );
+    const requirement = termAssemblyRequirement({ requiredOrdinaryAssemblies: 1 }, [
+      { assemblyKind: "BOARD_ELECTION", status: "OPEN" },
+      { assemblyKind: "RUNOFF", status: "OPEN" },
+    ]);
     const none = assemblyCompliance(requirement, []);
     expect(none.compliant).toBe(false);
     expect(none.missing).toEqual(["ORDINARY", "BOARD_ELECTION", "RUNOFF"]);
@@ -344,6 +486,91 @@ describe("asambleas", () => {
       { assemblyKind: "BOARD_ELECTION", status: "APPROVED" },
     ]);
     expect(pending.missing).toEqual(["ORDINARY", "RUNOFF"]);
+  });
+
+  describe("las obligatorias que la persona lleva firmadas (ADR-128 regla 4)", () => {
+    const requires = (
+      requiredOrdinary: number,
+      requiresBoardElection: boolean,
+      requiresRunoff: boolean,
+    ): AssemblyRequirementView => ({
+      requiredOrdinary,
+      requiresBoardElection,
+      requiresRunoff,
+      adjusted: true,
+      reason: null,
+    });
+    const withStatus = (
+      status: AttendedAssembly["status"],
+      kinds: AttendedAssembly["assemblyKind"][],
+    ): AttendedAssembly[] => kinds.map((assemblyKind) => ({ assemblyKind, status }));
+    const signed = (...kinds: AttendedAssembly["assemblyKind"][]) => withStatus("APPROVED", kinds);
+    /** La cuenta como la piden las pantallas: sobre el cumplimiento que arma el dominio. */
+    const count = (requirement: AssemblyRequirementView, attended: AttendedAssembly[]) =>
+      attendedRequired(requirement, assemblyCompliance(requirement, attended));
+
+    it("las ordinarias firmadas cuentan hasta las que exige el requisito, y ni una más", () => {
+      expect(count(requires(2, false, false), [])).toBe(0);
+      expect(count(requires(2, false, false), signed("ORDINARY"))).toBe(1);
+      expect(count(requires(2, false, false), signed("ORDINARY", "ORDINARY"))).toBe(2);
+      expect(count(requires(2, false, false), signed("ORDINARY", "ORDINARY", "ORDINARY"))).toBe(2);
+      expect(count(requires(0, false, false), signed("ORDINARY", "ORDINARY"))).toBe(0);
+    });
+
+    it("la elección de junta y la segunda vuelta firmadas suman una cada una cuando el requisito las exige", () => {
+      const requirement = requires(1, true, true);
+      expect(count(requirement, signed("BOARD_ELECTION"))).toBe(1);
+      expect(count(requirement, signed("RUNOFF"))).toBe(1);
+      expect(count(requirement, signed("ORDINARY", "BOARD_ELECTION", "RUNOFF"))).toBe(3);
+      // Dos elecciones firmadas en el término son una sola obligatoria.
+      expect(count(requirement, signed("BOARD_ELECTION", "BOARD_ELECTION"))).toBe(1);
+    });
+
+    it("la firmada que el requisito no exige no cuenta", () => {
+      const both = signed("BOARD_ELECTION", "RUNOFF");
+      expect(count(requires(1, false, false), both)).toBe(0);
+      expect(count(requires(1, true, false), both)).toBe(1);
+      expect(count(requires(1, false, true), both)).toBe(1);
+      expect(count(requires(1, true, true), both)).toBe(2);
+    });
+
+    it("firmada es aprobada: una excusa cumple el requisito y no cuenta, y tampoco una pendiente, una rechazada ni una anulada", () => {
+      const requirement = requires(1, true, true);
+      const all: AttendedAssembly["assemblyKind"][] = ["ORDINARY", "BOARD_ELECTION", "RUNOFF"];
+      const excused = withStatus("EXCUSED", all);
+      expect(assemblyCompliance(requirement, excused).compliant).toBe(true);
+      expect(count(requirement, excused)).toBe(0);
+      for (const status of ["PENDING", "REJECTED", "CANCELLED"] as const) {
+        expect(count(requirement, withStatus(status, all))).toBe(0);
+      }
+    });
+
+    it("nunca pasa del total que exige el requisito, y sin excusas lo iguala justo cuando la persona cumple", () => {
+      for (const requiredOrdinary of [0, 1, 2, 3]) {
+        for (const requiresBoardElection of [false, true]) {
+          for (const requiresRunoff of [false, true]) {
+            const requirement = requires(requiredOrdinary, requiresBoardElection, requiresRunoff);
+            const total = requiredTotal(requirement);
+            for (const ordinaries of [0, 1, 2, 3, 4]) {
+              for (const election of [false, true]) {
+                for (const runoff of [false, true]) {
+                  const attended = signed(
+                    ...Array.from({ length: ordinaries }, () => "ORDINARY" as const),
+                    ...(election ? (["BOARD_ELECTION"] as const) : []),
+                    ...(runoff ? (["RUNOFF"] as const) : []),
+                  );
+                  const compliance = assemblyCompliance(requirement, attended);
+                  const n = attendedRequired(requirement, compliance);
+                  expect(n).toBeGreaterThanOrEqual(0);
+                  expect(n).toBeLessThanOrEqual(total);
+                  expect(n === total).toBe(compliance.compliant);
+                }
+              }
+            }
+          }
+        }
+      }
+    });
   });
 });
 
@@ -404,6 +631,13 @@ describe("viabilidad del comité (ADR-060 regla 8)", () => {
     expect(viabilityAlerts({ ...healthy, eventsThisTerm: 0, pastMidterm: false })).toEqual([]);
   });
 
+  it("la mitad del término es un día del calendario, con días pares o impares", () => {
+    // 2026-1: 180 días del 1 de enero al 30 de junio.
+    expect(midpointDay("2026-01-01", "2026-06-30")).toBe("2026-04-01");
+    // 2026-2: 183 días del 1 de julio al 31 de diciembre; el medio día que sobra no cuenta.
+    expect(midpointDay("2026-07-01", "2026-12-31")).toBe("2026-09-30");
+  });
+
   it("en prueba exige diez miembros, el 90 % de asambleas y avisa el vencimiento (Regl. art. 25)", () => {
     expect(
       viabilityAlerts({
@@ -425,5 +659,73 @@ describe("viabilidad del comité (ADR-060 regla 8)", () => {
         trialEndsOn: "2027-03-01",
       }),
     ).toEqual([]);
+  });
+});
+
+describe("requisito de asambleas del término", () => {
+  type Kind = "ORDINARY" | "BOARD_ELECTION" | "RUNOFF" | null;
+  type Status = "DRAFT" | "OPEN" | "CLOSED" | "CANCELLED";
+  const term = { requiredOrdinaryAssemblies: 1 };
+  const occasion = (assemblyKind: Kind, status: Status = "OPEN") => ({ assemblyKind, status });
+
+  it("sin asambleas especiales exige solo las ordinarias del término", () => {
+    expect(
+      termAssemblyRequirement({ requiredOrdinaryAssemblies: 2 }, [
+        occasion("ORDINARY"),
+        occasion(null),
+      ]),
+    ).toEqual({
+      requiredOrdinary: 2,
+      requiresBoardElection: false,
+      requiresRunoff: false,
+      adjusted: false,
+      reason: null,
+    });
+    expect(termAssemblyRequirement(term, [])).toMatchObject({
+      requiredOrdinary: 1,
+      requiresBoardElection: false,
+      requiresRunoff: false,
+    });
+  });
+
+  it("exige la elección de junta y la segunda vuelta que existen, en borrador, abiertas o cerradas", () => {
+    for (const status of ["DRAFT", "OPEN", "CLOSED"] as const) {
+      expect(
+        termAssemblyRequirement(term, [
+          occasion("BOARD_ELECTION", status),
+          occasion("RUNOFF", status),
+        ]),
+      ).toMatchObject({ requiresBoardElection: true, requiresRunoff: true });
+    }
+  });
+
+  it("una especial cancelada no exige nada, y otra del mismo tipo sin cancelar sí", () => {
+    expect(
+      termAssemblyRequirement(term, [occasion("BOARD_ELECTION"), occasion("RUNOFF", "CANCELLED")]),
+    ).toMatchObject({ requiresBoardElection: true, requiresRunoff: false });
+    expect(
+      termAssemblyRequirement(term, [
+        occasion("RUNOFF", "CANCELLED"),
+        occasion("RUNOFF", "CLOSED"),
+      ]),
+    ).toMatchObject({ requiresBoardElection: false, requiresRunoff: true });
+  });
+
+  it("responde lo mismo con todas las ocasiones del término que con solo sus asambleas sin cancelar", () => {
+    const all = [
+      occasion(null),
+      occasion("ORDINARY", "CLOSED"),
+      occasion("BOARD_ELECTION"),
+      occasion("RUNOFF", "CANCELLED"),
+      occasion(null, "CANCELLED"),
+    ];
+    const assemblies = all.filter(
+      (item) => item.assemblyKind !== null && item.status !== "CANCELLED",
+    );
+    expect(termAssemblyRequirement(term, all)).toEqual(termAssemblyRequirement(term, assemblies));
+    expect(termAssemblyRequirement(term, all)).toMatchObject({
+      requiresBoardElection: true,
+      requiresRunoff: false,
+    });
   });
 });

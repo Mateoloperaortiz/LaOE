@@ -2,7 +2,7 @@ import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
+import { drainOutbox } from "../helpers/outbox";
 import "@/modules/crm/jobs";
 import "@/modules/identity/jobs";
 import {
@@ -27,8 +27,8 @@ import { createTag, listPersonTags, setPersonTags } from "@/modules/people/domai
 import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
+import { leaveUntilSoon, seedCommittee, seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { leaveUntilSoon, seedCommittee, seedMember, seedTerm } from "./factories";
 
 const db = () => getDb();
 
@@ -39,15 +39,14 @@ describe("línea de tiempo por outbox", () => {
   it("un cambio de estado produce exactamente una interacción aunque el evento se procese dos veces", async () => {
     const adminId = await seedMember("admin@eafit.edu.co", { firstName: "Ada", lastName: "Admin" });
     const personId = await seedMember("miembro@eafit.edu.co");
-    await runCommand({ personId: adminId }, (ctx) =>
+    await runCommand({ personId: adminId, ip: null }, (ctx) =>
       changeMembershipStatus(ctx, personId, {
         to: "ON_LEAVE",
         reason: "Intercambio",
         leaveUntil: leaveUntilSoon(),
       }),
     );
-    await drain(20);
-    await drain(20);
+    await drainOutbox();
     const timeline = await listInteractions(personId);
     expect(timeline).toHaveLength(1);
     expect(timeline[0]).toMatchObject({
@@ -80,21 +79,25 @@ describe("línea de tiempo por outbox", () => {
     const adaId = await seedMember("ada@eafit.edu.co", { firstName: "Ada", lastName: "Admin" });
     const benId = await seedMember("ben@eafit.edu.co", { firstName: "Ben", lastName: "Admin" });
     const personId = await seedMember("persona@eafit.edu.co");
-    const note = await runCommand({ personId: adaId }, (ctx) =>
+    const note = await runCommand({ personId: adaId, ip: null }, (ctx) =>
       addNote(ctx, personId, "Primera línea\n\nDetalle"),
     );
     await expect(
-      runCommand({ personId: benId }, (ctx) => editNote(ctx, note.id, "Otra")),
+      runCommand({ personId: benId, ip: null }, (ctx) =>
+        editNote(ctx, note.id, "Otra", { personId }),
+      ),
     ).rejects.toBeInstanceOf(DomainError);
-    await runCommand({ personId: adaId }, (ctx) => editNote(ctx, note.id, "Corregida"));
+    await runCommand({ personId: adaId, ip: null }, (ctx) =>
+      editNote(ctx, note.id, "Corregida", { personId }),
+    );
     const notes = await listInteractions(personId, "NOTE");
     expect(notes[0]).toMatchObject({ summary: "Corregida", body: "Corregida" });
     expect(notes[0]?.editedAt).toBeInstanceOf(Date);
 
-    const created = await runCommand({ personId: adaId }, (ctx) =>
+    const created = await runCommand({ personId: adaId, ip: null }, (ctx) =>
       createTask(ctx, { title: "Llamar", kind: "GENERAL", assigneeId: adaId, personId }),
     );
-    await runCommand({ personId: adaId }, (ctx) =>
+    await runCommand({ personId: adaId, ip: null }, (ctx) =>
       createTask(ctx, { title: "Sin dueño", kind: "GENERAL", personId }),
     );
     expect(
@@ -107,20 +110,20 @@ describe("línea de tiempo por outbox", () => {
       1,
     );
     expect(await countOpenTasksFor(personId)).toBe(2);
-    await runCommand({ personId: adaId }, (ctx) => completeTask(ctx, created.id));
+    await runCommand({ personId: adaId, ip: null }, (ctx) => completeTask(ctx, created.id));
     expect(await countOpenTasksFor(personId)).toBe(1);
     expect(
       (await listTasks({ q: "", status: "DONE", page: 1, pageSize: 10 })).rows[0]?.assigneeName,
     ).toBe("Ada Admin");
 
-    await runCommand({ personId: adaId }, (ctx) =>
+    await runCommand({ personId: adaId, ip: null }, (ctx) =>
       endMembership(ctx, personId, {
         endReason: "RESIGNATION",
         memorialConsent: true,
         contactConsent: false,
       }),
     );
-    await drain(20);
+    await drainOutbox();
     const [remaining] = await db()
       .select({ n: count() })
       .from(task)

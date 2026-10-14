@@ -45,10 +45,6 @@ export interface TodayGame2048 {
   best: number;
 }
 
-export interface StartGame2048Input {
-  requestId: string;
-}
-
 export interface FinishGame2048Input {
   runId: string;
   moves: string;

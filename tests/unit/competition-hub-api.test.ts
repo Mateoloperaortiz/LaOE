@@ -17,7 +17,14 @@ const competitionModule = vi.hoisted(() => ({
   HUB_COOKIE: "oe_capitanes",
   HUB_API_PATH: "/api/v1/the-games/hub",
 }));
-vi.mock("@/modules/competition", () => competitionModule);
+// El dominio va simulado, menos el error con razón: la ruta lo reconoce por su clase y tiene que ser la
+// de verdad.
+vi.mock("@/modules/competition", async () => {
+  const pure = await vi.importActual<typeof import("@/modules/competition/domain/hub-pure")>(
+    "@/modules/competition/domain/hub-pure",
+  );
+  return { ...competitionModule, HubBetError: pure.HubBetError };
+});
 vi.mock("@/env", () => ({
   getEnv: () => ({ PUBLIC_API_ORIGINS: [DIAS], APP_URL: "https://oeeafit.com" }),
 }));
@@ -168,6 +175,47 @@ describe("rutas del hub", async () => {
       session,
       body,
     );
+  });
+
+  it("apostar decide el código de estado por la razón del dominio y no por el texto (ADR-114)", async () => {
+    const { DomainError } = await import("@/shared/lib/errors");
+    const { HubBetError } = await import("@/modules/competition");
+    const post = () =>
+      apuestas.POST(
+        call("/apuestas", {
+          method: "POST",
+          origin: DIAS,
+          json: { marketId: "mercado1", pick: 2, stake: 300 },
+          cookie: "valida",
+        }),
+      );
+
+    // La razón SESSION responde 401 con el texto que traiga el error, sea el que sea.
+    competitionModule.placeHubBetAs.mockRejectedValueOnce(new HubBetError("SESSION", t("T-2793")));
+    const gone = await post();
+    expect({ status: gone.status, body: await gone.json() }).toEqual({
+      status: 401,
+      body: { error: t("T-2793") },
+    });
+
+    // El texto de la sesión sin la razón es un error de dominio como cualquier otro: 400.
+    competitionModule.placeHubBetAs.mockRejectedValueOnce(new DomainError(t("T-3038")));
+    const sameText = await post();
+    expect({ status: sameText.status, body: await sameText.json() }).toEqual({
+      status: 400,
+      body: { error: t("T-3038") },
+    });
+
+    // Una razón que la ruta no conoce se rechaza: 400, nunca un 200 con un error adentro.
+    competitionModule.placeHubBetAs.mockRejectedValueOnce(
+      new HubBetError("OTRA" as never, t("T-2793")),
+    );
+    const unknown = await post();
+    expect({ status: unknown.status, body: await unknown.json() }).toEqual({
+      status: 400,
+      body: { error: t("T-2793") },
+    });
+    expect(competitionModule.getHubState).not.toHaveBeenCalled();
   });
 
   it("la verificación previa declara los métodos de cada ruta", () => {

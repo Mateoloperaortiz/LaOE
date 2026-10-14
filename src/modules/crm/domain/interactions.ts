@@ -1,10 +1,11 @@
-import { and, desc, eq, max, type SQL } from "drizzle-orm";
+import { and, desc, eq, max, notInArray, type SQL } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { getPeopleByIds } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { type InteractionKind, interaction } from "../schema";
+import { type PersonScope, scopedPersonId } from "./person-scope";
 import type { TimelineEntry } from "./timeline-pure";
 
 // Línea de tiempo de la persona (02-crm.md): automáticas inmutables (por outbox) y notas editables por su autor.
@@ -21,18 +22,30 @@ export interface InteractionView {
   metadata: Record<string, unknown>;
 }
 
-export type TimelineFilter = "ALL" | InteractionKind;
+/** Qué interacciones se piden: todas, las de un tipo, o las de cualquier tipo salvo los nombrados. */
+export type TimelineFilter = "ALL" | InteractionKind | { except: readonly InteractionKind[] };
+
+/**
+ * La condición de tipo de un filtro. Va en la consulta, antes del tope: descartar en memoria lo que
+ * ya se cortó deja vacía una lista que sí tenía filas más atrás (ADR-121 regla 10).
+ */
+function kindMatches(filter: TimelineFilter): SQL | undefined {
+  if (filter === "ALL") {
+    return undefined;
+  }
+  if (typeof filter === "string") {
+    return eq(interaction.kind, filter);
+  }
+  // Sin tipos que descartar no hay condición que escribir.
+  return filter.except.length > 0 ? notInArray(interaction.kind, [...filter.except]) : undefined;
+}
 
 export async function listInteractions(
   personId: string,
-  kind: TimelineFilter = "ALL",
+  filter: TimelineFilter = "ALL",
   limit = 200,
 ): Promise<InteractionView[]> {
-  const where =
-    kind === "ALL"
-      ? eq(interaction.personId, personId)
-      : and(eq(interaction.personId, personId), eq(interaction.kind, kind));
-  return listWhere(where, limit);
+  return listWhere(and(eq(interaction.personId, personId), kindMatches(filter)), limit);
 }
 
 /** Línea de tiempo de una organización (ADR-037): notas y movimientos de sus tarjetas. */
@@ -136,10 +149,20 @@ async function insertNote(
   return row;
 }
 
-/** Solo su autor edita una nota; queda `editedAt` (02-crm.md, regla 3). */
-export async function editNote(ctx: CommandContext, id: string, body: string): Promise<void> {
+/**
+ * Solo su autor edita una nota; queda `editedAt` (02-crm.md, regla 3). Se edita desde la ficha de su
+ * persona, que es obligatoria (ADR-122 regla 1): la nota de otra persona responde como una que no
+ * existe.
+ */
+export async function editNote(
+  ctx: CommandContext,
+  id: string,
+  body: string,
+  scope: PersonScope,
+): Promise<void> {
+  const personId = scopedPersonId(scope);
   const [row] = await ctx.tx.select().from(interaction).where(eq(interaction.id, id));
-  if (!row || row.kind !== "NOTE") {
+  if (!row || row.kind !== "NOTE" || personId === null || row.personId !== personId) {
     throw new DomainError(t("T-032"));
   }
   if (row.actorId !== ctx.actor.personId) {

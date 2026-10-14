@@ -15,6 +15,7 @@ import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { event, eventEdition } from "@/modules/events/schema";
 import { committee, membershipStatus, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import type { ProposalReason } from "./domain/permanence-pure";
 
 // Permanencia (ADR-025 a ADR-028, ADR-036): las tablas de GH y de cada comité como datos por término,
 // grupos de trabajo con evaluadores, puntajes del líder, créditos manuales, snapshot por persona y
@@ -291,6 +292,10 @@ export const permanenceSnapshot = pgTable(
 
 // Decisión confirmada por GH en el cierre (ADR-027, ADR-028): una por comité y una por persona con
 // `committeeId` nulo; las propuestas se derivan del snapshot y no se guardan hasta confirmarse.
+// `proposalReason` es el motivo automático con que el cierre propuso, en el orden de T-801: lo guarda
+// `confirmDecisions` con la decisión, porque no se puede volver a sacar cuando los hechos cambian
+// después (ADR-128 regla 1). Es nulo solo en las decisiones confirmadas antes de que existiera la
+// columna (migración 0051), que no se rellenaron: ese motivo no se calcula en SQL (DT-392).
 export const permanenceDecision = pgTable(
   "permanence_decision",
   {
@@ -305,6 +310,7 @@ export const permanenceDecision = pgTable(
     proposed: permanenceDecisionKind().notNull(),
     decision: permanenceDecisionKind().notNull(),
     reason: text(),
+    proposalReason: integer().$type<ProposalReason>(),
     decidedById: text().references(() => person.id, { onDelete: "set null" }),
     decidedAt: timestampTz().notNull().defaultNow(),
     appliedAt: timestampTz(),
@@ -330,6 +336,10 @@ export const permanenceDecision = pgTable(
     check(
       "permanence_decision_committee_scope",
       sql`${t.committeeId} is null or (${t.decision} <> 'EXIT_OE' and ${t.proposed} <> 'EXIT_OE')`,
+    ),
+    check(
+      "permanence_decision_proposal_reason_range",
+      sql`${t.proposalReason} is null or ${t.proposalReason} between 0 and 5`,
     ),
   ],
 );

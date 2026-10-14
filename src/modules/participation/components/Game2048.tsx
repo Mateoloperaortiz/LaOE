@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
+import { type ClientCopyCode, t, tLabels, tList } from "@/shared/copy/client";
 import { ArrowDownIcon } from "@/shared/ui/icons/ArrowDownIcon";
 import { ArrowLeftIcon } from "@/shared/ui/icons/ArrowLeftIcon";
 import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
@@ -26,12 +26,14 @@ import type {
   Game2048State,
   TodayGame2048,
 } from "../game2048-types";
+import { game2048Finished, game2048ReleasedBy } from "./game2048-resume";
 
 // Tablero del 2048 (ADR-075). El juego corre entero en el navegador con el motor puro; al terminar
 // manda solo la lista de movimientos y el servidor la rejuega. Cada ficha lleva su número, así que
 // nunca hay información solo en color, y se opera con flechas, con botones o deslizando.
 
-const DIRECTIONS: Game2048Move[] = ["U", "D", "L", "R"];
+const DIRECTIONS = ["U", "D", "L", "R"] as const satisfies readonly Game2048Move[];
+const DIRECTION_LABELS = tLabels("T-2639", DIRECTIONS);
 const KEYS: Record<string, Game2048Move> = {
   ArrowUp: "U",
   ArrowDown: "D",
@@ -150,9 +152,11 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
     setResuming(true);
   }, [initial.open]);
 
+  // Una negativa de la casa suelta la partida del tablero y deja «Empezar una partida». Cuál la
+  // suelta lo decide `game2048ReleasedBy`: hoy, todas (ADR-123 regla 10).
   function fail(reason: Game2048Denial) {
     setMessage(t(ERROR_COPY[reason]));
-    if (["EXPIRED", "NO_TERM", "TERM_CLOSED", "NOT_ELIGIBLE", "INVALID_MOVES"].includes(reason)) {
+    if (game2048ReleasedBy(reason)) {
       setLive(null);
       clearStored();
       router.refresh();
@@ -233,6 +237,18 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
     }
   }
 
+  // «Seguir» sobre un tablero retomado que ya terminó (su cierre no llegó a la casa y la persona
+  // recargó): ninguna jugada lo cierra, así que se cierra acá, como lo habría cerrado su última
+  // jugada (ADR-122 regla 15). Qué responde la casa al cerrar no cambia.
+  function keepGoing() {
+    if (!live) return;
+    setResuming(false);
+    if (game2048Finished(live.state)) {
+      setAnnounce(live.state.over ? t("T-2644", { puntaje: live.state.score }) : t("T-2645"));
+      send({ runId: live.run.id, moves: live.moves, requestId: crypto.randomUUID() });
+    }
+  }
+
   const playing = live !== null && !resuming && !done;
 
   useEffect(() => {
@@ -304,7 +320,7 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
       {playing ? (
         <fieldset className="mx-auto grid w-full max-w-sm grid-cols-4 gap-2 border-0 p-0">
           <legend className="sr-only">{t("T-2638")}</legend>
-          {DIRECTIONS.map((direction, index) => {
+          {DIRECTIONS.map((direction) => {
             const Arrow = ARROWS[direction];
             return (
               <button
@@ -314,7 +330,7 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
                 className="boton-secundario justify-center text-lg"
               >
                 <Arrow />
-                <span className="sr-only">{tList("T-2639")[index] ?? direction}</span>
+                <span className="sr-only">{DIRECTION_LABELS[direction] ?? direction}</span>
               </button>
             );
           })}
@@ -344,7 +360,7 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
         {resuming && live ? (
           <>
             <p className="w-full text-sm">{t("T-2646")}</p>
-            <button type="button" onClick={() => setResuming(false)} className="boton-primario">
+            <button type="button" onClick={keepGoing} className="boton-primario">
               {t("T-2647")}
             </button>
             <button

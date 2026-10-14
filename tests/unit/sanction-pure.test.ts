@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  addDays,
   addMonths,
   deriveDates,
   expulsionWarning,
@@ -12,6 +11,7 @@ import {
   suspendedUntil,
 } from "@/modules/people/domain/sanction-pure";
 import { tList } from "@/shared/copy";
+import { addDays } from "@/shared/lib/dates-pure";
 
 // Faltas y sanciones (Regl. cap. 9 y Anexo 1; ADR-060 regla 6): duraciones, vigencia y efectos.
 

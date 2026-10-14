@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { t, tList } from "@/shared/copy/client";
+import { t, tLabels } from "@/shared/copy/client";
 
 // Pestañas de GH Points (T-2402): Resumen, Retos, Boosters, Colección. Las dos últimas llegan en
 // G-T4/G-T5: el enlace queda y responde 404 hasta entonces. Con la bandera apagada no hay
@@ -17,14 +17,14 @@ const HREFS = [
 
 export function PointsNav({ enabled }: { enabled: boolean }) {
   const pathname = usePathname();
-  const labels = tList("T-2402");
+  const labels = tLabels("T-2402", HREFS);
   const items = enabled ? HREFS : HREFS.slice(0, 1);
   if (items.length <= 1) {
     return null;
   }
   return (
     <nav aria-label={t("T-080")} className="mb-6 flex flex-wrap gap-2">
-      {items.map((href, index) => {
+      {items.map((href) => {
         const current = href === "/app/gh-points" ? pathname === href : pathname.startsWith(href);
         return (
           <Link
@@ -35,7 +35,7 @@ export function PointsNav({ enabled }: { enabled: boolean }) {
               current ? "bg-oe-navy text-oe-paper" : "border border-borde text-titulo"
             }`}
           >
-            {labels[index] ?? href}
+            {labels[href] ?? href}
           </Link>
         );
       })}

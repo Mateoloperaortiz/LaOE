@@ -4,9 +4,10 @@ import { type CommandContext, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { gamificationReconcile } from "@/domain-events/participation";
 import { listMembershipPersonIds } from "@/modules/people";
-import { t } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
+import { withoutQueryValues } from "@/shared/lib/error-sanitizer";
 import { DomainError } from "@/shared/lib/errors";
-import { badgeReconciliationRun } from "../schema";
+import { badgeReconciliationRun, reconciliationStatus } from "../schema";
 import { recomputeBadgesFor } from "./badges";
 
 // Conciliación histórica (ADR-067 reglas 11 y 13): reconoce insignias por hechos de cualquier
@@ -15,6 +16,14 @@ import { recomputeBadgesFor } from "./badges";
 // cada lote es idempotente y una corrida FAILED reanuda desde donde quedó.
 
 export type ReconciliationRunRow = typeof badgeReconciliationRun.$inferSelect;
+
+/**
+ * El estado de una corrida con la palabra del catálogo (T-2559, en el orden del enum): es lo que
+ * nombra el error de reanudar una que no quedó con error (ADR-123 regla 8).
+ */
+function reconciliationStatusLabel(status: ReconciliationRunRow["status"]): string {
+  return tLabels("T-2559", reconciliationStatus.enumValues)[status] ?? status;
+}
 
 export const RECONCILE_BATCH = 100;
 const REPORT_SAMPLE_MAX = 50;
@@ -80,7 +89,9 @@ export async function resumeReconciliation(ctx: CommandContext, runId: string): 
     throw new DomainError(t("T-032"));
   }
   if (row.status !== "FAILED") {
-    throw new DomainError(t("T-676", { estado: row.status }));
+    throw new DomainError(
+      t("T-3268", { estado: reconciliationStatusLabel(row.status).toLowerCase() }),
+    );
   }
   await ctx.tx
     .update(badgeReconciliationRun)
@@ -134,7 +145,6 @@ export async function processReconciliationBatch(
       const result = await recomputeBadgesFor(personId, {
         historical: true,
         dryRun: run.mode === "DRY_RUN",
-        actor: SYSTEM_ACTOR,
       });
       delta.unlocked += result.unlocked.length;
       delta.revoked += result.revoked.length;
@@ -150,7 +160,12 @@ export async function processReconciliationBatch(
       }
     }
   } catch (error) {
-    const message = (error instanceof Error ? error.message : String(error)).slice(0, 500);
+    // Lo que se guarda pasa por el recorte del registro: sin los valores de la consulta que falló ni
+    // los datos de una conexión que no abrió, que quedarían en la corrida, a la vista en el admin, y
+    // en su auditoría (ADR-120 regla 11).
+    const message = (
+      error instanceof Error ? withoutQueryValues(error, error.message) : String(error)
+    ).slice(0, 500);
     await runCommand(SYSTEM_ACTOR, async (ctx) => {
       await ctx.tx
         .update(badgeReconciliationRun)

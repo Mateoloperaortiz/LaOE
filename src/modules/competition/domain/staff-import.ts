@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { getMembershipRef, getPeopleByIds, isMacroeventDirector } from "@/modules/people";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   competitionBase,
@@ -23,6 +23,7 @@ import {
   type ParsedStaffRow,
   parseStaffSheet,
   planStaffChanges,
+  STAFF_SHEET_ROLES,
   type StaffDirectory,
   type StaffSheetProblem,
   type StaffSheetRole,
@@ -101,15 +102,13 @@ const EMPTY_SUMMARY: ImportStaffResult["summary"] = {
   kept: 0,
 };
 
-const ROLE_ORDER: readonly StaffSheetRole[] = ["LEADER", "GRADER", "OVERSEER", "VAR"];
-
 /** El día en minúscula, como lo usan los textos («el jueves»). */
 export function dayName(day: Day): string {
   return (tList("T-3048")[day - 1] ?? String(day)).toLowerCase();
 }
 
 function roleLabel(role: StaffSheetRole): string {
-  return tList("T-3155")[ROLE_ORDER.indexOf(role)] ?? role;
+  return tLabels("T-3155", STAFF_SHEET_ROLES)[role] ?? role;
 }
 
 function list(names: readonly string[]): string {

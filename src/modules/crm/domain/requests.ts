@@ -7,14 +7,17 @@ import { eventOf } from "@/domain-events/define";
 import {
   excuseCheckIn,
   findCheckIn,
+  type GamificationSettings,
   getOccasionsByIds,
   listOccasionsForTerm,
+  loadGamificationSettings,
 } from "@/modules/participation";
 import {
   changeMembershipStatus,
   endMembership,
   getMembershipRef,
   getMyMembership,
+  getMyMembershipForUpdate,
   getPeopleByIds,
   getPersonRecord,
   leaveUntilError,
@@ -24,10 +27,10 @@ import {
 } from "@/modules/people";
 import { requireConfig, requirePrivacyPolicyVersion } from "@/modules/system";
 import { ensureNextTerm, getCurrentTerm, type TermRow } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { request, task } from "../schema";
+import { request } from "../schema";
 import {
   EXCUSE_BUSINESS_DAYS,
   EXCUSE_CAUSES,
@@ -41,7 +44,7 @@ import {
   resultingCommittees,
   type TransferPayload,
 } from "./requests-pure";
-import { completeTask } from "./tasks";
+import { completeTask, openTaskForReason } from "./tasks";
 
 // Solicitudes del miembro (ADR-031, ADR-037 regla 9): nada cambia hasta que GH aprueba; aprobar
 // ejecuta en la misma transacción el comando de `people` que haría a mano; rechazar exige motivo;
@@ -60,17 +63,17 @@ export interface RequestView extends RequestRecord {
 }
 
 export function requestKindLabel(kind: RequestKind): string {
-  return tList("T-894")[REQUEST_KINDS.indexOf(kind)] ?? kind;
+  return tLabels("T-894", REQUEST_KINDS)[kind] ?? kind;
 }
 
 export function requestStatusLabel(status: RequestStatus): string {
-  return tList("T-876")[REQUEST_STATUSES.indexOf(status)] ?? status;
+  return tLabels("T-876", REQUEST_STATUSES)[status] ?? status;
 }
 
 /** Causal del Anexo 1 en el orden de T-2215 (ADR-060 regla 5). */
 export function excuseCauseLabel(cause: string): string {
-  const index = (EXCUSE_CAUSES as readonly string[]).indexOf(cause);
-  return index >= 0 ? (tList("T-2215")[index] ?? cause) : cause;
+  const causes: Readonly<Record<string, string>> = tLabels("T-2215", EXCUSE_CAUSES);
+  return causes[cause] ?? cause;
 }
 
 /** Hasta cuándo se presenta la excusa de una ocasión: tres días hábiles después (Anexo 1, par. 1). */
@@ -238,7 +241,7 @@ export async function createRequestAs(
   if (kind === "TRANSFER") {
     const mine = await getMyMembership(actor.personId);
     const change = resultingCommittees(
-      mine.committees.map((row) => ({ committeeId: row.committeeId, roleCode: row.roleCode })),
+      mine.committees,
       payload as TransferPayload,
       await committeeLimits(),
     );
@@ -255,11 +258,7 @@ export async function createRequestAs(
       }
     }
   }
-  const [term, days, who] = await Promise.all([
-    getCurrentTerm(),
-    requireConfig("requests.taskDays"),
-    getPersonRecord(actor.personId),
-  ]);
+  const [term, who] = await Promise.all([getCurrentTerm(), getPersonRecord(actor.personId)]);
   if (!term || !who) {
     throw new DomainError(t("T-989"));
   }
@@ -305,20 +304,14 @@ export async function createRequestAs(
     if (!created) {
       throw new Error("No se pudo crear la solicitud");
     }
-    const [opened] = await ctx.tx
-      .insert(task)
-      .values({
-        title: t("T-1009", { nombre: `${who.firstName} ${who.lastName}`.trim(), tipo: kindLabel }),
-        kind: "REQUEST",
-        personId: actor.personId,
-        createdById: actor.personId,
-        dueAt: addBusinessDays(new Date(), days),
-      })
-      .returning({ id: task.id });
-    await ctx.tx
-      .update(request)
-      .set({ taskId: opened?.id ?? null })
-      .where(eq(request.id, created.id));
+    const opened = await openTaskForReason(ctx, {
+      reason: { type: "REQUEST", requestId: created.id, personId: actor.personId },
+      title: t("T-1009", { nombre: `${who.firstName} ${who.lastName}`.trim(), tipo: kindLabel }),
+      assigneeId: null,
+      due: { businessDays: "requests.taskDays" },
+      requestedById: actor.personId,
+    });
+    await ctx.tx.update(request).set({ taskId: opened.id }).where(eq(request.id, created.id));
     await ctx.audit({
       action: "request.created",
       entityType: "request",
@@ -413,12 +406,16 @@ export async function decideRequestAs(
       throw new DomainError(t("T-2337"), "reason");
     }
   }
-  // Lecturas cruzadas antes de la transacción (people y terms por getDb()).
-  const [who, mine, term, limits] = await Promise.all([
+  // Lecturas cruzadas antes de la transacción (people, terms y participation por getDb()). Los comités
+  // de quien pide un cambio de comité no van acá: se leen adentro, bajo candado (ADR-121 regla 15).
+  const [who, term, limits, gamification] = await Promise.all([
     getPersonRecord(current.personId),
-    current.kind === "TRANSFER" ? getMyMembership(current.personId) : Promise.resolve(null),
     getCurrentTerm(),
     committeeLimits(),
+    // La excusa libera el premio reservado de una asistencia pendiente (ADR-067 regla 3).
+    input.decision === "APPROVED" && current.kind === "EXCUSE"
+      ? loadGamificationSettings()
+      : Promise.resolve(null),
   ]);
   if (!who) {
     throw new DomainError(t("T-032"));
@@ -434,7 +431,7 @@ export async function decideRequestAs(
     }
     let appliedTerm: TermRow | null = null;
     if (input.decision === "APPROVED") {
-      appliedTerm = await apply(ctx, row, { mine, term, limits });
+      appliedTerm = await apply(ctx, row, { term, limits, gamification });
     }
     await ctx.tx
       .update(request)
@@ -479,9 +476,9 @@ async function apply(
   ctx: CommandContext,
   row: RequestRecord,
   context: {
-    mine: Awaited<ReturnType<typeof getMyMembership>> | null;
     term: TermRow | null;
     limits: { min: number; max: number };
+    gamification: GamificationSettings | null;
   },
 ): Promise<TermRow | null> {
   if (row.kind === "EXCUSE") {
@@ -489,11 +486,18 @@ async function apply(
     if (!row.occasionId) {
       throw new DomainError(t("T-2227"));
     }
-    await excuseCheckIn(ctx, {
-      occasionId: row.occasionId,
-      personId: row.personId,
-      reason: `${excuseCauseLabel(payload.cause)}: ${payload.reason}`,
-    });
+    if (!context.gamification) {
+      throw new Error("Falta la configuración de gamificación para aplicar la excusa");
+    }
+    await excuseCheckIn(
+      ctx,
+      {
+        occasionId: row.occasionId,
+        personId: row.personId,
+        reason: `${excuseCauseLabel(payload.cause)}: ${payload.reason}`,
+      },
+      { settings: context.gamification },
+    );
     return null;
   }
   if (row.kind === "LEAVE") {
@@ -521,18 +525,17 @@ async function apply(
   if (!context.term) {
     throw new DomainError(t("T-989"));
   }
-  const change = resultingCommittees(
-    (context.mine?.committees ?? []).map((item) => ({
-      committeeId: item.committeeId,
-      roleCode: item.roleCode,
-    })),
-    payload,
-    context.limits,
-  );
+  // El término siguiente va primero: si hay que crearlo toma el candado del calendario, y ese se toma
+  // antes que la fila de una membresía, como hace el roster (ADR-121 regla 15).
+  const next = await ensureNextTerm(ctx, context.term);
+  // Los comités se leen con la fila de la membresía tomada. Leídos antes de la transacción, un cambio
+  // de comités que confirmara en el medio quedaba fuera del término siguiente (DT-316).
+  const mine = await getMyMembershipForUpdate(ctx.tx, row.personId);
+  // Los cargos vivos de cada comité que sigue, no el principal derivado (ADR-118 regla 7).
+  const change = resultingCommittees(mine.committees, payload, context.limits);
   if (change.error) {
     throw new DomainError(t(change.error, context.limits));
   }
-  const next = await ensureNextTerm(ctx, context.term);
   await setCommitteeMemberships(ctx, row.personId, next.id, change.rows);
   return { ...context.term, id: next.id, code: next.code };
 }

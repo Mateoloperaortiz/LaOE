@@ -4,7 +4,7 @@ import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { challengeRewardReversed } from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
-import { t } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import type {
   CampaignPercent,
@@ -13,7 +13,7 @@ import type {
   RewardCaps,
   RewardSource,
 } from "../gamification-types";
-import { boosterItem, challenge, challengeParticipation, reward } from "../schema";
+import { boosterItem, challenge, challengeParticipation, reward, rewardStatus } from "../schema";
 import { computeReward, dayKeyFor, weekKeyFor } from "./gamification-pure";
 import { creditReward, reverseRewardCredits } from "./ledger";
 
@@ -23,6 +23,14 @@ import { creditReward, reverseRewardCredits } from "./ledger";
 // los créditos con REVERSAL sin reabrir cupo.
 
 export type RewardRow = typeof reward.$inferSelect;
+
+/**
+ * El estado de un premio con la palabra del catálogo (T-3267, en el orden del enum): es lo que
+ * nombra el error de un paso que ya no aplica (ADR-123 regla 8).
+ */
+function rewardStatusLabel(status: RewardRow["status"]): string {
+  return tLabels("T-3267", rewardStatus.enumValues)[status] ?? status;
+}
 
 export interface ReserveRewardInput {
   personId: string;
@@ -185,7 +193,10 @@ export async function rereserveReward(
     previous.personId !== input.personId ||
     previous.termId !== input.termId
   ) {
-    throw new DomainError(t("T-676", { estado: previous.status }));
+    // Salta también con el premio liberado si la persona o el semestre no coinciden. Ningún llamador
+    // llega así: los dos leen el premio de la misma entrega o asistencia que reservan. El texto
+    // nombra el estado igual (ADR-123 regla 8).
+    throw new DomainError(t("T-676", { estado: rewardStatusLabel(previous.status).toLowerCase() }));
   }
   const dayKey = dayKeyFor(now);
   const weekKey = weekKeyFor(now);
@@ -307,7 +318,7 @@ export async function grantReward(
     return row;
   }
   if (row.status !== "RESERVED") {
-    throw new DomainError(t("T-676", { estado: row.status }));
+    throw new DomainError(t("T-676", { estado: rewardStatusLabel(row.status).toLowerCase() }));
   }
   await lockOpenTermPoints(ctx.tx, row.termId);
   // La base del CHECKIN ya está en el ledger como entrada CHECKIN (creditCheckIn): el premio
@@ -373,7 +384,7 @@ export async function releaseReward(
     return row;
   }
   if (row.status !== "RESERVED") {
-    throw new DomainError(t("T-676", { estado: row.status }));
+    throw new DomainError(t("T-676", { estado: rewardStatusLabel(row.status).toLowerCase() }));
   }
   const now = new Date();
   if (row.boosterItemId) {
@@ -412,7 +423,7 @@ export async function reverseReward(
     return { reversed: 0 };
   }
   if (row.status !== "GRANTED") {
-    throw new DomainError(t("T-676", { estado: row.status }));
+    throw new DomainError(t("T-676", { estado: rewardStatusLabel(row.status).toLowerCase() }));
   }
   await lockOpenTermPoints(ctx.tx, row.termId);
   const reversed = await reverseRewardCredits(ctx, rewardId, reason);

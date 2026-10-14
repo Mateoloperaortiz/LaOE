@@ -1,20 +1,33 @@
-import { and, eq } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { and, eq, isNull } from "drizzle-orm";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
+import { type CommandContext, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import {
   listAssemblyRepresentation,
   listCommitteeRepresentation,
   recomputeCommitteeAssembly,
 } from "@/modules/participation";
 import { closeOccasion } from "@/modules/participation/domain/occasions";
-import { checkIn, committeeAssemblyAttendance } from "@/modules/participation/schema";
-import { listRepresentatives, setRepresentativeAs } from "@/modules/people";
-import { DomainError } from "@/shared/lib/errors";
-import { truncateAll } from "./db";
+import { committeeAssemblyAttendance } from "@/modules/participation/schema";
 import {
+  anonymizePersonAs,
+  endMembershipAs,
+  leaveCommitteeAs,
+  listRepresentatives,
+  requestDeletionAs,
+  setCommitteeMembershipsAs,
+  setRepresentativeAs,
+} from "@/modules/people";
+import { setCommitteeMemberships } from "@/modules/people/domain/committee-memberships";
+import { endMembership } from "@/modules/people/domain/membership";
+import { setRepresentative } from "@/modules/people/domain/representatives";
+import { leaveCommittee } from "@/modules/people/domain/term-outcomes";
+import { committeeMembership } from "@/modules/people/schema";
+import { auditLog } from "@/modules/system/schema";
+import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
+import {
+  currentTermCode,
   seedCheckIn,
   seedCommittee,
   seedCommitteeMembership,
@@ -23,24 +36,16 @@ import {
   seedOccasion,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { holdCommand, waitingOn } from "../helpers/locks";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Representación de los comités ante la Asamblea Directiva (ADR-060 regla 7): titular y suplente
 // activos del comité, asistencia por comité derivada al cerrar la asamblea (titular, suplente o
 // cualquier cargo de dirección), excusa aceptada y la escalera del término.
 
 const db = () => getDb();
-
-async function drenar(): Promise<void> {
-  for (let batch = 0; batch < 20; batch += 1) {
-    const result = await drain(50);
-    expect(result.failed).toBe(0);
-    if (result.processed === 0) {
-      return;
-    }
-  }
-  throw new Error("El outbox no terminó");
-}
 
 async function assembly(termId: string, title: string, daysAgo: number) {
   const startsAt = new Date(Date.now() - daysAgo * 86_400_000);
@@ -132,7 +137,7 @@ describe("representación en la asamblea", () => {
     await seedCheckIn(first.id, miembroIus);
     expect(await recomputeCommitteeAssembly(first.id)).toBe(0); // abierta todavía
     await runCommand(SYSTEM_ACTOR, (ctx) => closeOccasion(ctx, first.id));
-    await drenar();
+    await drainOutbox();
     const rows = await db()
       .select()
       .from(committeeAssemblyAttendance)
@@ -151,14 +156,9 @@ describe("representación en la asamblea", () => {
 
     // Segunda asamblea: nadie de A3; el suplente de Pixel con excusa aceptada; IUS de nuevo sin mesa.
     const second = await assembly(termId, "Segunda", 3);
-    await db().insert(checkIn).values({
-      occasionId: second.id,
-      personId: suplentePixel,
-      status: "EXCUSED",
-      source: "ADMIN",
-    });
+    await seedCheckIn(second.id, suplentePixel, "EXCUSED");
     await runCommand(SYSTEM_ACTOR, (ctx) => closeOccasion(ctx, second.id));
-    await drenar();
+    await drainOutbox();
     const summary = await listCommitteeRepresentation(termId);
     const of = (id: string) => summary.find((row) => row.committeeId === id);
     expect(of(a3)).toMatchObject({
@@ -195,5 +195,258 @@ describe("representación en la asamblea", () => {
     expect(
       (await listCommitteeRepresentation(termId)).find((row) => row.committeeId === a3),
     ).toMatchObject({ unexcused: 0, ladder: 0 });
+  });
+
+  // ADR-118 regla 6 (DT-202): todo cierre de pertenencia retira la representación de ese comité. La
+  // asamblea se cierra después: las ya cerradas no se recalculan (decisión abierta 39).
+  interface Salida {
+    gh: { personId: string; ip: null };
+    titular: string;
+    a3: string;
+    pixel: string;
+    termId: string;
+  }
+  const salidas: Array<[string, (salida: Salida) => Promise<unknown>]> = [
+    [
+      "GH la pasa a otro comité",
+      ({ gh, titular, pixel, termId }) =>
+        setCommitteeMembershipsAs(gh, titular, termId, [{ committeeId: pixel }]),
+    ],
+    [
+      "el cierre de permanencia la saca del comité",
+      ({ gh, titular, a3, termId }) => leaveCommitteeAs(gh, titular, a3, termId, "Cierre"),
+    ],
+    [
+      "se da de baja",
+      ({ gh, titular }) =>
+        endMembershipAs(gh, titular, {
+          endReason: "RESIGNATION",
+          memorialConsent: false,
+          contactConsent: false,
+        }),
+    ],
+    [
+      "pide que borren sus datos",
+      async ({ gh, titular }) => {
+        await requestDeletionAs({ personId: titular, ip: null });
+        await anonymizePersonAs(gh, titular);
+      },
+    ],
+  ];
+
+  it.each(
+    salidas,
+  )("la titular deja de representar a su comité cuando %s, aunque haya asistido a la asamblea", async (_caso, salir) => {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const titular = await seedMember("titular@eafit.edu.co");
+    const queda = await seedMember("queda@eafit.edu.co");
+    await seedCommitteeMembership(titular, a3, termId);
+    await seedCommitteeMembership(queda, a3, termId);
+    await setRepresentativeAs(gh, { committeeId: a3, termId, role: "TITULAR", personId: titular });
+    const asamblea = await assembly(termId, "Asamblea", 1);
+    await seedCheckIn(asamblea.id, titular);
+
+    await salir({ gh, titular, a3, pixel, termId });
+
+    await runCommand(SYSTEM_ACTOR, (ctx) => closeOccasion(ctx, asamblea.id));
+    await recomputeCommitteeAssembly(asamblea.id);
+    const [fila] = await db()
+      .select()
+      .from(committeeAssemblyAttendance)
+      .where(
+        and(
+          eq(committeeAssemblyAttendance.occasionId, asamblea.id),
+          eq(committeeAssemblyAttendance.committeeId, a3),
+        ),
+      );
+    expect(fila).toMatchObject({ represented: false, representedById: null });
+    expect(await listRepresentatives(termId, a3)).toEqual([]);
+    // El retiro queda en la auditoría del comité, igual que un nombramiento.
+    const rastro = await db()
+      .select({ after: auditLog.after })
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "committee-representative.set"), eq(auditLog.entityId, a3)));
+    expect(rastro.map((row) => (row.after as { personId: string | null }).personId)).toEqual(
+      expect.arrayContaining([titular, null]),
+    );
+  });
+
+  // ADR-118 regla 6 con dos solicitudes a la vez: el nombramiento lee su elegibilidad bajo candado.
+  // Llegue primero el cierre o el nombramiento, no queda nombrada quien ya no es del comité.
+  const BAJA = { endReason: "RESIGNATION", memorialConsent: false, contactConsent: false } as const;
+  const cierres: Array<
+    [
+      string,
+      (ctx: CommandContext, salida: Salida) => Promise<unknown>,
+      (salida: Salida) => Promise<unknown>,
+    ]
+  > = [
+    [
+      "la baja",
+      (ctx, { titular }) => endMembership(ctx, titular, BAJA),
+      ({ gh, titular }) => endMembershipAs(gh, titular, BAJA),
+    ],
+    [
+      "la salida por el cierre de permanencia",
+      (ctx, { titular, a3, termId }) => leaveCommittee(ctx, titular, a3, termId, "Cierre"),
+      ({ gh, titular, a3, termId }) => leaveCommitteeAs(gh, titular, a3, termId, "Cierre"),
+    ],
+    [
+      "el cambio de comités",
+      (ctx, { titular, pixel, termId }) =>
+        setCommitteeMemberships(ctx, titular, termId, [{ committeeId: pixel }]),
+      ({ gh, titular, pixel, termId }) =>
+        setCommitteeMembershipsAs(gh, titular, termId, [{ committeeId: pixel }]),
+    ],
+  ];
+
+  async function porNombrar(): Promise<Salida> {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const titular = await seedMember("titular@eafit.edu.co");
+    await seedCommitteeMembership(titular, a3, termId);
+    return { gh, titular, a3, pixel, termId };
+  }
+
+  async function sigueEnElComite({ titular, a3, termId }: Salida): Promise<boolean> {
+    const vivas = await db()
+      .select({ id: committeeMembership.id })
+      .from(committeeMembership)
+      .where(
+        and(
+          eq(committeeMembership.personId, titular),
+          eq(committeeMembership.committeeId, a3),
+          eq(committeeMembership.termId, termId),
+          isNull(committeeMembership.leftAt),
+        ),
+      );
+    return vivas.length > 0;
+  }
+
+  it.each(
+    cierres,
+  )("si %s entra primero, el nombramiento que hacía cola responde que la persona no es elegible", async (_caso, cerrar) => {
+    const salida = await porNombrar();
+    const held = await holdCommand(salida.gh, (ctx) => cerrar(ctx, salida));
+    const nombramiento = setRepresentativeAs(salida.gh, {
+      committeeId: salida.a3,
+      termId: salida.termId,
+      role: "TITULAR",
+      personId: salida.titular,
+    }).then(
+      () => "nombrada",
+      (error: unknown) => error,
+    );
+    try {
+      await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBeGreaterThan(0), {
+        timeout: 5_000,
+      });
+    } finally {
+      held.release();
+      await held.done;
+    }
+
+    expect(await nombramiento).toEqual(new DomainError(t("T-2255"), "personId"));
+    expect(await sigueEnElComite(salida)).toBe(false);
+    expect(await listRepresentatives(salida.termId, salida.a3)).toEqual([]);
+  });
+
+  it.each(
+    cierres,
+  )("si el nombramiento entra primero, %s que hacía cola retira también a la recién nombrada", async (_caso, _cerrar, cerrarAs) => {
+    const salida = await porNombrar();
+    const held = await holdCommand(salida.gh, (ctx) =>
+      setRepresentative(ctx, {
+        committeeId: salida.a3,
+        termId: salida.termId,
+        role: "TITULAR",
+        personId: salida.titular,
+      }),
+    );
+    const cierre = cerrarAs(salida);
+    try {
+      await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBeGreaterThan(0), {
+        timeout: 5_000,
+      });
+    } finally {
+      held.release();
+      await held.done;
+    }
+    await cierre;
+
+    expect(await sigueEnElComite(salida)).toBe(false);
+    expect(await listRepresentatives(salida.termId, salida.a3)).toEqual([]);
+  });
+
+  // ADR-118 regla 6, el alcance del retiro: «de esa persona en ese comité y término». Quien representa
+  // dos comités, o el mismo comité en dos términos, conserva la representación que no se cerró.
+  const salidasDeUnComite: Array<[string, (salida: Salida) => Promise<unknown>]> = [
+    [
+      "el cambio de comités",
+      ({ gh, titular, pixel, termId }) =>
+        setCommitteeMembershipsAs(gh, titular, termId, [{ committeeId: pixel }]),
+    ],
+    [
+      "la salida por el cierre de permanencia",
+      ({ gh, titular, a3, termId }) => leaveCommitteeAs(gh, titular, a3, termId, "Cierre"),
+    ],
+  ];
+
+  const representantes = async (termId: string, committeeId: string) =>
+    (await listRepresentatives(termId, committeeId)).map((row) => [row.role, row.personId]);
+
+  /** Los retiros por cierre de pertenencia que anotó la auditoría: comité y rol. */
+  async function retirosPorCierre(): Promise<Array<[string | null, string]>> {
+    const rastro = await db()
+      .select({ committeeId: auditLog.entityId, before: auditLog.before, after: auditLog.after })
+      .from(auditLog)
+      .where(eq(auditLog.action, "committee-representative.set"));
+    return rastro
+      .filter((row) => (row.after as { cause?: string }).cause === "membership-closed")
+      .map((row) => [row.committeeId, (row.before as { role: string }).role]);
+  }
+
+  it.each(
+    salidasDeUnComite,
+  )("quien representa dos comités y sale de uno por %s conserva la representación del otro", async (_caso, salir) => {
+    const salida = await porNombrar();
+    await seedCommitteeMembership(salida.titular, salida.pixel, salida.termId);
+    const base = { termId: salida.termId, personId: salida.titular };
+    await setRepresentativeAs(salida.gh, { ...base, committeeId: salida.a3, role: "TITULAR" });
+    await setRepresentativeAs(salida.gh, { ...base, committeeId: salida.pixel, role: "SUPLENTE" });
+
+    await salir(salida);
+
+    expect(await sigueEnElComite(salida)).toBe(false);
+    expect(await representantes(salida.termId, salida.a3)).toEqual([]);
+    expect(await representantes(salida.termId, salida.pixel)).toEqual([
+      ["SUPLENTE", salida.titular],
+    ]);
+    // La auditoría retira solo la del comité que se cerró.
+    expect(await retirosPorCierre()).toEqual([[salida.a3, "TITULAR"]]);
+  });
+
+  it("cerrar la pertenencia de un término no toca la representación del mismo comité en el otro", async () => {
+    const salida = await porNombrar();
+    const [year = 0, semester] = currentTermCode().split("-").map(Number);
+    const siguiente = await seedTerm(semester === 1 ? `${year}-2` : `${year + 1}-1`);
+    await seedCommitteeMembership(salida.titular, salida.a3, siguiente);
+    const base = { committeeId: salida.a3, role: "TITULAR" as const, personId: salida.titular };
+    await setRepresentativeAs(salida.gh, { ...base, termId: salida.termId });
+    await setRepresentativeAs(salida.gh, { ...base, termId: siguiente });
+
+    // Un cambio de comité aprobado escribe las pertenencias del término siguiente por este comando.
+    await setCommitteeMembershipsAs(salida.gh, salida.titular, siguiente, [
+      { committeeId: salida.pixel },
+    ]);
+
+    expect(await representantes(siguiente, salida.a3)).toEqual([]);
+    expect(await sigueEnElComite(salida)).toBe(true);
+    expect(await representantes(salida.termId, salida.a3)).toEqual([["TITULAR", salida.titular]]);
   });
 });

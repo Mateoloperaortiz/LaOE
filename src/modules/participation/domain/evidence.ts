@@ -1,7 +1,7 @@
 import { createId } from "@paralleldrive/cuid2";
-import { and, eq, inArray } from "drizzle-orm";
-import sharp from "sharp";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import type { CommandContext, Tx } from "@/db/tx";
 import {
   deleteObject,
   getObject,
@@ -10,14 +10,16 @@ import {
   presignUpload,
   putObject,
 } from "@/shared/adapters/storage";
-import { tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { decodeImage, ImageRejectedError } from "@/shared/lib/image-decoder";
 import { logger } from "@/shared/log";
 import { challengeEvidenceFile, challengeParticipation } from "../schema";
 
 // Evidencias de las misiones (ADR-067 regla 6): subida directa al bucket bajo
 // `evidence/<personId>/`, fuera de `media_asset`; el job re-encodea a WebP sin metadatos y solo
-// entonces `/api/retos/evidencia/[id]` redirige al autor o a un ADMIN.
+// entonces `/api/retos/evidencia/[id]` redirige al autor o a un ADMIN. La imagen se abre por el
+// decodificador compartido (ADR-113 regla 4), que decide por el contenido y no por el tipo declarado.
 
 export const EVIDENCE_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -31,7 +33,8 @@ export const EVIDENCE_KEY_PREFIX = "evidence/";
 export const EVIDENCE_KEY_PATTERN = /^evidence\/[a-z0-9]{10,40}\/[a-z0-9]{10,40}\.(jpg|png|webp)$/;
 const UPLOAD_EXPIRY_SECONDS = 600;
 const READ_EXPIRY_SECONDS = 300;
-const WEBP_QUALITY = 82;
+/** El lado más largo de la evidencia guardada; una imagen más grande se reduce. */
+export const EVIDENCE_MAX_SIDE = 2560;
 
 export function evidenceKey(personId: string, contentType: string, id: string): string {
   return `${EVIDENCE_KEY_PREFIX}${personId}/${id}.${EVIDENCE_TYPES[contentType] ?? "bin"}`;
@@ -49,6 +52,18 @@ export interface PreparedEvidenceUpload {
   expiresAt: string;
 }
 
+/**
+ * Por qué ese tamaño no entra, o `null` si entra. Cada borde dice el suyo (ADR-122 regla 18): la
+ * imagen diminuta no «pesa más de 5 MB». `tooLargeText` es el texto del borde de arriba, que sale de la
+ * lista de errores de la evidencia. Lo usan la firma de la subida y la comprobación del objeto ya
+ * subido; el subidor del navegador decide con sus propios límites y textos (ADR-123 regla 22).
+ */
+function sizeRejection(byteSize: number, tooLargeText: string): string | null {
+  if (byteSize < EVIDENCE_MIN_BYTES) return t("T-3264");
+  if (byteSize > EVIDENCE_MAX_BYTES) return tooLargeText;
+  return null;
+}
+
 /** Un POST prefirmado de 10 minutos, acotado a una imagen de 5 KB a 5 MB bajo `evidence/<personId>/`. */
 export async function prepareEvidenceUpload(
   input: { contentType: string; byteSize: number },
@@ -58,8 +73,9 @@ export async function prepareEvidenceUpload(
   if (!(input.contentType in EVIDENCE_TYPES)) {
     throw new DomainError(errors[0] ?? "", "file");
   }
-  if (input.byteSize < EVIDENCE_MIN_BYTES || input.byteSize > EVIDENCE_MAX_BYTES) {
-    throw new DomainError(errors[1] ?? "", "file");
+  const rejection = sizeRejection(input.byteSize, errors[1] ?? "");
+  if (rejection !== null) {
+    throw new DomainError(rejection, "file");
   }
   const key = evidenceKey(owner.personId, input.contentType, createId());
   const upload = await presignUpload({
@@ -100,27 +116,61 @@ export async function verifyEvidenceObjects(
       await deleteObject(key).catch(() => undefined);
       throw new DomainError(errors[0] ?? "", "files");
     }
-    if (info.byteSize < EVIDENCE_MIN_BYTES || info.byteSize > EVIDENCE_MAX_BYTES) {
+    const rejection = sizeRejection(info.byteSize, errors[1] ?? "");
+    if (rejection !== null) {
       await deleteObject(key).catch(() => undefined);
-      throw new DomainError(errors[1] ?? "", "files");
+      throw new DomainError(rejection, "files");
     }
     verified.push({ key, contentType, byteSize: info.byteSize });
   }
   return verified;
 }
 
-class PermanentEvidenceError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "PermanentEvidenceError";
+/**
+ * Candado de lo que una persona subió y todavía no entregó (ADR-122 regla 20). Lo toman quitar una
+ * imagen y entregar la evidencia; la entrega, antes de mirar el bucket y hasta su commit. Sin él, una
+ * imagen quitada entre el HEAD y el commit dejaría una entrega apuntando a un objeto borrado.
+ */
+export async function lockEvidenceUploads(tx: Tx, personId: string): Promise<void> {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`evidence-uploads:${personId}`}, 0))`,
+  );
+}
+
+export type EvidenceDiscardOutcome = "DISCARDED" | "IN_USE";
+
+/**
+ * Borra del bucket la imagen que la persona subió y quitó de la lista antes de entregar. Solo una
+ * suya, y eso lo decide acá el prefijo `evidence/<personId>/`, no quien llama; lo demás se rechaza.
+ * Si una entrega ya la usa no se toca: es de la entrega, y la borran su procesamiento o el retiro de
+ * datos. No audita: no escribe ninguna fila, como tampoco la subida.
+ */
+export async function discardEvidenceUpload(
+  ctx: CommandContext,
+  input: { personId: string; key: string },
+): Promise<EvidenceDiscardOutcome> {
+  const prefix = `${EVIDENCE_KEY_PREFIX}${input.personId}/`;
+  if (!input.key.startsWith(prefix) || !EVIDENCE_KEY_PATTERN.test(input.key)) {
+    throw new DomainError(tList("T-2430")[0] ?? "", "key");
   }
+  await lockEvidenceUploads(ctx.tx, input.personId);
+  const [used] = await ctx.tx
+    .select({ id: challengeEvidenceFile.id })
+    .from(challengeEvidenceFile)
+    .where(eq(challengeEvidenceFile.objectKey, input.key))
+    .limit(1);
+  if (used) {
+    return "IN_USE";
+  }
+  await deleteObject(input.key);
+  return "DISCARDED";
 }
 
 export type EvidenceProcessOutcome = "ready" | "failed" | "skipped";
 
 /**
- * Re-encodea la imagen a WebP sin metadatos (sharp no copia EXIF si no se pide `withMetadata`).
- * Un original indecodificable queda FAILED sin reintento; un fallo del bucket relanza.
+ * Re-encodea la imagen a WebP sin metadatos, reducida a `EVIDENCE_MAX_SIDE`. Un original que el
+ * decodificador rechaza queda FAILED con su motivo y sin reintento; un fallo del bucket relanza.
  */
 export async function processEvidenceFile(
   fileId: string,
@@ -144,24 +194,19 @@ export async function processEvidenceFile(
       }
       try {
         if (!(file.contentType in EVIDENCE_TYPES)) {
-          throw new PermanentEvidenceError(`Tipo no permitido: ${file.contentType}`);
+          // El tipo guardado ahorra la descarga; el motivo es el del formato, como si lo dijera el contenido.
+          throw new ImageRejectedError("format", file.contentType);
         }
         const bytes = await getObject(file.objectKey); // transitorio: relanza
-        let rendered: Buffer;
-        try {
-          rendered = await sharp(bytes).rotate().webp({ quality: WEBP_QUALITY }).toBuffer();
-        } catch (error) {
-          throw new PermanentEvidenceError(
-            `No se pudo decodificar la imagen: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
+        const image = await decodeImage(bytes);
+        const rendered = await image.toWebp({ side: EVIDENCE_MAX_SIDE });
         const key = processedEvidenceKey(file.id);
-        await putObject(key, rendered, "image/webp"); // transitorio: relanza
+        await putObject(key, rendered.data, "image/webp"); // transitorio: relanza
         await tx
           .update(challengeEvidenceFile)
           .set({
             contentType: "image/webp",
-            byteSize: rendered.byteLength,
+            byteSize: rendered.data.byteLength,
             status: "READY",
             error: null,
             updatedAt: now,
@@ -169,7 +214,7 @@ export async function processEvidenceFile(
           .where(eq(challengeEvidenceFile.id, file.id));
         return { outcome: "ready", original: file.objectKey };
       } catch (error) {
-        if (error instanceof PermanentEvidenceError) {
+        if (error instanceof ImageRejectedError) {
           await tx
             .update(challengeEvidenceFile)
             .set({ status: "FAILED", error: error.message.slice(0, 500), updatedAt: now })

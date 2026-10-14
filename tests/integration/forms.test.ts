@@ -2,8 +2,6 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { interaction } from "@/modules/crm/schema";
 import {
   createForm,
@@ -19,10 +17,19 @@ import {
 } from "@/modules/forms";
 import { editionRegistration, formSubmission } from "@/modules/forms/schema";
 import { endMembershipAs, hasLiveConsent } from "@/modules/people";
-import { consent, person, personTag, tag } from "@/modules/people/schema";
+import { consent, person, personTag } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
+import {
+  seedEdition,
+  seedEvent,
+  seedForm,
+  seedMember,
+  seedSubmission,
+  seedTag,
+  seedTerm,
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
-import { seedForm, seedMember, seedSubmission, seedTerm } from "./factories";
 
 // Formularios propios (ADR-013, ADR-037 reglas 3 a 5): envío público con vínculo por correo,
 // consentimiento, acciones, honeypot, rate limit, una por correo, tope y ventana; borrado al salir.
@@ -47,10 +54,9 @@ describe("envío de un formulario público", () => {
   afterAll(() => closeDb());
 
   it("crea la persona como prospecto, registra el consentimiento y etiqueta en una transacción", async () => {
-    const [etiqueta] = await getDb().insert(tag).values({ name: "Convocatoria" }).returning();
-    if (!etiqueta) throw new Error("tag");
+    const etiqueta = await seedTag("Convocatoria");
     const { view } = await publicForm("admision", {
-      actions: { createPerson: true, tagIds: [etiqueta.id] },
+      actions: { createPerson: true, tagIds: [etiqueta] },
     });
     const result = await submitFormAs(null, view, {
       identity,
@@ -77,7 +83,7 @@ describe("envío de un formulario público", () => {
       ip: "10.0.0.1",
     });
     expect(stored?.consentAcceptedAt).toBeInstanceOf(Date);
-    await drain(10);
+    await drainOutbox();
     const timeline = await getDb()
       .select()
       .from(interaction)
@@ -95,6 +101,7 @@ describe("envío de un formulario público", () => {
       identity: { firstName: "Otro", lastName: "Nombre", email: "MIEMBRO@eafit.edu.co" },
       answers: { motivo: "Avisame" },
       consent: true,
+      ip: null,
     });
     expect(result.ok).toBe(true);
     const [who] = await getDb().select().from(person).where(eq(person.id, memberId));
@@ -159,12 +166,14 @@ describe("envío de un formulario público", () => {
       identity,
       answers: { motivo: "Quiero" },
       consent: false,
+      ip: null,
     });
     expect(noConsent).toMatchObject({ ok: false, code: "CONSENT", errors: { consent: "T-858" } });
     const invalid = await submitFormAs(null, view, {
       identity: { ...identity, email: "no-es-correo" },
       answers: { motivo: "", comite: "OTRO" },
       consent: true,
+      ip: null,
     });
     expect(invalid).toMatchObject({ ok: false, code: "INVALID" });
     if (!invalid.ok) {
@@ -174,6 +183,7 @@ describe("envío de un formulario público", () => {
       identity,
       answers: { motivo: "", comite: "OTRO" },
       consent: true,
+      ip: null,
     });
     expect(badAnswers).toMatchObject({
       ok: false,
@@ -184,11 +194,17 @@ describe("envío de un formulario público", () => {
       identity,
       answers: { motivo: "Tarde" },
       consent: true,
+      ip: null,
     });
     expect(full).toMatchObject({ ok: false, code: "FULL" });
     const { view: closed } = await publicForm("cerrado", { status: "CLOSED" });
     expect(
-      await submitFormAs(null, closed, { identity, answers: { motivo: "x" }, consent: true }),
+      await submitFormAs(null, closed, {
+        identity,
+        answers: { motivo: "x" },
+        consent: true,
+        ip: null,
+      }),
     ).toMatchObject({
       ok: false,
       code: "CLOSED",
@@ -208,21 +224,18 @@ describe("envío de un formulario público", () => {
       .where(eq(person.id, memberId))
       .then((rows) => ({ rows }));
     expect(none).toHaveLength(1);
-    const [edition] = await getDb()
-      .execute<{ id: string }>(
-        `insert into event (id, slug, name, summary, description, audience, publication_status, sort_order)
-       values ('evt0000000000000000000001', 'dias-eafit', 'Días EAFIT', '', '', 'PUBLIC', 'PUBLISHED', 1)
-       returning id`,
-      )
-      .then(() =>
-        getDb().execute<{ id: string }>(
-          `insert into event_edition (id, event_id, slug, name, starts_at, publication_status)
-         values ('edi0000000000000000000001', 'evt0000000000000000000001', '2026-2', '2026-2', now() + interval '10 days', 'PUBLISHED')
-         returning id`,
-        ),
-      )
-      .then((result) => result.rows);
-    if (!edition) throw new Error("edition");
+    const eventId = await seedEvent("dias-eafit", "Días EAFIT", {
+      id: "evt0000000000000000000001",
+      publicationStatus: "PUBLISHED",
+      sortOrder: 1,
+    });
+    const edition = {
+      id: await seedEdition(eventId, "2026-2", "2026-2", {
+        id: "edi0000000000000000000001",
+        startsAt: new Date(Date.now() + 10 * 86_400_000),
+        publicationStatus: "PUBLISHED",
+      }),
+    };
     const { view } = await publicForm("inscripcion", {
       audience: "MEMBERS",
       fields: [],
@@ -230,13 +243,21 @@ describe("envío de un formulario público", () => {
     });
     expect((await findOpenRegistrationForm(edition.id))?.id).toBe(view.id);
     const actor = { personId: memberId, email: "inscrita@eafit.edu.co", firstName: "Ana" };
-    const result = await submitFormAs(actor as never, view, { answers: {}, consent: false });
+    const result = await submitFormAs(actor as never, view, {
+      answers: {},
+      consent: false,
+      ip: null,
+    });
     expect(result).toMatchObject({ ok: true, registered: true });
     const registrations = await getDb().select().from(editionRegistration);
     expect(registrations).toHaveLength(1);
     expect(registrations[0]).toMatchObject({ editionId: edition.id, personId: memberId });
     expect((await listRegistrationsByPerson(memberId))[0]?.editionName).toBe("Días EAFIT · 2026-2");
-    const again = await submitFormAs(actor as never, view, { answers: {}, consent: false });
+    const again = await submitFormAs(actor as never, view, {
+      answers: {},
+      consent: false,
+      ip: null,
+    });
     expect(again).toMatchObject({ ok: false, code: "DUPLICATE" });
     void termId;
   });
@@ -250,7 +271,7 @@ describe("envío de un formulario público", () => {
       memorialConsent: false,
       contactConsent: false,
     });
-    await drain(20);
+    await drainOutbox();
     expect(await getDb().select().from(formSubmission)).toHaveLength(0);
   });
 });

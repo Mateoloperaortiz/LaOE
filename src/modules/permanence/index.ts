@@ -1,83 +1,57 @@
 // API pública del módulo permanence (ADR-036): lecturas, cálculo y, tramo a tramo, comandos.
 
-export {
-  type BoardExportRow,
-  type BoardIndicators,
-  boardExportRows,
-  boardIndicators,
-  type CommitteeIndicators,
-  type RetentionRow,
-} from "./domain/board";
+export { boardExportRows, boardIndicators } from "./domain/board";
 export {
   applyDecisions,
   CLOSING_FILTERS,
-  type ClosingCommitteeRow,
   type ClosingFilter,
   type ClosingPersonRow,
-  type ClosingSummary,
-  type ClosingView,
   closeTermPermanenceAs,
   confirmAllProposedAs,
   confirmDecisionsAs,
-  type DecisionInput,
-  type DecisionRow,
   decisionInputSchema,
   filterClosingRows,
   listClosingRows,
-  listDecisions,
   listPersonDecisions,
-  type PersonDecisionView,
 } from "./domain/closing";
 export {
   COMPLIANCE_FILTERS,
   type ComplianceFilter,
-  type ComplianceRow,
   complianceSummary,
   listCompliance,
 } from "./domain/compliance";
 export {
   countPendingFor,
-  type EvaluationInput,
   evaluateAs,
   evaluationInputSchema,
   listEvaluationTray,
-  type TrayGroup,
 } from "./domain/evaluations";
 export { loadPeopleFacts, loadPermanenceConfig, loadRules, loadTermFacts } from "./domain/facts";
 export {
   addMembersAs,
   applyMemberImportAs,
   createGroupAs,
-  type GroupDetail,
-  type GroupInput,
-  type GroupListRow,
   type GroupRef,
   getGroup,
   getGroupDetail,
-  groupInputSchema,
+  groupJoinBlocker,
   listGroupIdsOf,
   listGroupOptions,
   listGroupRefs,
   listGroups,
   listMyGroupRoles,
   listWorkCommitteeTermIds,
-  type MyGroupRoles,
   previewMemberImport,
   removeMemberAs,
   seedWorkCommitteesAs,
   setEvaluatorsAs,
-  updateGroupAs,
   type WorkGroupRow,
 } from "./domain/groups";
 export {
   grantManualCreditAs,
-  type LeaderScoreInput,
-  type LeaderScoreView,
   leaderScoreInputSchema,
   listLeaderScores,
   listManualCredits,
-  type ManualCreditInput,
-  type ManualCreditView,
   manualCreditInputSchema,
   scoreCriterionAs,
 } from "./domain/leader-scores";
@@ -86,40 +60,31 @@ export {
   findMacroeventGroup,
   prepareMacroeventGroupAs,
 } from "./domain/macroevents";
-export { getPersonPermanence, type PersonPermanenceView } from "./domain/my-permanence";
-export { type NoticesResult, runNotices } from "./domain/notices";
-export { isoWeek, type NoticePush, noticePush } from "./domain/notices-push-pure";
+export { mandatoryCounts } from "./domain/mandatory-counts";
+export { getPersonPermanence } from "./domain/my-permanence";
+export { runNotices } from "./domain/notices";
 export {
   APPLIES_TO,
-  type AppliesTo,
+  COMMITTEE_FILTERS,
   COMPUTATIONS,
   type Computation,
   GROUP_MODES,
+  NEW_MEMBERS_FILTERS,
   type Rule,
-  type RuleInput,
   type RuleInputValues,
   ruleInputSchema,
-  SCOPES,
   WORK_GROUP_KINDS,
   type WorkGroupKind,
 } from "./domain/params";
 export {
   type CommitteeResult,
-  type Condition,
   type CriterionResult,
   computePerson,
   deviatesFromNominal,
-  distribution,
   evaluationWindow,
-  type FinalState,
   type MandatoryView,
   type Notice,
-  noticesFor,
-  type PermanenceState,
   type PersonPermanence,
-  type Proposal,
-  proposeDecisions,
-  tableSums,
 } from "./domain/permanence-pure";
 export {
   applyTemplateAs,
@@ -127,9 +92,7 @@ export {
   copyFromPreviousTermAs,
   createRuleAs,
   deleteRuleAs,
-  type EditorContext,
   getTableView,
-  type ImpactPreview,
   listTableViews,
   lockAllCommitteeTablesAs,
   previewImpact,
@@ -138,21 +101,18 @@ export {
   type TableView,
   updateRuleAs,
 } from "./domain/rules";
-export { parseGeneral, parseMandatory, parseResults } from "./domain/snapshot-pure";
+export { COMPLIANCE_STATES, parseResults } from "./domain/snapshot-pure";
 export {
   freezeSnapshots,
   getSnapshot,
   listSnapshots,
   recomputeSnapshots,
   requestRecomputeAs,
-  type SnapshotView,
-  snapshotToResult,
 } from "./domain/snapshots";
 export { macroeventAreas, teamAreaLabel } from "./domain/team-areas";
 export {
   listTeamParticipations,
   saveMacroeventMemberAs,
-  type TeamParticipation,
   teamMemberInputSchema,
 } from "./domain/team-members";
 export { referenceCommitteeRules, referenceGeneralRules } from "./domain/templates";

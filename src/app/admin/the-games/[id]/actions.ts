@@ -67,7 +67,7 @@ import type {
   StaffPreviewState,
 } from "@/modules/competition/components/ImportarPersonal";
 import type { ImportPowersState } from "@/modules/competition/components/ImportarPoderes";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { bogotaInputToUtc } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 
@@ -143,9 +143,9 @@ const nullable = (form: FormData, name: string) => formOptional(form, name) ?? n
 
 /** Un resumen legible de los problemas del validador, para la vuelta con `?error=`. */
 function describeIssues(issues: readonly ScheduleIssue[]): string {
-  const labels = tList("T-2841");
+  const labels = tLabels("T-2841", SCHEDULE_ISSUE_KINDS);
   const kinds = [...new Set(issues.map((issue) => issue.kind))];
-  return kinds.map((kind) => labels[SCHEDULE_ISSUE_KINDS.indexOf(kind)] ?? kind).join(" · ");
+  return kinds.map((kind) => labels[kind] ?? kind).join(" · ");
 }
 
 async function run(
@@ -493,7 +493,7 @@ export async function judgePowerAction(form: FormData): Promise<void> {
       query.set(
         "aviso",
         t("T-3115", {
-          poder: tList("T-3040")[POWER_TYPES.indexOf(power)] ?? power,
+          poder: tLabels("T-3040", POWER_TYPES)[power] ?? power,
           equipo: formText(form, "teamName"),
         }),
       );

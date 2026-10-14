@@ -2,8 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { saveSubscriptionAs, setPushSenderForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import {
@@ -22,7 +20,6 @@ import {
 } from "@/modules/participation/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
   seedCheckIn,
   seedCommittee,
@@ -31,7 +28,9 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Encuesta anónima tras la ocasión (ADR-038 regla 13): una invitación por asistente aprobado al cerrar,
 // push con URL propia, una respuesta por invitación sin persona, ventana y agregados.
@@ -70,9 +69,9 @@ describe("encuesta tras la ocasión", () => {
     const pendiente = await seedMember("pendiente.enc@eafit.edu.co");
     await seedCommitteeMembership(ana, committeeId, termId);
     await saveSubscriptionAs(
-      { personId: ana },
+      { personId: ana, ip: null },
       {
-        endpoint: "https://push.example/ana",
+        endpoint: "https://fcm.googleapis.com/fcm/send/ana",
         keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
       },
       null,
@@ -83,10 +82,8 @@ describe("encuesta tras la ocasión", () => {
     await seedCheckIn(id, bruno, "APPROVED");
     await seedCheckIn(id, pendiente, "PENDING");
     await closeOccasionAs(SYSTEM_ACTOR, id);
-    // El cierre encola la invitación y esta encola el push: dos pasadas con reloj fresco.
-    const first = await drain(30);
-    const second = await drain(30);
-    expect(first.failed + second.failed).toBe(0);
+    // El cierre encola la invitación y esta encola el push.
+    await drainOutbox();
     const invites = await db()
       .select()
       .from(occasionSurveyInvite)
@@ -102,7 +99,7 @@ describe("encuesta tras la ocasión", () => {
     // Un segundo cierre o reintento no crea ni manda nada más.
     const again = await createSurveyInvites(id);
     expect(again.created).toHaveLength(0);
-    await drain(30);
+    await drainOutbox();
     expect(pushed).toHaveLength(1);
   });
 
@@ -140,15 +137,15 @@ describe("encuesta tras la ocasión", () => {
     expect((await getSurveyInviteForActor(otra, token)).state).toBe("NOT_FOUND");
     const open = await getSurveyInviteForActor(ana, token);
     expect(open.state).toBe("OPEN");
-    const invalid = await answerSurveyAs({ personId: ana }, token, { calif: "9" });
+    const invalid = await answerSurveyAs({ personId: ana, ip: null }, token, { calif: "9" });
     expect(invalid).toEqual({ ok: false, errors: { calif: "T-1171" } });
-    const ok = await answerSurveyAs({ personId: ana }, token, {
+    const ok = await answerSurveyAs({ personId: ana, ip: null }, token, {
       calif: "5",
       comentario: "Muy bien",
     });
     expect(ok).toEqual({ ok: true });
     expect((await getSurveyInviteForActor(ana, token)).state).toBe("ANSWERED");
-    expect(await answerSurveyAs({ personId: ana }, token, { calif: "1" })).toEqual({
+    expect(await answerSurveyAs({ personId: ana, ip: null }, token, { calif: "1" })).toEqual({
       ok: false,
       state: "ANSWERED",
     });

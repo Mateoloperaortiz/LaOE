@@ -8,7 +8,7 @@ import {
 } from "@/modules/content";
 import { requireActor } from "@/modules/identity";
 import { BarraTitulo, Cartel, feedVariant } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { Vacio } from "../_ui/Vacio";
 
 // Normativa (ADR-034 regla 9): los documentos publicados y un buscador sobre sus artículos.
@@ -46,9 +46,8 @@ export default async function NormativaPage({ searchParams }: PageProps<"/app/no
     listPublishedDocuments(),
     q ? searchArticles(q) : Promise.resolve([]),
   ]);
-  const kinds = tList("T-394");
-  const kindLabel = (kind: (typeof DOCUMENT_KINDS)[number]) =>
-    kinds[DOCUMENT_KINDS.indexOf(kind)] ?? kind;
+  const kinds = tLabels("T-394", DOCUMENT_KINDS);
+  const kindLabel = (kind: (typeof DOCUMENT_KINDS)[number]) => kinds[kind] ?? kind;
   return (
     <div className="flex flex-col gap-10">
       <header className="flex flex-col gap-3">

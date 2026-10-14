@@ -19,6 +19,6 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/ocas
   if (!(await canOperateOccasion(actor, occasion))) {
     return Response.json({ error: "sin permiso" }, { status: 403 });
   }
-  const snapshot = await buildLiveSnapshot(id);
+  const snapshot = await buildLiveSnapshot(occasion);
   return Response.json(snapshot, { headers: { "cache-control": "no-store" } });
 }

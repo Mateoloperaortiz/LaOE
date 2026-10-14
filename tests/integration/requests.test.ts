@@ -1,11 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { requestDecided } from "@/domain-events/crm";
 import { eventOf } from "@/domain-events/define";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { setMailTransportsForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import {
@@ -18,22 +16,39 @@ import {
   withdrawRequestAs,
 } from "@/modules/crm";
 import { interaction, task } from "@/modules/crm/schema";
-import { getMembershipRef, getMyMembership, hasLiveConsent, listConsents } from "@/modules/people";
-import { committeeMembership, membership, person } from "@/modules/people/schema";
-import { findTermByCode, nextTermCode } from "@/modules/terms";
+import {
+  changeMembershipStatusAs,
+  endMembershipAs,
+  getMembershipRef,
+  getMyMembership,
+  hasLiveConsent,
+  listConsents,
+  setCommitteeMembershipsAs,
+} from "@/modules/people";
+import {
+  committeeMembership,
+  committeeRoleAssignment,
+  membership,
+  person,
+} from "@/modules/people/schema";
+import { conventionalTermDates, findTermByCode, nextTermCode } from "@/modules/terms";
+import { term } from "@/modules/terms/schema";
 import type { MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
-import { copyPattern, itemPattern } from "../helpers/copy";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
+  leaveUntilSoon,
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedPerson,
   seedTerm,
-} from "./factories";
+  seedVeteran,
+} from "../factories";
+import { copyPattern, itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Solicitudes (ADR-031, ADR-037 regla 9): una pendiente por tipo, retirar, rechazar con motivo,
 // aprobar ejecuta el comando de people en la misma transacción y la respuesta sale por correo.
@@ -82,13 +97,13 @@ describe("solicitudes", () => {
       });
 
     await runCommand(SYSTEM_ACTOR, (ctx) => ctx.emit(evento("ESTADO_FUTURO", "solicitud-1")));
-    expect(await drain(10)).toMatchObject({ failed: 0 });
+    await drainOutbox();
     expect(await getDb().select().from(message).where(eq(message.personId, personId))).toHaveLength(
       0,
     );
 
     await runCommand(SYSTEM_ACTOR, (ctx) => ctx.emit(evento("REJECTED", "solicitud-2")));
-    await drain(10);
+    await drainOutbox();
     const enviados = await getDb().select().from(message).where(eq(message.personId, personId));
     expect(enviados.length).toBeGreaterThan(0);
   });
@@ -166,7 +181,7 @@ describe("solicitudes", () => {
         reason: "Tarde",
       }),
     ).rejects.toThrow(t("T-1007"));
-    await drain(30);
+    await drainOutbox();
     const mails = await getDb().select().from(message).where(eq(message.personId, personId));
     expect(mails).toHaveLength(1);
     expect(mails[0]?.subject).toBe(t("T-205", { tipo: tipoLicencia }).split(" · ")[0]);
@@ -220,7 +235,7 @@ describe("solicitudes", () => {
       reason: "Hablemos primero",
     });
     expect(await getMembershipRef(other.personId)).toMatchObject({ status: "ACTIVE" });
-    await drain(30);
+    await drainOutbox();
     const mails = await getDb().select().from(message).where(eq(message.personId, other.personId));
     expect(mails).toHaveLength(1);
   });
@@ -271,5 +286,229 @@ describe("solicitudes", () => {
     expect(
       (await getMyMembership(personId)).committees.map((row) => row.committeeSlug).sort(),
     ).toEqual(["a3", "pixel"]);
+  });
+
+  // ADR-121 regla 15: la aprobación valida el conjunto con los comités que la persona tiene al decidir,
+  // no con los que tenía al pedir. Un rechazo deshace también el término siguiente que alcanzó a crear.
+  it("aprobar un cambio de comité que ya no cambia nada responde su error y la solicitud sigue pendiente", async () => {
+    const { termId, personId, actor, a3 } = await activeMember("ya.cambio@eafit.edu.co");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    await seedCommitteeMembership(personId, pixel, termId);
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const created = await createRequestAs(actor, "TRANSFER", {
+      reason: "Quiero cambiar de aire",
+      leaveCommitteeIds: [a3],
+      joinCommitteeIds: [cigma],
+    });
+    // GH hace a mano el mismo cambio antes de decidir la solicitud.
+    await setCommitteeMembershipsAs(gh, personId, termId, [
+      { committeeId: pixel, roles: [] },
+      { committeeId: cigma, roles: [] },
+    ]);
+    await expect(decideRequestAs(gh, created.id, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-887"),
+    );
+    expect((await getRequest(created.id))?.status).toBe("PENDING");
+    expect(await findTermByCode(nextTermCode(currentTermCode()))).toBeNull();
+  });
+
+  it("aprobar un cambio de comité que dejaría a la persona sin comités responde el rango y no escribe nada", async () => {
+    const { termId, personId, actor, a3 } = await activeMember("sin.comites@eafit.edu.co");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    await seedCommitteeMembership(personId, pixel, termId);
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const created = await createRequestAs(actor, "TRANSFER", {
+      reason: "Me quedo con uno",
+      leaveCommitteeIds: [a3],
+      joinCommitteeIds: [],
+    });
+    // Al pedir quedaba en PIXEL; antes de decidir, GH la saca de PIXEL y le queda solo A3.
+    await setCommitteeMembershipsAs(gh, personId, termId, [{ committeeId: a3, roles: [] }]);
+    await expect(decideRequestAs(gh, created.id, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-886", { min: 1, max: 3 }),
+    );
+    expect((await getRequest(created.id))?.status).toBe("PENDING");
+    expect(await findTermByCode(nextTermCode(currentTermCode()))).toBeNull();
+    expect((await getMyMembership(personId)).committees.map((row) => row.committeeSlug)).toEqual([
+      "a3",
+    ]);
+  });
+
+  // El término siguiente se asegura antes de validar el conjunto, para tomar el candado del calendario
+  // antes que la fila de la membresía (ADR-121 regla 15): si fallan las dos cosas, gana la del término.
+  it("si el término siguiente se cruza con el vigente, aprobar un cambio de comité responde ese error antes que el del conjunto", async () => {
+    const { termId, personId, actor, a3 } = await activeMember("termino.cruzado@eafit.edu.co");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    await seedCommitteeMembership(personId, pixel, termId);
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const created = await createRequestAs(actor, "TRANSFER", {
+      reason: "Me quedo con uno",
+      leaveCommitteeIds: [a3],
+      joinCommitteeIds: [],
+    });
+    await setCommitteeMembershipsAs(gh, personId, termId, [{ committeeId: a3, roles: [] }]);
+    // El vigente termina el mismo día en que empezaría el siguiente.
+    const nextStart = conventionalTermDates(nextTermCode(currentTermCode())).startsOn;
+    await getDb().update(term).set({ endsOn: nextStart }).where(eq(term.id, termId));
+    await expect(decideRequestAs(gh, created.id, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-3254", { término: currentTermCode() }),
+    );
+    expect((await getRequest(created.id))?.status).toBe("PENDING");
+    expect(await findTermByCode(nextTermCode(currentTermCode()))).toBeNull();
+  });
+
+  // ADR-118 regla 10 (DT-204): antes la aprobación terminaba bien sin escribir nada y la solicitud
+  // quedaba «aprobada» con la fecha vieja. La prórroga sigue sin existir (decisión abierta 35).
+  it("aprobar la licencia de quien ya quedó en licencia responde el error y la solicitud sigue pendiente", async () => {
+    const { personId, actor } = await activeMember("ya.en.licencia@eafit.edu.co");
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const created = await createRequestAs(actor, "LEAVE", { reason: "Intercambio", until });
+    await changeMembershipStatusAs(gh, personId, {
+      to: "ON_LEAVE",
+      reason: "GH la registró a mano",
+      leaveUntil: leaveUntilSoon(30),
+    });
+
+    await expect(decideRequestAs(gh, created.id, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-3245"),
+    );
+
+    expect((await getRequest(created.id))?.status).toBe("PENDING");
+    const [fila] = await getDb()
+      .select({ leaveUntil: membership.leaveUntil })
+      .from(membership)
+      .where(eq(membership.personId, personId));
+    expect(fila?.leaveUntil).toBe(leaveUntilSoon(30));
+  });
+
+  // ADR-118 regla 11 roza DT-196: la solicitud pendiente sigue sobreviviendo a la baja (qué pasa con
+  // ella es la primera pregunta de la decisión abierta 33), pero aprobarla ya no abre pertenencias.
+  it("aprobar el cambio de comité de quien ya salió responde el error y la solicitud sigue pendiente (decisión abierta 33)", async () => {
+    const { personId, actor } = await activeMember("ya.salio@eafit.edu.co");
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const created = await createRequestAs(actor, "TRANSFER", {
+      reason: "Entro a CIGMA",
+      leaveCommitteeIds: [],
+      joinCommitteeIds: [cigma],
+    });
+    await endMembershipAs(gh, personId, {
+      endReason: "RESIGNATION",
+      memorialConsent: false,
+      contactConsent: false,
+    });
+
+    await expect(decideRequestAs(gh, created.id, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-3246"),
+    );
+
+    expect((await getRequest(created.id))?.status).toBe("PENDING");
+    const vivas = await getDb()
+      .select({ id: committeeMembership.id })
+      .from(committeeMembership)
+      .where(and(eq(committeeMembership.personId, personId), isNull(committeeMembership.leftAt)));
+    expect(vivas).toEqual([]);
+  });
+
+  /** Cargos vivos del término siguiente: [persona, comité, cargo, codirección]. */
+  async function nextTermRoles() {
+    const next = await findTermByCode(nextTermCode(currentTermCode()));
+    const rows = await getDb()
+      .select()
+      .from(committeeRoleAssignment)
+      .where(
+        and(
+          eq(committeeRoleAssignment.termId, next?.id ?? ""),
+          isNull(committeeRoleAssignment.endedAt),
+        ),
+      );
+    return rows.map((row) => [row.personId, row.committeeId, row.roleCode, row.coDirector]).sort();
+  }
+
+  async function approveLeaving(gh: string, personId: string, committeeId: string) {
+    const created = await createRequestAs({ personId, ip: null }, "TRANSFER", {
+      reason: "Dejo un comité",
+      leaveCommitteeIds: [committeeId],
+      joinCommitteeIds: [],
+    });
+    await decideRequestAs({ personId: gh, ip: null }, created.id, { decision: "APPROVED" });
+  }
+
+  // ADR-118 regla 7 (DT-205): al término siguiente llegan los cargos reales, no el principal derivado.
+  it("aprobar un cambio de comité conserva la codirección y deja aprobar también a la titular", async () => {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    const gh = await seedMember("gh@eafit.edu.co");
+    const titular = await seedVeteran("general@eafit.edu.co");
+    const codirectora = await seedVeteran("codireccion@eafit.edu.co");
+    await seedCommitteeMembership(titular, a3, termId, "GENERAL");
+    await seedCommitteeMembership(titular, pixel, termId);
+    await seedCommitteeMembership(codirectora, a3, termId, "GENERAL", { coDirector: true });
+    await seedCommitteeMembership(codirectora, pixel, termId);
+
+    await approveLeaving(gh, titular, pixel);
+    await approveLeaving(gh, codirectora, pixel);
+
+    expect(await nextTermRoles()).toEqual(
+      [
+        [titular, a3, "GENERAL", false],
+        [codirectora, a3, "GENERAL", true],
+      ].sort(),
+    );
+  });
+
+  it("aprobar un cambio de comité lleva al término siguiente todos los cargos del comité que sigue", async () => {
+    const termId = await seedTerm();
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    const gh = await seedMember("gh@eafit.edu.co");
+    const personId = await seedVeteran("dos.cargos@eafit.edu.co");
+    await setCommitteeMembershipsAs({ personId: gh, ip: null }, personId, termId, [
+      {
+        committeeId: cigma,
+        roles: [
+          { roleCode: "GENERAL", coDirector: false },
+          { roleCode: "LOGISTICA", coDirector: true },
+        ],
+      },
+      { committeeId: pixel },
+    ]);
+
+    await approveLeaving(gh, personId, pixel);
+
+    expect(await nextTermRoles()).toEqual(
+      [
+        [personId, cigma, "GENERAL", false],
+        [personId, cigma, "LOGISTICA", true],
+      ].sort(),
+    );
+  });
+
+  // Conducta de hoy, sin elegir: de qué término parte un segundo cambio es la decisión abierta 33.
+  it("un segundo cambio aprobado en el mismo semestre parte del término vigente y deshace el primero (decisión abierta 33)", async () => {
+    const { termId, personId, a3 } = await activeMember("dos.cambios@eafit.edu.co");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    await seedCommitteeMembership(personId, pixel, termId);
+    const gh = await seedMember("gh@eafit.edu.co");
+    const primero = await createRequestAs({ personId, ip: null }, "TRANSFER", {
+      reason: "Entro a CIGMA",
+      leaveCommitteeIds: [a3],
+      joinCommitteeIds: [cigma],
+    });
+    await decideRequestAs({ personId: gh, ip: null }, primero.id, { decision: "APPROVED" });
+
+    await approveLeaving(gh, personId, pixel);
+
+    const next = await findTermByCode(nextTermCode(currentTermCode()));
+    const vivos = await getDb()
+      .select({ committeeId: committeeMembership.committeeId })
+      .from(committeeMembership)
+      .where(
+        and(eq(committeeMembership.termId, next?.id ?? ""), isNull(committeeMembership.leftAt)),
+      );
+    expect(vivos.map((row) => row.committeeId)).toEqual([a3]);
   });
 });

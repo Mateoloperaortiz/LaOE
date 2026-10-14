@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { t } from "@/shared/copy/client";
+import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { ResourceMultiSelect } from "./AdminMultiSelect";
 import type { FieldDefinition, FormState } from "./types";
 
@@ -153,12 +154,19 @@ export function ResourceForm({
   const form = useRef<HTMLFormElement>(null);
   const feedback = useRef<HTMLDivElement>(null);
   const [values, setValues] = useState(initialValues);
-  const [state, formAction, pending] = useActionState(action, {
-    ok: false,
-    message: null,
-    errors: {},
-    values: initialValues,
-  });
+  // Los campos son controlados: si la acción no responde, lo escrito sigue en `values` (ADR-118 regla 20).
+  const [state, formAction, pending] = useGuardedActionState(
+    action,
+    { ok: false, message: null, errors: {}, values: initialValues },
+    ({ previous, message }) => ({ ...previous, ok: false, message, errors: {} }),
+  );
+  // React reinicia el formulario cuando su acción termina, y un `<select>` controlado queda mostrando su
+  // primera opción aunque `values` conserve la elegida: el reintento mandaría la lista vacía. Volver a
+  // fijar los valores repinta los campos antes de que se vea (ADR-118 regla 20).
+  useLayoutEffect(() => {
+    if (!state.message) return;
+    setValues((current) => ({ ...current }));
+  }, [state]);
   useEffect(() => {
     if (!state.message) return;
     const invalid = form.current?.querySelector<HTMLElement>('[aria-invalid="true"]');

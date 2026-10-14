@@ -1,18 +1,14 @@
 import { eq } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
-import { itemPattern } from "../helpers/copy";
-import "@/jobs/handlers";
 import { eventOf } from "@/domain-events/define";
 import { permanenceDecided } from "@/domain-events/permanence";
-import { drain } from "@/jobs/poller";
 import {
   saveSubscriptionAs,
   setMailTransportsForTests,
   setPushSenderForTests,
 } from "@/modules/comms";
-
 import { message } from "@/modules/comms/schema";
 import { runReminders } from "@/modules/participation";
 import { membership } from "@/modules/people/schema";
@@ -21,7 +17,6 @@ import { outbox } from "@/modules/system/schema";
 import { conventionalTermDates } from "@/modules/terms";
 import type { MailMessage, MailTransport } from "@/shared/adapters/mail";
 import { tList } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -29,7 +24,10 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Recordatorios (ADR-038 regla 9) y avisos de permanencia (regla 10): audiencia por comité o solo
 // nuevos, una vez por ocasión y slot, y el correo T-202 solo a quien cumple.
@@ -40,7 +38,7 @@ const db = () => getDb();
 const keys = () => ({ p256dh: "p".repeat(32), auth: "a".repeat(16) });
 
 async function subscribe(personId: string, endpoint: string) {
-  await saveSubscriptionAs({ personId }, { endpoint, keys: keys() }, null);
+  await saveSubscriptionAs({ personId, ip: null }, { endpoint, keys: keys() }, null);
 }
 
 /** Hoy a la hora dada en Bogotá (UTC-5), como instante. */
@@ -55,6 +53,11 @@ function todayBogota(hour: number, minute = 0): Date {
 describe("recordatorios de participación", () => {
   const delivered: string[] = [];
   beforeEach(async () => {
+    // La fecha del proceso queda quieta en las 07:00 de hoy: un recordatorio vence cuando su ocasión
+    // empieza (ADR-122 regla 9) y `drainOutbox` entrega con la hora que haya. Con el reloj real, estas
+    // pruebas pasarían o fallarían según la hora a la que corrieran.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(todayBogota(7));
     await truncateAll();
     delivered.length = 0;
     setPushSenderForTests(async (subscription) => {
@@ -62,6 +65,7 @@ describe("recordatorios de participación", () => {
       return { ok: true, statusCode: 201 };
     });
   });
+  afterEach(() => vi.useRealTimers());
   afterAll(async () => {
     setPushSenderForTests(undefined);
     await closeDb();
@@ -83,7 +87,7 @@ describe("recordatorios de participación", () => {
       [fuera, "fuera"],
       [veterano, "veterano"],
     ] as const) {
-      await subscribe(person, `https://push.example/${endpoint}`);
+      await subscribe(person, `https://fcm.googleapis.com/fcm/send/${endpoint}`);
     }
     const tick = todayBogota(7);
     const deComite = await seedOccasion(termId, {
@@ -102,8 +106,7 @@ describe("recordatorios de participación", () => {
     });
     const result = await runReminders(tick);
     expect(result).toEqual({ due: 2, enqueued: 2 });
-    const drained = await drain(20);
-    expect(drained.failed).toBe(0);
+    await drainOutbox();
     const rows = await db().select().from(message);
     const byKey = (key: string) =>
       rows.filter((row) => row.dedupeKey === key).map((row) => row.personId);
@@ -120,7 +123,7 @@ describe("recordatorios de participación", () => {
 
     // El mismo tick otra vez: el outbox no duplica y comms no vuelve a mandar.
     expect((await runReminders(tick)).enqueued).toBe(2);
-    await drain(20);
+    await drainOutbox();
     expect(await db().select().from(message)).toHaveLength(rows.length);
     expect(delivered).toHaveLength(3);
     // A las 08:00 no hay nada que avisar.
@@ -176,8 +179,7 @@ describe("resultado de permanencia por correo (T-202)", () => {
     await enqueueEvent(db(), eventOf(permanenceDecided, payload("PROBATION", null)));
     await enqueueEvent(db(), eventOf(permanenceDecided, payload("CONTINUES", null)));
     await enqueueEvent(db(), eventOf(permanenceDecided, payload("CONTINUES", null)));
-    const result = await drain(20);
-    expect(result.failed).toBe(0);
+    await drainOutbox();
     expect(sent).toHaveLength(1);
     expect(sent[0]?.to).toBe("ana.cierre@eafit.edu.co");
     expect(sent[0]?.subject).toMatch(itemPattern(tList("T-202")[0]));

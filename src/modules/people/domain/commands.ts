@@ -2,6 +2,7 @@ import { type Actor, runCommand } from "@/db/tx";
 import { type AdmitInput, admitPerson } from "./admission";
 import {
   type AppointmentInput,
+  type AppointmentOwner,
   addAppointment,
   addMacroeventDirector,
   type MacroeventDirectorInput,
@@ -32,9 +33,11 @@ import {
 import { type OwnContactInput, requestDeletion, setOwnPhoto, updateOwnContact } from "./own-data";
 import { createPerson, type PersonInput, updatePerson } from "./persons";
 import { type RepresentativeInput, setRepresentative } from "./representatives";
+import type { SanctionScope } from "./sanction-pure";
 import { recordSanction, revokeSanction, type SanctionInput } from "./sanctions";
 import { setPersonTags } from "./tags";
 import { leaveCommittee, type ProbationInput, setProbation } from "./term-outcomes";
+import { lockMembershipCycle } from "./wallet-member";
 
 // Los comandos abren su transacción aquí, para que las acciones de página (src/app) los usen sin
 // tocar src/db: cada uno es `runCommand` con auditoría y eventos en la misma transacción (ADR-012).
@@ -90,9 +93,12 @@ export function setCommitteeMembershipsAs(
   rows: CommitteeMembershipInput[],
   override?: Override,
 ): Promise<void> {
-  return runCommand(actor, (ctx) =>
-    setCommitteeMemberships(ctx, personId, termId, rows, new Date(), override),
-  );
+  return runCommand(actor, async (ctx) => {
+    // El consultivo del ciclo de membresía antes que la fila de la membresía (ADR-123 regla 6): sin
+    // él, este cambio y una anonimización de la misma persona se quedaban esperándose (DT-328).
+    await lockMembershipCycle(ctx.tx, personId);
+    await setCommitteeMemberships(ctx, personId, termId, rows, new Date(), override);
+  });
 }
 
 export function addAppointmentAs(
@@ -104,8 +110,13 @@ export function addAppointmentAs(
   return runCommand(actor, (ctx) => addAppointment(ctx, personId, input, override));
 }
 
-export function removeAppointmentAs(actor: Actor, id: string): Promise<void> {
-  return runCommand(actor, (ctx) => removeAppointment(ctx, id));
+/** `owner` es la ficha o la mesa desde la que se quita el cargo (ADR-122 regla 1). */
+export function removeAppointmentAs(
+  actor: Actor,
+  id: string,
+  owner: AppointmentOwner,
+): Promise<void> {
+  return runCommand(actor, (ctx) => removeAppointment(ctx, id, owner));
 }
 
 export function addMacroeventDirectorAs(
@@ -163,7 +174,13 @@ export function setProbationAs(
   termId: string,
   input: ProbationInput,
 ): Promise<void> {
-  return runCommand(actor, (ctx) => setProbation(ctx, personId, termId, input));
+  return runCommand(actor, async (ctx) => {
+    // El consultivo del ciclo de membresía al empezar, antes de cualquier fila (ADR-127 regla 2): la
+    // prueba que se fija sobre alguien que una importación del roster ya validó espera a que esa
+    // importación confirme, en vez de tumbarla entera con T-2331 cuando llega a su fila.
+    await lockMembershipCycle(ctx.tx, personId);
+    await setProbation(ctx, personId, termId, input);
+  });
 }
 
 export function leaveCommitteeAs(
@@ -214,18 +231,33 @@ export function requestCommitteeRemovalAs(
   return runCommand(actor, (ctx) => requestCommitteeRemoval(ctx, scope, who, input));
 }
 
-// Faltas y sanciones (ADR-060 regla 6).
+// Faltas y sanciones (ADR-060 regla 6). `scope` dice desde dónde se sanciona y es obligatorio, también
+// para ADMIN (ADR-072 regla 1; ADR-112): la dirección de un comité o ADMIN desde la Persona 360.
+// Revocar dice de quién es la sanción: la persona de la ficha desde la que se revoca (ADR-114 regla 3).
+// Y declara el mismo alcance, también obligatorio: hoy revoca solo el de ADMIN (ADR-116 regla 11).
+// Registrar toma el consultivo del ciclo de membresía al empezar, antes de cualquier fila, como fijar
+// la prueba (ADR-127 regla 2): una suspensión cambia quién puede pasar a honorario.
 
 export function recordSanctionAs(
   actor: Actor,
   personId: string,
   input: SanctionInput,
+  scope: SanctionScope,
 ): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => recordSanction(ctx, personId, input));
+  return runCommand(actor, async (ctx) => {
+    await lockMembershipCycle(ctx.tx, personId);
+    return recordSanction(ctx, personId, input, scope);
+  });
 }
 
-export function revokeSanctionAs(actor: Actor, sanctionId: string, reason: string): Promise<void> {
-  return runCommand(actor, (ctx) => revokeSanction(ctx, sanctionId, reason));
+export function revokeSanctionAs(
+  actor: Actor,
+  personId: string,
+  sanctionId: string,
+  reason: string,
+  scope: SanctionScope,
+): Promise<void> {
+  return runCommand(actor, (ctx) => revokeSanction(ctx, personId, sanctionId, reason, scope));
 }
 
 // Representación ante la Asamblea Directiva (ADR-060 regla 7).

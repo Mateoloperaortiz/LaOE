@@ -10,19 +10,26 @@ import { logger } from "@/shared/log";
 import { otpChallenge } from "../schema";
 import {
   codeMatches,
+  decoyCodeHash,
+  emailLogDigest,
   generateCode,
   hashCode,
   normalizeEmail,
+  OTP_FAILED_WINDOW_MS,
   OTP_MAX_ATTEMPTS,
   OTP_MAX_PER_EMAIL,
   OTP_MAX_PER_IP,
   OTP_TTL_MS,
   OTP_WINDOW_MS,
+  otpAttemptBudget,
 } from "./pure";
 import { createSession, markStepUp } from "./session";
 
 // Identidad por correo del roster con OTP (ADR-010, 05-acceso.md). La respuesta a "pedir código"
-// es siempre la misma: nunca se enumera el roster.
+// es siempre la misma y verificarlo responde igual para un correo de afuera: nunca se enumera el
+// roster (ADR-113, regla 2). Los códigos equivocados de un correo tienen tope acumulado (regla 3).
+// Guardar un reto y probar un código corren bajo un mismo candado por correo, cada uno en su
+// transacción: ningún fallo cae entre contar los fallos y escribir.
 
 export type OtpPurpose = "LOGIN" | "STEP_UP";
 
@@ -42,16 +49,58 @@ async function countRecent(column: "email" | "ip", value: string, since: Date): 
   return row?.n ?? 0;
 }
 
-/** Crea y envía un código si el correo está en el roster y no se superó el límite. Nunca revela nada. */
+/** Pone en fila, por correo, las solicitudes y los intentos hasta que cierre la transacción. */
+async function lockEmail(tx: Tx, email: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`otp:${email}`}, 0))`);
+}
+
+/**
+ * Intentos que le quedan al correo bajo el tope acumulado (ADR-113, regla 3): suma los códigos
+ * equivocados de sus retos del último día. Se llama con el candado del correo tomado. El paso de
+ * seguridad queda afuera: lo pide una sesión viva y sus fallos no suman.
+ */
+async function remainingAttemptsForEmail(
+  tx: Tx,
+  email: string,
+  purpose: OtpPurpose,
+  now: Date,
+): Promise<number> {
+  if (purpose === "STEP_UP") {
+    return OTP_MAX_ATTEMPTS;
+  }
+  const since = new Date(now.getTime() - OTP_FAILED_WINDOW_MS);
+  const [row] = await tx
+    .select({ n: sql<number>`coalesce(sum(${otpChallenge.attempts}), 0)::int` })
+    .from(otpChallenge)
+    .where(
+      and(
+        eq(otpChallenge.email, email),
+        eq(otpChallenge.purpose, purpose),
+        gt(otpChallenge.createdAt, since),
+      ),
+    );
+  // Sin fila no hay cuenta, y sin cuenta no hay intentos.
+  if (!row) {
+    return 0;
+  }
+  return otpAttemptBudget(row.n);
+}
+
+/**
+ * Deja un reto si no se superó ningún límite y envía el código solo si el correo está en el roster:
+ * el reto de un correo de afuera es un señuelo. Nunca revela nada.
+ */
 export async function requestOtp(input: RequestOtpInput): Promise<void> {
   const env = getEnv();
   const now = input.now ?? new Date();
   const email = normalizeEmail(input.email);
+  // A los registros va el resumen del correo, nunca el correo que alguien tecleó (ADR-114, regla 5).
+  const emailDigest = emailLogDigest(env.SESSION_SECRET, email);
   const purpose = input.purpose ?? "LOGIN";
   const since = new Date(now.getTime() - OTP_WINDOW_MS);
 
   if ((await countRecent("email", email, since)) >= OTP_MAX_PER_EMAIL) {
-    logger.warn({ email }, "otp: límite por correo");
+    logger.warn({ emailDigest }, "otp: límite por correo");
     return;
   }
   if (input.ip && (await countRecent("ip", input.ip, since)) >= OTP_MAX_PER_IP) {
@@ -59,23 +108,41 @@ export async function requestOtp(input: RequestOtpInput): Promise<void> {
     return;
   }
 
+  // Reto señuelo (ADR-113, regla 2): el de un correo de afuera gasta los mismos límites y cuenta
+  // los mismos intentos que uno real, así que verificar no distingue. Ningún código lo cumple y no
+  // se envía nada.
   const member = await findEligibleMemberByEmail(email);
-  if (!member) {
-    logger.info({ email }, "otp: correo fuera del roster");
-    return;
-  }
+  const code = member ? generateCode(env.OTP_FIXED_CODE) : null;
+  const codeHash = code === null ? decoyCodeHash() : hashCode(env.SESSION_SECRET, email, code);
 
-  const code = generateCode(env.OTP_FIXED_CODE);
-  await getDb()
-    .insert(otpChallenge)
-    .values({
+  // Tope acumulado (ADR-113, regla 3): con quince códigos equivocados en un día el correo no
+  // recibe más, y el que llega cerca del tope trae solo los intentos que quedan. La cuenta no mira
+  // la membresía, así que el señuelo cumple el mismo tope. Contar y guardar van juntos bajo el
+  // candado del correo: un código equivocado que llega a la vez espera, y no se cuela en el medio.
+  const issued = await getDb().transaction(async (tx) => {
+    await lockEmail(tx, email);
+    const maxAttempts = await remainingAttemptsForEmail(tx, email, purpose, now);
+    if (maxAttempts === 0) {
+      return false;
+    }
+    await tx.insert(otpChallenge).values({
       email,
       purpose,
-      codeHash: hashCode(env.SESSION_SECRET, email, code),
+      codeHash,
       expiresAt: new Date(now.getTime() + OTP_TTL_MS),
-      maxAttempts: OTP_MAX_ATTEMPTS,
+      maxAttempts,
       ip: input.ip,
     });
+    return true;
+  });
+  if (!issued) {
+    logger.warn({ emailDigest }, "otp: tope acumulado de códigos equivocados");
+    return;
+  }
+  if (!member || code === null) {
+    logger.info({ emailDigest }, "otp: correo fuera del roster");
+    return;
+  }
 
   const nombre = member.preferredName ?? member.firstName;
   const cuerpo = t("T-054", { nombre, código: code });
@@ -128,7 +195,11 @@ type CheckResult =
   | { ok: true; email: string }
   | { ok: false; reason: "EXPIRED" | "INVALID" | "LOCKED"; attemptsLeft: number };
 
-/** Comprueba el código contra el reto vivo más reciente, contando el intento. Corre dentro de una transacción. */
+/**
+ * Comprueba el código contra el reto vivo más reciente, contando el intento. Corre dentro de una
+ * transacción y bajo el candado del correo. El tope acumulado se cumple también acá (ADR-113,
+ * regla 3): sin intentos en el reto o en el correo responde `LOCKED` sin comparar el código.
+ */
 async function checkChallenge(
   tx: Tx,
   email: string,
@@ -137,6 +208,7 @@ async function checkChallenge(
   now: Date,
 ): Promise<CheckResult> {
   const env = getEnv();
+  await lockEmail(tx, email);
   const [challenge] = await tx
     .select()
     .from(otpChallenge)
@@ -155,16 +227,22 @@ async function checkChallenge(
   if (!challenge) {
     return { ok: false, reason: "EXPIRED", attemptsLeft: 0 };
   }
-  if (challenge.attempts >= challenge.maxAttempts) {
+  // Lo que queda es lo menor entre el reto y el correo: un reto anterior que vuelve a quedar vivo
+  // no trae de vuelta intentos que el correo ya gastó.
+  const left = Math.min(
+    challenge.maxAttempts - challenge.attempts,
+    await remainingAttemptsForEmail(tx, email, purpose, now),
+  );
+  // Negado a propósito: una cuenta que no sea un número tampoco deja probar.
+  if (!(left >= 1)) {
     return { ok: false, reason: "LOCKED", attemptsLeft: 0 };
   }
   if (!codeMatches(challenge.codeHash, env.SESSION_SECRET, email, code)) {
-    const attempts = challenge.attempts + 1;
     await tx
       .update(otpChallenge)
       .set({ attempts: sql`${otpChallenge.attempts} + 1` })
       .where(eq(otpChallenge.id, challenge.id));
-    const attemptsLeft = Math.max(0, challenge.maxAttempts - attempts);
+    const attemptsLeft = left - 1;
     return { ok: false, reason: attemptsLeft === 0 ? "LOCKED" : "INVALID", attemptsLeft };
   }
   await tx.update(otpChallenge).set({ consumedAt: now }).where(eq(otpChallenge.id, challenge.id));

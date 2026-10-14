@@ -16,7 +16,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
 import {
@@ -73,7 +73,7 @@ export default async function Page({
   const [aprobaciones, sancionTitulo, presolicitudes, avales, movimientos] = tList("T-2302");
   const [registrarAprobacion, abrir, cerrar, aplicarSancion, guardarRubros, aprobar, rechazar] =
     tList("T-2303");
-  const aprobadores = tList("T-2304");
+  const aprobadores = tLabels("T-2304", APPROVERS);
   const [sinMovimientos, sinPresolicitudes, sinAvales] = tList("T-2311");
   const [quienAprueba, fecha, porcentaje, motivo, notaDecision] = tList("T-2312");
   const [, , presentadoEl, aprobDE, aprobVP, sancionCampo, motivoSancion] = tList("T-2288");
@@ -231,9 +231,9 @@ export default async function Page({
                 <input type="hidden" name="budgetId" value={budget.id} />
                 <Campo id="aprobacion-approver" label={quienAprueba ?? ""}>
                   <select id="aprobacion-approver" name="approver" required className={inputClass}>
-                    {APPROVERS.map((code, index) => (
+                    {APPROVERS.map((code) => (
                       <option key={code} value={code}>
-                        {aprobadores[index] ?? code}
+                        {aprobadores[code] ?? code}
                       </option>
                     ))}
                   </select>

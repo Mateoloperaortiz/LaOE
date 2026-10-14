@@ -1,17 +1,14 @@
 import { randomBytes } from "node:crypto";
-import { and, desc, eq, isNotNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { sudokuCompleted } from "@/domain-events/participation";
-import { getMembershipRef } from "@/modules/people";
-import { findTermContaining, getTerm, lockOpenTermPoints } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
-import { startOfTodayIn } from "@/shared/lib/dates";
-import { DomainError } from "@/shared/lib/errors";
+import { findTermContaining } from "@/modules/terms";
+import { t, tLabels } from "@/shared/copy";
 import { logger } from "@/shared/log";
-import { pointEntry, sudokuRun } from "../schema";
+import { sudokuRun } from "../schema";
 import { SUDOKU_DIFFICULTIES, SUDOKU_RULES_VERSION, sudokuReward } from "../sudoku-engine";
 import type {
   SudokuDifficulty,
@@ -22,7 +19,16 @@ import type {
   SudokuStatus,
   TodaySudoku,
 } from "../sudoku-types";
-import { dayKeyFor, GAMIFICATION_TIMEZONE } from "./gamification-pure";
+import {
+  type DailyGameRules,
+  isEligibleToPlay,
+  lockDailyGame,
+  lockDailyGamePerson,
+  refusalToContinue,
+  startDailyGame,
+} from "./daily-game-guard";
+import { dayKeyFor, nextDayAt } from "./gamification-pure";
+import { creditGame } from "./ledger";
 import { generateSudoku } from "./sudoku-generator";
 
 // Sudoku (ADR-078). Aquí no hay replay: un Sudoku lo resuelve cualquier programa, así que una lista
@@ -49,14 +55,14 @@ const finishSchema = z.object({
 });
 const abandonSchema = z.object({ runId });
 
-function nextDayAt(now: Date): string {
-  return new Date(startOfTodayIn(GAMIFICATION_TIMEZONE, now).getTime() + 86_400_000).toISOString();
-}
-
-async function eligible(personId: string, exec: Executor): Promise<boolean> {
-  const membership = await getMembershipRef(personId, exec);
-  return membership?.status === "ACTIVE" || membership?.status === "HONORARY";
-}
+/** Lo que el Sudoku le declara a la guardia de la partida diaria (ADR-119 regla 7). */
+const DAILY_RULES = {
+  // Serializa por persona: el crédito del día y la partida abierta se deciden de a uno.
+  lock: { key: "sudoku", per: "PERSON" },
+  startWhenClosed: "SAVED_FIRST",
+  expiredAndClosed: "EXPIRED",
+  movedTerm: "NOT_ELIGIBLE",
+} as const satisfies DailyGameRules;
 
 /** Proyección explícita: ni la semilla, ni las dadas, ni la solución salen por aquí. */
 function runView(row: RunRow, now: Date): SudokuRunView {
@@ -86,26 +92,6 @@ function startedView(row: RunRow, now: Date): SudokuStartedView {
   };
 }
 
-/** Mantiene el FOR SHARE aun cuando el semestre ya cerró, para poder reconocer reintentos. */
-async function lockTerm(ctx: CommandContext, termId: string): Promise<boolean> {
-  try {
-    await lockOpenTermPoints(ctx.tx, termId);
-    return true;
-  } catch (error) {
-    if (error instanceof DomainError && (await getTerm(termId, ctx.tx))?.pointsClosedAt) {
-      return false;
-    }
-    throw error;
-  }
-}
-
-/** Serializa por persona: el crédito del día y la partida abierta se deciden de a uno. */
-async function lockPerson(ctx: CommandContext, personId: string): Promise<void> {
-  await ctx.tx.execute(
-    sql`select pg_advisory_xact_lock(hashtextextended(${`sudoku:${personId}`}, 0))`,
-  );
-}
-
 /** Hasta tres semillas por pedido. Medido (ADR-078): ninguna de 60.000 agotó sus 200 intentos. */
 function newBoard(difficulty: SudokuDifficulty) {
   for (let round = 0; round < SEEDS_PER_REQUEST; round += 1) {
@@ -126,7 +112,7 @@ export async function getTodaySudoku(personId: string): Promise<TodaySudoku> {
   return getDb().transaction(
     async (db): Promise<TodaySudoku> => {
       const current = await findTermContaining(day, db);
-      const allowed = await eligible(personId, db);
+      const allowed = await isEligibleToPlay(personId, db);
       const mine = await db
         .select()
         .from(sudokuRun)
@@ -142,7 +128,7 @@ export async function getTodaySudoku(personId: string): Promise<TodaySudoku> {
       }
       return {
         day,
-        nextAvailableAt: nextDayAt(now),
+        nextAvailableAt: nextDayAt(day),
         termId: current?.id ?? null,
         availability: !allowed
           ? "NOT_ELIGIBLE"
@@ -203,20 +189,15 @@ export async function startSudokuAs(
   const generated = pending?.day === dayKeyFor(new Date()) ? null : newBoard(difficulty);
 
   return runCommand(actor, async (ctx) => {
-    const day = dayKeyFor(new Date());
-    const current = await findTermContaining(day, ctx.tx);
-    if (!current) {
-      return { ok: false, reason: "NO_TERM" };
+    const start = await startDailyGame(ctx, DAILY_RULES, {
+      personId: actor.personId,
+      now: () => new Date(),
+      expectedDay: null,
+    });
+    if (!start.ok) {
+      return { ok: false, reason: start.reason };
     }
-    const open = await lockTerm(ctx, current.id);
-    await lockPerson(ctx, actor.personId);
-    const now = new Date();
-    if (dayKeyFor(now) !== day) {
-      return { ok: false, reason: "EXPIRED" };
-    }
-    if (!(await eligible(actor.personId, ctx.tx))) {
-      return { ok: false, reason: "NOT_ELIGIBLE" };
-    }
+    const { day, term: current, open, now } = start;
     const [existing] = await ctx.tx
       .select()
       .from(sudokuRun)
@@ -280,7 +261,7 @@ export async function startSudokuAs(
 }
 
 function creditReason(row: RunRow): string {
-  const difficulty = tList("T-2681")[SUDOKU_DIFFICULTIES.indexOf(row.difficulty)] ?? "";
+  const difficulty = tLabels("T-2681", SUDOKU_DIFFICULTIES)[row.difficulty] ?? "";
   const reasons = t("T-2712", { fecha: row.day, dificultad: difficulty }).split("·");
   return (reasons[row.assisted ? 1 : 0] ?? "").trim();
 }
@@ -320,10 +301,13 @@ export async function finishSudokuAs(actor: MemberActor, input: unknown): Promis
   }
 
   return runCommand(actor, async (ctx) => {
+    // El reloj se lee al llegar, antes de los candados (decisión abierta 50).
     const now = new Date();
     const day = dayKeyFor(now);
-    const open = await lockTerm(ctx, stored.termId);
-    await lockPerson(ctx, actor.personId);
+    const open = await lockDailyGame(ctx, DAILY_RULES, {
+      personId: actor.personId,
+      termId: stored.termId,
+    });
     const [row] = await ctx.tx
       .select()
       .from(sudokuRun)
@@ -354,16 +338,15 @@ export async function finishSudokuAs(actor: MemberActor, input: unknown): Promis
     if (reused) {
       return { ok: false, reason: "REQUEST_CONFLICT", run: runView(row, now) };
     }
-    const current = await findTermContaining(day, ctx.tx);
-    const vigente =
-      open && row.day === day && current?.id === row.termId && !current?.pointsClosedAt;
-    if (!vigente || !(await eligible(actor.personId, ctx.tx))) {
+    const refusal = await refusalToContinue(ctx, DAILY_RULES, {
+      personId: actor.personId,
+      game: row,
+      open,
+      now,
+    });
+    if (refusal) {
       const expired = await closeRun(ctx, row, "EXPIRED", now);
-      return {
-        ok: false,
-        reason: row.day === day ? (open ? "NOT_ELIGIBLE" : "TERM_CLOSED") : "EXPIRED",
-        run: runView(expired, now),
-      };
+      return { ok: false, reason: refusal, run: runView(expired, now) };
     }
     // Ya acreditada hoy: la partida se guarda resuelta igual, simplemente no acredita otra vez.
     const [creditedToday] = await ctx.tx
@@ -392,14 +375,13 @@ export async function finishSudokuAs(actor: MemberActor, input: unknown): Promis
       throw new Error("No se pudo guardar la partida de Sudoku");
     }
     if (points > 0) {
-      await ctx.tx.insert(pointEntry).values({
+      await creditGame(ctx, {
+        game: "SUDOKU",
+        runId: row.id,
         personId: actor.personId,
         termId: row.termId,
-        sudokuRunId: row.id,
-        kind: "SUDOKU",
         points,
         reason: creditReason(row),
-        createdById: actor.personId,
       });
       await ctx.emit(
         eventOf(sudokuCompleted, {
@@ -442,7 +424,8 @@ export async function abandonSudokuAs(actor: MemberActor, input: unknown): Promi
     return { ok: false, reason: "INVALID_INPUT" };
   }
   return runCommand(actor, async (ctx) => {
-    await lockPerson(ctx, actor.personId);
+    // Abandonar no escribe puntos: toma solo el candado propio, sin el término.
+    await lockDailyGamePerson(ctx, DAILY_RULES, actor.personId);
     const now = new Date();
     const [row] = await ctx.tx
       .select()

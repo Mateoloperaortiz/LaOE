@@ -7,18 +7,28 @@
  */
 export const APP_TIME_ZONE = "America/Bogota";
 
-/** Suma días hábiles (lunes a viernes, sin festivos) a partir de un instante: el plazo de la eliminación. */
-export function addBusinessDays(from: Date, days: number): Date {
+/**
+ * Suma días hábiles a partir de un instante y conserva la hora: el plazo de una excusa, el de la
+ * eliminación y el vencimiento de las tareas de GH. Hábil es de lunes a viernes en el día civil de la
+ * zona dada, sin festivos (ADR-118 regla 12; los festivos y la hora de corte son la decisión abierta 33).
+ * Avanza de a 24 horas, que es un día civil en una zona sin horario de verano como la de Colombia.
+ */
+export function addBusinessDaysIn(timeZone: string, from: Date, days: number): Date {
   const result = new Date(from.getTime());
   let remaining = days;
   while (remaining > 0) {
     result.setUTCDate(result.getUTCDate() + 1);
-    const weekday = result.getUTCDay();
-    if (weekday !== 0 && weekday !== 6) {
+    if (!isWeekendIn(timeZone, result)) {
       remaining -= 1;
     }
   }
   return result;
+}
+
+/** Si ese instante cae en sábado o domingo en la zona dada. */
+function isWeekendIn(timeZone: string, at: Date): boolean {
+  const weekday = new Date(`${dateKeyIn(timeZone, at)}T00:00:00Z`).getUTCDay();
+  return weekday === 0 || weekday === 6;
 }
 
 /** "AAAA-MM-DD" de un instante en la zona dada. */
@@ -74,6 +84,56 @@ export function zonedInputToUtc(value: string, timeZone: string): Date {
   const naive = new Date(`${value}:00Z`); // como si fuera UTC
   const offsetMinutes = zoneOffsetMinutes(timeZone, naive);
   return new Date(naive.getTime() - offsetMinutes * 60_000);
+}
+
+const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** El instante en que dan las `hour` en punto de ese día ("AAAA-MM-DD") en la zona dada. */
+export function atHourIn(timeZone: string, dayKey: string, hour: number): Date {
+  if (!DAY_KEY.test(dayKey) || !Number.isInteger(hour) || hour < 0 || hour > 23) {
+    throw new Error(`Día u hora inválidos: ${dayKey} ${hour}`);
+  }
+  return zonedInputToUtc(`${dayKey}T${String(hour).padStart(2, "0")}:00`, timeZone);
+}
+
+/**
+ * Un día ("AAAA-MM-DD") más `days` días, o menos si es negativo: aritmética de calendario, sin zona ni
+ * horas. Es la única suma de días de la casa (ADR-121 regla 6).
+ */
+export function addDays(dayKey: string, days: number): string {
+  const date = new Date(`${dayKey}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Los días de calendario que van de un día ("AAAA-MM-DD") a otro: positivo si el segundo es posterior
+ * y negativo si es anterior. Sin zona ni horas, como `addDays`, de la que es la inversa. Es la única
+ * resta de días de la casa (ADR-123 regla 20).
+ */
+export function daysBetween(fromKey: string, toKey: string): number {
+  return Math.round(
+    (new Date(`${toKey}T00:00:00Z`).getTime() - new Date(`${fromKey}T00:00:00Z`).getTime()) /
+      86_400_000,
+  );
+}
+
+/**
+ * El día de la mitad entre dos días ("AAAA-MM-DD"): el primero más la mitad, hacia abajo, de los días
+ * que los separan, así que el medio día que sobra no cuenta. Aritmética de calendario, sin zona: quien
+ * la compara con «hoy» trae el día civil de Colombia. Es la única escritura de «la mitad del término»
+ * (ADR-122 regla 12).
+ */
+export function midpointDay(startKey: string, endKey: string): string {
+  return addDays(startKey, Math.floor(daysBetween(startKey, endKey) / 2));
+}
+
+/**
+ * La medianoche que le sigue a ese instante en la zona dada: cuando empieza su día siguiente. Va por
+ * el día y no por horas sumadas: el día de ese instante, más uno, a las cero de la zona.
+ */
+export function startOfNextDayIn(timeZone: string, at: Date): Date {
+  return atHourIn(timeZone, addDays(dateKeyIn(timeZone, at), 1), 0);
 }
 
 /** Instante UTC → "AAAA-MM-DDTHH:mm" en la zona dada, para rellenar un `datetime-local`. */

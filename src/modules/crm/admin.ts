@@ -3,7 +3,7 @@ import { listFormOptions } from "@/modules/forms";
 import { listPermissions } from "@/modules/identity";
 import { listAllTerms } from "@/modules/terms";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import {
   type CallInput,
@@ -171,14 +171,15 @@ export const tasksResource: ResourceDefinition<TaskRow, TaskInput> = {
     dueAt: row.dueAt ? utcToBogotaInput(row.dueAt) : "",
     kind: row.kind,
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createTask(ctx, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createTask(ctx, input)),
   rowActions: [{ key: "done", label: t("T-462"), applies: (row) => row.status === "OPEN" }],
   runRowAction: async (actor, actionKey, id) => {
     if (actionKey === "done") {
-      await runCommand({ personId: actor.personId }, (ctx) => completeTask(ctx, id));
+      await runCommand(actor, (ctx) => completeTask(ctx, id));
     }
   },
+  // El CSV lleva el nombre de la persona y el del responsable, y el título puede traer el motivo.
+  personalData: true,
   exportRow: (row) => ({
     titulo: row.title,
     responsable: row.assigneeName,
@@ -195,10 +196,10 @@ export const tasksResource: ResourceDefinition<TaskRow, TaskInput> = {
 
 const [orgSingular, orgPlural] = tList("T-947");
 const [orgNombre, orgTipo, orgSitio, orgNotas, orgContactos, orgEtiquetas] = tList("T-948");
-const orgKindLabels = tList("T-949");
-const kindOptions = ORGANIZATION_KINDS.map((value, index) => ({
+const orgKindLabels = tLabels("T-949", ORGANIZATION_KINDS);
+const kindOptions = ORGANIZATION_KINDS.map((value) => ({
   value,
-  label: orgKindLabels[index] ?? value,
+  label: orgKindLabels[value] ?? value,
 }));
 
 export const organizationsResource: ResourceDefinition<OrganizationListRow, OrganizationInput> = {
@@ -214,7 +215,7 @@ export const organizationsResource: ResourceDefinition<OrganizationListRow, Orga
     {
       key: "kind",
       label: orgTipo ?? "",
-      render: (row) => orgKindLabels[ORGANIZATION_KINDS.indexOf(row.kind)] ?? row.kind,
+      render: (row) => orgKindLabels[row.kind] ?? row.kind,
     },
     {
       key: "website",
@@ -253,10 +254,9 @@ export const organizationsResource: ResourceDefinition<OrganizationListRow, Orga
     website: row.website ?? "",
     notes: row.notes,
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createOrganization(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateOrganization(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createOrganization(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateOrganization(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     nombre: row.name,
     tipo: row.kind,
@@ -270,12 +270,12 @@ export const organizationsResource: ResourceDefinition<OrganizationListRow, Orga
 
 const [pipeSingular, pipePlural] = tList("T-962");
 const [pipeNombre, pipeTipo, pipeArchivado, pipeAbiertas, pipeTablero] = tList("T-963");
-const pipeKindLabels = tList("T-964");
+const pipeKindLabels = tLabels("T-964", PIPELINE_KINDS);
 const [archivar, desarchivar] = tList("T-969");
 const [si, no] = tList("T-1058");
-const pipeKindOptions = PIPELINE_KINDS.map((value, index) => ({
+const pipeKindOptions = PIPELINE_KINDS.map((value) => ({
   value,
-  label: pipeKindLabels[index] ?? value,
+  label: pipeKindLabels[value] ?? value,
 }));
 
 export const pipelinesResource: ResourceDefinition<PipelineListRow, PipelineInput> = {
@@ -291,7 +291,7 @@ export const pipelinesResource: ResourceDefinition<PipelineListRow, PipelineInpu
     {
       key: "kind",
       label: pipeTipo ?? "",
-      render: (row) => pipeKindLabels[PIPELINE_KINDS.indexOf(row.kind)] ?? row.kind,
+      render: (row) => pipeKindLabels[row.kind] ?? row.kind,
     },
     {
       key: "archived",
@@ -341,21 +341,18 @@ export const pipelinesResource: ResourceDefinition<PipelineListRow, PipelineInpu
     }),
   get: getPipeline,
   toFormValues: (row) => ({ name: row.name, kind: row.kind }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createPipeline(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updatePipeline(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createPipeline(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updatePipeline(ctx, id, input)),
   rowActions: [
     { key: "archive", label: archivar, applies: (row) => !row.isArchived },
     { key: "unarchive", label: desarchivar, applies: (row) => row.isArchived },
   ],
   runRowAction: async (actor, actionKey, id) => {
     if (actionKey === "archive" || actionKey === "unarchive") {
-      await runCommand({ personId: actor.personId }, (ctx) =>
-        setPipelineArchived(ctx, id, actionKey === "archive"),
-      );
+      await runCommand(actor, (ctx) => setPipelineArchived(ctx, id, actionKey === "archive"));
     }
   },
+  personalData: false,
   exportRow: (row) => ({
     nombre: row.name,
     tipo: row.kind,
@@ -380,12 +377,12 @@ const [
   cInscritos,
   cDescripcion,
 ] = tList("T-1017");
-const selectionLabels = tList("T-1018");
-const callStatusLabels = tList("T-1019");
+const selectionLabels = tLabels("T-1018", CALL_SELECTIONS);
+const callStatusLabels = tLabels("T-1019", CALL_STATUSES);
 const [cAbrir, cCerrar] = tList("T-1020");
 
 function callStatusCell(status: CallListRow["status"]) {
-  const label = callStatusLabels[CALL_STATUSES.indexOf(status)] ?? status;
+  const label = callStatusLabels[status] ?? status;
   return status === "OPEN"
     ? { text: label, badge: "amarillo" as const }
     : status === "CLOSED"
@@ -430,9 +427,9 @@ async function callFields(): Promise<FieldDefinition[]> {
       label: cSeleccion ?? "",
       type: "select",
       required: true,
-      options: CALL_SELECTIONS.map((value, index) => ({
+      options: CALL_SELECTIONS.map((value) => ({
         value,
-        label: selectionLabels[index] ?? value,
+        label: selectionLabels[value] ?? value,
       })),
     },
     {
@@ -440,9 +437,9 @@ async function callFields(): Promise<FieldDefinition[]> {
       label: cEstado ?? "",
       type: "select",
       required: true,
-      options: CALL_STATUSES.map((value, index) => ({
+      options: CALL_STATUSES.map((value) => ({
         value,
-        label: callStatusLabels[index] ?? value,
+        label: callStatusLabels[value] ?? value,
       })),
     },
   ];
@@ -471,7 +468,7 @@ export const callsResource: ResourceDefinition<CallListRow, CallInput> = {
     {
       key: "selection",
       label: cSeleccion ?? "",
-      render: (row) => selectionLabels[CALL_SELECTIONS.indexOf(row.selection)] ?? row.selection,
+      render: (row) => selectionLabels[row.selection] ?? row.selection,
     },
     { key: "status", label: cEstado ?? "", render: (row) => callStatusCell(row.status) },
     { key: "entries", label: cInscritos ?? "", render: (row) => row.entries },
@@ -480,9 +477,9 @@ export const callsResource: ResourceDefinition<CallListRow, CallInput> = {
     {
       key: "status",
       label: cEstado ?? "",
-      options: CALL_STATUSES.map((value, index) => ({
+      options: CALL_STATUSES.map((value) => ({
         value,
-        label: callStatusLabels[index] ?? value,
+        label: callStatusLabels[value] ?? value,
       })),
     },
     { key: "groupId", label: cGrupo ?? "", options: [] },
@@ -510,21 +507,20 @@ export const callsResource: ResourceDefinition<CallListRow, CallInput> = {
     selection: row.selection,
     status: row.status,
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createCall(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateCall(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createCall(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateCall(ctx, id, input)),
   rowActions: [
     { key: "open", label: cAbrir, applies: (row) => row.status !== "OPEN" },
     { key: "close", label: cCerrar, applies: (row) => row.status === "OPEN" },
   ],
   runRowAction: async (actor, actionKey, id) => {
     if (actionKey === "open" || actionKey === "close") {
-      await runCommand({ personId: actor.personId }, (ctx) =>
+      await runCommand(actor, (ctx) =>
         setCallStatus(ctx, id, actionKey === "open" ? "OPEN" : "CLOSED"),
       );
     }
   },
+  personalData: false,
   exportRow: (row) => ({
     titulo: row.title,
     grupo: row.groupId,

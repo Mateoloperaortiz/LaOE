@@ -197,6 +197,7 @@ export async function seedTheGames(
   const [operatorId, judgeOne, judgeTwo] = await demoStaff(db, 3);
   const { id, codes } = await buildTheGamesRehearsal({
     editionId: edition.id,
+    // Un script no tiene request: el ADMIN de la semilla va sin IP.
     actor: { personId: admin.id, isAdmin: true, ip: null },
     slug: THE_GAMES_REHEARSAL_SLUG,
     name: "Ensayo de The Games",

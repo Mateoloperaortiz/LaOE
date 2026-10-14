@@ -1,7 +1,8 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb } from "@/db/client";
 import { boardExportRows, boardIndicators, recomputeSnapshots } from "@/modules/permanence";
-import { truncateAll } from "./db";
+import { boardResource } from "@/modules/permanence/admin";
+import { tList } from "@/shared/copy";
 import {
   seedCheckIn,
   seedCommittee,
@@ -11,7 +12,8 @@ import {
   seedPerson,
   seedRule,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Panel de la junta (ADR-036 regla 12): agregados por término y comité sobre datos sembrados, sin
 // ids ni correos de personas en la respuesta.
@@ -105,32 +107,11 @@ describe("indicadores de la junta", () => {
     for (const forbidden of [stays, leaves, newcomer, "@eafit.edu.co", "sigue", "nueva"]) {
       expect(serialized).not.toContain(forbidden);
     }
-    const rows = boardExportRows(data, {
-      cards: [
-        "Activos",
-        "Nuevos",
-        "Retención",
-        "En camino",
-        "En riesgo",
-        "No alcanza",
-        "Reuniones",
-        "Integraciones",
-        "Asambleas",
-      ],
-      retention: ["Semestre", "Con comité", "Siguen", "Retención", "Nuevos"],
-      committees: [
-        "Comité",
-        "Miembros",
-        "En camino",
-        "En riesgo",
-        "No alcanza",
-        "Reuniones",
-        "Asistencia",
-      ],
-    });
+    const rows = boardExportRows(data);
+    const [attendance, retention] = [tList("T-828")[6] ?? "", tList("T-823")[2] ?? ""];
     expect(rows).toContainEqual({
-      id: "Asistencia:A3:2024-2",
-      indicator: "Asistencia",
+      id: `${attendance}:A3:2024-2`,
+      indicator: attendance,
       committee: "A3",
       term: "2024-2",
       value: 50,
@@ -138,8 +119,22 @@ describe("indicadores de la junta", () => {
     // La tarjeta trae la retención del término anterior; la fila de 2024-2 no tiene siguiente.
     expect(
       rows
-        .filter((row) => row.indicator === "Retención" && row.term === "2024-2")
+        .filter((row) => row.indicator === retention && row.term === "2024-2")
         .map((row) => row.value),
     ).toEqual([50, ""]);
+  });
+
+  // DT-250: la ruta del exporte pide una página del tamaño del tope. La lista de la junta lo ignoraba y
+  // devolvía todas sus filas, así que el archivo no habría salido recortado aunque la pantalla avisara.
+  it("la lista del exporte de la junta lleva como mucho las filas que le piden y dice cuántas hay", async () => {
+    const termId = await seedTerm("2024-2");
+    const params = { q: "", page: 1, filters: { termId } };
+
+    const everything = await boardResource.list({ ...params, pageSize: 10_000 });
+    expect(everything.rows.length).toBeGreaterThan(5);
+    const listed = await boardResource.list({ ...params, pageSize: 5 });
+
+    expect(listed.total).toBe(everything.rows.length);
+    expect(listed.rows).toEqual(everything.rows.slice(0, 5));
   });
 });

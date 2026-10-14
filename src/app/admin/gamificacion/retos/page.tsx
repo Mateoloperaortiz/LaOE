@@ -7,7 +7,7 @@ import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { Pagination } from "@/shared/admin-kit";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 
 // Lista de retos del admin (ADR-067 regla 16): filtros por semestre, estado y formato.
@@ -19,7 +19,13 @@ type Search = Record<string, string | string[] | undefined>;
 const PAGE_SIZE = 50;
 const inputClass =
   "rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";
-const STATES: ChallengeState[] = ["DRAFT", "SCHEDULED", "OPEN", "CLOSED", "CANCELLED"];
+const STATES = [
+  "DRAFT",
+  "SCHEDULED",
+  "OPEN",
+  "CLOSED",
+  "CANCELLED",
+] as const satisfies readonly ChallengeState[];
 
 export default async function RetosPage({ searchParams }: PageProps<"/admin/gamificacion/retos">) {
   await requireAdminActor("/admin/gamificacion/retos");
@@ -34,8 +40,8 @@ export default async function RetosPage({ searchParams }: PageProps<"/admin/gami
   const term = terms.find((item) => item.id === termId) ?? current ?? terms[0];
   const columns = tList("T-2582");
   const filters = tList("T-2565");
-  const kindLabels = tList("T-2409");
-  const stateLabels = tList("T-2511");
+  const kindLabels = tLabels("T-2409", CHALLENGE_KINDS);
+  const stateLabels = tLabels("T-2511", STATES);
   const [title, empty] = tList("T-2574");
 
   const result = term
@@ -99,9 +105,9 @@ export default async function RetosPage({ searchParams }: PageProps<"/admin/gami
           <span className="eyebrow text-xs">{filters[1]}</span>
           <select name="estado" defaultValue={state} className={inputClass}>
             <option value="">—</option>
-            {STATES.map((value, index) => (
+            {STATES.map((value) => (
               <option key={value} value={value}>
-                {stateLabels[index] ?? value}
+                {stateLabels[value] ?? value}
               </option>
             ))}
           </select>
@@ -110,9 +116,9 @@ export default async function RetosPage({ searchParams }: PageProps<"/admin/gami
           <span className="eyebrow text-xs">{filters[2]}</span>
           <select name="formato" defaultValue={kind} className={inputClass}>
             <option value="">—</option>
-            {CHALLENGE_KINDS.map((value, index) => (
+            {CHALLENGE_KINDS.map((value) => (
               <option key={value} value={value}>
-                {kindLabels[index] ?? value}
+                {kindLabels[value] ?? value}
               </option>
             ))}
           </select>
@@ -143,10 +149,10 @@ export default async function RetosPage({ searchParams }: PageProps<"/admin/gami
                     <Link href={`/admin/gamificacion/retos/${row.id}`}>{row.title}</Link>
                   </td>
                   <td data-label={columns[1]} className="py-2 pr-4">
-                    {kindLabels[CHALLENGE_KINDS.indexOf(row.kind)] ?? row.kind}
+                    {kindLabels[row.kind] ?? row.kind}
                   </td>
                   <td data-label={columns[2]} className="py-2 pr-4">
-                    {stateLabels[STATES.indexOf(row.state)] ?? row.state}
+                    {stateLabels[row.state] ?? row.state}
                   </td>
                   <td data-label={columns[3]} className="py-2 pr-4 whitespace-nowrap">
                     {formatDateTime(row.opensAt)}

@@ -1,11 +1,17 @@
-import { and, asc, count, desc, eq, ilike, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { card, pipeline, pipelineStage } from "../schema";
-import { PIPELINE_KINDS, type PipelineKind, templateStages } from "./pipelines-pure";
+import { assertInPipeline, type PipelineScope } from "./pipeline-scope";
+import {
+  closedAtForStage,
+  PIPELINE_KINDS,
+  type PipelineKind,
+  templateStages,
+} from "./pipelines-pure";
 
 // Pipelines (02-crm.md, ADR-037 regla 7): crearlo siembra la plantilla de su tipo; las etapas se
 // renombran, reordenan y marcan como ganada o perdida desde el kanban.
@@ -116,18 +122,6 @@ export async function listStages(pipelineId: string): Promise<StageRecord[]> {
     .orderBy(asc(pipelineStage.sortOrder), asc(pipelineStage.createdAt));
 }
 
-export async function getPipelinesByIds(ids: string[]): Promise<Map<string, PipelineRecord>> {
-  const map = new Map<string, PipelineRecord>();
-  if (ids.length === 0) {
-    return map;
-  }
-  const rows = await getDb().select().from(pipeline).where(inArray(pipeline.id, ids));
-  for (const row of rows) {
-    map.set(row.id, row);
-  }
-  return map;
-}
-
 /** Nombres de la plantilla por tipo: T-965 (admisión), T-966 (patrocinio) y T-967 (personalizado). */
 function templateNames(kind: PipelineKind): string[] {
   return tList(kind === "ADMISSION" ? "T-965" : kind === "SPONSORSHIP" ? "T-966" : "T-967");
@@ -206,7 +200,12 @@ async function requireStage(ctx: CommandContext, stageId: string): Promise<Stage
   return stage;
 }
 
-/** Crea una etapa al final o renombra y marca una existente; nunca ganada y perdida a la vez (T-979). */
+/**
+ * Crea una etapa al final o renombra y marca una existente; nunca ganada y perdida a la vez (T-979).
+ * Las tarjetas que ya están en la etapa siguen su marca (ADR-118 regla 16): si la etapa queda ganada
+ * o perdida, las que estaban abiertas se cierran con la fecha de ahora; si queda abierta, las cerradas
+ * se reabren. Una tarjeta que ya estaba cerrada conserva su fecha, también de ganada a perdida.
+ */
 export async function saveStage(
   ctx: CommandContext,
   pipelineId: string,
@@ -217,20 +216,40 @@ export async function saveStage(
     throw new DomainError(t("T-979"), "isLost");
   }
   if (stageId) {
-    const stage = await requireStage(ctx, stageId);
-    if (stage.pipelineId !== pipelineId) {
+    // La etapa se lee bajo candado: mover una tarjeta hacia ella la lee con candado compartido, así
+    // que espera a que la marca quede guardada, y la marca espera a un movimiento sin confirmar.
+    const [stage] = await ctx.tx
+      .select()
+      .from(pipelineStage)
+      .where(eq(pipelineStage.id, stageId))
+      .for("no key update");
+    if (!stage || stage.pipelineId !== pipelineId) {
       throw new DomainError(t("T-032"));
     }
     await ctx.tx
       .update(pipelineStage)
       .set({ name: input.name, isWon: input.isWon, isLost: input.isLost })
       .where(eq(pipelineStage.id, stageId));
+    const closes = input.isWon || input.isLost;
+    const touched = await ctx.tx
+      .update(card)
+      .set({ closedAt: closedAtForStage(input) })
+      .where(
+        and(eq(card.stageId, stageId), closes ? isNull(card.closedAt) : isNotNull(card.closedAt)),
+      )
+      .returning({ id: card.id });
+    const cards =
+      touched.length === 0
+        ? null
+        : closes
+          ? { closedCards: touched.length }
+          : { reopenedCards: touched.length };
     await ctx.audit({
       action: "pipeline.stage-updated",
       entityType: "pipeline",
       entityId: pipelineId,
       before: { name: stage.name, isWon: stage.isWon, isLost: stage.isLost },
-      after: input,
+      after: { ...input, ...cards },
     });
     return { id: stageId };
   }
@@ -265,8 +284,11 @@ export async function moveStage(
   ctx: CommandContext,
   stageId: string,
   direction: "up" | "down",
+  scope: PipelineScope,
 ): Promise<void> {
   const stage = await requireStage(ctx, stageId);
+  // ADR-122 regla 1: la etapa de otro pipeline responde como una que no existe.
+  assertInPipeline(stage, scope);
   const stages = await ctx.tx
     .select()
     .from(pipelineStage)
@@ -297,8 +319,25 @@ export async function moveStage(
 }
 
 /** Borra una etapa sin tarjetas (T-980); la última etapa del pipeline no se borra. */
-export async function deleteStage(ctx: CommandContext, stageId: string): Promise<void> {
+export async function deleteStage(
+  ctx: CommandContext,
+  stageId: string,
+  scope: PipelineScope,
+): Promise<void> {
   const stage = await requireStage(ctx, stageId);
+  // ADR-122 regla 1: la etapa de otro pipeline responde como una que no existe.
+  assertInPipeline(stage, scope);
+  // La etapa se toma antes de contar sus tarjetas (ADR-122 regla 3): crear una tarjeta y moverla
+  // hacia acá la toman compartida, así que el borrado espera a la que va en vuelo y la cuenta. Sin
+  // esto no la veía y terminaba en el error de la llave foránea, sin traducir.
+  const [taken] = await ctx.tx
+    .select({ id: pipelineStage.id })
+    .from(pipelineStage)
+    .where(eq(pipelineStage.id, stageId))
+    .for("update");
+  if (!taken) {
+    throw new DomainError(t("T-032"));
+  }
   const [cards] = await ctx.tx.select({ n: count() }).from(card).where(eq(card.stageId, stageId));
   if ((cards?.n ?? 0) > 0) {
     throw new DomainError(t("T-980"));
@@ -330,14 +369,17 @@ export function saveStageAs(
   return runCommand(actor, (ctx) => saveStage(ctx, pipelineId, stageId, input));
 }
 
+/** `scope` es el pipeline de la página desde la que se mueve la etapa (ADR-122 regla 1). */
 export function moveStageAs(
   actor: Actor,
   stageId: string,
   direction: "up" | "down",
+  scope: PipelineScope,
 ): Promise<void> {
-  return runCommand(actor, (ctx) => moveStage(ctx, stageId, direction));
+  return runCommand(actor, (ctx) => moveStage(ctx, stageId, direction, scope));
 }
 
-export function deleteStageAs(actor: Actor, stageId: string): Promise<void> {
-  return runCommand(actor, (ctx) => deleteStage(ctx, stageId));
+/** `scope` es el pipeline de la página desde la que se borra la etapa (ADR-122 regla 1). */
+export function deleteStageAs(actor: Actor, stageId: string, scope: PipelineScope): Promise<void> {
+  return runCommand(actor, (ctx) => deleteStage(ctx, stageId, scope));
 }

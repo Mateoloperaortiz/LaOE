@@ -16,8 +16,11 @@ import {
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { card, organization, pipeline, pipelineStage, task } from "../schema";
-import { closedAtAfterMove } from "./pipelines-pure";
+import { card, organization, pipeline, pipelineStage } from "../schema";
+import { addNote, addOrganizationNote } from "./interactions";
+import { assertInPipeline, type PipelineScope } from "./pipeline-scope";
+import { closedAtForStage } from "./pipelines-pure";
+import { createTask, openTaskForReason, taskInputSchema } from "./tasks";
 
 // Tarjetas (02-crm.md, ADR-037 reglas 7 y 8): una persona o una organización avanzando por un pipeline.
 // Mover es un comando con interacción en el sujeto; llegar a una etapa ganada o perdida cierra la
@@ -220,17 +223,37 @@ async function requirePipeline(ctx: CommandContext, pipelineId: string) {
   return own;
 }
 
-async function firstStage(ctx: CommandContext, pipelineId: string) {
+const isOpenStage = (stage: { isWon: boolean; isLost: boolean }) => !stage.isWon && !stage.isLost;
+
+/**
+ * La primera etapa abierta del pipeline, o la primera si todas cierran, ya tomada con candado
+ * compartido, el mismo de `moveCard` sobre su destino (ADR-118 regla 16; ADR-122 regla 3): guardar su
+ * marca espera a que esta tarjeta confirme, y esta espera a una marca sin confirmar. Se toma solo la
+ * elegida, y compartida: dos tarjetas nuevas no se esperan entre sí. Si mientras esperaba la etapa
+ * cambió de marca o se borró, se elige de nuevo sobre lo ya confirmado.
+ */
+async function firstStage(
+  ctx: CommandContext,
+  pipelineId: string,
+): Promise<typeof pipelineStage.$inferSelect> {
   const stages = await ctx.tx
     .select()
     .from(pipelineStage)
     .where(eq(pipelineStage.pipelineId, pipelineId))
     .orderBy(asc(pipelineStage.sortOrder), asc(pipelineStage.createdAt));
-  const open = stages.find((stage) => !stage.isWon && !stage.isLost) ?? stages[0];
-  if (!open) {
+  const chosen = stages.find(isOpenStage) ?? stages[0];
+  if (!chosen) {
     throw new DomainError(t("T-032"));
   }
-  return open;
+  const [taken] = await ctx.tx
+    .select()
+    .from(pipelineStage)
+    .where(eq(pipelineStage.id, chosen.id))
+    .for("share");
+  if (!taken || isOpenStage(taken) !== isOpenStage(chosen)) {
+    return firstStage(ctx, pipelineId);
+  }
+  return taken;
 }
 
 interface CreateCardOptions {
@@ -282,7 +305,7 @@ async function insertCard(
     ownerId: input.ownerId ?? null,
     title: title || own.name,
     dueAt: input.dueAt ?? null,
-    closedAt: closedAtAfterMove(stage),
+    closedAt: closedAtForStage(stage),
     createdById: ctx.actor.personId,
   };
   const [row] = options.submissionId
@@ -386,7 +409,13 @@ export async function moveCard(
 ): Promise<void> {
   const row = await requireCard(ctx, cardId);
   const [own] = await ctx.tx.select().from(pipeline).where(eq(pipeline.id, row.pipelineId));
-  const [target] = await ctx.tx.select().from(pipelineStage).where(eq(pipelineStage.id, stageId));
+  // La etapa de destino se lee con candado compartido: guardar su marca de ganada o perdida espera a
+  // este movimiento, y este espera a una marca sin confirmar (ADR-118 regla 16).
+  const [target] = await ctx.tx
+    .select()
+    .from(pipelineStage)
+    .where(eq(pipelineStage.id, stageId))
+    .for("share");
   const [from] = await ctx.tx.select().from(pipelineStage).where(eq(pipelineStage.id, row.stageId));
   if (!own || !target || target.pipelineId !== row.pipelineId) {
     throw new DomainError(t("T-032"), "stageId");
@@ -403,20 +432,19 @@ export async function moveCard(
   const now = new Date();
   await ctx.tx
     .update(card)
-    .set({ stageId: target.id, enteredStageAt: now, closedAt: closedAtAfterMove(target, now) })
+    .set({ stageId: target.id, enteredStageAt: now, closedAt: closedAtForStage(target, now) })
     .where(eq(card.id, cardId));
   if (own.kind === "SPONSORSHIP" && target.isWon && row.organizationId) {
     const [org] = await ctx.tx
       .select({ name: organization.name })
       .from(organization)
       .where(eq(organization.id, row.organizationId));
-    await ctx.tx.insert(task).values({
+    await openTaskForReason(ctx, {
+      reason: { type: "SPONSORSHIP_WON", cardId, organizationId: row.organizationId },
       title: t("T-994", { organización: org?.name ?? row.title }),
-      kind: "GENERAL",
       assigneeId: row.ownerId,
-      organizationId: row.organizationId,
-      cardId,
-      createdById: ctx.actor.personId,
+      due: null,
+      requestedById: ctx.actor.personId,
     });
   }
   await ctx.audit({
@@ -424,7 +452,7 @@ export async function moveCard(
     entityType: "card",
     entityId: cardId,
     before: { stageId: row.stageId },
-    after: { stageId: target.id, closedAt: closedAtAfterMove(target, now) },
+    after: { stageId: target.id, closedAt: closedAtForStage(target, now) },
   });
   await ctx.emit(
     eventOf(cardMoved, {
@@ -442,12 +470,15 @@ export async function moveCard(
   );
 }
 
+/** Se edita desde la página de su pipeline, que es obligatorio (ADR-122 regla 1). */
 export async function updateCard(
   ctx: CommandContext,
   cardId: string,
   input: CardUpdateInput,
+  scope: PipelineScope,
 ): Promise<void> {
   const row = await requireCard(ctx, cardId);
+  assertInPipeline(row, scope);
   const fields = {
     ...row.fields,
     ...(input.counterpart !== undefined ? { counterpart: input.counterpart } : {}),
@@ -485,8 +516,11 @@ export async function admitFromCard(
   ctx: CommandContext,
   cardId: string,
   input: AdmitInput,
+  scope: PipelineScope,
 ): Promise<{ membershipId: string }> {
   const row = await requireCard(ctx, cardId);
+  // ADR-122 regla 1: la tarjeta de otro pipeline responde como una que no existe, antes de admitir.
+  assertInPipeline(row, scope);
   const [own] = await ctx.tx.select().from(pipeline).where(eq(pipeline.id, row.pipelineId));
   if (!own || own.kind !== "ADMISSION" || !row.personId) {
     throw new DomainError(t("T-032"));
@@ -504,6 +538,70 @@ export async function admitFromCard(
   return result;
 }
 
+/**
+ * La tarjeta de la página, leída sin tomarla: quien escribe sobre su sujeto no la cambia, y de qué
+ * pipeline es y cuál es su sujeto no cambian. El pipeline de la página es obligatorio (ADR-122
+ * regla 1): la tarjeta de otro responde como una que no existe.
+ */
+async function cardOfPage(
+  ctx: CommandContext,
+  cardId: string,
+  scope: PipelineScope,
+): Promise<CardRecord> {
+  const [row] = await ctx.tx.select().from(card).where(eq(card.id, cardId));
+  if (!row) {
+    throw new DomainError(t("T-032"));
+  }
+  assertInPipeline(row, scope);
+  return row;
+}
+
+/** Nota sobre el sujeto de la tarjeta, persona u organización, desde la página de su pipeline. */
+export async function addCardNote(
+  ctx: CommandContext,
+  cardId: string,
+  body: string,
+  scope: PipelineScope,
+): Promise<{ id: string }> {
+  const row = await cardOfPage(ctx, cardId, scope);
+  if (row.personId) {
+    return addNote(ctx, row.personId, body);
+  }
+  if (row.organizationId) {
+    return addOrganizationNote(ctx, row.organizationId, body);
+  }
+  // `card_one_subject` no deja una tarjeta sin sujeto: si apareciera, no hay ficha donde escribir.
+  throw new DomainError(t("T-032"));
+}
+
+/** Lo que la página escribe de una tarea de la tarjeta; el sujeto y la tarjeta los pone el comando. */
+export const cardTaskInputSchema = taskInputSchema.pick({
+  title: true,
+  assigneeId: true,
+  dueAt: true,
+});
+
+export type CardTaskInput = z.infer<typeof cardTaskInputSchema>;
+
+/** Tarea ligada a la tarjeta y a su sujeto, desde la página de su pipeline. */
+export async function createCardTask(
+  ctx: CommandContext,
+  cardId: string,
+  input: CardTaskInput,
+  scope: PipelineScope,
+): Promise<{ id: string }> {
+  const row = await cardOfPage(ctx, cardId, scope);
+  return createTask(ctx, {
+    title: input.title,
+    kind: "GENERAL",
+    assigneeId: input.assigneeId,
+    dueAt: input.dueAt,
+    personId: row.personId ?? undefined,
+    organizationId: row.organizationId ?? undefined,
+    cardId: row.id,
+  });
+}
+
 // Wrappers con transacción para las páginas.
 
 export function createCardAs(
@@ -518,14 +616,42 @@ export function moveCardAs(actor: Actor, cardId: string, stageId: string): Promi
   return runCommand(actor, (ctx) => moveCard(ctx, cardId, stageId));
 }
 
-export function updateCardAs(actor: Actor, cardId: string, input: CardUpdateInput): Promise<void> {
-  return runCommand(actor, (ctx) => updateCard(ctx, cardId, input));
+/** `scope` es el pipeline de la página desde la que se edita la tarjeta (ADR-122 regla 1). */
+export function updateCardAs(
+  actor: Actor,
+  cardId: string,
+  input: CardUpdateInput,
+  scope: PipelineScope,
+): Promise<void> {
+  return runCommand(actor, (ctx) => updateCard(ctx, cardId, input, scope));
 }
 
+/** `scope` es el pipeline de la página desde la que se da de alta (ADR-122 regla 1). */
 export function admitFromCardAs(
   actor: Actor,
   cardId: string,
   input: AdmitInput,
+  scope: PipelineScope,
 ): Promise<{ membershipId: string }> {
-  return runCommand(actor, (ctx) => admitFromCard(ctx, cardId, input));
+  return runCommand(actor, (ctx) => admitFromCard(ctx, cardId, input, scope));
+}
+
+/** `scope` es el pipeline de la página desde la que se deja la nota (ADR-122 regla 1). */
+export function addCardNoteAs(
+  actor: Actor,
+  cardId: string,
+  body: string,
+  scope: PipelineScope,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => addCardNote(ctx, cardId, body, scope));
+}
+
+/** `scope` es el pipeline de la página desde la que se abre la tarea (ADR-122 regla 1). */
+export function createCardTaskAs(
+  actor: Actor,
+  cardId: string,
+  input: CardTaskInput,
+  scope: PipelineScope,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => createCardTask(ctx, cardId, input, scope));
 }

@@ -4,9 +4,10 @@ import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { assertBenefitsAvailable, listCommitteesByIds } from "@/modules/people";
 import { getCurrentTerm } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
+import { scopeId } from "@/shared/lib/scope-id";
 import { committeeBudget, eventApproval } from "../schema";
 import { APPROVAL_STATUSES } from "./budget-pure";
 
@@ -85,20 +86,41 @@ export async function requestEventApproval(
   return row;
 }
 
-/** La Presidencia decide una sola vez; una decisión distinta exige un aval nuevo. */
+/** Desde dónde se decide un aval: la página del presupuesto que lo muestra (ADR-122 regla 1). */
+export interface ApprovalScope {
+  budgetId: string;
+}
+
+/**
+ * La Presidencia decide una sola vez; una decisión distinta exige un aval nuevo. El alcance es
+ * obligatorio (ADR-122 regla 1): la página de un presupuesto muestra los avales de su comité, así que
+ * sin presupuesto, con uno que no existe o con el de otro comité, el aval responde como uno que no
+ * existe.
+ */
 export async function decideEventApproval(
   ctx: CommandContext,
   id: string,
   raw: ApprovalDecisionInput,
+  scope: ApprovalScope,
   now = new Date(),
 ): Promise<void> {
   const input = approvalDecisionSchema.parse(raw);
+  // Falla cerrado: un alcance que no trae presupuesto no decide nada.
+  const budgetId = scopeId(scope, "budgetId");
+  if (budgetId === null) {
+    throw new DomainError(t("T-032"));
+  }
+  // Lectura sin candado: solo dice de qué comité es la página.
+  const [pageBudget] = await ctx.tx
+    .select({ committeeId: committeeBudget.committeeId })
+    .from(committeeBudget)
+    .where(eq(committeeBudget.id, budgetId));
   const [row] = await ctx.tx
     .select()
     .from(eventApproval)
     .where(eq(eventApproval.id, id))
     .for("update");
-  if (!row) {
+  if (!row || !pageBudget || row.committeeId !== pageBudget.committeeId) {
     throw new DomainError(t("T-032"));
   }
   if (row.status !== "PENDING") {
@@ -151,5 +173,5 @@ export async function listEventApprovals(params: {
 }
 
 export function approvalStatusLabel(status: EventApprovalRow["status"]): string {
-  return tList("T-2300")[APPROVAL_STATUSES.indexOf(status)] ?? status;
+  return tLabels("T-2300", APPROVAL_STATUSES)[status] ?? status;
 }

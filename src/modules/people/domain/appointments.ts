@@ -5,9 +5,11 @@ import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { appointmentChanged } from "@/domain-events/people";
 import { getMacroeventEdition, listEditionRefs, macroeventRoleCodes } from "@/modules/events";
-import { listAllTerms } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { findTermContaining, listAllTerms, type TermRow } from "@/modules/terms";
+import { t, tLabels, tList } from "@/shared/copy";
+import { APP_TIME_ZONE, dateKeyIn } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
+import { scopeId } from "@/shared/lib/scope-id";
 import { appointment, committee, macroeventRole, membership, person } from "../schema";
 import { assertNoInhabilities, BOARD_KINDS, type Override } from "./inhabilities";
 
@@ -18,7 +20,7 @@ import { assertNoInhabilities, BOARD_KINDS, type Override } from "./inhabilities
 
 export type AppointmentKind = (typeof appointment.$inferSelect)["kind"];
 
-export const APPOINTMENT_KINDS: readonly AppointmentKind[] = [
+export const APPOINTMENT_KINDS = [
   "PRESIDENT",
   "VP_GH",
   "VP_PUBLIC_RELATIONS",
@@ -29,7 +31,7 @@ export const APPOINTMENT_KINDS: readonly AppointmentKind[] = [
   "GH_DIRECTOR",
   "MACROEVENT_DIRECTOR",
   "OTHER",
-];
+] as const satisfies readonly AppointmentKind[];
 
 /** Los que se nombran desde la Persona 360; el de macroevento sale de la edición. */
 export const BOARD_APPOINTMENT_KINDS: readonly AppointmentKind[] = APPOINTMENT_KINDS.filter(
@@ -97,7 +99,7 @@ export interface AppointmentLabelInput {
  * "{cargo} · {edición}" (T-2268) o "{cargo} (codirección) · {edición}" (T-2269).
  */
 export function appointmentLabel(item: AppointmentLabelInput): string {
-  const label = tList("T-444")[APPOINTMENT_KINDS.indexOf(item.kind)] ?? item.kind;
+  const label = tLabels("T-444", APPOINTMENT_KINDS)[item.kind] ?? item.kind;
   if (item.kind === "MACROEVENT_DIRECTOR" && item.roleLabel) {
     return t(item.coDirector ? "T-2269" : "T-2268", {
       cargo: item.roleLabel,
@@ -216,9 +218,41 @@ export async function addAppointment(
   return row;
 }
 
-export async function removeAppointment(ctx: CommandContext, id: string): Promise<void> {
+/**
+ * De quién es el cargo que se quita: la persona de la ficha o la edición de la mesa del macroevento
+ * (ADR-122 regla 1). Es uno de los dos, nunca los dos ni ninguno.
+ */
+export type AppointmentOwner = { personId: string } | { editionId: string };
+
+/** Falla cerrado: un dueño que no se reconoce no es dueño de ningún cargo. */
+function ownsAppointment(
+  row: { personId: string; editionId: string | null },
+  owner: AppointmentOwner,
+): boolean {
+  const personId = scopeId(owner, "personId");
+  const editionId = scopeId(owner, "editionId");
+  // Es uno de los dos: quien declara también el otro, con el valor que sea, no es dueño.
+  const declared = owner as { personId?: unknown; editionId?: unknown } | null | undefined;
+  if (personId !== null && declared?.editionId === undefined) {
+    return row.personId === personId;
+  }
+  if (editionId !== null && declared?.personId === undefined) {
+    return row.editionId === editionId;
+  }
+  return false;
+}
+
+/**
+ * Quita un cargo desde la página de su dueño, que es obligatorio (ADR-122 regla 1): el cargo de otra
+ * persona, o el que no es de esa mesa, responde como uno que no existe.
+ */
+export async function removeAppointment(
+  ctx: CommandContext,
+  id: string,
+  owner: AppointmentOwner,
+): Promise<void> {
   const [row] = await ctx.tx.select().from(appointment).where(eq(appointment.id, id));
-  if (!row) {
+  if (!row || !ownsAppointment(row, owner)) {
     throw new DomainError(t("T-032"));
   }
   await ctx.tx.delete(appointment).where(eq(appointment.id, id));
@@ -321,6 +355,19 @@ export async function listDirectedEditionIds(
     .from(appointment)
     .where(and(eq(appointment.personId, personId), eq(appointment.roleCode, roleCode)));
   return rows.flatMap((row) => (row.editionId ? [row.editionId] : []));
+}
+
+/**
+ * El término de la mesa de una edición: el que contiene su fecha en Bogotá. Si todavía no existe no
+ * hay mesa que nombrar: no se cae al vigente, donde las inhabilidades y el directorio del término de
+ * la edición no la verían (ADR-118 regla 9).
+ */
+export async function requireEditionTerm(startsAt: Date): Promise<TermRow> {
+  const term = await findTermContaining(dateKeyIn(APP_TIME_ZONE, startsAt));
+  if (!term) {
+    throw new DomainError(t("T-3244"));
+  }
+  return term;
 }
 
 /**

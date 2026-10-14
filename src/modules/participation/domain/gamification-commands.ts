@@ -4,14 +4,7 @@ import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import type { BoosterKind } from "../gamification-types";
-import {
-  type BadgeDelta,
-  createSpecialBadge,
-  markSeen,
-  recomputeBadgesFor,
-  type SpecialBadgeInput,
-  setFeatured,
-} from "./badges";
+import { createSpecialBadge, markSeen, type SpecialBadgeInput, setFeatured } from "./badges";
 import {
   type BoosterRow,
   type BoosterTarget,
@@ -41,7 +34,12 @@ import {
   publishChallenge,
   updateChallenge,
 } from "./challenges";
-import { verifyEvidenceObjects } from "./evidence";
+import {
+  discardEvidenceUpload,
+  type EvidenceDiscardOutcome,
+  lockEvidenceUploads,
+  verifyEvidenceObjects,
+} from "./evidence";
 import { loadGamificationSettings, resolveMemberContext } from "./member-context";
 import { getOccasion } from "./occasions";
 import { resumeReconciliation, startReconciliation } from "./reconciliation";
@@ -146,26 +144,29 @@ export async function submitEvidenceAs(
   input: EvidenceSubmitInput,
 ): Promise<SubmitResult> {
   const settings = await loadGamificationSettings();
-  const replay = () =>
-    runCommand(actor, (ctx) => replaySubmission(ctx, { ...input, personId: actor.personId }));
-  const previous = await replay();
+  const previous = await runCommand(actor, (ctx) =>
+    replaySubmission(ctx, { ...input, personId: actor.personId }),
+  );
   if (previous) return previous;
   if (!settings.enabled) {
     return { ok: false, reason: "DISABLED" };
   }
   const row = await findChallenge(input.challengeId);
   const member = row ? await resolveMemberContext(actor.personId, row.termId) : null;
-  // HEAD de cada objeto antes de la transacción: inválidos se rechazan (y los propios se borran).
-  let files: Awaited<ReturnType<typeof verifyEvidenceObjects>>;
-  try {
-    files = await verifyEvidenceObjects(actor.personId, input.keys);
-  } catch (error) {
-    // Otra copia de esta entrega pudo confirmarse y eliminar el original durante el HEAD.
-    const saved = await replay();
-    if (saved) return saved;
-    throw error;
-  }
   return runCommand(actor, async (ctx) => {
+    // El candado de lo subido va antes del HEAD y dura hasta el commit (ADR-122 regla 20): la imagen
+    // que la persona quita a la vez se borra antes, y el HEAD ya no la encuentra, o después, y ya es
+    // de la entrega. Los objetos inválidos se rechazan (y los propios se borran), como antes.
+    await lockEvidenceUploads(ctx.tx, actor.personId);
+    let files: Awaited<ReturnType<typeof verifyEvidenceObjects>>;
+    try {
+      files = await verifyEvidenceObjects(actor.personId, input.keys);
+    } catch (error) {
+      // Otra copia de esta entrega pudo confirmarse y eliminar el original antes de este HEAD.
+      const saved = await replaySubmission(ctx, { ...input, personId: actor.personId });
+      if (saved) return saved;
+      throw error;
+    }
     const now = input.now ?? new Date();
     const booster = row
       ? await findTargetedBooster(ctx.tx, actor.personId, { challengeId: row.id }, now)
@@ -177,6 +178,16 @@ export async function submitEvidenceAs(
       { member, settings, booster, campaign },
     );
   });
+}
+
+/** La imagen que la persona subió y quitó de la lista antes de entregar (ADR-122 regla 20). */
+export function discardEvidenceUploadAs(
+  actor: Actor & { personId: string },
+  input: { key: string },
+): Promise<EvidenceDiscardOutcome> {
+  return runCommand(actor, (ctx) =>
+    discardEvidenceUpload(ctx, { personId: actor.personId, key: input.key }),
+  );
 }
 
 export interface ReviewInput {
@@ -287,14 +298,6 @@ export function markSeenAs(
   achievementIds: string[],
 ): Promise<void> {
   return runCommand(actor, (ctx) => markSeen(ctx, actor.personId, achievementIds));
-}
-
-/** Recompute manual desde el panel de GH (la vía normal son los handlers del outbox). */
-export function recomputeBadgesForAs(
-  actor: Actor & { personId: string },
-  personId: string,
-): Promise<BadgeDelta> {
-  return recomputeBadgesFor(personId, { historical: false, actor });
 }
 
 // Conciliación histórica (ADR-067 regla 13): solo GH; Simular (DRY_RUN) no escribe y Aplicar

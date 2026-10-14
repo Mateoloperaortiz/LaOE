@@ -1,14 +1,19 @@
-import { and, asc, count, desc, eq, inArray, max } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, max, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
+import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { pushSubscription } from "../schema";
+import { isKnownPushEndpoint, MAX_DEVICES_PER_PERSON } from "./push-endpoint-pure";
 
-// Suscripciones push (ADR-038 regla 5): un dispositivo por endpoint; upsert al registrar (reasigna la
-// persona si el mismo navegador cambió de sesión) y borrado al quitar, al responder 404/410 o al salir.
+// Suscripciones push (ADR-038 regla 5, ADR-113 regla 6): un dispositivo por endpoint, solo de un
+// servicio de push conocido y hasta diez por persona. Registrar el propio lo actualiza; el de otra
+// persona no se reasigna. Se borra al quitar, al cerrar sesión en ese navegador (ADR-118 regla 17), al
+// responder 404/410 o al salir de la OE.
 
 export const subscriptionInputSchema = z.object({
-  endpoint: z.url().max(2000),
+  endpoint: z.url().max(2000).refine(isKnownPushEndpoint),
   keys: z.object({
     p256dh: z.string().min(16).max(512),
     auth: z.string().min(8).max(256),
@@ -33,6 +38,19 @@ export interface SubscriptionRecord {
   auth: string;
 }
 
+/** El endpoint ya es de otra persona y no se reasigna (ADR-113 regla 6); la ruta responde 409. */
+export class SubscriptionTakenError extends DomainError {
+  constructor() {
+    super(t("T-3208"), "endpoint");
+    this.name = "SubscriptionTakenError";
+  }
+}
+
+/**
+ * Registra el dispositivo del actor. Vuelve a validar el endpoint (no confía en la ruta), y dentro de
+ * la transacción comprueba de quién es y cuántos tiene la persona, bajo un candado por persona: dos
+ * registros simultáneos hacen fila y el tope no se pasa.
+ */
 export async function saveSubscriptionAs(
   actor: Actor,
   input: SubscriptionInput,
@@ -45,32 +63,36 @@ export async function saveSubscriptionAs(
   }
   const parsed = subscriptionInputSchema.parse(input);
   return runCommand(actor, async (ctx) => {
+    await ctx.tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`push-subscription:${personId}`}, 0))`,
+    );
     const [existing] = await ctx.tx
       .select({ id: pushSubscription.id, personId: pushSubscription.personId })
       .from(pushSubscription)
       .where(eq(pushSubscription.endpoint, parsed.endpoint))
       .limit(1);
     if (existing) {
+      if (existing.personId !== personId) {
+        throw new SubscriptionTakenError();
+      }
       await ctx.tx
         .update(pushSubscription)
         .set({
-          personId,
           p256dh: parsed.keys.p256dh,
           auth: parsed.keys.auth,
           userAgent,
           lastSeenAt: now,
         })
         .where(eq(pushSubscription.id, existing.id));
-      if (existing.personId !== personId) {
-        await ctx.audit({
-          action: "push-subscription.reassigned",
-          entityType: "push_subscription",
-          entityId: existing.id,
-          before: { personId: existing.personId },
-          after: { personId },
-        });
-      }
       return { id: existing.id, created: false };
+    }
+    const [devices] = await ctx.tx
+      .select({ n: count() })
+      .from(pushSubscription)
+      .where(eq(pushSubscription.personId, personId));
+    // Sin cuenta no se registra: el tope falla cerrado.
+    if (!devices || devices.n >= MAX_DEVICES_PER_PERSON) {
+      throw new DomainError(t("T-3209"), "endpoint");
     }
     const [row] = await ctx.tx
       .insert(pushSubscription)
@@ -82,9 +104,11 @@ export async function saveSubscriptionAs(
         userAgent,
         lastSeenAt: now,
       })
+      .onConflictDoNothing({ target: pushSubscription.endpoint })
       .returning({ id: pushSubscription.id });
     if (!row) {
-      throw new Error("No se pudo guardar la suscripción");
+      // Otra persona lo registró entre la lectura y el guardado: el índice único decide.
+      throw new SubscriptionTakenError();
     }
     await ctx.audit({
       action: "push-subscription.created",
@@ -130,6 +154,30 @@ export async function removeSubscriptionAs(
     }
     return rows.length > 0;
   });
+}
+
+/**
+ * Cerrar sesión retira el dispositivo de ese navegador (ADR-118 regla 17). Corre dentro del comando que
+ * cierra la sesión, con la persona de la sesión cerrada: el endpoint de otra persona no se toca.
+ */
+export async function releaseSubscriptionOnSignOut(
+  ctx: CommandContext,
+  personId: string,
+  endpoint: string,
+): Promise<boolean> {
+  const rows = await ctx.tx
+    .delete(pushSubscription)
+    .where(and(eq(pushSubscription.endpoint, endpoint), eq(pushSubscription.personId, personId)))
+    .returning({ id: pushSubscription.id });
+  for (const row of rows) {
+    await ctx.audit({
+      action: "push-subscription.removed",
+      entityType: "push_subscription",
+      entityId: row.id,
+      after: { reason: "sign-out" },
+    });
+  }
+  return rows.length > 0;
 }
 
 export async function listSubscriptionsFor(personId: string): Promise<SubscriptionView[]> {
@@ -204,8 +252,8 @@ export async function deleteSubscriptionsByIds(ids: string[]): Promise<number> {
 }
 
 /** Al salir de la OE o anonimizarse (ADR-030). */
-export async function deleteSubscriptionsFor(personId: string): Promise<number> {
-  const rows = await getDb()
+export async function deleteSubscriptionsFor(exec: Executor, personId: string): Promise<number> {
+  const rows = await exec
     .delete(pushSubscription)
     .where(eq(pushSubscription.personId, personId))
     .returning({ id: pushSubscription.id });

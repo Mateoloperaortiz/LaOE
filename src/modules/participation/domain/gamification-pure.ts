@@ -1,4 +1,10 @@
-import { APP_TIME_ZONE, dateKeyIn, zonedInputToUtc } from "@/shared/lib/dates-pure";
+import {
+  APP_TIME_ZONE,
+  addDays,
+  atHourIn,
+  dateKeyIn,
+  zonedInputToUtc,
+} from "@/shared/lib/dates-pure";
 import type {
   BoosterKind,
   BoosterState,
@@ -65,17 +71,29 @@ export function boosterPercent(kind: BoosterKind): 50 | 100 {
   return kind === "PLUS_100" ? 100 : 50;
 }
 
-/** "AAAA-MM-DD" del día civil de `at` en la zona dada. */
+/**
+ * "AAAA-MM-DD" del día civil de `at` en la zona dada. Es el único cálculo del día de la gamificación:
+ * la clave de los topes diarios y el `day` de las partidas de los cuatro juegos (ADR-119 regla 6).
+ */
 export function dayKeyFor(at: Date, timeZone = GAMIFICATION_TIMEZONE): string {
   return dateKeyIn(timeZone, at);
 }
 
+/**
+ * Instante (ISO) en que empieza el día civil siguiente a `day` ("AAAA-MM-DD") en la zona dada: lo que
+ * un juego anuncia como su próxima partida. Recibe el día y no el instante porque una partida vencida
+ * anuncia el día que siguió al suyo, no el que sigue a hoy. La medianoche la resuelve la zona: acá no
+ * hay horas fijas de desfase ni días de 24 horas sumados a mano.
+ */
+export function nextDayAt(day: string, timeZone = GAMIFICATION_TIMEZONE): string {
+  return atHourIn(timeZone, addDays(day, 1), 0).toISOString();
+}
+
 /** Lunes de la semana local que contiene `at`, como "AAAA-MM-DD". */
 export function weekKeyFor(at: Date, timeZone = GAMIFICATION_TIMEZONE): string {
-  const day = new Date(`${dateKeyIn(timeZone, at)}T00:00:00Z`);
-  const back = (day.getUTCDay() + 6) % 7;
-  day.setUTCDate(day.getUTCDate() - back);
-  return day.toISOString().slice(0, 10);
+  const day = dateKeyIn(timeZone, at);
+  const back = (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7;
+  return addDays(day, -back);
 }
 
 /** Estado visible del reto: `SCHEDULED` antes de abrir, `CLOSED` desde `closesAt`. */
@@ -170,18 +188,4 @@ export function boosterState(
   now: Date,
 ): BoosterState {
   return row.status === "AVAILABLE" && row.expiresAt <= now ? "EXPIRED" : row.status;
-}
-
-/** Nivel alcanzado: cantidad de umbrales cubiertos por `count`. */
-export function unlockedLevel(count: number, thresholds: readonly number[]): number {
-  return thresholds.filter((threshold) => count >= threshold).length;
-}
-
-/** Progreso dentro de una familia: nivel actual, próximo umbral (null si completó) y cuenta. */
-export function badgeProgress(
-  count: number,
-  thresholds: readonly number[],
-): { level: number; next: number | null; current: number } {
-  const level = unlockedLevel(count, thresholds);
-  return { level, next: thresholds[level] ?? null, current: count };
 }

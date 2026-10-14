@@ -1,3 +1,4 @@
+import { stripAccents } from "@/shared/lib/accents";
 import { parseCsv } from "@/shared/lib/csv";
 
 // Importación de miembros a un grupo desde un CSV (ADR-036 regla 6): una columna CORREO, o una sola
@@ -6,7 +7,7 @@ import { parseCsv } from "@/shared/lib/csv";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeHeader(value: string): string {
-  return value.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+  return stripAccents(value).trim().toLowerCase();
 }
 
 export function parseGroupCsv(text: string): string[] {

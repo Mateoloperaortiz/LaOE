@@ -1,9 +1,15 @@
 import { getEnv } from "@/env";
-import { dateKeyIn, utcToZonedInput, zonedInputToUtc } from "./dates-pure";
+import {
+  addBusinessDaysIn,
+  atHourIn,
+  dateKeyIn,
+  utcToZonedInput,
+  zonedInputToUtc,
+} from "./dates-pure";
 
 export {
   APP_TIME_ZONE,
-  addBusinessDays,
+  atHourIn,
   dateKeyIn,
   hourIn,
   LOCAL_INPUT,
@@ -55,8 +61,18 @@ export function todayKey(now = new Date()): string {
   return dateKeyIn(getEnv().APP_TIMEZONE, now);
 }
 
+/** Suma días hábiles a partir de un instante, contados sobre el día civil de la zona de la app. */
+export function addBusinessDays(from: Date, days: number): Date {
+  return addBusinessDaysIn(getEnv().APP_TIMEZONE, from, days);
+}
+
 export function bogotaInputToUtc(value: string): Date {
   return zonedInputToUtc(value, getEnv().APP_TIMEZONE);
+}
+
+/** Las `hour` en punto de ese día ("AAAA-MM-DD") en la zona de la app. */
+export function bogotaHourToUtc(dayKey: string, hour: number): Date {
+  return atHourIn(getEnv().APP_TIMEZONE, dayKey, hour);
 }
 
 export function utcToBogotaInput(date: Date): string {

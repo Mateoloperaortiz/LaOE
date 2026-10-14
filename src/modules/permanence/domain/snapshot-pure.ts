@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { COMPUTATIONS, WORK_GROUP_KINDS } from "./params";
-import type { CommitteeResult, CriterionResult, MandatoryView } from "./permanence-pure";
+import type {
+  CommitteeResult,
+  CriterionResult,
+  MandatoryView,
+  SnapshotResults,
+} from "./permanence-pure";
 
 // Esquemas de los JSON del snapshot (03-modelo): se validan al leer con `.catch` para que una fila
 // vieja o dañada degrade a vacío en vez de romper la pantalla.
@@ -85,7 +90,18 @@ export const criterionSchema: z.ZodType<CriterionResult> = z.object({
   detail,
 });
 
-const state = z.enum(["EN_CAMINO", "EN_RIESGO", "NO_ALCANZA", "CUMPLE", "PRUEBA", "NO_CUMPLE"]);
+/** Los seis estados de cumplimiento en el orden de T-791: la tupla que comparten el esquema del
+ * snapshot y quien lee sus etiquetas (ADR-126 regla 7). */
+export const COMPLIANCE_STATES = [
+  "EN_CAMINO",
+  "EN_RIESGO",
+  "NO_ALCANZA",
+  "CUMPLE",
+  "PRUEBA",
+  "NO_CUMPLE",
+] as const;
+
+const state = z.enum(COMPLIANCE_STATES);
 
 export const committeeResultSchema: z.ZodType<CommitteeResult> = z.object({
   committeeId: z.string(),
@@ -138,6 +154,17 @@ export function parseGeneral(raw: unknown): CriterionResult[] {
 
 export function parseResults(raw: unknown): CommitteeResult[] {
   return z.array(committeeResultSchema).catch([]).parse(raw);
+}
+
+/**
+ * Lo guardado en un snapshot para quien va a escribir encima (congelar): si no valida, lanza. Leer
+ * degrada a vacío con `parseGeneral` y `parseResults`; guardar ese vacío borraría el resultado.
+ */
+export function parseStoredResults(raw: { general: unknown; results: unknown }): SnapshotResults {
+  return {
+    general: z.array(criterionSchema).parse(raw.general),
+    results: z.array(committeeResultSchema).parse(raw.results),
+  };
 }
 
 export function parseMandatory(raw: unknown): MandatoryView {

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { inputClass } from "@/shared/admin-kit/AdminFields";
+import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { Issues } from "./ImportarJornada";
 
 // Cargar el personal de una jornada desde la hoja del GAP (ADR-101): se elige la jornada, se pegan
@@ -215,7 +216,21 @@ function StaffForm({
 }
 
 export function ImportarPersonal({ competitionId, action, labels }: Props) {
-  const [state, submit, pending] = useActionState(action, IMPORT_STAFF_IDLE);
+  const [state, submit, pending] = useGuardedActionState(
+    action,
+    IMPORT_STAFF_IDLE,
+    // Sin respuesta no hay vista previa que valga: se vuelve a pedir con la hoja que quedó escrita.
+    ({ previous, payload, message }) => ({
+      ...previous,
+      attempt: previous.attempt + 1,
+      day: submittedText(payload, "day") === "2" ? ("2" as const) : ("1" as const),
+      text: submittedText(payload, "text"),
+      errors: [message],
+      notice: null,
+      fingerprint: null,
+      preview: null,
+    }),
+  );
   return (
     <details className="rounded-xl border border-borde p-4" open={state.attempt > 0}>
       <summary className="cursor-pointer font-semibold">{labels.title}</summary>

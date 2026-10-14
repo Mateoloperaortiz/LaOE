@@ -33,6 +33,22 @@ export const COMMITTEE_AREAS = [
 
 export type CommitteeArea = (typeof COMMITTEE_AREAS)[number]["key"];
 
+type AreaKeys<Areas> = {
+  readonly [Position in keyof Areas]: Areas[Position] extends { key: infer Key } ? Key : never;
+};
+
+/**
+ * Las claves de las áreas en el orden de las pestañas: la tupla con la que se lee T-2174 por valor
+ * (ADR-126 regla 13). `satisfies` no compila si se aparta del orden de `COMMITTEE_AREAS`.
+ */
+export const COMMITTEE_AREA_KEYS = [
+  "personas",
+  "actividades",
+  "comunicacion",
+  "aliados",
+  "finanzas",
+] as const satisfies AreaKeys<typeof COMMITTEE_AREAS>;
+
 /** Filtra lo que no está en el vocabulario y devuelve las capacidades sin repetir, en su orden. */
 export function parseCapabilities(values: Iterable<string>): CommitteeCapability[] {
   const wanted = new Set(values);

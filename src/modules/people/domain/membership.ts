@@ -1,9 +1,9 @@
-import { and, asc, desc, eq, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { membershipChanged, personAnonymized, personEmailChanged } from "@/domain-events/people";
 import { redactAuditEntries } from "@/modules/system";
@@ -19,13 +19,21 @@ import {
   membershipTerm,
   person,
 } from "../schema";
-import { assertBenefitsAvailable } from "./benefits";
+import { blockedBenefits } from "./benefits";
+import { closeCommitteeMembership } from "./committee-membership-closing";
 import { endRolesForPerson } from "./committee-role-assignments";
 import { revokeAllConsents, syncConsent } from "./consents";
+import {
+  conditionAtDeparture,
+  leftOnProbation,
+  type SavedConditionReader,
+  savedCondition,
+  savedConditionOnce,
+} from "./leave-condition";
 import { leaveUntilError, leaveWindow } from "./leave-pure";
 import { SIGN_IN_STATUSES } from "./reads";
 import { setProbation } from "./term-outcomes";
-import { lockWalletMember } from "./wallet-member";
+import { lockMembershipCycle } from "./wallet-member";
 
 // El ciclo de vida de la membresía cambia solo por comandos (ADR-003): cada uno audita, escribe el
 // historial y emite `membership.changed`; salir y anonimizar siguen ADR-030 y ADR-034.
@@ -91,65 +99,90 @@ async function closeOpenCommitteeMemberships(
   personId: string,
   now: Date,
 ): Promise<void> {
-  await ctx.tx
-    .update(committeeMembership)
-    .set({ leftAt: now })
+  const live = await ctx.tx
+    .select({
+      id: committeeMembership.id,
+      personId: committeeMembership.personId,
+      committeeId: committeeMembership.committeeId,
+      termId: committeeMembership.termId,
+    })
+    .from(committeeMembership)
     .where(and(eq(committeeMembership.personId, personId), isNull(committeeMembership.leftAt)));
+  for (const row of live) {
+    await closeCommitteeMembership(ctx, row, now);
+  }
   await endRolesForPerson(ctx.tx, personId, now);
 }
 
-/** Congela la condición al salir; una edición posterior del término no la modifica. */
-async function conditionAtDeparture(
+/** La misma pregunta para una lectura: la elegibilidad a honorario que muestra la ficha. */
+export async function leftOnProbationOf(personId: string): Promise<boolean> {
+  const db = getDb();
+  const [current] = await db.select().from(membership).where(eq(membership.personId, personId));
+  return current ? leftOnProbation(db, current) : false;
+}
+
+/**
+ * De estas membresías, las que no pueden pasar a honorario (ADR-061 regla 2): en prueba en el término
+ * vigente o con los derechos suspendidos, o con la prueba guardada al salir a licencia (ADR-120 regla
+ * 4). Es la regla de `changeMembershipStatus`, y la vista previa del roster marca la fila con esta
+ * misma (ADR-123 regla 5): si acá cambia, cambia en los dos. Con término vigente responde
+ * `blockedBenefits`, que ya cuenta la prueba guardada (ADR-123 regla 7), y acá no se vuelve a leer
+ * (ADR-127 regla 3). Sin término no se le pregunta, y la prueba guardada se mira acá. Por cualquiera
+ * de los dos caminos la condición guardada se lee con `saved`: el comando pasa la suya, que la
+ * recuerda para dejarla escrita, y una lectura pasa `savedCondition`.
+ */
+async function honoraryBlocked(
+  exec: Executor,
+  rows: MembershipRecord[],
+  now: Date,
+  saved: SavedConditionReader,
+): Promise<Set<string>> {
+  const term = await getCurrentTerm(now);
+  if (term) {
+    return blockedBenefits(
+      rows.map((row) => row.personId),
+      term.id,
+      now,
+      exec,
+      saved,
+    );
+  }
+  const blocked = new Set<string>();
+  for (const row of rows) {
+    if (await leftOnProbation(exec, row, saved)) blocked.add(row.personId);
+  }
+  return blocked;
+}
+
+/** La misma regla para una lectura de varias personas: la vista previa del roster. */
+export async function honoraryBlockedAmong(
+  personIds: string[],
+  now = new Date(),
+): Promise<Set<string>> {
+  if (personIds.length === 0) return new Set();
+  const db = getDb();
+  const rows = await db.select().from(membership).where(inArray(membership.personId, personIds));
+  return honoraryBlocked(db, rows, now, savedCondition);
+}
+
+/**
+ * La condición que queda guardada tras el cambio (ADR-118 regla 8): se toma al salir a licencia, el
+ * paso por honorario la conserva y solo el regreso a activo la gasta. La de quien está en licencia se
+ * pide con `saved`, la lectura del comando: es la misma con la que se decidió el paso a honorario.
+ */
+async function conditionToKeep(
   ctx: CommandContext,
   current: MembershipRecord,
-  when: Date,
-): Promise<LeaveCondition[]> {
-  const term = await getCurrentTerm(when);
-  if (!term) return [];
-  const rows = await ctx.tx
-    .select()
-    .from(membershipTerm)
-    .where(and(eq(membershipTerm.personId, current.personId), eq(membershipTerm.termId, term.id)));
-  const conditions: LeaveCondition[] = rows.map((row) => ({
-    committeeId: row.committeeId,
-    probation: row.probation,
-    reportAsVeteran: row.reportAsVeteran,
-    resumedNew: row.resumedNew,
-    resumedTransfer: row.resumedTransfer,
-  }));
-  const transfers = await ctx.tx
-    .select({ committeeId: committeeMembership.committeeId })
-    .from(committeeMembership)
-    .where(
-      and(
-        eq(committeeMembership.personId, current.personId),
-        eq(committeeMembership.termId, term.id),
-        eq(committeeMembership.transferredIn, true),
-        isNull(committeeMembership.leftAt),
-      ),
-    );
-  for (const transfer of transfers) {
-    const scope = conditions.find((row) => row.committeeId === transfer.committeeId);
-    if (scope) scope.resumedTransfer = true;
-    else
-      conditions.push({
-        committeeId: transfer.committeeId,
-        probation: false,
-        reportAsVeteran: false,
-        resumedNew: false,
-        resumedTransfer: true,
-      });
+  to: ChangeStatusInput["to"],
+  now: Date,
+  saved: SavedConditionReader,
+): Promise<LeaveCondition[] | null> {
+  if (to === "ACTIVE") return null;
+  if (current.status === "ON_LEAVE") return saved(ctx.tx, current);
+  if (current.status === "HONORARY" && current.leaveCondition !== null) {
+    return current.leaveCondition;
   }
-  const general = conditions.find((row) => row.committeeId === null);
-  if (general) general.resumedNew ||= current.firstTermId === term.id;
-  else
-    conditions.push({
-      committeeId: null,
-      probation: false,
-      reportAsVeteran: false,
-      resumedNew: current.firstTermId === term.id,
-    });
-  return conditions;
+  return to === "ON_LEAVE" ? conditionAtDeparture(ctx.tx, current, now) : null;
 }
 
 /** Retoma la condición guardada, respetando una decisión explícita ya tomada para el regreso. */
@@ -160,19 +193,7 @@ async function carryOverCondition(
 ): Promise<void> {
   const term = await getCurrentTerm(now);
   if (!term) return;
-  let snapshot = current.leaveCondition;
-  if (snapshot === null) {
-    // Licencias anteriores a la migración: reconstruir desde el término de la salida registrada.
-    const [departure] = await ctx.tx
-      .select({ at: membershipEvent.at })
-      .from(membershipEvent)
-      .where(
-        and(eq(membershipEvent.membershipId, current.id), eq(membershipEvent.toStatus, "ON_LEAVE")),
-      )
-      .orderBy(desc(membershipEvent.at))
-      .limit(1);
-    snapshot = departure ? await conditionAtDeparture(ctx, current, departure.at) : [];
-  }
+  const snapshot = await savedCondition(ctx.tx, current);
   const decided = await ctx.tx
     .select({ committeeId: membershipTerm.committeeId })
     .from(membershipTerm)
@@ -195,18 +216,28 @@ export async function changeMembershipStatus(
   input: ChangeStatusInput,
   now = new Date(),
 ): Promise<void> {
-  await lockWalletMember(ctx.tx, personId);
+  await lockMembershipCycle(ctx.tx, personId);
   const current = await lockMembership(ctx, personId);
   if (current.status === "INACTIVE") {
-    throw new Error("Una membresía terminada se reactiva, no se cambia de estado");
+    // Llega acá quien pidió el cambio mientras otro la daba de baja, como una importación del roster
+    // (ADR-120 regla 3): es una respuesta del dominio, no un error sin traducir.
+    throw new DomainError(t("T-3258"), "to");
   }
+  // Un cambio que no cambia nada se dice (ADR-118 regla 10): antes respondía «guardado» sin escribir.
   if (current.status === input.to) {
-    return;
+    throw new DomainError(t("T-3245"), "to");
   }
   const today = todayKey(now);
-  if (input.to === "HONORARY") {
-    const term = await getCurrentTerm(now);
-    if (term) await assertBenefitsAvailable(ctx.tx, personId, term.id, now);
+  // La condición guardada de quien está en licencia se lee una vez en todo el comando: con la misma
+  // se decide el paso a honorario y se deja escrita (ADR-127 regla 3).
+  const saved = savedConditionOnce();
+  // La prueba o la suspensión del término vigente y, para quien salió a licencia en prueba y no tiene
+  // fila en él, la prueba que quedó guardada (ADR-061 regla 2; ADR-120 regla 4).
+  if (
+    input.to === "HONORARY" &&
+    (await honoraryBlocked(ctx.tx, [current], now, saved)).has(personId)
+  ) {
+    throw new DomainError(t("T-2331"), "personId");
   }
   let leaveUntil: string | null = null;
   if (input.to === "ON_LEAVE") {
@@ -224,8 +255,7 @@ export async function changeMembershipStatus(
     .set({
       status: input.to,
       leaveUntil,
-      leaveCondition:
-        input.to === "ON_LEAVE" ? await conditionAtDeparture(ctx, current, now) : null,
+      leaveCondition: await conditionToKeep(ctx, current, input.to, now, saved),
     })
     .where(eq(membership.id, current.id));
   await ctx.tx.insert(membershipEvent).values({
@@ -239,7 +269,8 @@ export async function changeMembershipStatus(
   if (!SIGN_IN_STATUSES.includes(input.to)) {
     await revokeAccess(ctx, personId);
   }
-  if (current.status === "ON_LEAVE" && input.to === "ACTIVE") {
+  // Vuelve de licencia, directo o pasando por honorario con la condición todavía guardada.
+  if (input.to === "ACTIVE" && (current.status === "ON_LEAVE" || current.leaveCondition !== null)) {
     await carryOverCondition(ctx, current, now);
   }
   await ctx.audit({
@@ -295,7 +326,7 @@ export async function endMembership(
   input: EndMembershipInput,
   now = new Date(),
 ): Promise<boolean> {
-  await lockWalletMember(ctx.tx, personId);
+  await lockMembershipCycle(ctx.tx, personId);
   const current = await lockMembership(ctx, personId);
   if (current.status === "INACTIVE") {
     return false;
@@ -364,7 +395,7 @@ export async function reactivateMembership(
   personId: string,
   input: ReactivateInput,
 ): Promise<void> {
-  await lockWalletMember(ctx.tx, personId);
+  await lockMembershipCycle(ctx.tx, personId);
   const current = await lockMembership(ctx, personId);
   if (current.status !== "INACTIVE") {
     throw new Error("Solo se reactiva una membresía terminada");
@@ -437,7 +468,7 @@ export async function anonymizePerson(
   personId: string,
   now = new Date(),
 ): Promise<void> {
-  await lockWalletMember(ctx.tx, personId);
+  await lockMembershipCycle(ctx.tx, personId);
   const [who] = await ctx.tx.select().from(person).where(eq(person.id, personId)).for("update");
   if (!who) {
     throw new DomainError(t("T-032"));

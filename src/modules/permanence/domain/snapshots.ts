@@ -1,6 +1,6 @@
-import { and, eq, isNull, notInArray, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, notInArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { permanenceRecompute } from "@/domain-events/permanence";
 import { permanenceSnapshot } from "../schema";
@@ -8,11 +8,12 @@ import { loadPeopleFacts, loadTermFacts } from "./facts";
 import {
   type CommitteeResult,
   type CriterionResult,
+  closedResults,
   computePerson,
   type MandatoryView,
   type PersonPermanence,
 } from "./permanence-pure";
-import { parseGeneral, parseMandatory, parseResults } from "./snapshot-pure";
+import { parseGeneral, parseMandatory, parseResults, parseStoredResults } from "./snapshot-pure";
 
 // Snapshots persistidos (ADR-036 regla 5): el recompute corre por outbox con clave por término o por
 // persona, toma el lock del término antes de leer los hechos y salta los términos cerrados; las
@@ -78,12 +79,23 @@ export async function getSnapshot(personId: string, termId: string): Promise<Sna
   return row ? toView(row) : null;
 }
 
-export async function listSnapshots(termId: string): Promise<SnapshotView[]> {
-  const rows = await getDb()
+export async function listSnapshots(
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<SnapshotView[]> {
+  const rows = await exec
     .select()
     .from(permanenceSnapshot)
     .where(eq(permanenceSnapshot.termId, termId));
   return rows.map(toView);
+}
+
+/**
+ * El candado del término que serializa a quien escribe sus snapshots: cada recálculo y el cierre
+ * (ADR-036 regla 5, ADR-116 regla 6). Dura hasta que termina la transacción que lo toma.
+ */
+export async function lockTermSnapshots(tx: Tx, termId: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`permanence:${termId}`}))`);
 }
 
 /**
@@ -96,7 +108,7 @@ export async function recomputeSnapshots(
   now = new Date(),
 ): Promise<number> {
   return getDb().transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`permanence:${termId}`}))`);
+    await lockTermSnapshots(tx, termId);
     const facts = await loadTermFacts(termId);
     if (!facts || facts.term.permanenceClosedAt) {
       return 0;
@@ -156,12 +168,36 @@ export async function recomputeSnapshots(
   });
 }
 
-/** Congela los snapshots del término al aplicar el cierre (ADR-036 regla 9). */
+/**
+ * Congela los snapshots del término al aplicar el cierre (ADR-036 regla 9). Cada uno queda con su
+ * estado final y sin puntos posibles (ADR-116 regla 6): sale de lo que ya está guardado, que es lo que
+ * GH vio y confirmó, y no de un cálculo nuevo. Quien la llama ya tiene el candado del término
+ * (`lockTermSnapshots`): un recálculo que llegue a la vez espera ahí y después las encuentra
+ * congeladas. Las filas se toman igual antes de escribirlas. Las que ya estaban congeladas no se tocan. Si lo guardado de una fila no valida, el cierre falla y se devuelve entero:
+ * congelar escribe encima, y guardar el vacío al que degrada la lectura borraría ese resultado.
+ */
 export async function freezeSnapshots(ctx: CommandContext, termId: string, at = new Date()) {
-  await ctx.tx
-    .update(permanenceSnapshot)
-    .set({ frozenAt: at })
-    .where(and(eq(permanenceSnapshot.termId, termId), isNull(permanenceSnapshot.frozenAt)));
+  const rows = await ctx.tx
+    .select()
+    .from(permanenceSnapshot)
+    .where(and(eq(permanenceSnapshot.termId, termId), isNull(permanenceSnapshot.frozenAt)))
+    .orderBy(asc(permanenceSnapshot.id))
+    .for("update");
+  for (const row of rows) {
+    const closed = closedResults(storedResults(row));
+    await ctx.tx
+      .update(permanenceSnapshot)
+      .set({ general: closed.general, results: closed.results, frozenAt: at })
+      .where(eq(permanenceSnapshot.id, row.id));
+  }
+}
+
+function storedResults(row: { id: string; general: unknown; results: unknown }) {
+  try {
+    return parseStoredResults(row);
+  } catch (cause) {
+    throw new Error(`El snapshot ${row.id} no valida: el cierre no lo congela`, { cause });
+  }
 }
 
 /** Recalcular ahora desde el admin: encola el recompute del término con su clave (ADR-036 regla 5). */

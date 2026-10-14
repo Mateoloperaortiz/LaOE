@@ -776,7 +776,8 @@ export const challengeQuestion = pgTable(
   ],
 );
 
-// Una entrega por reto y persona; `requestId` absorbe reintentos de red (patrón del Wordle).
+// Una entrega por reto y persona; `requestId` absorbe reintentos de red (patrón del Wordle) y se guarda
+// con su persona (`<persona>:<requestId>`, ADR-118 regla 18); las filas anteriores lo tienen sin ella.
 export const challengeParticipation = pgTable(
   "challenge_participation",
   {

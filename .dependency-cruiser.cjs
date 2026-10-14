@@ -1,22 +1,23 @@
 const { readdirSync } = require("node:fs");
+const { findModuleCycle } = require("./scripts/ci/module-cycle.mjs");
 
-// Grafo permitido entre módulos (ADR-080): de qué otros módulos importa cada uno por su index.ts. Es la
-// única fuente: 01-arquitectura remite aquí. Una dependencia nueva se decide agregándola a esta tabla;
-// sin eso, `npm run deps:check` falla. Las claves foráneas entre schema.ts quedan fuera (regla
-// schema-solo-importa-schema).
+// Grafo permitido entre módulos (ADR-080), sin ciclos (ADR-110): de qué otros módulos importa cada uno
+// por su index.ts. Es la única fuente: 01-arquitectura remite aquí. Una dependencia nueva se decide
+// agregándola a esta tabla; sin eso, `npm run deps:check` falla. Las claves foráneas entre schema.ts
+// quedan fuera (regla schema-solo-importa-schema).
 const MODULE_DEPS = {
   comms: ["content", "participation", "people", "system", "terms"],
   competition: ["events", "forms", "people"],
   content: [],
   crm: ["content", "events", "forms", "identity", "participation", "people", "system", "terms"],
-  events: ["content", "people"],
+  events: ["content"],
   finance: ["people", "terms"],
   forms: ["events", "people", "system"],
   identity: ["comms", "people"],
   participation: ["events", "forms", "people", "system", "terms"],
   people: ["content", "events", "system", "terms"],
   permanence: ["events", "participation", "people", "system", "terms"],
-  system: ["identity"],
+  system: [],
   terms: [],
   wallet: ["identity", "people", "terms"],
 };
@@ -29,6 +30,16 @@ const orphaned = Object.keys(MODULE_DEPS).filter((name) => !moduleDirs.includes(
 if (undeclared.length > 0 || orphaned.length > 0) {
   throw new Error(
     `MODULE_DEPS no coincide con src/modules. Sin declarar: ${undeclared.join(", ") || "ninguno"}. Sobran: ${orphaned.join(", ") || "ninguno"}.`,
+  );
+}
+
+// La tabla no admite ciclos entre módulos de dominio (ADR-110). `sin-ciclos` solo ve ciclos de archivos:
+// dos módulos pueden importarse por sus index.ts sin que ningún archivo cierre el círculo. El detector
+// vive en su módulo para tener prueba (`tests/unit/module-cycle.test.ts`, ADR-121 regla 13).
+const moduleCycle = findModuleCycle(MODULE_DEPS);
+if (moduleCycle) {
+  throw new Error(
+    `MODULE_DEPS tiene un ciclo entre módulos de dominio: ${moduleCycle.join(" → ")}. Una dependencia que cierra un ciclo no se declara: la composición sube a src/app o el aviso va por un evento de dominio (ADR-110).`,
   );
 }
 
@@ -133,7 +144,11 @@ module.exports = {
     },
   ],
   options: {
-    doNotFollow: { path: "node_modules" },
+    // `knip.ts` entra al grafo porque `tests/unit/module-public-interface.test.ts` lo importa para
+    // leer su configuración (ADR-125 regla 3). Solo importa el tipo de su paquete, y este resolvedor
+    // confunde el paquete `knip` con el archivo del mismo nombre: sin esto, `sin-ciclos` ve un ciclo
+    // de `knip.ts` consigo mismo. El archivo sigue en el grafo; no se siguen sus imports.
+    doNotFollow: { path: ["node_modules", "^knip\\.ts$"] },
     exclude: { path: ["node_modules", "\\.next", "^drizzle/"] },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.json" },

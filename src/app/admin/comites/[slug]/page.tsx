@@ -32,7 +32,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { Areas } from "./_ui/Areas";
 import { Comunicacion } from "./_ui/Comunicacion";
@@ -94,7 +94,7 @@ export default async function ComitePage({
         (row) => row.committeeId === roster.committee.id,
       ) ?? null)
     : null;
-  const viabilityLabels = tList("T-2264");
+  const viabilityLabels = tLabels("T-2264", VIABILITY_ALERTS);
 
   return (
     <div className="flex flex-col gap-8">
@@ -120,9 +120,7 @@ export default async function ComitePage({
               .filter((alert) => alert !== "MISSING_REQUIRED")
               .map((alert) => (
                 <li key={alert}>
-                  <Insignia fondo="naranja">
-                    {viabilityLabels[VIABILITY_ALERTS.indexOf(alert)] ?? alert}
-                  </Insignia>
+                  <Insignia fondo="naranja">{viabilityLabels[alert] ?? alert}</Insignia>
                 </li>
               ))}
           </ul>
@@ -269,7 +267,7 @@ async function Actividades({
   const [serieTitulo, , serieHora, serieDuracion, serieLugar, seriePrimera] = tList("T-654");
   const scoreColumns = tList("T-657");
   const fieldLabels = tList("T-563");
-  const categoryLabels = tList("T-566");
+  const categoryLabels = tLabels("T-566", OCCASION_CATEGORIES);
   const approvalLabels = tList("T-567");
   const [encActividad, encRespondieron, encPromedio] = tList("T-1168");
   const [occasions, scores, ranking, encuestas, editions] = await Promise.all([
@@ -473,9 +471,9 @@ async function Actividades({
               <label className="flex flex-col gap-1">
                 <span className="eyebrow text-xs">{fieldLabels[3]}</span>
                 <select name="category" defaultValue="OTHER" className={inputClass}>
-                  {OCCASION_CATEGORIES.map((value, index) => (
+                  {OCCASION_CATEGORIES.map((value) => (
                     <option key={value} value={value}>
-                      {categoryLabels[index] ?? value}
+                      {categoryLabels[value] ?? value}
                     </option>
                   ))}
                 </select>

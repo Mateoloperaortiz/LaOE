@@ -10,12 +10,15 @@ import {
   createImportJob,
   getImportJob,
   type ImportJobRow,
+  type ImportJobType,
   requirePrivacyPolicyVersion,
+  takeImportJobApplied,
+  takeImportJobInPreview,
   updateImportJob,
 } from "@/modules/system";
 import { conventionalTermDates, createTerm, getTerm, listAllTerms } from "@/modules/terms";
 import { getObject, putObject } from "@/shared/adapters/storage";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import {
@@ -30,16 +33,27 @@ import {
 import {
   type CommitteeRoleRow,
   listCommitteeRoles,
-  setCommitteeMemberships,
+  setCommitteeMembershipsIfChanged,
 } from "./committee-memberships";
 import { listAllCommittees } from "./committees";
 import { leadershipContext } from "./inhabilities";
-import { type HeldRole, inhabilities, inhabilityLabels } from "./inhabilities-pure";
+import {
+  type HeldRole,
+  INHABILITY_CODES,
+  inhabilities,
+  inhabilityLabels,
+} from "./inhabilities-pure";
 import { leaveWindow } from "./leave-pure";
-import { changeMembershipStatus, endMembership, reactivateMembership } from "./membership";
+import {
+  changeMembershipStatus,
+  endMembership,
+  honoraryBlockedAmong,
+  reactivateMembership,
+} from "./membership";
 import { createCommitteeRole } from "./roles";
 import { ROSTER_MAX_BYTES, readRosterCells, rosterFormat } from "./roster-file";
 import {
+  committeesToWrite,
   type DiffGroup,
   detectMapping,
   diffRoster,
@@ -48,11 +62,19 @@ import {
   type RosterColumn,
   type RosterStatus,
   rowsFromCells,
+  staysInactive,
   validateRoster,
 } from "./roster-pure";
+import { lockMembershipCycleByEmail, lockMembershipCycles } from "./wallet-member";
 
 // El asistente del roster (13-importacion-del-roster.md, ADR-034): el archivo se guarda en el bucket, la
 // vista previa vive en un ImportJob y confirmar aplica todo en una transacción, idempotente por correo.
+
+/**
+ * El tipo de los trabajos del roster: con él se crean y con él se toman. Un trabajo de otro tipo no
+ * existe para el roster, esté en el estado que esté (ADR-116 regla 12).
+ */
+const ROSTER_JOB: ImportJobType = "ROSTER";
 
 const columnSchema = z.enum(ROSTER_COLUMNS).nullable();
 const mappingSchema = z.array(columnSchema);
@@ -168,7 +190,7 @@ async function existingByEmail(
   if (ids.length === 0) {
     return map;
   }
-  const [committees, probations, terms] = await Promise.all([
+  const [committees, probations, terms, honoraryBlocked] = await Promise.all([
     db
       .select({
         personId: committeeMembership.personId,
@@ -193,6 +215,9 @@ async function existingByEmail(
         ),
       ),
     listAllTerms(),
+    // A quién el comando le rechazaría el paso a honorario: la fila que lo pida es un error de la
+    // vista previa y no tumba la importación (ADR-123 regla 5).
+    honoraryBlockedAmong(ids),
   ]);
   const assignments = await db
     .select({
@@ -226,6 +251,7 @@ async function existingByEmail(
       status: row.status,
       endReason: row.endReason,
       probation: probations.some((item) => item.personId === row.id && item.probation),
+      honoraryBlocked: honoraryBlocked.has(row.id),
       committees: committees
         .filter((item) => item.personId === row.id && item.leftAt === null)
         .map((item) => ({
@@ -261,7 +287,7 @@ async function warnInhabilities(
   termId: string,
 ): Promise<void> {
   const leadership = new Set(roles.filter((role) => role.isLeadership).map((role) => role.code));
-  const labels = tList("T-2281");
+  const labels = tLabels("T-2281", INHABILITY_CODES);
   for (const row of rows) {
     if (row.group === "ERROR" || !row.email || !row.committees) {
       continue;
@@ -296,10 +322,58 @@ async function warnInhabilities(
   }
 }
 
+type RowCommittees = NonNullable<PreviewRow["committees"]>;
+
+/**
+ * Con qué nombre sale una persona en su propuesta de líder: el de la fila y, donde la fila no lo trae,
+ * el de la persona que encontró quien llama (`stored`).
+ */
+function proposalName(
+  row: PreviewRow,
+  stored: { firstName: string; lastName: string } | undefined,
+): string {
+  return `${row.firstName ?? stored?.firstName ?? ""} ${row.lastName ?? stored?.lastName ?? ""}`.trim();
+}
+
+/**
+ * Las propuestas de líder de una fila: una por cada cargo de General, titular o codirección, de los
+ * comités de `written`, y de ningún otro lado (ADR-127 regla 1). Es la única función que arma una
+ * propuesta, y la llaman dos, cada una con su lista:
+ *
+ * - La vista previa (`buildPreview`), con lo que `committeesToWrite` responde sobre su lectura sin
+ *   candados. Es un anuncio: lo que GH revisa y marca antes de aplicar. Puede anunciar una propuesta
+ *   que la aplicación no confirme.
+ * - La importación aplicada (`applyRosterImportAs`), con la lista que `applyRow` le pasó a
+ *   `setCommitteeMembershipsIfChanged` en su transacción, o ninguna si no lo llamó. De ahí sale el
+ *   resumen, que es de donde la acción concede el permiso.
+ */
+function leaderProposalsOf(
+  row: PreviewRow,
+  personName: string,
+  written: RowCommittees | null,
+): LeaderProposal[] {
+  const email = row.email;
+  if (!email || !written) {
+    return [];
+  }
+  return written.flatMap((item) =>
+    item.roles
+      .filter((role) => role.roleCode === "GENERAL")
+      .map((role) => ({
+        email,
+        personName,
+        committeeId: item.committeeId,
+        committeeName: item.name,
+        coDirector: role.coDirector,
+      })),
+  );
+}
+
 async function buildPreview(
   cells: string[][],
   mapping: Array<RosterColumn | null> | null,
   termId: string,
+  rejected?: ReadonlyMap<number, readonly string[]>,
 ): Promise<BuiltPreview> {
   const headers = cells[0] ?? [];
   const resolvedMapping = mapping ?? detectMapping(headers);
@@ -324,6 +398,7 @@ async function buildPreview(
     termCodes: terms.map((term) => term.code),
     domains: getEnv().INSTITUTIONAL_EMAIL_DOMAINS,
     existing,
+    ...(rejected ? { rejected } : {}),
   });
   const diff = diffRoster(validation.rows, existing);
   const rows: PreviewRow[] = diff.map((item) => ({
@@ -340,18 +415,14 @@ async function buildPreview(
     if (row.group === "ERROR" || !row.email) {
       continue;
     }
-    for (const item of row.committees ?? []) {
-      for (const role of item.roles.filter((role) => role.roleCode === "GENERAL")) {
-        proposals.push({
-          email: row.email,
-          personName:
-            `${row.firstName ?? existing.get(row.email)?.firstName ?? ""} ${row.lastName ?? existing.get(row.email)?.lastName ?? ""}`.trim(),
-          committeeId: item.committeeId,
-          committeeName: item.name,
-          coDirector: role.coDirector,
-        });
-      }
-    }
+    // Lo que esta lectura, sin candados, dice que la fila le dejaría escrito a la persona: no propone
+    // la fila de quien sigue de baja ni la que da de baja a alguien, que no le cambian los comités
+    // (ADR-118 regla 11). Es el anuncio de la vista previa. El resumen de una importación aplicada no
+    // sale de acá: lo arma `applyRosterImportAs` con lo que cada fila escribió (ADR-127 regla 1).
+    const current = existing.get(row.email);
+    proposals.push(
+      ...leaderProposalsOf(row, proposalName(row, current), committeesToWrite(current, row)),
+    );
   }
   return { headers, mapping: resolvedMapping, validation, rows, proposals, existing };
 }
@@ -425,7 +496,7 @@ export async function createRosterPreviewAs(
   );
   const job = await runCommand(actor, (ctx) =>
     createImportJob(ctx, {
-      type: "ROSTER",
+      type: ROSTER_JOB,
       filename: input.filename,
       fileKey,
       termId: term.id,
@@ -439,7 +510,7 @@ export async function createRosterPreviewAs(
 
 export async function getRosterPreview(jobId: string): Promise<RosterPreview | null> {
   const job = await getImportJob(jobId);
-  if (!job || job.type !== "ROSTER" || !job.termId) {
+  if (!job || job.type !== ROSTER_JOB || !job.termId) {
     return null;
   }
   const parsed = previewPayloadSchema.safeParse(job.payload);
@@ -459,14 +530,17 @@ export async function getRosterPreview(jobId: string): Promise<RosterPreview | n
   };
 }
 
-/** Paso 2: el admin corrige el mapeo de columnas; se relee el archivo del bucket y se vuelve a validar. */
+/**
+ * Paso 2: el admin corrige el mapeo de columnas; se relee el archivo del bucket y se vuelve a validar.
+ * Que el trabajo siga en vista previa lo decide la transacción, que lo toma antes de escribir.
+ */
 export async function remapRosterPreviewAs(
   actor: Actor,
   jobId: string,
   mapping: Array<RosterColumn | null>,
 ): Promise<void> {
   const job = await getImportJob(jobId);
-  if (!job || job.status !== "PREVIEW" || !job.fileKey || !job.termId) {
+  if (!job?.fileKey || !job.termId) {
     throw new DomainError(t("T-032"));
   }
   const current = previewPayloadSchema.safeParse(job.payload);
@@ -476,13 +550,14 @@ export async function remapRosterPreviewAs(
   const bytes = await getObject(job.fileKey);
   const cells = await readRosterCells(bytes, current.data.format);
   const built = await buildPreview(cells, mapping, job.termId);
-  await runCommand(actor, (ctx) =>
-    updateImportJob(ctx, jobId, {
+  await runCommand(actor, async (ctx) => {
+    await takeImportJobInPreview(ctx, jobId, ROSTER_JOB);
+    await updateImportJob(ctx, jobId, {
       mapping: { columns: built.mapping },
       payload: payloadOf(built, current.data.format),
       summary: countGroups(built.rows),
-    }),
-  );
+    });
+  });
 }
 
 export interface ApplySummary {
@@ -568,6 +643,129 @@ async function rosterLeaveUntil(
   };
 }
 
+/**
+ * La membresía que crea el roster, para una persona nueva o para una que existía sin ella. Si nace en
+ * licencia lleva su fecha de regreso, igual que la que pasa a licencia (ADR-060 regla 10): sin ella
+ * nunca vence ni abre la tarea de licencia vencida.
+ */
+async function insertRosterMembership(
+  ctx: CommandContext,
+  input: {
+    personId: string;
+    status: Parameters<typeof rosterLeaveUntil>[1];
+    entryTermId: string;
+    termId: string;
+  },
+): Promise<void> {
+  const { personId, status, entryTermId, termId } = input;
+  await ctx.tx.insert(membership).values({
+    personId,
+    status,
+    firstTermId: entryTermId,
+    ...(await rosterLeaveUntil(ctx, status, termId)),
+    ...(status === "INACTIVE"
+      ? { endedAt: new Date(), endReason: "OTHER" as const, lastTermId: termId }
+      : {}),
+  });
+}
+
+/**
+ * La persona de un correo, tomada en el orden del ciclo de membresía (ADR-120 regla 3): primero el
+ * candado consultivo `wallet-member:<persona>` y después su fila. Dar de baja, cambiar el estado,
+ * reactivar y anonimizar toman ese consultivo antes que cualquier fila; con la fila tomada primero,
+ * el roster y cualquiera de ellos se quedaban esperándose.
+ *
+ * La fila se lee con el consultivo ya tomado y por `id` y correo: si mientras se esperaba el correo
+ * dejó de ser de esa persona (la anonimizaron o GH se lo corrigió), se vuelve a buscar. El consultivo
+ * que quedó tomado de más se suelta con la transacción.
+ *
+ * La fila se toma con `for no key update`, que es el candado del `update` que le sigue: frena a quien
+ * la actualice, la anonimice o la tome compartida, y no a quien solo la referencia por clave foránea.
+ * La importación retiene hasta el final a todas las personas del archivo, y entre ellas está quien
+ * actúa: el comando de GH sobre otra persona escribe su `id` como actor (`membership_event`,
+ * `audit_log`) con el consultivo de esa persona tomado. Con `for update` esa escritura esperaba a la
+ * importación mientras la importación esperaba ese consultivo.
+ */
+async function lockPersonByEmail(
+  ctx: CommandContext,
+  email: string,
+): Promise<LockedPerson | undefined> {
+  const personId = await lockMembershipCycleByEmail(ctx.tx, email);
+  if (personId === null) {
+    return undefined;
+  }
+  const [locked] = await ctx.tx
+    .select(LOCKED_COLUMNS)
+    .from(person)
+    .where(and(eq(person.id, personId), eq(person.email, email)))
+    .for("no key update");
+  return locked ?? lockPersonByEmail(ctx, email);
+}
+
+/** Lo que una fila del roster le puede escribir a una persona que ya existe. */
+const PATCH_FIELDS = [
+  "firstName",
+  "lastName",
+  "phone",
+  "program",
+  "personalEmail",
+  "documentType",
+  "documentNumber",
+  "epikId",
+  "birthDate",
+] as const;
+
+type PersonPatch = Partial<Pick<typeof person.$inferInsert, (typeof PATCH_FIELDS)[number]>>;
+type LockedPerson = Pick<typeof person.$inferSelect, "id" | (typeof PATCH_FIELDS)[number]>;
+
+const LOCKED_COLUMNS = {
+  id: person.id,
+  firstName: person.firstName,
+  lastName: person.lastName,
+  phone: person.phone,
+  program: person.program,
+  personalEmail: person.personalEmail,
+  documentType: person.documentType,
+  documentNumber: person.documentNumber,
+  epikId: person.epikId,
+  birthDate: person.birthDate,
+};
+
+/**
+ * De lo que trae la fila, lo que de verdad le cambia a la persona, comparado con su fila ya tomada:
+ * el diff se calculó antes de los candados y alguien pudo editarla en ese rato (ADR-120 regla 2).
+ */
+function onlyChanges(current: LockedPerson, patch: PersonPatch): PersonPatch {
+  const changes: PersonPatch = {};
+  for (const field of PATCH_FIELDS) {
+    const value = patch[field];
+    if (value !== undefined && value !== current[field]) {
+      Object.assign(changes, { [field]: value });
+    }
+  }
+  return changes;
+}
+
+/** Lo que una fila dejó hecho al aplicarse. */
+interface AppliedRow {
+  outcome: "created" | "updated" | "unchanged";
+  /** El nombre de la persona para su propuesta de líder, con la persona que esta fila tomó. */
+  personName: string;
+  /**
+   * La lista de comités que la fila le pasó a `setCommitteeMembershipsIfChanged`, y `null` si no lo
+   * llamó. Solo se llena después de que el comando responde, haya escrito o haya encontrado ya esas
+   * mismas pertenencias. De acá salen las propuestas de líder del resumen: no propone a nadie para un
+   * comité que su fila no le pasó al comando en esta transacción.
+   */
+  committeesWritten: RowCommittees | null;
+}
+
+const NOTHING_APPLIED: AppliedRow = {
+  outcome: "unchanged",
+  personName: "",
+  committeesWritten: null,
+};
+
 async function applyRow(
   ctx: CommandContext,
   row: PreviewRow,
@@ -575,25 +773,32 @@ async function applyRow(
   termCode: string,
   termsByCode: Map<string, string>,
   jobId: string,
-): Promise<"created" | "updated" | "unchanged"> {
+): Promise<AppliedRow> {
   const email = row.email;
   if (!email) {
-    return "unchanged";
+    return NOTHING_APPLIED;
   }
   const reason = `roster ${termCode}`;
-  const [existing] = await ctx.tx
-    .select({ id: person.id, stage: person.stage })
-    .from(person)
-    .where(eq(person.email, email))
-    .for("update");
+  const existing = await lockPersonByEmail(ctx, email);
   let personId: string;
   let outcome: "created" | "updated" | "unchanged" =
     row.group === "UNCHANGED" ? "unchanged" : "updated";
   const status: RosterStatus = row.status ?? "ACTIVE";
+  // Quien ya estaba de baja y esta fila no lo saca de ahí: se decide con la membresía leída acá, no
+  // con la de la vista previa.
+  let keepsOut = false;
+  // Los comités que la fila le va a escribir, con esa misma membresía. Quien no tiene ninguna, la
+  // persona nueva o la que existía sin ella, la recibe en el estado de la fila.
+  let toWrite = committeesToWrite(undefined, row);
+  // Los que le escribió: sigue en `null` hasta que el comando de los comités responde.
+  let committeesWritten: RowCommittees | null = null;
+  // El nombre es el de la fila y, donde no lo trae, el de la persona tomada acá con su candado, no
+  // el de la lectura por el pool de la validación.
+  const personName = proposalName(row, existing);
   if (!existing) {
     const entryTermId = row.entryTerm ? termsByCode.get(row.entryTerm) : undefined;
     if (!entryTermId) {
-      return "unchanged";
+      return NOTHING_APPLIED;
     }
     const [created] = await ctx.tx
       .insert(person)
@@ -616,18 +821,11 @@ async function applyRow(
       throw new Error("No se pudo crear la persona");
     }
     personId = created.id;
-    await ctx.tx.insert(membership).values({
-      personId,
-      status,
-      firstTermId: entryTermId,
-      ...(status === "INACTIVE"
-        ? { endedAt: new Date(), endReason: "OTHER" as const, lastTermId: termId }
-        : {}),
-    });
+    await insertRosterMembership(ctx, { personId, status, entryTermId, termId });
     outcome = "created";
   } else {
     personId = existing.id;
-    const patch: Partial<typeof person.$inferInsert> = {};
+    const patch: PersonPatch = {};
     if (row.firstName !== undefined && row.firstName) patch.firstName = row.firstName;
     if (row.lastName !== undefined && row.lastName) patch.lastName = row.lastName;
     if (row.phone !== undefined) patch.phone = row.phone || null;
@@ -636,27 +834,29 @@ async function applyRow(
     for (const field of ["documentType", "documentNumber", "epikId", "birthDate"] as const) {
       if (row[field]) patch[field] = row[field];
     }
-    if (Object.keys(patch).length > 0) {
-      await ctx.tx.update(person).set(patch).where(eq(person.id, personId));
+    // Se escribe lo que cambia, y la fila se cuenta por eso y no por el diff (ADR-120 regla 2): esta
+    // escritura no deja otra auditoría que la de la importación.
+    const changes = onlyChanges(existing, patch);
+    if (Object.keys(changes).length > 0) {
+      await ctx.tx.update(person).set(changes).where(eq(person.id, personId));
+      if (outcome === "unchanged") outcome = "updated";
     }
     const [current] = await ctx.tx
       .select({ status: membership.status, endReason: membership.endReason })
       .from(membership)
       .where(eq(membership.personId, personId));
+    keepsOut = staysInactive(current, row.status);
+    toWrite = committeesToWrite(current, row);
     if (!current) {
       const entryTermId = (row.entryTerm ? termsByCode.get(row.entryTerm) : undefined) ?? termId;
-      await ctx.tx.insert(membership).values({
-        personId,
-        status,
-        firstTermId: entryTermId,
-        ...(status === "INACTIVE"
-          ? { endedAt: new Date(), endReason: "OTHER" as const, lastTermId: termId }
-          : {}),
-      });
+      await insertRosterMembership(ctx, { personId, status, entryTermId, termId });
       await ctx.tx
         .update(person)
         .set({ stage: status === "INACTIVE" ? "ALUMNI" : "MEMBER" })
         .where(eq(person.id, personId));
+      // Le nació la membresía: la fila cambió a la persona, y eso se cuenta por lo que se escribió
+      // acá y no por lo que haya anotado el diff (ADR-120 regla 2).
+      outcome = "updated";
     } else if (row.status !== undefined && current.status !== status) {
       if (status === "INACTIVE") {
         await endMembership(ctx, personId, {
@@ -687,28 +887,58 @@ async function applyRow(
       }
     }
   }
-  if (row.probation !== undefined) {
-    await ctx.tx
-      .insert(membershipTerm)
-      .values({
-        personId,
-        termId,
-        probation: row.probation,
-        reason,
-        decidedById: ctx.actor.personId,
-      })
-      .onConflictDoUpdate({
-        target: [membershipTerm.personId, membershipTerm.termId],
-        targetWhere: isNull(membershipTerm.committeeId),
-        set: { probation: row.probation, reason },
-      });
+  // La fila del término se le escribe a quien queda adentro o a quien esta fila da de baja; a quien
+  // sigue de baja no (ADR-120 regla 1): conserva la prueba y el motivo que tuviera.
+  if (row.probation !== undefined && !keepsOut) {
+    const [held] = await ctx.tx
+      .select({ probation: membershipTerm.probation, reason: membershipTerm.reason })
+      .from(membershipTerm)
+      .where(
+        and(
+          eq(membershipTerm.personId, personId),
+          eq(membershipTerm.termId, termId),
+          isNull(membershipTerm.committeeId),
+        ),
+      );
+    // Se escribe lo de siempre: la prueba y el motivo del roster, aunque la prueba no cambie (DT-297).
+    // Pero solo si algo de eso es distinto, y la fila que lo escribe se cuenta: «sin cambios» es no
+    // haber escrito nada (ADR-120 regla 2).
+    if (!held || held.probation !== row.probation || held.reason !== reason) {
+      await ctx.tx
+        .insert(membershipTerm)
+        .values({
+          personId,
+          termId,
+          probation: row.probation,
+          reason,
+          decidedById: ctx.actor.personId,
+        })
+        .onConflictDoUpdate({
+          target: [membershipTerm.personId, membershipTerm.termId],
+          targetWhere: isNull(membershipTerm.committeeId),
+          set: { probation: row.probation, reason },
+        });
+      if (outcome === "unchanged") outcome = "updated";
+    }
   }
-  if (row.committees !== undefined && status !== "INACTIVE") {
-    await setCommitteeMemberships(
+  // Los comités se cambian solo a quien queda con membresía vigente (ADR-118 regla 11), y lo decide
+  // `committeesToWrite` con la membresía que la fila encontró y el estado que trae, no solo con el
+  // que pide: quien sigue de baja (el archivo no trae ESTADO, o fue expulsado y el roster no lo
+  // reactiva) conserva su fila tal cual. La vista previa ya lo avisó (T-2208, T-3247). El comando
+  // vuelve a leer la membresía con su candado y responde T-3246 si no está vigente: la importación
+  // cae entera antes que dejar a alguien de baja en un comité. A quien ya tiene esas mismas
+  // pertenencias no se le escribe nada: se valida igual, y no queda auditoría ni evento de sus
+  // comités (ADR-120 regla 2).
+  //
+  // La lista que el comando aceptó es la que la fila devuelve, y de ella sale la propuesta de líder
+  // del resumen (ADR-127 regla 1). La vista previa pudo anunciar otra cosa con su lectura sin
+  // candados; la que vale para conceder es esta.
+  if (toWrite) {
+    await setCommitteeMembershipsIfChanged(
       ctx,
       personId,
       termId,
-      row.committees.map((item) => ({
+      toWrite.map((item) => ({
         committeeId: item.committeeId,
         roleCode: item.roleCode,
         roles: item.roles.map((role) => ({ roleCode: role.roleCode, coDirector: role.coDirector })),
@@ -718,6 +948,12 @@ async function applyRow(
       // Inhabilidades (ADR-060 regla 11): el roster de ADMIN las fuerza y quedan auditadas con su motivo.
       { reason },
     );
+    committeesWritten = toWrite;
+  }
+  // La auditoría y el evento dicen que la importación le cambió algo a la persona: una fila que
+  // quedó igual no los deja (ADR-120 regla 2). El trabajo conserva la fila en su vista previa.
+  if (outcome === "unchanged") {
+    return { outcome, personName, committeesWritten };
   }
   await ctx.audit({
     action: "person.imported",
@@ -736,13 +972,58 @@ async function applyRow(
       notes: row.notes ?? null,
     }),
   );
-  return outcome;
+  return { outcome, personName, committeesWritten };
 }
 
-/** Paso 3: relee el archivo, vuelve a validar contra la base de hoy y aplica todo en una transacción. */
+/**
+ * Toma, antes de aplicar la primera fila, el consultivo del ciclo de membresía de cada persona del
+ * archivo que ya existe, de menor a mayor `id` (ADR-122 regla 5). La importación los retiene todos
+ * hasta el final: tomados en el orden de las filas se cruzaba con la emisión de un enlace entre dos
+ * personas del archivo, que toma los suyos por `id`. Cada fila vuelve a pedir el suyo al aplicarse
+ * (`lockPersonByEmail`), que ya es de esta transacción, y ahí se toma el de quien recibió ese correo
+ * después de esta lectura.
+ */
+async function lockRosterMembers(ctx: CommandContext, rows: readonly PreviewRow[]): Promise<void> {
+  const emails = rows.flatMap((row) => (row.group !== "ERROR" && row.email ? [row.email] : []));
+  if (emails.length === 0) {
+    return;
+  }
+  const people = await ctx.tx
+    .select({ id: person.id })
+    .from(person)
+    .where(inArray(person.email, emails));
+  await lockMembershipCycles(
+    ctx.tx,
+    people.map((row) => row.id),
+  );
+}
+
+/** Las filas que una validación dejó en error, con lo que les dijo, por número de fila. */
+function rejectedIn(rows: readonly PreviewRow[]): Map<number, string[]> {
+  return new Map(
+    rows.flatMap((row) => (row.group === "ERROR" ? [[row.row, row.errors] as const] : [])),
+  );
+}
+
+/**
+ * Paso 3: relee el archivo, vuelve a validar contra la base de hoy y aplica todo en una transacción.
+ * Que el trabajo siga en vista previa lo decide la transacción, que lo toma antes de escribir; de la
+ * fila tomada salen las columnas que se aplican.
+ *
+ * Valida dos veces por el camino de la vista previa (ADR-127 regla 1). La primera pasada, sin
+ * candados, prepara: dice de quién tomar el consultivo y qué términos y cargos crear. La segunda, con
+ * los consultivos tomados, decide qué filas se aplican, y sus filas son las que el trabajo guarda.
+ *
+ * Las propuestas de líder del resumen no salen de ninguna de las dos: salen de la lista de comités
+ * que cada fila le pasó al comando de los comités en esta transacción, y que el comando aceptó
+ * (`applyRow`). Las dos pasadas leen por el pool, y quien recibe un correo del archivo después de
+ * `lockRosterMembers` no tiene su consultivo tomado: la validación puede proponer a alguien a quien
+ * la fila después no le escribe nada. El trabajo aplicado guarda las propuestas del resumen, no las
+ * de la validación.
+ */
 export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<ApplySummary> {
   const job = await getImportJob(jobId);
-  if (!job || job.status !== "PREVIEW" || !job.fileKey || !job.termId) {
+  if (!job?.fileKey || !job.termId) {
     throw new DomainError(t("T-032"));
   }
   const current = previewPayloadSchema.safeParse(job.payload);
@@ -753,36 +1034,63 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
   const termCode = terms.find((term) => term.id === job.termId)?.code ?? "";
   const bytes = await getObject(job.fileKey);
   const cells = await readRosterCells(bytes, current.data.format);
-  const built = await buildPreview(cells, current.data.mapping, job.termId);
   const termId = job.termId;
   return runCommand(actor, async (ctx) => {
+    // Las columnas son las del trabajo ya tomado y no las de la lectura de arriba: un cambio de
+    // columnas que confirmó entre las dos es el que vale.
+    const taken = previewPayloadSchema.safeParse(
+      (await takeImportJobInPreview(ctx, jobId, ROSTER_JOB)).payload,
+    );
+    if (!taken.success) {
+      throw new DomainError(t("T-032"));
+    }
+    // Los términos y los cargos que falten se crean con la primera pasada, antes de tomar a ninguna
+    // persona: es el orden de una importación (ADR-120 regla 3), y el candado del calendario va antes
+    // que el consultivo de cualquiera (ADR-123 regla 6).
+    const prepared = await buildPreview(cells, taken.data.mapping, termId);
     await requirePrivacyPolicyVersion(ctx, "admin");
-    const termsByCode = await ensureTerms(ctx, built.validation.missingTerms);
+    const termsByCode = await ensureTerms(ctx, prepared.validation.missingTerms);
     for (const term of terms) {
       termsByCode.set(term.code, term.id);
     }
-    const rolesCreated = await ensureRoles(ctx, built.rows);
+    const rolesCreated = await ensureRoles(ctx, prepared.rows);
+    await lockRosterMembers(ctx, prepared.rows);
+    // Con los consultivos tomados nadie le confirma a una de esas personas la prueba ni una suspensión
+    // (ADR-127 regla 2): la que llegó mientras tanto deja su fila en error acá, y no en
+    // `changeMembershipStatus` con la importación a medias. Esta pasada solo puede sacar filas: la que
+    // la primera rechazó sigue rechazada, que su consultivo no se tomó con los demás.
+    const decided = await buildPreview(
+      cells,
+      taken.data.mapping,
+      termId,
+      rejectedIn(prepared.rows),
+    );
     const summary: ApplySummary = {
       created: 0,
       updated: 0,
       unchanged: 0,
       skipped: 0,
-      termsCreated: built.validation.missingTerms,
+      // Los que de verdad se crearon, también los que solo pedía una fila que la segunda pasada sacó.
+      termsCreated: prepared.validation.missingTerms,
       rolesCreated,
-      proposals: built.proposals,
+      proposals: [],
     };
-    for (const row of built.rows) {
+    for (const row of decided.rows) {
       if (row.group === "ERROR") {
         summary.skipped += 1;
         continue;
       }
-      const outcome = await applyRow(ctx, row, termId, termCode, termsByCode, jobId);
-      summary[outcome] += 1;
+      const applied = await applyRow(ctx, row, termId, termCode, termsByCode, jobId);
+      summary[applied.outcome] += 1;
+      summary.proposals.push(
+        ...leaderProposalsOf(row, applied.personName, applied.committeesWritten),
+      );
     }
     await updateImportJob(ctx, jobId, {
       status: "APPLIED",
       appliedAt: new Date(),
-      payload: payloadOf(built, current.data.format),
+      // Las filas son las de la segunda pasada; las propuestas, las del resumen.
+      payload: { ...payloadOf(decided, current.data.format), proposals: summary.proposals },
       summary: { ...summary, leaders: { granted: [], failed: [] } },
     });
     return summary;
@@ -790,24 +1098,24 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
 }
 
 export async function discardRosterImportAs(actor: Actor, jobId: string): Promise<void> {
-  const job = await getImportJob(jobId);
-  if (!job || job.status !== "PREVIEW") {
-    throw new DomainError(t("T-032"));
-  }
-  await runCommand(actor, (ctx) => updateImportJob(ctx, jobId, { status: "DISCARDED" }));
+  await runCommand(actor, async (ctx) => {
+    await takeImportJobInPreview(ctx, jobId, ROSTER_JOB);
+    await updateImportJob(ctx, jobId, { status: "DISCARDED" });
+  });
 }
 
-/** Los permisos de líder se otorgan después del commit, uno por uno; el resultado queda en el resumen. */
+/**
+ * Los permisos de líder se otorgan después del commit, uno por uno; el resultado queda en el resumen.
+ * El resumen que se completa es el del trabajo tomado en la transacción, que tiene que estar aplicado
+ * (ADR-114 regla 7): no se lee antes ni se escribe sobre una importación en otro estado.
+ */
 export async function recordLeaderGrantsAs(
   actor: Actor,
   jobId: string,
   result: { granted: string[]; failed: string[] },
 ): Promise<void> {
-  const job = await getImportJob(jobId);
-  if (!job) {
-    return;
-  }
-  await runCommand(actor, (ctx) =>
-    updateImportJob(ctx, jobId, { summary: { ...job.summary, leaders: result } }),
-  );
+  await runCommand(actor, async (ctx) => {
+    const job = await takeImportJobApplied(ctx, jobId, ROSTER_JOB);
+    await updateImportJob(ctx, jobId, { summary: { ...job.summary, leaders: result } });
+  });
 }

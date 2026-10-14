@@ -2,9 +2,9 @@ import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
 import { grantPermission } from "@/modules/identity/domain/permissions";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
+import { drainOutbox } from "../helpers/outbox";
 import "@/modules/identity/jobs";
 import { permission, session } from "@/modules/identity/schema";
 import {
@@ -12,6 +12,8 @@ import {
   setCommitteeMemberships,
 } from "@/modules/people/domain/committee-memberships";
 import { listConsents } from "@/modules/people/domain/consents";
+import { honoraryFacts } from "@/modules/people/domain/honorary";
+import { honoraryEligibility } from "@/modules/people/domain/honorary-pure";
 import {
   anonymizePerson,
   changeMembershipStatus,
@@ -25,8 +27,6 @@ import { committeeMembership, membership, membershipTerm, person } from "@/modul
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { copyPattern } from "../helpers/copy";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
@@ -35,7 +35,9 @@ import {
   seedPerson,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { copyPattern } from "../helpers/copy";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 
@@ -70,7 +72,7 @@ describe("acceso al cambiar estado o correo", () => {
     expect(events.map((event) => event.toStatus)).toEqual(["ON_LEAVE"]);
 
     // La licencia conserva la sesión, también después del outbox.
-    await drain(20);
+    await drainOutbox();
     const [sessions] = await db()
       .select({ n: count() })
       .from(session)
@@ -166,16 +168,222 @@ describe("salida, reactivación y anonimización", () => {
     expect(actual).toMatchObject({ probation: true, reason: t("T-2276") });
   });
 
+  /**
+   * Sale a licencia en 2026-1, el semestre en que entró, con el regreso previsto dentro de la
+   * ventana; en prueba salvo que se diga que no.
+   */
+  async function onLeaveWithProbation(email: string, probation = true) {
+    const previo = await seedTerm("2026-1");
+    const personId = await seedMember(email, { entryTermCode: "2026-1" });
+    await seedMembershipTerm(personId, previo, probation);
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(
+        ctx,
+        personId,
+        { to: "ON_LEAVE", reason: "Intercambio", leaveUntil: "2027-06-01" },
+        new Date("2026-06-01T15:00:00Z"),
+      ),
+    );
+    const saved = async () =>
+      (
+        await db()
+          .select({ leaveCondition: membership.leaveCondition })
+          .from(membership)
+          .where(eq(membership.personId, personId))
+      )[0]?.leaveCondition;
+    const conditions = () =>
+      db()
+        .select({ termId: membershipTerm.termId, probation: membershipTerm.probation })
+        .from(membershipTerm)
+        .where(eq(membershipTerm.personId, personId));
+    return { previo, personId, saved, conditions };
+  }
+
+  it("quien vuelve de licencia pasando por honorario retoma la condición que tenía (ADR-118 regla 8)", async () => {
+    const actual = await seedTerm();
+    // Salió como nueva y sin prueba: con una prueba guardada no pasaría a honoraria (ADR-120 regla 4).
+    const { previo, personId, saved } = await onLeaveWithProbation("honoraria@eafit.edu.co", false);
+    expect((await honoraryFacts(personId)).benefitsBlocked).toBe(false);
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(ctx, personId, { to: "HONORARY", reason: "Pasa a honoraria" }),
+    );
+    // La condición guardada sigue pendiente mientras no vuelva a activa.
+    expect(await saved()).toEqual([
+      expect.objectContaining({ committeeId: null, probation: false, resumedNew: true }),
+    ]);
+
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(ctx, personId, { to: "ACTIVE", reason: "Vuelve" }),
+    );
+
+    expect(await saved()).toBeNull();
+    const retomadas = await db()
+      .select({
+        termId: membershipTerm.termId,
+        probation: membershipTerm.probation,
+        resumedNew: membershipTerm.resumedNew,
+      })
+      .from(membershipTerm)
+      .where(eq(membershipTerm.personId, personId));
+    expect(retomadas.sort((a, b) => a.termId.localeCompare(b.termId))).toEqual(
+      [
+        { termId: previo, probation: false, resumedNew: false },
+        { termId: actual, probation: false, resumedNew: true },
+      ].sort((a, b) => a.termId.localeCompare(b.termId)),
+    );
+  });
+
+  // ADR-120 regla 4: la prueba con la que alguien salió a licencia sigue siendo prueba para el paso
+  // a honorario (ADR-061 regla 2), aunque en el semestre vigente no tenga ninguna fila (DT-247).
+  it("quien salió a licencia en prueba en un semestre anterior no pasa a honorario", async () => {
+    await seedTerm();
+    const { personId, saved, conditions, previo } =
+      await onLeaveWithProbation("congelada@eafit.edu.co");
+    // En el semestre vigente no tiene fila: la prueba vive solo en la condición guardada.
+    expect(await conditions()).toEqual([{ termId: previo, probation: true }]);
+
+    await expect(
+      runCommand(SYSTEM_ACTOR, (ctx) =>
+        changeMembershipStatus(ctx, personId, { to: "HONORARY", reason: "Pasa a honoraria" }),
+      ),
+    ).rejects.toThrow(new DomainError(t("T-2331"), "personId"));
+
+    const [quedo] = await db()
+      .select({ status: membership.status })
+      .from(membership)
+      .where(eq(membership.personId, personId));
+    expect(quedo?.status).toBe("ON_LEAVE");
+    expect(await saved()).toEqual([
+      expect.objectContaining({ committeeId: null, probation: true }),
+    ]);
+  });
+
+  it("la lectura de elegibilidad a honorario da por bloqueado a quien está en licencia con una prueba guardada", async () => {
+    await seedTerm();
+    const { personId } = await onLeaveWithProbation("ficha@eafit.edu.co");
+    const { personId: sinPrueba } = await onLeaveWithProbation("ficha.limpia@eafit.edu.co", false);
+    // Un historial que cumple cuatro de los cinco requisitos (cargo de comité, macroevento, junta y
+    // comité de trabajo): entre las dos personas lo único que cambia es la prueba con la que salió una.
+    const historial = {
+      terms: [
+        { id: "t1", code: "2024-1", endsOn: "2024-06-01" },
+        { id: "t2", code: "2024-2", endsOn: "2024-12-01" },
+      ],
+      committeeRoles: [
+        { termId: "t1", startedAt: new Date("2024-01-20T15:00:00Z"), endedAt: null },
+      ],
+      macroeventRoles: [{ editionStartsAt: new Date("2024-09-01T15:00:00Z") }],
+      memberTermIds: [],
+      boardTermIds: ["t1", "t2"],
+      workCommitteeTermIds: ["t1", "t2"],
+    };
+    const elegible = async (id: string) =>
+      honoraryEligibility({
+        ...historial,
+        benefitsBlocked: (await honoraryFacts(id)).benefitsBlocked === true,
+      }).eligible;
+
+    expect((await honoraryFacts(personId)).benefitsBlocked).toBe(true);
+    expect(await elegible(sinPrueba)).toBe(true);
+    expect(await elegible(personId)).toBe(false);
+  });
+
+  // ADR-120 regla 4, lo que no cambia: quien ya es honorario con una prueba guardada, porque pasó
+  // antes de esa regla, la conserva y la retoma al volver a activo (ADR-118 regla 8). El estado se
+  // siembra directo: el comando ya no deja llegar a él.
+  it("quien ya es honorario con una prueba guardada la retoma al volver a activo", async () => {
+    const actual = await seedTerm();
+    const { previo, personId, saved, conditions } =
+      await onLeaveWithProbation("antes@eafit.edu.co");
+    await db()
+      .update(membership)
+      .set({ status: "HONORARY" })
+      .where(eq(membership.personId, personId));
+    expect(await saved()).toEqual([
+      expect.objectContaining({ committeeId: null, probation: true }),
+    ]);
+
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(ctx, personId, { to: "ACTIVE", reason: "Vuelve" }),
+    );
+
+    expect(await saved()).toBeNull();
+    const porTermino = (a: { termId: string }, b: { termId: string }) =>
+      a.termId.localeCompare(b.termId);
+    expect((await conditions()).sort(porTermino)).toEqual(
+      [
+        { termId: previo, probation: true },
+        { termId: actual, probation: true },
+      ].sort(porTermino),
+    );
+  });
+
+  // Conducta de hoy, sin elegir (decisión abierta 62): ni la baja ni la reactivación tocan la
+  // condición guardada, y la regla 4 de ADR-120 solo la mira en quien está en licencia. Quien salió
+  // en prueba, fue dado de baja y volvió queda activo con esa prueba todavía guardada y sin retomar,
+  // y así pasa a honorario.
+  it("quien salió a licencia en prueba, fue dado de baja y volvió pasa a honorario con la prueba sin retomar (decisión abierta 62)", async () => {
+    await seedTerm();
+    const { personId, saved } = await onLeaveWithProbation("rodeo@eafit.edu.co");
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      endMembership(ctx, personId, {
+        endReason: "RESIGNATION",
+        memorialConsent: false,
+        contactConsent: false,
+      }),
+    );
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      reactivateMembership(ctx, personId, { reason: "Vuelve" }),
+    );
+    const estado = async () =>
+      (
+        await db()
+          .select({ status: membership.status })
+          .from(membership)
+          .where(eq(membership.personId, personId))
+      )[0]?.status;
+    expect(await estado()).toBe("ACTIVE");
+    expect(await saved()).toEqual([
+      expect.objectContaining({ committeeId: null, probation: true }),
+    ]);
+    expect((await honoraryFacts(personId)).benefitsBlocked).toBe(false);
+
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(ctx, personId, { to: "HONORARY", reason: "Pasa a honoraria" }),
+    );
+
+    expect(await estado()).toBe("HONORARY");
+    expect(await saved()).toBeNull();
+  });
+
+  // Conducta de hoy, sin elegir: depende de que haya huecos entre términos (decisión abierta 27).
+  it("volver de licencia un día sin semestre vigente pierde la condición guardada (decisión abierta 27)", async () => {
+    const { previo, personId, saved, conditions } =
+      await onLeaveWithProbation("hueco@eafit.edu.co");
+
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(
+        ctx,
+        personId,
+        { to: "ACTIVE", reason: "Vuelve" },
+        new Date("2030-03-01T15:00:00Z"),
+      ),
+    );
+
+    expect(await saved()).toBeNull();
+    expect(await conditions()).toEqual([{ termId: previo, probation: true }]);
+  });
+
   it("dar de baja depura lo que no es historia y registra los consentimientos; reactivar recupera el perfil", async () => {
     const termId = await seedTerm();
     const personId = await seedMember("egresa@eafit.edu.co", { phone: "+573001234567" });
     const a3 = await seedCommittee("a3");
     await seedCommitteeMembership(personId, a3, termId, "GENERAL");
     const adminId = await seedMember("admin@eafit.edu.co");
-    await runCommand({ personId: adminId }, (ctx) =>
+    await runCommand({ personId: adminId, ip: null }, (ctx) =>
       grantPermission(ctx, { email: "admin@eafit.edu.co", code: "ADMIN" }),
     );
-    await runCommand({ personId: adminId }, (ctx) =>
+    await runCommand({ personId: adminId, ip: null }, (ctx) =>
       grantPermission(ctx, {
         email: "egresa@eafit.edu.co",
         code: "COMMITTEE_LEADER",
@@ -183,7 +391,7 @@ describe("salida, reactivación y anonimización", () => {
       }),
     );
 
-    const ended = await runCommand({ personId: adminId }, (ctx) =>
+    const ended = await runCommand({ personId: adminId, ip: null }, (ctx) =>
       endMembership(ctx, personId, {
         endReason: "GRADUATION",
         memorialConsent: true,
@@ -214,7 +422,7 @@ describe("salida, reactivación y anonimización", () => {
     expect(consents.find((item) => item.purpose === "COMMUNICATIONS")?.live).toBeNull();
     // Segunda baja: no hace nada.
     expect(
-      await runCommand({ personId: adminId }, (ctx) =>
+      await runCommand({ personId: adminId, ip: null }, (ctx) =>
         endMembership(ctx, personId, {
           endReason: "OTHER",
           memorialConsent: false,
@@ -224,11 +432,11 @@ describe("salida, reactivación y anonimización", () => {
     ).toBe(false);
 
     // El outbox revoca los permisos de quien salió y respeta al último ADMIN.
-    await drain(20);
+    await drainOutbox();
     const remaining = await db().select().from(permission);
     expect(remaining.map((row) => row.code)).toEqual(["ADMIN"]);
 
-    await runCommand({ personId: adminId }, (ctx) =>
+    await runCommand({ personId: adminId, ip: null }, (ctx) =>
       reactivateMembership(ctx, personId, { email: "egresa2@eafit.edu.co", reason: "Posgrado" }),
     );
     const back = await getPerson360(personId);
@@ -247,7 +455,7 @@ describe("salida, reactivación y anonimización", () => {
     await seedTerm();
     const personId = await seedMember("expulsada@eafit.edu.co");
     const adminId = await seedMember("admin2@eafit.edu.co");
-    await runCommand({ personId: adminId }, (ctx) =>
+    await runCommand({ personId: adminId, ip: null }, (ctx) =>
       endMembership(ctx, personId, {
         endReason: "EXPULSION",
         note: "Falta grave con otra sanción viva",
@@ -256,7 +464,7 @@ describe("salida, reactivación y anonimización", () => {
       }),
     );
     await expect(
-      runCommand({ personId: adminId }, (ctx) =>
+      runCommand({ personId: adminId, ip: null }, (ctx) =>
         reactivateMembership(ctx, personId, { reason: "Pidió volver" }),
       ),
     ).rejects.toBeInstanceOf(DomainError);

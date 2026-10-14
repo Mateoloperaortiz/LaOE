@@ -2,10 +2,11 @@ import { randomBytes } from "node:crypto";
 import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { event, eventEdition } from "@/modules/events/schema";
+import { event } from "@/modules/events/schema";
 import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedEdition, seedEvent, seedOccasion } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -23,38 +24,25 @@ test.beforeEach(async () => {
   const db = getDb();
   const [current] = await db.select().from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("Falta el término sintético");
-  const [createdEvent] = await db
-    .insert(event)
-    .values({ name: title, slug: title, audience: "MEMBERS", publicationStatus: "PUBLISHED" })
-    .returning();
-  if (!createdEvent) throw new Error("Falta el evento sintético");
-  eventId = createdEvent.id;
-  const [edition] = await db
-    .insert(eventEdition)
-    .values({
-      eventId,
-      name: title,
-      slug: title,
-      description: "Detalle reservado para miembros de prueba.",
-      startsAt: new Date(Date.now() + 3_600_000),
-      publicationStatus: "PUBLISHED",
-    })
-    .returning();
-  const [activity] = await db
-    .insert(occasion)
-    .values({
-      publicId: randomBytes(5).toString("hex"),
-      termId: current.id,
-      title: `${title} futura`,
-      description: "Podés consultar la actividad antes de que abra la asistencia.",
-      startsAt: new Date(Date.now() + 7_200_000),
-      checkInOpensAt: new Date(Date.now() + 7_200_000),
-      checkInClosesAt: new Date(Date.now() + 10_800_000),
-      status: "OPEN",
-    })
-    .returning();
-  if (!edition || !activity) throw new Error("Faltan detalles sintéticos");
-  editionId = edition.id;
+  eventId = await seedEvent(title, title, {
+    audience: "MEMBERS",
+    publicationStatus: "PUBLISHED",
+  });
+  editionId = await seedEdition(eventId, title, title, {
+    description: "Detalle reservado para miembros de prueba.",
+    startsAt: new Date(Date.now() + 3_600_000),
+    publicationStatus: "PUBLISHED",
+  });
+  const activity = await seedOccasion(current.id, {
+    publicId: randomBytes(5).toString("hex"),
+    title: `${title} futura`,
+    description: "Podés consultar la actividad antes de que abra la asistencia.",
+    points: 0,
+    startsAt: new Date(Date.now() + 7_200_000),
+    checkInOpensAt: new Date(Date.now() + 7_200_000),
+    checkInClosesAt: new Date(Date.now() + 10_800_000),
+    status: "OPEN",
+  });
   activityId = activity.id;
 });
 test.afterEach(async () => {

@@ -17,7 +17,11 @@ import {
   SURVEY_TEXT_MIN,
   surveySummary,
 } from "@/modules/participation";
-import { occasionKindLabel, occasionStatusCell } from "@/modules/participation/admin";
+import {
+  liveConsoleLabels,
+  occasionKindLabel,
+  occasionStatusCell,
+} from "@/modules/participation/admin";
 import { ConsolaEnVivo } from "@/modules/participation/components/ConsolaEnVivo";
 import {
   getPeopleByIds,
@@ -30,7 +34,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime, formatTime } from "@/shared/lib/dates";
 import {
   approveAllAction,
@@ -88,16 +92,13 @@ export default async function ConsolaPage({
     ? [estado as CheckInStatus]
     : undefined;
   const [snapshot, checkIns, roster, committees, scores, results] = await Promise.all([
-    buildLiveSnapshot(id),
+    buildLiveSnapshot(occasion),
     listCheckIns(id, statusFilter),
     listTermCommitteeMembers(occasion.termId),
     listAllCommittees(),
     listOccasionScores(id),
     q ? searchMembersByName(q) : Promise.resolve([]),
   ]);
-  if (!snapshot) {
-    notFound();
-  }
   const people = await getPeopleByIds(checkIns.map((item) => item.personId));
   const committeeName = new Map(committees.map((item) => [item.id, item.name]));
   const committeesOf = new Map<string, string[]>();
@@ -108,8 +109,8 @@ export default async function ConsolaPage({
     committeesOf.set(member.personId, names);
   }
   const pending = checkIns.filter((item) => item.status === "PENDING");
-  const statusLabels = tList("T-597");
-  const sourceLabels = tList("T-596");
+  const statusLabels = tLabels("T-597", CHECK_IN_STATUSES);
+  const sourceLabels = tLabels("T-596", CHECK_IN_SOURCES);
   const [abrir, cerrar, cancelar] = tList("T-589");
   const [activar, rotar, desactivar] = tList("T-588");
   const [aprobar, rechazar, anularLabel] = tList("T-592");
@@ -117,8 +118,7 @@ export default async function ConsolaPage({
   const columnLabels = tList("T-595");
   const scoreLabels = tList("T-605");
   const [todos] = tList("T-639");
-  const statusLabel = (status: CheckInStatus) =>
-    statusLabels[CHECK_IN_STATUSES.indexOf(status)] ?? status;
+  const statusLabel = (status: CheckInStatus) => statusLabels[status] ?? status;
   const canDecide = actor.isAdmin;
   const canOpen = occasion.status === "DRAFT" && canOpenOccasion(actor, occasion);
   const cell = occasionStatusCell(occasion.status);
@@ -260,6 +260,7 @@ export default async function ConsolaPage({
                       <input type="hidden" name="occasionId" value={id} />
                       <input type="hidden" name="checkInId" value={item.id} />
                       <input type="hidden" name="decision" value="APPROVE" />
+                      <input type="hidden" name="seen" value={item.status} />
                       <AdminSubmitButton
                         type="submit"
                         className="boton-primario min-h-9 px-4 py-1 text-sm"
@@ -273,6 +274,7 @@ export default async function ConsolaPage({
                       <input type="hidden" name="occasionId" value={id} />
                       <input type="hidden" name="checkInId" value={item.id} />
                       <input type="hidden" name="decision" value="REJECT" />
+                      <input type="hidden" name="seen" value={item.status} />
                       <AdminSubmitButton
                         type="submit"
                         className="boton-secundario min-h-9 px-4 py-1 text-sm"
@@ -298,11 +300,10 @@ export default async function ConsolaPage({
           qrAlt: t("T-586"),
           link: t("T-611", { url: "{url}" }),
           code: t("T-587", { codigo: "{codigo}", s: "{s}" }),
-          counters: tList("T-585"),
+          stale: t("T-3260"),
           recentTitle: t("T-603"),
           recentEmpty: t("T-671"),
-          sources: sourceLabels,
-          statuses: statusLabels,
+          ...liveConsoleLabels(),
         }}
       />
 
@@ -435,7 +436,7 @@ export default async function ConsolaPage({
                         {formatTime(item.at)}
                       </td>
                       <td data-label={columnLabels[3]} className="py-2 pr-4">
-                        {sourceLabels[CHECK_IN_SOURCES.indexOf(item.source)] ?? item.source}
+                        {sourceLabels[item.source] ?? item.source}
                       </td>
                       <td data-label={columnLabels[4]} className="py-2 pr-4">
                         {statusLabel(item.status)}
@@ -449,6 +450,7 @@ export default async function ConsolaPage({
                                   <input type="hidden" name="occasionId" value={id} />
                                   <input type="hidden" name="checkInId" value={item.id} />
                                   <input type="hidden" name="decision" value="APPROVE" />
+                                  <input type="hidden" name="seen" value={item.status} />
                                   <AdminSubmitButton
                                     type="submit"
                                     className="boton-secundario min-h-8 px-3 py-1 text-xs"
@@ -464,6 +466,7 @@ export default async function ConsolaPage({
                                   <input type="hidden" name="occasionId" value={id} />
                                   <input type="hidden" name="checkInId" value={item.id} />
                                   <input type="hidden" name="decision" value="REJECT" />
+                                  <input type="hidden" name="seen" value={item.status} />
                                   <AdminSubmitButton
                                     type="submit"
                                     className="boton-secundario min-h-8 px-3 py-1 text-xs"
@@ -523,6 +526,7 @@ export default async function ConsolaPage({
               <input type="hidden" name="occasionId" value={id} />
               <input type="hidden" name="checkInId" value={toCancel.id} />
               <input type="hidden" name="decision" value="CANCEL" />
+              <input type="hidden" name="seen" value={toCancel.status} />
               <p className="font-semibold">{people.get(toCancel.personId)?.fullName?.trim()}</p>
               <label className="flex flex-col gap-1">
                 <span className="eyebrow text-xs">{t("T-434")}</span>

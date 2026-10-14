@@ -8,6 +8,7 @@ import { requireActor } from "@/modules/identity";
 import {
   ChallengeAlreadySubmitted,
   type ChallengeSubmitReply,
+  discardEvidenceUploadAs,
   EVIDENCE_KEY_PATTERN,
   type MemberChallengeStatus,
   type SubmitResult,
@@ -33,6 +34,8 @@ const evidenceSchema = z.object({
   text: z.string().max(4_000),
   keys: z.array(z.string().regex(EVIDENCE_KEY_PATTERN)).max(3),
 });
+
+const discardSchema = z.object({ key: z.string().regex(EVIDENCE_KEY_PATTERN) });
 
 const STATUS: Record<string, MemberChallengeStatus> = {
   PENDING: "PENDING",
@@ -109,6 +112,27 @@ export async function submitEvidenceAction(input: unknown): Promise<ChallengeSub
     }
     if (error instanceof DomainError) {
       return { ok: false, reason: "INVALID_INPUT" };
+    }
+    throw error;
+  }
+}
+
+/**
+ * La imagen que el miembro quita de la lista antes de entregar se borra del bucket (ADR-122 regla
+ * 20). No responde nada que la pantalla pinte: la imagen ya salió de la lista. Que la clave sea suya
+ * y que ninguna entrega la use lo comprueba el comando; lo que rechaza queda donde estaba.
+ */
+export async function discardEvidenceUploadAction(input: unknown): Promise<void> {
+  const actor = await requireActor("/app/gh-points/retos");
+  const parsed = discardSchema.safeParse(input);
+  if (!parsed.success) {
+    return;
+  }
+  try {
+    await discardEvidenceUploadAs(await actorContext(actor), parsed.data);
+  } catch (error) {
+    if (error instanceof DomainError) {
+      return;
     }
     throw error;
   }

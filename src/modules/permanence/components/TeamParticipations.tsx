@@ -1,4 +1,6 @@
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
+
+const EVALUATIONS = ["PENDING", "GOOD", "INSUFFICIENT"] as const;
 
 export function TeamParticipations({
   items,
@@ -25,7 +27,7 @@ export function TeamParticipations({
             >
               <span className="font-semibold">{item.label}</span>
               <span className="text-sm text-tinta-suave">
-                {tList("T-750")[["PENDING", "GOOD", "INSUFFICIENT"].indexOf(item.evaluation)]}
+                {tLabels("T-750", EVALUATIONS)[item.evaluation]}
               </span>
             </li>
           ))}

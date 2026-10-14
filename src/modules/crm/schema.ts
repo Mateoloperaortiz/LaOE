@@ -224,13 +224,20 @@ export const task = pgTable(
   {
     id: id(),
     title: text().notNull(),
-    kind: text().notNull().default("GENERAL"), // GENERAL, DELETION_REQUEST, REQUEST
+    // GENERAL, DELETION_REQUEST, REQUEST, COMMITTEE_REMOVAL, LEAVE_EXPIRED
+    kind: text().notNull().default("GENERAL"),
     assigneeId: text().references(() => person.id, { onDelete: "set null" }),
     dueAt: timestampTz(),
     status: taskStatus().notNull().default("OPEN"),
     personId: text().references(() => person.id, { onDelete: "cascade" }),
     organizationId: text().references(() => organization.id, { onDelete: "cascade" }),
     cardId: text().references(() => card.id, { onDelete: "set null" }),
+    /**
+     * El motivo y el sujeto de una tarea que abrió el sistema (ADR-115 regla 9), por ejemplo
+     * `LEAVE_EXPIRED:person:<id>`: hay una sola abierta por clave. Nula en las creadas a mano y en
+     * las anteriores a la regla. Todavía sin índice único (DT-123).
+     */
+    reasonKey: text(),
     createdById: text().references(() => person.id, { onDelete: "set null" }),
     completedAt: timestampTz(),
     completedById: text().references(() => person.id, { onDelete: "set null" }),

@@ -1,7 +1,7 @@
 import Link from "next/link";
+import { SignOutForm } from "@/modules/identity/components/SignOutForm";
 import "./admin.css";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
-import { signOutAction } from "@/modules/identity/actions";
 import { CommandPalette } from "@/shared/admin-kit";
 import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
@@ -99,9 +99,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       account={
         <>
           <Link href="/app">{t("T-004")}</Link>
-          <form action={signOutAction}>
+          <SignOutForm>
             <button type="submit">{t("T-231")}</button>
-          </form>
+          </SignOutForm>
         </>
       }
     >

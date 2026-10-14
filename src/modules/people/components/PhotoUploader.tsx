@@ -3,9 +3,11 @@
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { mediaUrl } from "@/shared/lib/media";
+import { uploadToBucket } from "@/shared/ui/bucket-upload";
+import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
 
-// Foto propia (ADR-034 regla 8): selección local → confirmación explícita → presign, bucket y confirm.
-// Los bytes no pasan por la app (ADR-022); el servidor vuelve a comprobar su propiedad.
+// Foto propia (ADR-034 regla 8): selección local → confirmación explícita → subida directa al bucket
+// (`uploadToBucket`, ADR-121 regla 14). El servidor vuelve a comprobar su propiedad.
 
 type Labels = {
   field: string;
@@ -42,21 +44,6 @@ type State =
   | { kind: "done" }
   | { kind: "removed" }
   | { kind: "error"; message: string };
-
-interface PreparedUpload {
-  key: string;
-  url: string;
-  fields: Record<string, string>;
-}
-
-async function readError(response: Response, fallback: string): Promise<string> {
-  try {
-    const body = (await response.json()) as { error?: string };
-    return body.error ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 export function PhotoUploader({
   currentAssetId,
@@ -105,38 +92,25 @@ export function PhotoUploader({
     inFlight.current = true;
     setState({ kind: "uploading", name: file.name });
     try {
-      const presign = await fetch("/api/media/presign", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-          byteSize: file.size,
-          visibility: "PRIVATE",
-          purpose: "photo",
-        }),
+      const { confirmation } = await uploadToBucket(file, {
+        presign: {
+          url: "/api/media/presign",
+          body: {
+            filename: file.name,
+            contentType: file.type,
+            byteSize: file.size,
+            visibility: "PRIVATE",
+            purpose: "photo",
+          },
+        },
+        confirm: {
+          url: "/api/media/confirm",
+          body: { filename: file.name, visibility: "PRIVATE", purpose: "photo" },
+        },
       });
-      if (!presign.ok) throw new Error(await readError(presign, labels.errorUpload));
-      const prepared = (await presign.json()) as PreparedUpload;
-      const form = new FormData();
-      for (const [name, value] of Object.entries(prepared.fields)) form.append(name, value);
-      form.append("file", file, file.name);
-      const stored = await fetch(prepared.url, { method: "POST", body: form });
-      if (!stored.ok) throw new Error(labels.errorUpload);
-      const confirm = await fetch("/api/media/confirm", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          key: prepared.key,
-          filename: file.name,
-          visibility: "PRIVATE",
-          purpose: "photo",
-        }),
-      });
-      if (!confirm.ok) throw new Error(await readError(confirm, labels.errorUpload));
-      const { id } = (await confirm.json()) as { id: string };
+      const { id } = (await confirmation.json()) as { id: string };
       const result = await onChange(id);
-      if (!result.ok) throw new Error(result.error ?? labels.errorUpload);
+      if (!result.ok) throw new UploadError(result.error ?? labels.errorUpload);
       clearSelection();
       setState({ kind: "done" });
       router.refresh();
@@ -144,7 +118,7 @@ export function PhotoUploader({
       unstable_rethrow(error);
       setState({
         kind: "error",
-        message: error instanceof Error ? error.message : labels.errorUpload,
+        message: uploadErrorMessage(error, labels.errorUpload),
       });
     } finally {
       inFlight.current = false;
@@ -157,14 +131,14 @@ export function PhotoUploader({
     setState({ kind: "removing" });
     try {
       const result = await onChange(null);
-      if (!result.ok) throw new Error(result.error ?? labels.errorUpload);
+      if (!result.ok) throw new UploadError(result.error ?? labels.errorUpload);
       setState({ kind: "removed" });
       router.refresh();
     } catch (error) {
       unstable_rethrow(error);
       setState({
         kind: "error",
-        message: error instanceof Error ? error.message : labels.errorUpload,
+        message: uploadErrorMessage(error, labels.errorUpload),
       });
     } finally {
       inFlight.current = false;

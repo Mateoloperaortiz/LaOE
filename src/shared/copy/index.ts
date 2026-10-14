@@ -1,4 +1,12 @@
-import { type CopyValues, fillCopy, type SplitCopyList, splitCopyList } from "./format";
+import {
+  type CopyLabels,
+  type CopyValues,
+  fillCopy,
+  type PairedWithList,
+  pairCopyLabels,
+  type SplitCopyList,
+  splitCopyList,
+} from "./format";
 import { textos } from "./textos.generated";
 
 // Catálogo completo de textos: solo servidor. `textos.generated.ts` lleva `server-only`, así que el build
@@ -23,6 +31,18 @@ export type CopyList<Code extends CopyCode> = CopyCode extends Code
 /** Un texto que el inventario marca como lista separada por " · ". */
 export function tList<const Code extends CopyCode>(code: Code): CopyList<Code> {
   return splitCopyList(textos[code].text) as CopyList<Code>;
+}
+
+/**
+ * Las etiquetas de un enum por valor: `tLabels("T-597", CHECK_IN_STATUSES)[status]` (ADR-126 regla 3).
+ * No compila si la lista y el enum no tienen el mismo largo, ni si el enum no es una tupla. Verifica
+ * el largo, no el orden: la pieza de cada valor es la de su posición.
+ */
+export function tLabels<const Code extends CopyCode, const Values extends readonly string[]>(
+  code: Code,
+  values: Values & PairedWithList<CopyList<Code>, Values>,
+): CopyLabels<Values[number]> {
+  return pairCopyLabels(splitCopyList(textos[code].text), values) as CopyLabels<Values[number]>;
 }
 
 /** Estado editorial del texto (Propuesta, Aprobado, Pendiente…). */

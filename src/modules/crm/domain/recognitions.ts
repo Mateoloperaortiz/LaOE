@@ -10,9 +10,10 @@ import {
   assertBenefitsAvailable,
   getPeopleByIds,
   hasLiveConsent,
+  isInInternalRoster,
   listCommitteesByIds,
 } from "@/modules/people";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { interaction, recognition } from "../schema";
 
@@ -41,9 +42,8 @@ export const OE_AWARDS = [
 ] as const;
 
 export function awardLabel(award: string | null): string {
-  return award
-    ? (tList("T-2320")[OE_AWARDS.indexOf(award as (typeof OE_AWARDS)[number])] ?? award)
-    : "";
+  const labels: Readonly<Record<string, string>> = tLabels("T-2320", OE_AWARDS);
+  return award ? (labels[award] ?? award) : "";
 }
 
 export const recognitionInputSchema = z
@@ -99,6 +99,23 @@ export async function grantRecognition(
   input: RecognitionInput,
   context: RecognitionContext,
 ): Promise<RecognitionResult> {
+  // ADR-122 regla 2: un reconocimiento que llega con comité es de alguien que está en el roster de
+  // ese comité en ese término. Lo lee el comando; quien no está responde como uno que no existe. Va
+  // antes que el bloqueo de beneficios: T-2331 de una persona ajena le diría a quien llama que está
+  // en periodo de prueba o con los derechos suspendidos. Falla cerrado: el destacado del mes es de un
+  // comité (ADR-036 regla 7), así que sin comité no hay roster contra el que comprobarlo y no procede.
+  if (input.kind === "MEMBER_OF_MONTH" && !input.committeeId) {
+    throw new DomainError(t("T-032"));
+  }
+  if (
+    input.committeeId &&
+    !(await isInInternalRoster(ctx.tx, input.personId, {
+      committeeId: input.committeeId,
+      termId: input.termId,
+    }))
+  ) {
+    throw new DomainError(t("T-032"));
+  }
   await assertBenefitsAvailable(ctx.tx, input.personId, input.termId);
   const mes = monthName(input.month ?? null);
   const title =

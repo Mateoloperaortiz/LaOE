@@ -53,7 +53,6 @@ export type BadgeFamily =
   | "RELAMPAGO"
   | "PALABRA_A_PALABRA"
   | "SPECIAL";
-export type EvidenceFileStatus = "PENDING" | "READY" | "FAILED";
 
 export interface RewardCaps {
   daily: number;
@@ -72,39 +71,23 @@ export interface RewardBreakdown {
   capped: boolean;
 }
 
-export const CHALLENGE_KINDS: readonly ChallengeKind[] = ["PRESENTIAL", "TRIVIA", "EVIDENCE"];
-export const CHALLENGE_AUDIENCES: readonly ChallengeAudience[] = [
-  "ALL",
-  "NEW",
-  "VETERAN",
-  "COMMITTEES",
-];
-export const PARTICIPATION_STATUSES: readonly ParticipationStatus[] = [
-  "PENDING",
-  "COMPLETED",
-  "REJECTED",
-  "ANNULLED",
-];
-export const MEMBER_CHALLENGE_STATUSES: readonly MemberChallengeStatus[] = [
-  "AVAILABLE",
-  "SENT",
-  "PENDING",
-  "COMPLETED",
-  "REJECTED",
-  "EXPIRED",
-];
-export const BOOSTER_KINDS: readonly BoosterKind[] = ["PLUS_50", "PLUS_100"];
-export const BOOSTER_STATES: readonly BoosterState[] = [
+export const CHALLENGE_KINDS = [
+  "PRESENTIAL",
+  "TRIVIA",
+  "EVIDENCE",
+] as const satisfies readonly ChallengeKind[];
+export const BOOSTER_KINDS = ["PLUS_50", "PLUS_100"] as const satisfies readonly BoosterKind[];
+export const BOOSTER_STATES = [
   "AVAILABLE",
   "RESERVED",
   "CONSUMED",
   "EXPIRED",
   "REVOKED",
-];
-export const BADGE_FAMILIES: readonly BadgeFamily[] = [
+] as const satisfies readonly BoosterState[];
+export const BADGE_FAMILIES = [
   "EN_PARCHE",
   "EXPLORADOR",
   "RELAMPAGO",
   "PALABRA_A_PALABRA",
   "SPECIAL",
-];
+] as const satisfies readonly BadgeFamily[];

@@ -9,7 +9,7 @@ import {
   evidenceProcess,
 } from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
-import { t } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import type {
   BoosterKind,
@@ -22,6 +22,7 @@ import {
   challenge,
   challengeEvidenceFile,
   challengeParticipation,
+  challengeParticipationStatus,
   challengeQuestion,
   type checkIn,
   reward,
@@ -77,7 +78,10 @@ export interface SubmitContext {
   campaign: { id: string; percent: CampaignPercent } | null;
 }
 
-/** Señal para el wrapper: el unique (reto, persona) o (reto, requestId) decidió el duplicado. */
+/**
+ * Señal para el wrapper: el unique (reto, persona) decidió el duplicado. El de (reto, requestId) ya no
+ * cruza personas, porque el `requestId` se guarda con la suya (ADR-118 regla 18).
+ */
 export class ChallengeAlreadySubmitted extends Error {
   constructor() {
     super("participación repetida");
@@ -268,6 +272,15 @@ async function replayResult(
   };
 }
 
+/**
+ * El identificador de una entrega lleva a la persona (ADR-118 regla 18). El `requestId` lo elige el
+ * navegador y lo guarda por pestaña, no por sesión, y el índice único es (reto, requestId): guardado
+ * tal como llega, el de una persona le cerraba el reto a la siguiente en la misma pestaña.
+ */
+function submissionRequestId(personId: string, requestId: string): string {
+  return `${personId}:${requestId}`;
+}
+
 /** El replay compara el contenido guardado, incluso tras cerrar el reto o procesar sus imágenes. */
 export async function replaySubmission(
   ctx: CommandContext,
@@ -282,7 +295,11 @@ export async function replaySubmission(
 ): Promise<SubmitResult | null> {
   const existing = await existingParticipation(ctx, input.challengeId, input.personId);
   if (!existing) return null;
-  if (existing.requestId !== input.requestId) return { ok: false, reason: "ALREADY" };
+  // Las entregas anteriores a la regla 18 guardaron el `requestId` tal como llegó.
+  const sameRequest =
+    existing.requestId === submissionRequestId(input.personId, input.requestId) ||
+    existing.requestId === input.requestId;
+  if (!sameRequest) return { ok: false, reason: "ALREADY" };
   let matches = false;
   if (input.answers) {
     matches = JSON.stringify(existing.answers) === JSON.stringify(input.answers);
@@ -297,7 +314,9 @@ export async function replaySubmission(
       JSON.stringify(files.map((file) => file.key)) ===
         JSON.stringify([...new Set(input.keys ?? [])]);
   }
-  return matches ? replayResult(ctx, existing) : { ok: false, reason: "INVALID_INPUT" };
+  // Con otro contenido se rechaza (ADR-067 regla 6) diciendo que es eso, no que el envío vino mal
+  // armado: la pantalla pide recargar, no volver a responder (ADR-122 regla 16).
+  return matches ? replayResult(ctx, existing) : { ok: false, reason: "REQUEST_CONFLICT" };
 }
 
 async function lockSubmission(
@@ -361,7 +380,7 @@ export async function submitTrivia(
       .values({
         challengeId: row.id,
         personId: input.personId,
-        requestId: input.requestId,
+        requestId: submissionRequestId(input.personId, input.requestId),
         status: passed ? "COMPLETED" : "REJECTED",
         submittedAt: now,
         answers: input.answers,
@@ -464,7 +483,7 @@ export async function submitEvidence(
       .values({
         challengeId: row.id,
         personId: input.personId,
-        requestId: input.requestId,
+        requestId: submissionRequestId(input.personId, input.requestId),
         status: "PENDING",
         submittedAt: now,
         evidenceText: text,
@@ -538,6 +557,11 @@ export async function applyPresentialCheckIn(
     occasion: OccasionRow;
     outcome: "APPROVED" | "PENDING" | "REJECTED" | "CANCELLED";
     reason?: string | null;
+    /**
+     * Motivo con el que se cierra la entrega pendiente en un rechazo. Sin él vale el automático de
+     * una asistencia no aprobada (T-2579); la excusa trae el suyo (T-3205, ADR-111 regla 3).
+     */
+    rejectionReason?: string | undefined;
     now?: Date | undefined;
   },
   context: { settings: GamificationSettings },
@@ -688,7 +712,7 @@ export async function applyPresentialCheckIn(
       if (existing?.status !== "PENDING") {
         continue;
       }
-      const reason = t("T-2579", { actividad: input.occasion.title });
+      const reason = input.rejectionReason ?? t("T-2579", { actividad: input.occasion.title });
       if (existing.rewardId) {
         await releaseReward(ctx, existing.rewardId, reason);
       }
@@ -761,6 +785,15 @@ async function auditParticipation(
   });
 }
 
+/**
+ * El estado de una entrega con la palabra del catálogo (T-3266, en el orden del enum), como
+ * `checkInStatusLabel` con las asistencias: es lo que nombra el error de una decisión que ya no
+ * aplica (ADR-123 regla 8).
+ */
+function participationStatusLabel(status: ParticipationStatus): string {
+  return tLabels("T-3266", challengeParticipationStatus.enumValues)[status] ?? status;
+}
+
 /** Revisión de GH sobre una entrega pendiente: aprobar entrega el premio; rechazar lo libera. */
 export async function reviewParticipation(
   ctx: CommandContext,
@@ -783,7 +816,9 @@ export async function reviewParticipation(
     throw new DomainError(t("T-032"));
   }
   if (participation.status !== "PENDING") {
-    throw new DomainError(t("T-676", { estado: participation.status }));
+    throw new DomainError(
+      t("T-676", { estado: participationStatusLabel(participation.status).toLowerCase() }),
+    );
   }
   const [row] = await ctx.tx
     .select()
@@ -792,6 +827,11 @@ export async function reviewParticipation(
     .for("share")
     .limit(1);
   if (!row) {
+    throw new DomainError(t("T-032"));
+  }
+  // La revisión decide entregas de evidencia, las de su bandeja (ADR-122 regla 7): la guarda del
+  // envío. La presencial pendiente la decide su asistencia; acá se trata como inexistente.
+  if (row.kind !== "EVIDENCE") {
     throw new DomainError(t("T-032"));
   }
   if (input.decision === "APPROVE") {
@@ -870,7 +910,9 @@ export async function annulParticipation(
     throw new DomainError(t("T-032"));
   }
   if (participation.status !== "COMPLETED") {
-    throw new DomainError(t("T-676", { estado: participation.status }));
+    throw new DomainError(
+      t("T-676", { estado: participationStatusLabel(participation.status).toLowerCase() }),
+    );
   }
   const cleanReason = reason.trim();
   if (!cleanReason) {

@@ -3,9 +3,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { sendTransactionalEmail, setMailTransportsForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
-import { membership, person } from "@/modules/people/schema";
-import { term } from "@/modules/terms/schema";
 import { type MailTransport, QuotaExceededError } from "@/shared/adapters/mail";
+import { seedMembership, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -17,23 +16,14 @@ function fakeTransport(
   return { name, send: behaviour };
 }
 
-async function seedPerson(): Promise<string> {
-  const [current] = await db()
-    .insert(term)
-    .values({ code: "2026-2", semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
-    .returning({ id: term.id });
-  const [who] = await db()
-    .insert(person)
-    .values({
-      email: "correo@eafit.edu.co",
-      firstName: "Correo",
-      lastName: "Prueba",
-      stage: "MEMBER",
-    })
-    .returning({ id: person.id });
-  if (!who || !current) throw new Error("seed");
-  await db().insert(membership).values({ personId: who.id, firstTermId: current.id });
-  return who.id;
+async function seedRecipient(): Promise<string> {
+  const termId = await seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
+  const personId = await seedPerson("correo@eafit.edu.co", {
+    firstName: "Correo",
+    lastName: "Prueba",
+  });
+  await seedMembership(personId, termId);
+  return personId;
 }
 
 describe("sendTransactionalEmail", () => {
@@ -44,7 +34,7 @@ describe("sendTransactionalEmail", () => {
   });
 
   it("registra el envío con el proveedor por el que salió", async () => {
-    const personId = await seedPerson();
+    const personId = await seedRecipient();
     setMailTransportsForTests({
       primary: fakeTransport("resend", async () => ({ id: "re_1" })),
       overflow: null,
@@ -61,7 +51,7 @@ describe("sendTransactionalEmail", () => {
   });
 
   it("desborda a SES solo por cuota y registra también los fallos del proveedor de respaldo", async () => {
-    const personId = await seedPerson();
+    const personId = await seedRecipient();
     setMailTransportsForTests({
       primary: fakeTransport("resend", async () => {
         throw new QuotaExceededError("daily_quota_exceeded");
@@ -113,7 +103,7 @@ describe("sendTransactionalEmail", () => {
   });
 
   it("sale por SES directamente cuando el contador del día llegó al límite", async () => {
-    const personId = await seedPerson();
+    const personId = await seedRecipient();
     let resendCalls = 0;
     setMailTransportsForTests({
       primary: fakeTransport("resend", async () => {

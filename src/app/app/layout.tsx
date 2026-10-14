@@ -3,7 +3,7 @@ import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { listSubscriptionsFor } from "@/modules/comms";
 import { PwaRegistrar } from "@/modules/comms/components/PwaRegistrar";
 import { requireActor } from "@/modules/identity";
-import { signOutAction } from "@/modules/identity/actions";
+import { SignOutForm } from "@/modules/identity/components/SignOutForm";
 import { hasLiveConsent } from "@/modules/people";
 import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
@@ -101,11 +101,11 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
         groups={groups}
         theme={<ThemeToggle etiquetas={[temaOscuro, temaClaro]} />}
         account={
-          <form action={signOutAction}>
+          <SignOutForm>
             <button type="submit" className="boton-secundario">
               {t("T-231")}
             </button>
-          </form>
+          </SignOutForm>
         }
       >
         {actor.membershipStatus === "ON_LEAVE" ? (

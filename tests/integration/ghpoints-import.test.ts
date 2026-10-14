@@ -2,7 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { pushPointsCredited } from "@/modules/comms/domain/events";
-import { permission } from "@/modules/identity/schema";
 import * as ledger from "@/modules/participation/domain/ledger";
 import { checkIn, occasion, pointEntry } from "@/modules/participation/schema";
 import { membership } from "@/modules/people/schema";
@@ -11,15 +10,17 @@ import { referenceGeneralRules } from "@/modules/permanence/domain/templates";
 import { permanenceRule, workGroupMembership } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { applyGhImport, previewGhImport } from "../../scripts/lib/ghpoints-db";
-import { type GhManifest, ghManifestSchema } from "../../scripts/lib/ghpoints-plan";
-import { truncateAll } from "./db";
+import { GhImportError, type GhManifest, ghManifestSchema } from "../../scripts/lib/ghpoints-plan";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMembership,
+  seedPermission,
   seedPerson,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
 
 let termId: string, actorId: string, personId: string, m: GhManifest;
 beforeEach(async () => {
@@ -27,7 +28,7 @@ beforeEach(async () => {
   termId = await seedTerm("2025-2");
   actorId = await seedPerson("admin@example.test");
   await seedMembership(actorId, termId);
-  await getDb().insert(permission).values({ personId: actorId, code: "ADMIN" });
+  await seedPermission(actorId, "ADMIN");
   personId = await seedPerson("person@example.test");
   await seedMembership(personId, termId, "ON_LEAVE");
   m = ghManifestSchema.parse({
@@ -226,11 +227,15 @@ describe("importación administrativa de GH Points", () => {
   });
   it("dos cargas concurrentes del mismo plan no duplican puntos", async () => {
     const preview = await previewGhImport(m, "test");
+    await warmPool();
     const results = await Promise.allSettled([
       applyGhImport(m, opts(preview.planHash)),
       applyGhImport(m, opts(preview.planHash)),
     ]);
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    // La que esperó el candado de las tablas ya ve la carga de la otra: la rechaza el plan, no un índice.
+    const rejected = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+    expect(rejected[0]?.reason).toBeInstanceOf(GhImportError);
     expect(await getDb().select().from(pointEntry)).toHaveLength(1);
   });
   it("revierte todo el lote si falla un crédito después de otra asistencia", async () => {

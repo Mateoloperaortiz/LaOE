@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { permanenceClosed, permanenceDecided } from "@/domain-events/permanence";
 import {
@@ -18,16 +18,21 @@ import { permanenceDecision } from "../schema";
 import {
   type CommitteeDecision,
   type DecisionKind,
+  exitEndReason,
   type FinalState,
   type PersonPermanence,
+  PROPOSAL_REASON,
   type Proposal,
   type ProposalReason,
+  proposalReason,
   proposeDecisions,
+  type TermLike,
 } from "./permanence-pure";
 import {
   freezeSnapshots,
   getSnapshot,
   listSnapshots,
+  lockTermSnapshots,
   recomputeSnapshots,
   snapshotToResult,
 } from "./snapshots";
@@ -109,8 +114,11 @@ function pendingOf(result: PersonPermanence): number {
   return pending;
 }
 
-export async function listDecisions(termId: string): Promise<DecisionRow[]> {
-  return getDb()
+export async function listDecisions(
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<DecisionRow[]> {
+  return exec
     .select()
     .from(permanenceDecision)
     .where(eq(permanenceDecision.termId, termId))
@@ -121,18 +129,35 @@ export interface PersonDecisionView {
   committeeId: string | null;
   committeeName: string;
   proposed: DecisionKind;
+  /** El motivo automático con que el cierre propuso, en el orden de T-801 (ADR-128 regla 1). */
+  proposalReason: ProposalReason;
   decision: DecisionKind;
+  /** El motivo que GH escribió; vacío si confirmó la propuesta tal cual. */
   reason: string;
   decidedByName: string;
   decidedAt: Date;
   appliedAt: Date | null;
 }
 
-/** Las decisiones confirmadas de una persona en un término, para la Persona 360 (T-831). */
+/**
+ * Las decisiones confirmadas de una persona en un término, para la Persona 360 (T-831). El motivo
+ * automático de cada una es el que se guardó con ella al confirmar (ADR-128 regla 1). `view` es lo que
+ * la pantalla muestra de esa persona en ese término (`getPersonPermanence`), con su resultado vivo o
+ * congelado: solo lo lee una decisión confirmada antes de que el motivo se guardara, que lo saca de ahí
+ * con su respaldo (`proposalReason`). Con el resultado de otra persona o el de otro término saldría el
+ * motivo de otro, así que lanza antes de leer nada (ADR-129 regla 2).
+ */
 export async function listPersonDecisions(
   personId: string,
   termId: string,
+  view: { term: Pick<TermLike, "id">; result: PersonPermanence },
 ): Promise<PersonDecisionView[]> {
+  const { result } = view;
+  if (result.personId !== personId || view.term.id !== termId) {
+    throw new Error(
+      "El resultado de permanencia que se pasó no es el de esa persona en ese término",
+    );
+  }
   const rows = await getDb()
     .select()
     .from(permanenceDecision)
@@ -150,6 +175,7 @@ export async function listPersonDecisions(
     committeeId: row.committeeId,
     committeeName: row.committeeId ? (names.get(row.committeeId) ?? "") : "",
     proposed: row.proposed,
+    proposalReason: proposalReason(row.proposalReason, result, row.proposed),
     decision: row.decision,
     reason: row.reason ?? "",
     decidedByName: row.decidedById ? (people.get(row.decidedById)?.fullName ?? "") : "",
@@ -178,10 +204,17 @@ export function filterClosingRows(
   }
 }
 
-/** Las filas del cierre: snapshot (vivo o congelado), propuesta derivada y decisión confirmada si existe. */
-export async function listClosingRows(termId: string): Promise<ClosingView> {
-  const snapshots = await listSnapshots(termId);
-  const decisions = await listDecisions(termId);
+/**
+ * Las filas del cierre: snapshot (vivo o congelado), propuesta derivada y decisión confirmada si existe.
+ * Los snapshots y las decisiones se leen por `exec`: el cierre pasa su transacción (ADR-121 regla 2).
+ * Los nombres de personas y comités, que no deciden nada, van siempre por el pool.
+ */
+export async function listClosingRows(
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<ClosingView> {
+  const snapshots = await listSnapshots(termId, exec);
+  const decisions = await listDecisions(termId, exec);
   const evaluated = snapshots.filter((item) => item.status === "ACTIVE" && item.results.length > 0);
   const people = await getPeopleByIds([
     ...new Set([
@@ -210,7 +243,7 @@ export async function listClosingRows(termId: string): Promise<ClosingView> {
         threshold: item.threshold,
         finalState: item.finalState,
         proposed: proposed?.proposed ?? "CONTINUES",
-        reason: proposed?.reason ?? 0,
+        reason: proposed?.reason ?? PROPOSAL_REASON.CONTINUES,
         decision: decisionFor(snapshot.personId, item.committeeId),
       };
     });
@@ -324,7 +357,12 @@ async function upsertDecision(
   await ctx.tx.insert(permanenceDecision).values(values);
 }
 
-/** Confirma las decisiones de una persona: la propuesta tal cual, o un cambio con motivo (T-805). */
+/**
+ * Confirma las decisiones de una persona: la propuesta tal cual, o un cambio con motivo (T-805). Con
+ * cada decisión guarda el motivo automático con que el cierre la propuso, el de `row`, también cuando
+ * GH decide otra cosa: después de confirmar los hechos pueden cambiar, y ese motivo ya no se puede
+ * volver a sacar de ellos (ADR-128 regla 1).
+ */
 export async function confirmDecisions(
   ctx: CommandContext,
   termId: string,
@@ -354,6 +392,7 @@ export async function confirmDecisions(
       ...base,
       committeeId: committee.committeeId,
       proposed: committee.proposed,
+      proposalReason: committee.reason,
       decision: chosenFor(committee),
     });
   }
@@ -361,6 +400,7 @@ export async function confirmDecisions(
     ...base,
     committeeId: null,
     proposed: row.personProposed,
+    proposalReason: row.personReason,
     decision: input.person,
   });
   await ctx.audit({
@@ -425,8 +465,24 @@ export async function confirmAllProposedAs(actor: Actor, termId: string): Promis
 }
 
 /**
- * Aplicar el cierre (ADMIN, step-up en la acción): recalcula afuera, y en una transacción estampa
- * el término, congela los snapshots, asegura el término siguiente y encola el job de decisiones.
+ * Lo que el cierre exige de las filas a cerrar: que haya a quién cerrar y que nadie esté sin decidir.
+ * Lee por la transacción del cierre, que ya tiene el candado del término.
+ */
+async function requireAllDecided(tx: Tx, term: { id: string; code: string }): Promise<void> {
+  const { rows, summary } = await listClosingRows(term.id, tx);
+  if (rows.length === 0) {
+    throw new DomainError(t("T-814", { término: term.code }));
+  }
+  if (summary.undecided > 0) {
+    throw new DomainError(t("T-807", { n: summary.undecided }));
+  }
+}
+
+/**
+ * Aplicar el cierre (ADMIN, step-up en la acción): recalcula afuera, y en una transacción toma el
+ * candado de los recálculos del término, comprueba bajo ese candado que nadie quedó sin decidir
+ * (ADR-121 regla 2), lo estampa, congela los snapshots con su estado final (ADR-116 regla 6), asegura
+ * el término siguiente y encola el job de decisiones.
  */
 export async function closeTermPermanenceAs(
   actor: Actor,
@@ -434,14 +490,15 @@ export async function closeTermPermanenceAs(
 ): Promise<{ nextTermId: string }> {
   const term = await requireClosable(termId);
   await recomputeSnapshots(termId);
-  const { rows, summary } = await listClosingRows(termId);
-  if (rows.length === 0) {
-    throw new DomainError(t("T-814", { término: term.code }));
-  }
-  if (summary.undecided > 0) {
-    throw new DomainError(t("T-807", { n: summary.undecided }));
-  }
   return runCommand(actor, async (ctx) => {
+    // El mismo candado de los recálculos, antes de tocar nada (ADR-116 regla 6): uno en vuelo termina
+    // primero y uno que llega espera y encuentra los snapshots congelados. Sin él, el recálculo escribe
+    // en el orden de las personas, el cierre toma las filas en el de `id` y PostgreSQL corta a uno.
+    await lockTermSnapshots(ctx.tx, termId);
+    // Recién con el candado se leen las filas a cerrar: validarlas antes dejaba entrar un recálculo
+    // con hechos distintos entre la validación y el candado, y el término cerraba con alguien sin
+    // decisión. Acá nadie más escribe un snapshot del término, y se leen por esta misma transacción.
+    await requireAllDecided(ctx.tx, term);
     const nextTermId = (await ensureNextTerm(ctx, term)).id;
     await closeTermPermanence(ctx, termId);
     await freezeSnapshots(ctx, termId);
@@ -473,15 +530,20 @@ export async function applyDecisions(termId: string, nextTermId: string): Promis
       continue;
     }
     const personRow = rows.find((row) => row.committeeId === null) ?? null;
-    const actor: Actor = { personId: personRow?.decidedById ?? rows[0]?.decidedById ?? null };
+    // Lo corre un trabajo, a nombre de quien confirmó la decisión: no hay request ni IP.
+    const actor: Actor = {
+      personId: personRow?.decidedById ?? rows[0]?.decidedById ?? null,
+      ip: null,
+    };
     const reason = personRow?.reason ?? "";
     if (personRow?.decision === "EXIT_OE") {
-      // Faltar a una obligatoria expulsa (ADR-060 regla 3); quedarse sin comité es permanencia.
+      // Lo que obliga a salir expulsa y quedarse sin comité es permanencia (ADR-060 regla 3, como la
+      // enmienda ADR-129). La causal sale de la regla del dominio que da el motivo de la salida, sobre
+      // el snapshot que el cierre congeló y no sobre el motivo guardado al confirmar (ADR-129 regla 1;
+      // decisión abierta 80). Sin snapshot no hay de dónde decir que es una expulsión.
       const snapshot = await getSnapshot(personId, termId);
-      const expelled =
-        snapshot !== null && (snapshot.mandatory.lost.length > 0 || snapshot.expulsionWarning);
       await endMembershipAs(actor, personId, {
-        endReason: expelled ? "EXPULSION" : "PERMANENCE",
+        endReason: snapshot === null ? "PERMANENCE" : exitEndReason(snapshot),
         note: reason || undefined,
         memorialConsent: false,
         contactConsent: false,

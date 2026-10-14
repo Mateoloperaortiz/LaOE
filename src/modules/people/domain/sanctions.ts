@@ -4,32 +4,35 @@ import { getDb } from "@/db/client";
 import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { sanctionRecorded, sanctionRevoked } from "@/domain-events/people";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { committee, membership, sanction } from "../schema";
+import { committee, committeeMembership, membership, sanction } from "../schema";
 import {
+  COMMITTEE_SANCTION_KINDS,
   deriveDates,
   expulsionWarning,
   hasOfficeBan,
   SANCTION_KINDS,
   type SanctionKind,
   type SanctionLike,
+  type SanctionScope,
   type SanctionState,
   sanctionState,
   suspendedUntil,
 } from "./sanction-pure";
 
 // Faltas y sanciones (Regl. cap. 9 y Anexo 1; ADR-060 regla 6): las registra ADMIN desde la Persona
-// 360 o quien tiene PERMANENCE en el comité; cada una audita, emite `sanction.recorded` y deja en
-// la línea de tiempo la causal con los descargos. Los efectos (beneficios, cargos, cierre) los leen
-// crm, people y permanence por estas lecturas.
+// 360 o quien tiene PERMANENCE en el comité. Los dos declaran su alcance y el comando lo comprueba
+// (ADR-072 regla 1; ADR-112); cada una audita, emite `sanction.recorded` y deja en la línea de
+// tiempo la causal con los descargos. Los efectos (beneficios, cargos, cierre) los leen crm, people
+// y permanence por estas lecturas.
 
 export type SanctionRecord = typeof sanction.$inferSelect;
 
 export const sanctionInputSchema = z.object({
   termId: z.string().trim().min(1),
-  kind: z.enum(SANCTION_KINDS as [SanctionKind, ...SanctionKind[]]),
+  kind: z.enum(SANCTION_KINDS),
   /** Los hechos y los descargos (Regl. art. 55 y 56): mínimo una frase. */
   cause: z.string().trim().min(5).max(1000),
   reference: z
@@ -56,8 +59,11 @@ export const sanctionInputSchema = z.object({
 
 export type SanctionInput = z.input<typeof sanctionInputSchema>;
 
+/** Los estados de una sanción en el orden de T-2243. */
+const SANCTION_STATES = ["LIVE", "EXPIRED", "REVOKED"] as const satisfies readonly SanctionState[];
+
 export function sanctionKindLabel(kind: SanctionKind): string {
-  return tList("T-2229")[SANCTION_KINDS.indexOf(kind)] ?? kind;
+  return tLabels("T-2229", SANCTION_KINDS)[kind] ?? kind;
 }
 
 export interface SanctionView extends SanctionRecord {
@@ -74,17 +80,66 @@ function toView(row: SanctionRecord, committeeName: string | null, onKey: string
     kindLabel: sanctionKindLabel(row.kind),
     committeeName,
     state,
-    stateLabel: tList("T-2243")[["LIVE", "EXPIRED", "REVOKED"].indexOf(state)] ?? state,
+    stateLabel: tLabels("T-2243", SANCTION_STATES)[state] ?? state,
   };
 }
 
-/** Registra una sanción sobre una membresía viva y deriva sus fechas; devuelve el id. */
+type CommitteeSanctionScope = Extract<SanctionScope, { by: "COMMITTEE" }>;
+
+/**
+ * Lo que la dirección de un comité puede sancionar (ADR-112): a un miembro vivo de su comité en ese
+ * término, que si es ajeno se trata como inexistente, y con un tipo de los suyos.
+ */
+async function assertCommitteeScope(
+  exec: Executor,
+  personId: string,
+  kind: SanctionKind,
+  scope: CommitteeSanctionScope,
+): Promise<void> {
+  const [own] = await exec
+    .select({ id: committeeMembership.id })
+    .from(committeeMembership)
+    .where(
+      and(
+        eq(committeeMembership.personId, personId),
+        eq(committeeMembership.committeeId, scope.committeeId),
+        eq(committeeMembership.termId, scope.termId),
+        isNull(committeeMembership.leftAt),
+      ),
+    );
+  if (!own) {
+    throw new DomainError(t("T-032"));
+  }
+  if (!COMMITTEE_SANCTION_KINDS.includes(kind)) {
+    throw new DomainError(t("T-260"), "kind");
+  }
+}
+
+/**
+ * Registra una sanción sobre una membresía viva y deriva sus fechas; devuelve el id. El alcance es
+ * obligatorio (ADR-112). Desde un comité pasa por `assertCommitteeScope` y queda a nombre de ese
+ * comité y de ese término, traiga lo que traiga la entrada; ADMIN no tiene restricción de tipo ni
+ * de comité.
+ */
 export async function recordSanction(
   ctx: CommandContext,
   personId: string,
   raw: SanctionInput,
+  scope: SanctionScope,
 ): Promise<{ id: string }> {
-  const input = sanctionInputSchema.parse(raw);
+  // Un alcance que no se reconoce se rechaza: nunca cae en el de ADMIN, que es el más amplio.
+  const by: unknown = (scope as { by?: unknown } | undefined)?.by;
+  if (by !== "ADMIN" && by !== "COMMITTEE") {
+    throw new DomainError(t("T-032"));
+  }
+  const parsed = sanctionInputSchema.parse(raw);
+  const input =
+    scope.by === "COMMITTEE"
+      ? { ...parsed, termId: scope.termId, committeeId: scope.committeeId }
+      : parsed;
+  if (scope.by === "COMMITTEE") {
+    await assertCommitteeScope(ctx.tx, personId, input.kind, scope);
+  }
   const [current] = await ctx.tx
     .select({ status: membership.status })
     .from(membership)
@@ -141,21 +196,35 @@ export async function recordSanction(
   return { id: created.id };
 }
 
-/** Revoca una sanción (descargos o revisión de la junta, Regl. art. 56 par. 1); idempotente. */
+/**
+ * Revoca una sanción de una persona (descargos o revisión de la junta, Regl. art. 56 par. 1);
+ * idempotente. La persona es obligatoria (ADR-114 regla 3): es la de la ficha desde la que se revoca,
+ * y una sanción que no es suya se trata como inexistente, también si ya estaba revocada. El alcance
+ * también es obligatorio (ADR-116 regla 11): revoca solo el de ADMIN, desde la Persona 360.
+ */
 export async function revokeSanction(
   ctx: CommandContext,
+  personId: string,
   sanctionId: string,
   reason: string,
+  scope: SanctionScope,
 ): Promise<void> {
+  // Solo se deja pasar el alcance que revoca. El de un comité, que hoy no tiene ese permiso, y uno
+  // que no se reconoce responden igual, antes de leer nada: para ellos la sanción no existe.
+  const by: unknown = (scope as { by?: unknown } | undefined)?.by;
+  if (by !== "ADMIN") {
+    throw new DomainError(t("T-032"));
+  }
+  // Sin una persona que se reconozca no se busca: nunca cae en «la sanción de cualquiera».
+  if (typeof personId !== "string" || personId.length === 0) {
+    throw new DomainError(t("T-032"));
+  }
   const cleanReason = reason.trim();
   if (cleanReason.length < 2) {
     throw new DomainError(t("T-1003"), "reason");
   }
-  const [row] = await ctx.tx
-    .select()
-    .from(sanction)
-    .where(eq(sanction.id, sanctionId))
-    .for("update");
+  const own = and(eq(sanction.id, sanctionId), eq(sanction.personId, personId));
+  const [row] = await ctx.tx.select().from(sanction).where(own).for("update");
   if (!row) {
     throw new DomainError(t("T-032"));
   }
@@ -166,7 +235,7 @@ export async function revokeSanction(
   await ctx.tx
     .update(sanction)
     .set({ revokedAt: now, revokedById: ctx.actor.personId, revokeReason: cleanReason })
-    .where(eq(sanction.id, sanctionId));
+    .where(own);
   await ctx.audit({
     action: "sanction.revoked",
     entityType: "sanction",

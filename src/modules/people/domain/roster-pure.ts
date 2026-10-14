@@ -1,4 +1,5 @@
 import { t, tList } from "@/shared/copy";
+import { stripAccents } from "@/shared/lib/accents";
 import { parseCsv } from "@/shared/lib/csv";
 import {
   documentTypeSchema,
@@ -62,9 +63,7 @@ export const REQUIRED_FOR_NEW: readonly RosterColumn[] = [
 ];
 
 export function normalizeHeader(raw: string): string {
-  return raw
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+  return stripAccents(raw)
     .replace(/[^A-Za-z0-9 -]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -72,7 +71,7 @@ export function normalizeHeader(raw: string): string {
 }
 
 export function normalizeText(raw: string): string {
-  return raw.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+  return stripAccents(raw).replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 export function detectMapping(headers: string[]): Array<RosterColumn | null> {
@@ -229,6 +228,12 @@ export interface RosterCatalog {
   domains: string[];
   /** Personas que ya existen, por correo: para el modo actualización y para conservar cargos y transferencias. */
   existing: Map<string, ExistingPerson>;
+  /**
+   * Los errores con los que una validación anterior de este mismo archivo ya dejó una fila, por número
+   * de fila. La importación valida dos veces, antes y después de tomar los candados de las personas
+   * (ADR-127 regla 1): la segunda pasada puede sacar una fila, nunca sumar una que la primera rechazó.
+   */
+  rejected?: ReadonlyMap<number, readonly string[]>;
 }
 
 export interface ParsedCommittee {
@@ -480,6 +485,13 @@ export function validateRoster(
       } else {
         result.status = status.status;
         result.probation = status.probation;
+        if (status.status === "HONORARY" && honoraryRejected(current)) {
+          errors.push(
+            t("T-3265", {
+              nombre: rowDisplayName(result, current),
+            }),
+          );
+        }
         if (
           status.status !== "INACTIVE" &&
           current?.status === "INACTIVE" &&
@@ -487,8 +499,7 @@ export function validateRoster(
         ) {
           warnings.push(
             t("T-2208", {
-              nombre:
-                `${result.firstName || current.firstName} ${result.lastName || current.lastName}`.trim(),
+              nombre: rowDisplayName(result, current),
             }),
           );
         }
@@ -524,6 +535,15 @@ export function validateRoster(
         }
         if (parsed.length === 0 && result.status !== "INACTIVE" && !updateMode) {
           errors.push(text(9));
+        }
+        // Sin columna ESTADO el roster no reactiva a nadie, y a quien está de baja no se le cambian
+        // los comités (ADR-118 regla 11). Con la columna, el caso que no vuelve es el de T-2208.
+        if (parsed.length > 0 && !present.has("status") && staysInactive(current, undefined)) {
+          warnings.push(
+            t("T-3247", {
+              nombre: rowDisplayName(result, current),
+            }),
+          );
         }
       } else {
         for (const item of current?.committees ?? []) {
@@ -625,6 +645,14 @@ export function validateRoster(
       }
     }
   }
+  // La fila que una pasada anterior ya rechazó sigue en error, con lo que se le dijo entonces (ADR-127
+  // regla 1): para ella no se tomó el candado de la persona ni se creó su término de ingreso. Va al
+  // final para no repetirle un error que esta pasada también le encuentra.
+  for (const row of rows) {
+    if (row.errors.length === 0) {
+      row.errors.push(...(catalog.rejected?.get(row.row) ?? []));
+    }
+  }
   return {
     rows,
     updateMode,
@@ -661,6 +689,12 @@ export interface ExistingPerson {
   endReason?: string | null;
   status: RosterStatus | null;
   probation: boolean;
+  /**
+   * El comando le rechazaría hoy el paso a honorario: en prueba, con los derechos suspendidos o con
+   * la prueba guardada al salir a licencia (ADR-061 regla 2; ADR-120 regla 4). No es `probation`, que
+   * es la prueba general del término del roster.
+   */
+  honoraryBlocked: boolean;
   committees: Array<{
     slug: string;
     roleCode: string;
@@ -679,6 +713,70 @@ export function existingRoles(item: {
     return item.roles;
   }
   return item.roleCode !== "MIEMBRO" ? [{ roleCode: item.roleCode, coDirector: false }] : [];
+}
+
+/**
+ * Quien está de baja y sigue de baja después de esta fila: sin columna ESTADO el roster no toca el
+ * estado, y a quien fue expulsado no lo reactiva ni con ella (ADR-060 regla 3). A esa persona el
+ * roster no le cambia los comités (ADR-118 regla 11) ni la fila del término (ADR-120 regla 1).
+ */
+export function staysInactive(
+  current: Pick<ExistingPerson, "status" | "endReason"> | undefined,
+  wanted: RosterStatus | undefined,
+): boolean {
+  if (current?.status !== "INACTIVE") {
+    return false;
+  }
+  return wanted === undefined || wanted === "INACTIVE" || current.endReason === "EXPULSION";
+}
+
+/**
+ * Los comités que esta fila le deja escritos a la persona, o `null` si no le escribe ninguno. Los
+ * comités se le cambian solo a quien queda con membresía vigente (ADR-118 regla 11): no a quien la
+ * fila da de baja, ni a quien ya estaba de baja y sigue así (`staysInactive`). `current` es la
+ * membresía que la fila encuentra; quien no tiene (la persona nueva, o la que existía sin ella) la
+ * recibe en el estado de la fila.
+ *
+ * La leen el diff, para anunciar el cambio; la aplicación, para escribirlo, con la membresía que lee
+ * en su transacción; y la propuesta de líder de la vista previa, con la lectura sin candados de la
+ * validación (ADR-127 regla 1). La propuesta del resumen de una importación aplicada no sale de una
+ * tercera evaluación: sale de la lista que la aplicación le pasó al comando de los comités.
+ *
+ * No es el único sitio que decide sobre lo que una fila escribe. La validación de «un solo titular»
+ * de `validateRoster` cuenta el cargo de una fila sin preguntarle a esta función, también el de la
+ * fila que no deja comités (DT-391).
+ */
+export function committeesToWrite<Listed>(
+  current: Pick<ExistingPerson, "status" | "endReason"> | undefined,
+  row: { status?: RosterStatus | undefined; committees?: Listed[] | undefined },
+): Listed[] | null {
+  if (row.committees === undefined || row.status === "INACTIVE") {
+    return null;
+  }
+  return staysInactive(current, row.status) ? null : row.committees;
+}
+
+/**
+ * Con qué nombre un error o un aviso nombra a la persona de una fila: el del archivo y, donde no lo
+ * trae, el guardado.
+ */
+function rowDisplayName(result: ValidatedRow, current: ExistingPerson | undefined): string {
+  return `${result.firstName || current?.firstName || ""} ${result.lastName || current?.lastName || ""}`.trim();
+}
+
+/**
+ * La fila que trae como honorario a alguien a quien el comando se lo rechaza (T-2331): es un error de
+ * esa fila y no de la importación entera (ADR-123 regla 5). Solo cuenta la fila que de verdad pasaría
+ * por el cambio de estado: quien ya es honorario no cambia, a quien no tiene membresía el roster se la
+ * crea ya en ese estado y a quien fue expulsado no lo reactiva (T-2208).
+ */
+function honoraryRejected(current: ExistingPerson | undefined): boolean {
+  if (!current?.honoraryBlocked) {
+    return false;
+  }
+  return (
+    current.status !== null && current.status !== "HONORARY" && !staysInactive(current, "HONORARY")
+  );
 }
 
 export type DiffGroup = "NEW" | "CHANGED" | "UNCHANGED" | "ERROR";
@@ -712,15 +810,29 @@ export function diffRoster(rows: ValidatedRow[], existing: Map<string, ExistingP
     for (const field of ["documentType", "documentNumber", "epikId", "birthDate"] as const) {
       if (row[field] !== undefined && row[field] !== (current[field] ?? "")) changes.push(field);
     }
-    if (row.status !== undefined && row.status !== current.status) changes.push("status");
-    if (row.probation !== undefined && row.probation !== current.probation) changes.push("status");
-    if (row.committees !== undefined && row.status !== "INACTIVE") {
+    // Lo que el roster no va a escribir no es un cambio: quien sigue de baja conserva su estado
+    // (ADR-060 regla 3, con el aviso T-2208 si fue expulsado) y su fila del término, con la prueba
+    // que tuviera (ADR-120 regla 1).
+    const keepsOut = staysInactive(current, row.status);
+    if (row.status !== undefined && row.status !== current.status && !keepsOut) {
+      changes.push("status");
+    }
+    // A quien ya existe sin membresía el roster se la crea, traiga o no ESTADO el archivo: pasa a
+    // tener estado, y eso es un cambio aunque ninguna columna lo diga (ADR-120 regla 2).
+    if (current.status === null) {
+      changes.push("status");
+    }
+    if (row.probation !== undefined && row.probation !== current.probation && !keepsOut) {
+      changes.push("status");
+    }
+    const written = committeesToWrite(current, row);
+    if (written) {
       const rolesKey = (roles: Array<{ roleCode: string; coDirector: boolean }>) =>
         roles
           .map((role) => `${role.roleCode}${role.coDirector ? "*" : ""}`)
           .sort()
           .join("+");
-      const wanted = row.committees
+      const wanted = written
         .map((item) => `${item.slug}:${rolesKey(item.roles)}:${row.transferSlug === item.slug}`)
         .sort()
         .join("|");

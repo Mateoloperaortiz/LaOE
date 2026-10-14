@@ -4,6 +4,7 @@ import { excerpt } from "@/modules/content";
 import { listPublishedCommittees } from "@/modules/people";
 import { BarraTitulo, Cartel, feedVariant } from "@/shared/brand";
 import { t } from "@/shared/copy";
+import { stripAccents } from "@/shared/lib/accents";
 import { paginaMetadata } from "@/shared/lib/seo";
 
 export const metadata: Metadata = paginaMetadata({
@@ -16,8 +17,7 @@ export const metadata: Metadata = paginaMetadata({
 export default async function ComitesPage({ searchParams }: PageProps<"/comites">) {
   const [comites, params] = await Promise.all([listPublishedCommittees(), searchParams]);
   const q = (typeof params.q === "string" ? params.q : "").trim().slice(0, 120);
-  const normalize = (value: string) =>
-    value.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("es");
+  const normalize = (value: string) => stripAccents(value).toLocaleLowerCase("es");
   const matching = comites
     .map((comite, index) => ({ comite, index }))
     .filter(({ comite }) => normalize(`${comite.name} ${comite.slug}`).includes(normalize(q)));

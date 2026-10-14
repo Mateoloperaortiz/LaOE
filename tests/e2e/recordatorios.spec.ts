@@ -3,20 +3,27 @@ import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import { t, tList } from "@/shared/copy";
 import { copyPattern } from "../helpers/copy";
+import { withinTermInput } from "./calendar";
 import { test } from "./fixtures";
 import { drenarOutbox } from "./outbox";
 
 // Recordatorios (ADR-038 regla 9): el miembro tiene un dispositivo, ADMIN abre una actividad e2e- de
-// hoy, la prueba encola el tick de las 07:00 de Bogotá y el registro de mensajes muestra la fila.
+// mañana, la prueba encola el tick de las 07:00 de Bogotá de ese día y el registro de mensajes muestra
+// la fila.
+//
+// El día es mañana y no hoy porque un recordatorio vence cuando su ocasión empieza (ADR-122 regla 9)
+// y el outbox se drena con la hora real: con una actividad de hoy a las 23:00 el aviso se descartaba,
+// y la prueba fallaba, si corría de 23:00 a 23:59 de Bogotá. `at` fija la hora del tick, no la de la
+// entrega, así que el de mañana a las 07:00 encola hoy el aviso de «hoy» de esa actividad y le quedan
+// más de 23 horas para vencer. Queda una ventana: el último día del término no hay mañana dentro de
+// él (`withinTermInput`), el escenario vuelve a ser hoy y esa hora, solo ese día, sigue en rojo.
 
-const ENDPOINT = "https://push.example.invalid/e2e-recordatorio";
+const ENDPOINT = "https://fcm.googleapis.com/fcm/send/e2e-recordatorio";
 const TITULO = `e2e-recordatorio-${Date.now().toString(36)}`;
 
-/** Hoy en Bogotá (UTC-5) a la hora dada, en el formato de un `datetime-local`. */
-function hoyBogota(hour: number): string {
-  const local = new Date(Date.now() - 5 * 60 * 60_000);
-  const day = local.toISOString().slice(0, 10);
-  return `${day}T${String(hour).padStart(2, "0")}:00`;
+/** El día del escenario a la hora dada de Bogotá, en el formato de un `datetime-local`. */
+function diaDelEscenario(hour: number): string {
+  return withinTermInput(hour);
 }
 
 test("registrar dispositivo y recibir el recordatorio de la actividad", async ({
@@ -53,7 +60,7 @@ test("registrar dispositivo y recibir el recordatorio de la actividad", async ({
       await page.getByRole("link", { name: t("T-251") }).click();
       const panel = page.getByRole("dialog");
       await panel.getByLabel(tList("T-563")[0]).fill(TITULO);
-      await panel.getByLabel(tList("T-563")[7]).fill(hoyBogota(23));
+      await panel.getByLabel(tList("T-563")[7]).fill(diaDelEscenario(23));
       await panel.getByLabel(tList("T-563")[6]).fill("Bloque 29");
       await panel.getByRole("button", { name: t("T-253") }).click();
       await expect(page.getByText(t("T-259"))).toBeVisible();
@@ -61,7 +68,7 @@ test("registrar dispositivo y recibir el recordatorio de la actividad", async ({
       await fila.getByRole("button", { name: tList("T-569")[0], exact: true }).click();
       await expect(fila.getByText(tList("T-568")[1])).toBeVisible();
 
-      const at = new Date(`${hoyBogota(7)}:00-05:00`).toISOString();
+      const at = new Date(`${diaDelEscenario(7)}:00-05:00`).toISOString();
       await enqueueEvent(getDb(), { type: "participation.reminders", payload: { at } });
       await closeDb();
       await drenarOutbox();

@@ -13,14 +13,14 @@ import { listPreferentialSchedule } from "@/modules/people/domain/preferential-s
 import { setProbation } from "@/modules/people/domain/term-outcomes";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
-import { truncateAll } from "./db";
 import {
   seedAppointment,
   seedCommittee,
   seedCommitteeMembership,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Menores de la normativa (ADR-060 regla 13): verificación académica, hechos de la elegibilidad a
 // honorario, Premios OE y horario preferencial.

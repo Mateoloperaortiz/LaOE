@@ -369,3 +369,24 @@ export function pairCounts(rotations: readonly ScheduleRotation[]): Map<string, 
 
 /** Clave de `pairCounts` para dos equipos, en cualquier orden. */
 export const pairCountKey = pairKey;
+
+/**
+ * La rotación que sigue (ADR-118 regla 28): la primera pendiente, por jornada y número, de la jornada
+ * en curso o de una posterior. La jornada en curso es la más alta que ya tiene una rotación iniciada,
+ * en curso o cerrada: la jornada 1 termina cuando empieza la 2, como en `finishedDays`. Una pendiente
+ * que quedó de una jornada anterior no es «la siguiente»; se inicia a mano.
+ */
+export function nextPendingRotation<
+  T extends { day: number; number: number; status: "PENDING" | "ACTIVE" | "CLOSED" },
+>(rotations: readonly T[]): T | null {
+  const currentDay = Math.max(
+    0,
+    ...rotations
+      .filter((rotation) => rotation.status !== "PENDING")
+      .map((rotation) => rotation.day),
+  );
+  const [next] = rotations
+    .filter((rotation) => rotation.status === "PENDING" && rotation.day >= currentDay)
+    .sort((a, b) => a.day - b.day || a.number - b.number);
+  return next ?? null;
+}

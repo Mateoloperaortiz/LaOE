@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  committeesToWrite,
   detectMapping,
   diffRoster,
+  type ExistingPerson,
   normalizeHeader,
+  type ParsedCommittee,
   parseCsv,
   parseEntryTerm,
   parseRoleAssignments,
   parseStatus,
   type RosterCatalog,
   type RosterCommittee,
+  type RosterStatus,
   rowsFromCells,
   suggestCommittee,
   validateRoster,
@@ -46,6 +50,7 @@ const catalog: RosterCatalog = {
         personalEmail: null,
         status: "ACTIVE" as const,
         probation: false,
+        honoraryBlocked: false,
         committees: [{ slug: "a3", roleCode: "GENERAL", transferredIn: false }],
       },
     ],
@@ -353,6 +358,7 @@ describe("validación por fila", () => {
           personalEmail: null,
           status: "ACTIVE" as const,
           probation: false,
+          honoraryBlocked: false,
           committees: [{ slug: "a3", roleCode: "GENERAL", transferredIn: false }],
         },
       ],
@@ -366,5 +372,196 @@ describe("validación por fila", () => {
       group: "CHANGED",
       changes: ["phone", "status", "committees"],
     });
+  });
+  // ADR-123 regla 5: la fila que pasa a honorario a quien el comando se lo rechaza (T-2331) es un
+  // error de esa fila. Solo cuenta la que de verdad pasaría por el cambio de estado.
+  describe("la fila que trae como honoraria a quien no puede pasar a honorario", () => {
+    type Held = Pick<ExistingPerson, "status" | "endReason" | "honoraryBlocked">;
+    const errorsFor = (held: Held, estado = "Honorario") => {
+      const original = catalog.existing.get("ana@eafit.edu.co");
+      if (!original) throw new Error("Falta la persona sintética");
+      const existing = new Map([["ana@eafit.edu.co", { ...original, ...held }]]);
+      const cells = parseCsv(
+        [HEADER, `Ana;Arango;ana@eafit.edu.co;;Derecho;A3;2026-2;${estado};`].join("\n"),
+      );
+      const mapping = detectMapping(cells[0] ?? []);
+      const rows = validateRoster(rowsFromCells(cells, mapping), mapping, { ...catalog, existing });
+      return { errors: rows.rows[0]?.errors, group: diffRoster(rows.rows, existing)[0]?.group };
+    };
+    const rejected = [fillCopy(t("T-3265"), { nombre: "Ana Arango" })];
+
+    it.each<[string, Held]>([
+      ["está activa", { status: "ACTIVE", honoraryBlocked: true }],
+      ["está en licencia", { status: "ON_LEAVE", honoraryBlocked: true }],
+      [
+        "renunció y el roster la reactivaría",
+        { status: "INACTIVE", endReason: "RESIGNATION", honoraryBlocked: true },
+      ],
+    ])("es un error de la fila, con su nombre, si %s", (_caso, held) => {
+      expect(errorsFor(held)).toEqual({ errors: rejected, group: "ERROR" });
+    });
+
+    it.each<[string, Held]>([
+      [
+        "ya es honoraria: la fila no le cambia el estado",
+        { status: "HONORARY", honoraryBlocked: true },
+      ],
+      [
+        "fue expulsada: el roster no la reactiva",
+        { status: "INACTIVE", endReason: "EXPULSION", honoraryBlocked: true },
+      ],
+      ["no tiene membresía: el roster se la crea", { status: null, honoraryBlocked: true }],
+      ["nada le impide el paso a honorario", { status: "ACTIVE", honoraryBlocked: false }],
+    ])("no es un error si %s", (_caso, held) => {
+      expect(errorsFor(held).errors).toEqual([]);
+    });
+
+    it("no es un error si la fila la trae en otro estado, aunque no pueda pasar a honorario", () => {
+      expect(errorsFor({ status: "ACTIVE", honoraryBlocked: true }, "Licencia").errors).toEqual([]);
+    });
+  });
+
+  // ADR-127 regla 1: la importación valida dos veces, antes y después de tomar los candados de las
+  // personas. La segunda pasada puede sacar una fila, nunca sumar una que la primera ya rechazó.
+  describe("la fila que una validación anterior del mismo archivo ya dejó en error", () => {
+    const again = (lines: string[], rejected: ReadonlyMap<number, readonly string[]>) => {
+      const cells = parseCsv([HEADER, ...lines].join("\n"));
+      const mapping = detectMapping(cells[0] ?? []);
+      return validateRoster(rowsFromCells(cells, mapping), mapping, { ...catalog, rejected });
+    };
+
+    it("sigue en error con lo que se le dijo entonces, aunque esta pasada no le encuentre ninguno, y ya no pide su término de ingreso", () => {
+      const lines = [
+        "Ana;Arango;ana@eafit.edu.co;;Derecho;A3;2026-2;Activo;",
+        "Beto;Nuevo;beto@eafit.edu.co;;Derecho;A3;2019-1;Activo;",
+      ];
+      const clean = again(lines, new Map());
+      expect(clean.rows.map((row) => row.errors)).toEqual([[], []]);
+      expect(clean.missingTerms).toEqual(["2019-1"]);
+
+      const said = [fillCopy(t("T-3265"), { nombre: "Beto Nuevo" })];
+      const carried = again(lines, new Map([[clean.rows[1]?.row ?? -1, said]]));
+
+      expect(carried.rows.map((row) => row.errors)).toEqual([[], said]);
+      expect(carried.missingTerms).toEqual([]);
+      expect(diffRoster(carried.rows, catalog.existing)[1]?.group).toBe("ERROR");
+    });
+
+    it("la que esta pasada también rechaza queda con sus errores de ahora, sin repetir los de antes", () => {
+      // Dos titulares del mismo cargo: el error se le pone a cada fila después de leerlas todas.
+      const lines = [
+        "Ana;Arango;ana@eafit.edu.co;;Derecho;A3;2026-2;Activo;General de A3",
+        "Beto;Nuevo;beto@eafit.edu.co;;Derecho;A3;2026-2;Activo;General de A3",
+      ];
+      const first = again(lines, new Map());
+      expect(first.rows.map((row) => row.errors.length)).toEqual([1, 1]);
+
+      const second = again(lines, new Map(first.rows.map((row) => [row.row, row.errors])));
+
+      expect(second.rows.map((row) => row.errors)).toEqual(first.rows.map((row) => row.errors));
+    });
+  });
+});
+
+// ADR-127 regla 1: la única respuesta a «¿esta fila le deja escritos los comités a la persona?». La
+// leen el diff, la aplicación y la propuesta de líder, que sale de esa lista. La tabla trae cada
+// estado de hoy contra cada estado del archivo; `tests/integration/roster.test.ts` afirma lo mismo
+// por lo que la importación deja en la base, anuncia y propone.
+describe("los comités que una fila le deja escritos a la persona", () => {
+  type Current = Parameters<typeof committeesToWrite>[0];
+  const listed: ParsedCommittee[] = [
+    {
+      committeeId: "c-a3",
+      slug: "a3",
+      name: "A3",
+      roleCode: "GENERAL",
+      roles: [{ roleCode: "GENERAL", coDirector: false }],
+    },
+  ];
+  const WANTED: Array<[listedAs: string, wanted: RosterStatus | undefined]> = [
+    ["no trae ESTADO", undefined],
+    ["lo trae activo", "ACTIVE"],
+    ["lo trae en licencia", "ON_LEAVE"],
+    ["lo trae honorario", "HONORARY"],
+    ["lo trae retirado", "INACTIVE"],
+  ];
+  const cases = (
+    today: string,
+    current: Current,
+    writes: { noColumn: boolean; active: boolean; onLeave: boolean; honorary: boolean },
+  ) =>
+    [
+      [today, "no trae ESTADO", current, undefined, writes.noColumn],
+      [today, "lo trae activo", current, "ACTIVE", writes.active],
+      [today, "lo trae en licencia", current, "ON_LEAVE", writes.onLeave],
+      [today, "lo trae honorario", current, "HONORARY", writes.honorary],
+      // La fila que da de baja no le deja comités a nadie, esté como esté hoy.
+      [today, "lo trae retirado", current, "INACTIVE", false],
+    ] as Array<[string, string, Current, RosterStatus | undefined, boolean]>;
+  const always = { noColumn: true, active: true, onLeave: true, honorary: true };
+  // Quien está de baja vuelve solo si el archivo trae otro estado; sin ESTADO sigue de baja.
+  const ifReactivated = { noColumn: false, active: true, onLeave: true, honorary: true };
+  const never = { noColumn: false, active: false, onLeave: false, honorary: false };
+  const TABLE = [
+    // Quien no tiene membresía la recibe en el estado de la fila, y sin ESTADO nace activa. A la
+    // persona nueva de un archivo sin ESTADO no se le llega a preguntar: su fila queda en error.
+    ...cases("no existe todavía", undefined, always),
+    ...cases("existe sin membresía", { status: null }, always),
+    ...cases("está activo", { status: "ACTIVE", endReason: null }, always),
+    ...cases("está en licencia", { status: "ON_LEAVE", endReason: null }, always),
+    ...cases("es honorario", { status: "HONORARY", endReason: null }, always),
+    ...cases("se graduó", { status: "INACTIVE", endReason: "GRADUATION" }, ifReactivated),
+    ...cases("renunció", { status: "INACTIVE", endReason: "RESIGNATION" }, ifReactivated),
+    ...cases(
+      "salió por permanencia",
+      { status: "INACTIVE", endReason: "PERMANENCE" },
+      ifReactivated,
+    ),
+    ...cases(
+      "perdió la calidad de estudiante",
+      { status: "INACTIVE", endReason: "STUDENT_STATUS_LOST" },
+      ifReactivated,
+    ),
+    ...cases("salió por otro motivo", { status: "INACTIVE", endReason: "OTHER" }, ifReactivated),
+    ...cases("está de baja sin motivo guardado", { status: "INACTIVE" }, ifReactivated),
+    // A quien fue expulsado el roster no lo reactiva con ningún estado (ADR-060 regla 3).
+    ...cases("fue expulsado", { status: "INACTIVE", endReason: "EXPULSION" }, never),
+  ];
+
+  it.each(
+    TABLE.map(
+      ([today, listedAs, current, wanted, writes]) =>
+        [
+          today,
+          listedAs,
+          writes ? "le deja escritos sus comités" : "no le escribe ninguno",
+          current,
+          wanted,
+          writes,
+        ] as const,
+    ),
+  )("a quien %s, la fila que %s %s", (_today, _listedAs, _says, current, wanted, writes) => {
+    const row = { committees: listed, ...(wanted ? { status: wanted } : {}) };
+
+    // La lista es la de la fila, la misma: de ahí sale la propuesta de líder.
+    expect(committeesToWrite(current, row)).toBe(writes ? listed : null);
+  });
+
+  it("la tabla trae cada estado de hoy contra cada estado del archivo", () => {
+    expect(TABLE).toHaveLength(12 * WANTED.length);
+    expect(new Set(TABLE.map(([today, listedAs]) => `${today}|${listedAs}`)).size).toBe(60);
+    expect(new Set(TABLE.map(([, listedAs]) => listedAs))).toEqual(
+      new Set(WANTED.map(([listedAs]) => listedAs)),
+    );
+  });
+
+  it("la fila que no trae comités no le escribe ninguno a nadie, y la que los trae vacíos deja esa lista vacía", () => {
+    for (const [, , current, wanted] of TABLE) {
+      expect(committeesToWrite(current, wanted ? { status: wanted } : {})).toBeNull();
+    }
+    // Vacía no es ausente: la lista vacía se sigue pasando al comando, como antes de esta función.
+    expect(committeesToWrite({ status: "ACTIVE", endReason: null }, { committees: [] })).toEqual(
+      [],
+    );
   });
 });

@@ -65,9 +65,15 @@ export async function evaluate(
         eq(workGroupMembership.groupId, input.groupId),
         eq(workGroupMembership.personId, input.personId),
       ),
-    );
+    )
+    .for("update");
   if (!before) {
     throw new DomainError(t("T-032"));
+  }
+  // Quien ya salió del grupo no se evalúa (ADR-116 regla 5): la fila se toma para que un retiro a la
+  // vez espere, y para volver a evaluarla primero tiene que volver al grupo.
+  if (before.leftAt) {
+    throw new DomainError(t("T-3213"));
   }
   await ctx.tx
     .update(workGroupMembership)

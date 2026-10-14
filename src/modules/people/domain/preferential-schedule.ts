@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import {
   appointment,
   committee,
@@ -88,7 +88,7 @@ export async function listPreferentialSchedule(termId: string): Promise<Preferen
     [...new Set([...appointments, ...roles].map((row) => row.personId))],
     termId,
   );
-  const boardLabels = tList("T-444");
+  const boardLabels = tLabels("T-444", APPOINTMENT_KINDS);
   const rows: PreferentialRow[] = appointments
     .filter((row) => !blocked.has(row.personId))
     .map((row) => ({
@@ -108,7 +108,7 @@ export async function listPreferentialSchedule(termId: string): Promise<Preferen
           ? row.coDirector
             ? t("T-2144", { cargo: row.roleLabel ?? "" })
             : (row.roleLabel ?? "")
-          : (boardLabels[APPOINTMENT_KINDS.indexOf(row.kind)] ?? row.kind),
+          : (boardLabels[row.kind] ?? row.kind),
     }));
   // Mesa directiva: máximo seis personas por comité, una sola vez cada una.
   const perCommittee = new Map<string, Set<string>>();

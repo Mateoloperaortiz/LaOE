@@ -9,14 +9,14 @@ import {
 import { calendarToken } from "@/modules/identity/schema";
 import { listAgendaForPerson } from "@/modules/participation";
 import { membership } from "@/modules/people/schema";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Calendario personal (ADR-038 regla 12): el token se crea al primer uso, resuelve a la persona,
 // regenerarlo invalida el anterior; la agenda trae lo general, las asambleas y sus comités.
@@ -35,7 +35,7 @@ describe("token del calendario", () => {
     expect(await resolveCalendarToken(token)).toBe(ana);
     expect(await resolveCalendarToken("no-existe-este-token-000000")).toBeNull();
     expect(await resolveCalendarToken("corto")).toBeNull();
-    const rotated = await rotateCalendarTokenAs({ personId: ana });
+    const rotated = await rotateCalendarTokenAs({ personId: ana, ip: null });
     expect(rotated).not.toBe(token);
     expect(await resolveCalendarToken(token)).toBeNull();
     expect(await resolveCalendarToken(rotated)).toBe(ana);
@@ -50,7 +50,9 @@ describe("token del calendario", () => {
 
     for (const personId of [withToken, withoutToken]) {
       await expect(getOrCreateCalendarToken(personId)).rejects.toBeInstanceOf(ForbiddenError);
-      await expect(rotateCalendarTokenAs({ personId })).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(rotateCalendarTokenAs({ personId, ip: null })).rejects.toBeInstanceOf(
+        ForbiddenError,
+      );
     }
 
     expect(await db().select().from(calendarToken)).toEqual(before);

@@ -50,10 +50,9 @@ export const termsResource: ResourceDefinition<TermRow, TermInput> = {
     permanenceGeneralNominal: String(row.permanenceGeneralNominal),
     permanenceCommitteeNominal: String(row.permanenceCommitteeNominal),
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createTerm(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateTerm(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createTerm(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateTerm(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     codigo: row.code,
     semestre: row.semester,

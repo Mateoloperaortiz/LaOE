@@ -9,7 +9,7 @@ export interface ListParams {
   pageSize: number;
   filters: Record<string, string>;
   /** Quién lista: para filtros como "mis tareas". */
-  actor?: KitActor;
+  actor?: KitViewer;
 }
 
 export interface ListResult<Row> {
@@ -32,7 +32,8 @@ export type CellValue =
   | number
   | null
   | { text: string; badge: Badge }
-  | { text: string; href: string };
+  // `note` va debajo del enlace: lo que hay que saber antes de seguirlo (ADR-121 regla 12).
+  | { text: string; href: string; note?: string };
 
 export interface Column<Row> {
   key: string;
@@ -83,10 +84,21 @@ export interface FieldDefinition {
   textVariant?: "prose" | "code";
 }
 
-/** Quién ejecuta: el kit solo necesita saber su id y si es ADMIN; los comandos reciben el actor completo. */
-export interface KitActor {
+/** Quién lista o exporta: el kit solo necesita saber su id y si es ADMIN. */
+export interface KitViewer {
   personId: string;
   isAdmin: boolean;
+}
+
+/**
+ * Quién escribe por el kit: el actor del comando tal como lo arma `actorContext` (ADR-082 regla 2;
+ * ADR-116 regla 10), con la IP del request y nada más de la sesión. El recurso lo entrega entero a
+ * `runCommand` o a su comando «As»: es lo que lleva la IP a la auditoría. `ip` no es opcional; `null`
+ * dice que el request no la trajo.
+ */
+export interface KitActor {
+  personId: string;
+  ip: string | null;
 }
 
 export interface RowAction<Row> {
@@ -123,8 +135,11 @@ export interface ResourceDefinition<Row extends { id: string }, Input> {
   runRowAction?(actor: KitActor, actionKey: string, id: string): Promise<void>;
   /** Las escrituras exigen un OTP reciente (ADR-010, step-up). */
   stepUp?: boolean;
-  /** El export tiene datos personales: step-up y auditoría. */
-  personalData?: boolean;
+  /**
+   * El export tiene datos personales: paso de seguridad reciente y fila de auditoría `export.csv`.
+   * Obligatoria: un recurso que no la declara no compila (ADR-119 regla 9).
+   */
+  personalData: boolean;
   /** Quién puede listar y exportar: solo ADMIN (por defecto) o también la junta (ADR-036 regla 12). */
   access?: "ADMIN" | "ADMIN_OR_BOARD";
   exportRow(row: Row): Record<string, string | number | null>;
@@ -157,6 +172,12 @@ export interface FormState {
 }
 
 /** Separador de los valores de un multiselect dentro de `FormState.values`. */
+/**
+ * Tope de filas de un exporte CSV (ADR-118 regla 13). Lo que pasa de ahí no viaja: el archivo, la
+ * pantalla y la auditoría lo dicen.
+ */
+export const EXPORT_ROW_LIMIT = 10_000;
+
 export const MULTI_SEPARATOR = "";
 
 /** Convierte un FormData en un objeto plano según los campos: vacíos a undefined, checkbox a booleano, multiselect a lista. */

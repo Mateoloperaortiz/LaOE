@@ -1,11 +1,19 @@
-import type { AnnouncementRow, CompetitionRow, MarketView, TeamRow } from "@/modules/competition";
+import {
+  type AnnouncementRow,
+  type CompetitionRow,
+  MARKET_STATUSES,
+  type MarketView,
+  type TeamRow,
+} from "@/modules/competition";
 import { Campo, inputClass } from "@/shared/admin-kit/AdminFields";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { OperationForm, type PanelContext, Section, Submit, TeamChip } from "./shared";
 
 // Anuncios de la vitrina (ADR-089 regla 11) y apuestas con puntos virtuales (ADR-091): el operador
 // abre las apuestas y registra la de cada equipo con su código; la vitrina muestra la bolsa.
+
+const ANNOUNCEMENT_LEVELS = ["INFO", "WARNING", "URGENT"] as const;
 
 export function Anuncios({
   context,
@@ -16,8 +24,8 @@ export function Anuncios({
 }) {
   const levels = tList("T-2860");
   const [ocultar, mostrar] = tList("T-2862");
-  const levelOf = (level: AnnouncementRow["level"]) =>
-    levels[["INFO", "WARNING", "URGENT"].indexOf(level)] ?? level;
+  const levelNames = tLabels("T-2860", ANNOUNCEMENT_LEVELS);
+  const levelOf = (level: AnnouncementRow["level"]) => levelNames[level] ?? level;
   return (
     <Section title={tList("T-2805")[8] ?? ""}>
       <OperationForm
@@ -87,14 +95,13 @@ export function Apuestas({
   teams: TeamRow[];
   balances: Map<string, number>;
 }) {
-  const states = tList("T-2867");
+  const states = tLabels("T-2867", MARKET_STATUSES);
   const [abrir, cerrar, cancelar] = tList("T-2868");
   const [titulo, equiposLabel, cierra] = tList("T-2866");
   const [apuesta, codigo, porQuien, puntos] = tList("T-2871");
   const active = teams.filter((team) => team.status === "ACTIVE");
   const teamOf = (id: string) => teams.find((team) => team.id === id);
-  const stateOf = (status: MarketView["status"]) =>
-    states[["DRAFT", "OPEN", "CLOSED", "RESOLVED", "CANCELLED"].indexOf(status)] ?? status;
+  const stateOf = (status: MarketView["status"]) => states[status] ?? status;
   return (
     <Section title={tList("T-2805")[9] ?? ""}>
       {!competition.bettingEnabled ? <p className="font-semibold">{t("T-2863")}</p> : null}

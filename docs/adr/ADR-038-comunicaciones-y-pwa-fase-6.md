@@ -1,6 +1,6 @@
 # ADR-038: Comunicaciones y PWA (fase 6)
 
-- Estado: Aceptada (enmendada por ADR-039 y ADR-074)
+- Estado: Aceptada (enmendada por ADR-039, ADR-074, ADR-113, ADR-115, ADR-116, ADR-118 y ADR-122)
 - Fecha: 2026-09-05
 - Relacionadas: ADR-001, ADR-010, ADR-011, ADR-012, ADR-014, ADR-015, ADR-017, ADR-021, ADR-023, ADR-030, ADR-031, ADR-033, ADR-034, ADR-035, ADR-036, ADR-037
 - Enmienda: ADR-012 (programados `campaigns` y `notices`; el bus de notificaciones), ADR-015 (reglas concretas de preferencias, roster por defecto y consentimiento para no miembros; campañas por SES), ADR-023 (cabeceras de baja y `sendCampaignEmail`), ADR-031 (la encuesta tras la ocasión no usa `form_submission`), ADR-033 (push desde la cartelera; `/app/cartelera/[id]`), ADR-034 (dependencias de `comms`; pestaña Comunicaciones de la 360; mis datos), ADR-035 (`surveyFormId`, `participation → forms`, recordatorios), ADR-036 (regla 11: avisos por push desde `permanence.notices`; `recognition.granted`; T-202 al aplicar el cierre), ADR-037 (tipo de campo `RATING`; `call.opened`), 03-modelo (tablas de `comms`, `Message.kind`, encuesta en `participation`, `calendar_token`), 05-acceso (tokens de baja y calendario, dueño de la invitación, step-up de campañas), 06-mapa (rutas nuevas) y 14-copy (T-133 con seis secciones, T-924 con la calificación, T-194, T-195, T-209 a T-211, T-1063 en adelante)
@@ -53,3 +53,35 @@ Durante el arranque solo Resend envía correo transaccional y campañas; SES que
 ## Enmienda (2026-09-17, ADR-074)
 
 El bus de la regla 2 admite un tipo más, `WORDLE`, y `shouldDeliver` lo gobierna con `pushWordle`, la quinta preferencia de la regla 5, encendida por defecto y presente en Ajustes, en «mis datos» y en la Persona 360. El programado `wordle` (`0 9 * * *`) avisa la partida del día. Ver [ADR-074](ADR-074-aviso-diario-del-wordle.md).
+
+## Enmienda (2026-10-07, ADR-113)
+
+La regla 5 guardaba la suscripción con un upsert por `endpoint` que reasignaba la persona si el mismo navegador cambiaba de sesión, y aceptaba cualquier URL. Ahora el endpoint tiene que ser `https` de un servicio de push conocido, una persona tiene hasta 10 dispositivos y un endpoint que ya es de otra persona no se reasigna: `POST /api/push/subscribe` responde 409 y el navegador renueva su suscripción para registrar una propia. Registrar el propio lo sigue actualizando, y `DELETE`, las preferencias y el resto de la regla no cambian. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 6.
+
+## Enmienda (2026-10-07, ADR-115)
+
+La regla 8 decía que el handler tomaba hasta `campaigns.perMinute` pendientes con `FOR UPDATE SKIP LOCKED` y que, dentro de esa misma transacción, enviaba, marcaba y recontaba. Ahora el lote reclama a sus destinatarios en una transacción corta por campaña (`campaign_recipient.claimed_at`, con un reclamo que vence a los 15 minutos), envía sin transacción abierta y deja el resultado de cada uno en la suya; cada correo se registra en `message` con la clave `campaign:<id>` y quien ya la tiene no recibe otro; y el lote toma primero la fila de la campaña, como la cancelación, y recuenta bajo ese candado. «Cancelar» sigue dejando `SKIPPED · CANCELLED` lo pendiente, pero ya no espera al lote, y el correo que iba en vuelo queda como enviado y cuenta en la campaña cancelada. El resto de la regla no cambia. Ver [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md), reglas 1 a 4.
+
+La regla 8 tampoco le ponía tope al lote. Ahora, cuando la campaña sale por el proveedor de lo transaccional, el lote no reclama más de lo que cabe hoy en su cupo, que deja libre un margen para lo transaccional, y un rechazo por cuota deja al destinatario `PENDING` en vez de `FAILED`: en los dos casos la campaña sigue `SENDING` y continúa al otro día. Ver ADR-115, reglas 5 y 6.
+
+La regla 8 fijaba la elegibilidad al arrancar y el lote no la volvía a mirar. Ahora, antes de cada correo, el lote lee a la persona como está: a quien se anonimizó lo deja `SKIPPED · ANONYMIZED`, un motivo nuevo, y a quien ya no puede recibir por su estado o su consentimiento, `SKIPPED` con el motivo que da la misma regla. La preferencia `emailCampaigns` sigue congelada con la audiencia: la baja a mitad de una campaña rige en la siguiente. Ver ADR-115, regla 7.
+
+## Enmienda (2026-10-08, ADR-116)
+
+La regla 12 dice que el token del calendario se guarda en claro y que regenerarlo invalida el anterior, y no dice cuándo deja de existir. Sobrevivía a la baja y a la anonimización: quedaba dormido, porque la ruta exige una membresía activa u honoraria, y revivía con el reingreso. [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 15 lo precisa: la baja y la anonimización borran el token, quien vuelve genera un enlace nuevo desde Ajustes, y crear o regenerar el token toma el candado del ciclo de membresía y mira la membresía con él tomado. La licencia no lo toca. El ICS que arma la ruta sale además sin caracteres de control ([ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 14).
+
+## Enmienda (2026-10-08, ADR-118)
+
+La regla 13 dice que el handler de `occasion.closed` crea la invitación de cada aprobado y emite el aviso con su URL propia, y no dice qué pasa si queda a medias. Como del enlace solo se guarda la huella, una invitación confirmada cuyo aviso no llegó a encolarse no tenía arreglo: el reintento la saltaba. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 4 lo precisa: las invitaciones y el aviso que lleva sus enlaces se confirman en la misma transacción, por tandas de hasta `NOTIFICATION_MAX_RECIPIENTS`; el aviso de encuesta deja de llevar clave en el outbox, porque la invitación única por ocasión y persona ya impide repetirlo; y a quién se invita no cambia.
+
+Las reglas 5 y 13 dicen que salir de la OE borra las suscripciones, las preferencias y las invitaciones de encuesta de la persona. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 5 lo precisa: se borran si la baja sigue vigente cuando corre su evento; un evento atrasado no se lleva las de quien ya volvió.
+
+La regla 8 manda la prueba de una plantilla al correo de quien la pide y no decía qué responde si el proveedor la rechaza: respondía como enviada y lo auditaba. ADR-118 regla 14 lo fija: la prueba responde con lo que contestó el proveedor, solo la aceptada queda auditada como enviada, y las pantallas de la plantilla y de la campaña muestran el rechazo.
+
+La regla 5 dice cuándo se borra una suscripción: al quitarla, al responder el servicio 404 o 410 y al salir de la OE. ADR-118 regla 17 suma la salida de la sesión: cerrar sesión retira el dispositivo de ese navegador en la casa (la fila, si es de quien sale). El navegador solo dice cuál es su suscripción y la conserva: que entrar lo suscriba sin gesto no cambia y es la decisión abierta 43.
+
+## Enmienda (2026-10-10, ADR-122)
+
+La regla 2 enumera lo que trae `notification.requested`. [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 9 le suma `expiresAt`, opcional: desde ese instante el handler de `comms` no entrega el aviso ni le escribe `message`, y lo deja dicho en el registro. Un pedido sin él se entrega como siempre.
+
+La regla 9 dice qué recordatorios salen y con qué clave. Los cuatro llevan ahora como vencimiento la hora en que empieza su ocasión: si la cola se atrasa o el evento se reintenta, no salen cuando la ocasión ya empezó. Cuándo toca cada uno no cambia.

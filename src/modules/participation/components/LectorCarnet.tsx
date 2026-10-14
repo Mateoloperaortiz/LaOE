@@ -1,32 +1,40 @@
 "use client";
 
 import jsQR from "jsqr";
-import { useRouter } from "next/navigation";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import {
+  createCamera,
+  createStartGate,
+  readPhoto,
+  type ScanResult,
+  type ScanState,
+  sendScan,
+  startScanLoop,
+} from "./scan-loop";
 
 // Lector del QR del carnet en modo anfitrión (ADR-035 regla 8): BarcodeDetector nativo si existe,
-// jsQR sobre un canvas si no; foto como respaldo. El token solo lo valida el servidor.
+// jsQR sobre un canvas si no; foto como respaldo. El token solo lo valida el servidor. El sondeo y el
+// envío viven en `scan-loop.ts` (ADR-118 regla 19): una lectura a la vez y un rechazo con su mensaje.
+// También lo que decide con una foto y con un segundo toque a «Escanear» (ADR-120 regla 15): los dos
+// reciben `camera.stop`, porque una foto apaga la cámara antes de responder y un arranque, antes de abrir
+// otra. Y la cámara misma (`createCamera`): acá quedan solo los pasos que tocan el DOM.
 
 type Labels = {
   scan: string;
   stop: string;
   upload: string;
   cameraError: string;
+  /** El navegador no pudo abrir la foto: un formato que no lee o un archivo dañado. */
+  photoError: string;
+  /** La acción no respondió: se cayó la red o el servidor falló. */
+  scanError: string;
 };
-
-type ScanResult = { ok: boolean; message: string };
 
 type Props = {
   labels: Labels;
   onScan: (token: string) => Promise<ScanResult>;
 };
-
-type State =
-  | { kind: "idle" }
-  | { kind: "scanning" }
-  | { kind: "busy" }
-  | { kind: "result"; ok: boolean; message: string }
-  | { kind: "error"; message: string };
 
 interface DetectedBarcode {
   rawValue: string;
@@ -55,85 +63,66 @@ export function LectorCarnet({ labels, onScan }: Props) {
   const router = useRouter();
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const stream = useRef<MediaStream | null>(null);
-  const timer = useRef<number | null>(null);
-  const [state, setState] = useState<State>({ kind: "idle" });
+  const [camera] = useState(() => createCamera<MediaStream>());
+  const [startOnce] = useState(createStartGate);
+  const [state, setState] = useState<ScanState>({ kind: "idle" });
 
-  function stop() {
-    if (timer.current !== null) {
-      window.clearInterval(timer.current);
-      timer.current = null;
-    }
-    for (const track of stream.current?.getTracks() ?? []) {
-      track.stop();
-    }
-    stream.current = null;
-  }
-
-  useEffect(
-    () => () => {
-      if (timer.current !== null) {
-        window.clearInterval(timer.current);
-      }
-      for (const track of stream.current?.getTracks() ?? []) {
-        track.stop();
-      }
-    },
-    [],
-  );
+  // Salir de la pantalla detiene el lector, como «Detener»: apaga la cámara y cancela el arranque que
+  // siga esperando el permiso, que es cuando todavía no hay un flujo que apagar (ADR-127 regla 5).
+  useEffect(() => camera.stop, [camera]);
 
   async function handleToken(token: string) {
-    stop();
+    camera.stop();
     setState({ kind: "busy" });
-    const result = await onScan(token);
-    setState({ kind: "result", ok: result.ok, message: result.message });
-    router.refresh();
+    const next = await sendScan(onScan, token, labels.scanError, unstable_rethrow);
+    setState(next);
+    if (next.kind === "result") {
+      router.refresh();
+    }
   }
 
-  async function start() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setState({ kind: "error", message: labels.cameraError });
-      return;
-    }
-    try {
-      stream.current = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-        audio: false,
-      });
-    } catch {
-      setState({ kind: "error", message: labels.cameraError });
-      return;
-    }
-    const element = video.current;
-    if (!element) {
-      return;
-    }
-    element.srcObject = stream.current;
-    await element.play();
-    setState({ kind: "scanning" });
-    const detector = window.BarcodeDetector
-      ? new window.BarcodeDetector({ formats: ["qr_code"] })
-      : null;
-    timer.current = window.setInterval(async () => {
-      const source = video.current;
-      const target = canvas.current;
-      if (!source || !target || source.readyState < 2) {
-        return;
-      }
-      let token: string | null = null;
-      if (detector) {
-        const codes = await detector.detect(source).catch(() => []);
-        token = codes[0]?.rawValue ?? null;
-      } else {
-        target.width = source.videoWidth;
-        target.height = source.videoHeight;
-        target.getContext("2d")?.drawImage(source, 0, 0);
-        token = decodeCanvas(target);
-      }
-      if (token) {
-        await handleToken(token);
-      }
-    }, 200);
+  function start() {
+    const media = navigator.mediaDevices;
+    return camera.start({
+      open: media?.getUserMedia
+        ? () => media.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+        : null,
+      attach: async (stream) => {
+        const element = video.current;
+        if (!element) {
+          return false;
+        }
+        element.srcObject = stream;
+        await element.play();
+        return true;
+      },
+      poll: () => {
+        const detector = window.BarcodeDetector
+          ? new window.BarcodeDetector({ formats: ["qr_code"] })
+          : null;
+        return startScanLoop({
+          intervalMs: 200,
+          read: async () => {
+            const source = video.current;
+            const target = canvas.current;
+            if (!source || !target || source.readyState < 2) {
+              return null;
+            }
+            if (detector) {
+              const codes = await detector.detect(source);
+              return codes[0]?.rawValue ?? null;
+            }
+            target.width = source.videoWidth;
+            target.height = source.videoHeight;
+            target.getContext("2d")?.drawImage(source, 0, 0);
+            return decodeCanvas(target);
+          },
+          onToken: (token) => void handleToken(token),
+        });
+      },
+      show: setState,
+      cameraError: labels.cameraError,
+    });
   }
 
   async function fromFile(file: File) {
@@ -141,15 +130,21 @@ export function LectorCarnet({ labels, onScan }: Props) {
     if (!target) {
       return;
     }
-    const bitmap = await createImageBitmap(file);
-    target.width = bitmap.width;
-    target.height = bitmap.height;
-    target.getContext("2d")?.drawImage(bitmap, 0, 0);
-    const token = decodeCanvas(target);
-    if (token) {
-      await handleToken(token);
+    const photo = await readPhoto(
+      async () => {
+        const bitmap = await createImageBitmap(file);
+        target.width = bitmap.width;
+        target.height = bitmap.height;
+        target.getContext("2d")?.drawImage(bitmap, 0, 0);
+        return decodeCanvas(target);
+      },
+      { unreadable: labels.photoError, noCode: labels.cameraError },
+      camera.stop,
+    );
+    if (photo.kind === "token") {
+      await handleToken(photo.token);
     } else {
-      setState({ kind: "error", message: labels.cameraError });
+      setState(photo);
     }
   }
 
@@ -161,7 +156,7 @@ export function LectorCarnet({ labels, onScan }: Props) {
             type="button"
             className="boton-secundario"
             onClick={() => {
-              stop();
+              camera.stop();
               setState({ kind: "idle" });
             }}
           >
@@ -171,7 +166,7 @@ export function LectorCarnet({ labels, onScan }: Props) {
           <button
             type="button"
             className="boton-calido"
-            onClick={start}
+            onClick={() => void startOnce(start, camera.stop)}
             disabled={state.kind === "busy"}
           >
             {labels.scan}

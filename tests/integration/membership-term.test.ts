@@ -1,8 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { interaction } from "@/modules/crm/schema";
 import { listTermRoster, probationInputSchema, setProbationAs } from "@/modules/people";
 import { membershipTerm } from "@/modules/people/schema";
@@ -11,30 +9,20 @@ import { permanenceSnapshot } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Condición del semestre desde la Persona 360 (ADR-056): el comando exige motivo, es idempotente,
 // audita, y su evento recalcula la permanencia de la persona y escribe la línea de tiempo.
 
 const db = () => getDb();
-
-async function drenar(): Promise<void> {
-  for (let batch = 0; batch < 20; batch += 1) {
-    const result = await drain(50);
-    expect(result.failed).toBe(0);
-    if (result.processed === 0) {
-      return;
-    }
-  }
-  throw new Error("El outbox no terminó");
-}
 
 async function condition(personId: string, termId: string) {
   const [row] = await db()
@@ -106,7 +94,7 @@ describe("condición del semestre (ADR-056)", () => {
       actorId: gh,
     });
 
-    await drenar();
+    await drainOutbox();
     const [snapshot] = await db()
       .select({ probation: permanenceSnapshot.probation })
       .from(permanenceSnapshot)
@@ -132,7 +120,7 @@ describe("condición del semestre (ADR-056)", () => {
       reason: "GH la levantó",
       decidedById: gh,
     });
-    await drenar();
+    await drainOutbox();
     const [cleared] = await db()
       .select({ probation: permanenceSnapshot.probation })
       .from(permanenceSnapshot)
@@ -175,7 +163,7 @@ describe("condición del semestre (ADR-056)", () => {
     const all = await listTermRoster(termId, [personId]);
     expect(all.every((row) => row.probation)).toBe(true);
 
-    await drenar();
+    await drainOutbox();
     const summaries = (
       await db()
         .select({ summary: interaction.summary })
@@ -210,7 +198,7 @@ describe("condición del semestre (ADR-056)", () => {
     });
     const [row] = await listTermRoster(termId, [personId]);
     expect(row).toMatchObject({ reportAsVeteran: true, probation: false });
-    await drenar();
+    await drainOutbox();
     expect((await getSnapshot(personId, termId))?.isNew).toBe(false);
   });
 });

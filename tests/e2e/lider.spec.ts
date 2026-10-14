@@ -4,6 +4,7 @@ import { closeDb, getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
 import { committee, person } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
+import { seedPermission } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
@@ -32,10 +33,7 @@ test.beforeEach(async () => {
   if (!member || !home) throw new Error("sin miembro o comité");
   slug = home.slug;
   name = home.name;
-  await db
-    .insert(permission)
-    .values({ personId: member.id, code: "COMMITTEE_LEADER", committeeId: home.id })
-    .onConflictDoNothing();
+  await seedPermission(member.id, "COMMITTEE_LEADER", home.id);
   await closeDb();
 });
 

@@ -2,9 +2,9 @@ import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { person } from "@/modules/people/schema";
-import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedWorkGroup } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -69,17 +69,10 @@ test.describe("líder de grupo", () => {
       .from(term)
       .where(eq(term.code, E2E_TERM.code));
     if (!member || !current) throw new Error("sin miembro o término");
-    const [row] = await db
-      .insert(workGroup)
-      .values({
-        termId: current.id,
-        kind: "GT_MACROEVENT",
-        name: "e2e-GT que lidero",
-        leaderPersonId: member.id,
-      })
-      .returning({ id: workGroup.id });
-    if (!row) throw new Error("sin grupo");
-    groupId = row.id;
+    groupId = await seedWorkGroup(current.id, "e2e-GT que lidero", {
+      kind: "GT_MACROEVENT",
+      leaderPersonId: member.id,
+    });
     await closeDb();
   });
 

@@ -1,6 +1,6 @@
 # ADR-052: Aislamiento, calendario y fallos de las pruebas E2E
 
-- Estado: Aceptada (enmendada por ADR-077)
+- Estado: Aceptada (enmendada por ADR-077 y ADR-116)
 - Fecha: 2026-09-11
 - Relacionadas: ADR-004, ADR-012, ADR-020, ADR-023, ADR-032
 
@@ -27,3 +27,7 @@ La suite admite ejecución secuencial; no admite `--workers` mayor que uno. El a
 ## Enmienda (2026-09-18, ADR-077)
 
 La regla 2 exigía un bucket local y no decía nada de su CORS, que solo admitía el origen de `APP_URL`: en un `E2E_PORT` distinto de 3000 el navegador no podía subir archivos. El lanzador ahora suma `http://localhost:<E2E_PORT>` al CORS del bucket local antes de crear la base, sin quitar los orígenes de otras sesiones, sin reescribir uno que ya esté y bajo un candado consultivo de PostgreSQL. El bucket sigue compartido y sin vaciarse. Ver [ADR-077](ADR-077-el-lanzador-e2e-suma-su-origen-al-cors-del-bucket.md).
+
+## Enmienda (2026-10-08, ADR-116)
+
+La regla 4 no decía cómo se vaciaban las tablas antes de volver a llenarlas: se truncaban, y cada `TRUNCATE` le crea un archivo nuevo a la tabla, a su TOAST y a cada índice. Con una restauración por escenario eran unos 168.000 por corrida, y la suite completa en local se quedaba sin tiempo en la preparación cuando Postgres cerraba el checkpoint que los recogía (DT-111). La restauración ahora borra las filas y las vuelve a insertar, en la misma transacción y bajo el candado que tomaba `TRUNCATE`, y devuelve cada secuencia a donde iba al tomar la foto, que guarda también su estado. Lo demás de la regla 4 sigue igual. El costo de restauración por escenario baja de unos 380 ms a unos 55 ms. Ver [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 21.

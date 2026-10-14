@@ -72,6 +72,25 @@ describe("parseEnv", () => {
     expect(parseEnv({ ...baseEnv, OTP_FIXED_CODE: "123456" }).OTP_FIXED_CODE).toBe("123456");
   });
 
+  // DT-159 inciso b (ADR-121 regla 9): en producción el correo no cae a la consola por omisión.
+  it("en producción exige MAILER explícito, y vacío vale como ausente", () => {
+    const production = { ...baseEnv, NODE_ENV: "production" };
+    expect(() => parseEnv(production)).toThrow(/MAILER/);
+    expect(() => parseEnv({ ...production, MAILER: "" })).toThrow(/MAILER/);
+    expect(parseEnv({ ...production, MAILER: "console" }).MAILER).toBe("console");
+    expect(
+      parseEnv({ ...production, MAILER: "resend", RESEND_API_KEY: "re_sintetica" }).MAILER,
+    ).toBe("resend");
+  });
+
+  it.each([
+    "development",
+    "test",
+  ])("con NODE_ENV=%s, sin MAILER el correo va a la consola", (mode) => {
+    expect(parseEnv({ ...baseEnv, NODE_ENV: mode }).MAILER).toBe("console");
+    expect(parseEnv({ ...baseEnv, NODE_ENV: mode, MAILER: "" }).MAILER).toBe("console");
+  });
+
   it("exige la clave de Resend cuando el mailer es resend", () => {
     expect(() => parseEnv({ ...baseEnv, MAILER: "resend" })).toThrow(/RESEND_API_KEY/);
   });

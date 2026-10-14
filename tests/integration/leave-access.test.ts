@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { adminAreaRoles } from "@/app/_authz/admin-area";
+import { committeeCapabilities } from "@/app/_authz/committee";
+import { canOperateOccasion } from "@/app/_authz/occasion";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { markOnboardingStepAs } from "@/modules/crm";
@@ -14,13 +16,12 @@ import { checkInSelfAs, hostCheckInAs } from "@/modules/participation/domain/com
 import { answerSurveyAs, createSurveyInvites } from "@/modules/participation/domain/surveys";
 import { startWordleAs } from "@/modules/participation/domain/wordle";
 import { occasion, occasionSurveyResponse, pointEntry } from "@/modules/participation/schema";
-import { getPersonRecord } from "@/modules/people";
+import { COMMITTEE_CAPABILITIES, getPersonRecord } from "@/modules/people";
 import { changeMembershipStatus } from "@/modules/people/domain/membership";
 import { updateOwnContact } from "@/modules/people/domain/own-data";
 import { person } from "@/modules/people/schema";
 import { requireConfig } from "@/modules/system";
 import { DomainError } from "@/shared/lib/errors";
-import { truncateAll } from "./db";
 import {
   leaveUntilSoon,
   seedCheckIn,
@@ -28,9 +29,11 @@ import {
   seedForm,
   seedMember,
   seedOccasion,
+  seedPermission,
   seedTerm,
   seedWorkGroup,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 
@@ -52,13 +55,9 @@ describe("consulta de Mi OE en licencia", () => {
     const personId = await seedMember("consulta@eafit.edu.co");
     const committeeId = await seedCommittee("prueba");
     const termId = await seedTerm();
-    await db()
-      .insert(permission)
-      .values([
-        { personId, code: "ADMIN" },
-        { personId, code: "BOARD" },
-        { personId, code: "COMMITTEE_LEADER", committeeId },
-      ]);
+    await seedPermission(personId, "ADMIN");
+    await seedPermission(personId, "BOARD");
+    await seedPermission(personId, "COMMITTEE_LEADER", committeeId);
     await seedWorkGroup(termId, "Grupo sintético", {
       leaderPersonId: personId,
       evaluatorIds: [personId],
@@ -81,7 +80,7 @@ describe("consulta de Mi OE en licencia", () => {
       evaluatedGroups: [],
     });
     expect(await db().select().from(permission)).toHaveLength(3);
-    await runCommand(actor, (ctx) =>
+    await runCommand({ personId: actor.personId, ip: null }, (ctx) =>
       updateOwnContact(ctx, personId, { phone: "3001234567", personalEmail: "propia@example.com" }),
     );
     expect(await getPersonRecord(personId)).toMatchObject({
@@ -100,26 +99,72 @@ describe("consulta de Mi OE en licencia", () => {
     expect(await resolveActor(session.token)).toBeNull();
   });
 
+  // DT-383. `committeeCapabilities` y `canOperateOccasion` le dan todo a `actor.isAdmin` sin preguntar
+  // `canOperate`, que es lo que `assertLeader` sí pregunta (DT-356). Hoy eso no abre nada: a quien no
+  // participa `resolveActor` no le carga permisos, y sin permisos no hay `isAdmin`. Acá queda fijado
+  // por el camino de la sesión, que es por donde llega el actor de todo request. La persona no tiene
+  // cargo de dirección: lo que conserva un cargo en licencia es la decisión abierta 7 (DT-024).
+  it("quien es ADMIN y líder de un comité, en licencia, no recibe ninguna capacidad sobre el comité ni opera sus ocasiones: su sesión llega sin permisos", async () => {
+    const personId = await seedMember("admin.licencia@eafit.edu.co");
+    const committeeId = await seedCommittee("capacidades");
+    const termId = await seedTerm();
+    await seedPermission(personId, "ADMIN");
+    await seedPermission(personId, "COMMITTEE_LEADER", committeeId);
+    const session = await createSession(db(), {
+      personId,
+      remember: false,
+      ip: null,
+      userAgent: null,
+    });
+    const ofCommittee = { committeeId, termId };
+    const general = { committeeId: null, termId };
+
+    const active = await resolveActor(session.token);
+    if (!active) throw new Error("Sin actor");
+    const before = await committeeCapabilities(active, committeeId, termId);
+    expect([...before.capabilities].sort()).toEqual([...COMMITTEE_CAPABILITIES].sort());
+    expect(before.isLeader).toBe(true);
+    expect(await canOperateOccasion(active, ofCommittee)).toBe(true);
+    expect(await canOperateOccasion(active, general)).toBe(true);
+
+    await onLeave(personId);
+    const actor = await resolveActor(session.token);
+    if (!actor) throw new Error("Sin actor");
+    expect(actor).toMatchObject({ membershipStatus: "ON_LEAVE", isAdmin: false, permissions: [] });
+    expect(await committeeCapabilities(actor, committeeId, termId)).toEqual({
+      capabilities: new Set(),
+      isLeader: false,
+    });
+    expect(await canOperateOccasion(actor, ofCommittee)).toBe(false);
+    expect(await canOperateOccasion(actor, general)).toBe(false);
+    expect(await db().select().from(permission)).toHaveLength(2);
+  });
+
   it("rechaza asistencia propia y de anfitrión, Wordle y onboarding sin acreditar puntos", async () => {
     const personId = await seedMember("participacion@eafit.edu.co");
     const host = await seedMember("anfitrion@eafit.edu.co");
     const termId = await seedTerm();
     const target = await seedOccasion(termId);
     await onLeave(personId);
-    expect(await checkInSelfAs({ personId }, { publicId: target.publicId })).toMatchObject({
+    expect(
+      await checkInSelfAs({ personId, ip: null }, { publicId: target.publicId }),
+    ).toMatchObject({
       ok: false,
       reason: "NOT_ELIGIBLE",
     });
     await expect(
       hostCheckInAs(
-        { personId: host },
+        { personId: host, ip: null },
         { occasionId: target.id, personId, personName: "Persona", source: "HOST" },
       ),
     ).rejects.toBeInstanceOf(DomainError);
-    expect(await startWordleAs({ personId })).toMatchObject({ ok: false, reason: "NOT_ELIGIBLE" });
+    expect(await startWordleAs({ personId, ip: null })).toMatchObject({
+      ok: false,
+      reason: "NOT_ELIGIBLE",
+    });
     const [step] = await requireConfig("onboarding.steps");
     if (!step) throw new Error("Sin pasos de onboarding");
-    expect(await markOnboardingStepAs({ personId }, termId, step.key)).toBe(false);
+    expect(await markOnboardingStepAs({ personId, ip: null }, termId, step.key)).toBe(false);
     expect(await db().select().from(onboardingProgress)).toHaveLength(0);
     expect(await db().select().from(pointEntry)).toHaveLength(0);
   });
@@ -147,7 +192,9 @@ describe("consulta de Mi OE en licencia", () => {
     for (const slug of ["solo-miembros", "publico-licencia"]) {
       const view = await getPublicForm(slug);
       if (!view) throw new Error("Sin formulario");
-      expect(await submitFormAs(actor, view, { answers: {}, consent: false })).toMatchObject({
+      expect(
+        await submitFormAs(actor, view, { answers: {}, consent: false, ip: null }),
+      ).toMatchObject({
         ok: false,
         code: "INVALID",
       });
@@ -157,11 +204,12 @@ describe("consulta de Mi OE en licencia", () => {
             identity: { firstName: "Persona", lastName: "Sintética", email: actor.email },
             answers: {},
             consent: false,
+            ip: null,
           }),
         ).toMatchObject({ ok: false, code: "INVALID" });
       }
     }
-    expect(await answerSurveyAs({ personId }, token, {})).toMatchObject({
+    expect(await answerSurveyAs({ personId, ip: null }, token, {})).toMatchObject({
       ok: false,
       state: "NOT_FOUND",
     });

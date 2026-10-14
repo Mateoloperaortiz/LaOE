@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { enterHubAs, getHubState } from "@/modules/competition";
 import { t } from "@/shared/copy";
+import { logUnavailable } from "../../unavailable";
 import {
   clearSessionCookie,
   hubJson,
@@ -47,7 +48,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     const response = hubJson(request, METHODS, state);
     setSessionCookie(response, result.session);
     return response;
-  } catch {
+  } catch (error) {
+    logUnavailable("POST /api/v1/the-games/hub/sesion", error);
     return hubJson(request, METHODS, { error: "no disponible" }, 503);
   }
 }

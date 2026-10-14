@@ -6,7 +6,7 @@ import { carnetTokenRotated } from "@/domain-events/identity";
 import {
   canParticipate,
   getWalletMemberState,
-  lockWalletMember,
+  lockMembershipCycle,
   type WalletMemberState,
 } from "@/modules/people";
 import { carnetToken } from "../schema";
@@ -14,8 +14,6 @@ import type { Actor } from "./actor";
 import { CARNET_TOKEN, createWalletCarnetToken } from "./carnet-pure";
 import { ForbiddenError } from "./errors";
 import { assertAdmin } from "./guards";
-
-export { CARNET_TOKEN } from "./carnet-pure";
 
 export interface CarnetCredential {
   personId: string;
@@ -108,7 +106,7 @@ export async function getOrCreateCarnetCredential(
   tx: Tx,
   personId: string,
 ): Promise<CarnetCredential> {
-  const state = requireMember(await lockWalletMember(tx, personId));
+  const state = requireMember(await lockMembershipCycle(tx, personId));
   const existing = await getCarnetCredential(personId, tx);
   if (existing?.walletEpoch === state.walletEpoch) {
     return existing;
@@ -123,16 +121,19 @@ export async function getOrCreateCarnetToken(personId: string): Promise<string> 
   return credential.token;
 }
 
-/** Rota el QR propio o, solo para ADMIN, el de otra persona; no cambia los tokens oe1 de la app. */
+/**
+ * Rota el QR propio o, solo para ADMIN, el de otra persona; no cambia los tokens oe1 de la app.
+ * Recibe la sesión con la IP del request (`sessionActorContext`, ADR-082 regla 3).
+ */
 export async function rotateCarnetTokenAs(
-  actor: Actor,
+  actor: Actor & { ip: string | null },
   personId = actor.personId,
 ): Promise<string> {
   if (personId !== actor.personId) {
     assertAdmin(actor);
   }
   return runCommand(actor, async (ctx) => {
-    const state = requireMember(await lockWalletMember(ctx.tx, personId));
+    const state = requireMember(await lockMembershipCycle(ctx.tx, personId));
     const previous = await getCarnetCredential(personId, ctx.tx);
     // Revocar solo renueva una credencial vigente; la primera emisión siempre exige agregar el pase.
     if (!previous || previous.walletEpoch !== state.walletEpoch) {
@@ -187,7 +188,7 @@ export async function resolveCarnetToken(token: string, now = new Date()): Promi
 /** Un evento atrasado de baja nunca borra una credencial emitida tras la reactivación. */
 export async function deleteCarnetTokenFor(personId: string): Promise<number> {
   return runCommand(SYSTEM_ACTOR, async (ctx) => {
-    const state = await lockWalletMember(ctx.tx, personId);
+    const state = await lockMembershipCycle(ctx.tx, personId);
     if (!state) {
       return 0;
     }

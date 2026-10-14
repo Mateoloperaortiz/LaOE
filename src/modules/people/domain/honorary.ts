@@ -11,6 +11,7 @@ import {
 import { blockedBenefits } from "./benefits";
 import type { HonoraryFacts } from "./honorary-pure";
 import { BOARD_KINDS } from "./inhabilities";
+import { leftOnProbationOf } from "./membership";
 
 // Los hechos de `people` para la elegibilidad a honorario (ADR-060 regla 13); los términos en comités
 // de trabajo los agrega la app desde `permanence`, que no puede importarse desde aquí.
@@ -50,10 +51,15 @@ export async function honoraryFacts(
   );
   const editions = await listEditionRefs(editionIds);
   const current = await getCurrentTerm();
-  const blocked = current ? await blockedBenefits([personId], current.id) : new Set<string>();
+  // La prueba guardada al salir a licencia también bloquea, como en el comando (ADR-120 regla 4). Con
+  // semestre vigente ya la cuenta `blockedBenefits` (ADR-123 regla 7) y no se vuelve a leer; sin él
+  // no se le pregunta y se mira aparte (ADR-127 regla 3).
+  const benefitsBlocked = current
+    ? (await blockedBenefits([personId], current.id)).has(personId)
+    : await leftOnProbationOf(personId);
   const termEnds = new Map(terms.map((row) => [row.id, new Date(`${row.endsOn}T23:59:59-05:00`)]));
   return {
-    benefitsBlocked: blocked.has(personId),
+    benefitsBlocked,
     terms: terms.map((term) => ({ id: term.id, code: term.code, endsOn: term.endsOn })),
     committeeRoles: roles,
     macroeventRoles: editionIds.map((id) => ({

@@ -22,9 +22,11 @@ import { documentArticle, mediaAsset } from "@/modules/content/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { seedMediaAsset, seedMember } from "../factories";
+import { heldThenSettled, holdCommand, outcome } from "../helpers/locks";
 import { sampleArticlesJson, sampleNormativaPdf } from "../helpers/pdf";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // Contra Garage en local, como hace el navegador: presign → POST → confirm.
 
@@ -139,7 +141,7 @@ describe("normativa", () => {
     const adminId = await seedMember("admin@eafit.edu.co");
     const pdf = sampleNormativaPdf();
     const key = await uploadPdf(pdf);
-    const { id } = await runCommand({ personId: adminId }, (ctx) =>
+    const { id } = await runCommand({ personId: adminId, ip: null }, (ctx) =>
       confirmDocument(ctx, {
         key,
         filename: "estatutos-prueba.pdf",
@@ -158,13 +160,13 @@ describe("normativa", () => {
     });
     expect(listed.rows[0]?.sha256).toMatch(/^[a-f0-9]{64}$/);
 
-    const loaded = await runCommand({ personId: adminId }, (ctx) =>
+    const loaded = await runCommand({ personId: adminId, ip: null }, (ctx) =>
       replaceArticles(ctx, id, articles()),
     );
     expect(loaded).toBe(3);
     // Atómico: si algo falla después de reemplazar, los tres artículos anteriores siguen ahí.
     await expect(
-      runCommand({ personId: adminId }, async (ctx) => {
+      runCommand({ personId: adminId, ip: null }, async (ctx) => {
         await replaceArticles(ctx, id, {
           ...articles(),
           articles: articles().articles.slice(0, 1),
@@ -189,7 +191,7 @@ describe("normativa", () => {
       302,
     );
 
-    await runCommand({ personId: adminId }, (ctx) => publishDocument(ctx, id));
+    await runCommand({ personId: adminId, ip: null }, (ctx) => publishDocument(ctx, id));
     const published = await listPublishedDocuments();
     expect(published.map((row) => [row.id, row.articleCount])).toEqual([[id, 3]]);
     const detail = await getPublishedDocumentWithArticles(id);
@@ -210,7 +212,7 @@ describe("normativa", () => {
       expect(redirect.url).toContain(key);
     }
 
-    await runCommand({ personId: adminId }, (ctx) => unpublishDocument(ctx, id));
+    await runCommand({ personId: adminId, ip: null }, (ctx) => unpublishDocument(ctx, id));
     expect(await listPublishedDocuments()).toEqual([]);
   });
 
@@ -260,18 +262,13 @@ describe("normativa", () => {
 
   it("exige imágenes privadas listas y vuelve a comprobarlas al publicar", async () => {
     const { id } = await createDocument();
-    const [asset] = await getDb()
-      .insert(mediaAsset)
-      .values({
-        objectKey: "uploads/imagen-sintetica.png",
-        originalFilename: "imagen-sintetica.png",
+    const asset = {
+      id: await seedMediaAsset("uploads/imagen-sintetica.png", {
         contentType: "image/png",
         byteSize: 2048,
         visibility: "PUBLIC",
-        status: "READY",
-      })
-      .returning();
-    if (!asset) throw new Error("Falta la imagen sintética");
+      }),
+    };
     const data = completeArticles();
     data.articles[0]?.blocks.push({
       type: "image",
@@ -343,6 +340,9 @@ describe("normativa", () => {
     const { id } = await createDocument();
     const first = completeArticles("Primera revisión");
     const second = completeArticles("Segunda revisión");
+    // Las conexiones abiertas antes de lanzar: con una sola, el segundo reemplazo gasta su arranque
+    // abriendo la suya, el primero confirma antes y la prueba pasa aunque falte el candado (DT-166).
+    await warmPool();
     await Promise.all([
       runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, first)),
       runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, second)),
@@ -352,6 +352,9 @@ describe("normativa", () => {
     const stored = detail?.articles[0]?.body === "Primera revisión" ? first : second;
     expect(detail?.document.contentSha256).toBe(documentContentChecksum(stored));
     const replacement = completeArticles("Revisión final");
+    // Este par afirma que no queda contenido parcial, gane quien gane. Lo que hace cada candado cuando
+    // el otro comando va adelante lo fijan las dos pruebas de abajo, con el orden puesto.
+    await warmPool();
     const outcomes = await Promise.allSettled([
       runCommand(SYSTEM_ACTOR, (ctx) => publishDocument(ctx, id)),
       runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, replacement)),
@@ -362,5 +365,53 @@ describe("normativa", () => {
     expect(published?.articles).toHaveLength(2);
     const expected = outcomes[1]?.status === "fulfilled" ? replacement : stored;
     expect(published?.document.contentSha256).toBe(documentContentChecksum(expected));
+  });
+
+  it("un reemplazo que llega cuando la publicación todavía no confirma hace cola y sale rechazado: queda publicado lo que estaba", async () => {
+    const { id } = await createDocument();
+    const stored = completeArticles("Primera revisión");
+    await runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, stored));
+    const publishing = await holdCommand(SYSTEM_ACTOR, (ctx) => publishDocument(ctx, id));
+
+    const replacing = await heldThenSettled(publishing, () =>
+      runCommand(SYSTEM_ACTOR, (ctx) =>
+        replaceArticles(ctx, id, completeArticles("Revisión final")),
+      ),
+    );
+
+    expect(replacing.during).toBe("hizo cola");
+    expect(outcome(replacing.after)).toBe(t("T-1302"));
+    const published = await getDocumentWithArticles(id);
+    expect(published?.document).toMatchObject({
+      status: "PUBLISHED",
+      contentSha256: documentContentChecksum(stored),
+    });
+    expect(published?.articles.map((article) => article.body)).toEqual(
+      stored.articles.map((article) => article.body),
+    );
+  });
+
+  it("una publicación con la huella revisada que llega cuando un reemplazo todavía no confirma hace cola y sale rechazada: no publica lo que nadie revisó", async () => {
+    const { id } = await createDocument();
+    const reviewed = completeArticles("Primera revisión");
+    await runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, reviewed));
+    const replacement = completeArticles("Revisión final");
+    const replacing = await holdCommand(SYSTEM_ACTOR, (ctx) =>
+      replaceArticles(ctx, id, replacement),
+    );
+
+    const publishing = await heldThenSettled(replacing, () =>
+      runCommand(SYSTEM_ACTOR, (ctx) =>
+        publishDocument(ctx, id, documentContentChecksum(reviewed)),
+      ),
+    );
+
+    expect(publishing.during).toBe("hizo cola");
+    expect(outcome(publishing.after)).toBe(t("T-1304"));
+    const draft = await getDocumentWithArticles(id);
+    expect(draft?.document).toMatchObject({
+      status: "DRAFT",
+      contentSha256: documentContentChecksum(replacement),
+    });
   });
 });

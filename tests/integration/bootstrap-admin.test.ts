@@ -9,9 +9,14 @@ import { membership, person } from "@/modules/people/schema";
 import { setConfig } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
-import { type BootstrapAdminInput, bootstrapAdmin } from "../../scripts/lib/bootstrap-admin";
+import {
+  BootstrapAdminError,
+  type BootstrapAdminInput,
+  bootstrapAdmin,
+} from "../../scripts/lib/bootstrap-admin";
+import { seedPerson, seedTerm } from "../factories";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedPerson } from "./factories";
 
 const input: BootstrapAdminInput = {
   firstName: "Persona",
@@ -106,21 +111,28 @@ describe("bootstrap del primer ADMIN (ADR-039)", () => {
   });
 
   it("no modifica un término existente con fechas distintas", async () => {
-    await getDb()
-      .insert(term)
-      .values({ ...input.firstTerm, semester: 1, startsOn: "2040-01-01" });
+    await seedTerm(input.firstTerm.code, {
+      startsOn: "2040-01-01",
+      endsOn: input.firstTerm.endsOn,
+    });
     await expect(bootstrapAdmin(input)).rejects.toThrow("otras fechas");
     expect(await getDb().select().from(person)).toHaveLength(0);
     expect(await getDb().select().from(term)).toMatchObject([{ startsOn: "2040-01-01" }]);
   });
 
   it("dos bootstraps concurrentes no conceden dos permisos ADMIN", async () => {
+    await warmPool();
     const results = await Promise.allSettled([
       bootstrapAdmin(input),
       bootstrapAdmin({ ...input, email: "concurrent-admin.demo@eafit.edu.co" }),
     ]);
     expect(results.filter((row) => row.status === "fulfilled")).toHaveLength(1);
-    expect(results.filter((row) => row.status === "rejected")).toHaveLength(1);
+    const rejected = results.filter(
+      (row): row is PromiseRejectedResult => row.status === "rejected",
+    );
+    expect(rejected).toHaveLength(1);
+    // El que esperó el candado ya encontró al ADMIN del otro: lo rechaza el bootstrap, no un índice.
+    expect(rejected[0]?.reason).toBeInstanceOf(BootstrapAdminError);
     expect(await getDb().select().from(person)).toHaveLength(1);
     expect(await getDb().select().from(permission)).toHaveLength(1);
   });

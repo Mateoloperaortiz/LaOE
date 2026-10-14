@@ -1,6 +1,6 @@
 # ADR-075: Biblioteca de juegos y 2048 con replay verificado
 
-- Estado: Aceptada (enmendada por ADR-078 y ADR-088); en producción desde el 2026-09-18 (`b3226a5`)
+- Estado: Aceptada (enmendada por ADR-078, ADR-088 y ADR-122); en producción desde el 2026-09-18 (`b3226a5`)
 - Fecha: 2026-09-17
 - Enmienda: ADR-041 (regla 1: el tablero deja `/app/gh-points` y sí hay ruta de juego; regla 6: el ledger gana un tipo más), ADR-067 (regla 17: el Wordle deja de estar en Resumen; regla 4: el 2048 también queda fuera de los topes), ADR-074 (regla 5: la URL del aviso), ADR-007 (tipo `GAME2048`)
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-020, ADR-030, ADR-032, ADR-035, ADR-038
@@ -89,3 +89,7 @@ La regla 1 suma una tercera tarjeta: `/app/juegos/sudoku`. La barra de Mi OE no 
 ## Enmienda (2026-09-23, ADR-088)
 
 La biblioteca suma `/app/juegos/panal` como cuarto juego y su disponibilidad sigue los mismos criterios de elegibilidad y semestre abierto. Sus reglas, catálogo y crédito único de 6 GH Points al llegar a Genio se documentan en [ADR-088](ADR-088-panal-diario-en-espanol.md). No cambian los premios de los otros juegos.
+
+## Enmienda (2026-10-10, ADR-122)
+
+Regla 7: decía que el navegador reconstruye el tablero para retomarlo, y no qué pasa si lo reconstruido ya terminó, que es lo que deja un cierre que no llegó a la casa: «Seguir la partida» lo dejaba en juego sin jugada posible y sin ningún botón (DT-236, inciso c). Ahora «seguir» sobre un tablero sin jugada manda su cierre con los movimientos guardados, como lo habría hecho su última jugada. Qué acredita una partida y cuándo no cambia. Ver [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 15.

@@ -2,9 +2,10 @@ import { readdirSync } from "node:fs";
 import { z } from "zod";
 import { runCommand } from "@/db/tx";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
+import { exportLimitWarning } from "@/shared/admin-kit/export-limit";
 import type { Badge, FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { MULTI_SEPARATOR } from "@/shared/admin-kit/types";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { COMMITTEE_CAPABILITIES } from "./domain/capabilities";
 import { type CommitteeRoleRow, listCommitteeRoles } from "./domain/committee-memberships";
@@ -204,10 +205,9 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
     contactUrl: row.contactUrl ?? "",
     publicationStatus: row.publicationStatus,
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createCommittee(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateCommittee(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createCommittee(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateCommittee(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     sigla: row.slug,
     nombre: row.name,
@@ -223,19 +223,19 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
 const [personasPlural, personaSingular] = tList("T-420");
 const campos = tList("T-427");
 const [estudiante, externo] = tList("T-428");
-const etapas = tList("T-429");
-const estados = tList("T-381");
 const [filtroEtapa, filtroEstado, filtroComite, filtroSegmento] = tList("T-508");
 
 export const STAGE_CODES = ["PROSPECT", "APPLICANT", "MEMBER", "ALUMNI"] as const;
 export const STATUS_CODES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"] as const;
+const etapas: Readonly<Record<string, string>> = tLabels("T-429", STAGE_CODES);
+const estados: Readonly<Record<string, string>> = tLabels("T-381", STATUS_CODES);
 
 export function stageLabel(stage: string): string {
-  return etapas[STAGE_CODES.indexOf(stage as (typeof STAGE_CODES)[number])] ?? stage;
+  return etapas[stage] ?? stage;
 }
 
 export function statusLabel(status: string): string {
-  return estados[STATUS_CODES.indexOf(status as (typeof STATUS_CODES)[number])] ?? status;
+  return estados[status] ?? status;
 }
 
 const stageBadges: Record<(typeof STAGE_CODES)[number], Badge> = {
@@ -352,8 +352,7 @@ export const peopleResource: ResourceDefinition<PersonRow, PersonInput> = {
   get: async (id) =>
     (await listPeople({ q: "", personIds: [id], page: 1, pageSize: 1 })).rows[0] ?? null,
   toFormValues: () => ({}),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createPerson(ctx, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createPerson(ctx, input)),
   personalData: true,
   exportRow: (row) => ({
     Nombre: row.firstName,
@@ -375,10 +374,10 @@ export const peopleResource: ResourceDefinition<PersonRow, PersonInput> = {
 
 const [cargosPlural, cargoSingular] = tList("T-421");
 const [codigo, nombreCargo, esDireccion, obligatorio, capacidades, orden] = tList("T-473");
-const capacidadLabels = tList("T-2179");
-const capabilityOptions = COMMITTEE_CAPABILITIES.map((value, index) => ({
+const capacidadLabels = tLabels("T-2179", COMMITTEE_CAPABILITIES);
+const capabilityOptions = COMMITTEE_CAPABILITIES.map((value) => ({
   value,
-  label: capacidadLabels[index] ?? value,
+  label: capacidadLabels[value] ?? value,
 }));
 
 function capabilityLabels(codes: string[]): string {
@@ -451,10 +450,9 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
     retired: row.retired ? "true" : "",
     replacedByCode: row.replacedByCode ?? "",
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createCommitteeRole(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateCommitteeRole(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createCommitteeRole(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateCommitteeRole(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     codigo: row.code,
     nombre: row.label,
@@ -488,10 +486,9 @@ export const tagsResource: ResourceDefinition<TagRow, TagInput> = {
   list: (params) => listTags({ q: params.q, page: params.page, pageSize: params.pageSize }),
   get: getTag,
   toFormValues: (row) => ({ name: row.name, color: row.color ?? "" }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createTag(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateTag(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createTag(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateTag(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({ nombre: row.name, color: row.color }),
 };
 
@@ -499,10 +496,10 @@ export const tagsResource: ResourceDefinition<TagRow, TagInput> = {
 
 const [segmentosPlural, segmentoSingular] = tList("T-424");
 const segmentoCampos = tList("T-468");
-const ingresoOpciones = tList("T-469");
-const consentimientoOpciones = tList("T-470");
 const ENTRY_CODES = ["ANY", "NEW", "VETERAN"] as const;
 const CONSENT_CODES = ["ANY", "COMMS_YES", "COMMS_NO", "PHOTO_YES", "MEMORIAL_YES"] as const;
+const ingresoOpciones = tLabels("T-469", ENTRY_CODES);
+const consentimientoOpciones = tLabels("T-470", CONSENT_CODES);
 
 async function segmentFields(): Promise<FieldDefinition[]> {
   const [committees, roles, tags] = await Promise.all([
@@ -528,9 +525,9 @@ async function segmentFields(): Promise<FieldDefinition[]> {
       name: "entry",
       label: segmentoCampos[3] ?? "",
       type: "select",
-      options: ENTRY_CODES.map((value, index) => ({
+      options: ENTRY_CODES.map((value) => ({
         value,
-        label: ingresoOpciones[index] ?? value,
+        label: ingresoOpciones[value] ?? value,
       })),
     },
     {
@@ -555,9 +552,9 @@ async function segmentFields(): Promise<FieldDefinition[]> {
       name: "consent",
       label: segmentoCampos[7] ?? "",
       type: "select",
-      options: CONSENT_CODES.map((value, index) => ({
+      options: CONSENT_CODES.map((value) => ({
         value,
-        label: consentimientoOpciones[index] ?? value,
+        label: consentimientoOpciones[value] ?? value,
       })),
     },
     { name: "program", label: segmentoCampos[8] ?? "", type: "text" },
@@ -574,7 +571,17 @@ export const segmentsResource: ResourceDefinition<SegmentRow, SegmentInput> = {
     {
       key: "export",
       label: t("T-472"),
-      render: (row) => ({ text: t("T-472"), href: `/api/export/personas?segmento=${row.id}` }),
+      // El exporte nombra en `pantalla` la lista que lo origina, para volver a ella si pide el
+      // paso de seguridad (ADR-113, regla 10).
+      // Con más personas que el tope del exporte, el aviso va al lado del enlace (ADR-121 regla 12).
+      render: (row) => {
+        const note = exportLimitWarning(row.count);
+        return {
+          text: t("T-472"),
+          href: `/api/export/personas?segmento=${row.id}&pantalla=%2Fadmin%2Fsegmentos`,
+          ...(note ? { note } : {}),
+        };
+      },
     },
     {
       key: "createdAt",
@@ -597,10 +604,9 @@ export const segmentsResource: ResourceDefinition<SegmentRow, SegmentInput> = {
     consent: row.filter.consent,
     program: row.filter.program,
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createSegment(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateSegment(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createSegment(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateSegment(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     nombre: row.name,
     personas: row.count,

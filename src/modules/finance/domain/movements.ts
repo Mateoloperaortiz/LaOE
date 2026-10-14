@@ -5,6 +5,7 @@ import { t } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { formatMoney } from "@/shared/lib/money";
+import { scopeId } from "@/shared/lib/scope-id";
 import {
   budgetExpense,
   budgetLine,
@@ -53,11 +54,26 @@ export const transferInputSchema = z.object({
 
 export type TransferInput = z.input<typeof transferInputSchema>;
 
-async function openBudgetOf(ctx: CommandContext, budgetId: string) {
+/** Desde dónde se registra un movimiento: la página de finanzas de un comité (ADR-122 regla 1). */
+export interface MovementScope {
+  committeeId: string;
+}
+
+/**
+ * El presupuesto abierto del comité de la página, tomado. El alcance es obligatorio (ADR-122
+ * regla 1) y va en la consulta: el presupuesto de otro comité responde como uno que no existe, y no
+ * se toma.
+ */
+async function openBudgetOf(ctx: CommandContext, budgetId: string, scope: MovementScope) {
+  // Falla cerrado: sin el comité de la página no hay presupuesto sobre el que registrar.
+  const committeeId = scopeId(scope, "committeeId");
+  if (committeeId === null) {
+    throw new DomainError(t("T-032"));
+  }
   const [budget] = await ctx.tx
     .select()
     .from(committeeBudget)
-    .where(eq(committeeBudget.id, budgetId))
+    .where(and(eq(committeeBudget.id, budgetId), eq(committeeBudget.committeeId, committeeId)))
     .for("update");
   if (!budget) {
     throw new DomainError(t("T-032"));
@@ -108,9 +124,10 @@ async function movementsOf(ctx: CommandContext, budgetId: string) {
 export async function submitPrerequest(
   ctx: CommandContext,
   raw: PrerequestInput,
+  scope: MovementScope,
 ): Promise<{ id: string }> {
   const input = prerequestInputSchema.parse(raw);
-  const budget = await openBudgetOf(ctx, input.budgetId);
+  const budget = await openBudgetOf(ctx, input.budgetId, scope);
   if (Number(input.month.slice(0, 4)) !== budget.year) {
     throw new DomainError(t("T-2329", { año: budget.year }), "month");
   }
@@ -150,9 +167,10 @@ export async function submitPrerequest(
 export async function recordExpense(
   ctx: CommandContext,
   raw: ExpenseInput,
+  scope: MovementScope,
 ): Promise<{ id: string }> {
   const input = expenseInputSchema.parse(raw);
-  const budget = await openBudgetOf(ctx, input.budgetId);
+  const budget = await openBudgetOf(ctx, input.budgetId, scope);
   const month = monthKey(input.spentOn);
   if (Number(input.spentOn.slice(0, 4)) !== budget.year) {
     throw new DomainError(t("T-2329", { año: budget.year }), "spentOn");
@@ -212,13 +230,14 @@ export async function recordExpense(
 export async function recordTransfer(
   ctx: CommandContext,
   raw: TransferInput,
+  scope: MovementScope,
   now = new Date(),
 ): Promise<{ id: string }> {
   const input = transferInputSchema.parse(raw);
   if (input.fromLineId === input.toLineId) {
     throw new DomainError(t("T-2293"), "toLineId");
   }
-  const budget = await openBudgetOf(ctx, input.budgetId);
+  const budget = await openBudgetOf(ctx, input.budgetId, scope);
   const { lines, expenses, transfers } = await movementsOf(ctx, budget.id);
   const from = lines.find((item) => item.id === input.fromLineId);
   const to = lines.find((item) => item.id === input.toLineId);

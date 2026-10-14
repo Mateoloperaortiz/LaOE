@@ -42,7 +42,6 @@ export const EXCUSE_CAUSES = [
   "SAFETY",
   "FORCE_MAJEURE",
 ] as const;
-export type ExcuseCause = (typeof EXCUSE_CAUSES)[number];
 
 /** Días hábiles después de la ocasión en que todavía se presenta una excusa (Anexo 1, parágrafo 1). */
 export const EXCUSE_BUSINESS_DAYS = 3;
@@ -74,7 +73,6 @@ export const transferPayloadSchema = z
   });
 
 export type LeavePayload = z.infer<typeof leavePayloadSchema>;
-export type ResignationPayload = z.infer<typeof resignationPayloadSchema>;
 export type TransferPayload = z.infer<typeof transferPayloadSchema>;
 
 export const REQUEST_PAYLOAD_SCHEMAS = {
@@ -84,16 +82,22 @@ export const REQUEST_PAYLOAD_SCHEMAS = {
   EXCUSE: excusePayloadSchema,
 } as const;
 
+/** Un cargo vivo de la persona en un comité, con su condición de titular o codirección (ADR-058). */
+export interface HeldCommitteeRole {
+  roleCode: string;
+  coDirector: boolean;
+}
+
 export interface CommitteeChange {
-  /** Comités que siguen (con su cargo actual) más los nuevos, marcados como transferencia. */
-  rows: Array<{ committeeId: string; roleCode: string; transferredIn: boolean }>;
+  /** Comités que siguen (con todos sus cargos vivos) más los nuevos, sin cargo y marcados como transferencia. */
+  rows: Array<{ committeeId: string; roles: HeldCommitteeRole[]; transferredIn: boolean }>;
   /** T-886 si el conjunto sale del rango; T-887 si no cambia nada. */
   error: "T-886" | "T-887" | null;
 }
 
-/** Conjunto de comités del término siguiente tras un cambio aprobado (ADR-037 regla 9). */
+/** Conjunto de comités del término siguiente tras un cambio aprobado (ADR-037 regla 9; ADR-118 regla 7). */
 export function resultingCommittees(
-  current: Array<{ committeeId: string; roleCode: string }>,
+  current: Array<{ committeeId: string; roles: HeldCommitteeRole[] }>,
   payload: Pick<TransferPayload, "leaveCommitteeIds" | "joinCommitteeIds">,
   limits: { min: number; max: number },
 ): CommitteeChange {
@@ -104,10 +108,10 @@ export function resultingCommittees(
   const rows = [
     ...kept.map((row) => ({
       committeeId: row.committeeId,
-      roleCode: row.roleCode,
+      roles: row.roles.map(({ roleCode, coDirector }) => ({ roleCode, coDirector })),
       transferredIn: false,
     })),
-    ...joining.map((committeeId) => ({ committeeId, roleCode: "MIEMBRO", transferredIn: true })),
+    ...joining.map((committeeId) => ({ committeeId, roles: [], transferredIn: true })),
   ];
   if (kept.length === current.length && joining.length === 0) {
     return { rows, error: "T-887" };

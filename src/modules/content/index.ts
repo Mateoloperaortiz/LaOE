@@ -1,15 +1,12 @@
 // API pública del módulo content: lo que otros módulos y src/app pueden usar.
 export { Imagen } from "./components/Imagen";
 export {
-  type AnnouncementRow,
-  type CommitteeAnnouncementInput,
   committeeAnnouncementSchema,
   createAnnouncement,
   createCommitteeAnnouncementAs,
   getAnnouncement,
   getMemberAnnouncement,
   getPublicAnnouncement,
-  listAnnouncements,
   listCommitteeAnnouncements,
   listMemberAnnouncements,
   listPublicAnnouncements,
@@ -19,24 +16,18 @@ export {
   publishAndPushAnnouncement,
   publishAnnouncement,
   requestAnnouncementPush,
-  unpublishAnnouncement,
-  updateAnnouncement,
 } from "./domain/announcements";
 export {
-  type ArticleHit,
   type ArticleRow,
   confirmDocumentAs,
   confirmDocumentSchema,
   type DocumentListRow,
   type DocumentRow,
-  documentContentChecksum,
   getDocumentWithArticles,
   getPublishedDocumentWithArticles,
   HIGHLIGHT,
   listDocuments,
   listPublishedDocuments,
-  type PublishedDocument,
-  type PublishedDocumentDetail,
   prepareDocumentSchema,
   prepareDocumentUpload,
   publishDocumentAs,
@@ -47,39 +38,30 @@ export {
 } from "./domain/documents";
 export {
   type ArticlesJson,
-  blocksText,
   chaptersOf,
   DOCUMENT_KINDS,
   DOCUMENT_MAX_BYTES,
   DOCUMENT_MIN_BYTES,
   type DocumentBlock,
-  type DocumentKind,
   parseArticlesJson,
 } from "./domain/documents-pure";
 export { excerpt } from "./domain/markdown-pure";
 export {
   confirmUploadAs,
   confirmUploadSchema,
+  deletePhotosFor,
   getMedia,
   getPublicMediaRef,
   listMedia,
+  listPhotoOwners,
   listReadyPublicMedia,
-  type MediaRedirect,
   type MediaRef,
   type MediaRow,
   prepareUpload,
   prepareUploadSchema,
   resolveMediaRedirect,
+  type UploadScope,
 } from "./domain/media";
 export { processMedia } from "./domain/media-process";
 export { MEDIA_LIMITS, PHOTO_MAX_BYTES } from "./domain/media-pure";
-export {
-  createPage,
-  findPublicPage,
-  getPage,
-  listPages,
-  listPublishedPublicPages,
-  type PageRow,
-  type PublicPage,
-  updatePage,
-} from "./domain/pages";
+export { findPublicPage, listPublishedPublicPages, type PublicPage } from "./domain/pages";

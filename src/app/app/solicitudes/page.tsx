@@ -9,7 +9,7 @@ import { getPrivacyPolicyState } from "@/modules/system";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { getCurrentTerm } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ArrowUpRightIcon } from "@/shared/ui/icons/ArrowUpRightIcon";
 import { Vacio } from "../_ui/Vacio";
@@ -56,10 +56,10 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
       id: row.id,
       label: `${formatDateTime(row.startsAt)} · ${row.title}${excuseDeadline(row.startsAt) < now ? ` · ${t("T-2338")}` : ""}`,
     }));
-  const causeLabels = tList("T-2215");
-  const causeOptions = EXCUSE_CAUSES.map((code, index) => ({
+  const causeLabels = tLabels("T-2215", EXCUSE_CAUSES);
+  const causeOptions = EXCUSE_CAUSES.map((code) => ({
     code,
-    label: causeLabels[index] ?? code,
+    label: causeLabels[code] ?? code,
   }));
   const kinds = tList("T-139");
   const kindLabels = tList("T-894");

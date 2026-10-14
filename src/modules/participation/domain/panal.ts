@@ -1,13 +1,11 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { panalCheckpointReached, panalCompleted } from "@/domain-events/participation";
-import { getMembershipRef } from "@/modules/people";
-import { findTermContaining, getTerm, lockOpenTermPoints } from "@/modules/terms";
+import { findTermContaining } from "@/modules/terms";
 import { t } from "@/shared/copy";
-import { DomainError } from "@/shared/lib/errors";
 import {
   hasPanalCheckpoints,
   isSupportedPanalRules,
@@ -21,12 +19,20 @@ import {
 import type { PanalCheckpointId, PanalGameView, PanalResult, TodayPanal } from "../panal-types";
 import { panalGame, panalWord, pointEntry } from "../schema";
 import {
+  type DailyGameRules,
+  isEligibleToPlay,
+  lockDailyGame,
+  refusalToContinue,
+  startDailyGame,
+} from "./daily-game-guard";
+import { dayKeyFor, nextDayAt } from "./gamification-pure";
+import { creditGame } from "./ledger";
+import {
   getPanalPuzzle,
   panalDictionaryVersion,
   panalPuzzleForDay,
   panalPuzzleView,
 } from "./panal-dictionary";
-import { nextWordleAt, wordleDay } from "./wordle-pure";
 
 type Row = typeof panalGame.$inferSelect;
 type MemberActor = Actor & { personId: string };
@@ -35,10 +41,14 @@ const submitSchema = z.object({
   word: z.string().min(1).max(64),
 });
 
-async function eligible(personId: string, db: Executor) {
-  const membership = await getMembershipRef(personId, db);
-  return membership?.status === "ACTIVE" || membership?.status === "HONORARY";
-}
+/** Lo que el Panal le declara a la guardia de la partida diaria (ADR-119 regla 7). */
+const DAILY_RULES = {
+  lock: { key: "panal", per: "PERSON" },
+  // Con el semestre cerrado responde antes de mirar la partida guardada (decisión abierta 49).
+  startWhenClosed: "REFUSE",
+  expiredAndClosed: "EXPIRED",
+  movedTerm: "TERM_CLOSED",
+} as const satisfies DailyGameRules;
 
 async function gameView(row: Row, db: Executor): Promise<PanalGameView> {
   const words = (
@@ -69,11 +79,11 @@ async function gameView(row: Row, db: Executor): Promise<PanalGameView> {
 }
 
 export async function getTodayPanal(personId: string): Promise<TodayPanal> {
-  const day = wordleDay();
+  const day = dayKeyFor(new Date());
   return getDb().transaction(
     async (db) => {
       const current = await findTermContaining(day, db);
-      const allowed = await eligible(personId, db);
+      const allowed = await isEligibleToPlay(personId, db);
       const [row] = await db
         .select()
         .from(panalGame)
@@ -93,7 +103,7 @@ export async function getTodayPanal(personId: string): Promise<TodayPanal> {
               : "AVAILABLE";
       return {
         day,
-        nextAvailableAt: nextWordleAt(day),
+        nextAvailableAt: nextDayAt(day),
         checkpointsEnabled: hasPanalCheckpoints(day),
         availability,
         puzzle: puzzle ? panalPuzzleView(puzzle) : null,
@@ -101,23 +111,6 @@ export async function getTodayPanal(personId: string): Promise<TodayPanal> {
       };
     },
     { isolationLevel: "repeatable read", accessMode: "read only" },
-  );
-}
-
-async function lockTerm(ctx: CommandContext, termId: string): Promise<boolean> {
-  try {
-    await lockOpenTermPoints(ctx.tx, termId);
-    return true;
-  } catch (error) {
-    if (error instanceof DomainError && (await getTerm(termId, ctx.tx))?.pointsClosedAt)
-      return false;
-    throw error;
-  }
-}
-
-async function lockPerson(ctx: CommandContext, personId: string) {
-  await ctx.tx.execute(
-    sql`select pg_advisory_xact_lock(hashtextextended(${`panal:${personId}`}, 0))`,
   );
 }
 
@@ -141,12 +134,12 @@ async function grantRewards(
   const delta = checkpoints.reduce((sum, checkpoint) => sum + checkpoint.points, 0);
   if (game.points + delta > PANAL_REWARD) throw new Error("Premio de Panal inconsistente");
   for (const checkpoint of checkpoints) {
-    await ctx.tx.insert(pointEntry).values({
+    await creditGame(ctx, {
+      game: "PANAL",
+      runId: row.id,
+      checkpoint: checkpoint.id,
       personId: row.personId,
       termId: row.termId,
-      panalGameId: row.id,
-      panalCheckpoint: checkpoint.id,
-      kind: "PANAL",
       points: checkpoint.points,
       reason:
         checkpoint.id === null
@@ -158,7 +151,6 @@ async function grantRewards(
                   ? t("T-3003")
                   : t("T-3002", { n: checkpoint.id === 1 ? 5 : 10 }),
             }),
-      createdById: row.personId,
     });
     const payload = {
       personId: row.personId,
@@ -212,14 +204,13 @@ async function grantRewards(
 export async function startPanalAs(actor: MemberActor, expectedDay: string): Promise<PanalResult> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(expectedDay)) return { ok: false, reason: "INVALID_INPUT" };
   return runCommand(actor, async (ctx): Promise<PanalResult> => {
-    const current = await findTermContaining(wordleDay(), ctx.tx);
-    if (!current) return { ok: false, reason: "NO_TERM" };
-    const open = await lockTerm(ctx, current.id);
-    await lockPerson(ctx, actor.personId);
-    const day = wordleDay();
-    if (day !== expectedDay) return { ok: false, reason: "EXPIRED" };
-    if (!(await eligible(actor.personId, ctx.tx))) return { ok: false, reason: "NOT_ELIGIBLE" };
-    if (!open) return { ok: false, reason: "TERM_CLOSED" };
+    const start = await startDailyGame(ctx, DAILY_RULES, {
+      personId: actor.personId,
+      now: () => new Date(),
+      expectedDay,
+    });
+    if (!start.ok) return { ok: false, reason: start.reason };
+    const { day, term: current } = start;
     const [existing] = await ctx.tx
       .select()
       .from(panalGame)
@@ -271,8 +262,10 @@ export async function submitPanalWordAs(actor: MemberActor, raw: unknown): Promi
     .limit(1);
   if (!ref) return { ok: false, reason: "NOT_FOUND" };
   return runCommand(actor, async (ctx): Promise<PanalResult> => {
-    const open = await lockTerm(ctx, ref.termId);
-    await lockPerson(ctx, actor.personId);
+    const open = await lockDailyGame(ctx, DAILY_RULES, {
+      personId: actor.personId,
+      termId: ref.termId,
+    });
     const [row] = await ctx.tx
       .select()
       .from(panalGame)
@@ -283,11 +276,13 @@ export async function submitPanalWordAs(actor: MemberActor, raw: unknown): Promi
     // La palabra es la clave idempotente: también reconoce una respuesta de red perdida.
     if (game.words.includes(word)) return { ok: true, game, added: false };
     const now = new Date();
-    if (row.day !== wordleDay(now)) return { ok: false, reason: "EXPIRED", game };
-    if (!open || (await findTermContaining(row.day, ctx.tx))?.id !== row.termId)
-      return { ok: false, reason: "TERM_CLOSED", game };
-    if (!(await eligible(actor.personId, ctx.tx)))
-      return { ok: false, reason: "NOT_ELIGIBLE", game };
+    const refusal = await refusalToContinue(ctx, DAILY_RULES, {
+      personId: actor.personId,
+      game: row,
+      open,
+      now,
+    });
+    if (refusal) return { ok: false, reason: refusal, game };
     const puzzle = getPanalPuzzle(row.dictionaryVersion, row.puzzleId);
     if (!puzzle || !isSupportedPanalRules(row.rulesVersion))
       return { ok: false, reason: "DICTIONARY_UNAVAILABLE", game };

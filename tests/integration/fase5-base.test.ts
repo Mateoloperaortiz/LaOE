@@ -14,17 +14,16 @@ import {
   getMyMembership,
   hasLiveConsent,
 } from "@/modules/people";
-import { consent, membership, person, personTag, tag } from "@/modules/people/schema";
+import { consent, membership, person, personTag } from "@/modules/people/schema";
 import { outbox } from "@/modules/system/schema";
 import { ensureNextTerm, findTermByCode, getTerm, nextTermCode } from "@/modules/terms";
 import { t } from "@/shared/copy";
-import { copyPattern } from "../helpers/copy";
-import { truncateAll } from "./db";
 import {
   seedCall,
   seedCallEntry,
   seedCard,
   seedCommittee,
+  seedConsent,
   seedForm,
   seedMember,
   seedOrganization,
@@ -32,9 +31,12 @@ import {
   seedPipeline,
   seedRequest,
   seedSubmission,
+  seedTag,
   seedTerm,
   seedWorkGroup,
-} from "./factories";
+} from "../factories";
+import { copyPattern } from "../helpers/copy";
+import { truncateAll } from "./db";
 
 // Fase 5, tramo 1 (ADR-037): restricciones del esquema 0007, "dar de alta" y el vínculo por correo.
 
@@ -219,20 +221,21 @@ describe("vínculo por correo y etiquetas aditivas", () => {
 
   it("suma etiquetas sin quitar las que ya tiene y registra el consentimiento de tratamiento de datos", async () => {
     const personId = await seedPerson("etiquetada@eafit.edu.co");
-    const [a] = await getDb().insert(tag).values({ name: "Convocatoria 2026-2" }).returning();
-    const [b] = await getDb().insert(tag).values({ name: "Diseño" }).returning();
-    if (!a || !b) throw new Error("tags");
-    await runCommand(admin, (ctx) => addPersonTags(ctx, personId, [a.id]));
-    const added = await runCommand(admin, (ctx) => addPersonTags(ctx, personId, [a.id, b.id]));
+    const a = await seedTag("Convocatoria 2026-2");
+    const b = await seedTag("Diseño");
+    await runCommand(admin, (ctx) => addPersonTags(ctx, personId, [a]));
+    const added = await runCommand(admin, (ctx) => addPersonTags(ctx, personId, [a, b]));
     expect(added).toBe(1);
     expect(
       await getDb().select().from(personTag).where(eq(personTag.personId, personId)),
     ).toHaveLength(2);
-    const [row] = await getDb()
-      .insert(consent)
-      .values({ personId, purpose: "DATA_PROCESSING", source: "FORM", policyVersion: "prueba-v1" })
-      .returning();
-    expect(row?.purpose).toBe("DATA_PROCESSING");
+    await seedConsent(personId, "DATA_PROCESSING", "FORM");
+    expect(
+      await getDb()
+        .select({ purpose: consent.purpose, source: consent.source })
+        .from(consent)
+        .where(eq(consent.personId, personId)),
+    ).toEqual([{ purpose: "DATA_PROCESSING", source: "FORM" }]);
     expect(await hasLiveConsent(personId, "DATA_PROCESSING")).toBe(true);
   });
 });

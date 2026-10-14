@@ -3,6 +3,7 @@ import { tList as tListServer, t as tServer } from "@/shared/copy";
 import { t, tList } from "@/shared/copy/client";
 import { fillCopy, splitCopyList } from "@/shared/copy/format";
 import { textosCliente } from "@/shared/copy/textos.client.generated";
+import { textos } from "@/shared/copy/textos.generated";
 
 describe("formato del inventario de textos", () => {
   it("reemplaza las variables y deja intacta la que no recibe valor", () => {
@@ -22,5 +23,20 @@ describe("formato del inventario de textos", () => {
       expect(t(code)).toBe(tServer(code));
       expect([...tList(code)]).toEqual([...tListServer(code)]);
     }
+  });
+
+  // DT-122: T-189 traía `{aprobada/rechazada}`, que `fillCopy` no reconoce, y el push de la respuesta a
+  // una solicitud salía con el marcador crudo. Lo que el inventario escribe entre llaves es una variable:
+  // si `fillCopy` no la sabe reemplazar con su propio nombre, el texto llega así a quien lo lee.
+  it("todo marcador del inventario es uno que fillCopy sabe reemplazar", () => {
+    const stuck: string[] = [];
+    for (const [code, entry] of Object.entries(textos)) {
+      for (const [marker, name = ""] of entry.text.matchAll(/\{([^{}]*)\}/g)) {
+        if (fillCopy(marker, { [name.trim()]: "valor" }) !== "valor") {
+          stuck.push(`${code}: ${marker}`);
+        }
+      }
+    }
+    expect(stuck).toEqual([]);
   });
 });

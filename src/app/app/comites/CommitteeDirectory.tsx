@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useId, useRef, useState } from "react";
 import { LogoComite } from "@/shared/brand/LogoComite";
 import { t } from "@/shared/copy/client";
+import { stripAccents } from "@/shared/lib/accents";
 import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
 import { SearchIcon } from "@/shared/ui/icons/SearchIcon";
 import styles from "./committees.module.css";
@@ -17,7 +18,7 @@ type Committee = {
 };
 
 function normalize(value: string) {
-  return value.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("es");
+  return stripAccents(value).toLocaleLowerCase("es");
 }
 
 function CommitteeCard({ item, own = false }: { item: Committee; own?: boolean }) {

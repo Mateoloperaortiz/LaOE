@@ -14,8 +14,8 @@ import {
   revokeConsent,
 } from "@/modules/people/domain/consents";
 import { auditLog, outbox } from "@/modules/system/schema";
+import { seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 describe("consentimientos", () => {
   beforeEach(truncateAll);
@@ -70,7 +70,7 @@ describe("cargos de junta y de GH", () => {
     );
     const listed = await listAppointments(personId);
     expect(listed.map((item) => item.title ?? item.kind).sort()).toEqual(["Tesorería", "VP_GH"]);
-    await runCommand(SYSTEM_ACTOR, (ctx) => removeAppointment(ctx, added.id));
+    await runCommand(SYSTEM_ACTOR, (ctx) => removeAppointment(ctx, added.id, { personId }));
     expect((await listAppointments(personId)).map((item) => item.kind)).toEqual(["OTHER"]);
   });
 });

@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { cache } from "react";
 import { getDb } from "@/db/client";
 import { listAllTerms } from "@/modules/terms";
 import { committee, membership, membershipTerm, person } from "../schema";
@@ -44,7 +45,7 @@ export interface Person360 {
   }>;
 }
 
-export async function getPerson360(id: string): Promise<Person360 | null> {
+async function loadPerson360(id: string): Promise<Person360 | null> {
   const db = getDb();
   const [who] = await db.select().from(person).where(eq(person.id, id)).limit(1);
   if (!who) {
@@ -129,3 +130,9 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
     probation,
   };
 }
+
+/**
+ * La Persona 360 de un request: el título de la pantalla y la pantalla la piden cada uno por su lado
+ * y dentro de un render comparten la lectura (ADR-121 regla 11). Fuera de un render, cada llamada lee.
+ */
+export const getPerson360 = cache(loadPerson360);

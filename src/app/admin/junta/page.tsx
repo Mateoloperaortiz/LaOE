@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { single } from "@/app/_lib/search";
+import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
+import { exportLimitNotice } from "@/app/admin/_kit/export-limit-notice";
 import { requireBoardActor } from "@/modules/identity";
-import { boardIndicators } from "@/modules/permanence";
+import { boardExportRows, boardIndicators } from "@/modules/permanence";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
@@ -96,6 +98,9 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
         </div>
       </header>
 
+      <DownloadNotice searchParams={search} />
+      {/* Las filas de `/api/export/junta`: las arma y las cuenta la misma función. */}
+      {exportLimitNotice(boardExportRows(data).length)}
       {empty ? <p className="text-tinta-suave">{t("T-827")}</p> : null}
 
       <dl className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">

@@ -151,6 +151,23 @@ describe("adaptador Apple Wallet", () => {
     delete env.APPLE_PASS_KEY_BASE64;
     expect(isApplePassConfigured()).toBe(false);
     await expect(signPass({ files: {}, props: {} })).rejects.toThrow("sin configurar");
+    // El motivo va aparte del mensaje: es lo que la ruta registra (DT-228, ADR-120 regla 13).
+    await expect(signPass({ files: {}, props: {} })).rejects.toMatchObject({
+      reason: "NOT_CONFIGURED",
+    });
+  });
+
+  it("un certificado que no firma lo dice con su motivo, sin el error del proveedor", async () => {
+    const unusable = Buffer.from("certificado-sintetico-que-no-firma");
+    await expect(
+      signPass(
+        { files: {}, props: {} },
+        { wwdr: unusable, signerCert: unusable, signerKey: unusable },
+      ),
+    ).rejects.toMatchObject({
+      reason: "SIGNING_FAILED",
+      message: "No se pudo firmar el pase de Apple Wallet",
+    });
   });
 });
 
@@ -231,12 +248,20 @@ describe("adaptador Google Wallet", () => {
     await expect(googleWalletRequest("GET", "genericClass/test")).rejects.toThrow(
       "autorización HTTP 400",
     );
+    // Una credencial que Google no acepta y un Google que no responde llevan motivos distintos.
+    await expect(googleWalletRequest("GET", "genericClass/test")).rejects.toMatchObject({
+      reason: "PROVIDER_AUTH",
+      status: 400,
+    });
     setGoogleWalletTransportForTests(async () => {
       throw new Error("secreto-del-transporte");
     });
     await expect(googleWalletRequest("GET", "genericClass/test")).rejects.toThrow(
       "Google Wallet no respondió dentro del plazo",
     );
+    await expect(googleWalletRequest("GET", "genericClass/test")).rejects.toMatchObject({
+      reason: "PROVIDER_UNREACHABLE",
+    });
   });
 
   it("limita también OAuth a diez segundos mediante AbortSignal", async () => {
@@ -276,6 +301,19 @@ describe("adaptador Google Wallet", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("una llave que no firma lo dice con su motivo y no llega al transporte", async () => {
+    env.GOOGLE_WALLET_SA_KEY_BASE64 = Buffer.from("llave-sintetica-que-no-firma").toString(
+      "base64",
+    );
+    const fake = vi.fn();
+    setGoogleWalletTransportForTests(fake);
+    await expect(googleWalletRequest("GET", "genericClass/test")).rejects.toMatchObject({
+      reason: "SIGNING_FAILED",
+      message: "No se pudo firmar el token de Google Wallet",
+    });
+    expect(fake).not.toHaveBeenCalled();
+  });
+
   it("sin credenciales falla antes del transporte", async () => {
     delete env.GOOGLE_WALLET_SA_KEY_BASE64;
     expect(isGoogleWalletConfigured()).toBe(false);
@@ -283,6 +321,9 @@ describe("adaptador Google Wallet", () => {
     setGoogleWalletTransportForTests(fake);
     expect(() => signSaveJwt({})).toThrow("sin configurar");
     await expect(googleWalletRequest("GET", "genericClass/test")).rejects.toThrow("sin configurar");
+    await expect(googleWalletRequest("GET", "genericClass/test")).rejects.toMatchObject({
+      reason: "NOT_CONFIGURED",
+    });
     expect(fake).not.toHaveBeenCalled();
   });
 });

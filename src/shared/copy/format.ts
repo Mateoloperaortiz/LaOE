@@ -20,3 +20,58 @@ export function splitCopyList(text: string): string[] {
 export type SplitCopyList<Text extends string> = Text extends `${string}·${infer Rest}`
   ? [string, ...SplitCopyList<Rest>]
   : [string];
+
+/**
+ * Las etiquetas de un enum, por valor (ADR-126 regla 3). El objeto no hereda de `Object.prototype`:
+ * un valor que el enum no trae, `constructor` o `__proto__` incluidos, da `undefined` y entra el
+ * respaldo del sitio que lo lee.
+ */
+export type CopyLabels<Value extends string> = { readonly [Key in Value]: string };
+
+/**
+ * Lo que `tLabels` le pide a su enum: ser una tupla con tantos valores como piezas trae la lista. Si
+ * lo es no agrega nada; si no, el argumento no compila y el error trae el motivo. Los largos se
+ * comparan en las dos direcciones y sin repartir una unión: con un código en unión el largo de la
+ * lista es `3 | 4`, y un enum de tres valores no es el par de las dos listas.
+ */
+export type PairedWithList<
+  List extends readonly string[],
+  Values extends readonly string[],
+> = number extends List["length"]
+  ? "tLabels pide el código de la lista como literal: sin él no se conoce su largo"
+  : number extends Values["length"]
+    ? "tLabels pide el enum como tupla: declaralo `as const`"
+    : [Values["length"]] extends [List["length"]]
+      ? [List["length"]] extends [Values["length"]]
+        ? unknown
+        : "la lista y el enum no tienen el mismo largo"
+      : "la lista y el enum no tienen el mismo largo";
+
+/**
+ * Empareja cada valor con la pieza de su posición: el único sitio que lo hace (ADR-081 regla 5). Un
+ * valor sin pieza queda sin etiqueta; los tipos de `tLabels` no dejan que pase.
+ */
+export function pairCopyLabels(
+  list: readonly string[],
+  values: readonly string[],
+): Readonly<Record<string, string>> {
+  const labels: Record<string, string> = Object.create(null);
+  values.forEach((value, index) => {
+    const label = list[index];
+    if (label !== undefined) {
+      labels[value] = label;
+    }
+  });
+  return labels;
+}
+
+/**
+ * Las etiquetas que un componente de cliente recibió por props. React solo deja pasar objetos llanos
+ * del servidor al navegador, así que llegan heredando de `Object.prototype`: esta copia vuelve a no
+ * heredar, y un valor ajeno (`constructor`) da `undefined` como en el `Record` de `tLabels`.
+ */
+export function labelsFromProps(
+  labels: Readonly<Record<string, string>>,
+): Readonly<Record<string, string>> {
+  return Object.assign(Object.create(null), labels);
+}

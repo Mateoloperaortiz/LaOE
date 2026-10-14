@@ -5,7 +5,6 @@ import { createTaskAs, dashboardForAdmin, moveCardAs } from "@/modules/crm";
 import { pipeline } from "@/modules/crm/schema";
 import { countDeadLetters } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
-import { truncateAll } from "./db";
 import {
   seedCall,
   seedCard,
@@ -15,7 +14,8 @@ import {
   seedRequest,
   seedTerm,
   seedWorkGroup,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Tablero del inicio del admin (ADR-037 regla 11): lo que crm reúne para ADMIN y el conteo de
 // trabajos con error que compone la página.

@@ -1,9 +1,9 @@
-import { searchOrganizations } from "@/modules/crm";
+import { ORGANIZATION_KINDS, searchOrganizations } from "@/modules/crm";
 import { getActor } from "@/modules/identity";
 import { searchOccasions } from "@/modules/participation";
 import { searchCommittees, searchPeople } from "@/modules/people";
 import type { PaletteResult } from "@/shared/admin-kit";
-import { tList } from "@/shared/copy";
+import { tLabels } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 
 // Paleta ⌘K: personas, comités, ocasiones y organizaciones por similitud (pg_trgm). Es solo de ADMIN,
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     searchOccasions(q),
     searchOrganizations(q),
   ]);
-  const kindLabels = tList("T-949");
+  const kindLabels: Readonly<Record<string, string>> = tLabels("T-949", ORGANIZATION_KINDS);
   const results: PaletteResult[] = [
     ...people.map((item) => ({
       type: "person",
@@ -57,7 +57,7 @@ export async function GET(request: Request) {
       type: "organization",
       id: item.id,
       title: item.name,
-      subtitle: `${kindLabels[["COMPANY", "EAFIT_UNIT", "STUDENT_GROUP", "OTHER"].indexOf(item.kind)] ?? item.kind} · ${item.contactCount}`,
+      subtitle: `${kindLabels[item.kind] ?? item.kind} · ${item.contactCount}`,
       href: `/admin/organizaciones/${item.id}`,
     })),
   ];

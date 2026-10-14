@@ -35,26 +35,37 @@ import { boardResource, complianceResource, workGroupsResource } from "@/modules
 import { listAllTerms } from "@/modules/terms";
 import { termsResource } from "@/modules/terms/admin";
 import type { AnyResource } from "@/shared/admin-kit";
-import { indexResources, type ResourceDefinition } from "@/shared/admin-kit/types";
+import {
+  type FieldDefinition,
+  indexResources,
+  type ResourceDefinition,
+} from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
+
+// Lo que comparten los recursos que se componen acá: los campos del recurso del módulo, que pueden ser
+// una lista o una función que los lee de la base, y los comités como opciones de un selector.
+function baseFields(resource: {
+  fields: FieldDefinition[] | (() => Promise<FieldDefinition[]>);
+}): Promise<FieldDefinition[]> | FieldDefinition[] {
+  return typeof resource.fields === "function" ? resource.fields() : resource.fields;
+}
+
+async function committeeOptions() {
+  return (await listCommitteesForSelection()).map((item) => ({ value: item.id, label: item.name }));
+}
 
 // La cartelera gana el comité de su cartelera interna (ADR-036): `content` no importa `people`, así que
 // el selector de comités se compone aquí, en la capa de la app.
 const carteleraResource = {
   ...announcementsResource,
   fields: async () => [
-    ...(typeof announcementsResource.fields === "function"
-      ? await announcementsResource.fields()
-      : announcementsResource.fields),
+    ...(await baseFields(announcementsResource)),
     {
       name: "committeeId",
       label: t("T-838"),
       type: "select" as const,
       emptyOption: t("T-839"),
-      options: (await listCommitteesForSelection()).map((item) => ({
-        value: item.id,
-        label: item.name,
-      })),
+      options: await committeeOptions(),
     },
   ],
   toFormValues: (row: Parameters<typeof announcementsResource.toFormValues>[0]) => ({
@@ -63,13 +74,17 @@ const carteleraResource = {
   }),
 };
 
-// Las ediciones ganan la columna de inscritos (ADR-037): `events` no importa `forms`, así que el conteo
-// se compone aquí sobre el listado.
+// Las ediciones ganan la columna de inscritos (ADR-037) y las opciones de sus comités organizadores
+// (ADR-110): `events` no importa `forms` ni `people`, así que el conteo y el selector se componen aquí.
 type EditionRowWithRegistrations = Parameters<typeof editionsResource.exportRow>[0] & {
   registrations: number;
 };
 export const edicionesResource = {
   ...editionsResource,
+  fields: async () => {
+    const [fields, options] = await Promise.all([baseFields(editionsResource), committeeOptions()]);
+    return fields.map((field) => (field.name === "committeeIds" ? { ...field, options } : field));
+  },
   columns: [
     ...editionsResource.columns,
     {
@@ -98,7 +113,7 @@ export const convocatoriasResource = {
   ...callsResource,
   fields: async () => {
     const [fields, groups, terms] = await Promise.all([
-      typeof callsResource.fields === "function" ? callsResource.fields() : callsResource.fields,
+      baseFields(callsResource),
       listGroupOptions(),
       listAllTerms(),
     ]);
@@ -194,4 +209,9 @@ const resources = indexResources(registered);
 
 export function getResource(key: string): AnyResource | null {
   return resources.get(key) ?? null;
+}
+
+/** Todos los recursos registrados: para lo que se comprueba sobre el registro entero. */
+export function listResources(): readonly AnyResource[] {
+  return registered;
 }

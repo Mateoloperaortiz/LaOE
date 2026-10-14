@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { downloadHref } from "@/app/_lib/download";
 import { single } from "@/app/_lib/search";
+import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import {
   getChallengeAdmin,
@@ -16,7 +18,7 @@ import { ResourcePanel } from "@/shared/admin-kit";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { annulAction, reviewAction } from "../../revision/actions";
 import {
@@ -30,6 +32,10 @@ import {
 // previa de miembro, acciones de ciclo de vida y la tabla de participantes con revisión.
 
 export const metadata: Metadata = { title: tList("T-2405")[1] ?? "" };
+
+// Los estados que T-2410 nombra, en su orden. Uno que no está entre ellos (una entrega anulada)
+// muestra su código: es el respaldo de siempre (decisión abierta 75).
+const MEMBER_STATES = ["AVAILABLE", "SENT", "PENDING", "COMPLETED", "REJECTED", "EXPIRED"] as const;
 
 type Search = Record<string, string | string[] | undefined>;
 
@@ -59,7 +65,7 @@ export default async function RetoPage({
   const locked = challenge.status !== "DRAFT";
   const actions = tList("T-2510");
   const participantColumns = tList("T-2518");
-  const participationStates = tList("T-2410");
+  const participationStates: Readonly<Record<string, string>> = tLabels("T-2410", MEMBER_STATES);
   const imageStates = tList("T-2527");
   const reviewActions = tList("T-2525");
   const granted = challenge.status !== "CANCELLED" ? await hasGrantedRewards(id) : false;
@@ -79,8 +85,6 @@ export default async function RetoPage({
       .map((row) => row.participation.decidedById)
       .filter((id): id is string => id !== null),
   );
-  const statusIndex = (status: string) =>
-    ["AVAILABLE", "SENT", "PENDING", "COMPLETED", "REJECTED", "EXPIRED"].indexOf(status);
 
   return (
     <div className="flex max-w-4xl flex-col gap-8">
@@ -103,6 +107,7 @@ export default async function RetoPage({
         </div>
       </header>
 
+      <DownloadNotice searchParams={search} />
       <form action={saveChallengeAction} className="flex flex-col gap-6">
         <AdminFormBody>
           <input type="hidden" name="id" value={id} />
@@ -240,8 +245,7 @@ export default async function RetoPage({
                       {row.personName}
                     </td>
                     <td data-label={participantColumns[1]} className="py-2 pr-4">
-                      {participationStates[statusIndex(row.participation.status)] ??
-                        row.participation.status}
+                      {participationStates[row.participation.status] ?? row.participation.status}
                     </td>
                     <td data-label={participantColumns[2]} className="py-2 pr-4 whitespace-nowrap">
                       {formatDateTime(row.participation.submittedAt)}
@@ -296,14 +300,16 @@ export default async function RetoPage({
                             <li key={file.id}>
                               {file.status === "READY" ? (
                                 <Link
-                                  href={`/api/retos/evidencia/${file.id}`}
+                                  href={downloadHref(`/api/retos/evidencia/${file.id}`, back)}
                                   className="underline"
                                 >
                                   {file.objectKey}
                                 </Link>
                               ) : (
                                 <span className="text-tinta-suave">
-                                  {file.status === "PENDING" ? imageStates[0] : imageStates[1]}
+                                  {file.status === "PENDING"
+                                    ? imageStates[0]
+                                    : `${imageStates[1]}${file.error ? `: ${file.error}` : ""}`}
                                 </span>
                               )}
                             </li>

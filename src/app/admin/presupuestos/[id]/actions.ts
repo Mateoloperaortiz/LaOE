@@ -130,9 +130,11 @@ export async function decideApprovalAction(formData: FormData): Promise<void> {
     redirect(`${base(id)}?error=${encodeURIComponent("T-260")}`);
   }
   await run(id, () =>
-    decideEventApprovalAs(actor, parsed.data.approvalId, {
-      decision: parsed.data.decision,
-      note: parsed.data.note,
-    }),
+    decideEventApprovalAs(
+      actor,
+      parsed.data.approvalId,
+      { decision: parsed.data.decision, note: parsed.data.note },
+      { budgetId: id },
+    ),
   );
 }

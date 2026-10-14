@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import type { Executor, Tx } from "@/db/tx";
+import { type CommandContext, type Executor, runCommand, SYSTEM_ACTOR, type Tx } from "@/db/tx";
 import { membership, person } from "../schema";
 import type { MembershipStatus } from "./reads";
 
@@ -29,14 +29,83 @@ export async function getWalletMemberState(
   return row ?? null;
 }
 
+/** El prefijo de la clave del candado consultivo del ciclo de membresía: `wallet-member:<persona>`. */
+const LOCK_PREFIX = "wallet-member:";
+
 /**
- * Serializa el ciclo de membresía con la emisión y rotación de credenciales. Se adquiere antes de
- * cualquier lock de filas y solo dentro de transacciones cortas: nunca cubre llamadas a Google.
+ * El candado del ciclo de membresía de una persona (ADR-120 regla 3): serializa todo lo que cambia su
+ * membresía, sus comités, sus cargos, sus permisos y sus enlaces con la emisión y rotación de
+ * credenciales. Se adquiere antes de cualquier lock de filas y solo dentro de transacciones cortas:
+ * nunca cubre llamadas a Google.
+ *
+ * La clave conserva `wallet-member:` de cuando solo cuidaba la billetera (ADR-123 regla 23): con otra
+ * clave, la versión vieja y la nueva de la casa tomarían candados distintos mientras conviven en un
+ * despliegue.
  */
-export async function lockWalletMember(
+export async function lockMembershipCycle(
   tx: Tx,
   personId: string,
 ): Promise<WalletMemberState | null> {
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`wallet-member:${personId}`}))`);
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${LOCK_PREFIX}${personId}`}))`);
   return getWalletMemberState(tx, personId);
+}
+
+/**
+ * El consultivo de varias personas, de menor a mayor `id`, y el estado de cada una leído con su
+ * candado ya tomado (ADR-122 regla 5). Es el orden de todo el que retiene más de uno a la vez: la
+ * emisión de un enlace (el destinatario y quien emite) y la importación del roster (las personas de
+ * su archivo). Tomados cada uno a su manera, dos de ellos tienen el que el otro espera y PostgreSQL
+ * corta a uno por interbloqueo.
+ */
+export async function lockMembershipCycles(
+  tx: Tx,
+  personIds: readonly string[],
+): Promise<Map<string, WalletMemberState | null>> {
+  const states = new Map<string, WalletMemberState | null>();
+  for (const personId of [...new Set(personIds)].sort()) {
+    states.set(personId, await lockMembershipCycle(tx, personId));
+  }
+  return states;
+}
+
+/**
+ * El mismo candado para quien llega con el correo y no con el `id` (el roster; ADR-120 regla 3):
+ * resuelve a la persona y toma su consultivo en una sola sentencia, sin tocar todavía su fila.
+ * Responde el `id` cuyo candado quedó tomado, o `null` si nadie tiene ese correo. El correo pudo
+ * cambiar de dueño mientras se esperaba: quien llama vuelve a leer la fila con el candado tomado.
+ */
+export async function lockMembershipCycleByEmail(tx: Tx, email: string): Promise<string | null> {
+  const [row] = await tx
+    .select({
+      id: person.id,
+      locked: sql`pg_advisory_xact_lock(hashtext(${LOCK_PREFIX}::text || ${person.id}))`,
+    })
+    .from(person)
+    .where(eq(person.email, email));
+  return row?.id ?? null;
+}
+
+/**
+ * Corre `purge` solo si la baja de la persona sigue vigente (ADR-118 regla 5). El evento de una baja
+ * dice cómo quedó la persona cuando se emitió, y el poller lo puede entregar o reintentar después de
+ * que volvió: acá se toma el candado del ciclo de membresía, se lee el estado de ahora y `purge` borra
+ * en esa misma transacción, a nombre del sistema. Un alta que llegue mientras tanto espera a que el
+ * borrado confirme; una que ya confirmó deja a `purge` sin correr y la respuesta es `null`.
+ *
+ * Quien no tiene membresía no está adentro: a esa persona también se le borra.
+ *
+ * `purge` escribe con la transacción que recibe. Nada de lo que llame puede tomar este mismo candado
+ * desde otra conexión, o se queda esperándose a sí mismo.
+ */
+export async function purgeIfMembershipEnded<Purged>(
+  personId: string,
+  purge: (ctx: CommandContext) => Promise<Purged>,
+): Promise<Purged | null> {
+  return runCommand(SYSTEM_ACTOR, async (ctx) => {
+    const state = await lockMembershipCycle(ctx.tx, personId);
+    if (state && state.status !== "INACTIVE") {
+      return null;
+    }
+    return purge(ctx);
+  });
 }

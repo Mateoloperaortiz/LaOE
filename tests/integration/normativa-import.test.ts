@@ -22,9 +22,9 @@ import { grantPermissionAs, listSessionsFor } from "@/modules/identity";
 import { changeMembershipStatus, getMemberSummary } from "@/modules/people";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { deleteObject, getObject } from "@/shared/adapters/storage";
+import { leaveUntilSoon, seedMember } from "../factories";
 import { sampleNormativaPdf } from "../helpers/pdf";
 import { truncateAll } from "./db";
-import { leaveUntilSoon, seedMember } from "./factories";
 
 const runFile = promisify(execFile);
 const root = fileURLToPath(new URL("../../", import.meta.url));

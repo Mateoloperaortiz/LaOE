@@ -215,3 +215,34 @@ export function campaignEligibility(input: EligibilityInput): Eligibility {
   }
   return { ok: true, address };
 }
+
+/** Por qué el lote omite a alguien justo antes de su correo (ADR-115 regla 7). */
+export type SendSkipReason = SkipReason | "ANONYMIZED";
+
+export interface SendEligibilityInput {
+  anonymized: boolean;
+  email: string | null;
+  personalEmail: string | null;
+  membershipStatus: string | null;
+  hasCommunicationsConsent: boolean;
+}
+
+export type SendEligibility = { ok: true; address: string } | { ok: false; reason: SendSkipReason };
+
+/**
+ * Elegibilidad al enviar (ADR-115 regla 7): la regla con la que se congeló la audiencia, aplicada a la
+ * persona como está ahora. Lo único que no se vuelve a mirar es la preferencia de campañas, que quedó
+ * congelada con la audiencia (ADR-038). Quien se anonimizó no recibe nada, tenga los datos que tenga.
+ */
+export function sendEligibility(input: SendEligibilityInput): SendEligibility {
+  if (input.anonymized) {
+    return { ok: false, reason: "ANONYMIZED" };
+  }
+  return campaignEligibility({
+    email: input.email,
+    personalEmail: input.personalEmail,
+    membershipStatus: input.membershipStatus,
+    emailCampaigns: true,
+    hasCommunicationsConsent: input.hasCommunicationsConsent,
+  });
+}

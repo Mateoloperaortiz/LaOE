@@ -3,9 +3,10 @@ import { and, asc, eq, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
 import { committee, person } from "@/modules/people/schema";
-import { permanenceRule, permanenceTable } from "@/modules/permanence/schema";
+import { permanenceTable } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedPermission, seedRule, seedTable } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -149,10 +150,7 @@ test.describe("líder", () => {
     slug = home.slug;
     committeeId = home.id;
     currentTermId = current.id;
-    await db
-      .insert(permission)
-      .values({ personId: member.id, code: "COMMITTEE_LEADER", committeeId: home.id })
-      .onConflictDoNothing();
+    await seedPermission(member.id, "COMMITTEE_LEADER", home.id);
     await closeDb();
   });
 
@@ -199,37 +197,26 @@ test.describe("líder", () => {
       .getByRole("link", { name: t("T-252") })
       .click();
     await expect(page.getByRole("dialog")).toContainText("e2e-Evento del comité");
-    const [ajena] = await getDb()
-      .insert(permanenceRule)
-      .values({
-        termId: currentTermId,
+    const ajena = {
+      id: await seedRule(currentTermId, "e2e-ajena", {
         scope: "GENERAL",
         committeeId: null,
-        key: "e2e-ajena",
         label: "e2e-Criterio ajeno",
         description: "",
         weight: 1,
         appliesTo: "ALL",
         computation: "MANUAL",
         params: {},
-      })
-      .returning({ id: permanenceRule.id });
+      }),
+    };
     await closeDb();
-    if (!ajena) throw new Error("sin criterio ajeno");
     await page.goto(`/admin/comites/${slug}/permanencia?accion=editar&regla=${ajena.id}`);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(copyPattern("T-818"));
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByText("e2e-Criterio ajeno")).toHaveCount(0);
 
     // GH bloquea la tabla (por SQL, como lo haría desde /admin/permanencia/reglas).
-    const db = getDb();
-    await db.insert(permanenceTable).values({
-      termId: currentTermId,
-      scope: "COMMITTEE",
-      committeeId,
-      lockedAt: new Date(),
-      comment: "e2e-bloqueo",
-    });
+    await seedTable(currentTermId, committeeId, { lockedAt: new Date(), comment: "e2e-bloqueo" });
     await closeDb();
     await page.reload();
     await expect(page.getByText(copyPattern("T-731"))).toBeVisible();

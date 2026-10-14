@@ -1,74 +1,38 @@
 // API pública del módulo participation (ADR-035, ADR-038).
 
-export { listAgendaForPerson, type PersonAgendaContext } from "./domain/agenda";
+export { listAgendaForPerson } from "./domain/agenda";
+export { agendaEntries } from "./domain/agenda-pure";
 export {
-  type AgendaEdition,
-  type AgendaEntry,
-  type AgendaOccasion,
-  agendaEntries,
-} from "./domain/agenda-pure";
-export {
-  type AdjustRequirementInput,
-  type AssemblyOverviewRow,
+  assemblyAdjustmentsFor,
   assemblyOverview,
   assemblyStatusFor,
   listTermAssemblies,
-  type PersonAssemblyStatus,
 } from "./domain/assemblies";
 export {
-  type AssemblyCompliance,
-  type AssemblyRequirementView,
-  assemblyCompliance,
-  defaultRequirement,
+  attendedRequired,
   requiredTotal,
+  termAssemblyRequirement,
 } from "./domain/assembly-pure";
 export {
   type AchievementRow,
-  awardSpecialBadge,
-  awardSpecialBadgesForChallenge,
-  awardSpecialBadgesForOccasion,
-  type BadgeCollection,
-  type BadgeDelta,
-  type BadgeFact,
   type BadgeRow,
-  badgeFactsFor,
   type CollectionFamily,
-  type CollectionLevel,
   collectionFor,
-  createSpecialBadge,
   listAchievementsForPerson,
   listBadgeCatalogAdmin,
   listFeaturedBadgesFor,
   listRevokedWithUsedBooster,
-  markSeen,
-  recomputeBadgesFor,
-  type SpecialBadgeInput,
-  setFeatured,
+  unseenBadgesFor,
 } from "./domain/badges";
 export {
-  type BoostCampaignRow,
-  type BoosterAdminRow,
-  type BoosterOrigin,
-  type BoosterRow,
   type BoosterTarget,
-  type BoosterTargetView,
   type BoosterView,
-  type CampaignAdminRow,
-  type CampaignAdminState,
-  type CampaignInput,
   campaignInputSchema,
-  cancelCampaign,
-  createCampaigns,
-  grantBoosterForAchievement,
-  grantBoosterManually,
   listActiveCampaignsForMember,
   listBoostersFor,
   listBoostersForTerm,
   listBoosterTargetsForMember,
   listCampaignsAdmin,
-  type MemberCampaignView,
-  revokeBooster,
-  setBoosterTarget,
 } from "./domain/boosters";
 export {
   ChallengeAlreadySubmitted,
@@ -76,19 +40,10 @@ export {
   EVIDENCE_TEXT_MIN,
   listParticipationsForPerson,
   listPendingReviews,
-  type ParticipationRow,
-  type PendingReviewRow,
   type SubmitResult,
 } from "./domain/challenge-participation";
 export {
-  type AdminParticipantRow,
-  type ChallengeAdminRow,
-  type ChallengeInput,
-  type ChallengeQuestionRow,
-  type ChallengeRow,
   challengeInputSchema,
-  type EvidenceFileRow,
-  findChallenge,
   getChallengeAdmin,
   getChallengeForMember,
   hasGrantedRewards,
@@ -101,15 +56,14 @@ export {
 export {
   CHECK_IN_SOURCES,
   CHECK_IN_STATUSES,
-  type CheckInDecision,
-  type CheckInOutcome,
   type CheckInSource,
   type CheckInStatus,
+  type SelfCheckInEligibilityDenial,
+  type SelfCheckInFacts,
+  selfCheckInEligibilityDenial,
 } from "./domain/check-in-pure";
 export {
-  type ApprovedCheckIn,
   type CheckInRow,
-  type ExcuseInput,
   excuseCheckIn,
   findCheckIn,
   listApprovedCheckInsForPersonInTerm,
@@ -118,16 +72,9 @@ export {
   listCheckInsForPerson,
   listExcusedCheckInsForPersonInTerm,
   listExcusedCheckInsForTerm,
-  type SelfCheckInDenial,
   type SelfCheckInResult,
 } from "./domain/check-ins";
-export {
-  closingSummary,
-  getTermStanding,
-  type StandingCommittee,
-  type StandingPerson,
-  type TermStandingView,
-} from "./domain/closing";
+export { closingSummary, getTermStanding } from "./domain/closing";
 export {
   adjustPointsAs,
   adjustRequirementAs,
@@ -141,49 +88,29 @@ export {
   decideManyAs,
   hostCheckInAs,
   openOccasionAs,
-  resolveOccasionContext,
   reverseEntryAs,
   rotateSecretAs,
   setRotatingCodeAs,
-  updateOccasionAs,
 } from "./domain/commands";
 export {
-  type AssemblyRepresentation,
   type CommitteeRepresentationSummary,
   listAssemblyRepresentation,
   listCommitteeRepresentation,
-  MAX_EXCUSED_ABSENCES,
-  type RepresentationLadder,
   recomputeCommitteeAssembly,
-  representationLadder,
 } from "./domain/committee-assembly";
-export { type CommitteeViability, listCommitteeViability } from "./domain/committee-viability";
+export { listCommitteeViability } from "./domain/committee-viability";
+export { VIABILITY_ALERTS } from "./domain/committee-viability-pure";
 export {
-  VIABILITY_ALERTS,
-  type ViabilityAlert,
-  type ViabilityInput,
-  viabilityAlerts,
-} from "./domain/committee-viability-pure";
-export {
-  deleteEvidenceFor,
   EVIDENCE_KEY_PATTERN,
-  EVIDENCE_KEY_PREFIX,
   EVIDENCE_MAX_BYTES,
   EVIDENCE_MAX_FILES,
   EVIDENCE_MIN_BYTES,
   EVIDENCE_TYPES,
   listEvidenceFilesFor,
-  type PreparedEvidenceUpload,
   prepareEvidenceUpload,
   resolveEvidenceRedirect,
-  verifyEvidenceObjects,
 } from "./domain/evidence";
-export {
-  type ChallengeParticipationExportRow,
-  type CheckInExportRow,
-  listCheckInsForExport,
-  listParticipationsForExport,
-} from "./domain/exports";
+export { listCheckInsForExport } from "./domain/exports";
 export {
   finishGame2048As,
   getTodayGame2048,
@@ -197,13 +124,11 @@ export {
   createCampaignsAs,
   createChallengeAs,
   createSpecialBadgeAs,
+  discardEvidenceUploadAs,
   duplicateChallengeAs,
-  type EvidenceSubmitInput,
   grantBoosterAs,
   markSeenAs,
   publishChallengeAs,
-  type ReviewInput,
-  recomputeBadgesForAs,
   resumeReconciliationAs,
   reviewParticipationAs,
   revokeBoosterAs,
@@ -212,135 +137,59 @@ export {
   startReconciliationAs,
   submitEvidenceAs,
   submitTriviaAs,
-  type TriviaSubmitInput,
   updateChallengeAs,
 } from "./domain/gamification-commands";
-export {
-  type GamificationOverview,
-  gamificationOverview,
-} from "./domain/gamification-metrics";
-export {
-  audienceIncludes,
-  badgeProgress,
-  boosterExpiresAt,
-  boosterPercent,
-  boosterState,
-  challengeState,
-  computeReward,
-  dayKeyFor,
-  GAMIFICATION_TIMEZONE,
-  gradeTrivia,
-  isVoluntaryOccasion,
-  memberChallengeStatus,
-  unlockedLevel,
-  weekKeyFor,
-} from "./domain/gamification-pure";
+export { gamificationOverview } from "./domain/gamification-metrics";
+export { isVoluntaryOccasion } from "./domain/gamification-pure";
 export {
   balanceFor,
   type LedgerListRow,
   listEntriesFor,
   listEntriesForPerson,
   listLedger,
-  type PointEntryRow,
 } from "./domain/ledger";
-export {
-  balance,
-  competitionRanks,
-  type Level,
-  levelFor,
-  POINT_ENTRY_KINDS,
-  type PointEntryKind,
-  type Ranked,
-} from "./domain/ledger-pure";
-export { buildLiveSnapshot, checkInLink, type LiveCheckIn, type LiveSnapshot } from "./domain/live";
-export {
-  type GamificationSettings,
-  loadGamificationSettings,
-  type MemberContext,
-  resolveMemberContext,
-} from "./domain/member-context";
+export { levelFor, POINT_ENTRY_KINDS, type PointEntryKind } from "./domain/ledger-pure";
+export { buildLiveSnapshot, checkInLink } from "./domain/live";
+export { type GamificationSettings, loadGamificationSettings } from "./domain/member-context";
 export {
   ASSEMBLY_KINDS,
-  type AssemblyKind,
   canOpenOccasion,
   OCCASION_CATEGORIES,
-  OCCASION_KINDS,
-  OCCASION_STATUSES,
   type OccasionCategory,
   type OccasionKind,
-  type OccasionStatus,
-  type WindowState,
   windowState,
 } from "./domain/occasion-pure";
 export {
-  countApproved,
-  countOpenOccasions,
   getOccasion,
   getOccasionByPublicId,
   getOccasionsByIds,
   listMemberAgenda,
   listOccasions,
   listOccasionsForTerm,
-  type OccasionInput,
   type OccasionListRow,
-  type OccasionRef,
   type OccasionRow,
   occasionInputSchema,
-  type SeriesInput,
   searchOccasions,
-  weeklyDates,
 } from "./domain/occasions";
 export { getTodayPanal, listPanalGamesFor, startPanalAs, submitPanalWordAs } from "./domain/panal";
-export { isPublicId, PUBLIC_ID } from "./domain/public-id-pure";
-export {
-  type Board,
-  type CommitteeScore,
-  type MyPosition,
-  myPosition,
-  type RankedPerson,
-  rankCommittees,
-  rankPeople,
-} from "./domain/rankings";
+export { isPublicId } from "./domain/public-id-pure";
+export { peopleBoards, rankCommittees } from "./domain/rankings";
 export {
   getReconciliationRun,
   listReconciliationRuns,
-  processReconciliationBatch,
-  RECONCILE_BATCH,
-  type ReconciliationReport,
-  type ReconciliationRunRow,
-  type ReportSampleEntry,
   reconciliationReport,
-  resumeReconciliation,
-  startReconciliation,
 } from "./domain/reconciliation";
-export { type RemindersResult, runReminders } from "./domain/reminders";
+export { runReminders } from "./domain/reminders";
 export {
-  type DueReminder,
-  type ReminderHours,
-  type ReminderOccasion,
-  type ReminderSlot,
-  reminderSlots,
-} from "./domain/reminders-pure";
-export {
-  countPendingGamification,
   grantReward,
   listRewardsForPerson,
-  type ReserveRewardInput,
-  type RewardRow,
   releaseReward,
   rereserveReward,
-  reserveAndGrantReward,
   reserveReward,
   reverseReward,
-  usedRewardPoints,
 } from "./domain/rewards";
 export { rotatingCodeAt, secondsUntilRotation } from "./domain/rotating-code-pure";
-export {
-  type CommitteeOccasionScore,
-  type CommitteeParticipationRow,
-  listCommitteeScores,
-  listOccasionScores,
-} from "./domain/scores";
+export { listCommitteeScores, listOccasionScores } from "./domain/scores";
 export {
   abandonSudokuAs,
   finishSudokuAs,
@@ -349,104 +198,32 @@ export {
   startSudokuAs,
 } from "./domain/sudoku";
 export {
-  type AnswerSurveyResult,
   answerSurveyAs,
-  type CommitteeSurveys,
-  type CreatedInvite,
   createSurveyInvites,
   getSurveyInviteForActor,
-  type OccasionSurveySummary,
-  type SurveyInviteState,
   surveySummary,
   surveySummaryForCommittee,
 } from "./domain/surveys";
-export {
-  type QuestionSummary,
-  SURVEY_TEXT_MIN,
-  type SurveySummary,
-  summarizeAnswers,
-} from "./domain/surveys-pure";
+export { SURVEY_TEXT_MIN } from "./domain/surveys-pure";
 export {
   getTodayWordle,
   listWordleGamesFor,
   startWordleAs,
   submitWordleGuessAs,
 } from "./domain/wordle";
-export { runWordleReminder, type WordleReminderResult } from "./domain/wordle-reminder";
-export {
-  applyGame2048Move,
-  GAME2048_MAX_MOVES,
-  GAME2048_REWARDS,
-  GAME2048_RULES_VERSION,
-  game2048Reward,
-  isGame2048Moves,
-  newGame2048,
-  replayGame2048,
-} from "./game2048-engine";
+export { runWordleReminder } from "./domain/wordle-reminder";
+export type { Game2048Result, Game2048StartResult } from "./game2048-types";
 export type {
-  FinishGame2048Input,
-  Game2048Denial,
-  Game2048Move,
-  Game2048Result,
-  Game2048RunView,
-  Game2048StartedView,
-  Game2048StartResult,
-  Game2048State,
-  Game2048Status,
-  StartGame2048Input,
-  TodayGame2048,
-} from "./game2048-types";
-export type {
-  BadgeFamily,
   BoosterKind,
   BoosterState,
-  BoosterStoredStatus,
-  CampaignPercent,
-  ChallengeAudience,
-  ChallengeKind,
   ChallengeState,
-  ChallengeStoredStatus,
   ChallengeSubmitReply,
-  EvidenceFileStatus,
   MemberChallengeStatus,
-  ParticipationStatus,
-  PersonalPercent,
-  RewardBreakdown,
-  RewardCaps,
-  RewardSource,
-  RewardStatus,
-  SubmitDenial,
 } from "./gamification-types";
 export {
   BADGE_FAMILIES,
   BOOSTER_KINDS,
   BOOSTER_STATES,
-  CHALLENGE_AUDIENCES,
   CHALLENGE_KINDS,
-  MEMBER_CHALLENGE_STATUSES,
-  PARTICIPATION_STATUSES,
 } from "./gamification-types";
-export type {
-  AbandonSudokuInput,
-  FinishSudokuInput,
-  StartSudokuInput,
-  SudokuDenial,
-  SudokuDifficulty,
-  SudokuPlay,
-  SudokuResult,
-  SudokuRunView,
-  SudokuStartedView,
-  SudokuStartResult,
-  SudokuStatus,
-  TodaySudoku,
-} from "./sudoku-types";
-export type {
-  SubmitWordleInput,
-  TodayWordle,
-  WordleAttemptView,
-  WordleDenial,
-  WordleGameView,
-  WordleLetterState,
-  WordleResult,
-  WordleStatus,
-} from "./wordle-types";
+export type { SudokuResult, SudokuStartResult } from "./sudoku-types";

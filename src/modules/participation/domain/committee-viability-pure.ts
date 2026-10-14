@@ -1,3 +1,5 @@
+import { daysBetween } from "@/shared/lib/dates-pure";
+
 // Viabilidad de un comité sin I/O (Regl. art. 25 y 26; ADR-060 regla 8): las causales de
 // desactivación que la app puede ver y los criterios del periodo de prueba, como avisos en el orden
 // de T-2264. La desactivación sigue siendo decisión de la junta.
@@ -12,7 +14,7 @@ export type ViabilityAlert =
   | "TRIAL_LOW_ATTENDANCE"
   | "TRIAL_ENDING";
 
-export const VIABILITY_ALERTS: readonly ViabilityAlert[] = [
+export const VIABILITY_ALERTS = [
   "FEW_DIRECTIONS",
   "MISSING_REQUIRED",
   "FEW_MEMBERS",
@@ -21,7 +23,7 @@ export const VIABILITY_ALERTS: readonly ViabilityAlert[] = [
   "TRIAL_FEW_MEMBERS",
   "TRIAL_LOW_ATTENDANCE",
   "TRIAL_ENDING",
-];
+] as const satisfies readonly ViabilityAlert[];
 
 /** Regl. art. 26: tres direcciones, seis miembros fuera de la mesa, tres faltas; art. 25: diez miembros y 90 %. */
 export const MIN_DIRECTIONS = 3;
@@ -47,13 +49,6 @@ export interface ViabilityInput {
   pastMidterm: boolean;
   trialEndsOn: string | null;
   todayKey: string;
-}
-
-function daysBetween(fromKey: string, toKey: string): number {
-  return Math.round(
-    (new Date(`${toKey}T00:00:00Z`).getTime() - new Date(`${fromKey}T00:00:00Z`).getTime()) /
-      86_400_000,
-  );
 }
 
 export function viabilityAlerts(input: ViabilityInput): ViabilityAlert[] {

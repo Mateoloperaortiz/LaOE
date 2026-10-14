@@ -1,3 +1,4 @@
+import { getDb } from "@/db/client";
 import { campaignStart, notificationRequested } from "@/domain-events/comms";
 import { announcementPushRequested } from "@/domain-events/content";
 import { callOpened, recognitionGranted, requestDecided } from "@/domain-events/crm";
@@ -13,6 +14,7 @@ import { membershipChanged, personAdmitted, personAnonymized } from "@/domain-ev
 import { permanenceDecided } from "@/domain-events/permanence";
 import { getEnv } from "@/env";
 import { type JobContext, onEvent, registerHandler } from "@/jobs/registry";
+import { purgeIfMembershipEnded } from "@/modules/people";
 import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { runCampaignTick } from "./domain/campaigns";
@@ -30,71 +32,94 @@ import {
   pushRequestDecided,
 } from "./domain/events";
 import { deleteMessagesFor } from "./domain/messages";
-import { deliverNotification } from "./domain/notify";
+import { type DeliveryStats, deliverNotification } from "./domain/notify";
 import { deletePreferencesFor } from "./domain/preferences";
 import { sendTransactionalEmail } from "./domain/send";
 import { deleteSubscriptionsFor } from "./domain/subscriptions";
+import { unlessAnonymized } from "./domain/unless-anonymized";
 
 // Handlers de comms (ADR-037 regla 12, ADR-038): los correos transaccionales de la fase 5 (bienvenida
 // T-200 y respuesta a una solicitud T-205), el bus de notificaciones y la limpieza al salir de la OE.
 
+/**
+ * Lo que un envío por push deja en el registro (ADR-118 regla 25). Si a alguien con dispositivo no le
+ * llegó a ninguno, es una advertencia y no dice «entregado». Las cuentas llevan el código con que
+ * respondió el servicio de push (`deviceFailures`), nunca el endpoint ni las claves del dispositivo.
+ */
+function logDelivery(ctx: JobContext, stats: DeliveryStats, deliveredMessage: string): void {
+  if (stats.failed > 0) {
+    ctx.log.warn(stats, "push sin entregar");
+    return;
+  }
+  ctx.log.info(stats, deliveredMessage);
+}
+
 // Bus de notificaciones (ADR-038 regla 2): cualquier módulo emite `notification.requested` con
 // destinatarios, textos, URL y clave; aquí se entrega por push respetando la preferencia de cada quien.
+// Un aviso que venció en la cola no se entrega (ADR-122 regla 9): lo decide el reloj del poller.
 onEvent(notificationRequested, async (payload, ctx) => {
-  const stats = await deliverNotification(payload);
-  ctx.log.info(stats, "notificación entregada");
+  const stats = await deliverNotification(payload, ctx.now);
+  if (stats.expired > 0) {
+    // Sin la persona ni la clave del aviso, que en algunos trae su id: el evento ya va en `outboxId`.
+    ctx.log.warn(
+      { kind: payload.kind, expiresAt: payload.expiresAt, expired: stats.expired },
+      "notificación vencida: no se entrega",
+    );
+    return;
+  }
+  logDelivery(ctx, stats, "notificación entregada");
 });
 
 // Push por evento (ADR-038 reglas 6 y 7).
 onEvent(announcementPushRequested, async (payload, ctx) => {
   const stats = await pushAnnouncement(payload);
-  ctx.log.info(stats, "push del anuncio entregado");
+  logDelivery(ctx, stats, "push del anuncio entregado");
 });
 
 onEvent(checkinApproved, async (payload, ctx) => {
   const stats = await pushPointsCredited(payload);
   if (stats) {
-    ctx.log.info(stats, "push de puntos entregado");
+    logDelivery(ctx, stats, "push de puntos entregado");
   }
 });
 
 onEvent(callOpened, async (payload, ctx) => {
   const stats = await pushCallOpened(payload);
-  ctx.log.info(stats, "push de convocatoria entregado");
+  logDelivery(ctx, stats, "push de convocatoria entregado");
 });
 
 // La titular se entera de que se emitió un enlace para su cuenta aunque el enlace se lo hayan
 // entregado a otra persona (ADR-051, amenaza aceptada).
 onEvent(accessGrantIssued, async (payload, ctx) => {
-  const stats = await pushAccessGrantIssued(payload);
-  ctx.log.info(stats, "push del enlace de acceso entregado");
+  const stats = await pushAccessGrantIssued(payload, ctx.id);
+  logDelivery(ctx, stats, "push del enlace de acceso entregado");
 });
 
 onEvent(recognitionGranted, async (payload, ctx) => {
   const stats = await pushRecognition(payload);
-  ctx.log.info(stats, "push de reconocimiento entregado");
+  logDelivery(ctx, stats, "push de reconocimiento entregado");
 });
 
 // Gamificación (ADR-067): reto publicado a su audiencia, decisión de la entrega e insignia nueva.
 onEvent(challengePublished, async (payload, ctx) => {
   const stats = await pushChallengePublished(payload);
-  ctx.log.info(stats, "push de reto publicado entregado");
+  logDelivery(ctx, stats, "push de reto publicado entregado");
 });
 
 onEvent(challengeCompleted, async (payload, ctx) => {
   const stats = await pushChallengeCompleted(payload);
-  ctx.log.info(stats, "push de reto completado entregado");
+  logDelivery(ctx, stats, "push de reto completado entregado");
 });
 
 onEvent(challengeRejected, async (payload, ctx) => {
   const stats = await pushChallengeRejected(payload);
-  ctx.log.info(stats, "push de reto rechazado entregado");
+  logDelivery(ctx, stats, "push de reto rechazado entregado");
 });
 
 onEvent(badgeUnlocked, async (payload, ctx) => {
   const stats = await pushBadgeUnlocked(payload);
   if (stats) {
-    ctx.log.info(stats, "push de insignia entregado");
+    logDelivery(ctx, stats, "push de insignia entregado");
   }
 });
 
@@ -121,20 +146,27 @@ async function campaignTick(ctx: JobContext): Promise<void> {
 registerHandler("comms.campaign-tick", (_payload, ctx) => campaignTick(ctx));
 onEvent(campaignStart, (_payload, ctx) => campaignTick(ctx));
 
-// Al salir de la OE se borran suscripciones y preferencias (ADR-030, ADR-038 regla 5).
+// Al salir de la OE se borran suscripciones y preferencias (ADR-030, ADR-038 regla 5), si la baja
+// sigue vigente cuando corre el evento (ADR-118 regla 5): uno atrasado no se lleva las de quien volvió.
 onEvent(membershipChanged, async ({ personId, to }, ctx) => {
   if (to !== "INACTIVE") {
     return;
   }
-  const subscriptions = await deleteSubscriptionsFor(personId);
-  const preferences = await deletePreferencesFor(personId);
-  ctx.log.info({ personId, subscriptions, preferences }, "comunicaciones depuradas al salir");
+  const purged = await purgeIfMembershipEnded(personId, async (command) => ({
+    subscriptions: await deleteSubscriptionsFor(command.tx, personId),
+    preferences: await deletePreferencesFor(command.tx, personId),
+  }));
+  if (!purged) {
+    ctx.log.info({ personId }, "baja atrasada: la persona ya volvió y conserva sus avisos");
+    return;
+  }
+  ctx.log.info({ personId, ...purged }, "comunicaciones depuradas al salir");
 });
 
 // Anonimizar borra además los mensajes: no son historia institucional (ADR-030).
 onEvent(personAnonymized, async ({ personId }, ctx) => {
-  const subscriptions = await deleteSubscriptionsFor(personId);
-  const preferences = await deletePreferencesFor(personId);
+  const subscriptions = await deleteSubscriptionsFor(getDb(), personId);
+  const preferences = await deletePreferencesFor(getDb(), personId);
   const messages = await deleteMessagesFor(personId);
   ctx.log.info({ personId, subscriptions, preferences, messages }, "comunicaciones anonimizadas");
 });
@@ -151,7 +183,14 @@ function splitMail(
   return { subject, body: rest.join(" · ") };
 }
 
-async function send(
+/**
+ * El correo de un evento sale una sola vez (ADR-115 regla 8). Su clave es el id de la fila del outbox,
+ * que es el mismo en cada reintento del evento, más el código del texto: con el registro de `message`
+ * por persona y clave, el reintento que provoca otro handler encuentra el registro y no reenvía. Quien
+ * lo llama lo envuelve en `unlessAnonymized`: ese registro se borra al anonimizar (ADR-116 regla 9).
+ */
+async function sendEventEmail(
+  ctx: JobContext,
   personId: string,
   to: string,
   code: "T-200" | "T-205",
@@ -159,21 +198,31 @@ async function send(
 ) {
   const { subject, body } = splitMail(code, values);
   const pie = t("T-208").replace("{enlace de baja si aplica}", "").trim();
-  return sendTransactionalEmail({
-    personId,
-    to,
-    subject,
-    text: `${renderPlain(body)}\n\n${pie}`,
-    html: `<p>${renderHtml(body)}</p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
-  });
+  return sendTransactionalEmail(
+    {
+      personId,
+      to,
+      subject,
+      text: `${renderPlain(body)}\n\n${pie}`,
+      html: `<p>${renderHtml(body)}</p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
+    },
+    new Date(),
+    { dedupeKey: `event:${ctx.id}:${code}` },
+  );
 }
 
 onEvent(personAdmitted, async ({ personId, email, firstName, committees }, ctx) => {
-  const receipt = await send(personId, email, "T-200", {
-    nombre: firstName || t("T-1056"),
-    url: `${getEnv().APP_URL}/ingresar`,
-    comités: committees.join(", "),
-  });
+  const receipt = await unlessAnonymized(personId, () =>
+    sendEventEmail(ctx, personId, email, "T-200", {
+      nombre: firstName || t("T-1056"),
+      url: `${getEnv().APP_URL}/ingresar`,
+      comités: committees.join(", "),
+    }),
+  );
+  if (!receipt) {
+    ctx.log.info({ personId }, "bienvenida sin enviar: la persona ya fue anonimizada");
+    return;
+  }
   ctx.log.info(
     { personId, status: receipt.status, provider: receipt.provider },
     "bienvenida enviada",
@@ -189,17 +238,28 @@ onEvent(requestDecided, async (payload, ctx) => {
     return;
   }
   const [aprobó, noAprobó] = tList("T-1061");
-  const receipt = await send(personId, email, "T-205", {
-    nombre: firstName || t("T-1056"),
-    tipo: kindLabel,
-    decisión: status === "APPROVED" ? aprobó : noAprobó,
-    motivo: reason ? ` ${t("T-1062", { motivo: reason })}` : "",
+  // El correo y el push T-189 (ADR-038 regla 7): transaccional, no depende de la preferencia. Ninguno
+  // se repite en un reintento (el bus registra el push con la clave de la solicitud), y ninguno sale
+  // si la persona ya fue anonimizada.
+  const delivered = await unlessAnonymized(personId, async () => {
+    const receipt = await sendEventEmail(ctx, personId, email, "T-205", {
+      nombre: firstName || t("T-1056"),
+      tipo: kindLabel,
+      decisión: status === "APPROVED" ? aprobó : noAprobó,
+      motivo: reason ? ` ${t("T-1062", { motivo: reason })}` : "",
+    });
+    return { receipt, stats: await pushRequestDecided(payload) };
   });
+  if (!delivered) {
+    ctx.log.info(
+      { personId },
+      "respuesta a la solicitud sin enviar: la persona ya fue anonimizada",
+    );
+    return;
+  }
   ctx.log.info(
-    { personId, status: receipt.status, provider: receipt.provider },
+    { personId, status: delivered.receipt.status, provider: delivered.receipt.provider },
     "respuesta a la solicitud enviada",
   );
-  // Y el push T-189 (ADR-038 regla 7): transaccional, no depende de la preferencia.
-  const stats = await pushRequestDecided(payload);
-  ctx.log.info(stats, "push de la solicitud entregado");
+  logDelivery(ctx, delivered.stats, "push de la solicitud entregado");
 });

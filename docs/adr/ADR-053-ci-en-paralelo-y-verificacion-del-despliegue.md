@@ -1,6 +1,6 @@
 # ADR-053: CI en paralelo y verificación del despliegue
 
-- Estado: Aceptada (enmendada por ADR-054 y ADR-055)
+- Estado: Aceptada (enmendada por ADR-054, ADR-055 y ADR-120)
 - Fecha: 2026-09-11
 - Enmienda: ADR-023, ADR-039 y ADR-052
 - Evidencia inicial: [assessment de CI/CD](../assessment-ci-cd-2026-09-11.md)
@@ -59,3 +59,7 @@ La consulta manual conserva siempre el SHA solicitado y exige un estado exitoso 
 ## Enmienda (2026-09-11, ADR-055)
 
 [ADR-055](ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) amplía la lista documental del punto 1 con `docs/04-decisiones.md` y `docs/10-verificacion.md`, reparte integración en dos runners con base propia cada uno (punto 2) y aplica la misma lista a los watch patterns de `web` (punto 7). El resto conserva su texto.
+
+## Enmienda (2026-10-10, ADR-120)
+
+El punto 4 dice que el check **CI** exige que los informes de Vitest contengan todos sus casos aprobados. Esa comprobación corría solo en `gate`: en local, `npm run check` pasaba con casos saltados y la diferencia se veía recién al subir (DT-282). [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) regla 14: `npm test` y `npm run test:integration` pasan su informe por esa misma función (`verifyVitestReport`), en local y en cada job. Los comandos del workflow no cambian y `gate` sigue comprobando los informes de todos los jobs; un caso saltado tumba además el job que lo corrió. El resto conserva su texto.

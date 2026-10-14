@@ -1,4 +1,4 @@
-import { tList } from "@/shared/copy";
+import { tLabels } from "@/shared/copy";
 
 const COMMON = [
   "GENERAL",
@@ -31,6 +31,6 @@ export function macroeventAreas(slug: string) {
 }
 
 export function teamAreaLabel(code: string): string {
-  const index = (TEAM_AREA_CODES as readonly string[]).indexOf(code);
-  return index < 0 ? code : (tList("T-2376")[index] ?? code);
+  const labels: Readonly<Record<string, string>> = tLabels("T-2376", TEAM_AREA_CODES);
+  return labels[code] ?? code;
 }

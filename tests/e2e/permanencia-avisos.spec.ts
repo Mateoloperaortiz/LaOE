@@ -1,9 +1,9 @@
 import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
+import { seedOccasion } from "../factories";
 import { copyPattern, itemPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -19,8 +19,7 @@ test.beforeEach(async () => {
   const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("sin término");
   const now = Date.now();
-  await db.insert(occasion).values({
-    termId: current.id,
+  await seedOccasion(current.id, {
     publicId: `e2ea${String(now % 1_000_000).padStart(6, "0")}`,
     title: "e2e-Asamblea ordinaria de aviso",
     kind: "ASSEMBLY",

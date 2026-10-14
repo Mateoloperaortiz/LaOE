@@ -39,6 +39,8 @@ export const skipReason = pgEnum("skip_reason", [
   "OPTED_OUT",
   "NO_CONSENT",
   "CANCELLED",
+  // Se anonimizó después de congelar la audiencia: el lote la omite antes de su correo (ADR-115 regla 7).
+  "ANONYMIZED",
 ]);
 
 // Plantilla de correo: Markdown con variables por persona (ADR-038 regla 8).
@@ -108,7 +110,9 @@ export const message = pgTable(
     provider: text().notNull(), // console, resend, ses, webpush
     providerId: text(),
     error: text(),
-    // Clave de la notificación: una fila por persona y clave hace idempotente al bus (ADR-038 regla 2).
+    // Clave de la notificación: una fila por persona y clave hace idempotente al bus (ADR-038 regla 2),
+    // al lote de una campaña, que registra cada correo con `campaign:<id>` (ADR-115 regla 2), y al
+    // correo de un evento, con `event:<id del outbox>:<código del texto>` (ADR-115 regla 8).
     dedupeKey: text(),
     sentAt: timestampTz(),
     createdAt: createdAt(),
@@ -124,7 +128,9 @@ export const message = pgTable(
   ],
 );
 
-// Destinatario de una campaña con su estado; se decide al arrancar y se actualiza por lote.
+// Destinatario de una campaña con su estado; se decide al arrancar y se actualiza por lote. El lote
+// que lo va a enviar lo reclama en `claimedAt` y el reclamo vence (ADR-115 regla 1): `PENDING` con
+// reclamo vigente es «un lote lo tiene»; el estado no cambia hasta que hay un resultado.
 export const campaignRecipient = pgTable(
   "campaign_recipient",
   {
@@ -139,6 +145,7 @@ export const campaignRecipient = pgTable(
     skipReason: skipReason(),
     messageId: text().references(() => message.id, { onDelete: "set null" }),
     sentAt: timestampTz(),
+    claimedAt: timestampTz(),
     createdAt: createdAt(),
   },
   (t) => [

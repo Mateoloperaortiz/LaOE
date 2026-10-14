@@ -22,7 +22,7 @@ export const personDeletionRequested = defineEvent(
   person.extend({ requestedAt: z.string() }),
 );
 
-/** Una fila del roster aplicada: `changes` son las columnas que cambiaron. */
+/** Una fila del roster que creó o cambió a la persona: `changes` son las columnas que cambiaron. */
 export const personImported = defineEvent(
   "person.imported",
   person.extend({

@@ -5,6 +5,7 @@ import {
   dayOneRounds,
   dayTwoRounds,
   findStarterAdders,
+  nextPendingRotation,
   pairCountKey,
   pairCounts,
   type ScheduleRotation,
@@ -206,5 +207,49 @@ describe("validador", () => {
       { kind: "BASE_REPEATED_IN_DAY", day: 1, teamId: "t1", baseId: "b1", times: 2 },
     ]);
     expect(report.warnings.some((issue) => issue.kind === "BASE_REPEATED_IN_DAY")).toBe(false);
+  });
+});
+
+// «Siguiente» (ADR-118 regla 28): la primera pendiente de la jornada en curso o de una posterior.
+describe("la rotación que sigue", () => {
+  type Status = "PENDING" | "ACTIVE" | "CLOSED";
+  const grid = (states: Record<string, Status>) =>
+    Object.entries(states).map(([key, status]) => {
+      const [day = "1", number = "1"] = key.slice(1).split("-R");
+      return { id: key, day: Number(day), number: Number(number), status };
+    });
+  const next = (states: Record<string, Status>) => nextPendingRotation(grid(states))?.id ?? null;
+
+  it("sin ninguna iniciada es la primera de la primera jornada", () => {
+    expect(next({ "J2-R1": "PENDING", "J1-R2": "PENDING", "J1-R1": "PENDING" })).toBe("J1-R1");
+    expect(next({})).toBeNull();
+  });
+
+  it("dentro de una jornada es su primera pendiente por número", () => {
+    expect(next({ "J1-R1": "CLOSED", "J1-R2": "ACTIVE", "J1-R3": "PENDING" })).toBe("J1-R3");
+    // Una que el operador saltó a mano sigue siendo la primera pendiente de la jornada.
+    expect(next({ "J1-R1": "PENDING", "J1-R2": "ACTIVE", "J1-R3": "PENDING" })).toBe("J1-R1");
+  });
+
+  it("al cerrar la última de una jornada es la primera de la otra", () => {
+    expect(next({ "J1-R1": "CLOSED", "J1-R2": "CLOSED", "J2-R1": "PENDING" })).toBe("J2-R1");
+    expect(next({ "J1-R1": "CLOSED", "J1-R2": "ACTIVE", "J2-R1": "PENDING" })).toBe("J2-R1");
+  });
+
+  it("una pendiente de la jornada 1 sigue siendo la siguiente mientras nadie inicie la jornada 2", () => {
+    expect(next({ "J1-R1": "CLOSED", "J1-R2": "PENDING", "J2-R1": "PENDING" })).toBe("J1-R2");
+  });
+
+  it("con la jornada 2 iniciada, una pendiente de la jornada 1 ya no es la siguiente", () => {
+    const leftover = { "J1-R1": "CLOSED", "J1-R2": "PENDING" } as const;
+    expect(next({ ...leftover, "J2-R1": "ACTIVE", "J2-R2": "PENDING" })).toBe("J2-R2");
+    // Entre rotaciones, sin ninguna en curso.
+    expect(next({ ...leftover, "J2-R1": "CLOSED", "J2-R2": "PENDING" })).toBe("J2-R2");
+    // Aunque el operador haya iniciado a mano la que sobró.
+    expect(
+      next({ "J1-R1": "CLOSED", "J1-R2": "ACTIVE", "J2-R1": "CLOSED", "J2-R2": "PENDING" }),
+    ).toBe("J2-R2");
+    // Sin pendientes en la jornada 2 no hay siguiente.
+    expect(next({ ...leftover, "J2-R1": "CLOSED", "J2-R2": "ACTIVE" })).toBeNull();
   });
 });

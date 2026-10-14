@@ -1,37 +1,26 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ drain: vi.fn(), errors: vi.fn(), close: vi.fn() }));
-vi.mock("@/jobs/handlers", () => ({}));
-vi.mock("@/jobs/poller", () => ({ drain: mocks.drain }));
-vi.mock("@/db/client", () => ({
-  closeDb: mocks.close,
-  getDb: () => ({ select: () => ({ from: () => ({ where: mocks.errors }) }) }),
-}));
+// La semántica del drenado se prueba contra el poller real en tests/integration/outbox-drain.test.ts.
+// Acá queda lo propio del envoltorio E2E: suelta la conexión siempre y no se traga el fallo.
+const mocks = vi.hoisted(() => ({ drainOutbox: vi.fn(), close: vi.fn() }));
+vi.mock("../helpers/outbox", () => ({ drainOutbox: mocks.drainOutbox }));
+vi.mock("@/db/client", () => ({ closeDb: mocks.close }));
 
 import { drenarOutbox } from "../e2e/outbox";
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mocks.errors.mockResolvedValue([]);
 });
 
-it("rechaza un fallo del lote aunque todavía no aparezca en la consulta de errores", async () => {
-  mocks.drain.mockResolvedValue({ processed: 0, failed: 1 });
-  await expect(drenarOutbox()).rejects.toThrow(/Falló el outbox E2E/);
+it("un fallo del outbox rompe el caso E2E y la conexión se cierra igual", async () => {
+  mocks.drainOutbox.mockRejectedValue(new Error("Falló el outbox"));
+  await expect(drenarOutbox()).rejects.toThrow(/Falló el outbox/);
   expect(mocks.close).toHaveBeenCalledOnce();
 });
 
-it("denuncia también un trabajo viejo con error y reintento aplazado", async () => {
-  mocks.drain.mockResolvedValue({ processed: 0, failed: 0 });
-  mocks.errors.mockResolvedValue([{ type: "person.imported", error: "persona ausente" }]);
-  await expect(drenarOutbox()).rejects.toThrow(/person.imported.*persona ausente/);
-});
-
-it("drena los eventos encadenados hasta vaciar lo disponible", async () => {
-  mocks.drain
-    .mockResolvedValueOnce({ processed: 1, failed: 0 })
-    .mockResolvedValueOnce({ processed: 1, failed: 0 })
-    .mockResolvedValueOnce({ processed: 0, failed: 0 });
+it("drena sin adelantar el reloj ni tolerar fallos, y cierra la conexión al terminar", async () => {
+  mocks.drainOutbox.mockResolvedValue({ processed: 2, failed: 0 });
   await drenarOutbox();
-  expect(mocks.drain).toHaveBeenCalledTimes(3);
+  expect(mocks.drainOutbox).toHaveBeenCalledExactlyOnceWith();
+  expect(mocks.close).toHaveBeenCalledOnce();
 });

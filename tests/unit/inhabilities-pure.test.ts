@@ -5,7 +5,7 @@ import {
   inhabilities,
   inhabilityLabels,
 } from "@/modules/people/domain/inhabilities-pure";
-import { tList } from "@/shared/copy";
+import { tLabels, tList } from "@/shared/copy";
 
 // Inhabilidades y topes (Regl. art. 11 y 27 par. 3 y 4; ADR-060 regla 11).
 
@@ -32,7 +32,9 @@ const macro = (scopeId: string, coDirector = false): HeldRole => ({
 describe("inhabilidades para cargos", () => {
   it("tiene una etiqueta de T-2281 por código, en orden", () => {
     expect(tList("T-2281")).toHaveLength(INHABILITY_CODES.length);
-    expect(inhabilityLabels(["BOARD"], tList("T-2281"))[0]).toContain(tList("T-2281")[1]);
+    expect(inhabilityLabels(["BOARD"], tLabels("T-2281", INHABILITY_CODES))[0]).toContain(
+      tList("T-2281")[1],
+    );
   });
 
   it("no impide quitar cargos ni un cargo único a un activo sin sanción", () => {

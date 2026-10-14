@@ -1,10 +1,10 @@
 import { createId } from "@paralleldrive/cuid2";
-import { and, asc, count, desc, eq, ilike } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand, type Tx } from "@/db/tx";
 import { mediaProcess } from "@/domain-events/content";
 import { eventOf } from "@/domain-events/define";
 import { deleteObject, headObject, presignRead, presignUpload } from "@/shared/adapters/storage";
@@ -12,19 +12,26 @@ import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { type MediaVariants, mediaAsset } from "../schema";
 import {
+  confirmablePurpose,
   DELIVERY,
   isAllowedSize,
   isAllowedType,
   MEDIA_MAX_BYTES,
   MEDIA_MIN_BYTES,
+  mediaObjectKeys,
+  mediaProcessDedupeKey,
   PHOTO_KEY_PREFIX,
   PHOTO_MAX_BYTES,
   photoKey,
+  photoPrefix,
   pickVariant,
   UPLOAD_EXPIRY_SECONDS,
   UPLOAD_KEY_PATTERN,
+  type UploadScope,
   uploadKey,
 } from "./media-pure";
+
+export type { UploadScope };
 
 // Medios (ADR-022, ADR-033): subida directa prefirmada, confirmación, y entrega por redirección.
 
@@ -94,19 +101,69 @@ export const confirmUploadSchema = z.object({
   purpose: purposeSchema,
 });
 
-export type ConfirmUploadInput = Omit<z.infer<typeof confirmUploadSchema>, "purpose"> & {
-  purpose?: "media" | "photo";
-};
+// El esquema de la ruta deja "media" cuando el propósito no llega (el subidor del admin no lo manda):
+// es el que pide ADMIN. El comando lo exige siempre.
+export type ConfirmUploadInput = z.infer<typeof confirmUploadSchema>;
 
-/** Comprueba el objeto con HEAD, registra el medio en PENDING y encola media.process. */
+/**
+ * Lo que la capa de la app compone con `people`, que `content` no importa (`MODULE_DEPS`): toma a la
+ * persona hasta el fin de la transacción y dice si ya fue anonimizada, o `null` si no existe. En la
+ * app es `lockPersonAnonymization`.
+ */
+interface UploadOwnerCheck {
+  lockOwner: (tx: Tx, personId: string) => Promise<{ anonymized: boolean } | null>;
+}
+
+/**
+ * La foto propia de una persona anonimizada no se confirma (ADR-116 regla 8): `deletePhotosFor` ya
+ * pasó o está por pasar, y una fila que nazca después quedaría viva y entregable. La persona queda
+ * tomada hasta el fin de la transacción, así que una anonimización que llegue ahora espera y después
+ * se lleva esta foto. El objeto se borra: es de esa persona y nadie más lo puede confirmar.
+ */
+async function requireLivingOwner(
+  ctx: CommandContext,
+  key: string,
+  owner: UploadOwnerCheck,
+): Promise<void> {
+  const personId = ctx.actor.personId;
+  const who: unknown = personId ? await owner.lockOwner(ctx.tx, personId) : null;
+  if (
+    who !== null &&
+    typeof (who as { anonymized?: unknown } | undefined)?.anonymized !== "boolean"
+  ) {
+    throw new Error("La comprobación del dueño de la foto respondió algo que no se reconoce");
+  }
+  if (who === null || (who as { anonymized: boolean }).anonymized) {
+    await deleteObject(key);
+    throw new DomainError(t("T-363"), "file");
+  }
+}
+
+/**
+ * Comprueba el objeto con HEAD, registra el medio en PENDING y encola media.process. Antes decide si
+ * esa clave se puede confirmar con el alcance declarado (ADR-113 regla 5): si no, responde como a una
+ * subida que no existe, sin tocar el objeto. Una foto propia exige además que su dueño siga sin
+ * anonimizar, leído con la persona tomada (ADR-116 regla 8); sin esa comprobación no se confirma nada.
+ */
 export async function confirmUpload(
   ctx: CommandContext,
   input: ConfirmUploadInput,
+  scope: UploadScope,
+  owner: UploadOwnerCheck,
 ): Promise<{ id: string }> {
-  const photo = input.key.startsWith(PHOTO_KEY_PREFIX);
-  if (photo && !input.key.startsWith(`${PHOTO_KEY_PREFIX}${ctx.actor.personId}/`)) {
+  if (typeof (owner as { lockOwner?: unknown } | null | undefined)?.lockOwner !== "function") {
+    throw new Error("Confirmar una subida exige la comprobación del dueño de la foto");
+  }
+  const purpose = confirmablePurpose({
+    key: input.key,
+    purpose: input.purpose,
+    scope,
+    personId: ctx.actor.personId,
+  });
+  if (purpose === null) {
     throw new DomainError(t("T-363"), "file");
   }
+  const photo = purpose === "photo";
   const visibility = photo ? "PRIVATE" : input.visibility;
   const info = await headObject(input.key);
   if (!info || info.byteSize === null) {
@@ -120,6 +177,9 @@ export async function confirmUpload(
   if (!isAllowedSize(info.byteSize, photo ? PHOTO_MAX_BYTES : MEDIA_MAX_BYTES)) {
     await deleteObject(input.key);
     throw new DomainError(t(photo ? "T-419" : "T-362"), "file");
+  }
+  if (photo) {
+    await requireLivingOwner(ctx, input.key, owner);
   }
   try {
     const [row] = await ctx.tx
@@ -149,7 +209,7 @@ export async function confirmUpload(
       },
     });
     await ctx.emit(
-      eventOf(mediaProcess, { assetId: row.id }, { dedupeKey: `media.process:${row.id}` }),
+      eventOf(mediaProcess, { assetId: row.id }, { dedupeKey: mediaProcessDedupeKey(row.id) }),
     );
     return row;
   } catch (error) {
@@ -160,9 +220,18 @@ export async function confirmUpload(
   }
 }
 
-/** Para la ruta de confirmación (src/app no abre transacciones). */
-export function confirmUploadAs(actor: Actor, input: ConfirmUploadInput): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => confirmUpload(ctx, input));
+/**
+ * Para la ruta de confirmación (src/app no abre transacciones). El alcance es obligatorio: lo arma
+ * quien autorizó con la sesión, y sin él no se confirma nada (ADR-113 regla 5). La comprobación del
+ * dueño también: la compone quien llama con `people` (ADR-116 regla 8).
+ */
+export function confirmUploadAs(
+  actor: Actor,
+  input: ConfirmUploadInput,
+  scope: UploadScope,
+  owner: UploadOwnerCheck,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => confirmUpload(ctx, input, scope, owner));
 }
 
 export interface MediaListParams {
@@ -255,12 +324,67 @@ export async function listReadyPublicMedia(): Promise<Array<{ id: string; label:
   }));
 }
 
+/**
+ * Retiro de datos personales (ADR-030 regla 4, ADR-116 regla 8): borra del bucket y de la base las fotos
+ * propias de una persona, la vigente y las que había reemplazado. Se reconocen por su clave
+ * `photos/<personId>/`, que es lo que hace de un medio una foto propia (ADR-034 regla 8): un medio que
+ * esa persona subió como ADMIN no es suyo y se queda. Primero los objetos y al final las filas, en una
+ * transacción que las retiene: si el bucket falla nada se confirma, cada fila sigue diciendo qué claves
+ * tiene y el reintento empieza de nuevo. Borrar una clave que ya no está no es un error. Devuelve
+ * cuántas fotos borró.
+ */
+export async function deletePhotosFor(personId: string): Promise<number> {
+  return getDb().transaction(async (db) => {
+    const photos = await db
+      .select({
+        id: mediaAsset.id,
+        objectKey: mediaAsset.objectKey,
+        variants: mediaAsset.variants,
+      })
+      .from(mediaAsset)
+      .where(sql`starts_with(${mediaAsset.objectKey}, ${photoPrefix(personId)})`)
+      .orderBy(asc(mediaAsset.id))
+      .for("update");
+    if (photos.length === 0) {
+      return 0;
+    }
+    for (const photo of photos) {
+      for (const key of mediaObjectKeys(photo)) {
+        await deleteObject(key);
+      }
+    }
+    await db.delete(mediaAsset).where(
+      inArray(
+        mediaAsset.id,
+        photos.map((photo) => photo.id),
+      ),
+    );
+    return photos.length;
+  });
+}
+
+/**
+ * Quiénes tienen todavía alguna foto propia registrada: el `<personId>` de cada clave
+ * `photos/<personId>/…`. `content` no sabe quién fue anonimizado; lo cruza quien sí lo sabe.
+ */
+export async function listPhotoOwners(): Promise<string[]> {
+  const rows = await getDb()
+    .selectDistinct({ personId: sql<string>`split_part(${mediaAsset.objectKey}, '/', 2)` })
+    .from(mediaAsset)
+    .where(sql`starts_with(${mediaAsset.objectKey}, ${PHOTO_KEY_PREFIX})`);
+  return rows.map((row) => row.personId);
+}
+
 export type MediaRedirect =
   | { status: 404 }
   | { status: 403 }
   | { status: 302; url: string; cacheControl: string };
 
-/** Decide el 302 de GET /api/media/[id]: variante por ancho, visibilidad y estado (ADR-022). */
+/**
+ * Decide el 302 de GET /api/media/[id]: variante por ancho, visibilidad y estado (ADR-022). Lo que se
+ * firma es siempre una variante recodificada (ADR-114 regla 8). El original solo se firma para un medio
+ * que todavía no tiene la completa: los procesados antes de esa regla, hasta que el relleno los alcanza.
+ */
 export async function resolveMediaRedirect(
   id: string,
   requestedWidth: number | null,

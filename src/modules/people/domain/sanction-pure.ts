@@ -1,15 +1,32 @@
+import { addDays } from "@/shared/lib/dates-pure";
+
 // Faltas y sanciones sin I/O (Regl. cap. 9 y Anexo 1; ADR-060 regla 6): duraciones, vigencia,
 // suspensión de derechos y la advertencia de expulsión que el cierre convierte en propuesta.
 
 export type SanctionKind = "WARNING" | "MINOR" | "MAJOR" | "SUSPENSION" | "OFFICE_BAN";
 
-export const SANCTION_KINDS: readonly SanctionKind[] = [
+export const SANCTION_KINDS = [
   "WARNING",
   "MINOR",
   "MAJOR",
   "SUSPENSION",
   "OFFICE_BAN",
-];
+] as const satisfies readonly SanctionKind[];
+
+/**
+ * Lo que registra la dirección de un comité (Regl. art. 69 par. 2; ADR-060 regla 6): la suspensión y
+ * la inhabilidad las decide GH (Regl. art. 58, 62 y 63).
+ */
+export const COMMITTEE_SANCTION_KINDS: readonly SanctionKind[] = ["WARNING", "MINOR", "MAJOR"];
+
+/**
+ * Desde dónde se registra una sanción: el alcance que autorizó `src/app` y que todo llamador declara
+ * (ADR-072 regla 1; ADR-112). ADMIN, desde la Persona 360, sin restricción de tipo ni de comité; o la
+ * dirección de un comité en un término.
+ */
+export type SanctionScope =
+  | { by: "ADMIN" }
+  | { by: "COMMITTEE"; committeeId: string; termId: string };
 
 /** Días calendario de suspensión de derechos y beneficios (Regl. art. 69.1 y 69.2). */
 export const SUSPENSION_DAYS: Partial<Record<SanctionKind, number>> = { WARNING: 7, MINOR: 20 };
@@ -35,12 +52,6 @@ function fromKey(key: string): Date {
 
 export function dayKeyOf(date: Date): string {
   return date.toISOString().slice(0, 10);
-}
-
-export function addDays(key: string, days: number): string {
-  const date = fromKey(key);
-  date.setUTCDate(date.getUTCDate() + days);
-  return dayKeyOf(date);
 }
 
 export function addMonths(key: string, months: number): string {

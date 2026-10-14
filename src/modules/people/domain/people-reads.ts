@@ -3,6 +3,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
 import { appointment, committeeMembership, membership, membershipTerm, person } from "../schema";
+import { isNewMemberInTerm } from "./new-member-pure";
 import { SIGN_IN_STATUSES } from "./reads";
 
 // Lecturas de personas para otros módulos y para la paleta.
@@ -245,6 +246,11 @@ export interface TermRosterRow {
   /** Se reporta como activo aunque sea su primer término (Est. art. 5 par. 1; ADR-060 regla 8). */
   reportAsVeteran: boolean;
   resumedNew: boolean;
+  /**
+   * Nuevo en el término para la permanencia y los cargos (`isNewMemberInTerm`): ingresó en él o retoma
+   * como nuevo, y GH no lo reporta como activo. No es «ingresó en este término» (`firstTermId`).
+   */
+  isNew: boolean;
   committeeReportAsVeteran: boolean;
   committeeId: string;
   roleCode: string;
@@ -300,15 +306,23 @@ async function rosterRows(termId: string, personIds?: string[]): Promise<TermRos
         personIds ? inArray(committeeMembership.personId, personIds) : undefined,
       ),
     );
-  return rows.map((row) => ({
-    ...row,
-    probation: row.probation ?? false,
-    reportAsVeteran: row.reportAsVeteran ?? false,
-    resumedNew: row.resumedNew ?? false,
-    committeeReportAsVeteran: row.committeeReportAsVeteran ?? false,
-    committeeProbation: row.committeeProbation ?? false,
-    transferredIn: row.transferredIn || (row.resumedTransfer ?? false),
-  }));
+  return rows.map((row) => {
+    const reportAsVeteran = row.reportAsVeteran ?? false;
+    const resumedNew = row.resumedNew ?? false;
+    return {
+      ...row,
+      probation: row.probation ?? false,
+      reportAsVeteran,
+      resumedNew,
+      isNew: isNewMemberInTerm(
+        { firstTermId: row.firstTermId, resumedNew, reportAsVeteran },
+        termId,
+      ),
+      committeeReportAsVeteran: row.committeeReportAsVeteran ?? false,
+      committeeProbation: row.committeeProbation ?? false,
+      transferredIn: row.transferredIn || (row.resumedTransfer ?? false),
+    };
+  });
 }
 
 /** Una fila por pertenencia del término, con estado, primer término y condición de prueba; opcionalmente solo algunas personas. */

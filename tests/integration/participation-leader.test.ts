@@ -2,8 +2,6 @@ import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import {
   aliasesResource,
   assembliesResource,
@@ -23,7 +21,6 @@ import { occasion } from "@/modules/participation/schema";
 import { createAlias, resolveAlias } from "@/modules/system/domain/aliases";
 import { getTerm } from "@/modules/terms/domain/terms";
 import { t } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
   currentTermCode,
   seedCommittee,
@@ -31,7 +28,9 @@ import {
   seedMember,
   seedOccasion,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 const db = () => getDb();
 
@@ -49,7 +48,7 @@ describe("vista de líder, exportes y alias", () => {
     const expected = weeklyDates(first, term.endsOn);
     expect(expected.length).toBeGreaterThan(0);
     const result = await createOccasionSeriesAs(
-      { personId: leader },
+      { personId: leader, ip: null },
       {
         committeeId,
         title: "Reunión semanal",
@@ -73,7 +72,7 @@ describe("vista de líder, exportes y alias", () => {
       ),
     ).toBe(true);
     const again = await createOccasionSeriesAs(
-      { personId: leader },
+      { personId: leader, ip: null },
       {
         committeeId,
         title: "Reunión semanal",
@@ -88,7 +87,7 @@ describe("vista de líder, exportes y alias", () => {
     expect(total?.n).toBe(expected.length);
     await expect(
       createOccasionSeriesAs(
-        { personId: leader },
+        { personId: leader, ip: null },
         {
           committeeId,
           title: "Fuera",
@@ -108,9 +107,9 @@ describe("vista de líder, exportes y alias", () => {
     await seedCommitteeMembership(a, committeeId, termId);
     await seedCommitteeMembership(b, committeeId, termId);
     const { id, publicId } = await seedOccasion(termId, { points: 10, title: "Integración" });
-    await checkInSelfAs({ personId: a }, { publicId });
-    await closeOccasionAs({ personId: a }, id);
-    await drain(50);
+    await checkInSelfAs({ personId: a, ip: null }, { publicId });
+    await closeOccasionAs({ personId: a, ip: null }, id);
+    await drainOutbox();
     const scores = await listCommitteeScores(committeeId, termId);
     expect(
       scores.map((row) => [row.occasionTitle, row.present, row.eligible, row.occasionStatus]),
@@ -126,9 +125,9 @@ describe("vista de líder, exportes y alias", () => {
       lastName: "Activa",
     });
     const { id, publicId } = await seedOccasion(termId, { points: 10, title: "Charla" });
-    await checkInSelfAs({ personId: socia }, { publicId });
+    await checkInSelfAs({ personId: socia, ip: null }, { publicId });
     await adjustPointsAs(
-      { personId: admin },
+      { personId: admin, ip: null },
       { personId: socia, termId, points: 5, reason: "bono" },
     );
     const params = { q: "", page: 1, pageSize: 100, filters: { termId } };
@@ -187,7 +186,7 @@ describe("vista de líder, exportes y alias", () => {
     expect(listed.rows[0]?.occasionTitle).toBe("Asamblea vieja");
     await expect(
       aliasesResource.create?.(
-        { personId: SYSTEM_ACTOR.personId ?? "", isAdmin: true },
+        { personId: SYSTEM_ACTOR.personId ?? "", ip: null },
         { path: "/a/zzzzzzzzz1", targetId: "no-existe" },
       ),
     ).rejects.toBeDefined();

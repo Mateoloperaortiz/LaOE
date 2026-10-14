@@ -1,4 +1,4 @@
-import { eq, like } from "drizzle-orm";
+import { asc, eq, like } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -61,6 +61,7 @@ import {
   competitionBase,
   competitionBet,
   competitionCreditEntry,
+  competitionMarket,
   competitionRotation,
   competitionTeam,
 } from "@/modules/competition/schema";
@@ -70,8 +71,11 @@ import { addMacroeventDirector } from "@/modules/people/domain/appointments";
 import { membership } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
+import { seedForm, seedMember, seedSubmission, seedTerm, seedVeteran } from "../factories";
+import { heldThenSettled, holdTransaction, outcome } from "../helpers/locks";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedForm, seedMember, seedSubmission, seedTerm, seedVeteran } from "./factories";
 
 // The Games (ADR-089, ADR-091): acceso por datos, calendario de 30 equipos y 15 bases, rotaciones,
 // resultados con reversión, extras idempotentes y apuestas que no pagan dos veces.
@@ -110,8 +114,8 @@ async function seedDiasEdition(slug = "2026"): Promise<string> {
   return edicion.id;
 }
 
-const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true });
-const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false });
+const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true, ip: null });
+const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false, ip: null });
 
 async function seedCompetition() {
   const termId = await seedTerm();
@@ -339,6 +343,61 @@ describe("The Games", () => {
       await closeRotationAs(admin(adminId), id, live.current?.id ?? "");
       const after = await getLiveRotations(id);
       expect(after.current).toBeNull();
+    });
+
+    // ADR-118 regla 28: «siguiente» es la primera pendiente de la jornada en curso o de una posterior.
+    it("con una rotación de la jornada 1 sin jugar, «Avanzar» y la siguiente de la vitrina siguen con la jornada 2", async () => {
+      const { id, adminId } = await seedCompetition();
+      await seedField(id, adminId);
+      const actor = admin(adminId);
+      await generateDayScheduleAs(actor, id, { day: 1, rotations: 2, plannedMinutes: 20 });
+      await generateDayScheduleAs(actor, id, { day: 2, rotations: 2, plannedMinutes: 20 });
+      await setCompetitionStatusAs(actor, id, "LIVE");
+      const rotations = await getDb()
+        .select()
+        .from(competitionRotation)
+        .where(eq(competitionRotation.competitionId, id));
+      const idOf = (day: number, number: number) =>
+        rotations.find((rotation) => rotation.day === day && rotation.number === number)?.id ?? "";
+      const place = (rotation: { day: number; number: number } | null | undefined) =>
+        rotation ? `J${rotation.day}-R${rotation.number}` : null;
+      const publicNext = async () => {
+        clearShowcaseMemo();
+        return place((await getShowcase("the-games-2026", new Date()))?.nextRotation);
+      };
+
+      // La jornada 1 se queda sin tiempo: se juega la primera rotación y la segunda queda pendiente.
+      await startRotationAs(actor, id, idOf(1, 1));
+      await closeRotationAs(actor, id, idOf(1, 1));
+      // Mientras nadie arranque la jornada 2, la que sigue es la que quedó.
+      expect(place((await getLiveRotations(id)).next)).toBe("J1-R2");
+
+      // Al otro día el operador inicia a mano la primera de la jornada 2.
+      await startRotationAs(actor, id, idOf(2, 1));
+      const operatorNext = place((await getLiveRotations(id)).next);
+      const showcaseNext = await publicNext();
+      const advanced = await advanceRotationAs(actor, id);
+      expect({
+        operatorNext,
+        showcaseNext,
+        advancedTo: place((await getLiveRotations(id)).current),
+        advanced,
+      }).toEqual({
+        operatorNext: "J2-R2",
+        showcaseNext: "J2-R2",
+        advancedTo: "J2-R2",
+        advanced: { rotationId: idOf(2, 2) },
+      });
+
+      // A la jornada 2 no le queda ninguna: no hay siguiente, y «Avanzar» cierra sin iniciar la que sobró.
+      expect(place((await getLiveRotations(id)).next)).toBeNull();
+      expect(await publicNext()).toBeNull();
+      expect(await advanceRotationAs(actor, id)).toEqual({ rotationId: null });
+      expect((await getLiveRotations(id)).current).toBeNull();
+
+      // La que quedó pendiente no se pierde: sigue ahí y se puede iniciar a mano.
+      await startRotationAs(actor, id, idOf(1, 2));
+      expect(place((await getLiveRotations(id)).current)).toBe("J1-R2");
     });
 
     it("editar una rotación: los errores bloquean, también repetir base en la jornada", async () => {
@@ -621,6 +680,122 @@ describe("The Games", () => {
       expect(total).toBe(3000);
     });
 
+    // ADR-118 regla 29. Cómo se corrige una apuesta mal resuelta es la decisión abierta 41: hoy no hay
+    // comando. Esta prueba fija lo que no cambia: nada se mueve y cancelar una resuelta se rechaza.
+    it("resolver otra vez con otro ganador responde que ya está resuelta; con el mismo no hace nada (decisión abierta 41)", async () => {
+      const { id, actor, teamIds, code, marketId } = await seedBetting();
+      const [t1 = "", t2 = "", t3 = ""] = teamIds;
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t3,
+        pickTeamId: t1,
+        stake: 300,
+        code: code(t3),
+      });
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t1,
+        pickTeamId: t2,
+        stake: 200,
+        code: code(t1),
+      });
+      expect(await resolveMarketAs(actor, id, marketId, t1)).toEqual({ paid: 500 });
+      const state = async () => {
+        const db = getDb();
+        const [market] = await db
+          .select()
+          .from(competitionMarket)
+          .where(eq(competitionMarket.id, marketId));
+        const entries = await db
+          .select({ id: competitionCreditEntry.id })
+          .from(competitionCreditEntry)
+          .where(eq(competitionCreditEntry.competitionId, id));
+        const audits = await db
+          .select({ id: auditLog.id })
+          .from(auditLog)
+          .where(eq(auditLog.action, "competition.market.resolve"));
+        return {
+          status: market?.status,
+          winnerTeamId: market?.winnerTeamId,
+          resolvedAt: market?.resolvedAt,
+          balances: [...(await creditBalances(id)).entries()].sort(),
+          entries: entries.length,
+          audits: audits.length,
+        };
+      };
+      const resolved = await state();
+      expect(resolved).toMatchObject({ status: "RESOLVED", winnerTeamId: t1, audits: 1 });
+
+      const again = await Promise.allSettled([resolveMarketAs(actor, id, marketId, t2)]);
+      expect(again.map(outcome)).toEqual([t("T-3255")]);
+      // Con el mismo ganador sigue siendo idempotente (ADR-091 regla 4).
+      expect(await resolveMarketAs(actor, id, marketId, t1)).toEqual({ paid: 0 });
+      await expect(cancelMarketAs(actor, id, marketId)).rejects.toThrow(t("T-2792"));
+      expect(await state()).toEqual(resolved);
+    });
+
+    it("dos operadores resuelven a la vez con ganadores distintos: uno queda y el otro recibe que ya está resuelta", async () => {
+      const { id, actor, teamIds, code, marketId } = await seedBetting();
+      const [t1 = "", t2 = "", t3 = ""] = teamIds;
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t3,
+        pickTeamId: t1,
+        stake: 300,
+        code: code(t3),
+      });
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t1,
+        pickTeamId: t2,
+        stake: 200,
+        code: code(t1),
+      });
+      await warmPool();
+      const results = await Promise.allSettled([
+        resolveMarketAs(actor, id, marketId, t1),
+        resolveMarketAs(actor, id, marketId, t2),
+      ]);
+      expect(results.map(outcome).sort()).toEqual(["ok", t("T-3255")].sort());
+      const [market] = await getDb()
+        .select()
+        .from(competitionMarket)
+        .where(eq(competitionMarket.id, marketId));
+      expect(market?.winnerTeamId).toBe(results[0]?.status === "fulfilled" ? t1 : t2);
+      // Se pagó una sola vez: los puntos de las tres cuentas siguen sumando lo repartido.
+      const total = [...(await creditBalances(id)).values()].reduce((sum, value) => sum + value, 0);
+      expect(total).toBe(3000);
+    });
+
+    it("una apuesta que encuentra el mercado tomado por otro escritor lo espera y lo vuelve a leer: cerrado, no entra", async () => {
+      const { id, actor, teamIds, code, marketId } = await seedBetting();
+      const t1 = teamIds[0] ?? "";
+      const t3 = teamIds[2] ?? "";
+      // El otro escritor es sintético: cierra la apuesta sin tomar la fila de la competencia, que hoy
+      // toman todos los comandos del módulo y por eso cubre a la prueba de arriba. Así lo único que
+      // hace esperar a quien apuesta es el `for update` del mercado en `lockedMarket` (DT-335).
+      const held = await holdTransaction((tx) =>
+        tx
+          .update(competitionMarket)
+          .set({ status: "CLOSED" })
+          .where(eq(competitionMarket.id, marketId)),
+      );
+      const { during, after } = await heldThenSettled(held, () =>
+        placeBetAs(actor, id, { marketId, teamId: t3, pickTeamId: t1, stake: 300, code: code(t3) }),
+      );
+
+      // Sin el mercado bajo candado la apuesta lo lee abierto, no espera a nadie y entra en uno cerrado.
+      expect(during).toBe("hizo cola");
+      expect(outcome(after)).toBe(t("T-2781"));
+      expect(await getDb().select().from(competitionBet)).toHaveLength(0);
+      expect(
+        await getDb()
+          .select()
+          .from(competitionCreditEntry)
+          .where(eq(competitionCreditEntry.kind, "STAKE")),
+      ).toHaveLength(0);
+    });
+
     it("un código errado queda contado y a los cinco se bloquea", async () => {
       const { id, actor, teamIds, marketId } = await seedBetting();
       const [t1 = "", t2 = ""] = teamIds;
@@ -653,6 +828,7 @@ describe("The Games", () => {
       await setMarketOpenAs(actor, id, other.id, true);
       const markets = await createMarketAs(actor, id, { title: "Tercera", teamIds: [t1, t2] });
       await setMarketOpenAs(actor, id, markets.id, true);
+      await warmPool();
       const results = await Promise.allSettled([
         placeBetAs(actor, id, {
           marketId: other.id,
@@ -671,6 +847,33 @@ describe("The Games", () => {
       ]);
       expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
       expect((await creditBalances(id)).get(t3)).toBe(300);
+    });
+
+    it("una apuesta que encuentra al equipo tomado por otro escritor lo espera y lo vuelve a leer: retirado, no apuesta", async () => {
+      const { id, actor, teamIds, code, marketId } = await seedBetting();
+      const t1 = teamIds[0] ?? "";
+      const t3 = teamIds[2] ?? "";
+      // El otro escritor es sintético: retira al equipo sin tomar la fila de la competencia ni el
+      // consultivo de su saldo, que hoy cubren a la prueba de arriba. Así lo único que hace esperar a
+      // quien apuesta es el `for update` del equipo en `placeBet` (DT-335).
+      const held = await holdTransaction((tx) =>
+        tx.update(competitionTeam).set({ status: "WITHDRAWN" }).where(eq(competitionTeam.id, t3)),
+      );
+      const { during, after } = await heldThenSettled(held, () =>
+        placeBetAs(actor, id, { marketId, teamId: t3, pickTeamId: t1, stake: 300, code: code(t3) }),
+      );
+
+      // Sin el equipo bajo candado la apuesta lo lee activo, no espera a nadie y le descuenta el saldo
+      // a un equipo retirado.
+      expect(during).toBe("hizo cola");
+      expect(outcome(after)).toBe(t("T-2764"));
+      expect(await getDb().select().from(competitionBet)).toHaveLength(0);
+      expect(
+        await getDb()
+          .select()
+          .from(competitionCreditEntry)
+          .where(eq(competitionCreditEntry.kind, "STAKE")),
+      ).toHaveLength(0);
     });
 
     it("cancelar devuelve todo y una apuesta cerrada no recibe más", async () => {
@@ -900,6 +1103,41 @@ describe("The Games", () => {
           placeHubBetAs(hub(), entered.session, { marketId, pick: 2, stake: 10 }),
         ).rejects.toThrow(t("T-3038"));
         expect(await getHubState(entered.session)).toBeNull();
+      });
+
+      it("una sesión que ya no vale rechaza la apuesta con la razón SESSION; una apuesta mal hecha no la lleva (ADR-114)", async () => {
+        const { id, actor, teamIds, code, marketId } = await seedBetting();
+        const [e1 = ""] = teamIds;
+        await setCompetitionStatusAs(actor, id, "LIVE");
+        const entered = await enterHubAs(hub(), code(e1), HUB_TERMS_VERSION);
+        if (!entered.ok) throw new Error(entered.message);
+        const bet = (pick: number) =>
+          placeHubBetAs(hub(), entered.session, { marketId, pick, stake: 50 });
+        const sessionGone = { reason: "SESSION", message: t("T-3038") };
+        const setTeam = (values: { status?: "ACTIVE" | "WITHDRAWN"; hubTermsVersion?: number }) =>
+          getDb().update(competitionTeam).set(values).where(eq(competitionTeam.id, e1));
+
+        // Apostar por el propio equipo es una regla de la apuesta: error de dominio, sin razón.
+        const selfBet = await bet(1).catch((error: unknown) => error);
+        expect(selfBet).toBeInstanceOf(DomainError);
+        expect(selfBet).toMatchObject({ message: t("T-2785") });
+        expect(selfBet).not.toHaveProperty("reason");
+
+        // Cada motivo por el que la sesión deja de valer lleva la razón, además del texto.
+        await setCompetitionStatusAs(actor, id, "DRAFT");
+        await expect(bet(2)).rejects.toMatchObject(sessionGone);
+        await setCompetitionStatusAs(actor, id, "LIVE");
+        await setTeam({ hubTermsVersion: HUB_TERMS_VERSION - 1 });
+        await expect(bet(2)).rejects.toMatchObject(sessionGone);
+        await setTeam({ hubTermsVersion: HUB_TERMS_VERSION, status: "WITHDRAWN" });
+        await expect(bet(2)).rejects.toMatchObject(sessionGone);
+        await setTeam({ status: "ACTIVE" });
+        // Con todo de vuelta en su sitio la misma sesión apuesta: lo que fallaba era cada motivo.
+        expect(await bet(2)).toMatchObject({ balance: 950 });
+        await issueTeamCodesAs(actor, id, false);
+        const reissued = await bet(2).catch((error: unknown) => error);
+        expect(reissued).toBeInstanceOf(DomainError);
+        expect(reissued).toMatchObject(sessionGone);
       });
     });
   });
@@ -1303,10 +1541,13 @@ describe("The Games", () => {
       clearShowcaseMemo();
       expect((await getShowcase("the-games-2026"))?.standingsHidden).toBe(false);
 
+      // En el orden en que se auditaron: sin `order by` la base las devuelve en el orden físico de la
+      // tabla, que no es una garantía.
       const rows = await getDb()
         .select({ after: auditLog.after })
         .from(auditLog)
-        .where(eq(auditLog.action, "competition.standings.visibility"));
+        .where(eq(auditLog.action, "competition.standings.visibility"))
+        .orderBy(asc(auditLog.at));
       expect(rows.map((row) => row.after)).toEqual([
         { showStandings: false },
         { showStandings: true },

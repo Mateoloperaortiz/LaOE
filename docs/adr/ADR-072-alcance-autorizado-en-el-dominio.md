@@ -1,6 +1,6 @@
 # ADR-072: El alcance autorizado se verifica en el dominio
 
-- Estado: Aceptada; en producción desde el 2026-09-16 (`40e0492`)
+- Estado: Aceptada (enmendada por ADR-112 y ADR-122); en producción desde el 2026-09-16 (`40e0492`)
 - Fecha: 2026-09-16
 - Enmienda: ADR-011
 - Relacionadas: ADR-017, ADR-035 (regla 15), ADR-036 (reglas 3 y 7), ADR-037 (regla 10), ADR-058 (reglas 4 y 5), ADR-060 (regla 5)
@@ -34,3 +34,13 @@ Ninguno de los cuatro contradice una regla escrita. ADR-036 regla 7 ya limita lo
 - Un criterio `LEADER_SCORE` de la tabla general no se puede puntuar desde un comité, y tampoco se ofrecía. Si alguna vez hace falta, es otra decisión.
 - La auditoría anterior permite saber solo en parte si alguien usó los huecos: las ediciones de criterios traen su tabla, los puntajes su regla y las decisiones su convocatoria, pero los borrados anteriores solo guardaban clave y peso, y las vistas de páginas y las búsquedas no se auditan.
 - Pruebas: integración con objetos ajenos en criterios, puntajes e inscripciones (también para ADMIN), unitaria de la ruta del buscador y E2E del director que recibe 403 y del parámetro `regla` ajeno.
+
+## Enmienda (2026-10-07, ADR-112)
+
+La regla 1 nombraba como alcance la tabla de permanencia o la convocatoria, y las reglas 2, 4 y 5 enumeraban los comandos que lo reciben. [ADR-112](ADR-112-toda-sancion-declara-su-alcance.md) suma uno: `recordSanctionAs(actor, personId, input, scope)` recibe el alcance desde el que se sanciona, y su forma es una unión, `{ by: "ADMIN" }` o `{ by: "COMMITTEE", committeeId, termId }`. Desde un comité, quien no es miembro vivo de ese comité en ese término responde T-032, igual que uno inexistente, y un tipo que no es del comité responde T-260. ADMIN declara su alcance como tal: no hay valor por omisión.
+
+## Enmienda (2026-10-10, ADR-122)
+
+La regla 1 nombraba como alcance la tabla de permanencia o la convocatoria, y ADR-112 sumó el de una sanción. [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 1 lo extiende a quince comandos que recibían un id hijo sin el objeto de su página: la asistencia y el lote de asistencias con su ocasión (`decideCheckInAs`, `decideManyAs`), el aval con su presupuesto (`decideEventApprovalAs`), el cargo con su persona o su edición (`removeAppointmentAs`), la nota y la tarea con la persona de la ficha (`editNoteAs`, `completePersonTaskAs`), la tarjeta, su nota, su tarea y la etapa con su pipeline (`updateCardAs`, `admitFromCardAs`, `addCardNoteAs`, `createCardTaskAs`, `moveStageAs`, `deleteStageAs`), y los movimientos de un presupuesto con el comité de la página (`submitPrerequestAs`, `recordExpenseAs`, `recordTransferAs`). El trato es el de esta regla: uno ajeno responde T-032, sin mutación, auditoría ni evento, y el alcance no tiene valor por omisión.
+
+Su regla 2 cierra el otro lado de la regla 4 de esta ADR: `scoreCriterionAs` ya no recibe de quien lo llama si la persona es del comité. Lo lee él, en su transacción, con la regla del roster interno, y lo mismo hace `grantRecognitionAs` cuando el reconocimiento llega con comité.

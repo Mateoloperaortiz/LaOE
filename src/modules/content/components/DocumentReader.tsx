@@ -10,7 +10,7 @@ import {
   Imagen,
 } from "@/modules/content";
 import { BarraTitulo, Cartel } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels } from "@/shared/copy";
 
 type Props = {
   detail: {
@@ -19,6 +19,10 @@ type Props = {
   };
   backHref: string;
   backLabel: string;
+  /** Enlace al PDF original; nombra la pantalla donde está montado el lector (ADR-113, regla 10). */
+  pdfHref: string;
+  /** Se volvió a esta pantalla porque el PDF pidió sesión: el lector avisa junto al enlace. */
+  downloadPending: boolean;
   showHeader?: boolean;
 };
 
@@ -33,8 +37,15 @@ function unitTitle(unit: ArticleRow): string {
 }
 
 /** Lector único de normativa: quien lo compone ya resolvió el acceso y el onboarding. */
-export async function DocumentReader({ detail, backHref, backLabel, showHeader = true }: Props) {
-  const kinds = tList("T-394");
+export async function DocumentReader({
+  detail,
+  backHref,
+  backLabel,
+  pdfHref,
+  downloadPending,
+  showHeader = true,
+}: Props) {
+  const kinds = tLabels("T-394", DOCUMENT_KINDS);
   const chapters = chaptersOf(detail.articles);
   const imageIds = [
     ...new Set(
@@ -54,18 +65,13 @@ export async function DocumentReader({ detail, backHref, backLabel, showHeader =
           variante="navy"
           nivel="h1"
           tamano="hero"
-          eyebrow={kinds[DOCUMENT_KINDS.indexOf(detail.document.kind)] ?? detail.document.kind}
+          eyebrow={kinds[detail.document.kind] ?? detail.document.kind}
           titulo={<span className="block hyphens-auto break-words">{detail.document.title}</span>}
           subtitulo={t("T-395", { v: detail.document.version })}
         />
       ) : null}
       <div className="flex flex-wrap items-center gap-4">
-        <a
-          href={`/api/documentos/${detail.document.id}/pdf`}
-          target="_blank"
-          rel="noreferrer"
-          className="boton-secundario"
-        >
+        <a href={pdfHref} target="_blank" rel="noreferrer" className="boton-secundario">
           {t("T-396")}
         </a>
         <p className="text-sm text-tinta-suave">
@@ -74,6 +80,9 @@ export async function DocumentReader({ detail, backHref, backLabel, showHeader =
             secciones: detail.articles.length - articleCount,
           })}
         </p>
+        {downloadPending ? (
+          <output className="block w-full text-sm font-semibold text-titulo">{t("T-3211")}</output>
+        ) : null}
       </div>
       {chapters.length === 0 ? <p>{t("T-1286")}</p> : null}
       {chapters.length > 0 ? (

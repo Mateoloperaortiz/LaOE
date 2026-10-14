@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { findPublicPage } from "@/modules/content";
 import { getActor } from "@/modules/identity";
-import { signOutAction } from "@/modules/identity/actions";
+import { SignOutForm } from "@/modules/identity/components/SignOutForm";
 import { hasLiveConsent } from "@/modules/people";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { LogoOE } from "@/shared/brand";
@@ -44,9 +44,7 @@ export default async function AutorizacionPage() {
             <Markdown source={pagina.body} />
           </section>
           <div className="flex flex-col gap-4 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5">
-            <p className="max-w-prose text-sm">
-              {t("T-150", { v: policy.version ?? "—", versión: policy.version ?? "—" })}
-            </p>
+            <p className="max-w-prose text-sm">{t("T-150", { v: policy.version ?? "—" })}</p>
             <form action={autorizarAction}>
               <button type="submit" className="boton-primario">
                 {t("T-2087")}
@@ -58,11 +56,11 @@ export default async function AutorizacionPage() {
       <div className="flex flex-wrap items-center gap-4 text-sm">
         <Link href="/privacidad">{t("T-865")}</Link>
         <a href="/api/mis-datos">{t("T-135")}</a>
-        <form action={signOutAction}>
+        <SignOutForm>
           <button type="submit" className="boton-secundario text-sm">
             {t("T-231")}
           </button>
-        </form>
+        </SignOutForm>
       </div>
     </main>
   );

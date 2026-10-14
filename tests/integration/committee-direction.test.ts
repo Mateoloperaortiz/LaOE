@@ -1,26 +1,28 @@
-import { and, desc, eq } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { closeDb, getDb } from "@/db/client";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { interaction, task } from "@/modules/crm/schema";
 import type { Actor } from "@/modules/identity";
 import {
   addCommitteeMemberAs,
+  anonymizePersonAs,
+  endMembershipAs,
   listCommitteesMissingRequiredRoles,
   listMyCommitteeCapabilities,
   requestCommitteeRemovalAs,
+  requestDeletionAs,
   searchEligibleMembers,
+  setCommitteeMemberships,
   setMemberRolesAs,
 } from "@/modules/people";
+import { addCommitteeMember } from "@/modules/people/domain/committee-direction";
 import { getMyMembership } from "@/modules/people/domain/committee-memberships";
+import { endMembership } from "@/modules/people/domain/membership";
 import { committeeMembership, committeeRoleAssignment } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { copyPattern } from "../helpers/copy";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
@@ -29,23 +31,22 @@ import {
   seedPerson,
   seedTerm,
   seedVeteran,
-} from "./factories";
+} from "../factories";
+import { copyPattern } from "../helpers/copy";
+import {
+  firstThenSecond,
+  holdCommand,
+  holdTransaction,
+  outcome,
+  waitingOn,
+} from "../helpers/locks";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // La dirección del comité por áreas (ADR-058): capacidades derivadas de los cargos, alerta de cargos
 // obligatorios, elegibles para entrar, y los comandos con eje comité con cada una de sus guardas.
 
 const db = () => getDb();
-
-async function drenar(): Promise<void> {
-  for (let batch = 0; batch < 20; batch += 1) {
-    const result = await drain(50);
-    expect(result.failed).toBe(0);
-    if (result.processed === 0) {
-      return;
-    }
-  }
-  throw new Error("El outbox no terminó");
-}
 
 interface Fixture {
   termId: string;
@@ -85,7 +86,7 @@ async function fixture(): Promise<Fixture> {
   return { termId, a3, pixel, general, gh, logistica, member, newbie };
 }
 
-const actor = (personId: string) => ({ personId });
+const actor = (personId: string) => ({ personId, ip: null });
 const director = { isAdmin: false, allCapabilities: false };
 const admin = { isAdmin: true, allCapabilities: true };
 
@@ -112,7 +113,7 @@ describe("capacidades por cargo", () => {
     expect((await listMyCommitteeCapabilities(onLeave, f.termId))[0]).toMatchObject({
       isGeneral: true,
     });
-    const inactive = await seedPerson("baja@eafit.edu.co");
+    const inactive = await seedPerson("baja@eafit.edu.co", { stage: "ALUMNI" });
     await seedMembership(inactive, f.termId, "INACTIVE");
     await seedCommitteeMembership(inactive, f.pixel, f.termId, "FINANCIERO");
     expect(await listMyCommitteeCapabilities(inactive, f.termId)).toEqual([]);
@@ -213,6 +214,154 @@ describe("agregar, cargos y pedido de retiro", () => {
     expect(events.length).toBeGreaterThanOrEqual(2);
   });
 
+  // ADR-118 regla 11 por «Agregar»: el estado y el cupo se leen con la fila de la membresía tomada,
+  // la misma que toman la baja y el cambio de comités.
+  const BAJA = { endReason: "RESIGNATION", memorialConsent: false, contactConsent: false } as const;
+
+  async function vivasDe(personId: string): Promise<string[]> {
+    const rows = await db()
+      .select({ committeeId: committeeMembership.committeeId })
+      .from(committeeMembership)
+      .where(and(eq(committeeMembership.personId, personId), isNull(committeeMembership.leftAt)));
+    return rows.map((row) => row.committeeId).sort();
+  }
+
+  async function enCola(held: { pid: number; release: () => void; done: Promise<unknown> }) {
+    try {
+      await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBeGreaterThan(0), {
+        timeout: 5_000,
+      });
+    } finally {
+      held.release();
+      await held.done;
+    }
+  }
+
+  it("si la baja entra primero, el «Agregar» que hacía cola responde que la persona no está activa", async () => {
+    const f = await fixture();
+    const scope = { committeeId: f.a3, termId: f.termId };
+    const held = await holdCommand(actor(f.gh), (ctx) => endMembership(ctx, f.newbie, BAJA));
+    const agregar = addCommitteeMemberAs(actor(f.gh), scope, director, {
+      personId: f.newbie,
+      roles: [],
+    }).then(
+      () => "agregada",
+      (error: unknown) => error,
+    );
+    await enCola(held);
+
+    expect(await agregar).toEqual(new DomainError(t("T-2164"), "personId"));
+    expect(await vivasDe(f.newbie)).toEqual([]);
+  });
+
+  it("si el «Agregar» entra primero, la baja que hacía cola cierra también esa pertenencia", async () => {
+    const f = await fixture();
+    const scope = { committeeId: f.a3, termId: f.termId };
+    const held = await holdCommand(actor(f.gh), (ctx) =>
+      addCommitteeMember(ctx, scope, director, { personId: f.newbie, roles: [] }),
+    );
+    const baja = endMembershipAs(actor(f.gh), f.newbie, BAJA);
+    await enCola(held);
+    await baja;
+
+    expect(await vivasDe(f.newbie)).toEqual([]);
+  });
+
+  it("si GH saca a la persona del comité primero, el cambio de cargos que hacía cola responde que ya no es del comité (DT-325)", async () => {
+    const f = await fixture();
+    const scope = { committeeId: f.a3, termId: f.termId };
+    // Mila está en A3 y PIXEL. GH la deja solo en PIXEL: queda escrito y sin confirmar.
+    const held = await holdCommand(actor(f.gh), (ctx) =>
+      setCommitteeMemberships(ctx, f.member, f.termId, [{ committeeId: f.pixel }]),
+    );
+    const cambio = setMemberRolesAs(actor(f.gh), scope, admin, {
+      personId: f.member,
+      roles: [{ roleCode: "MERCADEO", coDirector: false }],
+    }).then(
+      () => "cambiados",
+      (error: unknown) => error,
+    );
+    await enCola(held);
+
+    expect(await cambio).toEqual(new DomainError(t("T-2173"), "personId"));
+    const live = await db()
+      .select({ roleCode: committeeRoleAssignment.roleCode })
+      .from(committeeRoleAssignment)
+      .where(
+        and(
+          eq(committeeRoleAssignment.personId, f.member),
+          eq(committeeRoleAssignment.committeeId, f.a3),
+          isNull(committeeRoleAssignment.endedAt),
+        ),
+      );
+    expect(live).toEqual([]);
+  });
+
+  it("si anonimizan a la persona mientras la dirección le cambia los cargos, la anonimización hace cola y los dos terminan, sin interbloqueo (DT-325)", async () => {
+    const f = await fixture();
+    const scope = { committeeId: f.a3, termId: f.termId };
+    await requestDeletionAs(actor(f.member));
+    // El cambio de cargos ya tomó la fila de la membresía de Mila y se detiene en el consultivo de las
+    // inhabilidades, antes de escribir el cargo, que es lo que referencia su fila de `person`.
+    const held = await holdTransaction((tx) =>
+      tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`leadership:${f.member}`}, 0))`,
+      ),
+    );
+
+    const [changed, anonymized] = await firstThenSecond(
+      held,
+      () =>
+        setMemberRolesAs(actor(f.gh), scope, admin, {
+          personId: f.member,
+          roles: [{ roleCode: "MERCADEO", coDirector: false }],
+        }),
+      () => anonymizePersonAs(actor(f.gh), f.member),
+    );
+
+    expect([outcome(changed), outcome(anonymized)]).toEqual(["ok", "ok"]);
+    // La anonimización entró después: cierra las pertenencias y, con ellas, el cargo recién puesto.
+    expect(await vivasDe(f.member)).toEqual([]);
+    const live = await db()
+      .select({ roleCode: committeeRoleAssignment.roleCode })
+      .from(committeeRoleAssignment)
+      .where(
+        and(
+          eq(committeeRoleAssignment.personId, f.member),
+          isNull(committeeRoleAssignment.endedAt),
+        ),
+      );
+    expect(live).toEqual([]);
+  });
+
+  it("dos «Agregar» a la vez de la misma persona no la dejan con un comité de más (DT-209 c)", async () => {
+    const f = await fixture();
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    const eco = await seedCommittee("eco", "ECO");
+    // Mila ya está en A3 y PIXEL: le queda un cupo de los tres.
+    const held = await holdCommand(actor(f.gh), (ctx) =>
+      addCommitteeMember(ctx, { committeeId: cigma, termId: f.termId }, admin, {
+        personId: f.member,
+        roles: [],
+      }),
+    );
+    const segundo = addCommitteeMemberAs(
+      actor(f.gh),
+      { committeeId: eco, termId: f.termId },
+      admin,
+      { personId: f.member, roles: [] },
+    ).then(
+      () => "agregada",
+      (error: unknown) => error,
+    );
+    await enCola(held);
+
+    expect(await segundo).toMatchObject({
+      message: expect.stringMatching(copyPattern("T-2166", { max: 3 })),
+    });
+    expect(await vivasDe(f.member)).toEqual([f.a3, f.pixel, cigma].sort());
+  });
+
   it("cambia cargos con sus guardas: propia fila, dirección, obligatorios y titular repetido", async () => {
     const f = await fixture();
     const scope = { committeeId: f.a3, termId: f.termId };
@@ -298,7 +447,7 @@ describe("agregar, cargos y pedido de retiro", () => {
       personId: f.member,
       reason: "No volvió a las reuniones",
     });
-    await drenar();
+    await drainOutbox();
     const tasks = await db().select().from(task).where(eq(task.personId, f.member));
     expect(tasks).toHaveLength(1);
     expect(tasks[0]).toMatchObject({ kind: "COMMITTEE_REMOVAL", status: "OPEN", assigneeId: null });
@@ -310,7 +459,7 @@ describe("agregar, cargos y pedido de retiro", () => {
       personId: f.member,
       reason: "No volvió a las reuniones",
     });
-    await drenar();
+    await drainOutbox();
     expect(await db().select().from(task).where(eq(task.personId, f.member))).toHaveLength(1);
     const notes = await db()
       .select({ summary: interaction.summary })

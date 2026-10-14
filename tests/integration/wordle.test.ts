@@ -3,12 +3,11 @@ import { and, count, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
 import { getTermStanding } from "@/modules/participation/domain/closing";
 import { closeTermPointsAs } from "@/modules/participation/domain/commands";
+import { dayKeyFor, nextDayAt } from "@/modules/participation/domain/gamification-pure";
 import { balanceFor } from "@/modules/participation/domain/ledger";
 import {
   getTodayWordle,
@@ -20,28 +19,33 @@ import {
   WORDLE_ANSWERS,
   WORDLE_DICTIONARY_VERSION,
 } from "@/modules/participation/domain/wordle-dictionary";
-import {
-  nextWordleAt,
-  WORDLE_RULES_VERSION,
-  wordleDay,
-} from "@/modules/participation/domain/wordle-pure";
+import { WORDLE_RULES_VERSION } from "@/modules/participation/domain/wordle-pure";
 import { pointEntry, wordleAttempt, wordleGame } from "@/modules/participation/schema";
 import type { WordleGameView } from "@/modules/participation/wordle-types";
-import { membership, person } from "@/modules/people/schema";
+import { membership } from "@/modules/people/schema";
 import { setConfig } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
+import {
+  seedMember,
+  seedMembership,
+  seedPeople,
+  seedPerson,
+  seedTerm,
+  seedWordleGames,
+} from "../factories";
 import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
 const db = () => getDb();
 
 /** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 async function started(personId: string): Promise<WordleGameView> {
-  const result = await startWordleAs({ personId });
+  const result = await startWordleAs({ personId, ip: null });
   if (!result.ok) throw new Error(result.reason);
   return result.game;
 }
@@ -62,7 +66,7 @@ function submit(
   expectedAttempt = 1,
   requestId = randomUUID(),
 ) {
-  return submitWordleGuessAs({ personId }, { gameId, guess, expectedAttempt, requestId });
+  return submitWordleGuessAs({ personId, ip: null }, { gameId, guess, expectedAttempt, requestId });
 }
 
 describe("Wordle diario persistido", () => {
@@ -77,7 +81,7 @@ describe("Wordle diario persistido", () => {
     const game = await started(personId);
     expect(game.answer).toBeNull();
     expect(game.status).toBe("IN_PROGRESS");
-    expect(game.nextAvailableAt).toBe(nextWordleAt(wordleDay()));
+    expect(game.nextAvailableAt).toBe(nextDayAt(dayKeyFor(new Date())));
     expect((await getTodayWordle(personId)).game).toEqual(game);
     expect(await listWordleGamesFor(personId)).toEqual([game]);
     const audit = await db().select().from(auditLog);
@@ -86,6 +90,7 @@ describe("Wordle diario persistido", () => {
 
   it("veinte inicios concurrentes del mismo miembro devuelven la misma partida", async () => {
     const personId = await seedMember("wordle.inicio@eafit.edu.co");
+    await warmPool(10);
     const games = await Promise.all(Array.from({ length: 20 }, () => started(personId)));
     expect(new Set(games.map((game) => game.id)).size).toBe(1);
     expect(await db().select().from(wordleGame)).toHaveLength(1);
@@ -100,8 +105,31 @@ describe("Wordle diario persistido", () => {
     );
     const termId = await seedTerm();
     await Promise.all(people.map((personId) => seedMembership(personId, termId)));
+    // Al catálogo le quedan justo tantas respuestas como miembros: si dos leyeran a la vez las
+    // disponibles, elegirían al azar entre las mismas y se repetirían casi siempre.
+    const spent = WORDLE_ANSWERS.slice(people.length);
+    const others = await seedPeople(
+      spent.map((_, i) => ({
+        email: `wordle.gastada.${i}@eafit.edu.co`,
+        stage: "PROSPECT" as const,
+      })),
+    );
+    await seedWordleGames(
+      termId,
+      spent.map((answer, i) => ({
+        personId: others[i] ?? "",
+        day: dayKeyFor(new Date()),
+        answer,
+        dictionaryVersion: WORDLE_DICTIONARY_VERSION,
+        rulesVersion: WORDLE_RULES_VERSION,
+      })),
+    );
+    await warmPool(10);
     await Promise.all(people.map(started));
-    const games = await db().select().from(wordleGame);
+    const games = (await db().select().from(wordleGame)).filter((game) =>
+      people.includes(game.personId),
+    );
+    expect(games).toHaveLength(people.length);
     expect(new Set(games.map((game) => game.answer)).size).toBe(people.length);
   });
 
@@ -162,7 +190,7 @@ describe("Wordle diario persistido", () => {
     const game = await started(personId);
     const answer = await answerFor(game.id);
     await submit(personId, game.id, answer);
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
     const [event] = await db()
       .select()
       .from(outbox)
@@ -172,7 +200,7 @@ describe("Wordle diario persistido", () => {
       .update(outbox)
       .set({ processedAt: null, nextAttemptAt: new Date() })
       .where(eq(outbox.id, event.id));
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
     const timeline = await db()
       .select()
       .from(interaction)
@@ -238,9 +266,13 @@ describe("Wordle diario persistido", () => {
   it("relee elegibilidad en cada envío y admite honorarios sin confiar en el actor", async () => {
     const termId = await seedTerm();
     for (const status of ["ON_LEAVE", "INACTIVE", "HONORARY"] as const) {
-      const personId = await seedPerson(`wordle.${status.toLowerCase()}@eafit.edu.co`);
+      // Quien salió queda exalumno, como lo deja la baja (DT-351).
+      const personId = await seedPerson(
+        `wordle.${status.toLowerCase()}@eafit.edu.co`,
+        status === "INACTIVE" ? { stage: "ALUMNI" } : {},
+      );
       await seedMembership(personId, termId, status);
-      const result = await startWordleAs({ personId });
+      const result = await startWordleAs({ personId, ip: null });
       expect(result.ok).toBe(status === "HONORARY");
     }
     const personId = await seedMember("wordle.estado@eafit.edu.co");
@@ -249,7 +281,10 @@ describe("Wordle diario persistido", () => {
       .update(membership)
       .set({ status: "ON_LEAVE" })
       .where(eq(membership.personId, personId));
-    expect(await startWordleAs({ personId })).toEqual({ ok: false, reason: "NOT_ELIGIBLE" });
+    expect(await startWordleAs({ personId, ip: null })).toEqual({
+      ok: false,
+      reason: "NOT_ELIGIBLE",
+    });
     expect(await submit(personId, game.id, await answerFor(game.id))).toMatchObject({
       ok: false,
       reason: "NOT_ELIGIBLE",
@@ -327,7 +362,7 @@ describe("Wordle diario persistido", () => {
     });
     const newcomer = await seedPerson("wordle.cerrado@eafit.edu.co");
     await seedMembership(newcomer, game.termId);
-    expect(await startWordleAs({ personId: newcomer })).toMatchObject({
+    expect(await startWordleAs({ personId: newcomer, ip: null })).toMatchObject({
       ok: false,
       reason: "TERM_CLOSED",
     });
@@ -336,7 +371,7 @@ describe("Wordle diario persistido", () => {
 
   it("sin semestre actual no comienza el reto y un diccionario desconocido no consume intentos", async () => {
     const personId = await seedPerson("wordle.sinsemestre@eafit.edu.co");
-    expect(await startWordleAs({ personId })).toEqual({ ok: false, reason: "NO_TERM" });
+    expect(await startWordleAs({ personId, ip: null })).toEqual({ ok: false, reason: "NO_TERM" });
     const termId = await seedTerm();
     await seedMembership(personId, termId);
     const game = await started(personId);
@@ -357,7 +392,7 @@ describe("Wordle diario persistido", () => {
     const answer = await answerFor(game.id);
     const requestId = randomUUID();
     await submit(personId, game.id, answer, 1, requestId);
-    await closeTermPointsAs({ personId }, game.termId);
+    await closeTermPointsAs({ personId, ip: null }, game.termId);
     const standing = await getTermStanding(game.termId);
     expect(standing?.stats.pointsAwarded).toBe(6);
     expect(standing?.topNew).toMatchObject([{ personId, total: 6 }]);
@@ -373,9 +408,10 @@ describe("Wordle diario persistido", () => {
     const personId = await seedMember("wordle.carrera@eafit.edu.co");
     const game = await started(personId);
     const answer = await answerFor(game.id);
+    await warmPool();
     const [result] = await Promise.all([
       submit(personId, game.id, answer),
-      closeTermPointsAs({ personId }, game.termId),
+      closeTermPointsAs({ personId, ip: null }, game.termId),
     ]);
     const standing = await getTermStanding(game.termId);
     const [stored] = await db().select().from(wordleGame).where(eq(wordleGame.id, game.id));
@@ -397,34 +433,27 @@ describe("Wordle diario persistido", () => {
   it("agotamiento del catálogo no repite una respuesta", async () => {
     const personId = await seedMember("wordle.agotado@eafit.edu.co");
     const termId = await seedTerm();
-    const people = await db()
-      .insert(person)
-      .values(
-        WORDLE_ANSWERS.map((_, i) => ({
-          email: `wordle.catalogo.${i}@eafit.edu.co`,
-          firstName: "Persona",
-          lastName: "Sintética",
-          source: "TEST",
-        })),
-      )
-      .returning({ id: person.id });
-    await db()
-      .insert(wordleGame)
-      .values(
-        WORDLE_ANSWERS.map((answer, i) => ({
-          personId: people[i]?.id ?? personId,
-          day: wordleDay(),
-          termId,
-          answer,
-          dictionaryVersion: WORDLE_DICTIONARY_VERSION,
-          rulesVersion: WORDLE_RULES_VERSION,
-        })),
-      );
-    expect(await startWordleAs({ personId })).toEqual({ ok: false, reason: "EXHAUSTED" });
+    const people = await seedPeople(
+      WORDLE_ANSWERS.map((_, i) => ({
+        email: `wordle.catalogo.${i}@eafit.edu.co`,
+        stage: "PROSPECT" as const,
+      })),
+    );
+    await seedWordleGames(
+      termId,
+      WORDLE_ANSWERS.map((answer, i) => ({
+        personId: people[i] ?? personId,
+        day: dayKeyFor(new Date()),
+        answer,
+        dictionaryVersion: WORDLE_DICTIONARY_VERSION,
+        rulesVersion: WORDLE_RULES_VERSION,
+      })),
+    );
+    expect(await startWordleAs({ personId, ip: null })).toEqual({ ok: false, reason: "EXHAUSTED" });
     const [rows] = await db()
       .select({ n: count() })
       .from(wordleGame)
-      .where(and(eq(wordleGame.day, wordleDay()), eq(wordleGame.personId, personId)));
+      .where(and(eq(wordleGame.day, dayKeyFor(new Date())), eq(wordleGame.personId, personId)));
     expect(rows?.n).toBe(0);
   });
 });

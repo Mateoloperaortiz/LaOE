@@ -26,6 +26,7 @@ import {
 import { PrivacyPolicyPendingError } from "@/modules/system";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { clientIp } from "@/shared/lib/request";
 
 // Acciones de Ajustes (ADR-034 reglas 6, 8 y 12): la persona sobre sus propios datos. Cada una vuelve
 // a su sección con `guardado=<sección>` o con el error del dominio.
@@ -230,8 +231,12 @@ export async function changePasswordAction(
     current,
     password,
     keepSessionId: actor.sessionId,
+    ip: await clientIp(),
   });
   if (!result.ok) {
+    if (result.reason === "LOCKED") {
+      return { status: "error", message: t("T-2097") };
+    }
     if (result.reason === "CURRENT") {
       return { status: "error", message: t("T-2115") };
     }

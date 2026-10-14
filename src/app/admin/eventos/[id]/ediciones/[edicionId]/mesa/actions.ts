@@ -11,13 +11,13 @@ import {
   addMacroeventDirectorAs,
   MACROEVENT_ROLE_CODES,
   removeAppointmentAs,
+  requireEditionTerm,
 } from "@/modules/people";
-import { findTermContaining, getCurrentTerm } from "@/modules/terms";
-import { APP_TIME_ZONE, dateKeyIn } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 
 // Mesa directiva de una edición (ADR-060 regla 9): ADMIN registra el resultado de la elección de la
-// Asamblea; el cargo queda en el término que contiene la fecha de la edición (o el vigente).
+// Asamblea; el cargo queda en el término que contiene la fecha de la edición, y si ese término
+// todavía no existe no se nombra (ADR-118 regla 9).
 
 const ID = /^[a-z0-9-]{10,40}$/;
 const idSchema = z.string().regex(ID);
@@ -59,14 +59,9 @@ export async function addDirectorAction(formData: FormData): Promise<void> {
   if (!edition || edition.eventId !== parsed.data.eventId) {
     redirect(`${back}?error=${encodeURIComponent("T-260")}`);
   }
-  const term =
-    (await findTermContaining(dateKeyIn(APP_TIME_ZONE, edition.startsAt))) ??
-    (await getCurrentTerm());
-  if (!term) {
-    redirect(`${back}?error=${encodeURIComponent("T-260")}`);
-  }
   const overrideReason = formRaw(formData, "overrideReason").trim();
   try {
+    const term = await requireEditionTerm(edition.startsAt);
     await addMacroeventDirectorAs(
       actor,
       {
@@ -102,7 +97,9 @@ export async function removeDirectorAction(formData: FormData): Promise<void> {
     redirect(`${back}?error=${encodeURIComponent("T-260")}`);
   }
   try {
-    await removeAppointmentAs(actor, parsed.data.appointmentId);
+    await removeAppointmentAs(actor, parsed.data.appointmentId, {
+      editionId: parsed.data.editionId,
+    });
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(`${back}?error=${encodeURIComponent(error.message)}`);

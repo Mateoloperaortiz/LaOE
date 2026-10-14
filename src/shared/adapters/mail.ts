@@ -1,6 +1,11 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
-import { type CreateEmailOptions, type CreateEmailResponse, Resend } from "resend";
+import {
+  type CreateEmailOptions,
+  type CreateEmailRequestOptions,
+  type CreateEmailResponse,
+  Resend,
+} from "resend";
 import { withTimeout } from "@/shared/lib/timeout";
 import { logger } from "@/shared/log";
 
@@ -16,6 +21,12 @@ export interface MailMessage {
   html?: string;
   /** Cabeceras extra (ADR-038 regla 8): `List-Unsubscribe` y `List-Unsubscribe-Post` en las campañas. */
   headers?: Record<string, string>;
+  /**
+   * Clave de idempotencia del proveedor (ADR-116 regla 18), de hasta 256 caracteres. Resend la recibe en
+   * el encabezado `Idempotency-Key` y durante 24 horas no entrega dos veces un correo con la misma clave
+   * y el mismo contenido. SES no tiene nada parecido: ese transporte y el de consola la ignoran.
+   */
+  idempotencyKey?: string;
 }
 
 export type MailProvider = "console" | "resend" | "ses";
@@ -25,12 +36,49 @@ export interface MailTransport {
   send(message: MailMessage): Promise<{ id: string | null }>;
 }
 
-/** Resend agotó su cuota o los reintentos de ráfaga; comms decide si existe desbordamiento. */
+/**
+ * Por qué el proveedor no aceptó un correo por cuota (ADR-116 regla 19): una ráfaga que no cedió con
+ * los reintentos, el cupo del día o el del mes.
+ */
+export type QuotaReason = "BURST" | "DAILY" | "MONTHLY";
+
+/**
+ * Resend agotó su cuota o los reintentos de ráfaga; comms decide si existe desbordamiento. Lleva su
+ * causa y, si fue una ráfaga, lo que el proveedor pidió esperar en su último rechazo. Quien lo arma
+ * sin decir la causa obtiene la del cupo del día, que es como se trataba todo rechazo.
+ */
 export class QuotaExceededError extends Error {
-  constructor(message: string) {
+  readonly reason: QuotaReason;
+  /** Milisegundos de la cabecera `Retry-After` del rechazo; `null` si no vino o no se entiende. */
+  readonly retryAfterMs: number | null;
+
+  constructor(message: string, reason: QuotaReason = "DAILY", retryAfterMs: number | null = null) {
     super(message);
     this.name = "QuotaExceededError";
+    this.reason = reason;
+    this.retryAfterMs = retryAfterMs;
   }
+}
+
+/** La causa de cada error de cuota de Resend. Un nombre que no está acá no es un error de cuota. */
+const RESEND_QUOTA_REASONS: ReadonlyMap<string, QuotaReason> = new Map([
+  ["rate_limit_exceeded", "BURST"],
+  ["daily_quota_exceeded", "DAILY"],
+  ["monthly_quota_exceeded", "MONTHLY"],
+]);
+
+/**
+ * Lo que pide esperar la cabecera `Retry-After`, que llega en segundos o como fecha HTTP. `null` si no
+ * vino o no se entiende; una fecha que ya pasó es cero.
+ */
+function retryAfterMs(headers: Record<string, string> | null | undefined): number | null {
+  const value = new Headers(headers ?? {}).get("retry-after");
+  if (value === null) {
+    return null;
+  }
+  const seconds = Number(value);
+  const delay = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(value) - Date.now();
+  return Number.isFinite(delay) ? Math.max(0, delay) : null;
 }
 
 export class ConsoleTransport implements MailTransport {
@@ -55,19 +103,26 @@ export class ConsoleTransport implements MailTransport {
 
 export class ResendTransport implements MailTransport {
   readonly name = "resend" as const;
-  private readonly sendEmail: (message: CreateEmailOptions) => Promise<CreateEmailResponse>;
+  private readonly sendEmail: (
+    message: CreateEmailOptions,
+    options?: CreateEmailRequestOptions,
+  ) => Promise<CreateEmailResponse>;
   private readonly wait: (milliseconds: number) => Promise<void>;
 
   constructor(
     apiKey: string,
     private readonly from: string,
     dependencies: {
-      send?: (message: CreateEmailOptions) => Promise<CreateEmailResponse>;
+      send?: (
+        message: CreateEmailOptions,
+        options?: CreateEmailRequestOptions,
+      ) => Promise<CreateEmailResponse>;
       wait?: (milliseconds: number) => Promise<void>;
     } = {},
   ) {
     const client = new Resend(apiKey);
-    this.sendEmail = dependencies.send ?? ((message) => client.emails.send(message));
+    this.sendEmail =
+      dependencies.send ?? ((message, options) => client.emails.send(message, options));
     this.wait = dependencies.wait ?? sleep;
   }
 
@@ -80,37 +135,34 @@ export class ResendTransport implements MailTransport {
       ...(message.html ? { html: message.html } : {}),
       ...(message.headers ? { headers: message.headers } : {}),
     };
+    // La clave no va en el cuerpo: el SDK la manda en el encabezado `Idempotency-Key`. Es la misma en
+    // cada llamada de este envío, también en los reintentos de ráfaga.
+    const options: CreateEmailRequestOptions | undefined = message.idempotencyKey
+      ? { idempotencyKey: message.idempotencyKey }
+      : undefined;
     // ADR-039: cuatro llamadas como máximo; respetar Retry-After sin repetir entregas ambiguas.
     for (let attempt = 0; ; attempt++) {
       const { data, error, headers } = await withTimeout(
-        this.sendEmail(payload),
+        this.sendEmail(payload, options),
         MAIL_REQUEST_TIMEOUT_MS,
         "Resend",
       );
       if (!error) {
         return { id: data?.id ?? null };
       }
+      const requested = retryAfterMs(headers);
       if (error.name === "rate_limit_exceeded" && attempt < 3) {
-        const retryAfter = new Headers(headers ?? {}).get("retry-after");
-        const seconds = retryAfter === null ? NaN : Number(retryAfter);
-        const requestedDelay = Number.isFinite(seconds)
-          ? seconds * 1000
-          : retryAfter === null
-            ? 0
-            : Date.parse(retryAfter) - Date.now();
-        const delay = Math.max(
-          1000 * 2 ** attempt,
-          Number.isFinite(requestedDelay) ? requestedDelay : 0,
-        );
-        await this.wait(delay);
+        await this.wait(Math.max(1000 * 2 ** attempt, requested ?? 0));
         continue;
       }
-      if (
-        error.name === "rate_limit_exceeded" ||
-        error.name === "daily_quota_exceeded" ||
-        error.name === "monthly_quota_exceeded"
-      ) {
-        throw new QuotaExceededError(`${error.name}: ${error.message}`);
+      const reason = RESEND_QUOTA_REASONS.get(error.name);
+      if (reason) {
+        // La espera solo dice algo de una ráfaga: el cupo del día y el del mes tienen su propio plazo.
+        throw new QuotaExceededError(
+          `${error.name}: ${error.message}`,
+          reason,
+          reason === "BURST" ? requested : null,
+        );
       }
       throw new Error(`Resend: ${error.name}: ${error.message}`);
     }

@@ -8,8 +8,9 @@ import {
   MONTHS,
   monthName,
 } from "@/modules/crm";
-import { listInternalRoster, SANCTION_KINDS } from "@/modules/people";
+import { COMMITTEE_SANCTION_KINDS, listInternalRoster, SANCTION_KINDS } from "@/modules/people";
 import {
+  COMPLIANCE_STATES,
   deviatesFromNominal,
   getTableView,
   listLeaderScores,
@@ -23,7 +24,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { reglaFormLabels, reglaFormValues } from "../../../permanencia/_ui/reglas";
 import {
@@ -36,6 +37,8 @@ import {
   saveCommitteeRuleAction,
   scoreAction,
 } from "./actions";
+
+const CONDITIONS = ["ACTIVE", "NEW", "PROBATION", "TRANSFER"] as const;
 
 // Permanencia del comité para su líder (ADR-026, ADR-036): su tabla dentro del nominal, los puntajes
 // de sus criterios con observación, el destacado del mes y el progreso de sus miembros.
@@ -100,12 +103,7 @@ export default async function PermanenciaComitePage({
   const [aprobarExcusa, rechazarExcusa] = tList("T-1001");
   const [campoTipo, campoCausal, campoReferencia, campoFecha, , , campoMiembro] = tList("T-2230");
   const [registrarSancion] = tList("T-2232");
-  const kindLabels = tList("T-2229");
-  // Desde el comité solo se registran llamados, faltas leves y graves; la suspensión y la
-  // inhabilidad las decide GH (Regl. art. 58, 62 y 63).
-  const committeeKinds = SANCTION_KINDS.filter((kind) =>
-    ["WARNING", "MINOR", "MAJOR"].includes(kind),
-  );
+  const kindLabels = tLabels("T-2229", SANCTION_KINDS);
   const scoreRules = view.rules.filter((rule) => rule.computation === "LEADER_SCORE");
   const scoreOf = (ruleId: string, personId: string) =>
     scores.find((item) => item.ruleId === ruleId && item.personId === personId) ?? null;
@@ -122,8 +120,8 @@ export default async function PermanenciaComitePage({
   const [campoMes, campoPersona] = tList("T-779");
   const [campoValor, campoObservacion] = tList("T-773");
   const progressColumns = tList("T-820");
-  const stateLabels = tList("T-791");
-  const conditionLabels = tList("T-792");
+  const stateLabels: Readonly<Record<string, string>> = tLabels("T-791", COMPLIANCE_STATES);
+  const conditionLabels: Readonly<Record<string, string>> = tLabels("T-792", CONDITIONS);
   const destacado = single(search.destacado);
   const destacadoNombre =
     members.find((member) => member.personId === single(search.persona))?.fullName ?? "";
@@ -254,9 +252,10 @@ export default async function PermanenciaComitePage({
               <label className="flex flex-col gap-1 text-sm" htmlFor="falta-tipo">
                 {campoTipo}
                 <select id="falta-tipo" name="kind" required className={inputClass}>
-                  {committeeKinds.map((kind) => (
+                  {/* Lo que el comando admite desde el comité: la misma lista (ADR-060 regla 6). */}
+                  {COMMITTEE_SANCTION_KINDS.map((kind) => (
                     <option key={kind} value={kind}>
-                      {kindLabels[SANCTION_KINDS.indexOf(kind)] ?? kind}
+                      {kindLabels[kind] ?? kind}
                     </option>
                   ))}
                 </select>
@@ -456,11 +455,7 @@ export default async function PermanenciaComitePage({
                   <tr key={member.personId} className="border-borde border-t">
                     <td className="py-2 pr-3 font-semibold">{member.fullName}</td>
                     <td className="py-2 pr-3">
-                      {result
-                        ? (conditionLabels[
-                            ["ACTIVE", "NEW", "PROBATION", "TRANSFER"].indexOf(result.condition)
-                          ] ?? "")
-                        : ""}
+                      {result ? (conditionLabels[result.condition] ?? "") : ""}
                     </td>
                     <td className="py-2 pr-3 tabular-nums">{meetings}</td>
                     <td className="py-2 pr-3 tabular-nums">
@@ -477,16 +472,7 @@ export default async function PermanenciaComitePage({
                                 : "sky"
                           }
                         >
-                          {stateLabels[
-                            [
-                              "EN_CAMINO",
-                              "EN_RIESGO",
-                              "NO_ALCANZA",
-                              "CUMPLE",
-                              "PRUEBA",
-                              "NO_CUMPLE",
-                            ].indexOf(result.state)
-                          ] ?? ""}
+                          {stateLabels[result.state] ?? ""}
                         </Insignia>
                       ) : null}
                     </td>

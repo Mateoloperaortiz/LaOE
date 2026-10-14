@@ -6,7 +6,7 @@ import { requireActor } from "@/modules/identity";
 import { listGroupIdsOf, listGroupRefs } from "@/modules/permanence";
 import { getCurrentTerm } from "@/modules/terms";
 import { BarraTitulo, Cartel, Insignia, SelloOE } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { Vacio } from "../_ui/Vacio";
 
@@ -33,7 +33,7 @@ export default async function ConvocatoriasPage({ searchParams }: PageProps<"/ap
     ...mine.map((entry) => entry.groupId),
   ]);
   const justApplied = inscrita && convocatoriaId ? await getCall(convocatoriaId) : null;
-  const entryLabels = tList("T-899");
+  const entryLabels = tLabels("T-899", CALL_ENTRY_STATUSES);
   const [porOrden, manual] = tList("T-905");
   const appliedIds = new Set(mine.map((entry) => entry.callId));
   const groupName = (id: string) => groups.get(id)?.name ?? "";
@@ -131,7 +131,7 @@ export default async function ConvocatoriasPage({ searchParams }: PageProps<"/ap
                           : "sky"
                   }
                 >
-                  {entryLabels[CALL_ENTRY_STATUSES.indexOf(entry.status)] ?? entry.status}
+                  {entryLabels[entry.status] ?? entry.status}
                 </Insignia>
                 {entry.status === "REJECTED" ? (
                   <span className="text-tinta-suave">

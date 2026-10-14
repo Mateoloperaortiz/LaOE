@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   areasFor,
+  COMMITTEE_AREA_KEYS,
   COMMITTEE_AREAS,
   COMMITTEE_CAPABILITIES,
   capabilitySchema,
@@ -17,6 +18,10 @@ describe("capacidades por cargo", () => {
     expect(tList("T-2174")).toHaveLength(COMMITTEE_AREAS.length);
     const covered = COMMITTEE_AREAS.flatMap((area) => area.capabilities);
     expect([...covered].sort()).toEqual([...COMMITTEE_CAPABILITIES].sort());
+  });
+
+  it("la tupla de las claves de las áreas va en el orden de las pestañas", () => {
+    expect([...COMMITTEE_AREA_KEYS]).toEqual(COMMITTEE_AREAS.map((area) => area.key));
   });
 
   it("filtra lo que no está en el vocabulario y ordena sin repetir", () => {

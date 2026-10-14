@@ -1,0 +1,728 @@
+import { and, asc, eq, type SQL, sql } from "drizzle-orm";
+import pino from "pino";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { closeDb, getDb } from "@/db/client";
+import { enqueueEvent, SYSTEM_ACTOR } from "@/db/tx";
+import { getHandlers } from "@/jobs/registry";
+import {
+  completePersonTaskAs,
+  createCardAs,
+  createRequestAs,
+  createTaskAs,
+  moveCardAs,
+} from "@/modules/crm";
+import { tasksResource } from "@/modules/crm/admin";
+import { openTaskForReasonAs } from "@/modules/crm/domain/commands";
+import { ReasonTaskInputError } from "@/modules/crm/domain/tasks";
+import { request, task } from "@/modules/crm/schema";
+import { anonymizePersonAs, requestCommitteeRemovalAs, requestDeletionAs } from "@/modules/people";
+import { membership } from "@/modules/people/schema";
+import { requireConfig } from "@/modules/system";
+import { clearConfigCache } from "@/modules/system/domain/config";
+import { auditLog } from "@/modules/system/schema";
+import { nextTermCode } from "@/modules/terms";
+import { term } from "@/modules/terms/schema";
+import { t, tList } from "@/shared/copy";
+import { addBusinessDays, bogotaInputToUtc, todayKey } from "@/shared/lib/dates";
+import {
+  currentTermCode,
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMember,
+  seedOrganization,
+  seedPipeline,
+  seedTerm,
+  seedVeteran,
+} from "../factories";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
+import { truncateAll } from "./db";
+
+// Las tareas de GH (DT-007, ADR-115 regla 9). Ocho sitios abren una: cuatro handlers de `crm/jobs.ts`
+// (pedido de borrado, pedido de retiro de un comité, término siguiente sin crear, licencia vencida),
+// la solicitud del miembro, el patrocinio ganado y las dos entradas de la creación a mano (las fichas y
+// el recurso del kit). Acá queda qué tarea abre cada uno y qué quiere decir «una sola por motivo»: los
+// seis primeros pasan por `openTaskForReason`, que la identifica por su motivo y su sujeto.
+
+const db = () => getDb();
+const director = { isAdmin: false, allCapabilities: false };
+const MINUTE = 60_000;
+/** Más comandos a la vez que conexiones tiene el pool, que son 10 (`src/db/client.ts`). */
+const BURST = 24;
+
+/** El vencimiento se calcula con el reloj del handler: se compara con un minuto de margen. */
+function near(actual: Date | null | undefined, expected: Date): boolean {
+  return actual != null && Math.abs(actual.getTime() - expected.getTime()) < MINUTE;
+}
+
+function tasksOf(where: SQL) {
+  return db().select().from(task).where(where).orderBy(asc(task.createdAt), asc(task.id));
+}
+
+function openTasks() {
+  return tasksOf(eq(task.status, "OPEN"));
+}
+
+/** La auditoría de una tarea: qué quedó escrito y a nombre de quién. */
+function auditsOf(taskId: string) {
+  return db()
+    .select({ action: auditLog.action, actorId: auditLog.actorId })
+    .from(auditLog)
+    .where(and(eq(auditLog.entityType, "task"), eq(auditLog.entityId, taskId)));
+}
+
+/** Lo que hace el poller con un evento, sin el poller: sus handlers registrados, con su contexto. */
+async function handle(type: string, payload: Record<string, unknown>, id: string): Promise<void> {
+  const log = pino({ level: "silent" });
+  for (const handler of getHandlers(type)) {
+    await handler(payload, { id, attempt: 1, log, now: new Date() });
+  }
+}
+
+async function leaveCheck(): Promise<void> {
+  await enqueueEvent(db(), { type: "membership.leave-check", payload: {} });
+  await drainOutbox();
+}
+
+async function termCheck(): Promise<void> {
+  await enqueueEvent(db(), { type: "participation.term-check", payload: {} });
+  await drainOutbox();
+}
+
+/** Un comité con su directora de GH (capacidad `ROSTER`) y una veterana que está en dos comités. */
+async function committeeFixture() {
+  const termId = await seedTerm();
+  const a3 = await seedCommittee("a3", "A3");
+  const pixel = await seedCommittee("pixel", "PIXEL");
+  const gh = await seedMember("gh@eafit.edu.co", { firstName: "Gema", lastName: "Humana" });
+  const member = await seedVeteran("miembro@eafit.edu.co", {
+    firstName: "Mila",
+    lastName: "Miembro",
+  });
+  await seedCommitteeMembership(gh, a3, termId, "GESTION_HUMANA");
+  await seedCommitteeMembership(gh, pixel, termId, "GESTION_HUMANA");
+  await seedCommitteeMembership(member, a3, termId);
+  await seedCommitteeMembership(member, pixel, termId);
+  const ask = (committeeId: string, reason: string) =>
+    requestCommitteeRemovalAs({ personId: gh, ip: null }, { committeeId, termId }, director, {
+      personId: member,
+      reason,
+    });
+  return { termId, a3, pixel, gh, member, ask };
+}
+
+/** Una persona con la licencia vencida: lo que encuentra el programado diario. */
+async function expiredLeave(email = "vencida@eafit.edu.co") {
+  const personId = await seedMember(email, { firstName: "Vera", lastName: "Vencida" });
+  await db()
+    .update(membership)
+    .set({ status: "ON_LEAVE", leaveUntil: "2026-01-31" })
+    .where(eq(membership.personId, personId));
+  return personId;
+}
+
+/** El término actual termina en diez días y el siguiente no existe. */
+async function endingTerm() {
+  const code = currentTermCode();
+  const termId = await seedTerm(code);
+  const endsOn = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
+  await db().update(term).set({ endsOn }).where(eq(term.id, termId));
+  return { termId, code, next: nextTermCode(code), endsOn };
+}
+
+/** Una tarjeta de patrocinio con responsable, y la etapa ganada de su pipeline. */
+async function sponsorshipCard() {
+  const admin = await seedMember("admin@eafit.edu.co");
+  const owner = await seedMember("responsable@eafit.edu.co");
+  const organizationId = await seedOrganization("Postobón");
+  const pipeline = await seedPipeline("Patrocinios", "SPONSORSHIP", [
+    { name: "Contacto" },
+    { name: "Cerrado", isWon: true },
+    { name: "Sin acuerdo", isLost: true },
+  ]);
+  const [first, won] = pipeline.stages;
+  if (!first || !won) throw new Error("etapas");
+  const actor = { personId: admin, ip: null };
+  const created = await createCardAs(actor, pipeline.id, {
+    organizationId,
+    title: "Postobón · Días EAFIT",
+    ownerId: owner,
+  });
+  return { actor, admin, owner, organizationId, cardId: created.id, first: first.id, won: won.id };
+}
+
+/** Un miembro activo con comité: el que puede pedir una licencia. */
+async function activeMember() {
+  const termId = await seedTerm();
+  const personId = await seedMember("solicita@eafit.edu.co", {
+    firstName: "Rita",
+    lastName: "Solicita",
+  });
+  await seedCommitteeMembership(personId, await seedCommittee("a3", "A3"), termId);
+  const until = new Date(Date.now() + 60 * 24 * 60 * MINUTE).toISOString().slice(0, 10);
+  return { personId, actor: { personId, ip: null }, until };
+}
+
+beforeEach(truncateAll);
+afterAll(() => closeDb());
+
+describe("qué tarea abre cada sitio", () => {
+  it("el pedido de borrado abre una tarea de eliminación sin responsable, a nombre de quien la pidió y a los días hábiles de la configuración", async () => {
+    const me = await seedMember("borrar@eafit.edu.co", { firstName: "Bea", lastName: "Borrar" });
+    const asked = await requestDeletionAs({ personId: me, ip: null });
+    await drainOutbox();
+
+    const tasks = await tasksOf(eq(task.personId, me));
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({
+      title: t("T-464", { nombre: "Bea Borrar" }),
+      kind: "DELETION_REQUEST",
+      reasonKey: `DELETION_REQUEST:person:${me}`,
+      status: "OPEN",
+      assigneeId: null,
+      createdById: me,
+      organizationId: null,
+      cardId: null,
+    });
+    const days = await requireConfig("privacy.deletionDays");
+    expect(near(tasks[0]?.dueAt, addBusinessDays(asked.requestedAt, days))).toBe(true);
+  });
+
+  it("el pedido de retiro de un comité abre una tarea sin responsable, a nombre de quien lo pidió y con el vencimiento de las solicitudes", async () => {
+    const f = await committeeFixture();
+    const before = new Date();
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
+
+    const tasks = await tasksOf(eq(task.personId, f.member));
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({
+      title: t("T-2170", {
+        nombre: "Mila Miembro",
+        comité: "A3",
+        motivo: "No volvió a las reuniones",
+      }),
+      kind: "COMMITTEE_REMOVAL",
+      reasonKey: `COMMITTEE_REMOVAL:person:${f.member}:committee:${f.a3}`,
+      status: "OPEN",
+      assigneeId: null,
+      createdById: f.gh,
+      organizationId: null,
+      cardId: null,
+    });
+    const days = await requireConfig("requests.taskDays");
+    expect(near(tasks[0]?.dueAt, addBusinessDays(before, days))).toBe(true);
+  });
+
+  it("el término siguiente sin crear abre una tarea general sin responsable ni persona, que vence el día en que termina el actual", async () => {
+    const { next, endsOn } = await endingTerm();
+    await termCheck();
+
+    const tasks = await openTasks();
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({
+      title: t("T-666", { codigo: next, fecha: endsOn }),
+      kind: "GENERAL",
+      reasonKey: `TERM_SUCCESSOR_MISSING:term:${next}`,
+      assigneeId: null,
+      personId: null,
+      createdById: null,
+      organizationId: null,
+      cardId: null,
+    });
+    expect(tasks[0]?.dueAt?.toISOString()).toBe(`${endsOn}T12:00:00.000Z`);
+  });
+
+  it("la licencia vencida abre una tarea sin responsable que vence hoy a las nueve de la mañana de Colombia, auditada a nombre del sistema", async () => {
+    const personId = await expiredLeave();
+    await leaveCheck();
+
+    const tasks = await tasksOf(eq(task.personId, personId));
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({
+      title: t("T-2277", { nombre: "Vera Vencida", fecha: "31 de enero de 2026" }),
+      kind: "LEAVE_EXPIRED",
+      reasonKey: `LEAVE_EXPIRED:person:${personId}`,
+      status: "OPEN",
+      assigneeId: null,
+      createdById: null,
+      organizationId: null,
+      cardId: null,
+    });
+    expect(tasks[0]?.dueAt).toEqual(bogotaInputToUtc(`${todayKey()}T09:00`));
+    expect(await auditsOf(tasks[0]?.id ?? "")).toEqual([{ action: "task.created", actorId: null }]);
+  });
+
+  it("la solicitud de un miembro abre su tarea en la misma transacción, sin responsable, a su nombre y con el vencimiento de las solicitudes", async () => {
+    const { personId, actor, until } = await activeMember();
+    const before = new Date();
+    const created = await createRequestAs(actor, "LEAVE", { reason: "Intercambio", until });
+
+    const tasks = await tasksOf(eq(task.personId, personId));
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({
+      title: t("T-1009", { nombre: "Rita Solicita", tipo: tList("T-894")[0] }),
+      kind: "REQUEST",
+      reasonKey: `REQUEST:request:${created.id}`,
+      status: "OPEN",
+      assigneeId: null,
+      createdById: personId,
+      organizationId: null,
+      cardId: null,
+    });
+    const days = await requireConfig("requests.taskDays");
+    expect(near(tasks[0]?.dueAt, addBusinessDays(before, days))).toBe(true);
+    const [row] = await db()
+      .select({ taskId: request.taskId })
+      .from(request)
+      .where(eq(request.id, created.id));
+    expect(row?.taskId).toBe(tasks[0]?.id);
+  });
+
+  it("el patrocinio ganado abre una tarea de seguimiento al responsable de la tarjeta, sobre la organización y la tarjeta, sin vencimiento", async () => {
+    const f = await sponsorshipCard();
+    await moveCardAs(f.actor, f.cardId, f.won);
+
+    const tasks = await tasksOf(eq(task.cardId, f.cardId));
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({
+      title: t("T-994", { organización: "Postobón" }),
+      kind: "GENERAL",
+      reasonKey: `SPONSORSHIP_WON:card:${f.cardId}`,
+      status: "OPEN",
+      assigneeId: f.owner,
+      organizationId: f.organizationId,
+      personId: null,
+      createdById: f.admin,
+      dueAt: null,
+    });
+  });
+
+  it("una tarea creada a mano desde una ficha queda con lo que se escribió, a nombre de quien la creó y auditada", async () => {
+    const admin = await seedMember("admin@eafit.edu.co");
+    const personId = await seedMember("ficha@eafit.edu.co");
+    const created = await createTaskAs(
+      { personId: admin, ip: null },
+      {
+        title: "Llamar a la mamá",
+        kind: "GENERAL",
+        assigneeId: admin,
+        personId,
+        dueAt: "2026-10-20T09:00",
+      },
+    );
+
+    const [row] = await tasksOf(eq(task.id, created.id));
+    expect(row).toMatchObject({
+      title: "Llamar a la mamá",
+      kind: "GENERAL",
+      reasonKey: null,
+      status: "OPEN",
+      assigneeId: admin,
+      personId,
+      createdById: admin,
+      dueAt: bogotaInputToUtc("2026-10-20T09:00"),
+    });
+    expect(await auditsOf(created.id)).toEqual([{ action: "task.created", actorId: admin }]);
+  });
+
+  it("dos tareas iguales creadas a mano son dos tareas: la creación a mano no busca una abierta", async () => {
+    const admin = await seedMember("admin@eafit.edu.co");
+    const personId = await seedMember("ficha@eafit.edu.co");
+    const actor = { personId: admin, ip: null };
+    const input = { title: "Llamar a la mamá", kind: "GENERAL" as const, personId };
+    await createTaskAs(actor, input);
+    await createTaskAs(actor, input);
+    const fromKit = await tasksResource.create?.({ personId: admin, ip: null }, input);
+
+    const tasks = await tasksOf(eq(task.personId, personId));
+    expect(tasks).toHaveLength(3);
+    expect(await auditsOf(fromKit?.id ?? "")).toEqual([{ action: "task.created", actorId: admin }]);
+  });
+});
+
+describe("una sola tarea abierta por motivo", () => {
+  it("el mismo pedido de retiro repetido no abre otra tarea, y el de otro comité sí", async () => {
+    const f = await committeeFixture();
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
+    expect(await tasksOf(eq(task.personId, f.member))).toHaveLength(1);
+
+    await f.ask(f.pixel, "No volvió a las reuniones");
+    await drainOutbox();
+    expect(await tasksOf(eq(task.personId, f.member))).toHaveLength(2);
+  });
+
+  it("una tarea hecha ya no cuenta: si la licencia sigue vencida, el programado abre otra", async () => {
+    const personId = await expiredLeave();
+    await leaveCheck();
+    const [first] = await tasksOf(eq(task.personId, personId));
+    await completePersonTaskAs({ personId: null, ip: null }, first?.id ?? "", { personId });
+    await leaveCheck();
+    await leaveCheck();
+
+    const tasks = await tasksOf(eq(task.personId, personId));
+    expect(tasks.map((row) => row.status).sort()).toEqual(["DONE", "OPEN"]);
+  });
+
+  it("cada persona con la licencia vencida tiene su tarea", async () => {
+    const one = await expiredLeave("una@eafit.edu.co");
+    const other = await expiredLeave("otra@eafit.edu.co");
+    await leaveCheck();
+    await leaveCheck();
+
+    const tasks = await openTasks();
+    expect(tasks.map((row) => row.personId).sort()).toEqual([one, other].sort());
+  });
+
+  it("un pedido de retiro no abre otra tarea porque el texto de su título haya cambiado", async () => {
+    const f = await committeeFixture();
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
+    // Como si T-2170 se hubiera reescrito entre un pedido y el siguiente.
+    await db().update(task).set({ title: "El texto de antes" }).where(eq(task.personId, f.member));
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
+
+    expect(await tasksOf(eq(task.personId, f.member))).toHaveLength(1);
+  });
+
+  it("otro pedido de retiro del mismo comité con otro motivo escrito no abre otra tarea mientras la primera siga abierta", async () => {
+    const f = await committeeFixture();
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
+    await f.ask(f.a3, "Tampoco responde los mensajes");
+    await drainOutbox();
+
+    expect(await tasksOf(eq(task.personId, f.member))).toHaveLength(1);
+  });
+
+  it("el aviso del término siguiente no abre otra tarea porque el texto de su título haya cambiado", async () => {
+    await endingTerm();
+    await termCheck();
+    await db().update(task).set({ title: "El texto de antes" });
+    await termCheck();
+
+    expect(await openTasks()).toHaveLength(1);
+  });
+
+  it("volver a ganar un patrocinio con el seguimiento todavía abierto no abre otra tarea", async () => {
+    const f = await sponsorshipCard();
+    await moveCardAs(f.actor, f.cardId, f.won);
+    await moveCardAs(f.actor, f.cardId, f.first);
+    await moveCardAs(f.actor, f.cardId, f.won);
+
+    expect(await tasksOf(eq(task.cardId, f.cardId))).toHaveLength(1);
+  });
+
+  it("cuatro revisiones de licencias a la vez abren una sola tarea por persona", async () => {
+    const personId = await expiredLeave();
+    await warmPool();
+    await Promise.all(
+      [1, 2, 3, 4].map((n) => handle("membership.leave-check", {}, `revision-${n}`)),
+    );
+
+    expect(await tasksOf(eq(task.personId, personId))).toHaveLength(1);
+  });
+
+  it("cuatro avisos del término siguiente a la vez abren una sola tarea", async () => {
+    const { termId, code, next, endsOn } = await endingTerm();
+    await warmPool();
+    await Promise.all(
+      [1, 2, 3, 4].map((n) =>
+        handle("term.successor-missing", { termId, code, next, endsOn }, `aviso-${n}`),
+      ),
+    );
+
+    expect(await openTasks()).toHaveLength(1);
+  });
+});
+
+describe("toda tarea que abre el sistema queda auditada", () => {
+  it("la del pedido de borrado, a nombre del sistema", async () => {
+    const me = await seedMember("borrar@eafit.edu.co");
+    await requestDeletionAs({ personId: me, ip: null });
+    await drainOutbox();
+
+    const [opened] = await tasksOf(eq(task.personId, me));
+    expect(await auditsOf(opened?.id ?? "")).toEqual([{ action: "task.created", actorId: null }]);
+  });
+
+  it("la auditoría de una tarea del sistema guarda su motivo y no su título, que nombra a la persona: al anonimizarla, ninguna fila de auditoría conserva su nombre", async () => {
+    const me = await seedMember("pide@eafit.edu.co", { firstName: "Bea", lastName: "Borrar" });
+    await requestDeletionAs({ personId: me, ip: null });
+    await drainOutbox();
+    const [opened] = await tasksOf(eq(task.personId, me));
+    expect(opened?.title).toContain("Bea Borrar");
+
+    const [audit] = await db()
+      .select({ after: auditLog.after })
+      .from(auditLog)
+      .where(and(eq(auditLog.entityType, "task"), eq(auditLog.entityId, opened?.id ?? "")));
+    expect(audit?.after).toMatchObject({
+      kind: "DELETION_REQUEST",
+      reasonKey: `DELETION_REQUEST:person:${me}`,
+      personId: me,
+      createdById: me,
+    });
+    expect(audit?.after).not.toHaveProperty("title");
+
+    // La tarea se borra con la persona (ADR-030); su auditoría se queda, y no la nombra.
+    await anonymizePersonAs(SYSTEM_ACTOR, me);
+    await drainOutbox();
+    expect(await tasksOf(eq(task.personId, me))).toEqual([]);
+    const named = await db()
+      .select({ action: auditLog.action })
+      .from(auditLog)
+      .where(
+        sql`${auditLog.after}::text ilike ${"%Bea Borrar%"} or ${auditLog.before}::text ilike ${"%Bea Borrar%"}`,
+      );
+    expect(named).toEqual([]);
+  });
+
+  it("la del pedido de retiro de un comité, a nombre del sistema", async () => {
+    const f = await committeeFixture();
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
+
+    const [opened] = await tasksOf(eq(task.personId, f.member));
+    expect(await auditsOf(opened?.id ?? "")).toEqual([{ action: "task.created", actorId: null }]);
+  });
+
+  it("la del término siguiente sin crear, a nombre del sistema", async () => {
+    await endingTerm();
+    await termCheck();
+
+    const [opened] = await openTasks();
+    expect(await auditsOf(opened?.id ?? "")).toEqual([{ action: "task.created", actorId: null }]);
+  });
+
+  it("la de una solicitud, a nombre de quien la pidió", async () => {
+    const { personId, actor, until } = await activeMember();
+    await createRequestAs(actor, "LEAVE", { reason: "Intercambio", until });
+
+    const [opened] = await tasksOf(eq(task.personId, personId));
+    expect(await auditsOf(opened?.id ?? "")).toEqual([
+      { action: "task.created", actorId: personId },
+    ]);
+  });
+
+  it("la del patrocinio ganado, a nombre de quien movió la tarjeta", async () => {
+    const f = await sponsorshipCard();
+    await moveCardAs(f.actor, f.cardId, f.won);
+
+    const [opened] = await tasksOf(eq(task.cardId, f.cardId));
+    expect(await auditsOf(opened?.id ?? "")).toEqual([
+      { action: "task.created", actorId: f.admin },
+    ]);
+  });
+});
+
+describe("las tareas abiertas antes de que existiera la clave", () => {
+  /** Una tarea de antes del despliegue: sin clave, como la dejaba el sitio que la abría. */
+  async function oldTask(values: { title: string; kind: string; personId?: string }) {
+    const [row] = await db().insert(task).values(values).returning({ id: task.id });
+    return row?.id ?? "";
+  }
+
+  it("la de un pedido de borrado se reconoce por persona y tipo: no se abre otra y la vieja no cambia", async () => {
+    const me = await seedMember("borrar@eafit.edu.co", { firstName: "Bea", lastName: "Borrar" });
+    const old = await oldTask({ title: "Un título viejo", kind: "DELETION_REQUEST", personId: me });
+    await requestDeletionAs({ personId: me, ip: null });
+    await drainOutbox();
+
+    const tasks = await tasksOf(eq(task.personId, me));
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({ id: old, title: "Un título viejo", reasonKey: null });
+    expect(await auditsOf(old)).toEqual([]);
+  });
+
+  it("la de un pedido de retiro se reconoce por su título, como antes, y la de otro comité no la tapa", async () => {
+    const f = await committeeFixture();
+    const title = (comité: string) =>
+      t("T-2170", { nombre: "Mila Miembro", comité, motivo: "No volvió a las reuniones" });
+    await oldTask({ title: title("PIXEL"), kind: "COMMITTEE_REMOVAL", personId: f.member });
+    await f.ask(f.pixel, "No volvió a las reuniones");
+    await drainOutbox();
+    expect(await tasksOf(eq(task.personId, f.member))).toHaveLength(1);
+
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
+    const tasks = await tasksOf(eq(task.personId, f.member));
+    expect(tasks.map((row) => row.reasonKey)).toEqual([
+      null,
+      `COMMITTEE_REMOVAL:person:${f.member}:committee:${f.a3}`,
+    ]);
+  });
+
+  it("la del término siguiente se reconoce por su título", async () => {
+    const { next, endsOn } = await endingTerm();
+    await oldTask({ title: t("T-666", { codigo: next, fecha: endsOn }), kind: "GENERAL" });
+    await termCheck();
+
+    const tasks = await openTasks();
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]?.reasonKey).toBeNull();
+  });
+
+  it("la de una licencia vencida se reconoce por persona y tipo", async () => {
+    const personId = await expiredLeave();
+    await oldTask({ title: "Un título viejo", kind: "LEAVE_EXPIRED", personId });
+    await leaveCheck();
+
+    const tasks = await tasksOf(eq(task.personId, personId));
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]?.reasonKey).toBeNull();
+  });
+
+  it("una vieja ya hecha, o de otro tipo sobre la misma persona, no cuenta: se abre la del motivo", async () => {
+    const personId = await expiredLeave();
+    const done = await oldTask({ title: "Hecha", kind: "LEAVE_EXPIRED", personId });
+    await completePersonTaskAs({ personId: null, ip: null }, done, { personId });
+    await oldTask({ title: "A mano", kind: "GENERAL", personId });
+    await leaveCheck();
+
+    const open = await tasksOf(and(eq(task.personId, personId), eq(task.status, "OPEN")) as SQL);
+    expect(open.map((row) => row.reasonKey).sort()).toEqual([
+      `LEAVE_EXPIRED:person:${personId}`,
+      null,
+    ]);
+  });
+});
+
+describe("abrir una tarea por motivo", () => {
+  const leaveOf = (personId: string) => ({
+    reason: { type: "LEAVE_EXPIRED" as const, personId },
+    title: "Licencia vencida",
+    assigneeId: null,
+    due: null,
+    requestedById: null,
+  });
+
+  it("seis aperturas a la vez de la misma tarea dejan una sola, auditada una vez, y solo una dice que la creó", async () => {
+    const personId = await seedMember("a-la-vez@eafit.edu.co");
+    await warmPool(6);
+    const results = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        openTaskForReasonAs(SYSTEM_ACTOR, {
+          ...leaveOf(personId),
+          due: { businessDays: "requests.taskDays" },
+        }),
+      ),
+    );
+
+    const tasks = await tasksOf(eq(task.personId, personId));
+    expect(tasks).toHaveLength(1);
+    expect(results.filter((result) => result.created)).toHaveLength(1);
+    expect(new Set(results.map((result) => result.id))).toEqual(new Set([tasks[0]?.id]));
+    expect(await auditsOf(tasks[0]?.id ?? "")).toEqual([{ action: "task.created", actorId: null }]);
+  });
+
+  it("más aperturas a la vez que conexiones tiene el pool, con la configuración sin leer, abren todas su tarea", async () => {
+    const people: string[] = [];
+    for (let index = 0; index < BURST; index += 1) {
+      people.push(await seedMember(`rafaga-${index}@eafit.edu.co`));
+    }
+    await warmPool(10);
+    clearConfigCache();
+    const results = await Promise.allSettled(
+      people.map((personId) =>
+        openTaskForReasonAs(SYSTEM_ACTOR, {
+          ...leaveOf(personId),
+          due: { businessDays: "requests.taskDays" },
+        }),
+      ),
+    );
+
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(0);
+    expect(await openTasks()).toHaveLength(BURST);
+  });
+
+  it("más solicitudes a la vez que conexiones tiene el pool, con la configuración sin leer, quedan todas con su tarea", async () => {
+    const termId = await seedTerm();
+    const committeeId = await seedCommittee("a3", "A3");
+    const until = new Date(Date.now() + 60 * 24 * 60 * MINUTE).toISOString().slice(0, 10);
+    const actors: Array<{ personId: string; ip: null }> = [];
+    for (let index = 0; index < BURST; index += 1) {
+      const personId = await seedMember(`pide-${index}@eafit.edu.co`);
+      await seedCommitteeMembership(personId, committeeId, termId);
+      actors.push({ personId, ip: null });
+    }
+    await warmPool(10);
+    clearConfigCache();
+    const results = await Promise.allSettled(
+      actors.map((actor) => createRequestAs(actor, "LEAVE", { reason: "Intercambio", until })),
+    );
+
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(0);
+    const requests = await db().select({ taskId: request.taskId }).from(request);
+    const tasks = await tasksOf(eq(task.kind, "REQUEST"));
+    expect(requests).toHaveLength(BURST);
+    expect(new Set(requests.map((row) => row.taskId))).toEqual(new Set(tasks.map((row) => row.id)));
+    expect(tasks.every((row) => row.dueAt !== null)).toBe(true);
+  });
+
+  it("la misma persona con dos motivos tiene dos tareas, y dos personas con el mismo motivo también", async () => {
+    const one = await seedMember("una@eafit.edu.co");
+    const other = await seedMember("otra@eafit.edu.co");
+    await openTaskForReasonAs(SYSTEM_ACTOR, leaveOf(one));
+    await openTaskForReasonAs(SYSTEM_ACTOR, leaveOf(other));
+    await openTaskForReasonAs(SYSTEM_ACTOR, {
+      ...leaveOf(one),
+      reason: { type: "DELETION_REQUEST", personId: one },
+    });
+    const again = await openTaskForReasonAs(SYSTEM_ACTOR, leaveOf(one));
+
+    expect(again.created).toBe(false);
+    expect((await openTasks()).map((row) => row.reasonKey).sort()).toEqual(
+      [
+        `DELETION_REQUEST:person:${one}`,
+        `LEAVE_EXPIRED:person:${one}`,
+        `LEAVE_EXPIRED:person:${other}`,
+      ].sort(),
+    );
+  });
+
+  it("los días hábiles salen de la configuración y se cuentan desde el instante que se le pasa", async () => {
+    const personId = await seedMember("plazo@eafit.edu.co");
+    const now = new Date("2026-03-06T15:00:00Z");
+    const opened = await openTaskForReasonAs(SYSTEM_ACTOR, {
+      ...leaveOf(personId),
+      due: { businessDays: "privacy.deletionDays" },
+      now,
+    });
+
+    const [row] = await tasksOf(eq(task.id, opened.id));
+    const days = await requireConfig("privacy.deletionDays");
+    expect(row?.dueAt).toEqual(addBusinessDays(now, days));
+  });
+
+  it("lo que la entrada no reconoce (el motivo, su sujeto, un título vacío, el vencimiento) lo rechaza con su propio error y no abre nada", async () => {
+    const personId = await seedMember("cerrado@eafit.edu.co");
+    const open = (override: object) =>
+      openTaskForReasonAs(SYSTEM_ACTOR, { ...leaveOf(personId), ...override } as never);
+    const days = { businessDays: "requests.taskDays" };
+    const malformed: Array<[string, object]> = [
+      ["un motivo fuera del conjunto", { reason: { type: "OTRO_MOTIVO", personId } }],
+      ["un motivo con el sujeto vacío", { reason: { type: "LEAVE_EXPIRED", personId: "" } }],
+      ["un motivo sin sujeto", { reason: { type: "LEAVE_EXPIRED" } }],
+      ["sin motivo", { reason: null }],
+      ["un título vacío", { title: "" }],
+      ["un título de espacios", { title: "   " }],
+      ["una fecha inválida", { due: { at: new Date("no es una fecha") } }],
+      ["una fecha como texto", { due: { at: "2026-03-06T15:00:00Z" } }],
+      ["una clave que no es de plazo", { due: { businessDays: "campaigns.perMinute" } }],
+      ["un vencimiento sin forma", { due: {} }],
+      ["sin vencimiento", { due: undefined }],
+      ["un plazo contado desde una fecha inválida", { due: days, now: new Date("tampoco") }],
+    ];
+
+    for (const [label, override] of malformed) {
+      await expect(open(override), label).rejects.toThrow(ReasonTaskInputError);
+    }
+    expect(await openTasks()).toHaveLength(0);
+    expect(await db().select().from(auditLog)).toHaveLength(0);
+  });
+});

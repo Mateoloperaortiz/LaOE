@@ -11,9 +11,10 @@ import type {
   FilterDefinition,
   ResourceDefinition,
 } from "@/shared/admin-kit/types";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { type AssemblyOverviewRow, assemblyOverview } from "./domain/assemblies";
+import { CHECK_IN_SOURCES, CHECK_IN_STATUSES } from "./domain/check-in-pure";
 import {
   closeOccasionAs,
   createOccasionAs,
@@ -46,43 +47,44 @@ import {
   type OccasionListRow,
   occasionInputSchema,
 } from "./domain/occasions";
-import { type Board, rankPeople } from "./domain/rankings";
+import { type Board, peopleBoards } from "./domain/rankings";
+import { occasionApproval } from "./schema";
 
 // Recurso del admin para las ocasiones (ADR-017, ADR-035): listado con filtros y acciones Abrir y
 // Cerrar; la consola y el modo anfitrión son pantallas a medida.
 
 const [plural, singular] = tList("T-562");
 const fieldLabels = tList("T-563");
-const kindLabels = tList("T-564");
-const assemblyLabels = tList("T-565");
-const categoryLabels = tList("T-566");
-const approvalLabels = tList("T-567");
-const statusLabels = tList("T-568");
+const kindLabels = tLabels("T-564", OCCASION_KINDS);
+const assemblyLabels = tLabels("T-565", ASSEMBLY_KINDS);
+const categoryLabels = tLabels("T-566", OCCASION_CATEGORIES);
+const approvalLabels = tLabels("T-567", occasionApproval.enumValues);
+const statusLabels = tLabels("T-568", OCCASION_STATUSES);
 const [abrir, cerrar, consola] = tList("T-569");
 const filterLabels = tList("T-570");
 const columnLabels = tList("T-571");
-const shortCategoryLabels = tList("T-521");
+const shortCategoryLabels = tLabels("T-521", OCCASION_CATEGORIES);
 const shortKindLabels = tList("T-522");
 
-const kindOptions = OCCASION_KINDS.map((value, index) => ({
+const kindOptions = OCCASION_KINDS.map((value) => ({
   value,
-  label: kindLabels[index] ?? value,
+  label: kindLabels[value] ?? value,
 }));
-const assemblyOptions = ASSEMBLY_KINDS.map((value, index) => ({
+const assemblyOptions = ASSEMBLY_KINDS.map((value) => ({
   value,
-  label: assemblyLabels[index] ?? value,
+  label: assemblyLabels[value] ?? value,
 }));
-const categoryOptions = OCCASION_CATEGORIES.map((value, index) => ({
+const categoryOptions = OCCASION_CATEGORIES.map((value) => ({
   value,
-  label: categoryLabels[index] ?? value,
+  label: categoryLabels[value] ?? value,
 }));
-const approvalOptions = ["AUTO", "MANUAL"].map((value, index) => ({
+const approvalOptions = occasionApproval.enumValues.map((value) => ({
   value,
-  label: approvalLabels[index] ?? value,
+  label: approvalLabels[value] ?? value,
 }));
-const statusOptions = OCCASION_STATUSES.map((value, index) => ({
+const statusOptions = OCCASION_STATUSES.map((value) => ({
   value,
-  label: statusLabels[index] ?? value,
+  label: statusLabels[value] ?? value,
 }));
 
 const STATUS_BADGE: Record<OccasionStatus, Badge> = {
@@ -94,8 +96,30 @@ const STATUS_BADGE: Record<OccasionStatus, Badge> = {
 
 export function occasionStatusCell(status: OccasionStatus): { text: string; badge: Badge } {
   return {
-    text: statusLabels[OCCASION_STATUSES.indexOf(status)] ?? status,
+    text: statusLabels[status] ?? status,
     badge: STATUS_BADGE[status],
+  };
+}
+
+/**
+ * Los estados que la consola en vivo nombra en sus últimos registros. No trae `EXCUSED`: una
+ * asistencia excusada muestra ahí su código, como hasta hoy (DT-364, decisión abierta 75).
+ */
+const CONSOLE_STATUSES = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"] as const;
+
+/**
+ * Las etiquetas de fuente (T-596) y de estado (T-597) que la consola en vivo recibe por props, por
+ * valor. Son objetos llanos: React no deja pasar a un componente de cliente el `Record` sin
+ * prototipo de `tLabels`, y la consola los lee con `labelsFromProps` (ADR-126 regla 5).
+ */
+export function liveConsoleLabels(): {
+  sources: Record<string, string>;
+  statuses: Record<string, string>;
+} {
+  const statuses = tLabels("T-597", CHECK_IN_STATUSES);
+  return {
+    sources: { ...tLabels("T-596", CHECK_IN_SOURCES) },
+    statuses: Object.fromEntries(CONSOLE_STATUSES.map((status) => [status, statuses[status]])),
   };
 }
 
@@ -106,15 +130,13 @@ export function occasionKindLabel(row: {
   category: (typeof OCCASION_CATEGORIES)[number];
 }): string {
   if (row.kind === "ASSEMBLY") {
-    const kind = row.assemblyKind
-      ? (assemblyLabels[ASSEMBLY_KINDS.indexOf(row.assemblyKind)] ?? "")
-      : "";
+    const kind = row.assemblyKind ? (assemblyLabels[row.assemblyKind] ?? "") : "";
     return `${shortKindLabels[1] ?? ""}${kind ? ` · ${kind}` : ""}`;
   }
   if (row.kind === "EDITION_SESSION") {
     return shortKindLabels[2] ?? "";
   }
-  return shortCategoryLabels[OCCASION_CATEGORIES.indexOf(row.category)] ?? "";
+  return shortCategoryLabels[row.category] ?? "";
 }
 
 async function filters(): Promise<FilterDefinition[]> {
@@ -265,19 +287,21 @@ export const occasionsResource: ResourceDefinition<OccasionListRow, OccasionInpu
     editionId: row.editionId ?? "",
     surveyFormId: row.surveyFormId ?? "",
   }),
-  create: (actor, input) => createOccasionAs({ personId: actor.personId }, input),
-  update: (actor, id, input) => updateOccasionAs({ personId: actor.personId }, id, input),
+  create: (actor, input) => createOccasionAs(actor, input),
+  update: (actor, id, input) => updateOccasionAs(actor, id, input),
   rowActions: [
     { key: "open", label: abrir, applies: (row) => row.status === "DRAFT" },
     { key: "close", label: cerrar, applies: (row) => row.status === "OPEN" },
   ],
   runRowAction: async (actor, actionKey, id) => {
     if (actionKey === "open") {
-      await openOccasionAs({ personId: actor.personId }, id);
+      // El kit es de ADMIN: sus acciones pasan por `requireAdminForAction` (src/app/admin/_kit).
+      await openOccasionAs(actor, id, { isAdmin: true });
     } else if (actionKey === "close") {
-      await closeOccasionAs({ personId: actor.personId }, id);
+      await closeOccasionAs(actor, id);
     }
   },
+  personalData: false,
   exportRow: (row) => ({
     titulo: row.title,
     tipo: occasionKindLabel(row),
@@ -346,7 +370,7 @@ export const checkInsResource: ResourceDefinition<CheckInExportRow, Empty> = {
 };
 
 const [ledgerPlural, ledgerSingular] = tList("T-663");
-const kindLabelsForLedger = tList("T-085");
+const kindLabelsForLedger = tLabels("T-085", POINT_ENTRY_KINDS);
 
 interface LedgerExportRow extends LedgerListRow {
   personName: string;
@@ -365,9 +389,9 @@ export const ledgerResource: ResourceDefinition<LedgerExportRow, Empty> = {
     {
       key: "kind",
       label: tList("T-624")[2] ?? "",
-      options: POINT_ENTRY_KINDS.map((value, index) => ({
+      options: POINT_ENTRY_KINDS.map((value) => ({
         value,
-        label: kindLabelsForLedger[index] ?? value,
+        label: kindLabelsForLedger[value] ?? value,
       })),
     },
   ],
@@ -404,7 +428,7 @@ export const ledgerResource: ResourceDefinition<LedgerExportRow, Empty> = {
     nombre: row.personName,
     correo: row.email,
     semestre: row.termCode,
-    movimiento: kindLabelsForLedger[POINT_ENTRY_KINDS.indexOf(row.kind)] ?? row.kind,
+    movimiento: kindLabelsForLedger[row.kind] ?? row.kind,
     puntos: row.points,
     motivo: row.reason,
     revertida: row.reversedById ? "si" : "no",
@@ -456,8 +480,10 @@ export const rankingsResource: ResourceDefinition<RankingExportRow, Empty> = {
         ? [params.filters.board]
         : ["NEW", "VETERAN"];
     const rows: RankingExportRow[] = [];
+    // Los activos se leen una vez para los tableros que se pidan (ADR-123 regla 12).
+    const people = peopleBoards(term.id);
     for (const board of boards) {
-      for (const item of await rankPeople(term.id, board)) {
+      for (const item of await people.rank(board)) {
         rows.push({
           id: `${board}-${item.row.personId}`,
           rank: item.rank,
@@ -674,8 +700,8 @@ export const aliasesResource: ResourceDefinition<AliasRow, AliasInput> = {
     return row ? ((await aliasRows([row]))[0] ?? null) : null;
   },
   toFormValues: (row) => ({ path: row.path, targetId: row.targetId }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createAlias(ctx, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createAlias(ctx, input)),
+  personalData: false,
   exportRow: (row) => ({
     ruta: row.path,
     ocasion: row.occasionTitle,

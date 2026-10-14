@@ -3,9 +3,6 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
-import { drain } from "@/jobs/poller";
-import { itemPattern } from "../helpers/copy";
-import "@/jobs/handlers";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
 import { dayKeyFor } from "@/modules/participation/domain/gamification-pure";
@@ -17,7 +14,6 @@ import {
   listSudokuRunsFor,
   startSudokuAs,
 } from "@/modules/participation/domain/sudoku";
-
 import { countSolutions, logicSolve } from "@/modules/participation/domain/sudoku-generator";
 import { pointEntry, sudokuRun } from "@/modules/participation/schema";
 import {
@@ -31,8 +27,12 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
+import { seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
+import { itemPattern } from "../helpers/copy";
+import { heldThenSettled, holdTransaction } from "../helpers/locks";
+import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
 const db = () => getDb();
 
@@ -45,7 +45,7 @@ interface Options {
 
 async function openRun(personId: string, { difficulty = "EASY", assisted = false }: Options = {}) {
   const result = await startSudokuAs(
-    { personId },
+    { personId, ip: null },
     { requestId: randomUUID(), difficulty, assisted },
   );
   if (!result.ok) throw new Error(result.reason);
@@ -66,7 +66,10 @@ async function solveAndFinish(personId: string, options: Options = {}) {
   const run = await openRun(personId, options);
   const { solution } = await rowOf(run.id);
   const requestId = randomUUID();
-  const result = await finishSudokuAs({ personId }, { runId: run.id, grid: solution, requestId });
+  const result = await finishSudokuAs(
+    { personId, ip: null },
+    { runId: run.id, grid: solution, requestId },
+  );
   return { run, solution, result, requestId };
 }
 
@@ -113,22 +116,22 @@ describe("Sudoku con la solución en el servidor", () => {
     const personId = await seedMember("sudoku.privada@eafit.edu.co");
     const requestId = randomUUID();
     const inicio = await startSudokuAs(
-      { personId },
+      { personId, ip: null },
       { requestId, difficulty: "MEDIUM", assisted: false },
     );
     if (!inicio.ok) throw new Error(inicio.reason);
     const fila = await rowOf(inicio.run.id);
     const repetido = await startSudokuAs(
-      { personId },
+      { personId, ip: null },
       { requestId, difficulty: "MEDIUM", assisted: false },
     );
     const lectura = await getTodaySudoku(personId);
     const fallido = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: inicio.run.id, grid: wrong(fila.solution), requestId: randomUUID() },
     );
     const cierre = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: inicio.run.id, grid: fila.solution, requestId: randomUUID() },
     );
     expect(cierre.ok).toBe(true);
@@ -155,7 +158,7 @@ describe("Sudoku con la solución en el servidor", () => {
     expect(JSON.stringify(run)).not.toContain(fila.seed);
 
     const cierre = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, grid: fila.solution, requestId: randomUUID() },
     );
     // Cerrada la partida, ninguna lectura vuelve a traer la solución ni las dadas.
@@ -229,7 +232,7 @@ describe("Sudoku con la solución en el servidor", () => {
     const fila = await rowOf(run.id);
     const auditoriaAntes = (await db().select().from(auditLog)).length;
     const fallido = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, grid: wrong(fila.solution), requestId: randomUUID() },
     );
     expect(fallido).toMatchObject({ ok: false, reason: "NOT_SOLVED" });
@@ -240,14 +243,14 @@ describe("Sudoku con la solución en el servidor", () => {
     // Una cuadrícula válida de otro tablero tampoco sirve: se compara con la solución de este.
     const otra = await solveAndFinish(await seedMember("sudoku.otro-tablero@eafit.edu.co"));
     const ajena = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, grid: otra.solution, requestId: randomUUID() },
     );
     expect(ajena).toMatchObject({ ok: false, reason: "NOT_SOLVED" });
 
     // El crédito sigue libre: la solución de verdad acredita después.
     const bueno = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, grid: fila.solution, requestId: randomUUID() },
     );
     expect(bueno).toMatchObject({ ok: true, run: { points: 2 } });
@@ -262,7 +265,7 @@ describe("Sudoku con la solución en el servidor", () => {
       { ...base, requestId: "corto" },
       {},
     ]) {
-      expect(await startSudokuAs({ personId }, input)).toEqual({
+      expect(await startSudokuAs({ personId, ip: null }, input)).toEqual({
         ok: false,
         reason: "INVALID_INPUT",
       });
@@ -278,7 +281,10 @@ describe("Sudoku con la solución en el servidor", () => {
       "x".repeat(81),
     ]) {
       expect(
-        await finishSudokuAs({ personId }, { runId: run.id, grid, requestId: randomUUID() }),
+        await finishSudokuAs(
+          { personId, ip: null },
+          { runId: run.id, grid, requestId: randomUUID() },
+        ),
       ).toEqual({ ok: false, reason: "INVALID_INPUT" });
     }
     expect((await rowOf(run.id)).status).toBe("IN_PROGRESS");
@@ -288,9 +294,12 @@ describe("Sudoku con la solución en el servidor", () => {
     const personId = await seedMember("sudoku.inicio@eafit.edu.co");
     const requestId = randomUUID();
     const pedido = { difficulty: "MEDIUM", assisted: false } as const;
-    const uno = await startSudokuAs({ personId }, { requestId, ...pedido });
-    const dos = await startSudokuAs({ personId }, { requestId, ...pedido });
-    const tres = await startSudokuAs({ personId }, { requestId: randomUUID(), ...pedido });
+    const uno = await startSudokuAs({ personId, ip: null }, { requestId, ...pedido });
+    const dos = await startSudokuAs({ personId, ip: null }, { requestId, ...pedido });
+    const tres = await startSudokuAs(
+      { personId, ip: null },
+      { requestId: randomUUID(), ...pedido },
+    );
     if (!uno.ok || !dos.ok || !tres.ok) throw new Error("inicio denegado");
     expect(dos.run).toEqual(uno.run);
     expect(tres.run.id).toBe(uno.run.id);
@@ -298,13 +307,13 @@ describe("Sudoku con la solución en el servidor", () => {
     // Devolver en silencio un Medio a quien pidió Difícil confunde: se rechaza.
     expect(
       await startSudokuAs(
-        { personId },
+        { personId, ip: null },
         { requestId: randomUUID(), difficulty: "HARD", assisted: false },
       ),
     ).toEqual({ ok: false, reason: "OPEN_RUN" });
     expect(
       await startSudokuAs(
-        { personId },
+        { personId, ip: null },
         { requestId: randomUUID(), difficulty: "MEDIUM", assisted: true },
       ),
     ).toEqual({ ok: false, reason: "OPEN_RUN" });
@@ -313,10 +322,11 @@ describe("Sudoku con la solución en el servidor", () => {
 
   it("veinte inicios concurrentes dejan una sola partida", async () => {
     const personId = await seedMember("sudoku.concurrencia-inicio@eafit.edu.co");
+    await warmPool(10);
     const results = await Promise.all(
       Array.from({ length: 20 }, () =>
         startSudokuAs(
-          { personId },
+          { personId, ip: null },
           { requestId: randomUUID(), difficulty: "MEDIUM", assisted: false },
         ),
       ),
@@ -329,8 +339,8 @@ describe("Sudoku con la solución en el servidor", () => {
   it("abandonar libera la partida abierta, es idempotente y no cuesta nada", async () => {
     const personId = await seedMember("sudoku.abandono@eafit.edu.co");
     const run = await openRun(personId, { difficulty: "HARD" });
-    const uno = await abandonSudokuAs({ personId }, { runId: run.id });
-    const dos = await abandonSudokuAs({ personId }, { runId: run.id });
+    const uno = await abandonSudokuAs({ personId, ip: null }, { runId: run.id });
+    const dos = await abandonSudokuAs({ personId, ip: null }, { runId: run.id });
     expect(uno).toMatchObject({ ok: true, run: { status: "ABANDONED", points: 0 } });
     expect(dos).toEqual(uno);
     const fila = await rowOf(run.id);
@@ -346,12 +356,12 @@ describe("Sudoku con la solución en el servidor", () => {
     // Una partida abandonada no se puede cerrar después, ni con la solución.
     expect(
       await finishSudokuAs(
-        { personId },
+        { personId, ip: null },
         { runId: run.id, grid: fila.solution, requestId: randomUUID() },
       ),
     ).toMatchObject({ ok: false, reason: "FINISHED" });
     // Y una resuelta no se abandona.
-    expect(await abandonSudokuAs({ personId }, { runId: otra.run.id })).toMatchObject({
+    expect(await abandonSudokuAs({ personId, ip: null }, { runId: otra.run.id })).toMatchObject({
       ok: false,
       reason: "FINISHED",
     });
@@ -361,10 +371,13 @@ describe("Sudoku con la solución en el servidor", () => {
     const personId = await seedMember("sudoku.inicio-viejo@eafit.edu.co");
     const requestId = randomUUID();
     const pedido = { requestId, difficulty: "EASY", assisted: false } as const;
-    const inicio = await startSudokuAs({ personId }, pedido);
+    const inicio = await startSudokuAs({ personId, ip: null }, pedido);
     if (!inicio.ok) throw new Error(inicio.reason);
-    await abandonSudokuAs({ personId }, { runId: inicio.run.id });
-    expect(await startSudokuAs({ personId }, pedido)).toEqual({ ok: false, reason: "FINISHED" });
+    await abandonSudokuAs({ personId, ip: null }, { runId: inicio.run.id });
+    expect(await startSudokuAs({ personId, ip: null }, pedido)).toEqual({
+      ok: false,
+      reason: "FINISHED",
+    });
     expect(await db().select().from(sudokuRun)).toHaveLength(1);
   });
 
@@ -373,19 +386,19 @@ describe("Sudoku con la solución en el servidor", () => {
     const { run, solution, result, requestId } = await solveAndFinish(personId);
     if (!result.ok) throw new Error(result.reason);
     const otraVez = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, grid: solution, requestId },
     );
     expect(otraVez).toEqual(result);
     const distinto = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, grid: wrong(solution), requestId },
     );
     expect(distinto).toMatchObject({ ok: false, reason: "REQUEST_CONFLICT" });
     // Otro requestId sobre una partida ya resuelta: terminada.
     expect(
       await finishSudokuAs(
-        { personId },
+        { personId, ip: null },
         { runId: run.id, grid: solution, requestId: randomUUID() },
       ),
     ).toMatchObject({ ok: false, reason: "FINISHED" });
@@ -398,7 +411,7 @@ describe("Sudoku con la solución en el servidor", () => {
     const segunda = await openRun(personId);
     const { solution } = await rowOf(segunda.id);
     const reusado = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: segunda.id, grid: solution, requestId: primera.requestId },
     );
     expect(reusado).toMatchObject({ ok: false, reason: "REQUEST_CONFLICT" });
@@ -409,9 +422,13 @@ describe("Sudoku con la solución en el servidor", () => {
     const personId = await seedMember("sudoku.concurrencia-cierre@eafit.edu.co");
     const run = await openRun(personId, { difficulty: "MEDIUM" });
     const { solution } = await rowOf(run.id);
+    await warmPool(6);
     const results = await Promise.all(
       Array.from({ length: 6 }, () =>
-        finishSudokuAs({ personId }, { runId: run.id, grid: solution, requestId: randomUUID() }),
+        finishSudokuAs(
+          { personId, ip: null },
+          { runId: run.id, grid: solution, requestId: randomUUID() },
+        ),
       ),
     );
     expect(results.filter((result) => result.ok)).toHaveLength(1);
@@ -421,6 +438,34 @@ describe("Sudoku con la solución en el servidor", () => {
         .every((result) => !result.ok && result.reason === "FINISHED"),
     ).toBe(true);
     expect(await db().select().from(pointEntry)).toHaveLength(1);
+  });
+
+  it("un cierre que encuentra la partida tomada por otro escritor la espera y la vuelve a leer: ya terminó, no la premia", async () => {
+    const personId = await seedMember("sudoku.espera-cierre@eafit.edu.co");
+    const run = await openRun(personId, { difficulty: "MEDIUM" });
+    const { solution } = await rowOf(run.id);
+    // El otro escritor es sintético: da la partida por vencida sin tomar el consultivo de la persona,
+    // que hoy toman todos los comandos del Sudoku y por eso cubre a la prueba de arriba. Así lo único
+    // que hace esperar al cierre es el `for update` de la partida (DT-335).
+    const held = await holdTransaction((tx) =>
+      tx
+        .update(sudokuRun)
+        .set({ status: "EXPIRED", finishedAt: new Date() })
+        .where(eq(sudokuRun.id, run.id)),
+    );
+    const { during, after } = await heldThenSettled(held, () =>
+      finishSudokuAs(
+        { personId, ip: null },
+        { runId: run.id, grid: solution, requestId: randomUUID() },
+      ),
+    );
+
+    // Sin la partida bajo candado el cierre la lee en curso, espera recién en su escritura y premia
+    // encima una partida vencida.
+    expect(during).toBe("hizo cola");
+    expect(after).toMatchObject({ status: "fulfilled", value: { ok: false, reason: "FINISHED" } });
+    expect((await rowOf(run.id)).status).toBe("EXPIRED");
+    expect(await db().select().from(pointEntry)).toHaveLength(0);
   });
 
   it("el primer tablero resuelto es el del día: un Fácil con ayudas primero, y el Difícil da 0", async () => {
@@ -500,7 +545,7 @@ describe("Sudoku con la solución en el servidor", () => {
     vi.setSystemTime(new Date("2027-01-01T06:00:00Z"));
     expect((await getTodaySudoku(personId)).open).toBeNull();
     const result = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, grid: solution, requestId: randomUUID() },
     );
     expect(result).toMatchObject({ ok: false, reason: "EXPIRED", run: { status: "EXPIRED" } });
@@ -531,7 +576,7 @@ describe("Sudoku con la solución en el servidor", () => {
     const fila = await rowOf(run.id);
     await db().update(term).set({ pointsClosedAt: new Date() }).where(eq(term.id, fila.termId));
     const result = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: run.id, grid: fila.solution, requestId: randomUUID() },
     );
     expect(result).toMatchObject({ ok: false, reason: "TERM_CLOSED" });
@@ -539,7 +584,7 @@ describe("Sudoku con la solución en el servidor", () => {
     expect((await getTodaySudoku(personId)).availability).toBe("TERM_CLOSED");
     expect(
       await startSudokuAs(
-        { personId },
+        { personId, ip: null },
         { requestId: randomUUID(), difficulty: "EASY", assisted: false },
       ),
     ).toEqual({ ok: false, reason: "TERM_CLOSED" });
@@ -551,7 +596,7 @@ describe("Sudoku con la solución en el servidor", () => {
     await seedMembership(personId, termId, "ON_LEAVE");
     expect((await getTodaySudoku(personId)).availability).toBe("NOT_ELIGIBLE");
     const result = await startSudokuAs(
-      { personId },
+      { personId, ip: null },
       { requestId: randomUUID(), difficulty: "EASY", assisted: false },
     );
     expect(result).toEqual({ ok: false, reason: "NOT_ELIGIBLE" });
@@ -565,11 +610,11 @@ describe("Sudoku con la solución en el servidor", () => {
     const { solution } = await rowOf(run.id);
     expect(
       await finishSudokuAs(
-        { personId: ajena },
+        { personId: ajena, ip: null },
         { runId: run.id, grid: solution, requestId: randomUUID() },
       ),
     ).toEqual({ ok: false, reason: "NOT_FOUND" });
-    expect(await abandonSudokuAs({ personId: ajena }, { runId: run.id })).toEqual({
+    expect(await abandonSudokuAs({ personId: ajena, ip: null }, { runId: run.id })).toEqual({
       ok: false,
       reason: "NOT_FOUND",
     });
@@ -581,7 +626,7 @@ describe("Sudoku con la solución en el servidor", () => {
     const personId = await seedMember("sudoku.crm@eafit.edu.co");
     const { result } = await solveAndFinish(personId, { difficulty: "HARD" });
     if (!result.ok) throw new Error(result.reason);
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
 
     const [event] = await db()
       .select()
@@ -592,7 +637,7 @@ describe("Sudoku con la solución en el servidor", () => {
       .update(outbox)
       .set({ processedAt: null, nextAttemptAt: new Date() })
       .where(eq(outbox.id, event.id));
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
 
     const timeline = await db()
       .select()

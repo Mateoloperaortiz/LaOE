@@ -18,10 +18,10 @@ import {
   setPrimaryContactAs,
   updateOrganizationAs,
 } from "@/modules/crm";
-import { person, tag } from "@/modules/people/schema";
+import { person } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
+import { seedMember, seedOrganization, seedPerson, seedTag } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedOrganization, seedPerson } from "./factories";
 
 // Organizaciones y contactos (ADR-037 regla 6): nombre único sin mayúsculas, contactos solo externos,
 // un principal por organización, notas y tareas con sujeto organización, etiquetas y búsqueda.
@@ -104,9 +104,8 @@ describe("organizaciones", () => {
     await createTaskAs(actor, { title: "Enviar propuesta", kind: "GENERAL", organizationId });
     const tasks = await listTasks({ q: "", organizationId, page: 1, pageSize: 10 });
     expect(tasks.rows[0]).toMatchObject({ organizationId, organizationName: "Postobón" });
-    const [a] = await getDb().insert(tag).values({ name: "Patrocinador" }).returning();
-    if (!a) throw new Error("tag");
-    await setOrganizationTagsAs(actor, organizationId, [a.id]);
+    const a = await seedTag("Patrocinador");
+    await setOrganizationTagsAs(actor, organizationId, [a]);
     expect((await getOrganization(organizationId))?.tagNames).toEqual(["Patrocinador"]);
     await setOrganizationTagsAs(actor, organizationId, []);
     expect((await getOrganization(organizationId))?.tagNames).toEqual([]);

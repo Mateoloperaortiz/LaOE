@@ -1,15 +1,11 @@
 import { and, count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { drain } from "@/jobs/poller";
-import { itemPattern } from "../helpers/copy";
-import "@/jobs/handlers";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { listCommitteeAnnouncements, listMemberAnnouncements } from "@/modules/content";
 import { announcement } from "@/modules/content/schema";
 import { grantRecognitionAs, listInteractions, listRecognitionsByPeople } from "@/modules/crm";
 import { onboardingProgress } from "@/modules/crm/schema";
-import { consent } from "@/modules/people/schema";
 import {
   countPendingFor,
   evaluateAs,
@@ -20,22 +16,25 @@ import {
   listManualCredits,
   scoreCriterionAs,
 } from "@/modules/permanence";
-
 import { leaderScore } from "@/modules/permanence/schema";
+import { auditLog } from "@/modules/system/schema";
 import { closeTermPermanence, closeTermPoints } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
-import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
+  seedConsent,
   seedMember,
   seedRule,
   seedTerm,
   seedWorkGroup,
   seedWorkGroupMembership,
-} from "./factories";
+} from "../factories";
+import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
+import { truncateAll } from "./db";
 
 // Evaluaciones, puntajes, créditos y reconocimientos (ADR-026, ADR-028, ADR-036 reglas 6 a 8).
 
@@ -102,8 +101,7 @@ describe("evaluaciones", () => {
     expect(await countPendingFor(evaluator, termId)).toBe(0);
     const [tray] = await listEvaluationTray(termId, [groupId]);
     expect(tray?.members[0]).toMatchObject({ personId: member, evaluation: "GOOD", note: null });
-    await drain(50);
-    await drain(50);
+    await drainOutbox();
     const summaries = await interactionsOf(member);
     expect(summaries).toHaveLength(2);
     expect(summaries[1]).toMatch(
@@ -122,7 +120,7 @@ describe("evaluaciones", () => {
       { groupId, personId: newcomer, evaluation: "GOOD", note: "" },
       { isAdmin: true },
     );
-    await drain(50);
+    await drainOutbox();
     const [row] = await getDb()
       .select({ n: count() })
       .from(onboardingProgress)
@@ -133,6 +131,14 @@ describe("evaluaciones", () => {
         ),
       );
     expect(row?.n).toBe(1);
+    // La marcó un trabajo del poller, que no tiene request: a nombre de la persona y sin IP (ADR-123
+    // regla 3).
+    expect(
+      await getDb()
+        .select({ actorId: auditLog.actorId, ip: auditLog.ip })
+        .from(auditLog)
+        .where(eq(auditLog.action, "onboarding.step-done")),
+    ).toEqual([{ actorId: newcomer, ip: null }]);
   });
 });
 
@@ -153,39 +159,36 @@ describe("puntajes del líder y créditos manuales", () => {
     });
     const leader = { personId: null, ip: null };
     const ref = { termId, scope: "COMMITTEE" as const, committeeId };
-    const inCommittee = { inCommittee: true, personName: "M", committeeName: "A3" };
+    const names = { personName: "M", committeeName: "A3" };
     await expect(
-      scoreCriterionAs(leader, ref, { ruleId, personId: member, value: 6, note: "" }, inCommittee),
+      scoreCriterionAs(leader, ref, { ruleId, personId: member, value: 6, note: "" }, names),
     ).rejects.toThrow(t("T-774", { peso: 5 }));
     await expect(
-      scoreCriterionAs(leader, ref, { ruleId, personId: member, value: 3, note: "" }, inCommittee),
+      scoreCriterionAs(leader, ref, { ruleId, personId: member, value: 3, note: "" }, names),
     ).rejects.toThrow(t("T-775"));
+    // Quien no está en el comité: el comando lo lee él, nadie se lo declara (ADR-122 regla 2).
+    const outsider = await seedMember("fuera@eafit.edu.co");
     await expect(
-      scoreCriterionAs(
-        leader,
-        ref,
-        { ruleId, personId: member, value: 3, note: "Tarde" },
-        { ...inCommittee, inCommittee: false },
-      ),
+      scoreCriterionAs(leader, ref, { ruleId, personId: outsider, value: 3, note: "Tarde" }, names),
     ).rejects.toThrow(t("T-776", { nombre: "M", comité: "A3" }));
     await scoreCriterionAs(
       leader,
       ref,
       { ruleId, personId: member, value: 3, note: "Llegó tarde" },
-      inCommittee,
+      names,
     );
     await scoreCriterionAs(
       leader,
       ref,
       { ruleId, personId: member, value: 4, note: "Mejoró" },
-      inCommittee,
+      names,
     );
     const scores = await listLeaderScores(termId, committeeId);
     expect(scores).toHaveLength(1);
     expect(scores[0]).toMatchObject({ value: 4, note: "Mejoró" });
     const live = await getPersonPermanence(member, termId);
     expect(live?.result.results[0]?.criteria[0]).toMatchObject({ achieved: 4, remaining: 1 });
-    await drain(50);
+    await drainOutbox();
     expect((await interactionsOf(member))[0]).toBe(
       `${fillCopy(tList("T-832")[2], { criterio: "convivencia", comité: "A3", valor: 4, peso: 5 })}: Mejoró`,
     );
@@ -206,15 +209,10 @@ describe("puntajes del líder y créditos manuales", () => {
     const old = await seedRule(previous, "convivencia", { committeeId: a3, ...scored });
     const leader = { personId: null, ip: null };
     const ref = { termId, scope: "COMMITTEE" as const, committeeId: a3 };
-    const inCommittee = { inCommittee: true, personName: "M", committeeName: "A3" };
+    const names = { personName: "M", committeeName: "A3" };
     for (const ruleId of [foreign, general, old]) {
       await expect(
-        scoreCriterionAs(
-          leader,
-          ref,
-          { ruleId, personId: member, value: 5, note: "" },
-          inCommittee,
-        ),
+        scoreCriterionAs(leader, ref, { ruleId, personId: member, value: 5, note: "" }, names),
       ).rejects.toThrow(t("T-777"));
     }
     expect(await listLeaderScores(termId, pixel)).toEqual([]);
@@ -270,12 +268,10 @@ describe("reconocimientos", () => {
     const committeeId = await seedCommittee("a3");
     const withConsent = await seedMember("c@eafit.edu.co");
     const without = await seedMember("s@eafit.edu.co");
-    await getDb().insert(consent).values({
-      personId: withConsent,
-      purpose: "DIRECTORY_PHOTO",
-      source: "SELF",
-      policyVersion: "prueba-v1",
-    });
+    // El destacado de un comité es de alguien de su roster (ADR-122 regla 2).
+    await seedCommitteeMembership(withConsent, committeeId, termId);
+    await seedCommitteeMembership(without, committeeId, termId);
+    await seedConsent(withConsent, "DIRECTORY_PHOTO");
     const leader = { personId: null, ip: null };
     const published = await grantRecognitionAs(leader, {
       personId: withConsent,

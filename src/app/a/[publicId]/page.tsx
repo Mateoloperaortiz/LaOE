@@ -16,13 +16,15 @@ import {
   listBoostersFor,
   loadGamificationSettings,
   type OccasionRow,
-  windowState,
+  type SelfCheckInEligibilityDenial,
+  type SelfCheckInFacts,
+  selfCheckInEligibilityDenial,
 } from "@/modules/participation";
 import { getMembershipRef } from "@/modules/people";
 import { resolveAlias } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
 import { Cartel, Elemento, LogoOE, SelloOE } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateRange, formatTime } from "@/shared/lib/dates";
 import { type CheckInResultCode, checkInAction } from "./actions";
 
@@ -66,49 +68,91 @@ function existingView(existing: CheckInRow): View {
   }
 }
 
-function resultView(result: CheckInResultCode, points: number): View | null {
-  switch (result) {
-    case "puntos":
-      // El sello de marca ya dice "¡OE OE OE!": el texto no lo repite.
-      return {
-        kind: "message",
-        text: t("T-092", { n: points }).replace(/\s*¡OE OE OE!$/, ""),
-        success: true,
-        points,
-      };
-    case "registrado":
-      return { kind: "message", text: t("T-093"), success: true };
-    case "pendiente":
-      return { kind: "message", text: t("T-094"), success: true };
-    default:
-      return null;
+/**
+ * El `r` de la dirección elige el texto de una asistencia que existe y que dice lo mismo (ADR-120
+ * regla 6). La action redirige con él recién escrita la fila, pero cualquiera con sesión lo puede
+ * escribir a mano: sin asistencia, o con una en otro estado, no pinta nada y decide la fila.
+ */
+function resultView(
+  result: CheckInResultCode,
+  existing: CheckInRow | null,
+  points: number,
+): View | null {
+  const success = SUCCESS_VIEWS[result];
+  return success && existing?.status === success.status ? success.view(points) : null;
+}
+
+/**
+ * Los resultados que anuncian un registro, cada uno con el estado de la asistencia que lo respalda y
+ * lo que pinta con ella. Es la única lista: sin esa fila no pintan nada ni cuentan para lo que sigue.
+ */
+const SUCCESS_VIEWS: Partial<
+  Record<CheckInResultCode, { status: CheckInRow["status"]; view: (points: number) => View }>
+> = {
+  puntos: {
+    status: "APPROVED",
+    // El sello de marca ya dice "¡OE OE OE!": el texto no lo repite.
+    view: (points) => ({
+      kind: "message",
+      text: t("T-092", { n: points }).replace(/\s*¡OE OE OE!$/, ""),
+      success: true,
+      points,
+    }),
+  },
+  registrado: {
+    status: "APPROVED",
+    view: () => ({ kind: "message", text: t("T-093"), success: true }),
+  },
+  pendiente: {
+    status: "PENDING",
+    view: () => ({ kind: "message", text: t("T-094"), success: true }),
+  },
+};
+
+/**
+ * Lo que la pantalla le dice a quien no entra por su membresía (`NOT_ELIGIBLE`): un texto propio,
+ * en segunda persona. T-673 es de la consola y va detrás de un nombre (ADR-123 regla 9).
+ */
+const notEligibleText = () => t("T-3269");
+
+/** El texto de cada motivo por el que el registro propio no procede (ADR-120 regla 17). */
+function denialText(denial: SelfCheckInEligibilityDenial, row: OccasionRow): string {
+  switch (denial) {
+    case "DRAFT":
+      return t("T-526");
+    case "CANCELLED":
+      return t("T-524");
+    case "CLOSED":
+    case "WINDOW_CLOSED":
+      return t("T-096");
+    case "TERM_CLOSED":
+      return t("T-525");
+    case "NOT_OPEN_YET":
+      return t("T-097", {
+        fecha: formatDate(row.checkInOpensAt),
+        hora: formatTime(row.checkInOpensAt),
+      });
+    case "NOT_ELIGIBLE":
+      return notEligibleText();
+    case "NEW_MEMBERS_ONLY":
+      return t("T-523");
   }
 }
 
+/**
+ * El motivo lo decide el dominio con el mismo orden que el comando; acá solo se elige su texto. Sin
+ * motivo, la pantalla ofrece el registro: el código rotativo y el booster los responde el comando.
+ */
 function occasionView(
   row: OccasionRow,
   termClosed: boolean,
-  isNew: boolean,
+  membership: SelfCheckInFacts["membership"],
   now: Date,
   result: CheckInResultCode | null,
 ): View {
-  if (row.status === "DRAFT") return { kind: "message", text: t("T-526") };
-  if (row.status === "CANCELLED") return { kind: "message", text: t("T-524") };
-  if (row.status === "CLOSED") return { kind: "message", text: t("T-096") };
-  if (termClosed) return { kind: "message", text: t("T-525") };
-  const window = windowState(row, now);
-  if (window === "NOT_OPEN") {
-    return {
-      kind: "message",
-      text: t("T-097", {
-        fecha: formatDate(row.checkInOpensAt),
-        hora: formatTime(row.checkInOpensAt),
-      }),
-    };
-  }
-  if (window === "CLOSED") return { kind: "message", text: t("T-096") };
-  if (row.newMembersOnly && !isNew) return { kind: "message", text: t("T-523") };
-  if (result === "inactivo") return { kind: "message", text: t("T-673", { nombre: "" }).trim() };
+  const denial = selfCheckInEligibilityDenial({ occasion: row, termClosed, membership, now });
+  if (denial) return { kind: "message", text: denialText(denial, row) };
+  if (result === "inactivo") return { kind: "message", text: notEligibleText() };
   return {
     kind: "form",
     needsCode: row.requireRotatingCode,
@@ -122,7 +166,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
   const search = await searchParams;
   const code = single(search.c);
   const resultParam = single(search.r);
-  const result = RESULT_CODES.includes(resultParam as CheckInResultCode)
+  const claimed = RESULT_CODES.includes(resultParam as CheckInResultCode)
     ? (resultParam as CheckInResultCode)
     : null;
   const actor = await requireActor(`/a/${publicId}${code ? `?c=${encodeURIComponent(code)}` : ""}`);
@@ -155,7 +199,9 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
     getTerm(row.termId),
   ]);
   const now = new Date();
-  const fresh = result ? resultView(result, row.points) : null;
+  const fresh = claimed ? resultView(claimed, existing, row.points) : null;
+  // Un resultado de éxito que la fila no respalda no cuenta para nada de lo que sigue.
+  const result = claimed && SUCCESS_VIEWS[claimed] && !fresh ? null : claimed;
   const view: View =
     fresh ??
     (existing
@@ -163,7 +209,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
       : occasionView(
           row,
           term?.pointsClosedAt !== null && term?.pointsClosedAt !== undefined,
-          membership?.firstTermId === row.termId,
+          membership,
           now,
           result,
         ));
@@ -188,8 +234,8 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
     (item) =>
       item.id === appliedBoosterId && item.target?.kind === "OCCASION" && item.target.id === row.id,
   );
-  const boosterNames = tList("T-2451");
-  const boosterName = (kind: BoosterKind) => boosterNames[BOOSTER_KINDS.indexOf(kind)] ?? kind;
+  const boosterNames = tLabels("T-2451", BOOSTER_KINDS);
+  const boosterName = (kind: BoosterKind) => boosterNames[kind] ?? kind;
   const selectorLabels = tList("T-2578");
 
   return (

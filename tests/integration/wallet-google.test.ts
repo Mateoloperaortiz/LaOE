@@ -4,9 +4,10 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { type Env, getEnv } from "@/env";
-import { getCarnetCredential, rotateCarnetTokenAs } from "@/modules/identity";
+import { ForbiddenError, getCarnetCredential, rotateCarnetTokenAs } from "@/modules/identity";
 import { endMembership } from "@/modules/people/domain/membership";
 import { outbox } from "@/modules/system/schema";
+import { walletFailure } from "@/modules/wallet/domain/failure";
 import {
   issueGoogleSaveUrl,
   refreshGooglePass,
@@ -14,9 +15,9 @@ import {
 } from "@/modules/wallet/domain/google";
 import * as passRecords from "@/modules/wallet/domain/passes";
 import { listPassesFor } from "@/modules/wallet/domain/passes";
+import { seedMember, seedMembership, seedPerson, seedTerm } from "../factories";
 import credentials from "../fixtures/wallet/toy-credentials.json";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 import { FakeGoogleWallet, walletActor, walletBarrier } from "./wallet-fixtures";
 
 describe("emisión y reconciliación Google Wallet", () => {
@@ -126,7 +127,11 @@ describe("emisión y reconciliación Google Wallet", () => {
       }
       return undefined;
     };
-    await expect(issueGoogleSaveUrl(personId)).rejects.toThrow("HTTP 503");
+    await expect(issueGoogleSaveUrl(personId)).rejects.toMatchObject({
+      reason: "PROVIDER_HTTP",
+      status: 503,
+      message: expect.stringContaining("HTTP 503"),
+    });
     expect((await listPassesFor(personId))[0]).toMatchObject({
       issuedAt: null,
       lastIssuedAt: null,
@@ -149,7 +154,10 @@ describe("emisión y reconciliación Google Wallet", () => {
       }
       return undefined;
     };
-    await expect(issueGoogleSaveUrl(personId)).rejects.toThrow("no respondió dentro del plazo");
+    await expect(issueGoogleSaveUrl(personId)).rejects.toMatchObject({
+      reason: "PROVIDER_UNREACHABLE",
+      message: expect.stringContaining("no respondió dentro del plazo"),
+    });
     const [reservation] = await listPassesFor(personId);
     expect(reservation).toMatchObject({ issuedAt: null, lastIssuedAt: null, revokedAt: null });
     expect(server.objects.has(reservation?.externalId ?? "")).toBe(true);
@@ -168,6 +176,8 @@ describe("emisión y reconciliación Google Wallet", () => {
       new Error("Fallo local sintético"),
     );
     await expect(issueGoogleSaveUrl(personId)).rejects.toThrow("Fallo local sintético");
+    // El fallo salió del registro local, que es donde la prueba lo puso.
+    expect(passRecords.recordPassIssued).toHaveBeenCalled();
     const [reservation] = await listPassesFor(personId);
     expect(reservation).toMatchObject({ issuedAt: null, lastIssuedAt: null });
     expect(server.objects.has(reservation?.externalId ?? "")).toBe(true);
@@ -226,17 +236,67 @@ describe("emisión y reconciliación Google Wallet", () => {
     });
   });
 
+  it("lo que la ruta registra distingue a Google caído, una credencial que Google no acepta y un fallo local", async () => {
+    // Los errores son los que lanza la emisión de verdad; `walletFailure` es lo que la ruta escribe
+    // de cada uno (DT-228, ADR-120 regla 13).
+    const personId = await seedMember("google-causa-del-fallo@eafit.edu.co");
+    const failureOf = async () => walletFailure(await issueGoogleSaveUrl(personId).catch((e) => e));
+
+    server.intercept = async (call) =>
+      call.path === "/oauth"
+        ? Response.json({ error: "invalid_grant" }, { status: 400 })
+        : undefined;
+    expect(await failureOf()).toEqual({ reason: "PROVIDER_AUTH", status: 400 });
+
+    server.intercept = async () => {
+      throw new Error("oe2.secreto-del-transporte");
+    };
+    expect(await failureOf()).toEqual({ reason: "PROVIDER_UNREACHABLE" });
+
+    server.intercept = async (call) =>
+      call.path.startsWith("/genericObject") ? Response.json({}, { status: 503 }) : undefined;
+    expect(await failureOf()).toEqual({ reason: "PROVIDER_HTTP", status: 503 });
+
+    server.intercept = undefined;
+    vi.spyOn(passRecords, "recordPassIssued").mockRejectedValueOnce(
+      Object.assign(new Error("oe2.secreto-local"), { code: "57P01" }),
+    );
+    expect(await failureOf()).toEqual({
+      reason: "UNEXPECTED",
+      errorType: "Error",
+      errorCode: "57P01",
+    });
+  });
+
+  it("a quien está en licencia no se le emite, y la ruta no lo cuenta como fallo", async () => {
+    // La reserva de la credencial rechaza a quien no participa antes de leer el carnet: lo que
+    // llega a la ruta es un `ForbiddenError`, no el `DomainError` de quien no tiene carnet.
+    const personId = await seedPerson("google-en-licencia@eafit.edu.co");
+    await seedMembership(personId, await seedTerm(), "ON_LEAVE");
+    const rejection: unknown = await issueGoogleSaveUrl(personId).catch((e) => e);
+    expect(rejection).toBeInstanceOf(ForbiddenError);
+    expect(walletFailure(rejection)).toEqual({ reason: "REFUSED", errorType: "ForbiddenError" });
+    expect(await listPassesFor(personId)).toEqual([]);
+    expect(server.calls).toEqual([]);
+  });
+
   it("sin configuración no emite; retirarla después conserva el registro hasta restaurarla", async () => {
     const personId = await seedMember("google-configuracion@eafit.edu.co");
     delete getEnv().GOOGLE_WALLET_ISSUER_ID;
-    await expect(issueGoogleSaveUrl(personId)).rejects.toThrow("no está configurado");
+    await expect(issueGoogleSaveUrl(personId)).rejects.toMatchObject({
+      reason: "NOT_CONFIGURED",
+      message: expect.stringContaining("no está configurado"),
+    });
     expect(await listPassesFor(personId)).toEqual([]);
     expect(await getCarnetCredential(personId)).toBeNull();
     Object.assign(getEnv(), original);
     await issueGoogleSaveUrl(personId);
     const [pass] = await listPassesFor(personId);
     delete getEnv().GOOGLE_WALLET_ISSUER_ID;
-    await expect(refreshGooglePass(personId)).rejects.toThrow("Sin credenciales");
+    await expect(refreshGooglePass(personId)).rejects.toMatchObject({
+      reason: "NOT_CONFIGURED",
+      message: expect.stringContaining("Sin credenciales"),
+    });
     expect((await listPassesFor(personId))[0]?.externalId).toBe(pass?.externalId);
     Object.assign(getEnv(), original);
     await refreshGooglePass(personId);

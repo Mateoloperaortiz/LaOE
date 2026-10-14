@@ -3,11 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
+import { uploadToBucket } from "@/shared/ui/bucket-upload";
 import { XIcon } from "@/shared/ui/icons/XIcon";
 import type { ChallengeSubmitReply, SubmitDenial } from "../gamification-types";
 
 // Evidencia de una misión (ADR-067 reglas 5 y 6): texto acotado y hasta tres imágenes que suben
-// directo al bucket con presign; el requestId de sessionStorage hace el envío idempotente.
+// directo al bucket con presign y sin confirmación (`uploadToBucket`, ADR-121 regla 14); el
+// requestId de sessionStorage hace el envío idempotente. La imagen que se quita de la lista se borra
+// del bucket (ADR-122 regla 20).
 
 const ERROR_COPY: Record<SubmitDenial, ClientCopyCode> = {
   DISABLED: "T-2442",
@@ -16,16 +19,12 @@ const ERROR_COPY: Record<SubmitDenial, ClientCopyCode> = {
   NOT_ELIGIBLE: "T-2440",
   ALREADY: "T-2439",
   TERM_CLOSED: "T-2443",
-  INVALID_INPUT: "T-2426",
+  // El formulario no tiene preguntas: ninguno de sus rechazos pinta el texto de la trivia (ADR-122
+  // regla 16). `INCOMPLETE` es de la trivia y acá no llega; el tipo pide todas las razones.
+  INVALID_INPUT: "T-3262",
   REQUEST_CONFLICT: "T-2444",
-  INCOMPLETE: "T-2426",
+  INCOMPLETE: "T-3262",
 };
-
-interface PreparedUpload {
-  key: string;
-  url: string;
-  fields: Record<string, string>;
-}
 
 interface UploadedFile {
   key: string;
@@ -40,28 +39,6 @@ function Preview({ src, name }: { src: string; name: string }) {
   );
 }
 
-async function uploadFile(file: File): Promise<string> {
-  const presign = await fetch("/api/retos/evidencia/presign", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ contentType: file.type, byteSize: file.size }),
-  });
-  if (!presign.ok) {
-    throw new Error("presign");
-  }
-  const prepared = (await presign.json()) as PreparedUpload;
-  const form = new FormData();
-  for (const [name, value] of Object.entries(prepared.fields)) {
-    form.append(name, value);
-  }
-  form.append("file", file, file.name);
-  const stored = await fetch(prepared.url, { method: "POST", body: form });
-  if (!stored.ok) {
-    throw new Error("bucket");
-  }
-  return prepared.key;
-}
-
 export function EvidenceUploader({
   challengeId,
   textMin,
@@ -71,6 +48,7 @@ export function EvidenceUploader({
   maxBytes,
   allowedTypes,
   onSubmit,
+  onDiscard,
 }: {
   challengeId: string;
   textMin: number;
@@ -80,6 +58,7 @@ export function EvidenceUploader({
   maxBytes: number;
   allowedTypes: string[];
   onSubmit: (input: unknown) => Promise<ChallengeSubmitReply>;
+  onDiscard: (input: unknown) => Promise<void>;
 }) {
   const router = useRouter();
   const inputId = useId();
@@ -116,33 +95,55 @@ export function EvidenceUploader({
     };
   }, [files]);
 
+  /** Por qué ese archivo no se sube, o `null` si entra. Cada borde del tamaño dice el suyo. */
+  function rejectionOf(file: File): string | null {
+    if (files.length >= maxFiles) return errors[2] ?? "";
+    if (!allowedTypes.includes(file.type)) return errors[0] ?? "";
+    if (file.size < minBytes) return t("T-3264");
+    if (file.size > maxBytes) return errors[1] ?? "";
+    return null;
+  }
+
+  // El selector queda vacío también al rechazar (ADR-122 regla 18): con el archivo puesto, volver a
+  // elegir ese mismo no dispara `change` y no avisa.
+  function clearPicker() {
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
   async function addFile(file: File) {
     setMessage("");
-    if (files.length >= maxFiles) {
-      setMessage(errors[2] ?? "");
-      return;
-    }
-    if (!allowedTypes.includes(file.type)) {
-      setMessage(errors[0] ?? "");
-      return;
-    }
-    if (file.size < minBytes || file.size > maxBytes) {
-      setMessage(errors[1] ?? "");
+    const rejection = rejectionOf(file);
+    if (rejection !== null) {
+      setMessage(rejection);
+      clearPicker();
       return;
     }
     setUploading(true);
     try {
-      const key = await uploadFile(file);
+      const { key } = await uploadToBucket(file, {
+        presign: {
+          url: "/api/retos/evidencia/presign",
+          body: { contentType: file.type, byteSize: file.size },
+        },
+      });
       setFiles((current) => [
         ...current,
         { key, preview: URL.createObjectURL(file), name: file.name },
       ]);
     } catch {
+      // Cualquier fallo lleva el texto de la evidencia: lo que diga la casa no se repite acá.
       setMessage(errors[3] ?? "");
     } finally {
       setUploading(false);
-      if (fileInput.current) fileInput.current.value = "";
+      clearPicker();
     }
+  }
+
+  // La imagen sale de la lista sin esperar a la casa, que borra el objeto. Si la acción se rechaza,
+  // la pantalla sigue y el objeto queda en el bucket, como quedaba antes de la regla 20.
+  function removeFile(index: number, key: string) {
+    setFiles((current) => current.filter((_, i) => i !== index));
+    void onDiscard({ key }).catch(() => undefined);
   }
 
   function submit() {
@@ -150,7 +151,7 @@ export function EvidenceUploader({
       return;
     }
     if (!textValid) {
-      setMessage(t("T-2426"));
+      setMessage(t("T-3261", { min: textMin, max: textMax }));
       return;
     }
     setMessage("");
@@ -169,7 +170,8 @@ export function EvidenceUploader({
           setMessage(t(ERROR_COPY[result.reason]));
         }
       } catch {
-        setMessage(t("T-2426"));
+        // La acción no respondió (ADR-118 regla 21): no es que falten respuestas.
+        setMessage(t("T-3253"));
       }
     });
   }
@@ -238,7 +240,7 @@ export function EvidenceUploader({
                 <button
                   type="button"
                   className="inline-flex items-center gap-1 text-xs font-semibold underline"
-                  onClick={() => setFiles((current) => current.filter((_, i) => i !== index))}
+                  onClick={() => removeFile(index, file.key)}
                 >
                   <XIcon />
                   {t("T-1489")}

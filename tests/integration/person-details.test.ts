@@ -21,8 +21,8 @@ import {
 import { person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedCommittee, seedCommitteeMembership, seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedCommittee, seedCommitteeMembership, seedMember, seedTerm } from "./factories";
 
 const details = {
   documentType: "CC" as const,
@@ -80,7 +80,7 @@ describe("datos privados del integrante", () => {
     const id = await seedMember(basics.email, basics);
     await seedCommitteeMembership(id, committeeId, termId);
     await runCommand(SYSTEM_ACTOR, (ctx) => updatePerson(ctx, id, { ...basics, ...details }));
-    await runCommand({ personId: id }, (ctx) =>
+    await runCommand({ personId: id, ip: null }, (ctx) =>
       updateOwnContact(
         ctx,
         id,
@@ -120,7 +120,7 @@ describe("datos privados del integrante", () => {
   it("anonimiza los cuatro campos y elimina su contenido de la auditoría", async () => {
     const id = await seedMember(basics.email, basics);
     await runCommand(SYSTEM_ACTOR, (ctx) => updatePerson(ctx, id, { ...basics, ...details }));
-    await runCommand({ personId: id }, (ctx) => requestDeletion(ctx, id));
+    await runCommand({ personId: id, ip: null }, (ctx) => requestDeletion(ctx, id));
     await runCommand(SYSTEM_ACTOR, (ctx) => anonymizePerson(ctx, id));
     const [row] = await getDb().select().from(person).where(eq(person.id, id));
     expect(row).toMatchObject({

@@ -223,11 +223,15 @@ export async function previewTemplateFor(
   );
 }
 
-/** "Enviarme una prueba": la plantilla al correo del actor por el mailer transaccional, asunto con T-209. */
+/**
+ * "Enviarme una prueba": la plantilla al correo del actor por el mailer transaccional, asunto con T-209.
+ * Responde con lo que contestó el proveedor (ADR-118 regla 14): `sent` solo es cierto si aceptó el
+ * correo, y solo entonces queda la auditoría de la prueba enviada. El rechazo queda en `message`.
+ */
 export async function sendTemplateTestAs(
   actor: Actor,
   templateId: string,
-): Promise<{ to: string } | null> {
+): Promise<{ to: string; sent: boolean } | null> {
   const personId = actor.personId;
   if (!personId) {
     throw new Error("Sin persona");
@@ -237,13 +241,16 @@ export async function sendTemplateTestAs(
   if (!rendered || !ref) {
     return null;
   }
-  await sendTransactionalEmail({
+  const receipt = await sendTransactionalEmail({
     personId,
     to: ref.email,
     subject: `${t("T-209")} ${rendered.subject}`,
     text: rendered.text,
     html: rendered.html,
   });
+  if (receipt.status !== "SENT") {
+    return { to: ref.email, sent: false };
+  }
   await runCommand(actor, (ctx) =>
     ctx.audit({
       action: "email-template.test-sent",
@@ -252,5 +259,5 @@ export async function sendTemplateTestAs(
       after: { to: ref.email },
     }),
   );
-  return { to: ref.email };
+  return { to: ref.email, sent: true };
 }

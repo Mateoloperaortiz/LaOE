@@ -1,7 +1,12 @@
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import { ResourcePage } from "@/app/admin/_kit/ResourcePage";
-import type { AnyResource } from "@/shared/admin-kit/types";
+import { ResourceToolbar } from "@/shared/admin-kit";
+import { type AnyResource, EXPORT_ROW_LIMIT } from "@/shared/admin-kit/types";
+import { t } from "@/shared/copy";
+import { type AnyElement, elements } from "../helpers/react-tree";
 
 const state = vi.hoisted(() => ({
   actor: vi.fn(),
@@ -26,15 +31,18 @@ vi.mock("@/app/admin/_kit/actions", () => ({
   rowActionAction: vi.fn(),
   saveResourceAction: vi.fn(),
 }));
-vi.mock("@/shared/admin-kit", async () => ({
-  ...(await import("@/shared/admin-kit/types")),
-  Pagination: () => null,
-  ResourceForm: () => null,
-  ResourcePanel: () => null,
-  ResourceSubmitButton: () => null,
-  ResourceTable: () => null,
-  ResourceToolbar: () => null,
-}));
+vi.mock("@/shared/admin-kit", async () => {
+  const { resolveFilters } = await import("@/shared/admin-kit/types");
+  return {
+    resolveFilters,
+    Pagination: () => null,
+    ResourceForm: () => null,
+    ResourcePanel: () => null,
+    ResourceSubmitButton: () => null,
+    ResourceTable: () => null,
+    ResourceToolbar: () => null,
+  };
+});
 
 function resource(overrides: Partial<AnyResource> = {}): AnyResource {
   return {
@@ -50,9 +58,19 @@ function resource(overrides: Partial<AnyResource> = {}): AnyResource {
     toFormValues: () => ({ name: "Ejemplo sintético" }),
     create: async () => ({ id: "nuevo-sintetico" }),
     update: async () => {},
+    personalData: false,
     exportRow: () => ({}),
     ...overrides,
   };
+}
+
+/** Lo que pinta el aviso de descarga de la página, o `null` si no pinta nada. */
+function downloadNotice(page: ReactNode): AnyElement | null {
+  const notice = elements(page).find((element) => element.type === DownloadNotice);
+  if (!notice) {
+    throw new Error("la página no monta el aviso de descarga");
+  }
+  return DownloadNotice(notice.props as Parameters<typeof DownloadNotice>[0]) as AnyElement | null;
 }
 
 beforeEach(() => {
@@ -126,6 +144,62 @@ describe("navegación y capacidades de un recurso administrativo", () => {
     });
     expect(state.list).toHaveBeenCalledWith(
       expect.objectContaining({ filters: { eventId: "original" } }),
+    );
+  });
+
+  it("el enlace del exporte nombra la pantalla donde está montado el recurso, con su búsqueda y su página", async () => {
+    state.list.mockResolvedValue({ rows: [], total: 60 });
+    const page = await ResourcePage({
+      resource: resource({
+        filters: [{ key: "editionId", label: "Edición", options: [] }],
+      }),
+      searchParams: { q: "ana maría", pagina: "2", descarga: "1" },
+      basePath: "/admin/eventos/evento1/ediciones/edicion1/inscritos",
+      fixedFilters: { editionId: "edicion1" },
+    });
+    const toolbar = elements(page).find((element) => element.type === ResourceToolbar);
+    const href = new URL(String(toolbar?.props.exportHref), "http://local");
+    expect(href.pathname).toBe("/api/export/ejemplo");
+    expect(href.searchParams.get("q")).toBe("ana maría");
+    expect(href.searchParams.get("editionId")).toBe("edicion1");
+    expect(href.searchParams.get("pantalla")).toBe(
+      "/admin/eventos/evento1/ediciones/edicion1/inscritos?q=ana+mar%C3%ADa&pagina=2",
+    );
+  });
+
+  it("al volver de una descarga que no salió avisa que hay que pedirla otra vez", async () => {
+    const page = await ResourcePage({ resource: resource(), searchParams: { descarga: "1" } });
+    const notice = downloadNotice(page);
+    expect(notice?.type).toBe("output");
+    expect(notice?.props.children).toBe(t("T-3211"));
+  });
+
+  it("sin la marca de descarga, o con un valor que no reconoce, no avisa", async () => {
+    for (const searchParams of [{}, { descarga: "" }, { descarga: "0" }, { descarga: "si" }]) {
+      expect(downloadNotice(await ResourcePage({ resource: resource(), searchParams }))).toBeNull();
+    }
+  });
+});
+
+describe("aviso de exporte recortado en el listado", () => {
+  /** Los textos sueltos que pinta la página. */
+  function texts(page: ReactNode): unknown[] {
+    return elements(page).map((element) => element.props.children);
+  }
+
+  it("un listado con más registros que el tope del exporte avisa que el CSV sale recortado", async () => {
+    state.list.mockResolvedValue({ rows: [], total: EXPORT_ROW_LIMIT + 1 });
+    const page = await ResourcePage({ resource: resource(), searchParams: {} });
+    expect(texts(page)).toContain(
+      t("T-3249", { n: EXPORT_ROW_LIMIT, total: EXPORT_ROW_LIMIT + 1 }),
+    );
+  });
+
+  it("uno que cabe entero en el exporte no avisa nada", async () => {
+    state.list.mockResolvedValue({ rows: [], total: EXPORT_ROW_LIMIT });
+    const page = await ResourcePage({ resource: resource(), searchParams: {} });
+    expect(texts(page)).not.toContain(
+      t("T-3249", { n: EXPORT_ROW_LIMIT, total: EXPORT_ROW_LIMIT }),
     );
   });
 });

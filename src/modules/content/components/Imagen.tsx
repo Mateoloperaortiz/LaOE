@@ -1,4 +1,5 @@
 import { mediaSrcSet, mediaUrl } from "@/shared/lib/media";
+import { widthVariants } from "../media-variants";
 
 type Props = {
   asset: {
@@ -24,7 +25,8 @@ export function Imagen({
   className = "",
   priority = false,
 }: Props) {
-  const widths = Object.values(asset.variants).map((variant) => variant.width);
+  // La variante completa no es un ancho del `srcset` (ADR-114 regla 8): se entrega cuando no hay otra.
+  const widths = widthVariants(asset.variants).map((variant) => variant.width);
   const largest = widths.length > 0 ? Math.max(...widths) : undefined;
   return (
     // biome-ignore lint/performance/noImgElement: ADR-022, los bytes no atraviesan la app

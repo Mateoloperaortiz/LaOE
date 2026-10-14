@@ -17,9 +17,14 @@ import {
   sanctionRecorded,
   sanctionRevoked,
 } from "@/domain-events/people";
-import { permanenceClosed, permanenceRecompute } from "@/domain-events/permanence";
+import {
+  groupAdmissionFailed,
+  permanenceClosed,
+  permanenceRecompute,
+} from "@/domain-events/permanence";
 import { onEvent, onEvents, registerHandler } from "@/jobs/registry";
 import { findTermByCode, getCurrentTerm } from "@/modules/terms";
+import { DomainError } from "@/shared/lib/errors";
 import { applyDecisions } from "./domain/closing";
 import { addMembersAs } from "./domain/groups";
 import { runNotices } from "./domain/notices";
@@ -110,10 +115,36 @@ onEvent(permanenceClosed, async ({ termId, nextTermId }, ctx) => {
 
 // Una inscripción aceptada a una convocatoria interna entra al grupo (ADR-037 regla 10): idempotente
 // ("quien ya está, se queda") y solo activos; `addMembers` encola el recompute de la persona.
-onEvent(callEntryChanged, async ({ groupId, personId, status, actorId }, ctx) => {
-  if (status !== "ACCEPTED") {
-    return;
-  }
-  const added = await addMembersAs({ personId: actorId }, groupId, [personId]);
-  ctx.log.info({ groupId, personId, added }, "inscripción aceptada al grupo");
-});
+// Aceptar ya comprobó que el grupo admitía a la persona (ADR-116 regla 7). Si acá el dominio dice que
+// no, la condición cambió entre aceptar y este trabajo: reintentar no la arregla y el evento moriría en
+// dead letter. El trabajo avisa con `work-group-admission.failed`, del que crm abre la tarea para GH, y
+// termina. Un error que no es de dominio sí se relanza: ese se reintenta.
+onEvent(
+  callEntryChanged,
+  async ({ groupId, personId, status, actorId, callId, callTitle }, ctx) => {
+    if (status !== "ACCEPTED") {
+      return;
+    }
+    try {
+      // Un trabajo no tiene request: actúa a nombre de quien aceptó, sin IP.
+      const { added } = await addMembersAs({ personId: actorId, ip: null }, groupId, [personId]);
+      ctx.log.info({ groupId, personId, added }, "inscripción aceptada al grupo");
+    } catch (error) {
+      if (!(error instanceof DomainError)) {
+        throw error;
+      }
+      await enqueueEvent(
+        getDb(),
+        eventOf(groupAdmissionFailed, {
+          actorId,
+          personId,
+          groupId,
+          callId,
+          callTitle,
+          reason: error.message,
+        }),
+      );
+      ctx.log.warn({ groupId, personId, callId }, "inscripción aceptada que no entró al grupo");
+    }
+  },
+);

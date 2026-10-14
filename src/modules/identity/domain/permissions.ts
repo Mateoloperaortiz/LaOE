@@ -1,19 +1,21 @@
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { permissionGranted, permissionRevoked } from "@/domain-events/identity";
 import {
   findMemberByEmail,
   getPeopleByIds,
   listAllCommittees,
+  lockMembershipCycle,
   searchPeople,
 } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { permission } from "../schema";
+import { deleteAccessGrantsFor, lockAccessGrantsOf } from "./access-grant";
 import { normalizeEmail } from "./pure";
 
 // Permisos técnicos (ADR-011): ADMIN, líder de comité y junta. Se conceden con step-up y quedan auditados.
@@ -139,6 +141,8 @@ export async function grantPermission(
   if (!member) {
     throw new DomainError(t("T-267"), "email");
   }
+  // De a uno con la emisión de un enlace para esta persona (ADR-119 regla 17).
+  await lockAccessGrantsOf(ctx.tx, member.id);
   try {
     const [row] = await ctx.tx
       .insert(permission)
@@ -152,6 +156,9 @@ export async function grantPermission(
     if (!row) {
       throw new Error("No se pudo otorgar el permiso");
     }
+    // Un enlace emitido antes pasó la regla de privilegio sin este permiso (ADR-113 regla 1): deja
+    // de servir en la misma transacción que lo concede.
+    await deleteAccessGrantsFor(ctx.tx, member.id);
     await ctx.audit({
       action: "permission.granted",
       entityType: "permission",
@@ -180,20 +187,41 @@ export function grantPermissionAs(actor: Actor, input: PermissionInput): Promise
   return runCommand(actor, (ctx) => grantPermission(ctx, input));
 }
 
+/**
+ * Cuántos ADMIN hay, contados con las revocaciones de ADMIN de a una (ADR-122 regla 5). «No se puede
+ * retirar el último» es contar y después borrar: sin un candado común, dos revocaciones de dos ADMIN
+ * distintos contaban dos cada una y borraban las dos. El consultivo se toma al final, después del
+ * `wallet-member` de quien pierde el permiso, y quien lo tiene no toma después ningún otro candado.
+ */
+async function countAdminsToRevoke(tx: Tx): Promise<number> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended('permission:last-admin', 0))`);
+  const [admins] = await tx
+    .select({ n: count() })
+    .from(permission)
+    .where(eq(permission.code, "ADMIN"));
+  return admins?.n ?? 0;
+}
+
 /** No se puede retirar el último ADMIN (05-acceso.md). */
 export async function revokePermission(ctx: CommandContext, id: string): Promise<void> {
+  const [found] = await ctx.tx
+    .select({ personId: permission.personId })
+    .from(permission)
+    .where(eq(permission.id, id));
+  if (!found) {
+    return;
+  }
+  // El consultivo del ciclo de membresía de quien pierde el permiso, que la emisión de un enlace toma
+  // para quien emite antes de leer sus permisos (ADR-122 regla 5): la emisión que llega espera y
+  // decide sin este permiso, y esta espera a una emisión que va en vuelo. La fila se vuelve a leer
+  // con el candado tomado: otra revocación o la baja pudieron borrarla mientras tanto.
+  await lockMembershipCycle(ctx.tx, found.personId);
   const [row] = await ctx.tx.select().from(permission).where(eq(permission.id, id));
   if (!row) {
     return;
   }
-  if (row.code === "ADMIN") {
-    const [admins] = await ctx.tx
-      .select({ n: count() })
-      .from(permission)
-      .where(eq(permission.code, "ADMIN"));
-    if ((admins?.n ?? 0) <= 1) {
-      throw new DomainError(t("T-266"));
-    }
+  if (row.code === "ADMIN" && (await countAdminsToRevoke(ctx.tx)) <= 1) {
+    throw new DomainError(t("T-266"));
   }
   await ctx.tx.delete(permission).where(eq(permission.id, id));
   await ctx.audit({
@@ -224,15 +252,9 @@ export async function revokeAllPermissionsFor(
   let keptLastAdmin = false;
   let revoked = 0;
   for (const row of rows) {
-    if (row.code === "ADMIN") {
-      const [admins] = await ctx.tx
-        .select({ n: count() })
-        .from(permission)
-        .where(eq(permission.code, "ADMIN"));
-      if ((admins?.n ?? 0) <= 1) {
-        keptLastAdmin = true;
-        continue;
-      }
+    if (row.code === "ADMIN" && (await countAdminsToRevoke(ctx.tx)) <= 1) {
+      keptLastAdmin = true;
+      continue;
     }
     await ctx.tx.delete(permission).where(eq(permission.id, row.id));
     await ctx.audit({

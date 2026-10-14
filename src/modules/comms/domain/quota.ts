@@ -1,0 +1,266 @@
+import { and, count, eq, inArray, isNotNull } from "drizzle-orm";
+import { getDb } from "@/db/client";
+import type { Actor } from "@/db/tx";
+import { getEnv } from "@/env";
+import { readConfigNow, resetConfig, reviseConfig, writeConfig } from "@/modules/system";
+import type { QuotaReason } from "@/shared/adapters/mail";
+import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
+import { campaign, campaignRecipient } from "../schema";
+import {
+  campaignCeiling,
+  campaignRoom,
+  latestQuotaCut,
+  providerDayEnd,
+  type QuotaCut,
+  quotaCutInEffect,
+  readQuotaCut,
+  storeQuotaCut,
+  transactionalReserve,
+} from "./pure";
+import {
+  campaignDailyLimit,
+  campaignProvider,
+  LEGACY_QUOTA_CUT_KEY,
+  QUOTA_CUT_KEY,
+  sentTodayVia,
+  storedQuotaCut,
+} from "./send";
+
+// El cupo de correo de las campañas visto desde quien lo opera (ADR-116 reglas 19 y 20): lo que
+// muestran la pantalla del cupo y la de una campaña en curso, y los dos comandos de un ADMIN.
+
+const RESERVE_KEY = "campaigns.transactionalReserve";
+
+/**
+ * Con qué alcance se opera el cupo de correo. Es obligatorio, como el de las sanciones (ADR-112), y hoy
+ * solo existe el de ADMIN.
+ */
+export type QuotaScope = { by: "ADMIN" };
+
+/**
+ * Solo pasa el alcance de ADMIN, a nombre de una persona. Otro alcance, uno que no se reconoce, ninguno
+ * o un actor sin persona responden igual, antes de leer nada.
+ */
+function assertQuotaScope(actor: Actor, scope: QuotaScope): void {
+  const by: unknown = (scope as { by?: unknown } | undefined)?.by;
+  const personId: unknown = (actor as { personId?: unknown } | undefined)?.personId;
+  if (by !== "ADMIN" || typeof personId !== "string" || personId.length === 0) {
+    throw new DomainError(t("T-032"));
+  }
+}
+
+/** La cuenta del cupo del día de las campañas, como la hace el lote (ADR-115 regla 5). */
+export interface DailyQuotaStatus {
+  /** El cupo del día del proveedor. */
+  limit: number;
+  /** El margen que rige para lo transaccional: el fijado o el de por defecto. */
+  reserve: number;
+  /** Con cuántos correos salidos hoy por el proveedor una campaña ya no manda otro. */
+  ceiling: number;
+  /** Lo que el proveedor aceptó hoy, transaccional y de campaña. */
+  sentToday: number;
+  /** Lo que algún lote tiene reclamado y sin resultado: ya tiene su lugar reservado. */
+  claimed: number;
+  /** Cuántos correos de campaña caben todavía hoy. */
+  room: number;
+  /** Cuándo vuelve a empezar la cuenta: cuando el proveedor empieza su día siguiente (ADR-121 regla 5). */
+  resetsAt: Date;
+}
+
+export interface CampaignQuotaStatus {
+  /** El proveedor por el que salen hoy las campañas. */
+  provider: string;
+  /** El margen fijado en la configuración, o `null` si rige el de por defecto. */
+  reserveSetting: number | null;
+  /** La cuenta del día, o `null` si ese proveedor no lleva un cupo del día acá. */
+  daily: DailyQuotaStatus | null;
+  /** El corte por cuota que a esta hora detiene los lotes, o `null`. */
+  cut: QuotaCut | null;
+}
+
+/** Destinatarios que algún lote tiene reclamados y sin resultado, en las campañas en curso. */
+async function claimedRecipients(): Promise<number> {
+  const db = getDb();
+  const [row] = await db
+    .select({ n: count() })
+    .from(campaignRecipient)
+    .where(
+      and(
+        eq(campaignRecipient.status, "PENDING"),
+        isNotNull(campaignRecipient.claimedAt),
+        inArray(
+          campaignRecipient.campaignId,
+          db.select({ id: campaign.id }).from(campaign).where(eq(campaign.status, "SENDING")),
+        ),
+      ),
+    );
+  return row?.n ?? 0;
+}
+
+/**
+ * El cupo de correo de las campañas a esa hora: por dónde salen, el margen, la cuenta del día y el
+ * corte vigente. Es para mostrar: lee la configuración de la base y no de la caché, y cuenta sin el
+ * candado del cupo, así que un lote que reclama en ese instante puede no estar contado todavía.
+ */
+export async function getCampaignQuotaStatus(now = new Date()): Promise<CampaignQuotaStatus> {
+  const provider = campaignProvider();
+  const limit = campaignDailyLimit();
+  const [reserveSetting, storedCut] = await Promise.all([
+    readConfigNow(RESERVE_KEY),
+    storedQuotaCut({ fresh: true }),
+  ]);
+  const cut = quotaCutInEffect(storedCut, provider, now);
+  if (limit === null) {
+    return { provider, reserveSetting, daily: null, cut };
+  }
+  const [sentToday, claimed] = await Promise.all([
+    sentTodayVia(provider, now),
+    claimedRecipients(),
+  ]);
+  const ceiling = campaignCeiling(limit, reserveSetting);
+  return {
+    provider,
+    reserveSetting,
+    daily: {
+      limit,
+      reserve: transactionalReserve(limit, reserveSetting),
+      ceiling,
+      sentToday,
+      claimed,
+      room: campaignRoom(ceiling, sentToday, claimed),
+      resetsAt: providerDayEnd(now),
+    },
+    cut,
+  };
+}
+
+/**
+ * Lo que detiene a los pendientes de una campaña en curso: un corte del proveedor, con su causa y su
+ * final; el margen, cuando cubre todo el cupo del día; el cupo de hoy, que ya no tiene lugar y vuelve
+ * a contar cuando el proveedor empieza su día siguiente; o el cupo de hoy cuando solo le queda lugar
+ * para una parte (ADR-120 regla 16): `fits` salen hoy y `waiting` siguen cuando vuelva a contar.
+ */
+export type CampaignHold =
+  | { by: "CUT"; provider: string; reason: QuotaReason; until: Date }
+  | { by: "RESERVE" }
+  | { by: "ROOM"; until: Date }
+  | { by: "PARTIAL"; fits: number; waiting: number; until: Date };
+
+/**
+ * `inFlight` son los pendientes que un lote ya tiene reclamados: su lugar está descontado de `room`,
+ * así que salen hoy y no compiten por lo que queda. El lugar es de todas las campañas en curso: con
+ * más de una, lo que le toca a esta puede ser menos de lo que dice.
+ */
+function holdOf(
+  status: CampaignQuotaStatus,
+  pending: number,
+  inFlight: number,
+): CampaignHold | null {
+  if (status.cut) {
+    const { provider, reason, until } = status.cut;
+    return { by: "CUT", provider, reason, until };
+  }
+  if (status.daily === null) {
+    return null;
+  }
+  const { room, ceiling, resetsAt } = status.daily;
+  if (room > 0) {
+    const waiting = pending - inFlight - room;
+    return waiting > 0
+      ? { by: "PARTIAL", fits: pending - waiting, waiting, until: resetsAt }
+      : null;
+  }
+  return ceiling === 0 ? { by: "RESERVE" } : { by: "ROOM", until: resetsAt };
+}
+
+export interface CampaignBacklog {
+  /** Destinatarios de la campaña que siguen pendientes. */
+  pending: number;
+  /** Qué los detiene, a todos o a una parte, o `null` si salen en los próximos lotes o no queda ninguno. */
+  hold: CampaignHold | null;
+}
+
+/** Cuántos destinatarios le faltan a una campaña y qué los detiene a esa hora. */
+export async function getCampaignBacklog(
+  campaignId: string,
+  now = new Date(),
+): Promise<CampaignBacklog> {
+  const [row] = await getDb()
+    .select({ n: count(), claimed: count(campaignRecipient.claimedAt) })
+    .from(campaignRecipient)
+    .where(
+      and(eq(campaignRecipient.campaignId, campaignId), eq(campaignRecipient.status, "PENDING")),
+    );
+  const pending = row?.n ?? 0;
+  if (pending === 0) {
+    return { pending, hold: null };
+  }
+  return { pending, hold: holdOf(await getCampaignQuotaStatus(now), pending, row?.claimed ?? 0) };
+}
+
+/**
+ * Fija el margen del cupo del día que una campaña no toca (ADR-115 regla 5): un entero de cero en
+ * adelante. Un margen igual o mayor que el cupo es válido y no deja salir ninguna campaña. Queda en la
+ * auditoría como toda la configuración, y el lote siguiente de este proceso ya cuenta con él.
+ */
+export async function setTransactionalReserveAs(
+  actor: Actor & { personId: string },
+  scope: QuotaScope,
+  value: number,
+): Promise<void> {
+  assertQuotaScope(actor, scope);
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    throw new DomainError(t("T-3235"), "reserve");
+  }
+  await writeConfig(actor, RESERVE_KEY, value);
+}
+
+/**
+ * Quita el margen fijado y responde si había uno: vuelve a regir el de por defecto, un tercio del cupo
+ * del día, que sigue al cupo si cambia (ADR-116 regla 20). Con el mismo alcance y la misma auditoría que
+ * fijarlo: es la única manera de volver al valor por defecto sin escribir en la base a mano.
+ */
+export async function resetTransactionalReserveAs(
+  actor: Actor & { personId: string },
+  scope: QuotaScope,
+): Promise<boolean> {
+  assertQuotaScope(actor, scope);
+  return resetConfig(actor, RESERVE_KEY);
+}
+
+/**
+ * Levanta el corte por cuota que detiene las campañas, y responde si había uno vigente. Levantarlo es
+ * adelantarle el final a este momento: el corte queda guardado con su causa y ya no detiene a nadie.
+ * Vale también para el que dejó una versión anterior en su clave, que no se toca.
+ * Lo mira y lo levanta bajo el candado de la clave, en el mismo comando: si mientras tanto un lote
+ * escribe otro rechazo, uno de los dos decide después del otro. Queda en la auditoría como toda la
+ * configuración, con el final que tenía. No promete que el proveedor acepte: si vuelve a rechazar, el
+ * corte se escribe otra vez.
+ */
+export async function liftCampaignQuotaCutAs(
+  actor: Actor & { personId: string },
+  scope: QuotaScope,
+  now = new Date(),
+): Promise<boolean> {
+  assertQuotaScope(actor, scope);
+  const timeZone = getEnv().APP_TIMEZONE;
+  const provider = campaignProvider();
+  let lifted = false;
+  // El de antes se lee fuera del candado: esta versión no lo escribe. Si es el que rige, lo levanta el
+  // corte que queda en la clave de hoy, con su misma hora y el final en este momento.
+  const legacy = readQuotaCut(await readConfigNow(LEGACY_QUOTA_CUT_KEY), timeZone);
+  await reviseConfig(actor, QUOTA_CUT_KEY, (current) => {
+    const cut = quotaCutInEffect(
+      latestQuotaCut(readQuotaCut(current, timeZone), legacy),
+      provider,
+      now,
+    );
+    if (cut === null) {
+      return undefined;
+    }
+    lifted = true;
+    return storeQuotaCut({ ...cut, until: now });
+  });
+  return lifted;
+}

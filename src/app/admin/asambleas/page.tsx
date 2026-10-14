@@ -17,7 +17,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { adjustRequirementAction, recomputeRepresentationAction } from "./actions";
 
@@ -46,9 +46,9 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
   const personId = single(search.personId);
   const error = single(search.error);
   const guardado = single(search.guardado);
-  const kindLabels = tList("T-546");
+  const kindLabels = tLabels("T-546", ASSEMBLY_KINDS);
   const columns = tList("T-638");
-  const filterLabels = tList("T-639");
+  const filterLabels = tLabels("T-639", FILTERS);
   const [tituloAjuste, campoOrdinarias, campoEleccion, campoSegunda, campoMotivo] = tList("T-640");
   const [si, no, cumple, noCumple, ajustado] = tList("T-642");
 
@@ -135,7 +135,7 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
                 >
                   <span className="flex flex-wrap gap-2">
                     <Insignia fondo="naranja">
-                      {kindLabels[ASSEMBLY_KINDS.indexOf(item.assemblyKind ?? "ORDINARY")] ?? ""}
+                      {kindLabels[item.assemblyKind ?? "ORDINARY"] ?? ""}
                     </Insignia>
                     <Insignia fondo={cell.badge}>{cell.text}</Insignia>
                   </span>
@@ -230,7 +230,7 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
 
       <section aria-label={columns[5] ?? ""} className="flex flex-col gap-3">
         <nav aria-label={columns[5] ?? ""} className="flex flex-wrap gap-2">
-          {FILTERS.map((key, index) => (
+          {FILTERS.map((key) => (
             <Link
               key={key}
               href={`${base}&filtro=${key}`}
@@ -239,7 +239,7 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
                 key === filter ? "bg-oe-navy text-oe-paper" : "border border-borde text-titulo"
               }`}
             >
-              {filterLabels[index] ?? key}
+              {filterLabels[key] ?? key}
             </Link>
           ))}
         </nav>

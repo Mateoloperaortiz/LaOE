@@ -8,6 +8,7 @@ import {
   manualCreditGranted,
   permanenceRecompute,
 } from "@/domain-events/permanence";
+import { isInInternalRoster } from "@/modules/people";
 import { getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -26,9 +27,11 @@ export const leaderScoreInputSchema = z.object({
 });
 export type LeaderScoreInput = z.infer<typeof leaderScoreInputSchema>;
 
+/**
+ * Los nombres son solo para el texto del error. Que la persona esté en el comité no llega de afuera:
+ * lo lee el comando en su transacción (ADR-122 regla 2).
+ */
 export interface LeaderScoreContext {
-  /** La persona está viva en el comité de la regla (leído afuera). */
-  inCommittee: boolean;
   personName: string;
   committeeName: string;
   closed: boolean;
@@ -62,7 +65,16 @@ export async function scoreCriterion(
   if (!rule || rule.computation !== "LEADER_SCORE") {
     throw new DomainError(t("T-777"));
   }
-  if (!context.inCommittee) {
+  // ADR-122 regla 2: que la persona esté en el roster del comité se lee aquí, con el comité y el
+  // término de la regla, que ya salió filtrada por la tabla de la página. La tabla general no tiene
+  // comité y por eso no tiene a quién puntuar.
+  const inCommittee =
+    rule.committeeId !== null &&
+    (await isInInternalRoster(ctx.tx, input.personId, {
+      committeeId: rule.committeeId,
+      termId: rule.termId,
+    }));
+  if (!inCommittee) {
     throw new DomainError(
       t("T-776", { nombre: context.personName, comité: context.committeeName }),
     );
@@ -234,17 +246,24 @@ export async function listManualCredits(
     .where(and(eq(manualCredit.termId, termId), eq(manualCredit.personId, personId)));
 }
 
-// Wrappers: leen el término, la pertenencia y, en los créditos de GH, la regla antes de la transacción.
+// Wrappers: leen el término y, en los créditos de GH, la regla antes de la transacción.
 
-/** `ref` es la tabla del comité que autorizó la página (ADR-072). */
+/**
+ * `ref` es la tabla del comité que autorizó la página (ADR-072). `names` trae solo los nombres para
+ * el texto del error: que la persona sea del comité lo lee el comando (ADR-122 regla 2).
+ */
 export async function scoreCriterionAs(
   actor: Actor,
   ref: TableRef,
   input: LeaderScoreInput,
-  membership: { inCommittee: boolean; personName: string; committeeName: string },
+  names: { personName: string; committeeName: string },
 ): Promise<void> {
   const term = await getTerm(ref.termId);
-  const context: LeaderScoreContext = { ...membership, closed: term?.permanenceClosedAt !== null };
+  const context: LeaderScoreContext = {
+    personName: names.personName,
+    committeeName: names.committeeName,
+    closed: term?.permanenceClosedAt !== null,
+  };
   return runCommand(actor, (ctx) => scoreCriterion(ctx, ref, input, context));
 }
 

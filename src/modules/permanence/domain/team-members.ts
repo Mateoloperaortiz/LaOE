@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
-import { permanenceRecompute, workGroupMembershipChanged } from "@/domain-events/permanence";
+import { permanenceRecompute } from "@/domain-events/permanence";
 import { getEventRef, isMacroeventSlug, listMacroevents } from "@/modules/events";
 import { listMembershipStatuses } from "@/modules/people";
 import { getTerm } from "@/modules/terms";
@@ -59,34 +59,12 @@ export async function saveMacroeventMemberAs(
       eq(workGroupMembership.personId, input.personId),
     );
     const [before] = await ctx.tx.select().from(workGroupMembership).where(match);
-    // La reincorporación necesita una nueva evaluación; el estado anterior queda en auditoría.
-    if (before?.leftAt) {
-      const status = statuses.get(input.personId);
-      if (status?.status !== "ACTIVE")
-        throw new DomainError(t("T-752", { nombre: status?.name ?? input.personId }));
-      await ctx.tx
-        .update(workGroupMembership)
-        .set({
-          leftAt: null,
-          joinedAt: new Date(),
-          evaluation: "PENDING",
-          evaluatedAt: null,
-          evaluatedById: null,
-          note: null,
-        })
-        .where(match);
-      await ctx.emit(
-        eventOf(workGroupMembershipChanged, {
-          actorId: actor.personId,
-          personId: input.personId,
-          termId: group.termId,
-          groupId,
-          groupName: group.name,
-          kind: group.kind,
-          change: "JOINED",
-        }),
-      );
-    } else if (!before) await addMembers(ctx, groupId, [input.personId], { statuses });
+    // Entrar y volver van por el mismo camino que en las demás pantallas (ADR-116 regla 5; ADR-119
+    // regla 21): quien había salido vuelve a su pertenencia con la fecha de ingreso que tenía y
+    // pendiente de una evaluación nueva, y la anterior queda en la auditoría de su regreso.
+    if (!before || before.leftAt) {
+      await addMembers(ctx, groupId, [input.personId], { statuses });
+    }
     const [saved] = await ctx.tx
       .update(workGroupMembership)
       .set({ areas: input.areas })

@@ -1,17 +1,17 @@
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import type { CommandContext, Executor } from "@/db/tx";
+import type { CommandContext, Executor, Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { committeeMembershipChanged } from "@/domain-events/people";
 import { requireConfig } from "@/modules/system";
-import { getCurrentTerm, listAllTerms, type TermRow } from "@/modules/terms";
+import { getCurrentTerm, getTerm, listAllTerms, type TermRow } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { committee, committeeMembership, committeeRole, membership } from "../schema";
 import type { RoleView } from "./committee-direction-pure";
+import { closeCommitteeMembership } from "./committee-membership-closing";
 import {
-  endRoles,
   type LiveRole,
   listLiveRolesByMembership,
   type RoleAssignmentInput,
@@ -21,6 +21,8 @@ import {
 } from "./committee-role-assignments";
 import { assertNoInhabilities, leadershipRolesOf, type Override } from "./inhabilities";
 import type { HeldRole } from "./inhabilities-pure";
+import type { MembershipStatus } from "./reads";
+import { lockMembershipCycle } from "./wallet-member";
 
 // Pertenencia a comité por término (ADR-005): de 1 a 3 para activos. Los cargos viven en
 // `committee_role_assignment` (ADR-058), con un titular y una codirección por cargo, comité y término;
@@ -157,6 +159,31 @@ export async function getMyMembership(
   };
 }
 
+/**
+ * Los mismos comités vivos, para quien va a armar un cambio sobre ellos dentro de su comando. Toma antes
+ * la fila de la membresía, el candado de todo el que cambia los comités de la persona
+ * (`setCommitteeMemberships`, el roster de la dirección y la baja; ADR-118 regla 11): uno que va en
+ * vuelo termina primero, y lo que esto devuelve no cambia hasta que la transacción confirme (ADR-121
+ * regla 15).
+ *
+ * Y antes que esa fila, el consultivo del ciclo de membresía (ADR-123 regla 6): quien llama va a
+ * escribir pertenencias, que referencian la fila de `person`, y sin él se cruzaba con una
+ * anonimización de la misma persona (DT-328). Quien llama no trae tomada ninguna fila de esa persona.
+ */
+export async function getMyMembershipForUpdate(
+  tx: Tx,
+  personId: string,
+  now = new Date(),
+): Promise<MyMembership> {
+  await lockMembershipCycle(tx, personId);
+  await tx
+    .select({ personId: membership.personId })
+    .from(membership)
+    .where(eq(membership.personId, personId))
+    .for("update");
+  return getMyMembership(personId, tx, now);
+}
+
 export interface LiveCommitteePayload {
   committeeId: string;
   /** Cargo principal derivado: el de menor orden entre los vivos, o MIEMBRO. */
@@ -202,11 +229,27 @@ export async function liveCommitteesPayload(
   }));
 }
 
+// Estados de membresía con los que se cambia de comités (ADR-118 regla 11). Es la lista de los que
+// sí: un estado nuevo queda afuera hasta que alguien lo ponga acá. Hoy coincide con `SIGN_IN_STATUSES`
+// y es otra regla: quién entra y quién cambia de comités pueden separarse sin tocarse.
+const COMMITTEE_STATUSES: readonly MembershipStatus[] = ["ACTIVE", "ON_LEAVE", "HONORARY"];
+
+/** Si una membresía en ese estado puede cambiar de comités; sin membresía, no. */
+function canHoldCommittees(status: MembershipStatus | undefined): boolean {
+  return status !== undefined && COMMITTEE_STATUSES.includes(status);
+}
+
 /**
  * Deja las pertenencias de la persona en un término como dice la lista: cierra las que ya no figuran
- * (con sus cargos), actualiza transferencia y cargos en las que siguen y crea las nuevas. Los activos
- * necesitan entre `committees.min` y `committees.max` comités. Los cargos se validan y escriben en
+ * (con sus cargos), actualiza transferencia y cargos en las que siguen y crea las nuevas. Exige una
+ * membresía que no esté de baja; los activos necesitan entre `committees.min` y `committees.max` comités. Los cargos se validan y escriben en
  * `replaceRoles`, que traduce a T-452 el choque con un titular o una codirección que ya existe.
+ *
+ * No toma el consultivo del ciclo de membresía: lo trae quien la llama (ADR-123 regla 6). La Persona
+ * 360 (`setCommitteeMembershipsAs`), el roster y la aprobación de un cambio de comité
+ * (`getMyMembershipForUpdate`) llegan con `wallet-member:<persona>` tomado. La admisión no: llega con
+ * la fila de `person` tomada y la membresía recién creada en su transacción, y pedirlo acá, después
+ * de esa fila, sería el orden al revés del de la anonimización.
  */
 export async function setCommitteeMemberships(
   ctx: CommandContext,
@@ -216,18 +259,77 @@ export async function setCommitteeMemberships(
   now = new Date(),
   override?: Override,
 ): Promise<void> {
-  const wanted = new Map<string, { transferredIn: boolean; roles: RoleAssignmentInput[] }>();
+  await writeCommitteeMemberships(ctx, personId, termId, rows, now, override, "ALWAYS");
+}
+
+/**
+ * Lo mismo para quien repite una lista que puede no traer cambios, como el roster: valida igual y, si
+ * las pertenencias vivas ya son las de la lista, no escribe, no audita ni emite (ADR-120 regla 2).
+ */
+export async function setCommitteeMembershipsIfChanged(
+  ctx: CommandContext,
+  personId: string,
+  termId: string,
+  rows: CommitteeMembershipInput[],
+  now = new Date(),
+  override?: Override,
+): Promise<void> {
+  await writeCommitteeMemberships(ctx, personId, termId, rows, now, override, "IF_CHANGED");
+}
+
+type WantedCommittees = Map<string, { transferredIn: boolean; roles: RoleAssignmentInput[] }>;
+
+/** Si las pertenencias vivas son exactamente las pedidas: comités, transferencia y cargos. */
+function alreadyHolds(live: LiveCommitteePayload[], wanted: WantedCommittees): boolean {
+  const key = (roles: RoleAssignmentInput[]) =>
+    roles
+      .map((role) => `${role.roleCode}${role.coDirector ? "*" : ""}`)
+      .sort()
+      .join("+");
+  return (
+    live.length === wanted.size &&
+    live.every((row) => {
+      const target = wanted.get(row.committeeId);
+      return (
+        target !== undefined &&
+        target.transferredIn === row.transferredIn &&
+        key(target.roles) === key(row.roles)
+      );
+    })
+  );
+}
+
+async function writeCommitteeMemberships(
+  ctx: CommandContext,
+  personId: string,
+  termId: string,
+  rows: CommitteeMembershipInput[],
+  now: Date,
+  override: Override | undefined,
+  mode: "ALWAYS" | "IF_CHANGED",
+): Promise<void> {
+  const wanted: WantedCommittees = new Map();
   for (const row of rows) {
     wanted.set(row.committeeId, {
       transferredIn: row.transferredIn ?? false,
       roles: rolesFromInput(row.roleCode, row.roles),
     });
   }
+  // Solo quien tiene una membresía vigente cambia de comités (ADR-118 regla 11). La fila se lee con
+  // el candado que la baja toma antes de cerrar pertenencias: quien llega segundo ve lo que el otro
+  // confirmó, y ninguno de los dos deja a alguien de baja con una pertenencia viva.
   const [current] = await ctx.tx
     .select({ status: membership.status })
     .from(membership)
-    .where(eq(membership.personId, personId));
-  if (current?.status === "ACTIVE") {
+    .where(eq(membership.personId, personId))
+    .for("update");
+  if (!current || !canHoldCommittees(current.status)) {
+    throw new DomainError(t("T-3246"), "committeeId");
+  }
+  if (!(await getTerm(termId, ctx.tx))) {
+    throw new DomainError(t("T-032"), "termId");
+  }
+  if (current.status === "ACTIVE") {
     const [min, max] = await Promise.all([
       requireConfig("committees.min"),
       requireConfig("committees.max"),
@@ -272,15 +374,16 @@ export async function setCommitteeMemberships(
     }
   }
   const before = await liveCommitteesPayload(ctx.tx, personId, termId);
+  // Con todo validado y la membresía tomada: quien pidió escribir solo si cambia, y ya las tiene, se
+  // va sin tocar nada.
+  if (mode === "IF_CHANGED" && alreadyHolds(before, wanted)) {
+    return;
+  }
   // Primero se cierran las que sobran, con sus cargos: así un cargo que pasa a otra pertenencia no
   // choca con el anterior dentro de la misma transacción.
   for (const row of existing) {
     if (!wanted.has(row.committeeId) && row.leftAt === null) {
-      await ctx.tx
-        .update(committeeMembership)
-        .set({ leftAt: now })
-        .where(eq(committeeMembership.id, row.id));
-      await endRoles(ctx.tx, row.id, now);
+      await closeCommitteeMembership(ctx, row, now);
     }
   }
   for (const row of existing) {

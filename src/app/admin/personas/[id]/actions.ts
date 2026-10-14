@@ -8,7 +8,7 @@ import { actorContext, sessionActorContext } from "@/app/_lib/actor";
 import { formOptional, formText } from "@/app/_lib/form";
 import {
   addNoteAs,
-  completeTaskAs,
+  completePersonTaskAs,
   createTaskAs,
   editNoteAs,
   grantRecognitionAs,
@@ -325,7 +325,7 @@ export async function removeAppointmentAction(formData: FormData): Promise<void>
   const appointmentId = idSchema.parse(formData.get("appointmentId"));
   const actor = await requireAdminActor(await personUrl(id, "membresia"));
   await run(id, "membresia", "cargo", async () =>
-    removeAppointmentAs(await actorContext(actor), appointmentId),
+    removeAppointmentAs(await actorContext(actor), appointmentId, { personId: id }),
   );
 }
 
@@ -381,7 +381,7 @@ export async function editNoteAction(formData: FormData): Promise<void> {
     return;
   }
   await run(id, "linea", "nota", async () =>
-    editNoteAs(await actorContext(actor), noteId, parsed.data),
+    editNoteAs(await actorContext(actor), noteId, parsed.data, { personId: id }),
   );
 }
 
@@ -408,7 +408,9 @@ export async function completeTaskAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const taskId = idSchema.parse(formData.get("taskId"));
   const actor = await requireAdminActor(await personUrl(id, "tareas"));
-  await run(id, "tareas", "", async () => completeTaskAs(await actorContext(actor), taskId));
+  await run(id, "tareas", "", async () =>
+    completePersonTaskAs(await actorContext(actor), taskId, { personId: id }),
+  );
 }
 
 export async function setTagsAction(formData: FormData): Promise<void> {
@@ -467,6 +469,8 @@ export async function revokeCarnetAction(formData: FormData): Promise<void> {
 }
 
 // Faltas y sanciones (ADR-060 regla 6): ADMIN registra sobre una membresía viva y revoca con motivo.
+// Declara su alcance como cualquier llamador del comando (ADR-072 regla 1; ADR-112), al registrar y
+// al revocar (ADR-116 regla 11).
 export async function recordSanctionAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const actor = await requireAdminActor(await personUrl(id, "membresia"));
@@ -484,7 +488,7 @@ export async function recordSanctionAction(formData: FormData): Promise<void> {
     return;
   }
   await run(id, "membresia", "sancion", async () => {
-    await recordSanctionAs(await actorContext(actor), id, parsed.data);
+    await recordSanctionAs(await actorContext(actor), id, parsed.data, { by: "ADMIN" });
   });
 }
 
@@ -493,7 +497,9 @@ export async function revokeSanctionAction(formData: FormData): Promise<void> {
   const sanctionId = idSchema.parse(formData.get("sanctionId"));
   const actor = await requireAdminActor(await personUrl(id, "membresia"));
   await run(id, "membresia", "revocar-sancion", async () =>
-    revokeSanctionAs(await actorContext(actor), sanctionId, formText(formData, "reason")),
+    revokeSanctionAs(await actorContext(actor), id, sanctionId, formText(formData, "reason"), {
+      by: "ADMIN",
+    }),
   );
 }
 

@@ -16,7 +16,7 @@ import { Campo, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { Markdown } from "@/shared/ui/Markdown";
 import { decideEntryAction, setStatusAction } from "./actions";
@@ -59,10 +59,10 @@ export default async function Page({
   ]);
   const [tInscritos, tAceptados, tEspera, tPendientes, tNoAceptados] = tList("T-1022");
   const [aceptar, rechazar, promover] = tList("T-1023");
-  const entryLabels = tList("T-899");
+  const entryLabels: Readonly<Record<string, string>> = tLabels("T-899", CALL_ENTRY_STATUSES);
   const [abrir, cerrar] = tList("T-1020");
-  const selectionLabels = tList("T-1018");
-  const statusLabels = tList("T-1019");
+  const selectionLabels = tLabels("T-1018", CALL_SELECTIONS);
+  const statusLabels = tLabels("T-1019", CALL_STATUSES);
   const [porOrden, manual] = tList("T-905");
   const accepted = entries.filter((entry) => entry.status === "ACCEPTED");
   const sections: Array<{ title: string; status: (typeof CALL_ENTRY_STATUSES)[number] }> = [
@@ -81,11 +81,9 @@ export default async function Page({
           <Insignia
             fondo={call.status === "OPEN" ? "amarillo" : call.status === "CLOSED" ? "paper" : "sky"}
           >
-            {statusLabels[CALL_STATUSES.indexOf(call.status)] ?? call.status}
+            {statusLabels[call.status] ?? call.status}
           </Insignia>
-          <Insignia fondo="sky">
-            {selectionLabels[CALL_SELECTIONS.indexOf(call.selection)] ?? call.selection}
-          </Insignia>
+          <Insignia fondo="sky">{selectionLabels[call.selection] ?? call.selection}</Insignia>
         </div>
         <p className="text-tinta-suave">
           {group ? (
@@ -133,9 +131,7 @@ export default async function Page({
           <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-2 text-sm font-semibold text-oe-navy">
             {decidida
               ? t("T-1025", {
-                  estado: (
-                    entryLabels[CALL_ENTRY_STATUSES.indexOf(decidida as "ACCEPTED")] ?? ""
-                  ).toLowerCase(),
+                  estado: (entryLabels[decidida] ?? "").toLowerCase(),
                 })
               : t("T-259")}
           </output>
@@ -207,7 +203,7 @@ export default async function Page({
                                 : "sky"
                         }
                       >
-                        {entryLabels[CALL_ENTRY_STATUSES.indexOf(entry.status)] ?? entry.status}
+                        {entryLabels[entry.status] ?? entry.status}
                       </Insignia>
                     </div>
                     {form && entry.answers ? (

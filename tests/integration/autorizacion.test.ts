@@ -3,19 +3,16 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { hasLiveConsent, recordConsentAs } from "@/modules/people";
 import { consent } from "@/modules/people/schema";
-import { appConfig, auditLog, outbox } from "@/modules/system/schema";
+import { auditLog, outbox } from "@/modules/system/schema";
+import { seedConfig, seedMember } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
 
 // ADR-048: la autorización de membresía la da el titular en su primer ingreso.
 
 const db = () => getDb();
 
 async function setPolicy(version: string): Promise<void> {
-  await db()
-    .insert(appConfig)
-    .values({ key: "privacy.policyVersion", value: version })
-    .onConflictDoUpdate({ target: appConfig.key, set: { value: version } });
+  await seedConfig("privacy.policyVersion", version);
 }
 
 describe("autorización en el primer ingreso (ADR-048)", () => {
@@ -27,7 +24,7 @@ describe("autorización en el primer ingreso (ADR-048)", () => {
     await setPolicy('"2026-09-08"');
     expect(await hasLiveConsent(personId, "MEMBERSHIP")).toBe(false);
 
-    const first = await recordConsentAs({ personId }, personId, "MEMBERSHIP", "SELF");
+    const first = await recordConsentAs({ personId, ip: null }, personId, "MEMBERSHIP", "SELF");
     expect(first.created).toBe(true);
     expect(await hasLiveConsent(personId, "MEMBERSHIP")).toBe(true);
 
@@ -47,8 +44,8 @@ describe("autorización en el primer ingreso (ADR-048)", () => {
   it("aceptar dos veces no duplica la autorización", async () => {
     const personId = await seedMember("autorizacion.repetida@eafit.edu.co");
     await setPolicy('"2026-09-08"');
-    await recordConsentAs({ personId }, personId, "MEMBERSHIP", "SELF");
-    const again = await recordConsentAs({ personId }, personId, "MEMBERSHIP", "SELF");
+    await recordConsentAs({ personId, ip: null }, personId, "MEMBERSHIP", "SELF");
+    const again = await recordConsentAs({ personId, ip: null }, personId, "MEMBERSHIP", "SELF");
     expect(again.created).toBe(false);
     expect(await db().select().from(consent).where(eq(consent.personId, personId))).toHaveLength(1);
   });

@@ -5,17 +5,17 @@ import { requireActor } from "@/modules/identity";
 import {
   ASSEMBLY_KINDS,
   assemblyStatusFor,
+  attendedRequired,
   balanceFor,
-  collectionFor,
   levelFor,
   listEntriesFor,
   loadGamificationSettings,
-  myPosition,
   nextChallengeForMember,
   POINT_ENTRY_KINDS,
+  peopleBoards,
   rankCommittees,
-  rankPeople,
-  resolveMemberContext,
+  requiredTotal,
+  unseenBadgesFor,
 } from "@/modules/participation";
 import { BadgeUnlock } from "@/modules/participation/components/BadgeUnlock";
 import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
@@ -23,7 +23,7 @@ import { getMembershipRef, listCommitteesByIds } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { Cartel, Insignia, Numeral, SelloOE } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Vacio } from "../_ui/Vacio";
 import { CommitteePodium, type CommitteePodiumEntry } from "./CommitteePodium";
@@ -57,7 +57,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const term = terms.find((item) => item.id === termParam) ?? current;
   const [tabNuevos, tabVeteranos, tabComites] = tList("T-083");
   const levelLabels = tList("T-082");
-  const kindLabels = tList("T-085");
+  const kindLabels = tLabels("T-085", POINT_ENTRY_KINDS);
   const [colFecha, colMovimiento, colPuntos] = tList("T-552");
 
   if (!term) {
@@ -72,33 +72,26 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
     );
   }
 
+  // El puesto propio y el top 10 salen de los mismos tableros: se arman una vez por vista.
+  const boards = peopleBoards(term.id);
   const [total, entries, position, assemblies] = await Promise.all([
     balanceFor(actor.personId, term.id),
     listEntriesFor(actor.personId, term.id),
-    membership
-      ? myPosition(actor.personId, term.id, membership.firstTermId)
-      : Promise.resolve(null),
+    membership ? boards.position(actor.personId, membership.firstTermId) : Promise.resolve(null),
     assemblyStatusFor(actor.personId, term),
   ]);
-  const assemblyKindLabels = tList("T-546");
+  const assemblyKindLabels = tLabels("T-546", ASSEMBLY_KINDS);
   const [firmada, pendienteAsamblea, noFuiste] = tList("T-547");
-  const requiredTotalCount =
-    assemblies.requirement.requiredOrdinary +
-    (assemblies.requirement.requiresBoardElection ? 1 : 0) +
-    (assemblies.requirement.requiresRunoff ? 1 : 0);
-  const attendedRequired =
-    Math.min(assemblies.compliance.ordinaryAttended, assemblies.requirement.requiredOrdinary) +
-    (assemblies.requirement.requiresBoardElection && assemblies.compliance.boardElectionAttended
-      ? 1
-      : 0) +
-    (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended ? 1 : 0);
+  const requiredTotalCount = requiredTotal(assemblies.requirement);
+  const attendedRequiredCount = attendedRequired(assemblies.requirement, assemblies.compliance);
   const level = levelFor(total, cutoffs);
   const nextLabel = level.next === null ? null : (levelLabels[level.index + 1] ?? "");
-  const member = gamification.enabled ? await resolveMemberContext(actor.personId, term.id) : null;
-  const nextChallenge = member
-    ? await nextChallengeForMember(actor.personId, term.id, member)
+  // «Tu próximo reto» es de quien tiene membresía, con la gamificación encendida.
+  const showNextChallenge = gamification.enabled && membership !== null;
+  const nextChallenge = showNextChallenge
+    ? await nextChallengeForMember(actor.personId, term.id)
     : null;
-  const unseen = gamification.enabled ? (await collectionFor(actor.personId)).unseen : [];
+  const unseen = gamification.enabled ? await unseenBadgesFor(actor.personId) : [];
   let board: Array<{ rank: number; name: string; total: string; mine: boolean }> = [];
   let committeeBoard: CommitteePodiumEntry[] = [];
   if (tablero === "comites") {
@@ -129,7 +122,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
       };
     });
   } else {
-    const ranked = await rankPeople(term.id, tablero === "nuevos" ? "NEW" : "VETERAN");
+    const ranked = await boards.rank(tablero === "nuevos" ? "NEW" : "VETERAN");
     board = ranked
       .filter((item) => item.total > 0)
       .slice(0, 10)
@@ -217,7 +210,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
         </p>
       </Cartel>
 
-      {member ? (
+      {showNextChallenge ? (
         <section aria-labelledby="proximo-reto" className="flex flex-col items-start gap-4">
           <h2 id="proximo-reto" className="text-display-md">
             {t("T-2445")}
@@ -274,9 +267,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
                       {formatDateTime(entry.createdAt)}
                     </td>
                     <td className="py-2 pr-4">
-                      <span className="font-semibold">
-                        {kindLabels[POINT_ENTRY_KINDS.indexOf(entry.kind)] ?? entry.kind}
-                      </span>
+                      <span className="font-semibold">{kindLabels[entry.kind] ?? entry.kind}</span>
                       <span className="text-tinta-suave"> · {entry.reason}</span>
                     </td>
                     <td className="py-2 text-right font-semibold tabular-nums">
@@ -299,7 +290,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
           {t("T-544")}
         </h2>
         <p className="font-semibold">
-          {t("T-545", { n: attendedRequired, total: requiredTotalCount })}
+          {t("T-545", { n: attendedRequiredCount, total: requiredTotalCount })}
         </p>
         {assemblies.assemblies.length === 0 ? (
           <p className="text-tinta-suave">{t("T-643")}</p>
@@ -317,9 +308,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
                   <span className="flex flex-col">
                     <span className="font-semibold">{item.occasion.title}</span>
                     <span className="text-sm text-tinta-suave">
-                      {assemblyKindLabels[
-                        ASSEMBLY_KINDS.indexOf(item.occasion.assemblyKind ?? "ORDINARY")
-                      ] ?? ""}
+                      {assemblyKindLabels[item.occasion.assemblyKind ?? "ORDINARY"] ?? ""}
                       {" · "}
                       {formatDateTime(item.occasion.startsAt)}
                     </span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { type CloseOthersState, closeOtherSessionsAction } from "../actions";
 
 type Props = {
@@ -9,10 +9,14 @@ type Props = {
   disabled: boolean;
 };
 
+/** `failed` lo arma el navegador cuando la acción no respondió (ADR-118 regla 20). */
+type PanelState = CloseOthersState & { failed?: string };
+
 export function SessionsPanel({ buttonLabel, doneMessage, disabled }: Props) {
-  const [state, action, pending] = useActionState(
-    async (): Promise<CloseOthersState> => closeOtherSessionsAction(),
+  const [state, action, pending] = useGuardedActionState<PanelState, FormData>(
+    async () => closeOtherSessionsAction(),
     { done: false, closed: 0 },
+    ({ previous, message }) => ({ ...previous, done: false, failed: message }),
   );
   return (
     <form action={action} className="flex flex-col items-start gap-3">
@@ -25,6 +29,11 @@ export function SessionsPanel({ buttonLabel, doneMessage, disabled }: Props) {
       </button>
       {state.done ? (
         <output className="block text-sm font-semibold text-titulo">{doneMessage}</output>
+      ) : null}
+      {state.failed ? (
+        <p role="alert" className="text-sm font-semibold text-oe-orange">
+          {state.failed}
+        </p>
       ) : null}
     </form>
   );

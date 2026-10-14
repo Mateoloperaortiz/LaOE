@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { closeDb, getDb } from "@/db/client";
+import { closeDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import {
   advanceRotationAs,
@@ -15,17 +15,16 @@ import {
   saveBaseAs,
   startMatchupAs,
 } from "@/modules/competition";
-import { competitionSupport } from "@/modules/competition/schema";
 import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
+import { seedCompetitionSupport, seedMember, seedTerm } from "../factories";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
 
 // El seguimiento del registro (ADR-105): la lista de la rotación en curso con el líder y el
 // calificador, las deudas de las rotaciones cerradas, quién se demora más y el aviso al líder.
 
-const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true });
-const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false });
+const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true, ip: null });
+const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false, ip: null });
 
 /** Seis equipos y tres bases el jueves: la base A con líder y calificador, la B con líder y la C sin
  *  nadie. */
@@ -77,9 +76,7 @@ async function seedField() {
   });
   await assignStaffAs(admin(adminId), id, { personId: judgeA, role: "JUDGE", baseId: baseA });
   await assignStaffAs(admin(adminId), id, { personId: judgeB, role: "JUDGE", baseId: baseB });
-  await getDb()
-    .insert(competitionSupport)
-    .values({ competitionId: id, baseId: baseA, personId: grader, role: "GRADER" });
+  await seedCompetitionSupport(id, baseA, grader, "GRADER");
   await generateDayScheduleAs(admin(adminId), id, { day: 1, rotations: 3, plannedMinutes: 20 });
   return { id, adminId, judgeA, judgeB, baseA, baseB, baseC };
 }

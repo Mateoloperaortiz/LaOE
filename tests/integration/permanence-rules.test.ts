@@ -16,19 +16,19 @@ import {
   setTableLockAs,
   updateRuleAs,
 } from "@/modules/permanence";
-import { leaderScore } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { truncateAll } from "./db";
 import {
   seedCheckIn,
   seedCommittee,
   seedCommitteeMembership,
+  seedLeaderScore,
   seedMember,
   seedOccasion,
   seedRule,
   seedTerm,
-} from "./factories";
+} from "../factories";
+import { truncateAll } from "./db";
 
 // Reglas por término y tabla (ADR-036 regla 3): claves únicas, bloqueo que el líder no salta,
 // copia solo sobre tabla vacía, referencia, borrado restringido, recompute encolado una vez y
@@ -87,7 +87,7 @@ describe("reglas de permanencia", () => {
     const old = await seedRule(previous, "reuniones", { committeeId: a3, weight: 30 });
     // Con puntajes, un criterio ajeno tampoco revela que existe: T-032 y no T-732.
     const personId = await seedMember("puntuada@eafit.edu.co");
-    await getDb().insert(leaderScore).values({ termId, personId, ruleId: foreign, value: 5 });
+    await seedLeaderScore(termId, foreign, personId, 5);
     for (const id of [foreign, general, old]) {
       for (const editor of [{ bypassLock: false }, { bypassLock: true }]) {
         await expect(updateRuleAs(admin, ref, id, manual("cambiada", 1), editor)).rejects.toThrow(
@@ -143,7 +143,7 @@ describe("reglas de permanencia", () => {
     await setTableLockAs(admin, ref, false);
     expect((await getTableView(ref)).lockedAt).toBeNull();
     const personId = await seedMember("l@eafit.edu.co");
-    await getDb().insert(leaderScore).values({ termId, personId, ruleId: id, value: 5 });
+    await seedLeaderScore(termId, id, personId, 5);
     await expect(deleteRuleAs(admin, ref, id, { bypassLock: false })).rejects.toThrow(t("T-732"));
     expect(
       await lockAllCommitteeTablesAs(admin, termId, [committeeId, await seedCommittee("pixel")]),

@@ -2,7 +2,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, type Executor, runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { type CommandContext, type Executor, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { badgeUnlocked } from "@/domain-events/participation";
 import { getPeopleByIds } from "@/modules/people";
@@ -227,12 +227,12 @@ async function liveAchievementsFor(
  */
 export async function recomputeBadgesFor(
   personId: string,
-  options: { historical: boolean; dryRun?: boolean; actor?: Actor; now?: Date },
+  options: { historical: boolean; dryRun?: boolean; now?: Date },
 ): Promise<BadgeDelta> {
   const now = options.now ?? new Date();
   const dryRun = options.dryRun === true;
   const allowUnlocks = options.historical || (await requireConfig("gamification.enabled"));
-  return runCommand(options.actor ?? SYSTEM_ACTOR, async (ctx) => {
+  return runCommand(SYSTEM_ACTOR, async (ctx) => {
     await ctx.tx.execute(
       sql`select pg_advisory_xact_lock(hashtextextended(${`badges:${personId}`}, 0))`,
     );
@@ -829,50 +829,50 @@ export async function collectionFor(
     };
   });
 
-  const specials: BadgeCollection["specials"] = [];
-  for (const badge of definitions.filter((row) => row.family === "SPECIAL")) {
-    const row = byBadge.get(badge.id);
-    if (!row || row.revokedAt !== null || !inTerm(row)) {
-      continue;
-    }
-    let origin = "";
-    if (badge.specialOccasionId) {
-      const [linked] = await db
-        .select({ title: occasion.title })
-        .from(occasion)
-        .where(eq(occasion.id, badge.specialOccasionId))
-        .limit(1);
-      origin = linked?.title ?? "";
-    } else if (badge.specialChallengeId) {
-      const [linked] = await db
-        .select({ title: challenge.title })
-        .from(challenge)
-        .where(eq(challenge.id, badge.specialChallengeId))
-        .limit(1);
-      origin = linked?.title ?? "";
-    }
-    specials.push({ badge, achievement: row, origin });
-  }
+  const heldSpecials = definitions
+    .filter((row) => row.family === "SPECIAL")
+    .flatMap((badge) => {
+      const row = byBadge.get(badge.id);
+      return row && row.revokedAt === null && inTerm(row) ? [{ badge, achievement: row }] : [];
+    });
+  // Los títulos se piden en un viaje por tabla, no en uno por insignia. La ocasión manda sobre el
+  // reto: una especial que nombrara los dos saldría con el título de la ocasión.
+  const occasionIds = heldSpecials.flatMap(({ badge }) => badge.specialOccasionId ?? []);
+  const challengeIds = heldSpecials.flatMap(({ badge }) =>
+    badge.specialOccasionId ? [] : (badge.specialChallengeId ?? []),
+  );
+  const [occasionRows, challengeRows] = await Promise.all([
+    occasionIds.length
+      ? db
+          .select({ id: occasion.id, title: occasion.title })
+          .from(occasion)
+          .where(inArray(occasion.id, occasionIds))
+      : [],
+    challengeIds.length
+      ? db
+          .select({ id: challenge.id, title: challenge.title })
+          .from(challenge)
+          .where(inArray(challenge.id, challengeIds))
+      : [],
+  ]);
+  const occasionTitles = new Map(occasionRows.map((row) => [row.id, row.title]));
+  const challengeTitles = new Map(challengeRows.map((row) => [row.id, row.title]));
+  const specials: BadgeCollection["specials"] = heldSpecials.map(({ badge, achievement: row }) => ({
+    badge,
+    achievement: row,
+    origin:
+      (badge.specialOccasionId
+        ? occasionTitles.get(badge.specialOccasionId)
+        : badge.specialChallengeId
+          ? challengeTitles.get(badge.specialChallengeId)
+          : undefined) ?? "",
+  }));
 
   const liveRows = allAchievements.filter((row) => row.revokedAt === null);
   const badgeById = new Map(definitions.map((row) => [row.id, row]));
-  const boosters = liveRows.length
-    ? await db
-        .select({ sourceAchievementId: boosterItem.sourceAchievementId, kind: boosterItem.kind })
-        .from(boosterItem)
-        .where(
-          inArray(
-            boosterItem.sourceAchievementId,
-            liveRows.map((row) => row.id),
-          ),
-        )
-    : [];
-  const boosterByAchievement = new Map(
-    boosters
-      .filter(
-        (row): row is typeof row & { sourceAchievementId: string } => !!row.sourceAchievementId,
-      )
-      .map((row) => [row.sourceAchievementId, row.kind]),
+  const boosterByAchievement = await boosterKindsOf(
+    db,
+    liveRows.map((row) => row.id),
   );
 
   const featured = liveRows
@@ -881,6 +881,8 @@ export async function collectionFor(
     .map((row) => ({ achievement: row, badge: badgeById.get(row.badgeId) }))
     .filter((row): row is { achievement: AchievementRow; badge: BadgeRow } => !!row.badge);
 
+  // La misma regla está escrita como consulta en `unseenBadgesFor`, que no arma la colección: si
+  // cambia acá, cambia allá. Que las dos respondan lo mismo lo fija `gh-points-view-reads.test.ts`.
   const unseen = liveRows
     .filter((row) => !row.historical && row.seenAt === null)
     .map((row) => ({
@@ -900,6 +902,60 @@ export async function collectionFor(
   ];
 
   return { families, specials, featured, unseen, terms };
+}
+
+/** El tipo de booster que dejó cada logro, por id del logro. */
+async function boosterKindsOf(
+  exec: Executor,
+  achievementIds: string[],
+): Promise<Map<string, BoosterKind>> {
+  if (achievementIds.length === 0) {
+    return new Map();
+  }
+  const rows = await exec
+    .select({ sourceAchievementId: boosterItem.sourceAchievementId, kind: boosterItem.kind })
+    .from(boosterItem)
+    .where(inArray(boosterItem.sourceAchievementId, achievementIds));
+  return new Map(
+    rows
+      .filter(
+        (row): row is typeof row & { sourceAchievementId: string } => !!row.sourceAchievementId,
+      )
+      .map((row) => [row.sourceAchievementId, row.kind]),
+  );
+}
+
+/**
+ * Los logros que la persona todavía no ha visto, para el diálogo de desbloqueo: lo mismo que
+ * `collectionFor(personId).unseen`, sin armar la colección ni leer la historia que la sostiene. Como
+ * allá, cuenta el logro vivo, no histórico, sin ver y de una insignia activa, del más viejo al más
+ * nuevo y con el tipo de booster que dejó.
+ */
+export async function unseenBadgesFor(personId: string): Promise<BadgeCollection["unseen"]> {
+  const db = getDb();
+  const rows = await db
+    .select({ achievement, badge: badgeDefinition })
+    .from(achievement)
+    .innerJoin(badgeDefinition, eq(badgeDefinition.id, achievement.badgeId))
+    .where(
+      and(
+        eq(achievement.personId, personId),
+        isNull(achievement.revokedAt),
+        eq(achievement.historical, false),
+        isNull(achievement.seenAt),
+        eq(badgeDefinition.active, true),
+      ),
+    )
+    .orderBy(asc(achievement.unlockedAt));
+  const boosterByAchievement = await boosterKindsOf(
+    db,
+    rows.map((row) => row.achievement.id),
+  );
+  return rows.map((row) => ({
+    achievement: row.achievement,
+    badge: row.badge,
+    boosterKind: boosterByAchievement.get(row.achievement.id) ?? null,
+  }));
 }
 
 /** Las insignias destacadas de cada persona del directorio, en el orden de `featuredPosition`. */

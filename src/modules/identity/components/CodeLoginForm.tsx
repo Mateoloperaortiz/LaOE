@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { type CodeLoginState, codeLoginAction } from "../actions";
 
 export interface CodeLoginLabels {
@@ -24,7 +24,14 @@ const errorClase = "rounded-lg bg-oe-orange px-3 py-2 text-sm font-semibold text
 
 // Método alterno en dos pasos (ADR-051): correo → código. Los textos llegan del servidor.
 export function CodeLoginForm({ initialState, labels }: Props) {
-  const [state, action, pending] = useActionState(codeLoginAction, initialState);
+  const [state, action, pending] = useGuardedActionState(
+    codeLoginAction,
+    initialState,
+    ({ previous, payload, message }) =>
+      previous.step === "email"
+        ? { ...previous, email: submittedText(payload, "email"), fieldError: message }
+        : { ...previous, error: message },
+  );
 
   if (state.step === "email") {
     return (

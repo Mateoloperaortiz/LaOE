@@ -69,7 +69,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Ventana de evaluación | `permanence.evaluationWindowDays` | Las dos semanas antes del fin del término en que los evaluadores registran el desempeño |
 | Puntaje del líder | `LeaderScore` | Valor que el líder del comité asigna en un criterio de su tabla, con observación obligatoria si baja del peso |
 | Crédito manual | `ManualCredit` | Reconocimiento a mano de GH en un criterio manual, con motivo |
-| Decisión de permanencia | `PermanenceDecision` | Lo que GH confirma en el cierre por comité (continúa, prueba, sale del comité) y por persona (continúa, sale de la OE); la app la propone y un job la aplica |
+| Decisión de permanencia | `PermanenceDecision` | Lo que GH confirma en el cierre por comité (continúa, prueba, sale del comité) y por persona (continúa, sale de la OE); la app la propone y un job la aplica. Guarda el motivo automático con que se propuso (`proposalReason`, [ADR-128](adr/ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) regla 1) |
 | Categoría de ocasión | `Occasion.category` | Integración, partido del Athletic, reunión de comité, charla, taller, social u otra; la usan los criterios |
 | Tabla general | `PermanenceRule.scope=GENERAL` | Criterios de permanencia de la junta, aplicados por GH a toda la OE; vale unos 50 puntos |
 | Tabla del comité | `PermanenceRule.scope=COMMITTEE` | Criterios de permanencia propios de un comité, definidos por su líder; vale unos 60 puntos |
@@ -115,6 +115,9 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Segmento | `Segment` | Filtro guardado que alimenta campañas, exportes y listas |
 | Anuncio | `Announcement` | Publicación de la cartelera, pública o de miembros, con push opcional |
 | Campaña | `Campaign` | Envío de una plantilla de correo a un segmento, en lotes por minuto, con la audiencia congelada al arrancar |
+| Cupo de correo | `CampaignQuotaStatus` | Cuántos correos de campaña caben hoy: el cupo diario del proveedor menos el margen para lo transaccional, lo enviado hoy y lo que un lote tiene reclamado. Se ve y se opera en `/admin/campanas/cupo` |
+| Margen para lo transaccional | `campaigns.transactionalReserve` (`reserve`) | Correos del cupo diario que una campaña no toca, para que el acceso y los avisos sigan saliendo; sin fijar es un tercio del cupo |
+| Corte por cuota | `QuotaCut` | Pausa de todas las campañas que deja un rechazo del proveedor por cuota, con su causa (ráfaga, día o mes) y hasta cuándo dura; lo levanta un ADMIN. Se guarda en `campaigns.quotaCut`; `campaigns.quotaExhaustedAt` es la clave de las versiones anteriores, que solo se lee ([ADR-116](adr/ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 19) |
 | Destinatario de campaña | `CampaignRecipient` | Cada persona de una campaña con su estado: pendiente, enviado, fallido u omitido (sin correo, baja, sin consentimiento, cancelada) |
 | Plantilla de correo | `EmailTemplate` | Asunto y cuerpo Markdown con variables por persona que alimenta las campañas |
 | Mensaje | `Message` | Registro de cada correo o push enviado a una persona, con su tipo (transaccional, anuncio, puntos, recordatorio, encuesta, campaña) |
@@ -123,7 +126,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Bus de notificaciones | `notification.requested` | Evento único con destinatarios, textos, URL y clave de deduplicación que `comms` entrega por push respetando la preferencia |
 | Invitación de encuesta | `OccasionSurveyInvite` | Token propio de un asistente para responder la encuesta de una ocasión cerrada; marca que respondió, no qué |
 | Respuesta de encuesta | `OccasionSurveyResponse` | Respuesta anónima (sin persona) agregada por ocasión y comité |
-| Token del calendario | `CalendarToken` | Capacidad de solo lectura sobre la agenda propia para suscribir el calendario del celular; se regenera desde Ajustes |
+| Token del calendario | `CalendarToken` | Capacidad de solo lectura sobre la agenda propia para suscribir el calendario del celular; se regenera desde Ajustes. Se borra con la baja y con la anonimización |
 | Consentimiento | `Consent` | Aceptación versionada de la política de datos para un propósito |
 | Outbox | `Outbox` | Cola de eventos de dominio escrita en la misma transacción que la mutación |
 | Alias legado | `LegacyAlias` | Ruta antigua de GHPOINTS (`/asamblea/…` y los `publicId` retirados) que sigue resolviendo a la ocasión nueva |
@@ -136,9 +139,11 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Token de billetera | `CarnetToken` / `readCarnet` | Capacidad opaca `oe2`, en claro para reemitir; generación y revisión verificadas en servidor, revocable sin cerrar sesiones |
 | Pase de billetera | `WalletPass` | Reserva o pase Apple/Google con fechas y snapshots; emisión pendiente si aún no tiene `issuedAt` |
 | Generación del carnet | `Membership.walletEpoch` | Contador que sube al salir o anonimizar; reactivar no restaura los pases de generaciones anteriores |
+| Candado del ciclo de membresía | `lockMembershipCycle` | Candado consultivo por persona, con la clave `wallet-member:<persona>`, que serializa todo lo que cambia su membresía, sus comités, sus cargos, sus permisos, sus enlaces y su carnet; se toma antes que cualquier fila (ADR-120 regla 3). La clave conserva el nombre de cuando solo cuidaba la billetera |
 | Revisión del carnet | `CarnetToken.revision` | Número que aumenta al rotar el QR y permite saber si el pase publicado representa el token actual |
 | Importación | `ImportJob` | Un archivo del roster (o un ensayo de migración) con su vista previa, su estado y su resumen |
 | Solicitud de eliminación | `Person.deletionRequestedAt` + `Task.kind = DELETION_REQUEST` | Pedido del miembro para borrar sus datos; GH lo atiende anonimizando el perfil |
+| Motivo de una tarea | `Task.reasonKey` | Por qué abrió el sistema una tarea y sobre quién o qué (pedido de borrado, pedido de retiro de un comité, término siguiente sin crear, licencia vencida, solicitud, patrocinio ganado); hay una sola abierta por motivo y sujeto |
 | Segmento guardado | `Segment.filter` | Etapa, estado, ingreso, comités, cargos, etiquetas, consentimiento y programa; alimenta exportes y, después, campañas |
 | Medio | `MediaAsset` | Referencia a un archivo en el bucket (portada, foto, PDF) |
 | Presupuesto del comité | `CommitteeBudget` | Ordinario anual o extraordinario de una actividad no prevista; se abre con las aprobaciones de Desarrollo Estudiantil y de la Vicepresidencia Financiera (Regl. art. 50) y puede llevar la sanción del 10 % por presentación tardía (art. 66) |
@@ -162,6 +167,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Dadas | `givens` | Los números con los que nace un tablero de Sudoku: 81 dígitos por filas donde 0 es una casilla vacía |
 | Modo con ayudas | `assisted` | Partida de Sudoku que marca los errores al instante y da pistas a cambio de la mitad del premio; se fija al crear la partida y es el único caso en que la solución viaja al navegador |
 | Dificultad del Sudoku | `difficulty` | La técnica más cara que el tablero exige: único lugar (`EASY`), único candidato (`MEDIUM`) o candidatos bloqueados y pares (`HARD`); no es la cantidad de dadas |
+| Panal | `PanalGame` | El cuarto juego de la biblioteca: un reto por día civil de Colombia, compartido por todos, con siete letras y una central obligatoria; una partida por persona y día, que el servidor valida y puntúa, con premios por avance hasta el tope del día ([ADR-088](adr/ADR-088-panal-diario-en-espanol.md), [ADR-092](adr/ADR-092-panal-corto-y-premios-por-avance.md)) |
 | Insignia | `BadgeDefinition` | Pieza del catálogo de la colección: familia (En parche, Explorador OE, Relámpago, Palabra a palabra) con tres niveles y umbral, o edición especial ligada a una ocasión o reto |
 | Logro | `Achievement` | Nivel de insignia desbloqueado por una persona, con fecha, origen, semestre y si fue reconocido por la conciliación histórica; hasta tres se destacan en el directorio |
 | Conciliación histórica | `BadgeReconciliationRun` | Corrida simulable, reanudable y repetible que reconoce logros a partir de asistencias aprobadas, retos completados y Wordles resueltos de cualquier semestre, sin puntos, boosters ni notificaciones retroactivas |
@@ -175,3 +181,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Código del equipo | `CompetitionTeam.codeHash` | Ocho caracteres que el capitán lleva impresos y que el operador pide para actuar en nombre del equipo; la casa guarda solo el hash |
 | Apuesta (The Games) | `CompetitionMarket`, `CompetitionBet` | Una pregunta que abre el operador con dos o más equipos; cada equipo apuesta puntos virtuales por un ganador y la bolsa se reparte entre los que aciertan ([ADR-091](adr/ADR-091-apuestas-de-the-games.md)) |
 | Vitrina | `getShowcase()` | El JSON público de una competencia que lee dias.oeeafit.com/the-games ([ADR-090](adr/ADR-090-api-publica-v1-vitrina-de-the-games.md)) |
+| Hub de capitanes | `/api/v1/the-games/hub` | La página de dias.oeeafit.com/capitanes donde el capitán entra con el código de su equipo, sin cuenta, para apostar y ver su recorrido y sus poderes; habla con la casa por la API pública v1 ([ADR-096](adr/ADR-096-hub-de-apuestas-de-los-capitanes.md)) |
+| Variante completa | `variants.full` | La imagen entera de un medio, derecha, recodificada y sin metadatos, que se entrega en lugar del archivo original; no pasa de 2560 px de lado ([ADR-114](adr/ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 8) |
+| Resumen del correo | `emailLogDigest()` | Huella corta de un correo, calculada con el secreto de la sesión, que va a los registros del ingreso en lugar del correo ([ADR-114](adr/ADR-114-reglas-de-seguridad-privacidad-e-integridad.md)) |
+| Ledger de deuda | `docs/20-deuda-tecnica.md` | El registro de hallazgos de deuda técnica del refactor progresivo, cada uno con su estado; no es el Ledger de GH Points ([ADR-109](adr/ADR-109-refactor-progresivo-con-ledger-de-deuda.md)) |

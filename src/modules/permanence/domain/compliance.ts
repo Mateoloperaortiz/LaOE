@@ -1,5 +1,7 @@
+import { cache } from "react";
 import { getPeopleByIds, listCommitteesByIds } from "@/modules/people";
 import { getTerm } from "@/modules/terms";
+import { mandatoryCounts } from "./mandatory-counts";
 import type { CommitteeResult, PermanenceState } from "./permanence-pure";
 import { listSnapshots, type SnapshotView } from "./snapshots";
 
@@ -41,17 +43,6 @@ export interface ComplianceRow {
   frozenAt: Date | null;
 }
 
-function mandatoryCounts(view: SnapshotView): { attended: number; total: number } {
-  const m = view.mandatory;
-  return {
-    attended:
-      Math.min(m.attended.ordinary, m.required.ordinary) +
-      (m.required.boardElection && m.attended.boardElection ? 1 : 0) +
-      (m.required.runoff && m.attended.runoff ? 1 : 0),
-    total: m.required.ordinary + (m.required.boardElection ? 1 : 0) + (m.required.runoff ? 1 : 0),
-  };
-}
-
 function matches(row: ComplianceRow, filter: ComplianceFilter): boolean {
   switch (filter) {
     case "por-debajo":
@@ -69,12 +60,18 @@ function matches(row: ComplianceRow, filter: ComplianceFilter): boolean {
   }
 }
 
+/**
+ * Los snapshots del término para una pantalla: Cumplimiento pide las filas y el resumen a la vez, y
+ * dentro de un render comparten la lectura (ADR-121 regla 11). Fuera de un render, cada llamada lee.
+ */
+const snapshotsForRender = cache((termId: string) => listSnapshots(termId));
+
 /** Todas las filas del término, ordenadas por nombre y comité. */
 export async function listCompliance(
   termId: string,
   filter: ComplianceFilter = "todos",
 ): Promise<ComplianceRow[]> {
-  const snapshots = await listSnapshots(termId);
+  const snapshots = await snapshotsForRender(termId);
   const people = await getPeopleByIds(snapshots.map((item) => item.personId));
   const committeeIds = [
     ...new Set(snapshots.flatMap((item) => item.results.map((result) => result.committeeId))),
@@ -85,7 +82,7 @@ export async function listCompliance(
   const rows: ComplianceRow[] = [];
   for (const view of snapshots) {
     const person = people.get(view.personId);
-    const mandatory = mandatoryCounts(view);
+    const mandatory = mandatoryCounts(view.mandatory);
     const base = {
       personId: view.personId,
       personName: person?.fullName ?? "",
@@ -145,7 +142,7 @@ export interface ComplianceSummary {
 }
 
 export async function complianceSummary(termId: string): Promise<ComplianceSummary> {
-  const snapshots = await listSnapshots(termId);
+  const snapshots = await snapshotsForRender(termId);
   const latest = snapshots.reduce<Date | null>(
     (acc, item) => (acc === null || item.computedAt > acc ? item.computedAt : acc),
     null,

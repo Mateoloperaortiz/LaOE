@@ -6,7 +6,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { getEnv } from "@/env";
 import { t } from "@/shared/copy";
 import { clientIp, userAgent } from "@/shared/lib/request";
 import { SESSION_COOKIE } from "./cookie";
@@ -14,7 +13,8 @@ import { getActor } from "./current";
 import { requestOtp, verifyOtp, verifyStepUp } from "./domain/otp";
 import { signInWithPassword, verifyStepUpPassword } from "./domain/password";
 import { normalizeEmail, safeNextPath } from "./domain/pure";
-import { destroySessionByToken, destroySessionsFor } from "./domain/session";
+import { destroySessionsFor, signOut } from "./domain/session";
+import { deleteSessionCookie, writeSessionCookie } from "./session-cookie";
 
 export interface LoginState {
   email: string;
@@ -57,7 +57,7 @@ export async function loginAction(previous: LoginState, formData: FormData): Pro
       error: result.reason === "LOCKED" ? t("T-2097") : t("T-2096"),
     };
   }
-  await setSessionCookie(result.token, result.expiresAt, remember);
+  await writeSessionCookie({ token: result.token, expiresAt: result.expiresAt, remember });
   redirect(next);
 }
 
@@ -86,19 +86,6 @@ const codeSchema = z
   .string()
   .trim()
   .regex(/^\d{6}$/);
-
-async function setSessionCookie(token: string, expiresAt: Date, remember: boolean): Promise<void> {
-  const store = await cookies();
-  store.set({
-    name: SESSION_COOKIE,
-    value: token,
-    httpOnly: true,
-    sameSite: "lax",
-    secure: getEnv().APP_URL.startsWith("https://"),
-    path: "/",
-    ...(remember ? { expires: expiresAt } : {}),
-  });
-}
 
 /** Método alterno (ADR-051): un solo formulario en dos pasos, pedir el código y verificarlo. */
 export async function codeLoginAction(
@@ -148,20 +135,30 @@ export async function codeLoginAction(
             : t("T-049", { n: result.attemptsLeft });
       return { ...base, step: "code", email: email.data, error };
     }
-    await setSessionCookie(result.token, result.expiresAt, remember);
+    await writeSessionCookie({ token: result.token, expiresAt: result.expiresAt, remember });
     redirect(next);
   }
 
   return base;
 }
 
-export async function signOutAction(): Promise<void> {
-  const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
+const signOutEndpointSchema = z.url().max(2000);
+
+/**
+ * Cierra la sesión de este navegador. `pushEndpoint` es la suscripción que el navegador dijo tener, o
+ * `null` si no tenía: la casa retira ese dispositivo solo si es de quien sale (ADR-118 regla 17). Un
+ * valor que no es una URL no retira nada y la salida sigue.
+ */
+export async function signOutAction(pushEndpoint: string | null): Promise<void> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (token) {
-    await destroySessionByToken(token);
+    const endpoint = signOutEndpointSchema.safeParse(pushEndpoint);
+    await signOut(token, {
+      pushEndpoint: endpoint.success ? endpoint.data : null,
+      ip: await clientIp(),
+    });
   }
-  store.delete(SESSION_COOKIE);
+  await deleteSessionCookie();
   redirect("/");
 }
 
@@ -242,7 +239,6 @@ export async function stepUpAction(
   }
   const result = await verifyStepUpPassword({
     personId: actor.personId,
-    email: actor.email,
     password,
     sessionId: actor.sessionId,
     ip: await clientIp(),

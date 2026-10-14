@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { APP_TIME_ZONE } from "@/shared/lib/dates-pure";
+import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { issueGrantAction } from "./acceso-actions";
-import { type IssueGrantState, initialIssueGrantState } from "./acceso-state";
+import { type IssueGrantState, initialIssueGrantState, issueGrantRejected } from "./acceso-state";
 
 export interface IssueGrantLabels {
   submit: string;
@@ -65,7 +66,12 @@ function Emitido({ state, labels }: { state: IssueGrantState; labels: IssueGrant
 
 // Emisión del enlace de acceso (ADR-051): el enlace vive solo en el estado de este formulario.
 export function IssueGrantPanel({ personId, returnTo, labels, onIssued }: Props) {
-  const [state, action, pending] = useActionState(issueGrantAction, initialIssueGrantState);
+  const [state, action, pending] = useGuardedActionState(
+    issueGrantAction,
+    initialIssueGrantState,
+    issueGrantRejected,
+  );
+  const kind = state.kind ?? "ACTIVATION";
 
   return (
     <div className="flex flex-col gap-4">
@@ -82,10 +88,13 @@ export function IssueGrantPanel({ personId, returnTo, labels, onIssued }: Props)
           <label htmlFor={`kind-${personId}`} className="eyebrow">
             {labels.submit}
           </label>
+          {/* Un `<select>` no sigue a su `defaultValue` cuando React reinicia el formulario: la `key` lo
+              remonta con el tipo que quedó elegido (ADR-118 regla 20). */}
           <select
+            key={kind}
             id={`kind-${personId}`}
             name="kind"
-            defaultValue="ACTIVATION"
+            defaultValue={kind}
             className="rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta"
           >
             <option value="ACTIVATION">{labels.activation}</option>

@@ -1,0 +1,2 @@
+ALTER TABLE "permanence_decision" ADD COLUMN "proposal_reason" integer;--> statement-breakpoint
+ALTER TABLE "permanence_decision" ADD CONSTRAINT "permanence_decision_proposal_reason_range" CHECK ("permanence_decision"."proposal_reason" is null or "permanence_decision"."proposal_reason" between 0 and 5);

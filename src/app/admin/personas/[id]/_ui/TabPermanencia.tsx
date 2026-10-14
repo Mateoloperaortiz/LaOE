@@ -11,7 +11,7 @@ import { ResourcePanel } from "@/shared/admin-kit";
 import { Bloque, Campo, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { grantCreditAction } from "../actions";
 
@@ -29,9 +29,9 @@ type Props = {
 
 export async function TabPermanencia({ personId, termId, terms, accion, error, closeHref }: Props) {
   const [resultado, , decisiones, creditos] = tList("T-829");
-  const decisionLabels = tList("T-802");
+  const DECISIONS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"] as const;
+  const decisionLabels: Readonly<Record<string, string>> = tLabels("T-802", DECISIONS);
   const reasonLabels = tList("T-801");
-  const DECISIONS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"];
   const [creditoTitulo, reconocer] = tList("T-785");
   const [campoCriterio, campoValor, campoMotivo] = tList("T-786");
   if (!termId) {
@@ -59,7 +59,7 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
     getPeopleByIds([...evaluatorIds]),
     listManualCredits(termId, personId),
     loadRules(termId),
-    listPersonDecisions(personId, termId),
+    listPersonDecisions(personId, termId, view),
   ]);
   const manualRules = rules.filter(
     (rule) =>
@@ -117,18 +117,8 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
                   <span className="font-semibold">{decision.committeeName} · </span>
                 ) : null}
                 {t("T-831", {
-                  decisión:
-                    decisionLabels[DECISIONS.indexOf(decision.decision)] ?? decision.decision,
-                  motivo:
-                    decision.reason ||
-                    (reasonLabels[
-                      decision.proposed === "EXIT_OE"
-                        ? view.result.mandatory.met
-                          ? 3
-                          : 4
-                        : DECISIONS.indexOf(decision.proposed)
-                    ] ??
-                      ""),
+                  decisión: decisionLabels[decision.decision] ?? decision.decision,
+                  motivo: decision.reason || (reasonLabels[decision.proposalReason] ?? ""),
                   quien: decision.decidedByName,
                   fecha: formatDateTime(decision.decidedAt),
                 })}

@@ -27,7 +27,7 @@ import {
   replaceArticlesAs,
 } from "@/modules/content";
 import { listPermissionsFor } from "@/modules/identity";
-import { canParticipate, getMemberSummary } from "@/modules/people";
+import { canParticipate, getMemberSummary, lockPersonAnonymization } from "@/modules/people";
 import { getObject, putObject } from "@/shared/adapters/storage";
 import {
   matchNormativaDocument,
@@ -274,7 +274,8 @@ async function requireExistingAdmin(id: string): Promise<Actor> {
   ) {
     throw new NormativaImportError("El actor debe ser un ADMIN existente y habilitado");
   }
-  return { personId: id };
+  // Un script no tiene request: el ADMIN que lo corre va sin IP.
+  return { personId: id, ip: null };
 }
 
 async function resolveAsset(actor: Actor, asset: LocalAsset): Promise<string> {
@@ -288,11 +289,13 @@ async function resolveAsset(actor: Actor, asset: LocalAsset): Promise<string> {
       visibility: "PRIVATE",
     });
     await putObject(prepared.key, asset.bytes, asset.contentType);
-    const confirmed = await confirmUploadAs(actor, {
-      key: prepared.key,
-      filename: asset.filename,
-      visibility: "PRIVATE",
-    });
+    // `requireExistingAdmin` ya comprobó al actor: el alcance se declara como tal (ADR-113 regla 5).
+    const confirmed = await confirmUploadAs(
+      actor,
+      { key: prepared.key, filename: asset.filename, visibility: "PRIVATE", purpose: "media" },
+      { by: "ADMIN" },
+      { lockOwner: lockPersonAnonymization },
+    );
     id = confirmed.id;
   }
   await processMedia(id);

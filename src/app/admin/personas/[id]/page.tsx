@@ -4,6 +4,7 @@ import { single } from "@/app/_lib/search";
 import { getPreferences, listMessagesFor, subscriptionSummaryFor } from "@/modules/comms";
 import {
   countOpenTasksFor,
+  type InteractionKind,
   latestContact,
   listCardsByPerson,
   listInteractions,
@@ -21,12 +22,14 @@ import {
 } from "@/modules/identity";
 import {
   assemblyStatusFor,
+  attendedRequired,
   balanceFor,
   getOccasionsByIds,
   listAchievementsForPerson,
   listBoostersFor,
   listCheckInsForPerson,
   listEntriesForPerson,
+  requiredTotal,
 } from "@/modules/participation";
 import {
   getMyMembership,
@@ -66,7 +69,8 @@ import {
 
 type Search = Record<string, string | string[] | undefined>;
 
-const MAIN_KINDS = [
+/** Los tipos con filtro propio en la línea de tiempo; «Otros» es todo lo demás. */
+const MAIN_KINDS: InteractionKind[] = [
   "NOTE",
   "MEMBERSHIP",
   "COMMITTEES",
@@ -151,9 +155,7 @@ export default async function PersonaPage({
   ]);
   const interactions =
     tab === "linea"
-      ? (await listInteractions(id, filter === "OTHER" ? "ALL" : filter)).filter(
-          (item) => filter !== "OTHER" || !MAIN_KINDS.includes(item.kind),
-        )
+      ? await listInteractions(id, filter === "OTHER" ? { except: MAIN_KINDS } : filter)
       : [];
   const tasks =
     tab === "tareas" ? (await listTasks({ q: "", personId: id, page: 1, pageSize: 100 })).rows : [];
@@ -204,22 +206,8 @@ export default async function PersonaPage({
             assemblies={
               assemblies
                 ? t("T-670", {
-                    n:
-                      Math.min(
-                        assemblies.compliance.ordinaryAttended,
-                        assemblies.requirement.requiredOrdinary,
-                      ) +
-                      (assemblies.requirement.requiresBoardElection &&
-                      assemblies.compliance.boardElectionAttended
-                        ? 1
-                        : 0) +
-                      (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended
-                        ? 1
-                        : 0),
-                    total:
-                      assemblies.requirement.requiredOrdinary +
-                      (assemblies.requirement.requiresBoardElection ? 1 : 0) +
-                      (assemblies.requirement.requiresRunoff ? 1 : 0),
+                    n: attendedRequired(assemblies.requirement, assemblies.compliance),
+                    total: requiredTotal(assemblies.requirement),
                   })
                 : null
             }

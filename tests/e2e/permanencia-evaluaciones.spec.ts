@@ -4,14 +4,9 @@ import { closeDb, getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
 import { committee, person } from "@/modules/people/schema";
 import { evaluateAs, grantManualCreditAs } from "@/modules/permanence";
-import {
-  permanenceRule,
-  workGroup,
-  workGroupEvaluator,
-  workGroupMembership,
-} from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedPermission, seedRule, seedWorkGroup, seedWorkGroupMembership } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -49,26 +44,11 @@ test.describe("director de GH", () => {
 
   test.beforeEach(async () => {
     const { admin, member, current } = await ids();
-    const db = getDb();
-    let [group] = await db
-      .select({ id: workGroup.id })
-      .from(workGroup)
-      .where(and(eq(workGroup.termId, current.id), eq(workGroup.name, "e2e-GAP evaluado")));
-    if (!group) {
-      [group] = await db
-        .insert(workGroup)
-        .values({ termId: current.id, kind: "GAP", name: "e2e-GAP evaluado" })
-        .returning({ id: workGroup.id });
-    }
-    if (!group) throw new Error("sin grupo");
-    await db
-      .insert(workGroupEvaluator)
-      .values({ groupId: group.id, personId: admin.id })
-      .onConflictDoNothing();
-    await db
-      .insert(workGroupMembership)
-      .values({ groupId: group.id, personId: member.id })
-      .onConflictDoNothing();
+    const groupId = await seedWorkGroup(current.id, "e2e-GAP evaluado", {
+      kind: "GAP",
+      evaluatorIds: [admin.id],
+    });
+    await seedWorkGroupMembership(groupId, member.id);
     await closeDb();
   });
 
@@ -87,21 +67,15 @@ test.describe("director de GH", () => {
 
   test("reconoce un crédito manual desde la Persona 360", async ({ page }) => {
     const { member, current, home } = await ids();
-    const db = getDb();
-    await db
-      .insert(permanenceRule)
-      .values({
-        termId: current.id,
-        scope: "COMMITTEE",
-        committeeId: home.id,
-        key: "e2e-manual",
-        label: "e2e-Apoyo especial",
-        weight: 6,
-        computation: "MANUAL",
-        params: {},
-        sortOrder: 9,
-      })
-      .onConflictDoNothing();
+    await seedRule(current.id, "e2e-manual", {
+      scope: "COMMITTEE",
+      committeeId: home.id,
+      label: "e2e-Apoyo especial",
+      weight: 6,
+      computation: "MANUAL",
+      params: {},
+      sortOrder: 9,
+    });
     await closeDb();
     await page.goto(`/admin/personas/${member.id}?pestana=permanencia&accion=credito`);
     const panel = page.getByRole("dialog");
@@ -122,28 +96,17 @@ test.describe("miembro", () => {
 
   test.beforeEach(async () => {
     const { admin, member, current, home } = await ids();
-    const [group] = await getDb()
-      .insert(workGroup)
-      .values({
-        termId: current.id,
-        kind: "GAP",
-        name: "e2e-GAP evaluado",
-      })
-      .returning({ id: workGroup.id });
-    const [rule] = await getDb()
-      .insert(permanenceRule)
-      .values({
-        termId: current.id,
+    const group = { id: await seedWorkGroup(current.id, "e2e-GAP evaluado", { kind: "GAP" }) };
+    const rule = {
+      id: await seedRule(current.id, "e2e-manual", {
         scope: "COMMITTEE",
         committeeId: home.id,
-        key: "e2e-manual",
         label: "e2e-Apoyo especial",
         weight: 6,
         computation: "MANUAL",
-      })
-      .returning({ id: permanenceRule.id });
-    if (!group || !rule) throw new Error("No se pudo preparar la permanencia del miembro");
-    await getDb().insert(workGroupMembership).values({ groupId: group.id, personId: member.id });
+      }),
+    };
+    await seedWorkGroupMembership(group.id, member.id);
     const actor = { personId: admin.id, ip: null };
     await evaluateAs(
       actor,
@@ -188,11 +151,7 @@ test.describe("líder", () => {
   test.beforeEach(async () => {
     const { member, home } = await ids();
     slug = home.slug;
-    const db = getDb();
-    await db
-      .insert(permission)
-      .values({ personId: member.id, code: "COMMITTEE_LEADER", committeeId: home.id })
-      .onConflictDoNothing();
+    await seedPermission(member.id, "COMMITTEE_LEADER", home.id);
     await closeDb();
   });
 
