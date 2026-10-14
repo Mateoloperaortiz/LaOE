@@ -7,7 +7,7 @@ Cierre del objetivo que Mateo fijó el 2026-10-06 ([ADR-109](adr/ADR-109-refacto
 - **Diecisiete ciclos y un remate**, del 2026-10-06 al 2026-10-13: seis ciclos de corrección, seguridad e integridad, uno de estructura, los arreglos rápidos que salieron de clasificar lo que quedaba, cuatro ciclos más con las filas diferidas que no esperaban nada, los tres primeros refactors de estructura que tenían spec, un ciclo más con la cola que dejaron esos, otro con lo que dejó su revisión, y uno más con la primera mitad de lo que ya no esperaba nada. Más un arreglo de dependencias vulnerables y una guarda de migraciones, los dos contra `main`.
 - **Todo está mezclado en `main` desde el 2026-10-13.** Mateo lo autorizó ese día y entraron los veinte PR: el #116, el #192 y la pila entera en una sola mezcla. Producción lo sirve desde esa misma noche, con el commit `e678038`; lo que quedó por comprobar después está en la sección «Cómo seguir».
 - **El repositorio se leyó entero.** Una revisión de arquitectura, un descubrimiento de seguridad y dos olas de una auditoría de huecos, cada hallazgo de severidad media o alta con un segundo lector que intentó tumbarlo.
-- **Ledger:** 408 hallazgos, todos en un estado final. 198 resueltos, 196 diferidos con lo que los destraba y el riesgo de dejarlos, 9 aceptados y 5 que no eran deuda. De los diferidos, 131 esperan una de las 82 decisiones abiertas. La mezcla y la promoción cerraron dos filas de riesgo alto: las dependencias con aviso crítico (DT-053) y el migrador que saltaba migraciones en silencio (DT-128).
+- **Ledger:** 409 hallazgos, todos en un estado final. 198 resueltos, 197 diferidos con lo que los destraba y el riesgo de dejarlos, 9 aceptados y 5 que no eran deuda. De los diferidos, 131 esperan una de las 82 decisiones abiertas. La mezcla y la promoción cerraron dos filas de riesgo alto: las dependencias con aviso crítico (DT-053) y el migrador que saltaba migraciones en silencio (DT-128).
 - **Pruebas:** de 855 unitarias y 603 de integración a 2.434 y 1.907. La E2E pasa entera, también pegada a `npm run check`. Lo que la hacía tardar de más tenía dos causas: lo que la suite de integración le dejaba a Postgres, corregido en el cierre (DT-188), y un servidor de desarrollo que se atasca en una corrida completa sin nada compilado, corregido en el ciclo 11: la corrida completa local va contra el build (DT-338).
 - **«Diferida» no era «bloqueada».** Al releer lo que quedó diferido salieron filas, y partes de una fila, que no esperaban una decisión, una mirada a producción ni mezclar la pila. Los ciclos 8 a 11 tomaron cuatro tandas de esas, la última con la cola, el 15 una quinta, con lo que dejaron los ciclos de estructura, el 16 una sexta, con lo que dejó la revisión del 15, y el 17 una séptima. Lo que queda diferido espera una de esas tres cosas o una de las seis specs que faltan; cada fila dice cuál.
 - **Lo que sigue no es código:** las 82 decisiones abiertas, las comprobaciones de después de promover que piden una sesión, un teléfono o un conteo en producción, y tres avisos: a la junta, a GH y a Comunicaciones (sección «Cómo seguir»).
@@ -151,7 +151,7 @@ Lo que **no** se verificó, y conviene saberlo:
 
 - **Producción recibió diecisiete ciclos de una vez.** La pila entró a `main` en una sola mezcla el 2026-10-13, después de siete días sin que `main` se moviera; staging la desplegó en un solo paso y producción hizo el mismo recorrido esa noche. El CI corrió sobre la combinación final, la casa arrancó en limpio y los dos smoke pasaron, pero nadie entró todavía con una sesión a mirar las pantallas que cambian. Lo que no se pudo ensayar antes está en la tabla de «Cómo seguir».
 - **Las cinco migraciones de la pila ya están aplicadas** (0047 a 0051, todas aditivas), en staging y en producción. La guarda del #192 corrió en los dos pre-deploy y registró el diario entero, 52 migraciones. De acá en adelante, si una rama trae una migración generada antes que la última de `main`, `db:release` falla en vez de saltarla (DT-128).
-- **El aviso crítico de `next/og` quedó cerrado** con el #116: producción arranca con Next 16.3.8. Queda lo que la fila DT-053 deja aceptado (`node-forge`, `uuid` y `esbuild`). Dependabot intenta subir `uuid` y `esbuild` en `main` y falla, y un chequeo suyo fallido hace que Railway salte el despliegue de ese commit: está en el runbook.
+- **El aviso crítico de `next/og` quedó cerrado** con el #116: producción arranca con Next 16.3.8. Queda lo que la fila DT-053 deja aceptado (`node-forge`, `uuid` y `esbuild`). Dependabot intenta subir `uuid` y `esbuild` en `main` y falla, y un chequeo suyo fallido hace que Railway salte el despliegue de ese commit: está en el runbook. Aparte, GitHub muestra ocho alertas altas de `pypdf`, la librería del extractor de la normativa, que no se instala en producción; las cierra el #193 de Dependabot, que tiene su CI en verde (DT-409).
 - **Un dato sensible sobrevive a la anonimización** hasta que se cierre la decisión 10: el motivo de una excusa, una licencia o una renuncia, que puede ser médico, queda en la solicitud y en la auditoría. Lo ven GH y ADMIN (DT-100). Y una persona anonimizada todavía se puede editar abriendo el panel por su dirección, porque el comando no mira la anonimización (DT-296, decisión 61); salió al redactar las specs y está leído, no ejecutado.
 - **Durante un despliegue conviven dos versiones del poller.** La anterior da por procesado un evento cuyo tipo no conoce (decisión 40), y la pila agrega dos tipos nuevos, uno de ellos programado al minuto 20 de cada hora. Producción cambió de contenedor a las 02:31 UTC, lejos de ese minuto.
 - **Hay cambios de conducta a la vista de las personas.** Cada PR los lista. Los que más se notan: una campaña grande dura días por el cupo diario; quien vuelve a un grupo de trabajo queda con la evaluación pendiente; los formularios con estado ya no se envían sin JavaScript; una campaña que agota el cupo del día retoma a las 7:00 p. m. y no a la medianoche; crear solo el término siguiente falla si se cruza con el vigente; y conceder un permiso mata el enlace de activación que esa persona tuviera sin usar.
@@ -165,7 +165,7 @@ Todo hallazgo del ledger terminó en uno de los cuatro estados de ADR-109. La cl
 | Prioridad | Resueltos | Diferidos | Aceptados | No eran deuda |
 | --- | --- | --- | --- | --- |
 | Corrección | 65 | 73 | 1 | 0 |
-| Seguridad | 35 | 25 | 3 | 0 |
+| Seguridad | 35 | 26 | 3 | 0 |
 | Privacidad | 5 | 1 | 0 | 0 |
 | Integridad | 12 | 24 | 2 | 2 |
 | Simplicidad | 8 | 8 | 0 | 0 |
@@ -174,7 +174,7 @@ Todo hallazgo del ledger terminó en uno de los cuatro estados de ADR-109. La cl
 | Observabilidad | 13 | 9 | 0 | 0 |
 | Rendimiento | 6 | 4 | 0 | 0 |
 | Sin prioridad | 0 | 0 | 0 | 3 |
-| **Total** | **198** | **196** | **9** | **5** |
+| **Total** | **198** | **197** | **9** | **5** |
 
 Lo diferido, por lo que lo destraba:
 
@@ -185,7 +185,7 @@ Lo diferido, por lo que lo destraba:
 - **Dependencias:** tres saltos mayores pendientes, TypeScript, Vitest y los tipos de Node (DT-237). Esperaban la mezcla y ya se pueden subir, uno por vez.
 - **El resto son tickets chicos**: cada fila dice cuál en su nota de cierre. Los que no esperaban nada los tomaron los ciclos 8 a 11 y, de la cola que dejaron los siguientes, el 15, el 16 y el 17. Las filas chicas que siguen quedan cada una con lo que la destraba.
 
-Por riesgo, de las 144 filas diferidas que tienen su riesgo escrito: 1 de riesgo alto, 38 de riesgo medio y 105 de riesgo bajo. Las demás esperan una decisión ya numerada y no se volvieron a leer. La de riesgo alto es DT-100, la del dato sensible que sobrevive a la anonimización. Las otras dos que lo eran, DT-053 y DT-128, quedaron resueltas al mezclar y promover el #116 y el #192.
+Por riesgo, de las 145 filas diferidas que tienen su riesgo escrito: 1 de riesgo alto, 38 de riesgo medio y 106 de riesgo bajo. Las demás esperan una decisión ya numerada y no se volvieron a leer. La de riesgo alto es DT-100, la del dato sensible que sobrevive a la anonimización. Las otras dos que lo eran, DT-053 y DT-128, quedaron resueltas al mezclar y promover el #116 y el #192.
 
 ## Bloqueos
 
