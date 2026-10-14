@@ -90,6 +90,98 @@ export async function getObject(key: string): Promise<Uint8Array> {
   return result.Body.transformToByteArray();
 }
 
+/** Entrega autenticada de la galería: stream con cancelación, sin cargar todo el objeto en memoria. */
+export async function getObjectStream(
+  key: string,
+  signal?: AbortSignal,
+  options: { inactivityTimeoutMs?: number } = {},
+): Promise<{
+  body: ReadableStream<Uint8Array>;
+  byteSize: number | null;
+} | null> {
+  try {
+    const result = await s3().send(
+      new GetObjectCommand({ Bucket: getEnv().S3_BUCKET, Key: key }),
+      signal ? { abortSignal: signal } : {},
+    );
+    if (!result.Body) throw new Error(`Objeto sin cuerpo: ${key}`);
+    return {
+      body: limitStreamInactivity(
+        result.Body.transformToWebStream(),
+        signal,
+        options.inactivityTimeoutMs ?? 30_000,
+      ),
+      byteSize: result.ContentLength ?? null,
+    };
+  } catch (error) {
+    const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+    if (status === 404) return null;
+    throw error;
+  }
+}
+
+/** El SDK termina su requestTimeout al recibir headers; el cuerpo necesita su propio límite. */
+function limitStreamInactivity(
+  source: ReadableStream<Uint8Array>,
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+): ReadableStream<Uint8Array> {
+  const reader = source.getReader();
+  let finished = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stop: (reason: unknown) => void;
+  const abort = () => stop(signal?.reason ?? new DOMException("Petición cancelada", "AbortError"));
+  const cleanup = () => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+    signal?.removeEventListener("abort", abort);
+  };
+  return new ReadableStream<Uint8Array>(
+    {
+      start(controller) {
+        stop = (reason) => {
+          if (finished) return;
+          finished = true;
+          cleanup();
+          controller.error(reason);
+          void reader.cancel(reason).catch(() => undefined);
+        };
+        if (signal?.aborted) abort();
+        else signal?.addEventListener("abort", abort, { once: true });
+      },
+      async pull(controller) {
+        timer = setTimeout(
+          () => stop(new DOMException("El objeto dejó de enviar datos", "TimeoutError")),
+          timeoutMs,
+        );
+        try {
+          const chunk = await reader.read();
+          if (finished) return;
+          if (timer !== undefined) clearTimeout(timer);
+          timer = undefined;
+          if (chunk.done) {
+            finished = true;
+            cleanup();
+            controller.close();
+          } else {
+            controller.enqueue(chunk.value);
+          }
+        } catch (error) {
+          stop(error);
+        }
+      },
+      async cancel(reason) {
+        if (finished) return;
+        finished = true;
+        cleanup();
+        await reader.cancel(reason);
+      },
+    },
+    // El plazo solo corre cuando falta una lectura del bucket, no cuando el cliente hace pausa.
+    { highWaterMark: 0 },
+  );
+}
+
 export async function presignRead(key: string, expiresInSeconds: number): Promise<string> {
   return getSignedUrl(s3(), new GetObjectCommand({ Bucket: getEnv().S3_BUCKET, Key: key }), {
     expiresIn: expiresInSeconds,

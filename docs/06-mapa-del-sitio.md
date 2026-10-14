@@ -107,3 +107,12 @@ La pestaña Comunicaciones de `/admin/personas/[id]` añade Carnet en billeteras
 ### Macroeventos (ADR-064)
 
 `/admin/macroeventos` reúne Inventiva, EnFemenino y Días EAFIT. Cada ficha `/admin/macroeventos/[slug]` tiene mesa directiva por edición, equipo y evaluación del GT por semestre, responsables e historial de ediciones. ADMIN registra cargos; líderes y GH mantienen sus accesos a grupos y a la bandeja de evaluaciones.
+
+## Fotos de Mi OE (ADR-130)
+
+| Ruta | Función |
+| --- | --- |
+| `/app/fotos` | DÍAS 2026, banner de la mesa, destacadas y álbumes; solo integrantes con autorización viva |
+| `/app/fotos/[collectionSlug]/[albumSlug]` | Álbum con tandas de 48 y visor por teclado o gestos |
+| `GET /api/fotos/[id]?w=<ancho>` | Variante WebP por streaming; sesión, membresía, autorización y publicación revalidadas; sin redirección ni caché pública |
+| `GET /api/fotos/colecciones/[collection]/albumes/[album]?pagina=<n>` | Otra tanda del álbum, con los mismos controles de acceso |

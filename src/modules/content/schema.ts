@@ -43,6 +43,106 @@ export interface MediaVariant {
 
 export type MediaVariants = Record<string, MediaVariant>;
 
+// Galería de miembros (ADR-130): tablas propias, sin entrada por /api/media ni originales públicos.
+export const galleryPhoto = pgTable(
+  "gallery_photo",
+  {
+    id: id(),
+    sourceHash: text().notNull(),
+    width: integer().notNull(),
+    height: integer().notNull(),
+    alt: text().notNull(),
+    variants: jsonb().$type<MediaVariants>().notNull(),
+    status: mediaStatus().notNull().default("PENDING"),
+    uploadedById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("gallery_photo_source_hash_unique").on(t.sourceHash),
+    check("gallery_photo_source_hash_format", sql`${t.sourceHash} ~ '^[a-f0-9]{64}$'`),
+    check("gallery_photo_dimensions_positive", sql`${t.width} > 0 AND ${t.height} > 0`),
+  ],
+);
+
+export const galleryCollection = pgTable(
+  "gallery_collection",
+  {
+    id: id(),
+    slug: text().notNull(),
+    title: text().notNull(),
+    description: text().notNull().default(""),
+    heroPhotoId: text().references(() => galleryPhoto.id, { onDelete: "set null" }),
+    status: publicationStatus().notNull().default("DRAFT"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("gallery_collection_slug_unique").on(t.slug),
+    check("gallery_collection_slug_format", sql`${t.slug} ~ '^[a-z0-9-]+$'`),
+  ],
+);
+
+export const galleryAlbum = pgTable(
+  "gallery_album",
+  {
+    id: id(),
+    collectionId: text()
+      .notNull()
+      .references(() => galleryCollection.id, { onDelete: "cascade" }),
+    slug: text().notNull(),
+    title: text().notNull(),
+    caption: text().notNull().default(""),
+    sortOrder: integer().notNull().default(0),
+    coverPhotoId: text().references(() => galleryPhoto.id, { onDelete: "set null" }),
+    status: publicationStatus().notNull().default("DRAFT"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("gallery_album_collection_slug_unique").on(t.collectionId, t.slug),
+    index("gallery_album_collection_order_idx").on(t.collectionId, t.sortOrder, t.id),
+    check("gallery_album_slug_format", sql`${t.slug} ~ '^[a-z0-9-]+$'`),
+  ],
+);
+
+export const galleryAlbumPhoto = pgTable(
+  "gallery_album_photo",
+  {
+    id: id(),
+    albumId: text()
+      .notNull()
+      .references(() => galleryAlbum.id, { onDelete: "cascade" }),
+    photoId: text()
+      .notNull()
+      .references(() => galleryPhoto.id, { onDelete: "cascade" }),
+    sortOrder: integer().notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex("gallery_album_photo_unique").on(t.albumId, t.photoId),
+    index("gallery_album_photo_order_idx").on(t.albumId, t.sortOrder, t.id),
+    index("gallery_album_photo_photo_idx").on(t.photoId),
+  ],
+);
+
+export const galleryFeaturedPhoto = pgTable(
+  "gallery_featured_photo",
+  {
+    id: id(),
+    collectionId: text()
+      .notNull()
+      .references(() => galleryCollection.id, { onDelete: "cascade" }),
+    photoId: text()
+      .notNull()
+      .references(() => galleryPhoto.id, { onDelete: "cascade" }),
+    sortOrder: integer().notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex("gallery_featured_photo_unique").on(t.collectionId, t.photoId),
+    index("gallery_featured_photo_order_idx").on(t.collectionId, t.sortOrder, t.id),
+  ],
+);
+
 // Páginas fijas del portal (La OE, Unirse, Privacidad); nacen en borrador en la migración 0003.
 export const page = pgTable(
   "page",

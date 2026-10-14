@@ -26,6 +26,7 @@ const RUTAS: Record<string, string> = {
   Comités: "/app/comites",
   Personas: "/app/personas",
   Egresados: "/app/egresados",
+  Fotos: "/app/fotos",
   "GH Points": "/app/gh-points",
   Permanencia: "/app/permanencia",
   Solicitudes: "/app/solicitudes",
@@ -52,7 +53,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const [temaOscuro, temaClaro] = tList("T-034");
   const pestañas = tList("T-061").filter((nombre) => nombre in RUTAS);
   const groups = [
-    { label: t("T-1664"), names: ["Comités", "Personas", "Egresados"] },
+    { label: t("T-1664"), names: ["Comités", "Personas", "Egresados", "Fotos"] },
     { label: t("T-1665"), names: ["Permanencia", "Solicitudes", "Convocatorias", "Normativa"] },
     { label: t("T-1666"), names: ["Ajustes"] },
   ].map((group) => ({

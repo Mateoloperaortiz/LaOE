@@ -185,3 +185,6 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Variante completa | `variants.full` | La imagen entera de un medio, derecha, recodificada y sin metadatos, que se entrega en lugar del archivo original; no pasa de 2560 px de lado ([ADR-114](adr/ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 8) |
 | Resumen del correo | `emailLogDigest()` | Huella corta de un correo, calculada con el secreto de la sesión, que va a los registros del ingreso en lugar del correo ([ADR-114](adr/ADR-114-reglas-de-seguridad-privacidad-e-integridad.md)) |
 | Ledger de deuda | `docs/20-deuda-tecnica.md` | El registro de hallazgos de deuda técnica del refactor progresivo, cada uno con su estado; no es el Ledger de GH Points ([ADR-109](adr/ADR-109-refactor-progresivo-con-ledger-de-deuda.md)) |
+| Colección de fotos | `GalleryCollection` | Archivo de recuerdos de una edición o encuentro, con portada, destacadas y álbumes; se publica para integrantes |
+| Álbum de fotos | `GalleryAlbum` | Selección de fotos de una actividad o del parche dentro de una colección |
+| Foto | `GalleryPhoto` | Imagen de una colección que puede pertenecer a varios álbumes sin repetirse |

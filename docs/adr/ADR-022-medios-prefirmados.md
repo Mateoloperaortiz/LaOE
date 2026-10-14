@@ -1,6 +1,6 @@
 # ADR-022: Medios: subida directa y entrega por URL prefirmada
 
-- Estado: Aceptada (enmendada por ADR-034, ADR-039)
+- Estado: Aceptada (enmendada por ADR-034, ADR-039 y ADR-130)
 - Fecha: 2026-09-02
 - Reemplaza: ADR-016
 - Enmienda: ADR-021 (punto "Medios")
@@ -30,3 +30,7 @@ Dos excepciones acotadas: el archivo del roster (CSV o XLSX de menos de 5 MB) s�
 ## Enmienda (2026-09-06, ADR-039)
 
 En Railway el bucket usa URLs virtual-hosted y `S3_FORCE_PATH_STYLE=false`. La CSP usa el origen efectivo `https://<bucket>.<host del endpoint>` y conserva el origen del endpoint para path-style local. CORS se aplica por entorno con `storage:init` mediante `railway run --no-local` con proyecto, servicio y entorno explícitos, sin cargar `.env` local. Los medios de producción se crean desde la app; no se copian de GHPOINTS. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).
+
+## Enmienda (2026-10-14, ADR-130)
+
+Fotos de Mi OE sirve variantes privadas por streaming autenticado y sin caché, sin exponer URL prefirmada. Se comprueban sesión, autorización y publicación en cada lectura. Son archivos separados de `MediaAsset`; los demás medios conservan su entrega. Ver [ADR-130](ADR-130-fotos-privadas-en-mi-oe.md).

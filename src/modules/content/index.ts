@@ -45,6 +45,21 @@ export {
   type DocumentBlock,
   parseArticlesJson,
 } from "./domain/documents-pure";
+export { getGalleryAlbum, getGalleryCollection, openGalleryPhoto } from "./domain/gallery";
+export {
+  configureGalleryCollectionAs,
+  findGalleryPhotoForImportAs,
+  publishGalleryCollectionAs,
+  registerGalleryPhotoAs,
+  upsertGalleryAlbumAs,
+  upsertGalleryCollectionAs,
+} from "./domain/gallery-import";
+export type {
+  GalleryAlbum,
+  GalleryAlbumPage,
+  GalleryCollectionView,
+  GalleryPhoto,
+} from "./domain/gallery-pure";
 export { excerpt } from "./domain/markdown-pure";
 export {
   confirmUploadAs,
