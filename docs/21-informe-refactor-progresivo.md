@@ -5,12 +5,12 @@ Cierre del objetivo que Mateo fijó el 2026-10-06 ([ADR-109](adr/ADR-109-refacto
 ## En corto
 
 - **Diecisiete ciclos y un remate**, del 2026-10-06 al 2026-10-13: seis ciclos de corrección, seguridad e integridad, uno de estructura, los arreglos rápidos que salieron de clasificar lo que quedaba, cuatro ciclos más con las filas diferidas que no esperaban nada, los tres primeros refactors de estructura que tenían spec, un ciclo más con la cola que dejaron esos, otro con lo que dejó su revisión, y uno más con la primera mitad de lo que ya no esperaba nada. Más un arreglo de dependencias vulnerables y una guarda de migraciones, los dos contra `main`.
-- **Todo está mezclado en `main` desde el 2026-10-13.** Mateo lo autorizó ese día y entraron los veinte PR: el #116, el #192 y la pila entera en una sola mezcla. Falta promover a producción; cada ciclo trae su lista de comprobaciones (sección «Cómo seguir»).
+- **Todo está mezclado en `main` desde el 2026-10-13.** Mateo lo autorizó ese día y entraron los veinte PR: el #116, el #192 y la pila entera en una sola mezcla. Producción lo sirve desde esa misma noche, con el commit `e678038`; lo que quedó por comprobar después está en la sección «Cómo seguir».
 - **El repositorio se leyó entero.** Una revisión de arquitectura, un descubrimiento de seguridad y dos olas de una auditoría de huecos, cada hallazgo de severidad media o alta con un segundo lector que intentó tumbarlo.
-- **Ledger:** 408 hallazgos, todos en un estado final. 196 resueltos, 198 diferidos con lo que los destraba y el riesgo de dejarlos, 9 aceptados y 5 que no eran deuda. De los diferidos, 132 esperan una de las 82 decisiones abiertas.
+- **Ledger:** 409 hallazgos, todos en un estado final. 198 resueltos, 197 diferidos con lo que los destraba y el riesgo de dejarlos, 9 aceptados y 5 que no eran deuda. De los diferidos, 131 esperan una de las 82 decisiones abiertas. La mezcla y la promoción cerraron dos filas de riesgo alto: las dependencias con aviso crítico (DT-053) y el migrador que saltaba migraciones en silencio (DT-128).
 - **Pruebas:** de 855 unitarias y 603 de integración a 2.434 y 1.907. La E2E pasa entera, también pegada a `npm run check`. Lo que la hacía tardar de más tenía dos causas: lo que la suite de integración le dejaba a Postgres, corregido en el cierre (DT-188), y un servidor de desarrollo que se atasca en una corrida completa sin nada compilado, corregido en el ciclo 11: la corrida completa local va contra el build (DT-338).
 - **«Diferida» no era «bloqueada».** Al releer lo que quedó diferido salieron filas, y partes de una fila, que no esperaban una decisión, una mirada a producción ni mezclar la pila. Los ciclos 8 a 11 tomaron cuatro tandas de esas, la última con la cola, el 15 una quinta, con lo que dejaron los ciclos de estructura, el 16 una sexta, con lo que dejó la revisión del 15, y el 17 una séptima. Lo que queda diferido espera una de esas tres cosas o una de las seis specs que faltan; cada fila dice cuál.
-- **Lo más urgente no es código:** mezclar y promover el #116, porque producción sigue con un aviso crítico, y mezclar el #192 antes que la pila, porque sin él una migración se puede saltar en silencio.
+- **Lo que sigue no es código:** las 82 decisiones abiertas, las comprobaciones de después de promover que piden una sesión, un teléfono o un conteo en producción, y tres avisos: a la junta, a GH y a Comunicaciones (sección «Cómo seguir»).
 
 ## Punto de partida
 
@@ -149,14 +149,14 @@ Lo que **no** se verificó, y conviene saberlo:
 
 ## Riesgos
 
-- **Producción recibe diecisiete ciclos de una vez.** La pila entró a `main` en una sola mezcla el 2026-10-13, después de siete días sin que `main` se moviera, y staging la desplegó en un solo paso, que es el mismo recorrido que hace producción. El CI corrió sobre la combinación final. Lo que no se pudo ensayar antes está en la tabla de «Cómo seguir».
-- **Cuatro migraciones esperan en la pila** (0047 a 0050), todas aditivas. Si `main` recibe otra migración antes, hay que volver a generarlas: Drizzle saltaría las más viejas sin avisar (DT-128). La guarda del #192 lo detecta y tiene que mezclarse primero.
-- **Producción sigue con el aviso crítico de `next/og`** hasta que se mezcle y promueva el #116. Dependabot abrió por su cuenta el #172 con la misma subida de `next`: sobra uno de los dos.
+- **Producción recibió diecisiete ciclos de una vez.** La pila entró a `main` en una sola mezcla el 2026-10-13, después de siete días sin que `main` se moviera; staging la desplegó en un solo paso y producción hizo el mismo recorrido esa noche. El CI corrió sobre la combinación final, la casa arrancó en limpio y los dos smoke pasaron, pero nadie entró todavía con una sesión a mirar las pantallas que cambian. Lo que no se pudo ensayar antes está en la tabla de «Cómo seguir».
+- **Las cinco migraciones de la pila ya están aplicadas** (0047 a 0051, todas aditivas), en staging y en producción. La guarda del #192 corrió en los dos pre-deploy y registró el diario entero, 52 migraciones. De acá en adelante, si una rama trae una migración generada antes que la última de `main`, `db:release` falla en vez de saltarla (DT-128).
+- **El aviso crítico de `next/og` quedó cerrado** con el #116: producción arranca con Next 16.3.8. Queda lo que la fila DT-053 deja aceptado (`node-forge`, `uuid` y `esbuild`). Dependabot intenta subir `uuid` y `esbuild` en `main` y falla, y un chequeo suyo fallido hace que Railway salte el despliegue de ese commit: está en el runbook. Aparte, GitHub muestra ocho alertas altas de `pypdf`, la librería del extractor de la normativa, que no se instala en producción; las cierra el #193 de Dependabot, que tiene su CI en verde (DT-409).
 - **Un dato sensible sobrevive a la anonimización** hasta que se cierre la decisión 10: el motivo de una excusa, una licencia o una renuncia, que puede ser médico, queda en la solicitud y en la auditoría. Lo ven GH y ADMIN (DT-100). Y una persona anonimizada todavía se puede editar abriendo el panel por su dirección, porque el comando no mira la anonimización (DT-296, decisión 61); salió al redactar las specs y está leído, no ejecutado.
-- **Durante un despliegue conviven dos versiones del poller.** La anterior da por procesado un evento cuyo tipo no conoce (decisión 40), y la pila agrega dos tipos nuevos, uno de ellos programado al minuto 20 de cada hora: conviene promover lejos de ese minuto.
+- **Durante un despliegue conviven dos versiones del poller.** La anterior da por procesado un evento cuyo tipo no conoce (decisión 40), y la pila agrega dos tipos nuevos, uno de ellos programado al minuto 20 de cada hora. Producción cambió de contenedor a las 02:31 UTC, lejos de ese minuto.
 - **Hay cambios de conducta a la vista de las personas.** Cada PR los lista. Los que más se notan: una campaña grande dura días por el cupo diario; quien vuelve a un grupo de trabajo queda con la evaluación pendiente; los formularios con estado ya no se envían sin JavaScript; una campaña que agota el cupo del día retoma a las 7:00 p. m. y no a la medianoche; crear solo el término siguiente falla si se cruza con el vigente; y conceder un permiso mata el enlace de activación que esa persona tuviera sin usar.
 - **82 decisiones de dominio siguen abiertas.** El código conserva en cada una la conducta anterior, pero varias tapan defectos reales que no se pueden corregir sin elegir.
-- **Dos condiciones para promover piden tocar servicios reales:** probar qué hace Resend con una clave de idempotencia que recibió un error (DT-182) y saber cuándo reinicia su cupo mensual (DT-184). El cupo diario ya no pide preguntarle: su documentación dice que cuenta por día UTC, y el ciclo 9 lo corrigió (DT-125).
+- **Dos comprobaciones piden tocar servicios reales y no se hicieron antes de promover:** probar qué hace Resend con una clave de idempotencia que recibió un error (DT-182) y saber cuándo reinicia su cupo mensual (DT-184). El cupo diario ya no pide preguntarle: su documentación dice que cuenta por día UTC, y el ciclo 9 lo corrigió (DT-125).
 
 ## Deuda que queda
 
@@ -164,8 +164,8 @@ Todo hallazgo del ledger terminó en uno de los cuatro estados de ADR-109. La cl
 
 | Prioridad | Resueltos | Diferidos | Aceptados | No eran deuda |
 | --- | --- | --- | --- | --- |
-| Corrección | 64 | 74 | 1 | 0 |
-| Seguridad | 34 | 26 | 3 | 0 |
+| Corrección | 65 | 73 | 1 | 0 |
+| Seguridad | 35 | 26 | 3 | 0 |
 | Privacidad | 5 | 1 | 0 | 0 |
 | Integridad | 12 | 24 | 2 | 2 |
 | Simplicidad | 8 | 8 | 0 | 0 |
@@ -174,35 +174,35 @@ Todo hallazgo del ledger terminó en uno de los cuatro estados de ADR-109. La cl
 | Observabilidad | 13 | 9 | 0 | 0 |
 | Rendimiento | 6 | 4 | 0 | 0 |
 | Sin prioridad | 0 | 0 | 0 | 3 |
-| **Total** | **196** | **198** | **9** | **5** |
+| **Total** | **198** | **197** | **9** | **5** |
 
 Lo diferido, por lo que lo destraba:
 
-- **132 esperan una decisión de dominio.** Están en [decisiones-abiertas.md](decisiones-abiertas.md), cada una con sus opciones, una recomendación y su ticket. Las que más filas destraban: la 8 (8), la 42 (5), la 7 (4), la 18 (4), la 28 (4), la 38 (4).
+- **131 esperan una decisión de dominio.** Están en [decisiones-abiertas.md](decisiones-abiertas.md), cada una con sus opciones, una recomendación y su ticket. Las que más filas destraban: la 8 (8), la 42 (5), la 7 (4), la 18 (4), la 28 (4), la 38 (4).
 - **32 piden mirar staging o producción** antes de poder cerrarse: un conteo de solo lectura, una medición o una prueba contra un proveedor real. Varias caben en una sola sesión del túnel de solo lectura.
 - **La estructura que el plan cierra sin hacer**, cada pieza con sus filas y su spec, escrita contra el código del cierre y comprobada por un segundo lector, sin implementar: el resultado de una acción, que hoy tiene cinco convenciones (DT-014, [#239](https://github.com/Mateoloperaortiz/LaOE/issues/239)); las piezas base de interfaz y las páginas largas, que van juntas (DT-015, DT-047 y DT-027, [#240](https://github.com/Mateoloperaortiz/LaOE/issues/240)); la biblioteca de juegos (DT-032, [#241](https://github.com/Mateoloperaortiz/LaOE/issues/241)); el cargo principal derivado (DT-039, [#243](https://github.com/Mateoloperaortiz/LaOE/issues/243)); el poller por handler (DT-016, [#245](https://github.com/Mateoloperaortiz/LaOE/issues/245)); y, escrita al cierre del ciclo 16, la prueba que cuida los exportes con datos personales, que pasa a leerlos con el compilador (DT-346, [#349](https://github.com/Mateoloperaortiz/LaOE/issues/349)). La base de las pruebas de integración ([#244](https://github.com/Mateoloperaortiz/LaOE/issues/244)), la interfaz pública de los módulos ([#238](https://github.com/Mateoloperaortiz/LaOE/issues/238)) y las etiquetas por valor ([#242](https://github.com/Mateoloperaortiz/LaOE/issues/242)) ya se hicieron, en los ciclos 12, 13 y 14.
 - **Rendimiento**, cuatro filas. Ninguna está medida como problema a la escala de hoy, unas 470 personas. El ayudante que cuenta consultas existe desde el ciclo 8, que fijó con él tres lecturas; las demás esperan una medición en staging o su ticket.
-- **Dependencias:** tres saltos mayores pendientes, TypeScript, Vitest y los tipos de Node (DT-237). Se suben después de mezclar, uno por vez.
+- **Dependencias:** tres saltos mayores pendientes, TypeScript, Vitest y los tipos de Node (DT-237). Esperaban la mezcla y ya se pueden subir, uno por vez.
 - **El resto son tickets chicos**: cada fila dice cuál en su nota de cierre. Los que no esperaban nada los tomaron los ciclos 8 a 11 y, de la cola que dejaron los siguientes, el 15, el 16 y el 17. Las filas chicas que siguen quedan cada una con lo que la destraba.
 
-Por riesgo, de las 146 filas diferidas que tienen su riesgo escrito: 3 de riesgo alto, 38 de riesgo medio y 105 de riesgo bajo. Las demás esperan una decisión ya numerada y no se volvieron a leer. Las de riesgo alto son DT-053 y DT-128, que se cierran mezclando el #116 y el #192, y DT-100, la del dato sensible que sobrevive a la anonimización.
+Por riesgo, de las 145 filas diferidas que tienen su riesgo escrito: 1 de riesgo alto, 38 de riesgo medio y 106 de riesgo bajo. Las demás esperan una decisión ya numerada y no se volvieron a leer. La de riesgo alto es DT-100, la del dato sensible que sobrevive a la anonimización. Las otras dos que lo eran, DT-053 y DT-128, quedaron resueltas al mezclar y promover el #116 y el #192.
 
 ## Bloqueos
 
 Cuatro cosas no dependen de más código. Van en el formato que pide el objetivo.
 
-### Mezclado el 2026-10-13; promover lo autorizó Mateo para cuando esté listo
+### Mezclado y promovido el 2026-10-13
 
 - **Problema.** Hasta el 2026-10-13 todo el refactor vivía en ramas y producción seguía en el `main` del 2026-10-06, con el aviso crítico de `next/og`.
 - **Evidencia.** Mateo lo autorizó ese día con su frase («empieza a mezclar y promueve a producción todo cuando esté listo»). Entraron a `main`, en este orden: el #116 (`ec4da9b`), el #192 (`df261f8`) y la pila entera con el #360 (`7d9eb50`). Los otros diecisiete PR de la pila quedaron mezclados con él, porque sus commits quedaron dentro de `main`. El CI pasó completo sobre la rama del #192 ya al día, sobre la pila con `main` adentro y sobre `main` después de cada mezcla.
-- **Intentos.** La pila chocaba con el #192 en cuatro documentos, todos de «los dos agregaron en el mismo sitio», y se resolvieron conservando los dos lados. Un choque no era de texto: el trinquete de la siembra de las pruebas (ciclo 12) rechazaba un `insert` suelto de la prueba nueva del #192, y ganó su excepción. Railway no desplegó solo el commit de la pila en staging: espera todos los chequeos del commit, y Dependabot dejó dos fallidos encima, sus intentos de actualizar `uuid` y `esbuild`. Se le pidió a mano que desplegara ese commit, y staging aplicó las cinco migraciones nuevas, arrancó en limpio y respondió en `/api/health` con `7d9eb50`.
-- **Opciones.** (a) Promover el commit que staging validó. (b) Esperar a las comprobaciones que piden mirar producción o entrar a staging con una sesión.
-- **Recomendación.** (a), que es lo que Mateo pidió. Las cinco migraciones son aditivas, staging y producción traen `MAILER` escrito, y si el diario de migraciones no coincide `db:release` falla y Railway deja el contenedor anterior. Lo de (b) no frena la promoción y queda en la tabla de «Cómo seguir» para mirar después.
+- **Intentos.** La pila chocaba con el #192 en cuatro documentos, todos de «los dos agregaron en el mismo sitio», y se resolvieron conservando los dos lados. Un choque no era de texto: el trinquete de la siembra de las pruebas (ciclo 12) rechazaba un `insert` suelto de la prueba nueva del #192, y ganó su excepción. Railway no desplegó solo el commit de la pila en staging. Ese commit traía dos chequeos de Dependabot fallidos, sus intentos de actualizar `uuid` y `esbuild`, pero la promoción, que no traía ninguno, tampoco se desplegó sola: la causa no quedó clara, y el runbook cuenta lo que se vio. Se le pidió a mano que desplegara ese commit, y staging aplicó las cinco migraciones nuevas, arrancó en limpio y respondió en `/api/health` con `7d9eb50`.
+- **Qué se hizo.** Se promovió `e678038`, el commit que staging validó: la pila más un PR de solo documentos (#361), que dejó un commit sin los chequeos fallidos de Dependabot. Railway tampoco creó solo el despliegue de producción y se le pidió a mano, como en staging. El pre-deploy aplicó las cinco migraciones y registró las 52 del diario, la casa arrancó en limpio, `/api/health` responde con ese commit y el smoke de producción pasó.
+- **Lo que no se hizo.** Los conteos en producción que varios ciclos pedían antes de promover, porque no se abrió el túnel de solo lectura, y las comprobaciones que piden una sesión o un teléfono. No frenaban la promoción: las cinco migraciones son aditivas, staging y producción traen `MAILER` escrito, y si el diario no coincidía `db:release` fallaba y Railway dejaba el contenedor anterior. Quedan en la tabla de «Cómo seguir».
 
-### 132 filas esperan una decisión de dominio
+### 131 filas esperan una decisión de dominio
 
 - **Problema.** El código no puede elegir qué es el fin del término, qué conserva quien vuelve antes de que se procese su baja o si un formulario público liga a una persona por su correo. Cada una de esas preguntas tapa defectos que no se pueden corregir sin elegir.
-- **Evidencia.** [decisiones-abiertas.md](decisiones-abiertas.md) tiene 82 abiertas, cada una con sus opciones, una recomendación y su ticket bajo el mapa [#117](https://github.com/Mateoloperaortiz/LaOE/issues/117). 132 filas diferidas del ledger nombran la suya.
+- **Evidencia.** [decisiones-abiertas.md](decisiones-abiertas.md) tiene 82 abiertas, cada una con sus opciones, una recomendación y su ticket bajo el mapa [#117](https://github.com/Mateoloperaortiz/LaOE/issues/117). 131 filas diferidas del ledger nombran la suya.
 - **Intentos.** En cada caso el código conservó la conducta de hoy, fijada con una prueba que nombra la decisión, y se corrigió todo lo vecino que no la pedía.
 - **Opciones.** (a) Responderlas por tandas, empezando por las que más filas destraban y por las dos de privacidad (10 y 61). (b) Aceptar por escrito la recomendación de las que no tengan discusión, y dejar solo las demás para conversar con GH.
 - **Recomendación.** (b): la mayoría trae una recomendación que casi no admite otra respuesta, y con eso se puede abrir un ciclo que las aplique.
@@ -213,15 +213,15 @@ Cuatro cosas no dependen de más código. Van en el formato que pide el objetivo
 - **Evidencia.** Las filas lo dicen en su nota de cierre. Las que condicionan una promoción están en la tabla de «Cómo seguir».
 - **Intentos.** Todo se probó con proveedores de mentira, el bucket local y el Postgres local. No se abrió el túnel ni se tocó staging.
 - **Opciones.** (a) Una sola sesión del túnel de solo lectura, autorizada por Mateo, que saque todos los conteos de una vez. (b) Ir sacándolos a medida que se promueve cada ciclo.
-- **Recomendación.** (a), antes de promover el ciclo 2: son consultas de totales, sin datos de personas, y varias deciden si una migración de datos hace falta.
+- **Recomendación.** (a). Ya no condiciona ninguna promoción, porque todo está en producción, pero son consultas de totales, sin datos de personas, y varias deciden si una migración de datos hace falta.
 
 ### Quedan 29 filas que no esperan una decisión ni producción
 
-- **Problema.** Quedan 29 filas diferidas que no esperan una decisión de dominio, un PR ni una mirada a producción. Tomarlas en ciclos nuevos sobre la pila rinde cada vez menos, y cada ciclo le suma un eslabón a una pila que nadie mezcló.
-- **Evidencia.** El ciclo 15 resolvió 6 filas y abrió 14; el 16 resolvió 7 y abrió 10; el 17 resolvió 7 y abrió 7. De las 29: cinco esperan al dueño, a un proveedor o a que la pila se mezcle (DT-042, DT-043, DT-184, DT-185 y DT-237); una tiene su spec escrita y sin hacer (DT-346, [#349](https://github.com/Mateoloperaortiz/LaOE/issues/349)); dos esperan que aparezca algo que hoy no existe (DT-307 y DT-380); y 21 se pueden tomar. De esas 21 ninguna es de corrección ni de seguridad: son de mantenibilidad, de pruebas o del registro, todas de riesgo bajo, y cada una dice qué la destraba.
+- **Problema.** Quedan 29 filas diferidas que no esperan una decisión de dominio, un PR ni una mirada a producción. Tomarlas en ciclos nuevos rinde cada vez menos.
+- **Evidencia.** El ciclo 15 resolvió 6 filas y abrió 14; el 16 resolvió 7 y abrió 10; el 17 resolvió 7 y abrió 7. De las 29: cuatro esperan al dueño o a un proveedor (DT-042, DT-043, DT-184 y DT-185); una tiene su spec escrita y sin hacer (DT-346, [#349](https://github.com/Mateoloperaortiz/LaOE/issues/349)); dos esperan que aparezca algo que hoy no existe (DT-307 y DT-380); y 22 se pueden tomar, contando los saltos mayores de dependencias (DT-237), que esperaban la mezcla. Aparte de las 29, la mezcla destrabó otras dos: regenerar las tablas de duración del CI (DT-037) y el renombre de las pruebas E2E (DT-278). De esas 24 ninguna es de corrección ni de seguridad: son de mantenibilidad, de pruebas o del registro, todas de riesgo bajo, y cada una dice qué la destraba.
 - **Intentos.** Los ciclos 8 a 11 y del 15 al 17 fueron siete tandas de esas filas, siempre con corrección y seguridad primero. El 16 encontró así un defecto real en la pestaña de permanencia; el 17 encontró tres preguntas de dominio al caracterizar reglas escritas dos veces, y su revisión, una regresión de su propia corrección, que quedó cerrada en el mismo ciclo.
-- **Opciones.** (a) Un ciclo 18 con las 21 que se pueden tomar: las etiquetas, la paridad de la fábrica de pruebas, las herramientas de pruebas, el cupo de correo y los olores de las revisiones viejas. (b) Parar acá, mezclar, y tomar lo que quede como tickets sueltos sobre `main`, donde cada uno se revisa y se publica solo. (c) Aceptar por escrito las filas de forma que no valga la pena tocar.
-- **Recomendación.** (b). Lo que queda no tapa un defecto conocido, y con dieciocho PR en fila cada eslabón nuevo hay que ponerlo al día y volver a pasarle el CI cuando se mezcle el anterior. Mateo pidió el 2026-10-13 que el ciclo 18 no se abra hasta que él lo diga.
+- **Opciones.** (a) Un ciclo 18 con las que se pueden tomar: las etiquetas, la paridad de la fábrica de pruebas, las herramientas de pruebas, el cupo de correo y los olores de las revisiones viejas. (b) Parar acá y tomar lo que quede como tickets sueltos sobre `main`, donde cada uno se revisa y se publica solo. (c) Aceptar por escrito las filas de forma que no valga la pena tocar.
+- **Recomendación.** (b). Lo que queda no tapa un defecto conocido, y con la pila ya mezclada cada ticket puede ir solo contra `main`, con su revisión y su publicación. Mateo pidió el 2026-10-13 que el ciclo 18 no se abra hasta que él lo diga.
 
 ## Cómo seguir
 
@@ -231,9 +231,9 @@ Cómo se mezcló, el 2026-10-13:
 2. **#192**, la guarda de migraciones, con su rama puesta al día y su CI. Staging la desplegó y la guarda corrió contra su base: registró las 47 migraciones del diario como aplicadas.
 3. **La pila, en una sola mezcla.** `main` entró a la rama del ciclo 17, los dieciocho PR se reapuntaron a `main` y se mezcló el #360 con su CI en verde. Los demás quedaron mezclados con él. Ninguna rama se borró.
 
-Para promover: el SHA exacto que staging validó, con `git fetch origin main` antes y el empuje a `production` del runbook; después, comprobar el SHA de `/api/health` de producción.
+Cómo se promovió, esa misma noche: el SHA exacto que staging validó (`e678038`), con `git fetch origin main` antes y el empuje a `production` del runbook; el CI de `production` pasó en modo promoción, y como Railway no creó el despliegue se le pidió con `railway redeploy --from-source`. Después se comprobó el SHA de `/api/health` de producción y su smoke.
 
-Antes de promover, por ciclo:
+Lo que cada ciclo pedía comprobar. Lo de «antes» que pedía un conteo en producción o una sesión en staging no se hizo, y lo de «después» sigue pendiente:
 
 | Ciclo | Qué comprobar |
 | --- | --- |
