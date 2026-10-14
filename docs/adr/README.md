@@ -25,6 +25,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) | Reglas de corrección del octavo ciclo del refactor | Aceptada (enmendada por ADR-121, ADR-122, ADR-123, ADR-127 y ADR-129) |
 | [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) | Reglas de estructura y robustez del séptimo ciclo del refactor | Aceptada (enmendada por ADR-120, ADR-123, ADR-124, ADR-125, ADR-127 y ADR-129) |
 | [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) | Reglas de corrección del sexto ciclo del refactor | Aceptada (enmendada por ADR-119, ADR-120, ADR-121, ADR-122, ADR-123 y ADR-127) |
+| [ADR-117](ADR-117-db-release-comprueba-que-el-diario-quedo-aplicado.md) | `db:release` comprueba que el diario de migraciones quedó aplicado | Aceptada |
 | [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) | Reglas de corrección, privacidad y permisos del quinto ciclo del refactor | Aceptada (enmendada por ADR-118, ADR-119, ADR-120, ADR-121, ADR-123 y ADR-124) |
 | [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) | Reglas de campañas de correo y tareas de GH del cuarto ciclo del refactor | Aceptada (enmendada por ADR-116, ADR-120 y ADR-121) |
 | [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) | Reglas de seguridad, privacidad e integridad del tercer ciclo del refactor | Aceptada (enmendada por ADR-116) |
@@ -62,7 +63,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-082](ADR-082-un-kit-para-las-server-actions-y-auditoria-con-ip.md) | Un kit para las server actions, y la auditoría siempre con IP | Aceptada (enmendada por ADR-114, ADR-116 y ADR-121) |
 | [ADR-081](ADR-081-el-catalogo-de-textos-no-viaja-entero-al-navegador.md) | El catálogo de textos no viaja entero al navegador | Aceptada (enmendada por ADR-126) |
 | [ADR-080](ADR-080-la-arquitectura-documentada-es-la-del-codigo.md) | La arquitectura documentada es la del código | Aceptada (enmendada por ADR-110 y ADR-125) |
-| [ADR-079](ADR-079-limites-de-espera-y-esquema-verificado-desde-el-esquema.md) | Ninguna espera es indefinida, y lo que se verifica sale de su fuente | Aceptada (enmendada por ADR-118 y ADR-119) |
+| [ADR-079](ADR-079-limites-de-espera-y-esquema-verificado-desde-el-esquema.md) | Ninguna espera es indefinida, y lo que se verifica sale de su fuente | Aceptada (enmendada por ADR-117, ADR-118 y ADR-119) |
 | [ADR-078](ADR-078-sudoku-con-solucion-en-el-servidor.md) | Sudoku con la solución en el servidor | Aceptada; en producción |
 | [ADR-077](ADR-077-el-lanzador-e2e-suma-su-origen-al-cors-del-bucket.md) | El lanzador E2E suma su origen al CORS del bucket local | Aceptada |
 | [ADR-076](ADR-076-biblioteca-de-iconos.md) | Biblioteca de iconos detrás de una fachada propia | Aceptada; en producción |

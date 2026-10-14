@@ -1,6 +1,6 @@
 # ADR-079: Ninguna espera es indefinida, y lo que se verifica sale de su fuente
 
-- Estado: Aceptada (enmendada por ADR-118 y ADR-119)
+- Estado: Aceptada (enmendada por ADR-117, ADR-118 y ADR-119)
 - Fecha: 2026-09-19
 - Relacionadas: ADR-012, ADR-021, ADR-032, ADR-039
 - Enmienda: ADR-012 (ejecución del poller), ADR-032 (`db:release`)
@@ -53,6 +53,10 @@ Tres hallazgos menores del mismo corte entran aquí porque no cambian comportami
 
 - **La IP del cliente** (`clientIp()` toma el primer valor de `X-Forwarded-For`) espera a comprobar en el despliegue real qué cabeceras entregan Cloudflare y Railway (tramo V1).
 - **El prefijo `__Host-` de la cookie de sesión** cierra las sesiones vivas y va con la ADR de sesión y subdominios (tramo R8).
+
+## Enmienda (2026-10-08, ADR-117)
+
+Regla 7: verificar índices y extensiones no alcanza para saber que las migraciones corrieron. El migrador de Drizzle se salta sin error una entrada del diario cuya marca de tiempo no es posterior a la de la última aplicada, y una migración sin índices únicos ni GIN pasaba la verificación. `db:release` compara además el diario con `drizzle.__drizzle_migrations` dos veces: antes de migrar, falla sin tocar la base si una entrada sin registro tiene una marca que no supera la de la última aplicada; después, exige que cada entrada tenga su registro. En los dos casos nombra las que faltan. Ver [ADR-117](ADR-117-db-release-comprueba-que-el-diario-quedo-aplicado.md).
 
 ## Enmienda (2026-10-08, ADR-118)
 

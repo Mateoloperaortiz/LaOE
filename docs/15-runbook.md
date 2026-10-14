@@ -88,6 +88,60 @@ ON CONFLICT DO NOTHING;
 - **Despliegue fallido:** si el despliegue falla después del pre-deploy, Railway mantiene el contenedor anterior y ese código toma el job al vencer el plazo. La migración ya no vuelve a correr, así que al corregir y desplegar hay que reencolar el job a mano o con la acción de la app que lo dispara. Para `permanence.recompute` alcanza con guardar un criterio de la tabla en Reglas.
 - `0032` y `0033` son anteriores a esta regla y encolan sin diferir.
 
+## Migraciones que `db:release` no aplicó (ADR-117)
+
+El pre-deploy puede terminar con «Entradas del diario sin registro y con una marca (`when`) que no supera la de la última aplicada (`<marca>`): `<nombres>`». En local sale lo mismo con `npm run db:migrate`, que es el mismo guion.
+
+**Qué significa.** El diario (`drizzle/meta/_journal.json`) tiene entradas que la base no registra en `drizzle.__drizzle_migrations`, y su marca de tiempo (`when`) es menor o igual a la mayor de la tabla, la que el error trae entre paréntesis. El migrador de Drizzle solo aplica las entradas con una marca posterior a esa: se las saltaría sin avisar. `db:release` lo comprueba antes de migrar y falla sin tocar la base: no corre ninguna migración, tampoco las que sí se podían aplicar. Railway deja atendiendo al contenedor anterior. No hay nada que deshacer.
+
+El error no dice por qué la marca quedó atrás, porque la guarda no lo puede saber. Son dos casos:
+
+- **En un entorno desplegado:** la migración se generó antes que otra que ya corrió ahí y llegó a `main` después. Se sale regenerándola, con los pasos de abajo.
+- **En local, después de cambiar de rama:** la base ya aplicó una migración de la otra rama, con una marca posterior. Se sale con `npm run db:reset`, que borra los esquemas con sus datos, migra desde cero y vuelve a sembrar. No se regenera nada.
+
+«Entradas del diario que siguen sin registro después de migrar» viene de la segunda comprobación, la que corre cuando el migrador ya terminó. Ahí la base sí pudo cambiar: lo que el migrador aplicó quedó confirmado. Solo se ha visto en la prueba que la fuerza con un migrador que vuelve sin aplicar nada.
+
+**Cómo se sale en un entorno desplegado.** Regenerar la migración en una rama desde `main`, para que su marca sea posterior a la última aplicada:
+
+1. Borrar su `.sql`, su `drizzle/meta/<NNNN>_snapshot.json` y su entrada del diario.
+2. Correr `npm run db:generate -- --name <nombre>`. El esquema no cambió, así que tiene que salir el mismo SQL: comprobar con `git diff` que solo cambian el `when` del diario y el `id` del snapshot.
+3. `npm run check`, PR y despliegue. Con una marca posterior a la de la última aplicada, la primera comprobación la deja pasar y el migrador la aplica y la registra.
+
+**Qué está ensayado y qué no.** Los pasos 1 y 2 se ensayaron una vez, en local, el 2026-10-08, y solo con la última migración del diario (`0046`): salió el mismo SQL y cambiaron el `when` del diario y el `id` del snapshot. Lo que sigue no está ensayado; antes de confiar en los tres pasos hay que probarlo en una rama y leer el `git diff`:
+
+- **Regenerar una migración del medio del diario**, con otras después. No se sabe qué genera `db:generate` en ese caso.
+- **Regenerar varias a la vez.** Lo esperable es borrar las de todas y que vuelvan juntas, en una sola migración.
+- **Una migración escrita a mano** (datos, `pg_trgm`), que no sale del esquema. Lo esperable es guardar su SQL antes de borrarla y recrearla con `npx drizzle-kit generate --custom --name <nombre>`.
+- **El paso 3 en staging o en producción.** Con este procedimiento no se desplegó todavía ninguna migración regenerada.
+- **Una base local que ya había aplicado la versión vieja** de una migración regenerada. Lo esperable es rehacerla con `npm run db:reset`.
+- **El caso local con un cambio de rama de verdad.** La decisión la cubre una prueba unitaria: una fila que no es de ninguna entrada del diario, con la mayor marca. En la base local lo ensayado fue quitarle el registro a `0045`: `npm run db:migrate` salió con código 1 antes de migrar, nombrándola, y con el registro repuesto volvió a terminar bien. `npm run db:reset` no se corrió en ese ensayo.
+
+No editar `drizzle.__drizzle_migrations` a mano para callar el error, ni cambiarle el `when` a una migración que ya corrió en algún entorno.
+
+**Antes de mezclar un PR con migraciones**, comprobar que `main` no recibió otra después de que se generó la del PR:
+
+```bash
+git fetch origin main && git log --oneline HEAD..origin/main -- drizzle/
+```
+
+Si lista algún commit, traer `main` a la rama y regenerar ahí las migraciones del PR, con los mismos tres pasos y las mismas salvedades. Con la rama al día, `tests/unit/migration-journal.test.ts` (corre en `npm test` y en CI) falla si una entrada del diario no tiene una marca posterior a la anterior: con las marcas de las dos últimas intercambiadas, falló nombrando la `0046`.
+
+**Antes de promover a un entorno**, comparar las marcas de su tabla con las del diario. Contar las filas no alcanza: con una fila repetida la cuenta da justa aunque falte un registro. Consulta de solo lectura:
+
+```sql
+select created_at, count(*) from drizzle.__drizzle_migrations group by created_at order by created_at;
+```
+
+Y los `when` del diario:
+
+```bash
+node -p "require('./drizzle/meta/_journal.json').entries.map((e) => e.when + ' ' + e.tag).join('\n')"
+```
+
+Cada `when` del diario que no supere la mayor marca de la tabla tiene que estar entre los `created_at`: si falta uno, `db:release` va a fallar ahí antes de migrar. Los `when` mayores son las pendientes que ese despliegue aplica. Un `count` mayor que 1 es una fila repetida y no detiene el despliegue. Un `created_at` que no está en el diario es una fila de más: tampoco lo detiene por sí sola, pero si es la mayor de la tabla es la marca que las pendientes tienen que superar. En la base local, el 2026-10-08, la consulta devolvió 47 marcas con una fila cada una y `db:migrate` las emparejó con las 47 del diario. Staging y producción no se consultaron.
+
+**El aviso «migraciones ya aplicadas cuyo archivo cambió después»** no detiene el despliegue: una entrada tiene su registro, pero el archivo ya no es el que corrió. La base conserva lo que corrió entonces; si el cambio fue de fondo, va en una migración nueva.
+
 ## T2 y T3: staging y claves
 
 1. Confirmar acceso de Railway al repo privado, presupuesto y proyecto/entorno de destino. En un entorno nuevo, aprovisionar primero Postgres con su región/límites, habilitar PITR y comprobar el bucket que crea Railway. Asignarle el nombre correspondiente al entorno (`Postgres-PITR` en staging, `Postgres-PITR-production` en producción) conservando ID/contenido; comprobar referencias WAL y sonda PITR tras cualquier rename. Solo después aplicar el IaC completo que adopta ese bucket por nombre, y generar el dominio web de Railway; completar `APP_URL`.

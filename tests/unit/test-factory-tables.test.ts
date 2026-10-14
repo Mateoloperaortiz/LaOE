@@ -253,6 +253,13 @@ const EXCEPTIONS: Exception[] = [
       "Es una evaluación buena sin fecha ni evaluador, que la prueba espera ver rechazada por `work_group_membership_evaluated_consistent`: la fábrica siempre le pone la fecha.",
   },
   {
+    path: "tests/integration/release-skipped-migration.test.ts",
+    target: "into <table>",
+    inserts: 1,
+    reason:
+      "Es el segundo registro de una misma migración en el diario aplicado de un esquema de sondeo, que la prueba copia para ver que `db:release` termina bien igual: no es una tabla de la casa y la fábrica no la conoce.",
+  },
+  {
     path: "tests/integration/schema-constraints.test.ts",
     target: "committeeMembership",
     inserts: 2,
