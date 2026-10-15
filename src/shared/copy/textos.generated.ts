@@ -6982,7 +6982,7 @@ export const textos = {
   },
   "T-2622": {
     where: "Juegos: introducción",
-    text: "Jugá a tu ritmo, sumá puntos gamer por tus resultados y competí por ser la persona más gamer del semestre.",
+    text: "Jugá a tu ritmo, sumá puntos gamer por tus resultados y competí en + gamer este semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -11059,7 +11059,7 @@ export const textos = {
   },
   "T-3400": {
     where: "Juegos: temporada",
-    text: "Más gamer",
+    text: "+ gamer",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -11215,7 +11215,7 @@ export const textos = {
   },
   "T-3425": {
     where: "Gamer: clasificación título",
-    text: "Clasificación gamer",
+    text: "Clasificación + gamer",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -11969,11 +11969,47 @@ export const textos = {
     owner: "MATEO",
     status: "Aprobado",
   },
+  "T-3549": {
+    where: "Gamer: podio",
+    text: "Podio + gamer",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
   "T-355": {
     where: "Eventos: campo orden en el inicio",
     text: "Orden en el inicio",
     owner: "MATEO",
     status: "Propuesta",
+  },
+  "T-3550": {
+    where: "Gamer: posición compartida",
+    text: "Puesto compartido",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3551": {
+    where: "Gamer: alcance del podio cuando el corte puede incluir un empate",
+    text: "El podio muestra los puestos 1–3 incluidos en el top 10 visible.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3552": {
+    where: "Gamer: identidad propia en el podio",
+    text: "Vos",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3553": {
+    where: "Gamer: participación singular de un cierre histórico",
+    text: "{n} participación",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3554": {
+    where: "Gamer: participaciones de un cierre histórico",
+    text: "{n} participaciones",
+    owner: "MATEO",
+    status: "Aprobado",
   },
   "T-356": {
     where: "Medios: botón y campo para subir",

@@ -1,6 +1,6 @@
 # ADR-134: Juegos con reto protagonista y Color integrado a Más gamer
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-135)
 - Fecha: 2026-10-15
 - Relacionadas: ADR-007, ADR-020, ADR-041, ADR-075, ADR-078, ADR-081, ADR-082, ADR-083, ADR-086, ADR-131, ADR-133
 - Enmienda: ADR-075 regla 1 (biblioteca y quinto juego); ADR-007 (origen COLOR); ADR-131 reglas 12 y 17 (participación y biblioteca); ADR-133 reglas 2 a 4 (primer resultado de Color, escala y procedencia)
@@ -41,3 +41,7 @@ La propuesta inicial de práctica sin puntos queda descartada para esta entrega.
 - Se conserva el diseño aprobado de HSL/3 segundos/3 rondas, pero la distancia RGB de la demo exploratoria se reemplaza por el criterio perceptual explícito de la regla 4. El promedio final y el premio comparten redondeo normativo.
 - TDD en los seams aprobados: un recorrido vertical fallando antes de implementar, sin probar funciones privadas mediante espejos del algoritmo. Ejemplos independientes fijan identidad de color, precisión cero, promedio, redondeo y cortes; los comandos cubren propiedad, orden/observación, reintentos, primera partida completa, dos pestañas, medianoche, elegibilidad, cierre y separación GH. Browser cubre acceso desde Juegos, tres rondas y controles/foco/feedback en pantalla.
 - El cambio se entrega con `npm run check`, E2E del alcance y revisión Standards/Spec de un SHA fijo. Esta ADR registra la decisión aceptada; no acredita pruebas, publicación, migraciones productivas o despliegue aún no realizados.
+
+## Enmienda (2026-10-15, ADR-135)
+
+La regla 1 incorpora el podio gráfico y el nombre visible **+ gamer** dentro de la misma identidad Reto protagonista. Agrupa puestos reales y empates sin ampliar el top 10, inventar representantes o rellenar puestos ausentes. No cambia Color, los otros juegos, los puntos o sus reglas. Ver [ADR-135](ADR-135-podio-y-nombre-gamer.md).

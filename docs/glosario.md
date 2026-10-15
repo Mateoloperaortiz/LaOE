@@ -47,7 +47,8 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Entrada de puntos | `PointEntry` | Fila del ledger: crédito por check-in, ajuste, reversión o legado |
 | GH Points | `GhPoints` | Reconocimiento principal semestral de la OE por check-ins, retos presenciales, trivias, misiones con evidencia y beneficios GH; los videojuegos no se suman a su clasificación |
 | Puntos gamer | `GamerPoints` | Premio competitivo de los videojuegos según el desempeño de la primera partida acreditable del día (primera completa en Color), con avances acumulativos de Panal; separado de GH Points |
-| Más gamer | `GamerRanking` | Competencia semestral de Juegos por puntos gamer; desempata por participaciones válidas y después días activos, con puesto compartido si las tres cantidades coinciden |
+| + gamer | `GamerRanking` | Nombre visible actual de la competencia semestral de Juegos, antes Más gamer: se ordena por puntos gamer, participaciones válidas y días activos, con puesto compartido si las tres cantidades coinciden |
+| Podio gamer | `GamerPodium` | Representación de los puestos reales 1–3 de + gamer dentro del top 10 visible; reúne a las personas empatadas con igual jerarquía, sin rellenar puestos ausentes ni prometer el total de un empate no visible |
 | Participación gamer válida | `GamerParticipation` | Cumplir el primer umbral acreditable de un videojuego: ganar Wordle, alcanzar 1.000 en 2048, resolver Sudoku, aceptar cinco palabras en Panal o completar las tres rondas de Color. Cada juego cuenta una vez por día |
 | Color | `ColorRun` | Juego de memoria de colores de tres rondas: observar, recrear con tono/saturación/luminosidad y comparar; la primera partida completa válida del día aporta de uno a seis puntos gamer según su precisión media |
 | Día activo gamer | `activeDays` | Día civil de Colombia en el que se cumplió al menos un videojuego, aunque se hayan cumplido varios |

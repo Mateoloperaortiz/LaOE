@@ -1,6 +1,6 @@
 # ADR-131: GH Points y Más gamer con rachas separadas
 
-- Estado: Aceptada (enmendada por ADR-133 y ADR-134)
+- Estado: Aceptada (enmendada por ADR-133 y ADR-134 y ADR-135)
 - Fecha: 2026-10-14
 - Relacionadas: ADR-007, ADR-020, ADR-030, ADR-035, ADR-038, ADR-041, ADR-067, ADR-068, ADR-074, ADR-075, ADR-078, ADR-087, ADR-088, ADR-092, ADR-116, ADR-117, ADR-119, ADR-124
 - Enmienda: ADR-007 y ADR-035 (proyección del saldo, niveles y cierre); ADR-041, ADR-075, ADR-078, ADR-088 y ADR-092 (premios de juegos fuera de GH Points); ADR-067 (insignias gamer sin boosters de GH); ADR-074 (aviso gamer opcional además del aviso de Wordle); ADR-116 y ADR-119 (orden global de lotes y barrera de excusa sin exigir puntos abiertos)
@@ -78,3 +78,7 @@ El orden de ADR-116 regla 2 y ADR-119 regla 3 gana una barrera inicial para oper
 ## Enmienda (2026-10-15, ADR-134)
 
 Las reglas 12 y 17 incorporan Color como quinto juego y su protagonismo en la biblioteca. Completar sus tres rondas válidas suma una participación por día, aunque el promedio sea cero: su primera partida completa da al menos un punto gamer según la escala de [ADR-134](ADR-134-juegos-protagonista-y-color.md). El máximo nativo de participaciones pasa de cuatro a cinco diarias. Color cumple el mismo día de racha y no añade GH Points, boosters, hitos o comodines; se conservan el ranking por puntos de ADR-133 y todos los cierres anteriores.
+
+## Enmienda (2026-10-15, ADR-135)
+
+Las reglas 2 y 17 usan desde esta presentación el nombre visible **+ gamer**. El nombre Más gamer del texto anterior conserva su valor histórico. El podio nuevo agrupa personas por los rangos reales 1–3 dentro del top 10 recibido, con jerarquía igual para empates y sin puestos ficticios. No cambia la competencia o su privacidad. Ver [ADR-135](ADR-135-podio-y-nombre-gamer.md).

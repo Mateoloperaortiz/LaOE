@@ -2273,7 +2273,7 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | Código | Dónde | Texto | Fuente | Estado |
 | --- | --- | --- | --- | --- |
 | T-2621 | Juegos: título de la sección | Juegos | MATEO | Propuesta |
-| T-2622 | Juegos: introducción | Jugá a tu ritmo, sumá puntos gamer por tus resultados y competí por ser la persona más gamer del semestre. | MATEO | Propuesta |
+| T-2622 | Juegos: introducción | Jugá a tu ritmo, sumá puntos gamer por tus resultados y competí en + gamer este semestre. | MATEO | Propuesta |
 | T-2623 | Juegos: estado de la tarjeta | Disponible hoy · Ya sumaste hoy · No disponible ahora | MATEO | Propuesta |
 | T-2624 | Juegos: botón de la tarjeta | Jugar | MATEO | Propuesta |
 | T-2625 | GH Points: enlace a la biblioteca | Ver todos los juegos | MATEO | Propuesta |
@@ -2914,7 +2914,7 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 
 | Código | Uso | Texto | Responsable | Estado |
 |---|---|---|---|---|
-| T-3400 | Juegos: temporada | Más gamer | MATEO | Aprobado |
+| T-3400 | Juegos: temporada | + gamer | MATEO | Aprobado |
 | T-3401 | Juegos: semestre | Temporada {semestre} | MATEO | Aprobado |
 | T-3402 | Juegos: reglas clasificación | Tus resultados suman puntos gamer durante el semestre, en una clasificación separada de GH Points. Wordle, 2048 y Sudoku acreditan una partida válida al día; Color, la primera partida completa válida; Panal suma por sus metas diarias. Las participaciones y los días activos se cuentan aparte. | MATEO | Aprobado |
 | T-3403 | Gamer: total | Participaciones | MATEO | Aprobado |
@@ -2938,7 +2938,7 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3422 | Gamer: hito pendiente | {n} días · Por conseguir | MATEO | Aprobado |
 | T-3423 | Gamer: progreso | Próxima insignia: {n} días. Te faltan {faltan} días de juego en tu racha actual. | MATEO | Aprobado |
 | T-3424 | Gamer: colección completa | ¡Conseguiste las tres insignias de esta temporada! | MATEO | Aprobado |
-| T-3425 | Gamer: clasificación título | Clasificación gamer | MATEO | Aprobado |
+| T-3425 | Gamer: clasificación título | Clasificación + gamer | MATEO | Aprobado |
 | T-3426 | Gamer: privacidad desempate | Se muestran los primeros diez puestos y tu puesto propio arriba. Gana quien suma más puntos gamer; a igualdad, quien tiene más participaciones y después más días activos. Si siguen iguales, comparten puesto. | MATEO | Aprobado |
 | T-3427 | Gamer: vacío | La clasificación está por estrenar. Sumá tus primeros puntos gamer con cualquiera de los juegos. | MATEO | Aprobado |
 | T-3428 | Gamer: persona | Persona | MATEO | Aprobado |
@@ -3052,3 +3052,9 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3546 | Color: pestaña oculta antes de observar | Volvé a esta pestaña para mirar el color. | MATEO | Aprobado |
 | T-3547 | Color: partida retomada al mezclar | Retomaste una ronda que ya pasó por la observación. El original sigue oculto; recreá el color que recordás. | MATEO | Aprobado |
 | T-3548 | Color: práctica finalizada | Esta partida fue de práctica. El premio de hoy se conserva. | MATEO | Aprobado |
+| T-3549 | Gamer: podio | Podio + gamer | MATEO | Aprobado |
+| T-3550 | Gamer: posición compartida | Puesto compartido | MATEO | Aprobado |
+| T-3551 | Gamer: alcance del podio cuando el corte puede incluir un empate | El podio muestra los puestos 1–3 incluidos en el top 10 visible. | MATEO | Aprobado |
+| T-3552 | Gamer: identidad propia en el podio | Vos | MATEO | Aprobado |
+| T-3553 | Gamer: participación singular de un cierre histórico | {n} participación | MATEO | Aprobado |
+| T-3554 | Gamer: participaciones de un cierre histórico | {n} participaciones | MATEO | Aprobado |

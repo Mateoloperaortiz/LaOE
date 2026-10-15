@@ -49,7 +49,7 @@ function renderSeason(mine: GamerProfile, closed = false) {
       null,
       createElement(GamerSeason, { profile: mine, termCode: "2026-2", closed }),
       createElement(GamerLeaderboard, {
-        leaderboard: mine.rankingMetric === null ? [] : [standing],
+        leaderboard: mine.rankingMetric === null || mine.rank === null ? [] : [standing],
         personId: standing.personId,
         rankingMetric: mine.rankingMetric,
       }),
@@ -80,6 +80,8 @@ describe("unidad de la clasificación gamer", () => {
     expect(html).not.toMatch(new RegExp(`<th scope="col"[^>]*>${pointsLabel}</th>`));
     expect(html).not.toMatch(new RegExp(`<dt[^>]*>${pointsLabel}</dt>`));
     expect(html).not.toContain(t("T-3426"));
+    expect(html).toContain(t("T-3554", { n: 3 }));
+    expect(html).not.toContain(t("T-3479", { n: 0 }));
   });
 
   it("declara la clasificación ausente en cierres anteriores sin fabricar ceros ni lanzamiento pendiente", () => {
@@ -92,6 +94,7 @@ describe("unidad de la clasificación gamer", () => {
     expect(html).not.toContain("<dl");
     expect(html).not.toContain(t("T-3461"));
     expect(html).not.toContain(t("T-3480"));
+    expect(html).not.toContain(t("T-3549"));
   });
 
   it("distingue cero puntos de un resultado histórico no disponible", () => {
@@ -99,5 +102,76 @@ describe("unidad de la clasificación gamer", () => {
     expect(html).toMatch(new RegExp(`<dt[^>]*>${pointsLabel}</dt><dd[^>]*>0</dd>`));
     expect(html).not.toContain(t("T-3483"));
     expect(html).not.toContain(t("T-3480"));
+  });
+});
+
+const standing = (personId: string, rank: number): GamerStanding => ({
+  personId,
+  name: `Persona sintética ${personId}`,
+  anonymized: false,
+  points: 18,
+  participations: 3,
+  activeDays: 3,
+  rank,
+});
+
+function renderPodium(rows: GamerStanding[]) {
+  const html = renderToStaticMarkup(
+    createElement(GamerLeaderboard, {
+      leaderboard: rows,
+      personId: "a",
+      rankingMetric: "POINTS",
+    }),
+  );
+  return (
+    html.match(/<section aria-labelledby="gamer-podium-title"[^>]*>([\s\S]*?)<\/section>/)?.[1] ??
+    ""
+  );
+}
+
+describe("podio por puestos reales", () => {
+  it("conserva ambos primeros y el tercero sin fabricar un segundo ni escoger representante", () => {
+    const html = renderPodium([standing("a", 1), standing("b", 1), standing("c", 3)]);
+    expect(html).toContain(t("T-3549"));
+    expect(html).toContain(`aria-label="${t("T-3407", { n: 1 })}"`);
+    expect(html).toContain(`aria-label="${t("T-3407", { n: 3 })}"`);
+    expect(html).not.toContain(t("T-3407", { n: 2 }));
+    for (const id of ["a", "b", "c"]) expect(html).toContain(standing(id, 1).name);
+    expect(html).toContain(t("T-3550"));
+    expect(html).toContain(t("T-3552"));
+    expect(html).not.toContain(t("T-3551"));
+  });
+
+  it.each([
+    { ranks: [], groups: [] },
+    { ranks: [1], groups: [1] },
+    { ranks: [1, 2], groups: [1, 2] },
+    { ranks: [1, 1], groups: [1] },
+    { ranks: [1, 2, 3], groups: [1, 2, 3] },
+    { ranks: [1, 2, 2, 4], groups: [1, 2] },
+  ])("muestra sólo los grupos existentes para $ranks", ({ ranks, groups }) => {
+    const rows = ranks.map((rank, index) => standing(`sintetica-${index}`, rank));
+    const html = renderPodium(rows);
+    for (const rank of [1, 2, 3]) {
+      const group = `aria-label="${t("T-3407", { n: rank })}"`;
+      expect(html.includes(group)).toBe(groups.includes(rank));
+    }
+    for (const row of rows) expect(html.includes(row.name)).toBe(row.rank <= 3);
+    if (rows.length === 0) expect(html).toBe("");
+  });
+
+  it("conserva diez primeros visibles, declara el alcance y respeta el anonimato", () => {
+    const rows = Array.from({ length: 10 }, (_, index) => standing(`sintetica-${index}`, 1));
+    const first = rows[0];
+    if (!first) throw new Error("Falta la primera persona sintética");
+    first.anonymized = true;
+    const html = renderPodium(rows);
+    expect(html).toContain(t("T-3551"));
+    expect(html).toContain(t("T-3550"));
+    expect(html).toContain(t("T-223"));
+    expect(html).not.toContain(first.name);
+    for (const row of rows.slice(1)) expect(html).toContain(row.name);
+    expect(html).not.toContain(t("T-3407", { n: 2 }));
+    expect(html).not.toContain(t("T-3407", { n: 3 }));
   });
 });

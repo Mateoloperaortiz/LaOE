@@ -4,6 +4,19 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Podio y nombre visible + gamer (ADR-135) · `en curso`
+
+- [x] Registrar el nombre visible + gamer y la política de podio por rangos reales y empates dentro del top 10 ([ADR-135](adr/ADR-135-podio-y-nombre-gamer.md)).
+- [x] Presentar grupos 1–3 con todos los integrantes recibidos e igual jerarquía, sin puestos/personas ficticios, con lectura móvil y caption de alcance fiel al DTO.
+- [x] Cambiar el nombre visible y copy sin modificar métricas, algoritmo, datos o historia cerrada.
+- [x] Verificar estados 0/1/2 personas, empates y corte diez, historias, móvil/escritorio y claro/oscuro; check y revisión del candidato.
+- [ ] Publicar sólo por el flujo autorizado, con versión y salud verificadas.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-15 | Entrega local verificada | Podio gráfico con rangos recibidos, empates y nombre visible + gamer implementados sin cambios de backend/DTO. Render público **12 casos**; focal copy/etiquetas/render **125/125**, tipos PASS; E2E **5/5** (tres escenarios y dos setup), axe/overflow PASS. QA de **16 PNG** reales en 1280/360 px y variantes de uno/dos integrantes: review fresh de acabado **ship**, sin correcciones materiales; documenter completo, sistema y archivos existentes preservados. `npm run check` final 2 **exit 0** (`podio-check-final-2.log`): lint, tipos, dependencias, código sin uso, **2.546 unitarias** en 188 archivos, **11 Python**, **1.986 integraciones** en 216 archivos y build de **90 rutas estáticas** PASS. Primer intento detenido por BD base local ausente; resuelto sólo en entorno aislado. Publicación y despliegue pendientes. |
+| 2026-10-15 | Decisión y contrato | + gamer es el nombre visible actual de Más gamer. Podio agrupa rangos reales 1–3: 1,1,3 no inventa segundo y los empates comparten jerarquía. Con corte de diez personas no se afirma el total del empate; caption limita el alcance a las filas del top 10 visible. Sin cambios de backend, puntos, privacidad o métricas históricas. Implementación y verificación aún no acreditadas. |
+
 ## Juegos con reto protagonista y Color (ADR-134) · `en curso`
 
 - [x] Registrar opción A de Juegos, Color integrado a Más gamer y seams TDD del flujo público/acceso desde la biblioteca ([ADR-134](adr/ADR-134-juegos-protagonista-y-color.md)).

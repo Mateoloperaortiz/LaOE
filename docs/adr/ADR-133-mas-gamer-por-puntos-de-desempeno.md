@@ -1,6 +1,6 @@
 # ADR-133: Más gamer por puntos de desempeño
 
-- Estado: Aceptada (enmendada por ADR-134)
+- Estado: Aceptada (enmendada por ADR-134 y ADR-135)
 - Fecha: 2026-10-15
 - Relacionadas: ADR-007, ADR-020, ADR-041, ADR-067, ADR-075, ADR-078, ADR-088, ADR-092, ADR-131
 - Enmienda: ADR-131 reglas 12–14 y 17 (unidad y orden de la competencia gamer; presentación y conservación de cierres)
@@ -45,3 +45,7 @@ Mateo pidió que ese desempeño vuelva a pesar en Más gamer y eligió expresame
 ## Enmienda (2026-10-15, ADR-134)
 
 Las reglas 2 a 4 suman `COLOR` al origen gamer y su escala nueva. La primera partida **completa válida** de Color da de uno a seis puntos según el promedio perceptual de sus tres rondas; incluso un promedio cero da uno y consume el premio diario, sin reintentar un resultado completo de cero puntos hasta mejorarlo. Esta excepción no cambia el primer umbral acreditable de 2048, Sudoku, Wordle o los avances de Panal. La oferta máxima de escritores nativos pasa de 24 a 30 puntos diarios entre cinco juegos; no se aplica un cap nuevo a LEGACY ni se altera el ledger o las fotos anteriores. La suma, los desempates y las tres generaciones de cierre siguen intactos. Ver [ADR-134](ADR-134-juegos-protagonista-y-color.md).
+
+## Enmienda (2026-10-15, ADR-135)
+
+La regla 9 presenta ahora la competencia como **+ gamer**, con podio por puestos reales compartidos dentro del top 10 visible. No modifica la suma, los tres desempates, métricas o fotos de esta ADR; el nombre Más gamer del texto original se conserva como historia. Ver [ADR-135](ADR-135-podio-y-nombre-gamer.md).

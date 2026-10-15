@@ -1,0 +1,226 @@
+.podium {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.podium .title {
+  color: var(--color-titulo);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.places {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 58rem;
+  margin: 1.75rem auto 0;
+  padding: 0;
+  list-style: none;
+}
+
+.places[data-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 28rem;
+}
+
+.places[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 42rem;
+}
+
+.place {
+  --medal-fill: var(--color-oe-sky);
+  --medal-ribbon: var(--color-oe-blue);
+  --place-ink: var(--color-oe-navy);
+  position: relative;
+  min-width: 0;
+  padding: 1.5rem 1.25rem;
+  border-radius: 1rem;
+  background: var(--color-oe-sky);
+  color: var(--place-ink);
+  text-align: center;
+}
+
+.place[data-rank="1"] {
+  --medal-fill: var(--color-oe-yellow);
+  --medal-ribbon: var(--color-oe-navy);
+  order: 2;
+  padding-bottom: 3.5rem;
+  background: var(--color-oe-yellow);
+}
+
+.place[data-rank="2"] {
+  order: 1;
+  margin-top: 2rem;
+  padding-bottom: 2.5rem;
+}
+
+.place[data-rank="3"] {
+  --medal-fill: var(--color-oe-blue-soft);
+  --medal-ribbon: var(--color-oe-blue);
+  --place-ink: var(--color-oe-paper);
+  order: 3;
+  margin-top: 3.5rem;
+  background: var(--color-oe-navy);
+}
+
+.position {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: inherit;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.medal {
+  position: relative;
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin-top: -3.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.medal::before,
+.medal::after {
+  content: "";
+  position: absolute;
+  top: 3.2rem;
+  width: 1.3rem;
+  height: 1.8rem;
+  background: var(--medal-ribbon);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+}
+
+.medal::before {
+  left: 0.6rem;
+  transform: rotate(14deg);
+}
+
+.medal::after {
+  right: 0.6rem;
+  transform: rotate(-14deg);
+}
+
+.medal span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  border: 2px solid var(--color-oe-navy);
+  border-radius: 50%;
+  background: var(--medal-fill);
+  color: var(--color-oe-navy);
+  font-family: var(--font-display);
+  font-size: 2.75rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.shared {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.members {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.member {
+  min-width: 0;
+}
+
+.member + .member {
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in oklab, currentColor 25%, transparent);
+}
+
+.name {
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.score {
+  margin-top: 0.4rem;
+  color: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.you {
+  display: inline-block;
+  margin-top: 0.6rem;
+  border: 1px solid currentColor;
+  border-radius: 2rem;
+  padding: 0.2rem 0.6rem;
+  color: inherit;
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+.caption {
+  max-width: 65ch;
+  color: var(--color-tinta-suave);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 40rem) {
+  .places {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3.5rem 1rem;
+  }
+
+  .places[data-count="3"] .place[data-rank="1"] {
+    grid-column: 1 / -1;
+  }
+
+  .place {
+    padding: 1.25rem 1rem;
+  }
+
+  .place[data-rank="1"] {
+    order: 1;
+    padding-bottom: 1.75rem;
+  }
+
+  .place[data-rank="2"],
+  .place[data-rank="3"] {
+    margin-top: 0;
+    padding-bottom: 1.5rem;
+  }
+
+  .place[data-rank="2"] {
+    order: 2;
+  }
+
+  .places[data-shared="true"],
+  .places[data-count="2"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .name {
+    font-size: 0.875rem;
+  }
+}
