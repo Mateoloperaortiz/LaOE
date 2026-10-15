@@ -1,4 +1,14 @@
-import { t } from "@/shared/copy";
+import { type CopyCode, t } from "@/shared/copy";
+import type { PresencePauseReason } from "../presence-types";
+
+const pauseReasonTexts = {
+  LATE_PUBLICATION: "T-3470",
+  SHORT_NOTICE: "T-3476",
+  ON_LEAVE: "T-3471",
+  EXCUSED: "T-3472",
+  NO_RECORDED_ACTIVITIES: "T-3473",
+  INSUFFICIENT_HISTORY: "T-3474",
+} as const satisfies Record<PresencePauseReason, CopyCode>;
 
 export function PresenceStreak({
   streak,
@@ -9,6 +19,7 @@ export function PresenceStreak({
     currentStreak: number;
     longestStreak: number;
     weekStatus: "COMPLETED" | "PENDING" | "PAUSED" | "MISSED";
+    weekPauseReasons?: PresencePauseReason[];
     bonus: number;
     nextBonus: number;
   };
@@ -52,6 +63,17 @@ export function PresenceStreak({
         </div>
       </dl>
       <p className="font-semibold">{t(statuses[streak.weekStatus])}</p>
+      {streak.weekStatus === "PAUSED" ? (
+        <div className="flex max-w-prose flex-col gap-2 text-sm text-tinta-suave">
+          {streak.weekPauseReasons?.length ? (
+            streak.weekPauseReasons.map((reason) => (
+              <p key={reason}>{t(pauseReasonTexts[reason])}</p>
+            ))
+          ) : (
+            <p>{t("T-3475")}</p>
+          )}
+        </div>
+      ) : null}
       <p className="text-sm">
         {streak.weekStatus === "COMPLETED"
           ? t("T-3447", { n: streak.bonus })

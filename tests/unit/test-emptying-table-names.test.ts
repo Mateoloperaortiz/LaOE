@@ -16,6 +16,7 @@ const CATALOGS = [
   "committee_role",
   "macroevent_role",
   "point_separation_policy",
+  "presence_notice_policy",
 ];
 
 const SCHEMA = schemaTables(

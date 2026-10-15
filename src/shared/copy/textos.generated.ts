@@ -11341,7 +11341,7 @@ export const textos = {
   },
   "T-3445": {
     where: "GH: semana pausada",
-    text: "Tu racha está en pausa esta semana; no tenías actividades disponibles o tenés una licencia o excusa aprobada.",
+    text: "Tu racha está en pausa esta semana. Conservás las semanas cumplidas, sin sumar una semana ni un bono por la pausa.",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -11494,6 +11494,48 @@ export const textos = {
     text: "Evento",
     owner: "MATEO",
     status: "Propuesta",
+  },
+  "T-3470": {
+    where: "GH: pausa por publicación tardía",
+    text: "Se registraron actividades publicadas después de empezar la semana. Una asistencia aprobada puede cumplirla; no asistir a esas actividades no rompe tu racha.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3471": {
+    where: "GH: pausa por licencia",
+    text: "La licencia registrada para esta semana protege tu racha.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3472": {
+    where: "GH: pausa por excusa",
+    text: "Tenés una excusa aprobada para una actividad de esta semana; esa actividad no rompe tu racha.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3473": {
+    where: "GH: pausa sin actividades habilitadas registradas",
+    text: "No hay actividades presenciales habilitadas registradas para esta semana.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3474": {
+    where: "GH: pausa sin historia suficiente",
+    text: "No hay información histórica suficiente para determinar a qué actividades podías asistir esta semana. La falta de ese registro no rompe tu racha.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3475": {
+    where: "GH: pausa sin motivo guardado",
+    text: "El motivo de esta pausa no quedó registrado.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3476": {
+    where: "GH: pausa por aviso menor a 24 horas",
+    text: "Se registraron actividades que no tuvieron 24 horas de aviso antes de empezar. Una asistencia aprobada puede cumplir la semana; no asistir a esas actividades no rompe tu racha.",
+    owner: "MATEO",
+    status: "Aprobado",
   },
   "T-348": {
     where: "Ediciones: campo nombre",

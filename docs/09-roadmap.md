@@ -4,18 +4,33 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## GH Points y Más gamer (ADR-131) · `en curso`
+## Aviso de 24 horas y motivo de pausa presencial (ADR-132) · `en curso`
+
+- [x] Registrar la decisión: aviso auténtico de al menos 24 horas antes del inicio, con ancla propia e inmutable y protección de lo ocurrido ([ADR-132](adr/ADR-132-aviso-de-24-horas-para-la-racha-presencial.md)).
+- [x] Implementar la política inicialmente nula y su activación idempotente; normalizar solo aperturas futuras demostrables sin fabricar publicación desde la creación.
+- [x] Mostrar motivos de pausa que distingan actividades registradas de oportunidades exigibles, con respaldo prudente para fotos antiguas.
+- [x] Verificar límites, historia, concurrencia, migración, E2E y `npm run check`.
+- [ ] Revisar Standards y Spec sobre un SHA fijo.
+- [ ] Publicar el SHA validado; activar por entorno solo después de `SUCCESS` y retiro del escritor anterior; registrar el ancla y su lectura de vuelta.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-15 | Implementación y verificación local | Política propia inicialmente nula, migración aditiva `0057`, activación única posterior al relevo y publicación futura acreditada por auditoría. Motivos de pausa tipados con respaldo neutral para cierres antiguos; las actividades anteriores conservan su regla. Regresiones RED de límites de 24 horas y espera de fila, luego GREEN. `npm run check` completo aprobado: 2.561 unitarias, 1.973 integraciones, 11 del extractor y build; E2E afectados 4/4 más 2 accesos de preparación. CLI real sin `--apply` comprobado sobre base local migrada, sin activar. Pendientes revisiones sobre SHA fijo y publicación; sin despliegue ni activación. |
+| 2026-10-15 | Decisión y procedimiento | Se reemplaza el corte del lunes para actividades futuras por aviso auténtico de al menos 24 horas. Singleton propio de `participation`, inicialmente nulo, con activación posterior al relevo del servicio; las actividades anteriores conservan su regla y los cierres su foto. Auditoría de apertura o serie demuestra publicación; lo desconocido protege. El motivo de pausa deja de afirmar ausencia de actividades sin evidencia. Implementación y verificación en curso; sin despliegue ni activación de esta política. |
+
+## GH Points y Más gamer (ADR-131) · `lista`
 
 - [x] Consolidar la decisión: GH Points principal, videojuegos por participaciones válidas, rachas separadas, historia del semestre y cortes 0/25/75/150/250.
 - [x] Separar proyecciones, cierre y reconstrucción histórica; liquidar bonos presenciales 0/2/3/5 desde el lanzamiento sin duplicados.
 - [x] Mostrar rachas, clasificación gamer, hitos 3/7/30 y progreso con copy centralizado, sin beneficios GH nuevos por jugar.
 - [x] Aviso gamer opcional a las 20:00 de Colombia, con preferencia propia y entregas idempotentes.
 - [x] Verificar migración, concurrencia, límites de Colombia, historia, licencias, cancelaciones y E2E; `npm run check` completo.
-- [ ] Revisar el SHA validado en los ejes Standards y Spec antes del PR.
-- [ ] Publicar el SHA validado, revisar el semestre reconstruido y activar junto con la gamificación; registrar la fecha real del primer bono pagable.
+- [x] Revisar el SHA validado en los ejes Standards y Spec antes del PR.
+- [x] Publicar el SHA validado, comprobar migraciones y salud y registrar el primer lanzamiento conservado por el release; el análisis posterior de la racha se sigue en ADR-132.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
+| 2026-10-15 | Publicación verificada | [PR 368](https://github.com/Mateoloperaortiz/LaOE/pull/368), sin hallazgos pendientes de Standards ni Spec, mezclado y promovido como `d9d25ac83a4c2dd64f876eacf9cb7626be082892`. CI completo de main aprobado; staging y producción `SUCCESS`, migraciones verificadas y health con el SHA exacto. Smoke de producción 6/6 y verificación independiente 6/6. El release conservó la gamificación ya habilitada y fijó su primer lanzamiento en `2026-10-15T10:20:10.924Z`, sin una activación manual adicional ni bonos por actividades anteriores. La política nueva de aviso de ADR-132 sigue pendiente de implementación, despliegue y activación. |
 | 2026-10-15 | Correcciones de revisión local | Barrera global antes de los lotes/término exclusivo, incluidos dos semestres abiertos; foto de constancia presencial que no cambia por excusas posteriores al cierre, con fallback explícito para cierres antiguos sin foto; niveles históricos 0/100/250/500/1000 y runbook de activación coherente. Excusas tardías siguen admitidas sin reabrir pagos y escritores individuales mantienen paralelismo. Regresiones rojas reales de deadlock y bono inexistente; lecturas preventivas independientes sin objeciones residuales. `npm run check` completo aprobado: 2.531 unitarias, 1.966 integraciones, 11 Python y build; E2E afectados 25/25, incluido 500=Pilar histórico y texto de cierre sin reconocimiento. Pendiente revisión formal del nuevo SHA y publicación. |
 | 2026-10-15 | Implementación y verificación local | Proyecciones GH/gamer, historial por semestre con ancla inmutable, rachas separadas, bonos presenciales versionados, cierre doble, exportes, UI preparada/activa y aviso gamer opcional. Migraciones aditivas `0053`–`0056`; el primer lanzamiento se fija atómicamente al activar y no se mueve al apagar/reactivar. Excusas tras cierre conservadas; historia de comités por intervalos y licencia por fecha efectiva sin quitar GH base. `npm run check` completo aprobado: 2.520 unitarias, 1.956 de integración, 11 Python, lint, tipos, dependencias, código muerto y build; E2E del alcance 23/23 y QA de interfaz sin errores. Pendientes revisión fresca, PR y publicación; no se modificó producción ni se activó configuración real. |
 | 2026-10-14 | Decisión y alcance | [ADR-131](adr/ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) registra las decisiones de Mateo: GH Points incluye asistencias, retos, trivias y evidencia; Más gamer suma una participación por juego/día y desempata por días activos. Racha presencial semanal 0/2/3/5 con pausas, racha gamer con comodín e hitos 3/7/30, todo el semestre reclasificado y bonos solo desde lanzamiento. Niveles 0/25/75/150/250 según el análisis reproducible. Implementación en curso; no acredita cambios en producción. |

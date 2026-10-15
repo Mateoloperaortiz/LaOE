@@ -99,8 +99,8 @@ export async function findTermByCode(code: string): Promise<TermRow | null> {
 }
 
 /** Todos los términos, del más reciente al más viejo (para selectores). */
-export async function listAllTerms(): Promise<TermRow[]> {
-  return getDb().select().from(term).orderBy(desc(term.startsOn));
+export async function listAllTerms(exec: Executor = getDb()): Promise<TermRow[]> {
+  return exec.select().from(term).orderBy(desc(term.startsOn));
 }
 
 /** Fechas convencionales de un término que no existe: semestre 1 de enero a junio, 2 de julio a diciembre (ADR-034). */

@@ -546,10 +546,16 @@ describe("bonos por constancia presencial", () => {
         });
       }
     });
+    const beforeClose = await getPresenceStreak(personId, termId);
+    expect(beforeClose).toMatchObject({
+      currentStreak: before.currentStreak,
+      longestStreak: before.longestStreak,
+      bonus: before.bonus,
+    });
     await closeTermPointsAs(actor, termId);
-    expect(await getPresenceStreak(personId, termId)).toEqual(before);
+    expect(await getPresenceStreak(personId, termId)).toEqual(beforeClose);
     expect((await getTermStanding(termId))?.stats.presenceRecognitions).toEqual([
-      { personId, recognition: before },
+      { personId, recognition: beforeClose },
     ]);
   });
 

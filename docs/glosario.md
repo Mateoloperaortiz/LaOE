@@ -52,8 +52,10 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Racha gamer | `GamerStreak` | Días jugados de una secuencia que protege un comodín semanal; el comodín no suma día ni participación. Tiene hitos a los 3, 7 y 30 días |
 | Comodín gamer | `wildcardAvailable` | Protección automática de un día perdido por semana, no acumulable, que conserva una racha viva sin hacer avanzar su contador |
 | Racha presencial | `PresenceStreak` | Semanas de lunes a domingo con al menos un check-in presencial aprobado, incluso de cero puntos; se pausa sin oportunidades disponibles y reinicia por semestre |
+| Antelación de la racha presencial | `PresenceNoticePolicy` | Aviso mínimo que permite exigir una ocasión para conservar la racha: desde su primera activación, al menos 24 horas antes del inicio; las actividades anteriores conservan la regla histórica |
 | Bono de constancia presencial | `PresenceStreakBonus` | Reconocimiento GH una vez por semana válida: 0, 2, 3 y luego 5 puntos según las semanas consecutivas. Solo se paga desde el lanzamiento |
 | Pausa de racha | `PAUSED` | Período sin oportunidad exigible que conserva la secuencia, sin sumar constancia ni entregar premio |
+| Motivo de pausa presencial | `PresencePauseReason` | Hecho demostrado que protege la semana: sin actividades registradas, licencia, excusa, aviso tardío o historia insuficiente; no implica por sí solo que no haya actividades |
 | Ledger | `PointEntry[]` | Historial inmutable de créditos y reversiones; el saldo GH suma las entradas de su competencia y conserva aparte la historia de videojuegos |
 | Reversión | `PointEntry.kind=REVERSAL` | Entrada que anula otra; nunca se edita la original |
 | Score de comité | `CommitteeParticipation` | Participación relativa de un comité en una ocasión y su promedio por término |
