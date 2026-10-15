@@ -131,6 +131,7 @@ export {
   findPersonByEmail,
   getMembershipRef,
   getPeopleByIds,
+  getPresenceMembershipHistory,
   listActiveMemberRefs,
   listAppointmentsForTerm,
   listCommitteeIdsForPersonInTerm,

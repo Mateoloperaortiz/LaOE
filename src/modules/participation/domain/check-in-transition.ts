@@ -25,6 +25,7 @@ import { applyCheckInBoost, type CheckInBoostOutcome } from "./checkin-boost";
 import { creditCheckIn, reverseCheckInCredit } from "./ledger";
 import type { GamificationSettings, MemberContext } from "./member-context";
 import type { OccasionRow } from "./occasions";
+import { reconcilePresenceBonuses } from "./presence-streak";
 
 // Una asistencia cambia de estado por aquí y solo por aquí (ADR-119 regla 4). Los cinco caminos de
 // check-ins.ts (registro propio, organizador, decidir, cancelar la ocasión y excusa) validan sus
@@ -314,6 +315,11 @@ export async function transitionCheckIn(
       },
       context,
     );
+  }
+  // Una excusa sigue siendo admisible después del cierre (ADR-116). Su evento concilia en una
+  // transacción posterior solo si los puntos siguen abiertos, sin invertir asistencia→término.
+  if (to === "APPROVED" || to === "CANCELLED") {
+    await reconcilePresenceBonuses(ctx, personId, occasion.termId, now);
   }
   return row;
 }

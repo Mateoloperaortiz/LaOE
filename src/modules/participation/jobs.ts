@@ -8,8 +8,10 @@ import {
   checkinCancelled,
   checkinExcused,
   evidenceProcess,
+  gamerStreakReminder,
   gamificationReconcile,
   occasionClosed,
+  presenceStreakReconcile,
   scoreRecompute,
   termSuccessorMissing,
   wordleCompleted,
@@ -22,7 +24,9 @@ import {
   purgeIfMembershipEnded,
 } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
-import { findTermByCode, getCurrentTerm, nextTermCode } from "@/modules/terms";
+import { findTermByCode, getCurrentTerm, getTerm, nextTermCode } from "@/modules/terms";
+import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import {
   awardSpecialBadgesForChallenge,
   awardSpecialBadgesForOccasion,
@@ -33,13 +37,51 @@ import { clearExcuseReasonsFor } from "./domain/check-ins";
 import { scrubStandingName } from "./domain/closing";
 import { recomputeCommitteeAssembly } from "./domain/committee-assembly";
 import { deleteEvidenceFor, processEvidenceFile } from "./domain/evidence";
+import { runGamerStreakReminder } from "./domain/gamer-streak-reminder";
 import { isAutoCloseDue } from "./domain/occasion-pure";
 import { closeOccasion, getOccasion, listOccasionsForTerm } from "./domain/occasions";
+import { reconcilePresenceBonuses, reconcileTermPresenceBonuses } from "./domain/presence-streak";
 import { processReconciliationBatch } from "./domain/reconciliation";
 import { runReminders } from "./domain/reminders";
 import { recomputeOccasionScore } from "./domain/scores";
 import { createSurveyInvites, deleteSurveyInvitesFor } from "./domain/surveys";
 import { runWordleReminder } from "./domain/wordle-reminder";
+
+onEvent(gamerStreakReminder, async ({ at }, ctx) => {
+  const parsed = at ? new Date(at) : ctx.now;
+  const result = await runGamerStreakReminder(Number.isNaN(parsed.getTime()) ? ctx.now : parsed);
+  if (result.enqueued > 0) ctx.log.info(result, "recordatorio de racha gamer encolado");
+});
+
+onEvent(presenceStreakReconcile, async ({ at }, ctx) => {
+  const parsed = at ? new Date(at) : ctx.now;
+  const now = Number.isNaN(parsed.getTime()) ? ctx.now : parsed;
+  const term = await getCurrentTerm(now);
+  if (!term || term.pointsClosedAt) return;
+  try {
+    await runCommand(SYSTEM_ACTOR, async (command) => {
+      // Un cierre concurrente simplemente deja de tener trabajo pendiente para este término.
+      const current = await getCurrentTerm(now, command.tx);
+      if (!current || current.pointsClosedAt) return;
+      await reconcileTermPresenceBonuses(command, current.id, now);
+    });
+  } catch (error) {
+    if (!(error instanceof DomainError) || error.message !== t("T-629")) throw error;
+  }
+});
+
+onEvent(checkinExcused, async ({ personId, termId }, ctx) => {
+  try {
+    await runCommand(SYSTEM_ACTOR, async (command) => {
+      const term = await getTerm(termId, command.tx);
+      if (!term || term.pointsClosedAt) return;
+      await reconcilePresenceBonuses(command, personId, termId, ctx.now);
+    });
+  } catch (error) {
+    // El cierre pudo ganar entre la lectura y el candado compartido; nunca se reabre el semestre.
+    if (!(error instanceof DomainError) || error.message !== t("T-629")) throw error;
+  }
+});
 
 // Handlers del outbox de participación (ADR-012, ADR-035): el recompute del score corre fuera del
 // request, una vez por ráfaga (clave por ocasión) y bajo advisory lock.

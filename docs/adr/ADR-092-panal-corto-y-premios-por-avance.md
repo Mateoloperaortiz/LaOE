@@ -1,6 +1,6 @@
 # ADR-092: Panal corto y premios por avance
 
-- Estado: Aceptada; en producción desde el 24 de septiembre de 2026 a las 08:30 de Colombia
+- Estado: Aceptada (enmendada por ADR-131); en producción desde el 24 de septiembre de 2026 a las 08:30 de Colombia
 - Fecha: 2026-09-23
 - Enmienda: ADR-088 (catálogo y acreditación), ADR-007 (créditos de Panal)
 
@@ -25,3 +25,7 @@ Verificar el corte exacto a las 05:00 UTC y la invariancia del tablero/premio/in
 ## Publicación
 
 El corte lógico sigue siendo el 24 a las 00:00, pero la promoción efectiva terminó a las 08:30 de Colombia de ese día. Las partidas iniciadas antes del despliegue conservan V1; las nuevas usan V2. Ver [evidencia](../ci-cd-panal-checkpoints-2026-09-24.md).
+
+## Enmienda (2026-10-14, ADR-131)
+
+La política de avances 1+2+3 se conserva como resultado interno e historia, sin sumar GH Points a partir de la separación semestral. Para Más gamer cuenta una sola participación por juego/día al alcanzar cinco palabras; diez palabras y Genio no agregan otra. La reconstrucción de todo el semestre deduplica los checkpoints y respeta el histórico original, sin borrar ni editar entradas. Ver [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md).

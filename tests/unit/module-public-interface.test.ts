@@ -199,7 +199,6 @@ const EXCEPTIONS: Exceptions = {
       ConfigKey
       ConfigValue
       checkBackup
-      setConfig
     `,
   },
   terms: {

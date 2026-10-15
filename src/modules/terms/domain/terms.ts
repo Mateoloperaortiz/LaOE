@@ -7,7 +7,7 @@ import type { CommandContext, Executor, Tx } from "@/db/tx";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { term } from "../schema";
+import { pointSeparationPolicy, term } from "../schema";
 
 // El término es el reloj universal (ADR-004): el actual se deriva de la fecha; el cierre de puntos es explícito.
 
@@ -159,8 +159,16 @@ async function assertNoOverlap(tx: Tx, input: TermInput, ownId: string | null): 
 export async function createTerm(ctx: CommandContext, input: TermInput): Promise<{ id: string }> {
   await lockTermCalendar(ctx.tx);
   await assertNoOverlap(ctx.tx, input, null);
+  const [policy] = await ctx.tx
+    .select()
+    .from(pointSeparationPolicy)
+    .where(eq(pointSeparationPolicy.id, "GH_GAMER"));
+  if (!policy) throw new Error("Falta la frontera de separación de GH Points y Juegos");
   try {
-    const [row] = await ctx.tx.insert(term).values(toValues(input)).returning({ id: term.id });
+    const [row] = await ctx.tx
+      .insert(term)
+      .values({ ...toValues(input), gamePointsSeparated: input.code >= policy.firstTermCode })
+      .returning({ id: term.id });
     if (!row) {
       throw new Error("No se pudo crear el término");
     }
@@ -249,6 +257,14 @@ export async function lockOpenTermPoints(tx: Tx, termId: string): Promise<TermRo
   if (row.pointsClosedAt) {
     throw new DomainError(t("T-629"));
   }
+  return row;
+}
+
+/** Reserva el cierre antes de liquidar sus premios pendientes, sin estampar todavía el término. */
+export async function lockOpenTermForClosing(tx: Tx, termId: string): Promise<TermRow> {
+  const [row] = await tx.select().from(term).where(eq(term.id, termId)).for("update");
+  if (!row) throw new DomainError(t("T-032"));
+  if (row.pointsClosedAt) throw new DomainError(t("T-629"));
   return row;
 }
 

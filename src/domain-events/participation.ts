@@ -212,3 +212,14 @@ export const gamificationReconcile = defineEvent(
   "gamification.reconcile",
   z.object({ runId: id, batch: z.number().int().nonnegative() }),
 );
+
+/** Conciliación periódica de bonos, licencias y excusas aprobadas fuera de un check-in. */
+export const presenceStreakReconcile = defineEvent(
+  "participation.presence-streak-reconcile",
+  z.object({ at: z.string().optional() }),
+);
+
+export const gamerStreakReminder = defineEvent(
+  "participation.gamer-streak-reminder",
+  z.object({ at: z.string().optional() }),
+);

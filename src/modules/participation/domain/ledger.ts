@@ -8,6 +8,7 @@ import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import type { PanalCheckpointId } from "../panal-types";
 import { pointEntry } from "../schema";
+import { ghPointCondition } from "./ledger-classification";
 import { POINT_ENTRY_KINDS, type PointEntryKind } from "./ledger-pure";
 
 // Ledger append-only (ADR-007): el crédito de un check-in nace en su misma transacción; corregir es
@@ -189,7 +190,14 @@ export async function reverseRewardCredits(
 // entrada con su partida. Si acredita, cuánto, con qué motivo y qué evento sale lo decide el juego.
 
 /** Los tipos de entrada que no son el premio de un juego. Cualquier otro del enum lo es. */
-type NonGameKind = "CHECKIN" | "ADJUSTMENT" | "REVERSAL" | "LEGACY" | "CHALLENGE" | "BOOST";
+type NonGameKind =
+  | "CHECKIN"
+  | "ADJUSTMENT"
+  | "REVERSAL"
+  | "LEGACY"
+  | "CHALLENGE"
+  | "BOOST"
+  | "PRESENCE_STREAK";
 type GameKind = Exclude<PointEntryRow["kind"], NonGameKind>;
 
 /**
@@ -238,12 +246,55 @@ export async function creditGame(ctx: CommandContext, input: CreditGameInput): P
   });
 }
 
+/** El bono semanal pasa por el mismo escritor del libro que asistencias, retos y juegos. */
+export async function creditPresenceBonus(
+  ctx: CommandContext,
+  input: {
+    personId: string;
+    termId: string;
+    bonusId: string;
+    points: number;
+    reason: string;
+  },
+): Promise<void> {
+  await lockOpenTermPoints(ctx.tx, input.termId);
+  await ctx.tx.insert(pointEntry).values({
+    personId: input.personId,
+    termId: input.termId,
+    kind: "PRESENCE_STREAK",
+    presenceBonusId: input.bonusId,
+    points: input.points,
+    reason: input.reason,
+    createdById: ctx.actor.personId,
+  });
+}
+
+/** Compensa una liquidación anterior sin modificarla ni permitir dos reversiones. */
+export async function reversePresenceBonus(
+  ctx: CommandContext,
+  entry: PointEntryRow,
+  reason: string,
+): Promise<void> {
+  if (entry.kind !== "PRESENCE_STREAK") throw new Error("La entrada no es un bono presencial");
+  await lockOpenTermPoints(ctx.tx, entry.termId);
+  if (await reversalOf(ctx, entry.id)) return;
+  await ctx.tx.insert(pointEntry).values({
+    personId: entry.personId,
+    termId: entry.termId,
+    kind: "REVERSAL",
+    points: -entry.points,
+    reason,
+    reversalOfId: entry.id,
+    createdById: ctx.actor.personId,
+  });
+}
+
 /** Saldo del término: `SUM(points)`, nunca persistido. */
 export async function balanceFor(personId: string, termId: string): Promise<number> {
   const [row] = await getDb()
     .select({ total: sql<number>`coalesce(sum(${pointEntry.points}), 0)::int` })
     .from(pointEntry)
-    .where(and(eq(pointEntry.personId, personId), eq(pointEntry.termId, termId)));
+    .where(and(eq(pointEntry.personId, personId), eq(pointEntry.termId, termId), ghPointCondition));
   return row?.total ?? 0;
 }
 
@@ -252,7 +303,7 @@ export async function listEntriesFor(personId: string, termId: string): Promise<
   return getDb()
     .select()
     .from(pointEntry)
-    .where(and(eq(pointEntry.personId, personId), eq(pointEntry.termId, termId)))
+    .where(and(eq(pointEntry.personId, personId), eq(pointEntry.termId, termId), ghPointCondition))
     .orderBy(desc(pointEntry.createdAt));
 }
 
@@ -374,12 +425,14 @@ export interface LedgerListParams {
 export interface LedgerListRow extends PointEntryRow {
   /** Id de la reversión que anula esta entrada, si existe. */
   reversedById: string | null;
+  account: "GH" | "GAMER";
 }
 
 // SQL crudo con la tabla exterior calificada (dentro de una plantilla `sql` las columnas salen sin calificar).
 const reversedBy = sql<string | null>`(
   select r.id from point_entry r where r.reversal_of_id = point_entry.id limit 1
 )`;
+const entryAccount = sql<"GH" | "GAMER">`case when ${ghPointCondition} then 'GH' else 'GAMER' end`;
 
 export async function listLedger(
   params: LedgerListParams,
@@ -398,7 +451,7 @@ export async function listLedger(
   const db = getDb();
   const [rows, [total]] = await Promise.all([
     db
-      .select({ row: pointEntry, reversedById: reversedBy })
+      .select({ row: pointEntry, reversedById: reversedBy, account: entryAccount })
       .from(pointEntry)
       .where(where)
       .orderBy(desc(pointEntry.createdAt))
@@ -407,7 +460,11 @@ export async function listLedger(
     db.select({ n: count() }).from(pointEntry).where(where),
   ]);
   return {
-    rows: rows.map((item) => ({ ...item.row, reversedById: item.reversedById })),
+    rows: rows.map((item) => ({
+      ...item.row,
+      reversedById: item.reversedById,
+      account: item.account,
+    })),
     total: total?.n ?? 0,
   };
 }
@@ -415,9 +472,13 @@ export async function listLedger(
 /** Todas las entradas de una persona (todos los términos), para la Persona 360. */
 export async function listEntriesForPerson(personId: string): Promise<LedgerListRow[]> {
   const rows = await getDb()
-    .select({ row: pointEntry, reversedById: reversedBy })
+    .select({ row: pointEntry, reversedById: reversedBy, account: entryAccount })
     .from(pointEntry)
     .where(eq(pointEntry.personId, personId))
     .orderBy(desc(pointEntry.createdAt));
-  return rows.map((item) => ({ ...item.row, reversedById: item.reversedById }));
+  return rows.map((item) => ({
+    ...item.row,
+    reversedById: item.reversedById,
+    account: item.account,
+  }));
 }

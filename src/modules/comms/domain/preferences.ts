@@ -6,8 +6,8 @@ import { type Actor, type CommandContext, type Executor, runCommand } from "@/db
 import { notificationPreference } from "../schema";
 import { DEFAULT_PREFERENCES, type PreferenceFlags } from "./pure";
 
-// Preferencias de notificación (ADR-038 regla 5): la fila se crea perezosa con todo encendido y un
-// token de baja propio; la propia persona las cambia desde Ajustes.
+// Preferencias de notificación (ADR-038 regla 5 y ADR-131): la fila se crea perezosa con un token de
+// baja propio; el aviso gamer permanece apagado hasta que la propia persona lo active desde Ajustes.
 
 export const preferencesInputSchema = z.object({
   emailCampaigns: z.boolean(),
@@ -15,6 +15,7 @@ export const preferencesInputSchema = z.object({
   pushPoints: z.boolean(),
   pushReminders: z.boolean(),
   pushWordle: z.boolean(),
+  pushGamerStreak: z.boolean(),
 });
 
 export type PreferencesInput = z.infer<typeof preferencesInputSchema>;
@@ -36,6 +37,7 @@ function toFlags(row: typeof notificationPreference.$inferSelect): PreferenceFla
     pushPoints: row.pushPoints,
     pushReminders: row.pushReminders,
     pushWordle: row.pushWordle,
+    pushGamerStreak: row.pushGamerStreak,
   };
 }
 

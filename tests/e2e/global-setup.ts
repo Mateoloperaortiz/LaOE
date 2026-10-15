@@ -110,6 +110,9 @@ export default async function globalSetup(): Promise<void> {
   // términos al calendario vigente, preservando IDs y relaciones de las fixtures.
   await alignSeedCalendar(new Date());
   await seedConfig("privacy.policyVersion", TEST_POLICY_VERSION);
+  // Instalación preparada: cada escenario que lanza rachas lo hace por el comando o la UI reales.
+  await seedConfig("gamification.enabled", false);
+  await seedConfig("gamification.launch", { at: null });
   const current = {
     id: await seedTerm(E2E_TERM.code, { startsOn: E2E_TERM.startsOn, endsOn: E2E_TERM.endsOn }),
   };

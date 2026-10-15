@@ -4,6 +4,7 @@ import type { Tx } from "@/db/tx";
 import { clearConfigCache } from "@/modules/system/domain/config";
 import { errorCode } from "@/shared/lib/error-sanitizer";
 import { TEST_POLICY_VERSION } from "../factories/policy-version";
+import { TEST_FIRST_SEPARATED_TERM } from "../factories/recognition-policy";
 
 // Deja la base de pruebas como recién migrada entre una prueba y la siguiente: las tablas de `public`
 // sin filas y los catálogos de migración como en la foto que tomó la preparación de la suite (ADR-124).
@@ -13,7 +14,13 @@ import { TEST_POLICY_VERSION } from "../factories/policy-version";
 // pueden deducir: las migraciones también llenan `page` y `event` con filas literales, y esas quedan
 // vacías. Un catálogo nuevo que una migración llene se suma acá; si no, queda vacío y su prueba falla
 // a la vista.
-const CATALOGS = ["app_config", "badge_definition", "committee_role", "macroevent_role"];
+const CATALOGS = [
+  "app_config",
+  "badge_definition",
+  "committee_role",
+  "macroevent_role",
+  "point_separation_policy",
+];
 
 // Dónde queda la foto de los catálogos: un esquema de la base de pruebas que no es `public`, así el
 // vaciado no la alcanza, ni es de los que crea `e2e-baseline.test.ts`.
@@ -43,6 +50,12 @@ export async function saveCatalogBaseline(): Promise<void> {
         "La foto de los catálogos no encontró privacy.policyVersion: ¿una migración le cambió el nombre?",
       );
     }
+    const separation = await tx.execute(sql`
+      update ${baseline}.point_separation_policy set first_term_code = ${TEST_FIRST_SEPARATED_TERM}
+      where id = 'GH_GAMER'
+    `);
+    if (separation.rowCount !== 1)
+      throw new Error("La foto no encontró la frontera de GH Points y Juegos");
   });
 }
 
@@ -54,7 +67,7 @@ const EMPTY_CATALOGS_SQL = `with ${CATALOG_TABLES.map(
   (table, index) => `d${index} as (delete from ${table})`,
 ).join(", ")} select 1`;
 
-// Una sola sentencia vuelve a llenar los cuatro catálogos con las filas de la foto, en el orden en que
+// Una sola sentencia vuelve a llenar los catálogos con las filas de la foto, en el orden en que
 // la foto las guarda. Las claves foráneas se revisan al terminar la sentencia, así que el cargo que
 // nombra a otro como su reemplazo no depende del orden.
 const REFILL_SQL = `with ${CATALOGS.map(

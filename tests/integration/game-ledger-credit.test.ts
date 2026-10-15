@@ -66,6 +66,7 @@ function entry(own: Own): Entry {
     panalGameId: null,
     panalCheckpoint: null,
     rewardId: null,
+    presenceBonusId: null,
     reversalOfId: null,
     legacyType: null,
     legacyId: null,

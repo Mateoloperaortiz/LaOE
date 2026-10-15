@@ -268,7 +268,9 @@ describe("Panal diario persistido", () => {
       closeTermPointsAs({ personId: id, ip: null }, row.termId),
     ]);
     const standing = await getTermStanding(row.termId);
-    expect(standing?.stats.pointsAwarded).toBe(result.ok ? 6 : 3);
+    expect(standing?.stats.pointsAwarded).toBe(0);
+    expect(standing?.topGamer).toMatchObject([{ personId: id, participations: 1, activeDays: 1 }]);
+    expect((await credits()).reduce((sum, entry) => sum + entry.points, 0)).toBe(result.ok ? 6 : 3);
     expect(await credits()).toHaveLength(result.ok ? 3 : 2);
     if (!result.ok) expect(result.reason).toBe("TERM_CLOSED");
     expect(

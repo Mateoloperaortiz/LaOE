@@ -3,9 +3,9 @@ import type { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { createCampaigns, grantBoosterManually } from "@/modules/participation/domain/boosters";
 import { createChallenge, publishChallenge } from "@/modules/participation/domain/challenges";
+import { setGamificationEnabledAs } from "@/modules/participation/domain/gamification-launch";
 import { boostCampaign, boosterItem, challenge, occasion } from "@/modules/participation/schema";
 import { membership, person } from "@/modules/people/schema";
-import { appConfig } from "@/modules/system/schema";
 import { logger } from "@/shared/log";
 
 // Datos sintéticos de la gamificación (ADR-067): la activación, un reto publicado por formato
@@ -81,10 +81,7 @@ async function seedChallenge(
 }
 
 export async function seedGamificacion(db: Db, termId: string): Promise<void> {
-  await db
-    .insert(appConfig)
-    .values({ key: "gamification.enabled", value: true })
-    .onConflictDoUpdate({ target: appConfig.key, set: { value: true, updatedAt: new Date() } });
+  await setGamificationEnabledAs(SYSTEM_ACTOR, true);
 
   const occasionId = await seedOccasion(db, termId);
   const now = Date.now();

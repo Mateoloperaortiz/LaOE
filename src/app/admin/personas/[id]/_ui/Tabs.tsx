@@ -355,6 +355,7 @@ export function TabComunicaciones({
     [prefLabels[2] ?? "", preferences.pushReminders],
     // El Wordle es el quinto del catálogo pero se muestra con los demás push (ADR-074 regla 4).
     [prefLabels[4] ?? "", preferences.pushWordle],
+    [t("T-3451"), preferences.pushGamerStreak],
     [prefLabels[3] ?? "", preferences.emailCampaigns],
   ];
   return (

@@ -145,7 +145,7 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
       )}
 
       {standing ? (
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-8 lg:grid-cols-2">
           {(
             [
               [
@@ -170,6 +170,17 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
                   rank: item.rank,
                   name: item.name,
                   value: `${Math.round(item.score * 100)} %`,
+                })),
+              ],
+              [
+                t("T-3425"),
+                standing.topGamer.map((item) => ({
+                  rank: item.rank,
+                  name: item.name,
+                  value: t("T-3455", {
+                    participaciones: item.participations,
+                    dias: item.activeDays,
+                  }),
                 })),
               ],
             ] as Array<[string, Array<{ rank: number; name: string; value: string }>]>

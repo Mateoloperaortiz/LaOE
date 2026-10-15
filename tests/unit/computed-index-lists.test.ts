@@ -71,9 +71,10 @@ const BADGE_CONDITION_LISTS = [
   ),
 ].map(([, code]) => code);
 
-const LEVELS_SEED = "0005_participacion_y_gh_points.sql";
+// ADR-131 recalibra los cortes, conserva los cinco nombres de T-082 y no modifica la semilla vieja.
+const LEVELS_SEED = "0053_gh_points_y_gamer.sql";
 const SEEDED_CUTOFFS: number[] = JSON.parse(
-  writtenIn(`drizzle/${LEVELS_SEED}`, /\('points\.levels', '(\[[\d, ]+\])'\)/),
+  writtenIn(`drizzle/${LEVELS_SEED}`, /"value" = '(\[[\d, ]+\])'::jsonb/),
 );
 const LEVEL_POSITIONS = distinct(
   SEEDED_CUTOFFS.flatMap((total) => {
@@ -266,11 +267,11 @@ describe("cada lista del catálogo que se lee con un subíndice calculado", () =
     );
   });
 
-  it("los cortes de GH Points los siembra una sola migración: otra que los cambie pide mirar T-082", () => {
+  it("solo las migraciones revisadas cambian los cortes de GH Points: otra pide mirar T-082", () => {
     const writers = readdirSync(join(ROOT, "drizzle")).filter(
       (file) => file.endsWith(".sql") && sourceOf(`drizzle/${file}`).includes("points.levels"),
     );
-    expect(writers).toEqual([LEVELS_SEED]);
+    expect(writers).toEqual(["0005_participacion_y_gh_points.sql", LEVELS_SEED]);
   });
 });
 

@@ -66,6 +66,12 @@ const NOT_TEXTS =
 // nombra la lista que lee, y esa lista tiene su fila en `computed-index-lists.test.ts` (ADR-128 regla 8).
 const OTHER_FORMS: (Exception & { form: Exclude<PositionalForm, "computedIndex"> })[] = [
   {
+    path: "src/app/app/gh-points/page.tsx",
+    form: "traversal",
+    read: "levelLabels[index]",
+    reason: `${NOT_LABELS} los mínimos de points.levels son una escala ordinal configurable, y cada posición presenta el nivel correspondiente de T-082; no hay un enum de valores que pueda leerlos por nombre.`,
+  },
+  {
     path: "src/app/admin/gamificacion/campanas/page.tsx",
     form: "positionConstant",
     read: "stateLabels[STATE_INDEX[campaign.state]]",

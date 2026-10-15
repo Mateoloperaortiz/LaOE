@@ -62,6 +62,7 @@ export const pointEntryKind = pgEnum("point_entry_kind", [
   // ADR-078: premio del Sudoku, 2, 4 o 6 puntos por dificultad (la mitad con ayudas) y uno por día.
   "SUDOKU",
   "PANAL",
+  "PRESENCE_STREAK",
 ]);
 
 export const wordleStatus = pgEnum("wordle_status", ["IN_PROGRESS", "WON", "LOST", "EXPIRED"]);
@@ -391,6 +392,7 @@ export const occasion = pgTable(
     // Encuesta al cerrar (ADR-038 regla 13): un formulario de miembros cuyas preguntas responden los asistentes.
     surveyFormId: text().references(() => form.id, { onDelete: "set null" }),
     status: occasionStatus().notNull().default("DRAFT"),
+    openedAt: timestampTz(),
     cancelReason: text(),
     closedAt: timestampTz(),
     createdById: text().references(() => person.id, { onDelete: "set null" }),
@@ -472,6 +474,7 @@ export const pointEntry = pgTable(
     panalGameId: text().references(() => panalGame.id),
     panalCheckpoint: integer(),
     rewardId: text().references((): AnyPgColumn => reward.id),
+    presenceBonusId: text().references((): AnyPgColumn => presenceBonus.id),
     kind: pointEntryKind().notNull(),
     points: integer().notNull(),
     reason: text().notNull(),
@@ -484,6 +487,7 @@ export const pointEntry = pgTable(
   (t) => [
     uniqueIndex("point_entry_checkin_unique").on(t.checkInId).where(sql`${t.kind} = 'CHECKIN'`),
     uniqueIndex("point_entry_reversal_of_unique").on(t.reversalOfId),
+    uniqueIndex("point_entry_presence_bonus_unique").on(t.presenceBonusId),
     uniqueIndex("point_entry_wordle_game_unique").on(t.wordleGameId),
     uniqueIndex("point_entry_game2048_run_unique").on(t.game2048RunId),
     uniqueIndex("point_entry_sudoku_run_unique").on(t.sudokuRunId),
@@ -515,6 +519,14 @@ export const pointEntry = pgTable(
     index("point_entry_person_term_idx").on(t.personId, t.termId),
     index("point_entry_term_created_idx").on(t.termId, t.createdAt),
     check("point_entry_nonzero", sql`${t.points} <> 0`),
+    check(
+      "point_entry_presence_bonus_consistent",
+      sql`(${t.kind}::text = 'PRESENCE_STREAK') = (${t.presenceBonusId} is not null)`,
+    ),
+    check(
+      "point_entry_presence_bonus_points",
+      sql`${t.kind}::text <> 'PRESENCE_STREAK' or ${t.points} in (2, 3, 5)`,
+    ),
     check(
       "point_entry_wordle_consistent",
       sql`(${t.kind}::text = 'WORDLE') = (${t.wordleGameId} is not null)`,
@@ -552,6 +564,37 @@ export const pointEntry = pgTable(
       sql`(${t.kind}::text <> 'CHALLENGE' or ${t.points} between 1 and 20)
         and (${t.kind}::text <> 'BOOST' or ${t.points} between 1 and 1000)`,
     ),
+  ],
+);
+
+// Cada liquidación semanal es un hecho inmutable. Una corrección revierte su entrada y crea una
+// versión nueva: ni el reconocimiento original ni sus puntos se editan.
+export const presenceBonus = pgTable(
+  "presence_bonus",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    weekKey: date({ mode: "string" }).notNull(),
+    version: integer().notNull(),
+    streakWeeks: integer().notNull(),
+    points: integer().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("presence_bonus_week_version_unique").on(
+      t.personId,
+      t.termId,
+      t.weekKey,
+      t.version,
+    ),
+    check("presence_bonus_positive_version", sql`${t.version} > 0`),
+    check("presence_bonus_streak", sql`${t.streakWeeks} >= 2`),
+    check("presence_bonus_points", sql`${t.points} in (2, 3, 5)`),
   ],
 );
 
@@ -594,6 +637,7 @@ export const termStanding = pgTable(
     topNew: jsonb().$type<unknown>().notNull(),
     topVeteran: jsonb().$type<unknown>().notNull(),
     topCommittees: jsonb().$type<unknown>().notNull(),
+    topGamer: jsonb().$type<unknown>().notNull().default(sql`'[]'::jsonb`),
     stats: jsonb().$type<unknown>().notNull(),
     createdAt: createdAt(),
   },

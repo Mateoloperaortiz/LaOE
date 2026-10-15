@@ -155,7 +155,7 @@ export async function requestDeletionAction(): Promise<void> {
   back("privacidad", { guardado: "privacidad" });
 }
 
-// Notificaciones (ADR-038 regla 5, ADR-074 regla 4): las cinco preferencias y quitar un dispositivo.
+// Notificaciones (ADR-038 regla 5, ADR-074 y ADR-131): preferencias y quitar un dispositivo.
 
 export type PreferencesState = { status: "idle" | "done" | "error"; message?: string };
 
@@ -169,6 +169,7 @@ export async function updatePreferencesAction(
     pushPoints: formData.get("pushPoints") === "on",
     pushReminders: formData.get("pushReminders") === "on",
     pushWordle: formData.get("pushWordle") === "on",
+    pushGamerStreak: formData.get("pushGamerStreak") === "on",
     emailCampaigns: formData.get("emailCampaigns") === "on",
   });
   revalidatePath("/app/ajustes");

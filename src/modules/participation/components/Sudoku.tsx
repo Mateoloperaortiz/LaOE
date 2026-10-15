@@ -3,13 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent, useEffect, useRef, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tLabels, tList } from "@/shared/copy/client";
-import {
-  looksSolved,
-  SUDOKU_DIFFICULTIES,
-  SUDOKU_REWARDS,
-  sudokuConflicts,
-  sudokuReward,
-} from "../sudoku-engine";
+import { looksSolved, SUDOKU_DIFFICULTIES, sudokuConflicts } from "../sudoku-engine";
 import {
   applySudokuAction,
   isSudokuCellLocked,
@@ -117,7 +111,6 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
   const difficulties = tLabels("T-2681", SUDOKU_DIFFICULTIES);
   const modes = tList("T-2683");
   const modeNotes = tList("T-2684");
-  const headers = tList("T-2690");
   const [confirmar, seguir] = tList("T-2695");
 
   // Retoma la partida abierta con lo que guardó este navegador, o desde las dadas si no hay nada.
@@ -361,9 +354,7 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
       ) : null}
 
       {done ? (
-        <p className="text-sm font-semibold">
-          {done.points > 0 ? t("T-2708", { n: done.points }) : t("T-2709")}
-        </p>
+        <p className="text-sm font-semibold">{done.points > 0 ? t("T-2708") : t("T-2709")}</p>
       ) : null}
 
       {!live && available ? (
@@ -422,7 +413,7 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
           ) : (
             <div className="flex flex-col gap-1 rounded-xl border-2 border-oe-orange bg-fondo p-3 text-sm">
               <p className="font-semibold">{t("T-2685")}</p>
-              <p>{t("T-2686", { n: sudokuReward(difficulty, assisted) })}</p>
+              <p>{t("T-2686")}</p>
             </div>
           )}
           <div>
@@ -500,28 +491,7 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
       <details className="text-sm">
         <summary className="cursor-pointer font-semibold">{t("T-2689")}</summary>
         <p className="mt-2 max-w-prose text-tinta-suave">{t("T-2679")}</p>
-        <table className="mt-3 w-full max-w-sm text-left">
-          <thead>
-            <tr>
-              {headers.map((header) => (
-                <th key={header} scope="col">
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {SUDOKU_DIFFICULTIES.map((value) => (
-              <tr key={value}>
-                <th scope="row" className="font-normal">
-                  {difficultyName(value)}
-                </th>
-                <td>{SUDOKU_REWARDS[value][0]}</td>
-                <td>{SUDOKU_REWARDS[value][1]}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <p className="mt-3 max-w-prose font-semibold">{t("T-3432")}</p>
       </details>
     </section>
   );

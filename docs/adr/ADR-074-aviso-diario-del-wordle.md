@@ -1,6 +1,6 @@
 # ADR-074: Aviso diario del Wordle
 
-- Estado: Aceptada; en producción desde el 2026-09-17 (`33407ad`)
+- Estado: Aceptada (enmendada por ADR-131); en producción desde el 2026-09-17 (`33407ad`)
 - Fecha: 2026-09-17
 - Enmienda: ADR-041 (regla 6: el Wordle no emitía ningún push) y ADR-038 (reglas 2 y 5: un tipo de notificación y una preferencia más)
 - Relacionadas: ADR-012, ADR-020, ADR-030, ADR-035, ADR-038, ADR-041, ADR-067
@@ -37,3 +37,7 @@ Mateo decidió el 2026-09-17, sobre dos alternativas planteadas: interruptor pro
 ## Enmienda (2026-09-17, ADR-075)
 
 La regla 5 mantiene la clave, el texto y la etiqueta; cambia la URL: el aviso lleva a `/app/juegos/wordle`, la ruta nueva del tablero. Los push ya entregados abren `/app/gh-points`, que conserva el enlace a la biblioteca, así que no hace falta redirección. Ver [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md).
+
+## Enmienda (2026-10-14, ADR-131)
+
+El aviso Wordle de las 9:00 conserva horario, preferencia y audiencia. Ya no es el único aviso diario posible: se agrega uno gamer opcional a las 20:00 de Colombia, con interruptor propio apagado hasta activación por la persona, solo para racha en riesgo sin participación válida hoy, término jugable y elegibilidad vigente. Ambos usan las colas y deduplicación existentes; ningún resultado de juego envía por sí mismo una nueva notificación. Ver [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md).

@@ -125,7 +125,7 @@ export function ContactForm({
 export function PreferencesForm({
   items,
 }: {
-  items: { name: string; label: string; checked: boolean }[];
+  items: { name: string; label: string; description?: string; checked: boolean }[];
 }) {
   const [values, setValues] = useState<Record<string, boolean>>(
     Object.fromEntries(items.map((item) => [item.name, item.checked])),
@@ -171,7 +171,12 @@ export function PreferencesForm({
               onChange={(event) => setValues({ ...values, [item.name]: event.target.checked })}
               className="size-5 shrink-0 accent-oe-navy"
             />
-            {item.label}
+            <span className="flex flex-col gap-1">
+              <span>{item.label}</span>
+              {item.description ? (
+                <span className="text-sm font-normal text-tinta-suave">{item.description}</span>
+              ) : null}
+            </span>
           </label>
         ))}
         <p className="max-w-prose text-sm text-tinta-suave">{t("T-1081")}</p>

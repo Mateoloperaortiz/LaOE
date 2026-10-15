@@ -236,6 +236,7 @@ export interface PreferenceFlags {
   pushPoints: boolean;
   pushReminders: boolean;
   pushWordle: boolean;
+  pushGamerStreak: boolean;
 }
 
 export const DEFAULT_PREFERENCES: PreferenceFlags = {
@@ -244,6 +245,7 @@ export const DEFAULT_PREFERENCES: PreferenceFlags = {
   pushPoints: true,
   pushReminders: true,
   pushWordle: true,
+  pushGamerStreak: false,
 };
 
 /** Qué preferencia gobierna cada tipo de push; lo transaccional llega siempre. */
@@ -256,9 +258,11 @@ export function shouldDeliver(kind: NotificationKind, preferences: PreferenceFla
     case "REMINDER":
     case "SURVEY":
       return preferences.pushReminders;
-    // El único push diario se apaga solo (ADR-074 regla 4).
+    // Cada aviso diario tiene su interruptor (ADR-074 regla 4 y ADR-131).
     case "WORDLE":
       return preferences.pushWordle;
+    case "GAMER_STREAK":
+      return preferences.pushGamerStreak;
     case "TRANSACTIONAL":
       return true;
   }

@@ -10,6 +10,7 @@ export {
   getCurrentTerm,
   getTerm,
   listAllTerms,
+  lockOpenTermForClosing,
   lockOpenTermPoints,
   nextTermCode,
   semesterFromCode,

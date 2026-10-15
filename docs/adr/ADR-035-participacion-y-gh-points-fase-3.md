@@ -2,7 +2,7 @@
 
 Enmienda posterior: [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) define la importación administrativa de asistencias históricas, con GH Points para miembros en licencia cuando GH lo confirma en el manifiesto.
 
-- Estado: Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116, ADR-119 y ADR-122)
+- Estado: Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116, ADR-119 y ADR-122, ADR-131)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-020, ADR-024, ADR-028, ADR-030, ADR-031, ADR-032, ADR-034
 - Enmienda: ADR-006 (transiciones del check-in), ADR-009 (filas del score solo con elegibles, congelado y transacción propia), ADR-024 (una sola ordinaria obligatoria, aclaración de redacción), ADR-034 (punto 1: el término pasa a un módulo `terms`), 03-modelo (`rotatingSecret`, columnas nuevas de la ocasión, `assembly_requirement` solo para ajustes) y 05-acceso (step-up para cancelar con créditos y para cerrar puntos; líderes en el admin)
@@ -86,3 +86,7 @@ Reglas 5 y 6. La regla 5 decía «sin lock del término ni de la ocasión». El 
 ## Enmienda (2026-10-10, ADR-122)
 
 Regla 16: decía cómo sondea la consola y no qué hace cuando un sondeo falla, y el componente lo ignoraba: con la sesión del anfitrión vencida seguía mostrando el QR y el último código (DT-236, inciso b). Ahora, si un sondeo responde con error, la consola retira el QR, el código y el enlace que lo lleva, avisa (T-3260) y sigue sondeando hasta que la casa vuelva a responder; sin respuesta, el código vale lo que le quede a su cuenta. El sondeo de 4 segundos, la pausa con la pestaña oculta y el `qrSvg` dibujado en la casa no cambian. Ver [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 14.
+
+## Enmienda (2026-10-14, ADR-131)
+
+Las reglas 2 y 9 cambian los cortes de `points.levels` a 0, 25, 75, 150 y 250 y calculan saldo y niveles desde la proyección GH sin videojuegos. Las reglas 10 y 13 conservan nuevos/veteranos y comités y suman una clasificación gamer separada por participaciones y días activos, congelada dentro del mismo cierre. Toda asistencia presencial aprobada, incluso de cero puntos, puede cumplir una semana de racha y generar el bono fijo 0/2/3/5, una vez por semana desde el lanzamiento; no modifica score de comité ni permanencia. Ver [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md).

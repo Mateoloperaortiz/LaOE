@@ -226,7 +226,7 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
               ? t("T-1239")
               : message ||
                 (game?.status === "WON"
-                  ? t("T-1245", { n: attempts.length, puntos: game.points })
+                  ? t("T-1245", { n: attempts.length })
                   : game?.status === "LOST"
                     ? t("T-1246")
                     : game?.status === "EXPIRED"
@@ -372,31 +372,7 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
           </details>
           <div>
             <h3 className="mb-3 text-titulo-sm">{t("T-1234")}</h3>
-            <table className="w-full max-w-xs text-center text-sm">
-              <tbody>
-                <tr>
-                  <th scope="row" className="py-2 text-left font-semibold">
-                    {tList("T-1235")[0]}
-                  </th>
-                  {ROWS.map((index) => (
-                    <td key={index} className="px-1 py-2">
-                      {index + 1}
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-t border-borde">
-                  <th scope="row" className="py-2 text-left font-semibold">
-                    {tList("T-1235")[1]}
-                  </th>
-                  {ROWS.map((index) => (
-                    <td key={index} className="px-1 py-2 font-bold">
-                      +{6 - index}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-            <p className="mt-2 text-xs text-tinta-suave">{t("T-1265")}</p>
+            <p className="max-w-prose text-sm text-tinta-suave">{t("T-3430")}</p>
           </div>
           {initial.availability === "AVAILABLE" && !blocked ? (
             <p className="text-sm text-tinta-suave">

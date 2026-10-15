@@ -10,7 +10,8 @@ export type PointEntryKind =
   | "BOOST"
   | "GAME2048"
   | "SUDOKU"
-  | "PANAL";
+  | "PANAL"
+  | "PRESENCE_STREAK";
 export const POINT_ENTRY_KINDS = [
   "CHECKIN",
   "ADJUSTMENT",
@@ -25,6 +26,7 @@ export const POINT_ENTRY_KINDS = [
   // ADR-078: premio del Sudoku; cierra la lista T-085.
   "SUDOKU",
   "PANAL",
+  "PRESENCE_STREAK",
 ] as const satisfies readonly PointEntryKind[];
 
 export interface Level {

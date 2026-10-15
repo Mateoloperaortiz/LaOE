@@ -15,12 +15,12 @@ export const textosCliente = {
   "T-1082": "Listo pues, guardamos tus preferencias.",
   "T-1083": "Guardar preferencias",
   "T-1230": "Wordle de hoy",
-  "T-1231": "Una palabra distinta para vos cada día. Hágale: resolvela y sumá GH Points.",
+  "T-1231":
+    "Una palabra distinta para vos cada día. Hágale: resolvela y sumá una participación gamer.",
   "T-1232": "Jugar el Wordle de hoy",
   "T-1233":
     "Adiviná una palabra de 5 letras en 6 intentos. Podés escribir con o sin tilde; la Ñ es distinta de la N. Cada intento válido queda guardado para que sigás en otro dispositivo.",
-  "T-1234": "Tus puntos por acertar",
-  "T-1235": "Intentos · GH Points",
+  "T-1234": "Cómo suma el Wordle",
   "T-1236": "Tu palabra de cinco letras",
   "T-1237": "Probar palabra",
   "T-1238": "Borrar",
@@ -30,14 +30,17 @@ export const textosCliente = {
   "T-1242": "{letra}: {estado}",
   "T-1243": "Escribí una palabra de cinco letras.",
   "T-1244": "No la encontré en el diccionario. Probá otra; no perdiste un intento.",
-  "T-1245": "¡Qué nota, la resolviste en {n}/6! Sumaste {puntos} GH Points. ¡OE OE OE!",
-  "T-1246": "Se acabaron los intentos. Hoy no sumaste puntos; mañana hay otra palabra, pues.",
+  "T-1245": "¡Qué nota, la resolviste en {n}/6! Sumaste una participación gamer. ¡OE OE OE!",
+  "T-1246":
+    "Se acabaron los intentos. Este Wordle no suma una participación; probá otro juego para sumar hoy.",
   "T-1247": "La palabra era {palabra}.",
   "T-1248": "Próxima palabra: {fecha}, a las 12:00 a. m. de Colombia.",
-  "T-1249": "El Wordle estará disponible cuando haya un semestre vigente con los puntos abiertos.",
+  "T-1249":
+    "Los juegos estarán disponibles cuando haya un semestre vigente con la temporada abierta.",
   "T-1250": "El Wordle está disponible para miembros activos y honorarios.",
   "T-1251": "No pudimos preparar tu palabra. Probá otra vez en un ratico.",
-  "T-1252": "Terminó el día de esta partida. No sumaste puntos; ya podés consultar el reto de hoy.",
+  "T-1252":
+    "Terminó el día de esta partida. No sumó una participación; ya podés consultar el reto de hoy.",
   "T-1253":
     "Tu partida cambió en otro dispositivo. Ya trajimos los intentos guardados; revisalos antes de seguir.",
   "T-1254":
@@ -49,7 +52,6 @@ export const textosCliente = {
   "T-1262": "Tus seis intentos",
   "T-1263": "Sin letra",
   "T-1264": "Podés sumar {n} GH Points en este intento.",
-  "T-1265": "Si no acertás, no sumás puntos.",
   "T-1266": "Ya cambió el día en Colombia. Actualizá para jugar tu nueva palabra.",
   "T-1267": "Tu partida ya terminó.",
   "T-1268": "Reintentar jugada",
@@ -179,7 +181,7 @@ export const textosCliente = {
     "Cuentan las actividades cerradas que otorgan GH Points; todas pesan igual. Los comités con el mismo resultado del ranking comparten puesto.",
   "T-2630": "2048",
   "T-2631":
-    "Deslizá las fichas: dos iguales se juntan en una. Cuanto más alto el puntaje, más GH Points.",
+    "Deslizá las fichas: dos iguales se juntan en una. Terminá una partida con al menos 1.000 puntos para sumar tu participación de hoy.",
   "T-2632":
     "Movés todo el tablero de una vez, con las flechas, con los botones de abajo o deslizando el dedo. Dos fichas iguales que chocan se juntan y suman su valor. Después de cada movimiento aparece una ficha nueva. Se acaba cuando ya no queda ninguna jugada.",
   "T-2633": "Empezar una partida",
@@ -192,28 +194,27 @@ export const textosCliente = {
   "T-2640": "Puntaje: {puntaje}",
   "T-2641": "Tu ficha más alta: {n}",
   "T-2642": "Llegaste a la ficha {n}.",
-  "T-2643": "Ya asegurás {n} GH Points con este puntaje.",
+  "T-2643": "Ya llegaste al mínimo para sumar una participación cuando termine la partida.",
   "T-2644": "No quedan jugadas. Hiciste {puntaje} puntos.",
   "T-2645":
     "Llegaste a los 4.000 movimientos y cerramos la partida ahí. Empezá otra cuando quieras.",
   "T-2646": "Tenés una partida a medias. ¿La seguís?",
   "T-2647": "Seguir la partida",
   "T-2648": "Empezar de cero",
-  "T-2649": "Tus puntos por puntaje",
-  "T-2650": "Puntaje · GH Points",
-  "T-2651": "¡Severo! Sumaste {n} GH Points. ¡OE OE OE!",
+  "T-2649": "Cómo suma el 2048",
+  "T-2651": "¡Severo! Sumaste una participación gamer. ¡OE OE OE!",
   "T-2652":
-    "Con este puntaje todavía no sumás. Hágale a otra partida: el crédito del día sigue libre.",
+    "Esta partida no llegó a 1.000 puntos. Hágale a otra: todavía podés sumar tu participación de hoy.",
   "T-2653":
-    "Hoy ya sumaste tus GH Points del 2048. Podés seguir jugando por gusto y mañana vuelve a contar.",
-  "T-2655": "Terminó el día de esta partida. No sumaste puntos; empezá una nueva.",
+    "Hoy ya sumaste tu participación del 2048. Podés seguir por tu récord y mañana vuelve a contar.",
+  "T-2655": "Terminó el día de esta partida. No sumó una participación; empezá una nueva.",
   "T-2656": "Esa partida ya terminó.",
   "T-2658":
-    "El 2048 suma puntos mientras el semestre esté abierto. Volvé cuando arranque el próximo.",
+    "El 2048 suma participaciones mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre.",
   "T-2659": "El 2048 es para miembros activos y honorarios.",
   "T-2660": "No pudimos recuperar esa partida. Empezá una nueva para seguir.",
   "T-2661":
-    "No pudimos reconstruir esa partida, así que no la guardamos. Empezá otra: el crédito del día sigue libre.",
+    "No pudimos reconstruir esa partida, así que no la guardamos. Empezá otra: todavía podés sumar hoy.",
   "T-2662":
     "No recibimos la confirmación. Reintentá el mismo envío: si ya se guardó, no contará dos veces.",
   "T-2663": "Reintentar envío",
@@ -221,7 +222,7 @@ export const textosCliente = {
   "T-2674": "Quitar opción",
   "T-2677": "Sudoku",
   "T-2678":
-    "Llená cada fila, cada columna y cada caja con los números del 1 al 9, sin repetir ninguno. Cuanto más difícil el tablero, más GH Points.",
+    "Llená cada fila, columna y caja del 1 al 9 sin repetir. Resolver un tablero de cualquier dificultad, con o sin ayudas, suma una participación al día.",
   "T-2679":
     "Elegí una casilla y después un número, con el teclado de abajo o con el tuyo. Con el lápiz anotás candidatos sin comprometerte. Un número repetido en su fila, columna o caja se marca solo. Cada tablero tiene una sola solución y sale con pura lógica: nunca hace falta adivinar.",
   "T-2680": "Dificultad",
@@ -229,14 +230,13 @@ export const textosCliente = {
   "T-2682": "Modo",
   "T-2683": "Sin ayudas · Con ayudas",
   "T-2684":
-    "Notas a lápiz y repetidos marcados. Paga el premio completo. · Además te marca los errores al instante y te da pistas. Paga la mitad.",
+    "Notas a lápiz y repetidos marcados. · Además te marca los errores al instante y te da pistas.",
   "T-2685":
-    "El primer Sudoku que resuelvas hoy es el que suma, sea cual sea. Elegí bien antes de empezar: después podés seguir jugando por gusto.",
-  "T-2686": "Este tablero paga {n} GH Points.",
+    "El primer Sudoku que resuelvas hoy suma una participación. Elegí la dificultad y las ayudas con las que querás jugar.",
+  "T-2686": "Este tablero cuenta igual para el ranking gamer, con o sin ayudas.",
   "T-2687": "Empezar el tablero",
   "T-2688": "Armando tu tablero…",
-  "T-2689": "Tus puntos por dificultad",
-  "T-2690": "Dificultad · Sin ayudas · Con ayudas",
+  "T-2689": "Cómo suma el Sudoku",
   "T-2691": "Tenés un Sudoku a medias: {dificultad}, {modo}. ¿Lo seguís?",
   "T-2692": "Seguir el tablero",
   "T-2693": "Abandonar el tablero",
@@ -254,15 +254,15 @@ export const textosCliente = {
   "T-2705": "Pista: en la fila {fila}, columna {columna} va un {n}.",
   "T-2706": "Elegí una casilla vacía para pedir la pista.",
   "T-2707": "Revisando tu tablero…",
-  "T-2708": "¡Resuelto, parce! Sumaste {n} GH Points. ¡OE OE OE!",
+  "T-2708": "¡Resuelto, parce! Sumaste una participación gamer. ¡OE OE OE!",
   "T-2709": "¡Resuelto! Hoy ya habías sumado con el Sudoku, así que este fue por puro gusto.",
   "T-2710":
-    "Hoy ya sumaste tus GH Points del Sudoku. Podés seguir jugando por gusto y mañana vuelve a contar.",
+    "Hoy ya sumaste tu participación del Sudoku. Podés seguir jugando por gusto y mañana vuelve a contar.",
   "T-2711": "Jugar otro tablero",
-  "T-2713": "Terminó el día de este tablero. No sumaste puntos; empezá uno nuevo.",
+  "T-2713": "Terminó el día de este tablero. No sumó una participación; empezá uno nuevo.",
   "T-2714": "Ese tablero ya está cerrado.",
   "T-2715":
-    "El Sudoku suma puntos mientras el semestre esté abierto. Volvé cuando arranque el próximo.",
+    "El Sudoku suma participaciones mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre.",
   "T-2716": "El Sudoku es para miembros activos y honorarios.",
   "T-2717": "No pudimos recuperar ese tablero. Empezá uno nuevo para seguir.",
   "T-2718": "Ese tablero todavía no está resuelto. Revisá las casillas y volvé a intentarlo.",
@@ -284,11 +284,11 @@ export const textosCliente = {
   "T-2737":
     "Formá palabras de al menos cuatro letras con las siete del panal. · Incluí siempre la letra del centro; podés repetir letras. · Las tildes y la diéresis son opcionales. La ñ es distinta de la n. · Se aceptan plurales y conjugaciones del diccionario del juego. · Cuatro letras dan 1 punto; desde cinco, un punto por letra. · Usar las siete letras en una palabra es un pangrama y suma 7 puntos extra.",
   "T-2738":
-    "Llegá a Genio con {n} puntos de juego y ganá 6 GH Points. Un solo premio al día; después podés seguir buscando.",
+    "Encontrá al menos cinco palabras para sumar una participación gamer al día. Después podés seguir hasta Genio o completar el panal.",
   "T-2739":
     "Principiante · Buen comienzo · En camino · Bien · Muy bien · Genial · Excelente · Brillante · Genio · Panal completo",
   "T-2740": "Te faltan {n} puntos para Genio",
-  "T-2741": "¡Qué nota! Llegaste a Genio y sumaste 6 GH Points. ¡OE OE OE!",
+  "T-2741": "¡Qué nota! Llegaste a Genio. Tu participación de hoy ya está sumada. ¡OE OE OE!",
   "T-2742": "¡Encontraste todas las palabras! Volvé mañana por otro panal. ¡OE OE OE!",
   "T-2743": "{palabra}: +{n} puntos",
   "T-2744": "¡Pangrama! {palabra}: +{n} puntos",
@@ -308,20 +308,14 @@ export const textosCliente = {
   "T-2760": "La {letra} siempre va",
   "T-2762": "Rango: {rango}",
   "T-291": "Cerrar",
-  "T-3000": "Tus premios de hoy",
-  "T-3001": "{n} de 6 GH Points",
-  "T-3002": "{n} palabras",
-  "T-3003": "Genio",
-  "T-3004": "+{n} GH Points",
-  "T-3005": "Guardado",
-  "T-3006": "Próximo premio: {meta} · +{n} GH Points",
+  "T-3000": "Tu participación de hoy",
   "T-3007": "Volver a Juegos",
-  "T-3008": "Cada palabra y premio se guarda al instante. Podés salir y volver hoy cuando querás.",
-  "T-3009": "¡Sumaste {n} GH Points!",
+  "T-3008": "Cada palabra se guarda al instante. Podés salir y volver hoy cuando querás.",
+  "T-3009": "¡Participación gamer sumada!",
   "T-3011":
-    "Ganás 1 GH Point con 5 palabras, 2 más con 10 y 3 más al llegar a Genio ({n} puntos de juego). Hasta 6 GH Points al día; vos elegís hasta dónde llegar.",
-  "T-3012": "Guardar premios de este avance",
-  "T-3013": "Ya alcanzaste una meta. Guardá su premio para sumarlo a tus GH Points.",
+    "Encontrá cinco palabras para sumar una participación al día. Seguí buscando para mejorar tu puntaje y alcanzar Genio; los avances siguientes no suman otra participación.",
+  "T-3012": "Guardar avance",
+  "T-3013": "Ya alcanzaste una meta. Guardá tu avance para registrar tu participación.",
   "T-309": "Comités",
   "T-310": "Este comité todavía no publicó su presentación.",
   "T-3252": "No pudimos confirmar el envío. Revisá la conexión e intentá de nuevo.",
@@ -361,6 +355,15 @@ export const textosCliente = {
   "T-3296": "Fotos de {coleccion} · Comunidad OE",
   "T-3297": "Visor de fotos",
   "T-3299": "Comunidad",
+  "T-3430":
+    "Ganar el Wordle suma una participación por día, sin importar cuántos intentos necesités.",
+  "T-3431":
+    "Terminá una partida con al menos 1.000 puntos para sumar una participación por día. Podés intentar de nuevo si no llegaste al mínimo.",
+  "T-3432":
+    "Resolver cualquier tablero suma una participación por día, sea fácil, medio o difícil, con o sin ayudas.",
+  "T-3433": "Encontrá cinco palabras para sumar tu participación de hoy.",
+  "T-3434":
+    "Ya sumaste tu participación del Panal de hoy. Seguí buscando palabras para mejorar tu puntaje.",
   "T-375": "Tus comités",
   "T-376": "Todavía no tenés comité este semestre. GH te ubica en uno.",
   "T-382": "Los demás comités",

@@ -47,6 +47,8 @@ export const MESSAGE_KINDS = [
   "REMINDER",
   "SURVEY",
   "CAMPAIGN",
+  "WORDLE",
+  "GAMER_STREAK",
 ] as const;
 const STATUSES = ["SENT", "FAILED"] as const;
 const PROVIDERS = ["console", "resend", "ses", "webpush"] as const;

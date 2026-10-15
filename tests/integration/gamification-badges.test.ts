@@ -572,7 +572,7 @@ describe("flujo en vivo por el outbox", () => {
     expect(badgeInteraction?.summary).toContain("En parche");
   });
 
-  it("un Wordle ganado desbloquea Palabra a palabra 1 al drenar", async () => {
+  it("un Wordle ganado desbloquea Palabra a palabra 1 al drenar sin entregar boosters GH", async () => {
     await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "gamification.enabled", true));
     const termId = await seedTerm();
     const personId = await seedMember("flujo2@test.dev");
@@ -600,6 +600,7 @@ describe("flujo en vivo por el outbox", () => {
       .from(badgeDefinition)
       .where(eq(badgeDefinition.id, logros[0]?.badgeId ?? ""));
     expect(badge?.code).toBe("PALABRA_A_PALABRA_1");
+    expect(await boostersOf(personId)).toHaveLength(0);
   });
 
   it("publicar un reto pushea solo a su audiencia y completarlo pushea y anota", async () => {

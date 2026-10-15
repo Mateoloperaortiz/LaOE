@@ -1,8 +1,17 @@
 import { sql } from "drizzle-orm";
-import { check, date, integer, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, check, date, integer, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 
 // El término académico es el reloj universal del sistema (ADR-004).
+export const pointSeparationPolicy = pgTable(
+  "point_separation_policy",
+  { id: text().primaryKey(), firstTermCode: text().notNull() },
+  (t) => [
+    check("point_separation_policy_singleton", sql`${t.id} = 'GH_GAMER'`),
+    check("point_separation_policy_term_code", sql`${t.firstTermCode} ~ '^[0-9]{4}-[12]$'`),
+  ],
+);
+
 export const term = pgTable(
   "term",
   {
@@ -12,6 +21,8 @@ export const term = pgTable(
     startsOn: date({ mode: "string" }).notNull(),
     endsOn: date({ mode: "string" }).notNull(),
     pointsClosedAt: timestampTz(),
+    // Se fija en la transición de GH/juegos y no cambia al editar las fechas del término.
+    gamePointsSeparated: boolean().notNull().default(true),
     permanenceClosedAt: timestampTz(), // se estampa al aplicar el cierre de permanencia (ADR-036)
     requiredOrdinaryAssemblies: integer().notNull().default(1),
     permanenceGeneralNominal: integer().notNull().default(50),

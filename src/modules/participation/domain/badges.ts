@@ -259,7 +259,12 @@ export async function recomputeBadgesFor(
           family: definition.family,
           level: definition.level,
           name: definition.name,
-          boosterKind: options.historical ? null : definition.level >= 3 ? "PLUS_100" : "PLUS_50",
+          boosterKind:
+            options.historical || definition.family === "PALABRA_A_PALABRA"
+              ? null
+              : definition.level >= 3
+                ? "PLUS_100"
+                : "PLUS_50",
         })),
         revoked: revokes.map(({ achievement: row, badge }) => ({
           achievementId: row.id,
@@ -294,12 +299,15 @@ export async function recomputeBadgesFor(
       }
       let boosterKind: BoosterKind | null = null;
       if (!options.historical) {
-        const booster = await grantBoosterForAchievement(ctx, {
-          personId,
-          termId: currentTerm?.id ?? fact.termId,
-          achievementId: inserted.id,
-          level: definition.level,
-        });
+        const booster =
+          definition.family === "PALABRA_A_PALABRA"
+            ? null
+            : await grantBoosterForAchievement(ctx, {
+                personId,
+                termId: currentTerm?.id ?? fact.termId,
+                achievementId: inserted.id,
+                level: definition.level,
+              });
         boosterKind = booster?.kind ?? null;
         await ctx.emit(
           eventOf(badgeUnlocked, {

@@ -2,8 +2,20 @@ import { and, asc, eq, gt, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
-import { appointment, committeeMembership, membership, membershipTerm, person } from "../schema";
+import { listEntityAuditFacts } from "@/modules/system";
+import {
+  appointment,
+  committeeMembership,
+  membership,
+  membershipEvent,
+  membershipTerm,
+  person,
+} from "../schema";
 import { isNewMemberInTerm } from "./new-member-pure";
+import {
+  presenceCommitteeIntervals,
+  presenceStatusChanges,
+} from "./presence-membership-history-pure";
 import { SIGN_IN_STATUSES } from "./reads";
 
 // Lecturas de personas para otros módulos y para la paleta.
@@ -94,6 +106,51 @@ export async function getMembershipRef(
     .where(eq(membership.personId, personId))
     .limit(1);
   return row ?? null;
+}
+
+/** Historia mínima de elegibilidad presencial; se lee por la conexión del comando que la usa. */
+export async function getPresenceMembershipHistory(
+  personId: string,
+  termId: string,
+  exec: Executor = getDb(),
+) {
+  const [member] = await exec
+    .select()
+    .from(membership)
+    .where(eq(membership.personId, personId))
+    .limit(1);
+  if (!member) return null;
+  const changes = await exec
+    .select({
+      at: membershipEvent.at,
+      from: membershipEvent.fromStatus,
+      to: membershipEvent.toStatus,
+    })
+    .from(membershipEvent)
+    .where(eq(membershipEvent.membershipId, member.id))
+    .orderBy(asc(membershipEvent.at));
+  const committees = await exec
+    .select({
+      committeeId: committeeMembership.committeeId,
+      joinedAt: committeeMembership.joinedAt,
+      leftAt: committeeMembership.leftAt,
+      createdAt: committeeMembership.createdAt,
+    })
+    .from(committeeMembership)
+    .where(and(eq(committeeMembership.personId, personId), eq(committeeMembership.termId, termId)));
+  const audits = await listEntityAuditFacts(
+    "person",
+    personId,
+    ["committee-membership.set", "committee-membership.added", "committee-membership.closed"],
+    exec,
+  );
+  return {
+    firstTermId: member.firstTermId,
+    joinedAt: member.createdAt,
+    status: member.status,
+    changes: presenceStatusChanges({ createdAt: member.createdAt, status: member.status, changes }),
+    committees: presenceCommitteeIntervals(committees, audits, termId),
+  };
 }
 
 /** Comités de la persona en un término, solo pertenencias vigentes (leftAt nulo). */

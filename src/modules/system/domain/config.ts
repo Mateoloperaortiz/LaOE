@@ -50,6 +50,7 @@ export const CONFIG = {
   ),
   // Fase 3 (ADR-035): cortes de nivel de GH Points, ventana de check-in por defecto y cierre automático.
   "points.levels": z.array(z.number().int().min(0)).min(1),
+  "presenceStreak.launchedAt": z.string().datetime({ offset: true }),
   "checkin.defaultWindow": z.object({
     opensMinutesBefore: z.number().int().min(0),
     closesMinutesAfter: z.number().int().min(0),
@@ -84,6 +85,7 @@ export const CONFIG = {
     .nullable(),
   // ADR-067: bandera, topes y valores por defecto de retos y boosters.
   "gamification.enabled": z.boolean(),
+  "gamification.launch": z.object({ at: z.string().datetime({ offset: true }).nullable() }),
   "gamification.caps": z.object({
     daily: z.number().int().min(0).max(1000),
     weekly: z.number().int().min(0).max(5000),
@@ -263,7 +265,7 @@ export async function reviseConfig<K extends ConfigKey>(
   }
 }
 
-/** Vacía la caché lectura: la usan las pruebas al truncar la base. */
+/** Invalida la lectura tras un comando compuesto o al restaurar la base de pruebas. */
 export function clearConfigCache(): void {
   cache.clear();
 }

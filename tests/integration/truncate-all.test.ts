@@ -8,7 +8,7 @@ import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
 // Lo que el vaciado de la base de pruebas deja entre una prueba y la siguiente (spec #244, ADR-124):
-// cada tabla de `public` sin filas y los cuatro catálogos de migración como en la foto que tomó la
+// cada tabla de `public` sin filas y los cinco catálogos de migración como en la foto que tomó la
 // preparación de la suite. Nació como caracterización del vaciado anterior (DT-030 y DT-149 inciso e):
 // las celdas que fijaban que una prueba le heredaba la configuración o un cargo a la siguiente
 // cambiaron con #300 y llevan «DT-149 e» en el título.
@@ -16,7 +16,7 @@ import { truncateAll } from "./db";
 // Los catálogos que llenan las migraciones y vuelven a su foto. Las migraciones también llenan `page`
 // y `event`, y esas quedan vacías.
 const ROLE_CATALOGS = ["committee_role", "macroevent_role"];
-const CATALOGS = ["app_config", "badge_definition", ...ROLE_CATALOGS];
+const CATALOGS = ["app_config", "badge_definition", ...ROLE_CATALOGS, "point_separation_policy"];
 
 // Dónde deja la preparación de la suite la foto de los catálogos (ADR-124 regla 2): escrito acá y no
 // leído del vaciado.
@@ -58,6 +58,7 @@ const CHECKED: Record<string, Record<string, string>> = {
   gallery_photo: { source_hash: `'${"a".repeat(64)}'` },
   interaction: { person_id: "'x'" },
   occasion: { public_id: "'0123456789'" },
+  presence_bonus: { streak_weeks: "2", points: "2" },
   panal_word: { word: "'PANAL'" },
   recognition: { committee_id: "'x'", month: "1" },
   reward: { participation_id: "'x'" },
@@ -228,7 +229,7 @@ async function writeKey(key: string, value: unknown): Promise<void> {
   });
 }
 
-/** Las filas de los cuatro catálogos de un esquema. */
+/** Las filas de los catálogos de un esquema. */
 async function catalogsOf(schema: string): Promise<Record<string, unknown[]>> {
   return Object.fromEntries(
     await Promise.all(CATALOGS.map(async (table) => [table, await rowsOf(table, schema)] as const)),
@@ -315,7 +316,7 @@ afterAll(async () => {
 });
 
 describe("el vaciado de la base entre pruebas", () => {
-  it("deja sin filas cada tabla de public, menos los cuatro catálogos que llenan las migraciones", async () => {
+  it("deja sin filas cada tabla de public, menos los catálogos que llenan las migraciones", async () => {
     await fillEveryTableButTheCatalogs();
     expect(await tablesWithRows()).toEqual(await publicTables());
 
@@ -324,7 +325,7 @@ describe("el vaciado de la base entre pruebas", () => {
     expect(await tablesWithRows()).toEqual(CATALOGS);
   });
 
-  it("devuelve los cuatro catálogos a la foto, también si la prueba anterior los dejó sin filas", async () => {
+  it("devuelve los catálogos a la foto, también si la prueba anterior los dejó sin filas", async () => {
     await unchecked(...CATALOGS.map((table) => `delete from "${table}"`));
     expect(await tablesWithRows()).toEqual([]);
 
@@ -449,7 +450,11 @@ describe("el vaciado de la base entre pruebas", () => {
       ),
     );
     for (const table of CATALOGS) {
-      expect(await asStored(table), table).not.toEqual(await asStored(table, BASELINE));
+      const baseline = await asStored(table, BASELINE);
+      const reordered = await asStored(table);
+      expect(reordered, table).toHaveLength(baseline.length);
+      // Un catálogo de una sola fila, como la frontera GH/gamer, no tiene un orden distinto.
+      if (baseline.length > 1) expect(reordered, table).not.toEqual(baseline);
     }
 
     await truncateAll();
@@ -623,7 +628,7 @@ describe("el vaciado de la base entre pruebas", () => {
 });
 
 describe("la foto de los catálogos que toma la preparación de la suite", () => {
-  it("vive fuera de public y cubre solo los cuatro catálogos: no las páginas ni los eventos que una migración también llena", async () => {
+  it("vive fuera de public y cubre solo los catálogos: no las páginas ni los eventos que una migración también llena", async () => {
     expect(await tablesOf(BASELINE)).toEqual(CATALOGS);
   });
 

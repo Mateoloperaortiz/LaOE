@@ -323,7 +323,10 @@ export async function openOccasion(
     before.requireRotatingCode && !before.rotatingSecret
       ? newRotatingSecret()
       : before.rotatingSecret;
-  await ctx.tx.update(occasion).set({ status: "OPEN", rotatingSecret }).where(eq(occasion.id, id));
+  await ctx.tx
+    .update(occasion)
+    .set({ status: "OPEN", rotatingSecret, openedAt: new Date() })
+    .where(eq(occasion.id, id));
   await ctx.audit({
     action: "occasion.opened",
     entityType: "occasion",
@@ -658,6 +661,7 @@ export async function createOccasionSeries(
         approval: "AUTO",
         committeeId: input.committeeId,
         status: "OPEN",
+        openedAt: new Date(),
         createdById: ctx.actor.personId,
       })
       .returning({ id: occasion.id });

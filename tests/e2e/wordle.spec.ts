@@ -65,9 +65,12 @@ test("inicia sin filtrar la respuesta, rechaza palabras ausentes y acredita una 
   await word.press("Enter");
   await expect(game.getByRole("status")).toContainText(copyPattern("T-1245", { puntos: 6 }));
   await expect(game.getByText(t("T-1247", { palabra: saved.answer }))).toBeVisible();
-  // El movimiento se ve en el resumen, que es donde quedó la tabla del ledger.
+  // La victoria suma para gamer, sin aparecer entre los movimientos de GH.
   await page.goto("/app/gh-points");
-  await expect(page.getByText(t("T-1261", { fecha: saved.day, intento: 1 }))).toBeVisible();
+  await expect(page.getByText(t("T-1261", { fecha: saved.day, intento: 1 }))).toHaveCount(0);
+  await page.goto("/app/juegos");
+  await expect(page.getByText(t("T-3409", { n: 1 }))).toBeVisible();
+  await expect(page.getByText(t("T-3466"))).toBeVisible();
   await page.goto("/app/juegos/wordle");
   await expect(game.getByRole("status")).toContainText(copyPattern("T-1245", { puntos: 6 }));
   await expect(game.getByRole("button", { name: t("T-1232") })).toHaveCount(0);

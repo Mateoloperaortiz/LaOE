@@ -1,6 +1,6 @@
 # ADR-088: Panal diario en español
 
-- Estado: Aceptada (enmendada por ADR-092 y ADR-119); publicada y verificada en producción el 2026-09-23
+- Estado: Aceptada (enmendada por ADR-092 y ADR-119, ADR-131); publicada y verificada en producción el 2026-09-23
 - Fecha: 2026-09-23
 - Relacionadas: ADR-041, ADR-075, ADR-078, ADR-081, ADR-084, ADR-086
 - Enmienda: ADR-075 (biblioteca y disponibilidad), ADR-007 (tipo de crédito)
@@ -34,3 +34,7 @@ Publicación del PR #83 y comprobaciones de CI, migración y despliegue en [la e
 ## Enmienda (2026-10-09, ADR-119)
 
 Regla 7: «elegibilidad y semestre abierto iguales a los demás juegos» no decía qué responde empezar cuando el día cambia mientras la solicitud espera sus candados. El Panal buscaba el término con el día de antes y, si la pantalla ya pedía el día nuevo, abría la partida del día nuevo con el término del anterior. Ahora responde `EXPIRED`, como los otros tres. El candado compartido del semestre y el de persona, y su orden, son los de la guardia única de la partida diaria, y el día lo da la zona de la app. Lo que el Panal responde distinto al empezar con el semestre cerrado (`TERM_CLOSED` sin mirar la partida guardada) se conserva declarado y espera la decisión abierta 49. Ver [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) reglas 6 y 7.
+
+## Enmienda (2026-10-14, ADR-131)
+
+El Panal conserva tablero, palabras, validación y progreso. Sus premios históricos y nuevos registros de resultado dejan de sumar GH Points; alcanzar el primer checkpoint de cinco palabras cumple una participación gamer y el día de racha. Los varios avances del mismo juego y día no suman varias participaciones. Los hitos 3/7/30 son de racha gamer sin beneficios GH. Ver [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md).

@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { getPeopleByIds } from "@/modules/people";
 import { listAllTerms } from "@/modules/terms";
@@ -11,9 +11,28 @@ import {
   challengeParticipation,
   checkIn,
   occasion,
+  presenceBonus,
   reward,
 } from "../schema";
 import type { CheckInSource, CheckInStatus } from "./check-in-pure";
+import { getPresenceStreak } from "./presence-streak";
+
+/** Reconocimientos propios: no incluye clasificaciones ni nombres de otras personas. */
+export async function listPresenceHistoryFor(personId: string) {
+  const terms = await listAllTerms();
+  const bonuses = await getDb()
+    .select()
+    .from(presenceBonus)
+    .where(eq(presenceBonus.personId, personId))
+    .orderBy(asc(presenceBonus.weekKey), asc(presenceBonus.version));
+  const seasons = await Promise.all(
+    terms.map(async (term) => ({
+      termId: term.id,
+      ...(await getPresenceStreak(personId, term.id)),
+    })),
+  );
+  return { seasons, bonuses };
+}
 
 // Lecturas planas para los exportes CSV (ADR-035 regla 17): con nombre y correo, solo para ADMIN.
 

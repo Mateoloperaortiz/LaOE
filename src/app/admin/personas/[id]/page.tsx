@@ -310,6 +310,7 @@ export default async function PersonaPage({
               pushPoints: true,
               pushReminders: true,
               pushWordle: true,
+              pushGamerStreak: false,
               unsubscribeToken: null,
               updatedAt: null,
             }

@@ -113,6 +113,7 @@ async function equip({ board, personId, termId, committeeId }: Scene): Promise<v
       pushPoints: false,
       pushReminders: true,
       pushWordle: true,
+      pushGamerStreak: false,
     },
   );
   const surveyId = await seedForm(`encuesta-${sequence}`, {

@@ -191,6 +191,7 @@ async function seedPreferencesAndPushes(members: Member[], db: Db): Promise<void
     pushPoints: true,
     pushReminders: true,
     pushWordle: true,
+    pushGamerStreak: false,
   };
   const variations: Array<[string, Partial<typeof base>]> = [
     ["oe.demo.04", { emailCampaigns: false }],

@@ -88,6 +88,12 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
     { name: "pushReminders", label: prefRecordatorios, checked: preferences.pushReminders },
     // El Wordle va con los demás push; las campañas, que son correo, cierran la lista (ADR-074).
     { name: "pushWordle", label: prefWordle, checked: preferences.pushWordle },
+    {
+      name: "pushGamerStreak",
+      label: t("T-3451"),
+      description: t("T-3452"),
+      checked: preferences.pushGamerStreak,
+    },
     { name: "emailCampaigns", label: prefCampañas, checked: preferences.emailCampaigns },
   ];
   const secciones = tList("T-133");

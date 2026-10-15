@@ -161,6 +161,7 @@ function optOutOfCampaigns(personId: string): Promise<void> {
       pushPoints: true,
       pushReminders: true,
       pushWordle: true,
+      pushGamerStreak: false,
     },
   );
 }

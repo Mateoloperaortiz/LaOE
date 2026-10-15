@@ -56,6 +56,7 @@ describe("shouldDeliver (ADR-038 regla 2)", () => {
       pushPoints: false,
       pushReminders: false,
       pushWordle: false,
+      pushGamerStreak: false,
     };
     expect(shouldDeliver("ANNOUNCEMENT", DEFAULT_PREFERENCES)).toBe(true);
     expect(shouldDeliver("ANNOUNCEMENT", off)).toBe(false);
@@ -70,6 +71,10 @@ describe("shouldDeliver (ADR-038 regla 2)", () => {
     expect(shouldDeliver("WORDLE", off)).toBe(false);
     expect(shouldDeliver("WORDLE", { ...off, pushPoints: true, pushReminders: true })).toBe(false);
     expect(shouldDeliver("WORDLE", { ...off, pushWordle: true })).toBe(true);
+    // El aviso de racha gamer empieza apagado y no hereda los otros interruptores (ADR-131).
+    expect(shouldDeliver("GAMER_STREAK", DEFAULT_PREFERENCES)).toBe(false);
+    expect(shouldDeliver("GAMER_STREAK", { ...off, pushWordle: true })).toBe(false);
+    expect(shouldDeliver("GAMER_STREAK", { ...off, pushGamerStreak: true })).toBe(true);
   });
   it("la preferencia de campañas por correo no gobierna ningún push", () => {
     const onlyMail = { ...DEFAULT_PREFERENCES, emailCampaigns: false };

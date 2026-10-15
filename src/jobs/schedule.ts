@@ -3,6 +3,7 @@
 // siguiente (fase 3); `campaigns` arranca las campañas vencidas y manda un lote por minuto (fase 6).
 
 import { mediaBackfill } from "@/domain-events/content";
+import { gamerStreakReminder, presenceStreakReconcile } from "@/domain-events/participation";
 import { walletReconcile } from "@/domain-events/wallet";
 
 export interface ScheduleEntry {
@@ -18,10 +19,17 @@ export const SCHEDULE: ScheduleEntry[] = [
   {
     name: "reminders",
     cron: "0 * * * *",
-    events: ["participation.auto-close", "participation.term-check", "participation.reminders"],
+    events: [
+      "participation.auto-close",
+      "participation.term-check",
+      "participation.reminders",
+      presenceStreakReconcile.type,
+    ],
   },
   // Aviso diario del Wordle (ADR-074): cuatro horas después de que empiece el día del juego.
   { name: "wordle", cron: "0 9 * * *", events: ["participation.wordle-reminder"] },
+  // Racha gamer opcional (ADR-131): su preferencia es independiente del Wordle de la mañana.
+  { name: "gamer-streak", cron: "0 20 * * *", events: [gamerStreakReminder.type] },
   // Permanencia (ADR-036 regla 5): recalcula el término actual cada día para que "lo posible" envejezca.
   { name: "permanence", cron: "0 6 * * *", events: ["permanence.daily"] },
   // Avisos de permanencia por push (ADR-038 regla 10), a una hora en la que alguien los lee.
