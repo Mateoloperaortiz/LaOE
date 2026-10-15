@@ -400,6 +400,13 @@
       "when": 1792041233094,
       "tag": "0056_lanzamiento_efectivo_de_gamificacion",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1792096172418,
+      "tag": "0057_color_memoria_y_puntos",
+      "breakpoints": true
     }
   ]
 }

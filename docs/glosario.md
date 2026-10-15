@@ -46,9 +46,10 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Traslado | `BudgetTransfer` | Movimiento de disponible entre dos rubros del mismo presupuesto, con motivo ([ADR-059](adr/ADR-059-presupuesto-del-comite.md)) |
 | Entrada de puntos | `PointEntry` | Fila del ledger: crédito por check-in, ajuste, reversión o legado |
 | GH Points | `GhPoints` | Reconocimiento principal semestral de la OE por check-ins, retos presenciales, trivias, misiones con evidencia y beneficios GH; los videojuegos no se suman a su clasificación |
-| Puntos gamer | `GamerPoints` | Premio competitivo de los videojuegos según el desempeño de la primera partida acreditable del día, con avances acumulativos de Panal; separado de GH Points |
+| Puntos gamer | `GamerPoints` | Premio competitivo de los videojuegos según el desempeño de la primera partida acreditable del día (primera completa en Color), con avances acumulativos de Panal; separado de GH Points |
 | Más gamer | `GamerRanking` | Competencia semestral de Juegos por puntos gamer; desempata por participaciones válidas y después días activos, con puesto compartido si las tres cantidades coinciden |
-| Participación gamer válida | `GamerParticipation` | Cumplir el primer umbral acreditable de un videojuego: ganar Wordle, alcanzar 1.000 en 2048, resolver Sudoku o aceptar cinco palabras en Panal. Cada juego cuenta una vez por día |
+| Participación gamer válida | `GamerParticipation` | Cumplir el primer umbral acreditable de un videojuego: ganar Wordle, alcanzar 1.000 en 2048, resolver Sudoku, aceptar cinco palabras en Panal o completar las tres rondas de Color. Cada juego cuenta una vez por día |
+| Color | `ColorRun` | Juego de memoria de colores de tres rondas: observar, recrear con tono/saturación/luminosidad y comparar; la primera partida completa válida del día aporta de uno a seis puntos gamer según su precisión media |
 | Día activo gamer | `activeDays` | Día civil de Colombia en el que se cumplió al menos un videojuego, aunque se hayan cumplido varios |
 | Racha gamer | `GamerStreak` | Días jugados de una secuencia que protege un comodín semanal; el comodín no suma día ni participación. Tiene hitos a los 3, 7 y 30 días |
 | Comodín gamer | `wildcardAvailable` | Protección automática de un día perdido por semana, no acumulable, que conserva una racha viva sin hacer avanzar su contador |

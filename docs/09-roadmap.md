@@ -4,17 +4,33 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## Más gamer por puntos de desempeño (ADR-133) · `en curso`
+## Juegos con reto protagonista y Color (ADR-134) · `en curso`
+
+- [x] Registrar opción A de Juegos, Color integrado a Más gamer y seams TDD del flujo público/acceso desde la biblioteca ([ADR-134](adr/ADR-134-juegos-protagonista-y-color.md)).
+- [x] Implementar Color con tres rondas, observación de tres segundos, controles HSL y precisión/resultado de servidor; promedio de un decimal y bandas 0/50/65/80/90/95 → 1/2/3/4/5/6.
+- [x] Acreditar sólo la primera partida completa válida del día, con propiedad, orden, idempotencia, concurrencia, cierre y día Colombia; origen COLOR separado de GH.
+- [x] Presentar protagonista y catálogo editorial con las cinco rutas, competencia y estados históricos reales, sin cambiar los otros motores.
+- [x] Verificar por los seams acordados, E2E/QA, `npm run check` y revisión Standards/Spec R1 del candidato local.
+- [ ] Entregar y publicar por el flujo autorizado, sin activación, backfill o recálculo de historia; verificar versión, esquema y salud.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-15 | Entrega local verificada | `npm run check` final 2 **exit 0** (`color-check-final-2.log`): lint, tipos, dependencias, código muerto, **2.538/2.538 unitarias** en 188 archivos, **11/11 Python**, **1.986/1.986 integraciones** en 216 archivos y build de **90 rutas estáticas** PASS. E2E Color final **4/4** (dos escenarios y dos setup); QA AFTER **12 PNG**, 360/1280 px, claro/oscuro PASS (`qa-visual.md`). Standards R1 y Spec R1: **cero hallazgos** (`revision-standards-r1.md`, `revision-spec-r1.md`). El fixture de truncado se corrigió tras R1 en tres líneas con objetivos HSL válidos: focal **22/22 PASS** y check completo citado repetido. Publicación y despliegue pendientes de solicitud. |
+| 2026-10-15 | Implementación funcional y verificación focal local | Color y acceso desde Juegos implementados; prueba de acceso GREEN. API/ledger focal **30/30 PASS** (Color 15, gamer 10, ledger 5), typecheck PASS y E2E Color **4/4 PASS** (dos escenarios y dos setup): partida completa, práctica posterior, teclado y separación GH. QA visual sigue corrigiendo CSS; check global, revisión Standards/Spec sobre SHA fijo y publicación pendientes. No se acredita todavía la verificación final del conjunto ni despliegue. |
+| 2026-10-15 | Decisión y contrato | Color de tres rondas con objetivos propios de partida, observación de tres segundos, mezcla HSL y precisión OKLab; primera partida completa da al menos uno, hasta seis desde promedio 95. No hay premio por rapidez o mejor partida posterior. Se conserva la suma gamer/empates y fotos anteriores; máximo nativo de cinco juegos hasta 30 diarios, sin recortar LEGACY. Arquitectura y ADR aceptadas; código, pruebas y publicación aún no acreditados. |
+
+## Más gamer por puntos de desempeño (ADR-133) · `lista`
 
 - [x] Registrar la elección: puntos de la primera partida acreditable diaria con las escalas existentes, separados de GH ([ADR-133](adr/ADR-133-mas-gamer-por-puntos-de-desempeno.md)).
 - [x] Proyectar la suma exacta de créditos gamer positivos vivos, Panal acumulativo y LEGACY sin recortes nuevos; conservar dedupe solo para participaciones y días.
 - [x] Ordenar por puntos, participaciones y días; conservar la métrica de las fotos anteriores y la falta de foto de los cierres antiguos.
 - [x] Presentar puntos, escalas y primera acreditación en Juegos, perfiles y exportes, sin prometer premios por partidas posteriores ni GH Points.
-- [ ] Verificar invariantes, reintentos, historia, cierres y E2E; `npm run check` y revisión Standards/Spec sobre un SHA fijo.
-- [ ] Publicar el SHA validado con el flujo habitual; sin nueva activación o recálculo manual de premios.
+- [x] Verificar invariantes, reintentos, historia, cierres y E2E; `npm run check` y revisión Standards/Spec sobre un SHA fijo.
+- [x] Publicar el SHA validado con el flujo habitual; sin nueva activación o recálculo manual de premios.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
+| 2026-10-15 | Publicación verificada | [PR 370](https://github.com/Mateoloperaortiz/LaOE/pull/370) revisado sin hallazgos pendientes y promovido como `4c4e934bfbed4abf00009c5ca629e5ac93936fa8`. CI main SUCCESS 11/11; staging y producción SUCCESS con esquema de 57 migraciones/163 índices, SHA exacto y poller/scheduler nuevos. Smoke independiente por entorno 6/6 y 7/7 gates anónimos. Lectura productiva RO/RR: 172 jugadores, 9.491 puntos de la proyección iguales a la suma de 3.336 créditos fuente; launch previo conservado. Sin activación o mutación manual adicional. |
 | 2026-10-15 | Implementación y verificación local | Suma gamer exacta, desempates por participaciones y días, UI con escalas vigentes y primera acreditación, exporte con criterio y tres generaciones de fotos tipadas. 79 integraciones focales y 42 unitarias de proyección/render/copy aprobadas; check amplio con 2.538 unitarias, 1.969 integraciones, 11 Python y build. E2E de cinco superficies: se corrigió foco por teclado de la tabla móvil detectado por axe, con repetición gamer 4/4; los demás casos pasaron. Comparación sintética contra D9: una participación de 6 puntos supera a una de 1, antes empatadas. QA de escritorio, 390 px y oscuro sin defectos pendientes. Falta cierre de verificación del candidato y revisión Standards/Spec sobre SHA fijo; sin publicación ni cambios de producción. |
 | 2026-10-15 | Decisión y diseño | Se conserva la primera partida válida diaria, elegida por Mateo: Más gamer suma los importes de desempeño existentes. Wordle 6→1 por intento; Sudoku 2/4/6 sin ayudas y 1/2/3 con ayudas; 2048 por seis umbrales; Panal 1+2+3. Desempate por participaciones y días. El ledger no cambia, los legados no reciben caps nuevos y las fotos cerradas conservan métrica o indisponibilidad. Implementación y verificación pendientes; sin despliegue ni configuración nueva. |
 

@@ -28,7 +28,9 @@ export interface DailyGameRules {
    * partidas de una persona, al empezar y al seguir. `DAY` serializa el reparto del día entre todas
    * las personas (las respuestas únicas del Wordle) y solo se toma al empezar.
    */
-  lock: { key: "wordle-day"; per: "DAY" } | { key: "game2048" | "sudoku" | "panal"; per: "PERSON" };
+  lock:
+    | { key: "wordle-day"; per: "DAY" }
+    | { key: "game2048" | "sudoku" | "panal" | "color"; per: "PERSON" };
   /**
    * Empezar con el semestre cerrado (decisión abierta 49). `REFUSE` responde TERM_CLOSED sin mirar
    * la partida guardada. `SAVED_FIRST` sigue con `open` en falso: el juego devuelve la partida

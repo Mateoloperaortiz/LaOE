@@ -12,6 +12,7 @@ import {
 import {
   listAchievementsForPerson,
   listBoostersFor,
+  listColorRunsFor,
   listEvidenceFilesFor,
   listGame2048RunsFor,
   listGamerHistoryFor,
@@ -53,6 +54,7 @@ export async function GET() {
     passes,
     wordleGames,
     game2048Runs,
+    colorRuns,
     sudokuRuns,
     panalGames,
     participations,
@@ -75,6 +77,7 @@ export async function GET() {
     listPassesFor(actor.personId),
     listWordleGamesFor(actor.personId),
     listGame2048RunsFor(actor.personId),
+    listColorRunsFor(actor.personId),
     listSudokuRunsFor(actor.personId),
     listPanalGamesFor(actor.personId),
     listParticipationsForPerson(actor.personId),
@@ -105,6 +108,7 @@ export async function GET() {
     permissions,
     wordleGames,
     game2048Runs,
+    colorRuns,
     // Sudoku (ADR-078): dificultad, modo, estado y puntos; sin semilla, dadas ni solución.
     sudokuRuns,
     panalGames,

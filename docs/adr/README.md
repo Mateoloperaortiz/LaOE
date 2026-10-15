@@ -13,8 +13,9 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-133](ADR-133-mas-gamer-por-puntos-de-desempeno.md) | Más gamer por puntos de desempeño | Aceptada |
-| [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) | GH Points y Más gamer con rachas separadas | Aceptada (enmendada por ADR-133) |
+| [ADR-134](ADR-134-juegos-protagonista-y-color.md) | Juegos con reto protagonista y Color integrado a Más gamer | Aceptada |
+| [ADR-133](ADR-133-mas-gamer-por-puntos-de-desempeno.md) | Más gamer por puntos de desempeño | Aceptada; enmendada por ADR-134 |
+| [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) | GH Points y Más gamer con rachas separadas | Aceptada (enmendada por ADR-133); enmendada por ADR-134 |
 | [ADR-130](ADR-130-fotos-privadas-en-mi-oe.md) | Fotos privadas en Mi OE y carga reanudable de DÍAS 2026 | Aceptada |
 | [ADR-129](ADR-129-reglas-de-consolidacion-del-decimoseptimo-ciclo.md) | Reglas de consolidación del decimoséptimo ciclo del refactor | Aceptada |
 | [ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) | Reglas de corrección del decimosexto ciclo del refactor | Aceptada (enmendada por ADR-129) |
@@ -70,7 +71,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-078](ADR-078-sudoku-con-solucion-en-el-servidor.md) | Sudoku con la solución en el servidor | Aceptada; en producción; enmendada por ADR-131 |
 | [ADR-077](ADR-077-el-lanzador-e2e-suma-su-origen-al-cors-del-bucket.md) | El lanzador E2E suma su origen al CORS del bucket local | Aceptada |
 | [ADR-076](ADR-076-biblioteca-de-iconos.md) | Biblioteca de iconos detrás de una fachada propia | Aceptada; en producción |
-| [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md) | Biblioteca de juegos y 2048 con replay verificado | Aceptada; enmendada por ADR-078, ADR-088 y ADR-122; en producción; enmendada por ADR-131 |
+| [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md) | Biblioteca de juegos y 2048 con replay verificado | Aceptada; enmendada por ADR-078, ADR-088 y ADR-122; en producción; enmendada por ADR-131; enmendada por ADR-134 |
 | [ADR-074](ADR-074-aviso-diario-del-wordle.md) | Aviso diario del Wordle | Aceptada; en producción; enmendada por ADR-131 |
 | [ADR-073](ADR-073-un-comite-inactivo-sale-de-la-app.md) | Un comité inactivo sale de la app | Aceptada; en producción |
 | [ADR-072](ADR-072-alcance-autorizado-en-el-dominio.md) | El alcance autorizado se verifica en el dominio | Aceptada (enmendada por ADR-112 y ADR-122); en producción |
@@ -106,7 +107,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-004](ADR-004-termino-como-reloj.md) | El término académico es el reloj universal | Aceptada (enmendada por ADR-118) |
 | [ADR-005](ADR-005-comites-por-termino.md) | Pertenencia a comité por término | Aceptada (enmendada por ADR-039) |
 | [ADR-006](ADR-006-una-sola-asistencia.md) | Una sola mecánica de asistencia | Aceptada (enmendada por ADR-024 y ADR-035) |
-| [ADR-007](ADR-007-ledger-append-only.md) | Ledger append-only por término | Aceptada (enmendada por ADR-041); enmendada por ADR-131 |
+| [ADR-007](ADR-007-ledger-append-only.md) | Ledger append-only por término | Aceptada (enmendada por ADR-041); enmendada por ADR-131; enmendada por ADR-134 |
 | [ADR-008](ADR-008-tableros-derivados.md) | Tableros nuevos/veteranos derivados | Aceptada |
 | [ADR-009](ADR-009-score-de-comite.md) | Score de comité por participación relativa | Aceptada (enmendada por ADR-024, ADR-035 y ADR-070) |
 | [ADR-010](ADR-010-identidad-por-correo-y-otp.md) | Identidad por correo del roster con OTP | Aceptada (enmendada por ADR-034, ADR-039, ADR-050, ADR-051, ADR-113, ADR-114) |

@@ -12,7 +12,7 @@ export function GamerSeason({
   closed: boolean;
 }) {
   const dayStatus =
-    profile.todayGames.length === 4
+    profile.todayGames.length === 5
       ? "T-3468"
       : profile.launched
         ? profile.todayGames.length

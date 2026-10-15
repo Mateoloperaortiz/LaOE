@@ -63,6 +63,7 @@ function entry(own: Own): Entry {
     wordleGameId: null,
     game2048RunId: null,
     sudokuRunId: null,
+    colorRunId: null,
     panalGameId: null,
     panalCheckpoint: null,
     rewardId: null,

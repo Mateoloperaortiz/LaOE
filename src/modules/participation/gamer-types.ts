@@ -1,4 +1,4 @@
-export const GAMER_GAMES = ["WORDLE", "GAME2048", "SUDOKU", "PANAL"] as const;
+export const GAMER_GAMES = ["WORDLE", "GAME2048", "SUDOKU", "PANAL", "COLOR"] as const;
 export type GamerGame = (typeof GAMER_GAMES)[number];
 
 export interface GamerParticipation {

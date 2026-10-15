@@ -1,6 +1,6 @@
 # ADR-133: Más gamer por puntos de desempeño
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-134)
 - Fecha: 2026-10-15
 - Relacionadas: ADR-007, ADR-020, ADR-041, ADR-067, ADR-075, ADR-078, ADR-088, ADR-092, ADR-131
 - Enmienda: ADR-131 reglas 12–14 y 17 (unidad y orden de la competencia gamer; presentación y conservación de cierres)
@@ -41,3 +41,7 @@ Mateo pidió que ese desempeño vuelva a pesar en Más gamer y eligió expresame
 - El cierre sigue tomando la barrera exclusiva del término antes de capturar proyecciones; los escritores de juegos mantienen sus candados y validación de servidor. Extender la foto con puntos y métrica no reabre premios ni exige cambiar tablas.
 - Las pruebas fijan los importes existentes, primera acreditación e intentos posteriores, reintentos y medianoche, suma de checkpoints, LEGACY sin recortes nuevos, reversión, separación GH, los tres criterios de orden y puestos compartidos, y las tres generaciones de cierre. La UI y el exporte deben coincidir con la proyección, con datos sintéticos.
 - `npm run check`, E2E del alcance y revisión Standards/Spec sobre un SHA fijo siguen siendo condiciones de entrega. Esta ADR no acredita despliegue o activación productiva.
+
+## Enmienda (2026-10-15, ADR-134)
+
+Las reglas 2 a 4 suman `COLOR` al origen gamer y su escala nueva. La primera partida **completa válida** de Color da de uno a seis puntos según el promedio perceptual de sus tres rondas; incluso un promedio cero da uno y consume el premio diario, sin reintentar un resultado completo de cero puntos hasta mejorarlo. Esta excepción no cambia el primer umbral acreditable de 2048, Sudoku, Wordle o los avances de Panal. La oferta máxima de escritores nativos pasa de 24 a 30 puntos diarios entre cinco juegos; no se aplica un cap nuevo a LEGACY ni se altera el ledger o las fotos anteriores. La suma, los desempates y las tres generaciones de cierre siguen intactos. Ver [ADR-134](ADR-134-juegos-protagonista-y-color.md).

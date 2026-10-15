@@ -186,13 +186,15 @@ describe("temporada gamer persistida", () => {
       await legacy(personId, termId, "2026-09-15", 1, kind);
     await legacy(personId, termId, "2026-09-15", 8, "TRIVIA");
     await legacy(personId, termId, "2026-09-15", 9, "EVIDENCE");
+    // COLOR es nuevo y nativo: ese nombre no amplía la allowlist legada de los cuatro juegos.
+    await legacy(personId, termId, "2026-09-15", 4, "Color");
     await legacy(personId, termId, "2026-09-15", -4, "WORDLE");
     expect(await getGamerProfile(personId, termId)).toMatchObject({
       participations: 4,
       activeDays: 1,
       points: 5,
     });
-    expect(await balanceFor(personId, termId)).toBe(17);
+    expect(await balanceFor(personId, termId)).toBe(21);
   });
 
   it("incluye honorarios y limita los nombres públicos a diez mientras conserva el puesto propio", async () => {
