@@ -10,6 +10,7 @@ import { t, tLabels, tList } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { occasion } from "../schema";
+import { lockParticipationBatch } from "./batch-lock";
 import {
   canOpenOccasion,
   canTransitionOccasion,
@@ -280,10 +281,11 @@ async function transition(
   if (!observed) {
     throw new DomainError(t("T-032"));
   }
-  // Orden estable: término compartido antes de la fila de la ocasión. Si otro admin trasladó
-  // el borrador entre ambas lecturas, rechazamos y la siguiente petición relee el nuevo término.
+  // Cancelar afecta varias personas y después barre el término: necesita exclusividad antes de
+  // tomar ocasión o rewards. Los demás cambios conservan el compartido. Nunca se asciende después.
   try {
-    await lockOpenTermPoints(ctx.tx, observed.termId);
+    if (to === "CANCELLED") await lockParticipationBatch(ctx.tx);
+    await lockOpenTermPoints(ctx.tx, observed.termId, to === "CANCELLED" ? "exclusive" : "shared");
   } catch (error) {
     if (to === "OPEN" && error instanceof DomainError && error.message === t("T-629")) {
       throw new DomainError(t("T-579"));

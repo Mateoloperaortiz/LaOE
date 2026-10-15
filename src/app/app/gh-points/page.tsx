@@ -8,6 +8,7 @@ import {
   attendedRequired,
   balanceFor,
   getPresenceStreak,
+  levelCutoffsForTerm,
   levelFor,
   listEntriesFor,
   loadGamificationSettings,
@@ -48,7 +49,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const tablero: BoardKey = BOARDS.includes(tableroParam as BoardKey)
     ? (tableroParam as BoardKey)
     : "nuevos";
-  const [terms, current, membership, cutoffs, gamification] = await Promise.all([
+  const [terms, current, membership, configuredCutoffs, gamification] = await Promise.all([
     listAllTerms(),
     getCurrentTerm(),
     getMembershipRef(actor.personId),
@@ -87,6 +88,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const [firmada, pendienteAsamblea, noFuiste] = tList("T-547");
   const requiredTotalCount = requiredTotal(assemblies.requirement);
   const attendedRequiredCount = attendedRequired(assemblies.requirement, assemblies.compliance);
+  const cutoffs = levelCutoffsForTerm(term, configuredCutoffs);
   const level = levelFor(total, cutoffs);
   const nextLabel = level.next === null ? null : (levelLabels[level.index + 1] ?? "");
   // «Tu próximo reto» es de quien tiene membresía, con la gamificación encendida.

@@ -444,8 +444,9 @@ export async function listAppointmentsForTerm(termId: string): Promise<TermAppoi
 export async function listMembershipPersonIds(
   cursor: string | null,
   limit: number,
+  exec: Executor = getDb(),
 ): Promise<string[]> {
-  const rows = await getDb()
+  const rows = await exec
     .select({ personId: membership.personId })
     .from(membership)
     .where(cursor ? gt(membership.personId, cursor) : undefined)

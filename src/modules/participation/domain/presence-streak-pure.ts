@@ -126,6 +126,7 @@ export function presenceStreakFromFacts(input: {
   }
   const current = weeks.find((row) => row.weekKey === weekKey) ?? weeks.at(-1);
   return {
+    recognitionAvailable: true,
     launched: launchedAt !== null && launchedAt <= now,
     currentStreak,
     longestStreak,

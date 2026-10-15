@@ -4,6 +4,7 @@ export function PresenceStreak({
   streak,
 }: {
   streak: {
+    recognitionAvailable: boolean;
     launched: boolean;
     currentStreak: number;
     longestStreak: number;
@@ -12,13 +13,15 @@ export function PresenceStreak({
     nextBonus: number;
   };
 }) {
-  if (!streak.launched) {
+  if (!streak.recognitionAvailable || !streak.launched) {
     return (
       <section aria-labelledby="presence-streak" className="flex flex-col gap-3">
         <h2 id="presence-streak" className="text-display-md">
           {t("T-3440")}
         </h2>
-        <p className="max-w-prose text-sm text-tinta-suave">{t("T-3462")}</p>
+        <p className="max-w-prose text-sm text-tinta-suave">
+          {t(streak.recognitionAvailable ? "T-3462" : "T-3469")}
+        </p>
       </section>
     );
   }

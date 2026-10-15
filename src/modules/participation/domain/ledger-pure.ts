@@ -40,6 +40,17 @@ export interface Level {
   remaining: number | null;
 }
 
+// ADR-035/0005: los semestres anteriores a la separación conservan esta escala sobre su saldo mixto.
+const HISTORICAL_LEVEL_CUTOFFS: readonly number[] = [0, 100, 250, 500, 1000];
+
+/** ADR-131: los cortes nuevos acompañan la separación de juegos, nunca el saldo mixto histórico. */
+export function levelCutoffsForTerm(
+  term: { gamePointsSeparated: boolean },
+  separatedCutoffs: readonly number[],
+): readonly number[] {
+  return term.gamePointsSeparated ? separatedCutoffs : HISTORICAL_LEVEL_CUTOFFS;
+}
+
 /** Nivel de un saldo según cortes crecientes (`points.levels`, etiquetas de T-082). */
 export function levelFor(total: number, cutoffs: readonly number[]): Level {
   const sorted = [...cutoffs].sort((a, b) => a - b);

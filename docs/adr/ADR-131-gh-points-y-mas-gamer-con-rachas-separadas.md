@@ -2,8 +2,8 @@
 
 - Estado: Aceptada; implementada y verificada en local, revisión y publicación pendientes
 - Fecha: 2026-10-14
-- Relacionadas: ADR-007, ADR-020, ADR-030, ADR-035, ADR-038, ADR-041, ADR-067, ADR-068, ADR-074, ADR-075, ADR-078, ADR-087, ADR-088, ADR-092, ADR-117, ADR-119, ADR-124
-- Enmienda: ADR-007 y ADR-035 (proyección del saldo, niveles y cierre); ADR-041, ADR-075, ADR-078, ADR-088 y ADR-092 (premios de juegos fuera de GH Points); ADR-067 (insignias gamer sin boosters de GH); ADR-074 (aviso gamer opcional además del aviso de Wordle)
+- Relacionadas: ADR-007, ADR-020, ADR-030, ADR-035, ADR-038, ADR-041, ADR-067, ADR-068, ADR-074, ADR-075, ADR-078, ADR-087, ADR-088, ADR-092, ADR-116, ADR-117, ADR-119, ADR-124
+- Enmienda: ADR-007 y ADR-035 (proyección del saldo, niveles y cierre); ADR-041, ADR-075, ADR-078, ADR-088 y ADR-092 (premios de juegos fuera de GH Points); ADR-067 (insignias gamer sin boosters de GH); ADR-074 (aviso gamer opcional además del aviso de Wordle); ADR-116 y ADR-119 (orden global de lotes y barrera de excusa sin exigir puntos abiertos)
 
 ## Contexto
 
@@ -60,3 +60,13 @@ Los cortes se calibraron en `informes/niveles-gh-points-2026-2/calibracion-nivel
 - La programación completa de la semana es responsabilidad operativa de GH; el código no puede reconstruir oportunidades que nunca se registraron. Una revisión previa al lanzamiento debe identificar datos ambiguos sin inventarlos ni mostrar personas reales en fixtures.
 - Las pruebas cubren primer umbral de los cuatro juegos, checkpoints Panal deduplicados, empates, medianoche y lunes en Colombia, comodín sin avance, hitos históricos, semana sin oferta, cero puntos, licencia, aprobación diferida, anulación y compensaciones, corte sin bonos previos, idempotencia, carreras con cierre y preferencia de avisos. Las carreras usan los helpers existentes; datos mediante fábricas.
 - `npm run check`, las E2E de las superficies cambiadas y el flujo rama → PR → CI → staging → promoción del SHA validado siguen vigentes. Implementación local no significa publicación.
+
+## Enmienda de revisión (2026-10-15)
+
+La regla 11 se aplica por política de término. Los términos con `gamePointsSeparated=false` conservan los mínimos históricos 0, 100, 250, 500 y 1.000 de ADR-035; la marca del término elige también la tabla de cortes visible. Por ejemplo, un saldo mixto de 500 conserva Pilar, mientras un saldo separado alcanza Leyenda OE desde 250. Cambiar la configuración vigente no reinterpreta esos niveles históricos.
+
+La regla 4 se concreta con una foto de reconocimientos presenciales por persona, guardada junto a los rankings: racha, récord, estado y detalle semanal, bono y siguiente escalón. Incluye todas las membresías sin filtrar su estado actual y las personas con check-ins o bonos. El cierre usa una sola fecha y la misma transacción que liquida y estampa el término; la lectura cerrada utiliza exclusivamente esa foto. Una excusa posterior sigue siendo válida para la asistencia y permanencia, pero no reinterpreta el reconocimiento ni muestra un bono que no se entregó. Si un cierre anterior no tiene esta foto, se declara reconocimiento histórico no disponible, con texto propio; no se reconstruye una foto imposible desde hechos actuales ni se presenta como pendiente de lanzamiento. Sus saldos y clasificaciones anteriores se conservan.
+
+Esto enmienda ADR-116 regla 3 y el comentario correspondiente de ADR-119 regla 1: la excusa comparte ahora la barrera del término **sin exigir puntos abiertos**, antes de tomar persona y asistencia. Si llega primero, el cierre ve la excusa completa; si el cierre llega primero, la excusa espera y se acepta después sin alterar su foto. Sigue sin escribir en el ledger ni reabrir puntos. La regla original se conserva en aquellas ADR como registro de la decisión anterior.
+
+El orden de ADR-116 regla 2 y ADR-119 regla 3 gana una barrera inicial para operaciones de varias personas: `participation-batch` global → término exclusivo → ocasión → asistencias/recálculo → rewards y retos. La toman desde la entrada la cancelación, el lote de decisiones, el cierre y el barrido horario; nunca se asciende después de retener un reward de un subconjunto. La barrera es global porque `reward:<persona>` sigue siendo global y dos semestres pueden mantener puntos abiertos a la vez. Los escritores de una persona mantienen el término compartido y su paralelismo. Las pruebas retienen candados y fijan cruces A/B, lotes opuestos, dos términos abiertos y excusa/cierre en ambos órdenes.

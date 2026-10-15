@@ -11,6 +11,7 @@ import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { type AdjustRequirementInput, adjustRequirement } from "./assemblies";
+import { lockParticipationBatch } from "./batch-lock";
 import { AlreadyCheckedIn, BoosterDenied } from "./check-in-transition";
 import {
   type BatchDecision,
@@ -42,7 +43,7 @@ import {
   setRotatingCode,
   updateOccasion,
 } from "./occasions";
-import { reconcileTermPresenceBonuses } from "./presence-streak";
+import { captureTermPresenceRecognitions, reconcileTermPresenceBonuses } from "./presence-streak";
 import { countPendingGamification } from "./rewards";
 
 // Los comandos abren su transacción aquí (ADR-012). Membresía, nombres y config se resuelven antes;
@@ -232,6 +233,7 @@ export async function closeTermPointsAs(
     listAllCommittees(),
   ]);
   return runCommand(actor, async (ctx) => {
+    await lockParticipationBatch(ctx.tx);
     await lockOpenTermForClosing(ctx.tx, termId);
     const openOccasions = await countOpenOccasions(termId, ctx.tx);
     if (openOccasions > 0) {
@@ -244,12 +246,15 @@ export async function closeTermPointsAs(
         t("T-2562", { n: pending.pendingParticipations, m: pending.reservedRewards }),
       );
     }
-    await reconcileTermPresenceBonuses(ctx, termId);
-    await closeTermPoints(ctx, termId);
+    const closedAt = new Date();
+    await reconcileTermPresenceBonuses(ctx, termId, closedAt);
+    const presenceRecognitions = await captureTermPresenceRecognitions(ctx, termId, closedAt);
+    await closeTermPoints(ctx, termId, closedAt);
     const standing = await buildStanding(termId, {
       exec: ctx.tx,
       members,
       gamerMembers,
+      presenceRecognitions,
       committees,
     });
     return writeTermStanding(ctx, termId, standing, { openOccasions });

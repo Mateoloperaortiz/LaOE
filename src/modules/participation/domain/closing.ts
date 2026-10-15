@@ -7,6 +7,7 @@ import { termPointsClosed } from "@/domain-events/participation";
 import { type ActiveMemberRef, listActiveMemberRefs, listAllCommittees } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import type { PresenceRecognitionSnapshot } from "../presence-types";
 import {
   challenge,
   challengeParticipation,
@@ -80,6 +81,7 @@ export async function buildStanding(
     exec: Executor;
     members: readonly ActiveMemberRef[];
     gamerMembers?: readonly ActiveMemberRef[];
+    presenceRecognitions?: PresenceRecognitionSnapshot[];
     committees: readonly { id: string; name: string; status: "ACTIVE" | "INACTIVE" | "ON_TRIAL" }[];
   },
 ): Promise<Omit<TermStandingView, "termId" | "createdAt">> {
@@ -177,6 +179,9 @@ export async function buildStanding(
       gamerParticipations: gamers.reduce((sum, item) => sum + item.participations, 0),
       gamerPlayers: gamers.length,
       gamerPositions: gamers.map((item) => ({ personId: item.personId, rank: item.rank })),
+      ...(context.presenceRecognitions
+        ? { presenceRecognitions: context.presenceRecognitions }
+        : {}),
     },
   };
 }

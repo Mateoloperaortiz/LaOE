@@ -2979,3 +2979,4 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3466 | Gamer: día cumplido antes del lanzamiento | Hoy ya sumaste una participación. Los demás juegos todavía pueden aportar a tu clasificación. | MATEO | Aprobado |
 | T-3467 | Gamer: día pendiente antes del lanzamiento | Podés sumar hasta cuatro participaciones hoy, una por cada juego que alcance su mínimo. | MATEO | Aprobado |
 | T-3468 | Gamer: cuatro participaciones del día | Ya sumaste los cuatro juegos de hoy. Podés seguir por gusto; mañana vuelven a contar. | MATEO | Aprobado |
+| T-3469 | GH: cierre sin foto de constancia | La constancia presencial no quedó registrada en este cierre histórico. Tus GH Points y las clasificaciones se conservan. | MATEO | Aprobado |

@@ -58,7 +58,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Reversión | `PointEntry.kind=REVERSAL` | Entrada que anula otra; nunca se edita la original |
 | Score de comité | `CommitteeParticipation` | Participación relativa de un comité en una ocasión y su promedio por término |
 | Tablero | ranking | Clasificación del término: nuevos, veteranos y comités; el miembro ve el top 10 y su propio puesto |
-| Nivel | `points.levels` | Tramo del saldo de GH Points del semestre, sin videojuegos: Recién llegado desde 0, Parchado desde 25, De planta desde 75, Pilar desde 150 y Leyenda OE desde 250 |
+| Nivel | `points.levels` | Tramo del saldo de GH Points del semestre: Recién llegado, Parchado, De planta, Pilar y Leyenda OE. Los mínimos son 0/25/75/150/250 en la clasificación separada y 0/100/250/500/1000 en el saldo mixto histórico |
 | Standing del término | `TermStanding` | Resultado conservado de las clasificaciones GH y gamer al cerrar los puntos del semestre, con la identidad visible que corresponda |
 | Asamblea | `Occasion.kind=ASSEMBLY` | Ocasión sin puntos que cuenta para el requisito del término |
 | Requisito de asambleas | `AssemblyRequirement` | Las asambleas obligatorias de una persona en un término: una ordinaria y, en segundo semestre, la elección de junta y su segunda vuelta |

@@ -246,14 +246,35 @@ export async function ensureNextTerm(
 }
 
 /**
- * Barrera compartida del ledger y de los datos que congela el cierre. Los escritores pueden correr
- * juntos; el cierre toma FOR UPDATE y espera a que todos terminen. Siempre usa la transacción dada.
+ * Barrera del término sin exigir puntos abiertos: una excusa tardía espera la foto del cierre,
+ * pero sigue admitida después. Se toma antes de ocasión/persona/asistencias/premios.
  */
-export async function lockOpenTermPoints(tx: Tx, termId: string): Promise<TermRow> {
-  const [row] = await tx.select().from(term).where(eq(term.id, termId)).for("share");
+export async function lockTermPoints(
+  tx: Tx,
+  termId: string,
+  mode: "shared" | "exclusive" = "shared",
+): Promise<TermRow> {
+  const [row] = await tx
+    .select()
+    .from(term)
+    .where(eq(term.id, termId))
+    .for(mode === "shared" ? "share" : "update");
   if (!row) {
     throw new DomainError(t("T-032"));
   }
+  return row;
+}
+
+/**
+ * Los escritores de una persona corren juntos. Un lote de personas y el cierre toman exclusividad
+ * desde su primer candado: nunca ascienden después de retener un reward de su subconjunto.
+ */
+export async function lockOpenTermPoints(
+  tx: Tx,
+  termId: string,
+  mode: "shared" | "exclusive" = "shared",
+): Promise<TermRow> {
+  const row = await lockTermPoints(tx, termId, mode);
   if (row.pointsClosedAt) {
     throw new DomainError(t("T-629"));
   }
@@ -262,10 +283,7 @@ export async function lockOpenTermPoints(tx: Tx, termId: string): Promise<TermRo
 
 /** Reserva el cierre antes de liquidar sus premios pendientes, sin estampar todavía el término. */
 export async function lockOpenTermForClosing(tx: Tx, termId: string): Promise<TermRow> {
-  const [row] = await tx.select().from(term).where(eq(term.id, termId)).for("update");
-  if (!row) throw new DomainError(t("T-032"));
-  if (row.pointsClosedAt) throw new DomainError(t("T-629"));
-  return row;
+  return lockOpenTermPoints(tx, termId, "exclusive");
 }
 
 /** Estampa el cierre de puntos (ADR-004): desde ahí el ledger del término no acepta entradas. Sin reapertura. */

@@ -11483,6 +11483,12 @@ export const textos = {
     owner: "MATEO",
     status: "Aprobado",
   },
+  "T-3469": {
+    where: "GH: cierre sin foto de constancia",
+    text: "La constancia presencial no quedó registrada en este cierre histórico. Tus GH Points y las clasificaciones se conservan.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
   "T-347": {
     where: "Ediciones: campo evento",
     text: "Evento",

@@ -604,11 +604,17 @@ export async function seedCheckIn(
   occasionId: string,
   personId: string,
   status: NonNullable<CheckInRow["status"]> = "APPROVED",
-  overrides: Partial<{ source: NonNullable<CheckInRow["source"]>; at: Date; reason: string }> = {},
+  overrides: Partial<{
+    id: string;
+    source: NonNullable<CheckInRow["source"]>;
+    at: Date;
+    reason: string;
+  }> = {},
 ): Promise<string> {
   const [row] = await db()
     .insert(checkIn)
     .values({
+      ...(overrides.id ? { id: overrides.id } : {}),
       occasionId,
       personId,
       status,

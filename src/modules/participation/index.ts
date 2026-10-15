@@ -150,7 +150,12 @@ export {
   listEntriesForPerson,
   listLedger,
 } from "./domain/ledger";
-export { levelFor, POINT_ENTRY_KINDS, type PointEntryKind } from "./domain/ledger-pure";
+export {
+  levelCutoffsForTerm,
+  levelFor,
+  POINT_ENTRY_KINDS,
+  type PointEntryKind,
+} from "./domain/ledger-pure";
 export { buildLiveSnapshot, checkInLink } from "./domain/live";
 export { type GamificationSettings, loadGamificationSettings } from "./domain/member-context";
 export {

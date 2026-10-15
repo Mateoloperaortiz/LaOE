@@ -9,6 +9,8 @@ export interface PresenceWeek {
 }
 
 export interface PresenceStreak {
+  /** Un cierre anterior al sistema puede no haber guardado una foto de este reconocimiento. */
+  recognitionAvailable: boolean;
   launched: boolean;
   currentStreak: number;
   longestStreak: number;
@@ -17,4 +19,9 @@ export interface PresenceStreak {
   bonus: number;
   nextBonus: number;
   weeks: PresenceWeek[];
+}
+
+export interface PresenceRecognitionSnapshot {
+  personId: string;
+  recognition: PresenceStreak;
 }
