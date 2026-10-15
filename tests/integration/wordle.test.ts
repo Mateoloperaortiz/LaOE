@@ -5,6 +5,7 @@ import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
+import { getGamerProfile } from "@/modules/participation";
 import { getTermStanding } from "@/modules/participation/domain/closing";
 import { closeTermPointsAs } from "@/modules/participation/domain/commands";
 import { dayKeyFor, nextDayAt } from "@/modules/participation/domain/gamification-pure";
@@ -154,6 +155,12 @@ describe("Wordle diario persistido", () => {
       });
     }
     expect(await balanceFor(personId, game.termId)).toBe(0);
+    expect(await getGamerProfile(personId, game.termId)).toMatchObject({
+      points: 7 - winningAttempt,
+      participations: 1,
+      activeDays: 1,
+      rankingMetric: "POINTS",
+    });
     expect(await db().select().from(pointEntry)).toHaveLength(1);
     expect(await db().select().from(wordleAttempt)).toHaveLength(winningAttempt);
     expect(
@@ -396,7 +403,9 @@ describe("Wordle diario persistido", () => {
     const standing = await getTermStanding(game.termId);
     expect(standing?.stats.pointsAwarded).toBe(0);
     expect(standing?.topNew).toEqual([]);
-    expect(standing?.topGamer).toMatchObject([{ personId, participations: 1, activeDays: 1 }]);
+    expect(standing?.topGamer).toMatchObject([
+      { personId, points: 6, participations: 1, activeDays: 1 },
+    ]);
     expect(standing?.topCommittees).toEqual([]);
     expect(await submit(personId, game.id, answer, 1, requestId)).toMatchObject({
       ok: true,

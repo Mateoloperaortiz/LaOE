@@ -6,6 +6,7 @@ import { getPanalPuzzle, panalPuzzleView } from "@/modules/participation/domain/
 import {
   hasPanalCheckpoints,
   isPanalPangram,
+  PANAL_REWARD,
   panalWordScore,
 } from "@/modules/participation/panal-engine";
 import { panalGame, pointEntry } from "@/modules/participation/schema";
@@ -126,7 +127,7 @@ test("celular, botones, mezclar sin cambiar la central y temas accesibles", asyn
   } else {
     await expect(page.getByText(t("T-3000"))).toBeVisible();
     await expect(
-      page.getByText(t("T-2738", { n: panalPuzzleView(puzzle).geniusScore })),
+      page.getByText(t("T-2738", { premio: t("T-3479", { n: PANAL_REWARD }) })),
     ).toBeVisible();
   }
   expect(

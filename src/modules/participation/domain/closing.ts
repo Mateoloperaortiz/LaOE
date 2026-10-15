@@ -7,6 +7,7 @@ import { termPointsClosed } from "@/domain-events/participation";
 import { type ActiveMemberRef, listActiveMemberRefs, listAllCommittees } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import type { GamerRankingMetric } from "../gamer-types";
 import type { PresenceRecognitionSnapshot } from "../presence-types";
 import {
   challenge,
@@ -17,6 +18,7 @@ import {
   termStanding,
 } from "../schema";
 import { rankGamerFromMembers } from "./gamer";
+import { gamerSnapshotStats, standingGamer, storedGamerMetric } from "./gamer-snapshot";
 import { ghPointCondition } from "./ledger-classification";
 import { rankCommittees, rankPeopleFromMembers } from "./rankings";
 import { countPendingGamification } from "./rewards";
@@ -38,13 +40,6 @@ const standingCommittee = z.object({
   rawScore: z.number(),
   occasions: z.number().int(),
 });
-const standingGamer = z.object({
-  rank: z.number().int(),
-  personId: z.string(),
-  name: z.string(),
-  participations: z.number().int(),
-  activeDays: z.number().int(),
-});
 const standingStats = z
   .object({
     activeMembers: z.number().int(),
@@ -55,12 +50,15 @@ const standingStats = z
     // ADR-067: retos completados y puntos entregados por boosters y campañas.
     challengesCompleted: z.number().int().optional(),
     boostPoints: z.number().int().optional(),
+    ...gamerSnapshotStats.shape,
   })
   .passthrough();
 
 export type StandingPerson = z.infer<typeof standingPerson>;
 export type StandingCommittee = z.infer<typeof standingCommittee>;
-export type StandingStats = z.infer<typeof standingStats>;
+export type StandingStats = z.infer<typeof standingStats> & {
+  gamerRankingMetric: GamerRankingMetric | null;
+};
 
 export interface TermStandingView {
   termId: string;
@@ -156,6 +154,7 @@ export async function buildStanding(
       rank: item.rank,
       personId: item.personId,
       name: item.anonymized ? t("T-223") : item.name,
+      points: item.points,
       participations: item.participations,
       activeDays: item.activeDays,
     })),
@@ -178,7 +177,14 @@ export async function buildStanding(
       gamerParticipants: gamers.length,
       gamerParticipations: gamers.reduce((sum, item) => sum + item.participations, 0),
       gamerPlayers: gamers.length,
-      gamerPositions: gamers.map((item) => ({ personId: item.personId, rank: item.rank })),
+      gamerRankingMetric: "POINTS",
+      gamerPositions: gamers.map((item) => ({
+        personId: item.personId,
+        rank: item.rank,
+        points: item.points,
+        participations: item.participations,
+        activeDays: item.activeDays,
+      })),
       ...(context.presenceRecognitions
         ? { presenceRecognitions: context.presenceRecognitions }
         : {}),
@@ -229,15 +235,17 @@ export async function getTermStanding(termId: string): Promise<TermStandingView 
   if (!row) {
     return null;
   }
+  const stats = standingStats
+    .catch({ activeMembers: 0, newMembers: 0, occasions: 0, checkIns: 0, pointsAwarded: 0 })
+    .parse(row.stats);
+  const gamerStats = gamerSnapshotStats.parse(row.stats);
   return {
     termId: row.termId,
     topNew: z.array(standingPerson).catch([]).parse(row.topNew),
     topVeteran: z.array(standingPerson).catch([]).parse(row.topVeteran),
     topCommittees: z.array(standingCommittee).catch([]).parse(row.topCommittees),
     topGamer: z.array(standingGamer).catch([]).parse(row.topGamer),
-    stats: standingStats
-      .catch({ activeMembers: 0, newMembers: 0, occasions: 0, checkIns: 0, pointsAwarded: 0 })
-      .parse(row.stats),
+    stats: { ...stats, ...gamerStats, gamerRankingMetric: storedGamerMetric(gamerStats) },
     createdAt: row.createdAt,
   };
 }

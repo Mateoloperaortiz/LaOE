@@ -6,10 +6,18 @@ import type { Executor } from "@/db/tx";
 import { type ActiveMemberRef, listActiveMemberRefs } from "@/modules/people";
 import { getTerm } from "@/modules/terms";
 import { todayKey } from "@/shared/lib/dates";
-import type { GamerGame, GamerParticipation, GamerProfile, GamerStanding } from "../gamer-types";
+import type {
+  GamerCredit,
+  GamerGame,
+  GamerParticipation,
+  GamerProfile,
+  GamerRankingMetric,
+  GamerStanding,
+} from "../gamer-types";
 import { GAMER_GAMES } from "../gamer-types";
 import { game2048Run, panalGame, pointEntry, sudokuRun, termStanding, wordleGame } from "../schema";
 import { gamerStreak, rankGamer, uniqueGamerParticipations } from "./gamer-pure";
+import { gamerSnapshotStats, standingGamer, storedGamerMetric } from "./gamer-snapshot";
 import { getGamificationLaunch } from "./gamification-launch";
 import { legacyGamerKind } from "./ledger-classification";
 
@@ -22,11 +30,12 @@ async function participationRows(
   exec: Executor,
   termId?: string,
   personId?: string,
-): Promise<Array<GamerParticipation & { termId: string }>> {
+): Promise<Array<GamerCredit & { termId: string }>> {
   const rows = await exec
     .select({
       personId: pointEntry.personId,
       termId: pointEntry.termId,
+      points: pointEntry.points,
       game: sql<GamerGame>`case when ${pointEntry.kind}::text = 'LEGACY' then ${legacyGamerKind(pointEntry.legacyType)} else ${pointEntry.kind}::text end`,
       day: sql<string>`coalesce(${wordleGame.day}, ${game2048Run.day}, ${sudokuRun.day}, ${panalGame.day}, (${pointEntry.createdAt} at time zone 'America/Bogota')::date)::text`,
     })
@@ -93,26 +102,44 @@ export async function rankGamerFromMembers(
       name: member.fullName.trim(),
       anonymized: member.anonymized,
     })),
-    await loadGamerParticipations(termId, exec),
+    await participationRows(exec, termId),
   );
 }
 
 const seasonForRender = cache(async (termId: string) => {
-  const [members, participations, term, launch] = await Promise.all([
+  const [members, credits, term, launch] = await Promise.all([
     listActiveMemberRefs(true),
-    loadGamerParticipations(termId),
+    participationRows(getDb(), termId),
     getTerm(termId),
     getGamificationLaunch(),
   ]);
-  let ranking = rankGamer(
-    members.map((member) => ({
-      personId: member.personId,
-      name: member.fullName.trim(),
-      anonymized: member.anonymized,
-    })),
-    participations,
+  const participations = uniqueGamerParticipations(
+    credits.map(({ personId, day, game }) => ({ personId, day, game })),
   );
-  let positions = ranking.map((row) => ({ personId: row.personId, rank: row.rank }));
+  let ranking = term?.pointsClosedAt
+    ? []
+    : rankGamer(
+        members.map((member) => ({
+          personId: member.personId,
+          name: member.fullName.trim(),
+          anonymized: member.anonymized,
+        })),
+        credits,
+      );
+  let rankingMetric: GamerRankingMetric | null = term?.pointsClosedAt ? null : "POINTS";
+  let positions: Array<{
+    personId: string;
+    rank: number;
+    points: number | null;
+    participations?: number;
+    activeDays?: number;
+  }> = ranking.map((row) => ({
+    personId: row.personId,
+    rank: row.rank,
+    points: row.points,
+    participations: row.participations,
+    activeDays: row.activeDays,
+  }));
   let totalPlayers = ranking.length;
   if (term?.pointsClosedAt) {
     const [frozen] = await getDb()
@@ -120,32 +147,25 @@ const seasonForRender = cache(async (termId: string) => {
       .from(termStanding)
       .where(eq(termStanding.termId, termId));
     if (frozen) {
-      const top = z
-        .array(
-          z.object({
-            personId: z.string(),
-            name: z.string(),
-            rank: z.number().int(),
-            participations: z.number().int(),
-            activeDays: z.number().int(),
-          }),
-        )
-        .parse(frozen.topGamer);
-      const stats = z
-        .object({
-          gamerPositions: z
-            .array(z.object({ personId: z.string(), rank: z.number().int() }))
-            .optional(),
-          gamerPlayers: z.number().int().optional(),
-        })
-        .parse(frozen.stats);
-      ranking = top.map((row) => ({ ...row, anonymized: false }));
-      positions =
-        stats.gamerPositions ?? ranking.map((row) => ({ personId: row.personId, rank: row.rank }));
-      totalPlayers = stats.gamerPlayers ?? ranking.length;
+      const stats = gamerSnapshotStats.parse(frozen.stats);
+      rankingMetric = storedGamerMetric(stats);
+      if (rankingMetric) {
+        ranking = z
+          .array(standingGamer)
+          .parse(frozen.topGamer)
+          .map((row) => ({
+            ...row,
+            points: rankingMetric === "POINTS" ? row.points : null,
+            anonymized: false,
+          }));
+        positions =
+          stats.gamerPositions ??
+          ranking.map((row) => ({ personId: row.personId, rank: row.rank, points: row.points }));
+        totalPlayers = stats.gamerPlayers ?? ranking.length;
+      }
     }
   }
-  return { ranking, positions, totalPlayers, participations, term, launch };
+  return { ranking, positions, totalPlayers, participations, credits, rankingMetric, term, launch };
 });
 
 /** Misma privacidad de GH Points: diez personas y el puesto propio por otra lectura. */
@@ -154,16 +174,29 @@ export async function getGamerLeaderboard(termId: string): Promise<GamerStanding
 }
 
 export async function getGamerProfile(personId: string, termId: string): Promise<GamerProfile> {
-  const { positions, totalPlayers, participations, term, launch } = await seasonForRender(termId);
+  const { positions, totalPlayers, participations, credits, rankingMetric, term, launch } =
+    await seasonForRender(termId);
   const effectiveNow = term?.pointsClosedAt ?? new Date();
   const today = todayKey(effectiveNow);
   const mine = participations.filter((row) => row.personId === personId);
+  const frozen = term?.pointsClosedAt
+    ? positions.find((row) => row.personId === personId)
+    : undefined;
   return {
     launched: Boolean(
       term?.gamePointsSeparated && launch.launchedAt && new Date(launch.launchedAt) <= effectiveNow,
     ),
-    participations: mine.length,
-    activeDays: new Set(mine.map((row) => row.day)).size,
+    points:
+      rankingMetric !== "POINTS"
+        ? null
+        : term?.pointsClosedAt
+          ? (frozen?.points ?? null)
+          : credits
+              .filter((row) => row.personId === personId)
+              .reduce((sum, row) => sum + row.points, 0),
+    rankingMetric,
+    participations: frozen?.participations ?? mine.length,
+    activeDays: frozen?.activeDays ?? new Set(mine.map((row) => row.day)).size,
     rank: positions.find((row) => row.personId === personId)?.rank ?? null,
     totalPlayers,
     todayGames: term?.pointsClosedAt

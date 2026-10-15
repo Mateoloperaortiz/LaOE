@@ -29,27 +29,37 @@ export function GamerSeason({
         </h2>
         <span className="text-sm text-tinta-suave">{t("T-3401", { semestre: termCode })}</span>
       </div>
-      <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-        {[
-          [t("T-3403"), profile.participations],
-          profile.launched
-            ? [
-                t("T-3411"),
-                t(profile.currentStreak === 1 ? "T-3457" : "T-3413", { n: profile.currentStreak }),
-              ]
-            : [t("T-3404"), profile.activeDays],
-          [t("T-3405"), profile.rank === null ? t("T-3406") : t("T-3407", { n: profile.rank })],
-          closed && profile.launched
-            ? [t("T-3404"), profile.activeDays]
-            : [t("T-3408"), t("T-3409", { n: profile.todayGames.length })],
-        ].map(([label, value]) => (
-          <div key={label} className="flex flex-col gap-1">
-            <dt className="text-sm text-tinta-suave">{label}</dt>
-            <dd className="text-lg font-semibold tabular-nums">{value}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="max-w-prose text-sm">{t(closed ? "T-3417" : dayStatus)}</p>
+      {profile.rankingMetric === null ? (
+        <p className="max-w-prose text-sm text-tinta-suave">{t("T-3483")}</p>
+      ) : (
+        <>
+          <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+            {[
+              profile.rankingMetric === "POINTS"
+                ? [t("T-3477"), profile.points ?? "—"]
+                : [t("T-3403"), profile.participations],
+              profile.launched
+                ? [
+                    t("T-3411"),
+                    t(profile.currentStreak === 1 ? "T-3457" : "T-3413", {
+                      n: profile.currentStreak,
+                    }),
+                  ]
+                : [t("T-3404"), profile.activeDays],
+              [t("T-3405"), profile.rank === null ? t("T-3406") : t("T-3407", { n: profile.rank })],
+              closed && profile.launched
+                ? [t("T-3404"), profile.activeDays]
+                : [t("T-3408"), t("T-3409", { n: profile.todayGames.length })],
+            ].map(([label, value]) => (
+              <div key={label} className="flex flex-col gap-1">
+                <dt className="text-sm text-tinta-suave">{label}</dt>
+                <dd className="text-lg font-semibold tabular-nums">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="max-w-prose text-sm">{t(closed ? "T-3417" : dayStatus)}</p>
+        </>
+      )}
     </section>
   );
 }
@@ -57,21 +67,30 @@ export function GamerSeason({
 export function GamerLeaderboard({
   leaderboard,
   personId,
+  rankingMetric,
 }: {
   leaderboard: readonly GamerStanding[];
   personId: string;
+  rankingMetric: GamerProfile["rankingMetric"];
 }) {
+  if (rankingMetric === null) return null;
+  const byPoints = rankingMetric === "POINTS";
   return (
     <section aria-labelledby="gamer-ranking" className="flex flex-col gap-4">
       <h2 id="gamer-ranking" className="text-display-md">
         {t("T-3425")}
       </h2>
-      <p className="max-w-prose text-sm text-tinta-suave">{t("T-3402")}</p>
-      <p className="max-w-prose text-sm text-tinta-suave">{t("T-3426")}</p>
+      <p className="max-w-prose text-sm text-tinta-suave">{t(byPoints ? "T-3402" : "T-3480")}</p>
+      <p className="max-w-prose text-sm text-tinta-suave">{t(byPoints ? "T-3426" : "T-3481")}</p>
       {leaderboard.length === 0 ? (
-        <p className="text-sm text-tinta-suave">{t("T-3427")}</p>
+        <p className="text-sm text-tinta-suave">{t(byPoints ? "T-3427" : "T-3484")}</p>
       ) : (
-        <div className="overflow-x-auto">
+        <section
+          aria-labelledby="gamer-ranking"
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: el teclado debe poder desplazar la clasificación cuando sus columnas no caben.
+          tabIndex={0}
+          className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-titulo"
+        >
           <table className="w-full text-sm">
             <caption className="sr-only">{t("T-3425")}</caption>
             <thead>
@@ -82,6 +101,11 @@ export function GamerLeaderboard({
                 <th scope="col" className="py-3 pr-3">
                   {t("T-3428")}
                 </th>
+                {byPoints ? (
+                  <th scope="col" className="py-3 pr-3 text-right">
+                    {t("T-3477")}
+                  </th>
+                ) : null}
                 <th scope="col" className="py-3 pr-3 text-right">
                   {t("T-3403")}
                 </th>
@@ -101,19 +125,25 @@ export function GamerLeaderboard({
                   <th scope="row" className="py-3 pr-3 text-left font-semibold">
                     {row.anonymized ? t("T-223") : row.name}
                   </th>
+                  {byPoints ? (
+                    <td className="py-3 pr-3 text-right font-semibold tabular-nums">
+                      {row.points ?? "—"}
+                    </td>
+                  ) : null}
                   <td className="py-3 pr-3 text-right tabular-nums">{row.participations}</td>
                   <td className="py-3 text-right tabular-nums">{row.activeDays}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </section>
       )}
     </section>
   );
 }
 
 export function GamerStreak({ profile, closed }: { profile: GamerProfile; closed: boolean }) {
+  if (profile.rankingMetric === null) return null;
   if (!profile.launched) {
     return (
       <section aria-labelledby="gamer-streak" className="flex flex-col gap-3">

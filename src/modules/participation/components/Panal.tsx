@@ -8,6 +8,8 @@ import { APP_TIME_ZONE, atHourIn } from "@/shared/lib/dates-pure";
 import {
   isPanalPangram,
   normalizePanalWord,
+  PANAL_REWARD,
+  panalCheckpoints,
   panalRank,
   panalWordError,
   panalWordScore,
@@ -114,10 +116,19 @@ export function Panal({ initial, onStart, onWord }: Props) {
                 })
               : t("T-2745");
             setMessage(
-              award > 0 && !current?.points ? `${wordMessage} ${t("T-3009")}` : wordMessage,
+              award > 0
+                ? `${wordMessage} ${t("T-3009", {
+                    premio: t(award === 1 ? "T-3478" : "T-3479", { n: award }),
+                  })}`
+                : wordMessage,
             );
-          } else if (current && current.points === 0 && result.game.points > 0) {
-            setMessage(t("T-3009"));
+          } else if (current && result.game.points > current.points) {
+            const award = result.game.points - current.points;
+            setMessage(
+              t("T-3009", {
+                premio: t(award === 1 ? "T-3478" : "T-3479", { n: award }),
+              }),
+            );
           }
         } else {
           setMessage(t(ERROR_COPY[result.reason]));
@@ -194,7 +205,7 @@ export function Panal({ initial, onStart, onWord }: Props) {
             <p className="text-sm text-tinta-suave">
               {current?.complete
                 ? t("T-2742")
-                : current?.points === 6
+                : current?.points === PANAL_REWARD
                   ? t("T-2741")
                   : t("T-2740", { n: Math.max(0, puzzle.geniusScore - score) })}
             </p>
@@ -315,7 +326,38 @@ export function Panal({ initial, onStart, onWord }: Props) {
             <aside className="flex min-w-0 flex-col gap-6">
               <div>
                 <h2 className="mb-3 text-titulo-md">{t("T-3000")}</h2>
-                <p className="text-sm font-semibold">{t(current?.points ? "T-3434" : "T-3433")}</p>
+                <p className="text-sm font-semibold tabular-nums">
+                  {t("T-3001", { n: current?.points ?? 0 })}
+                </p>
+                <p className="mt-2 text-sm">
+                  {current?.points === PANAL_REWARD
+                    ? t("T-3485")
+                    : initial.checkpointsEnabled
+                      ? t(current?.points ? "T-3434" : "T-3433")
+                      : t("T-2738", {
+                          premio: t("T-3479", { n: PANAL_REWARD }),
+                        })}
+                </p>
+                {initial.checkpointsEnabled ? (
+                  <ul className="mt-3 list-none space-y-2 p-0 text-sm">
+                    {panalCheckpoints(puzzle.geniusScore).map((checkpoint) => (
+                      <li
+                        key={checkpoint.id}
+                        className="flex flex-wrap justify-between gap-x-4 gap-y-1"
+                      >
+                        <span>
+                          {checkpoint.words ? t("T-3002", { n: checkpoint.words }) : t("T-3003")}
+                          {current?.awardedCheckpoints.includes(checkpoint.id)
+                            ? ` · ${t("T-3005")}`
+                            : ""}
+                        </span>
+                        <span className="tabular-nums">
+                          {t("T-3004", { n: checkpoint.points })}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 <p className="mt-3 text-sm text-tinta-suave">{t("T-3008")}</p>
                 {pendingReward && canPlay ? (
                   <div className="mt-3 flex flex-col items-start gap-2">
@@ -359,7 +401,11 @@ export function Panal({ initial, onStart, onWord }: Props) {
                   ))}
                 </ul>
                 <p className="mt-4 text-sm font-semibold">
-                  {t(initial.checkpointsEnabled ? "T-3011" : "T-2738", { n: puzzle.geniusScore })}
+                  {initial.checkpointsEnabled
+                    ? t("T-3011")
+                    : t("T-2738", {
+                        premio: t("T-3479", { n: PANAL_REWARD }),
+                      })}
                 </p>
               </details>
             </aside>

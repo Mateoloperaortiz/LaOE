@@ -177,18 +177,26 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
                 standing.topGamer.map((item) => ({
                   rank: item.rank,
                   name: item.name,
-                  value: t("T-3455", {
-                    participaciones: item.participations,
-                    dias: item.activeDays,
-                  }),
+                  value:
+                    standing.stats.gamerRankingMetric === "POINTS" && item.points !== null
+                      ? t("T-3482", {
+                          premio: t(item.points === 1 ? "T-3478" : "T-3479", { n: item.points }),
+                          participaciones: item.participations,
+                          dias: item.activeDays,
+                        })
+                      : t("T-3455", {
+                          participaciones: item.participations,
+                          dias: item.activeDays,
+                        }),
                 })),
+                t(standing.stats.gamerRankingMetric === null ? "T-3483" : "T-542"),
               ],
-            ] as Array<[string, Array<{ rank: number; name: string; value: string }>]>
-          ).map(([title, rows]) => (
+            ] as Array<[string, Array<{ rank: number; name: string; value: string }>, string?]>
+          ).map(([title, rows, empty]) => (
             <section key={title} aria-label={title} className="flex flex-col gap-3">
               <h2 className="text-display-md">{title}</h2>
               {rows.length === 0 ? (
-                <p className="text-tinta-suave">{t("T-542")}</p>
+                <p className="text-tinta-suave">{empty ?? t("T-542")}</p>
               ) : (
                 <ol className="flex list-none flex-col gap-2 p-0">
                   {rows.map((row) => (

@@ -157,9 +157,13 @@ async function cierreSegunPuntaje(page: Page, yaAcreditado: number): Promise<num
     caso,
   ).toEqual(total > 0 ? [total] : []);
   await expect(
-    page
-      .locator("#game2048")
-      .getByText(suma > 0 ? t("T-2651", { n: suma }) : t(yaAcreditado > 0 ? "T-2653" : "T-2652")),
+    page.locator("#game2048").getByText(
+      suma > 0
+        ? t("T-2651", {
+            premio: t(suma === 1 ? "T-3478" : "T-3479", { n: suma }),
+          })
+        : t(yaAcreditado > 0 ? "T-2653" : "T-2652"),
+    ),
     caso,
   ).toBeVisible();
   return suma;

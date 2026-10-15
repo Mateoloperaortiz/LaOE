@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { type ClientCopyCode, t, tLabels } from "@/shared/copy/client";
+import { type ClientCopyCode, t, tLabels, tList } from "@/shared/copy/client";
 import { ArrowDownIcon } from "@/shared/ui/icons/ArrowDownIcon";
 import { ArrowLeftIcon } from "@/shared/ui/icons/ArrowLeftIcon";
 import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
@@ -10,6 +10,7 @@ import { ArrowUpIcon } from "@/shared/ui/icons/ArrowUpIcon";
 import {
   applyGame2048Move,
   GAME2048_MAX_MOVES,
+  GAME2048_REWARDS,
   game2048Reward,
   newGame2048,
   replayGame2048,
@@ -137,6 +138,7 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
   const [creditedToday, setCreditedToday] = useState(initial.credited !== null);
   const [pending, startTransition] = useTransition();
   const available = initial.availability === "AVAILABLE";
+  const [scoreHeading, pointsHeading] = tList("T-2650");
 
   // Retoma la partida abierta: el motor es determinista, así que basta la semilla y los movimientos.
   // `adopted` evita que un refresco del servidor reabra el aviso sobre la partida que se está jugando.
@@ -341,7 +343,13 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
 
       {done ? (
         <p className="text-sm font-semibold">
-          {done.points > 0 ? t("T-2651") : creditedToday ? t("T-2653") : t("T-2652")}
+          {done.points > 0
+            ? t("T-2651", {
+                premio: t(done.points === 1 ? "T-3478" : "T-3479", { n: done.points }),
+              })
+            : creditedToday
+              ? t("T-2653")
+              : t("T-2652")}
         </p>
       ) : null}
 
@@ -389,6 +397,29 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
         <summary className="cursor-pointer font-semibold">{t("T-2649")}</summary>
         <p className="mt-2 max-w-prose text-tinta-suave">{t("T-2632")}</p>
         <p className="mt-3 max-w-prose font-semibold">{t("T-3431")}</p>
+        <table className="mt-3 w-full max-w-prose">
+          <caption className="sr-only">{t("T-2649")}</caption>
+          <thead>
+            <tr>
+              <th scope="col" className="py-2 pr-3 text-left">
+                {scoreHeading}
+              </th>
+              <th scope="col" className="py-2 text-right">
+                {pointsHeading}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {GAME2048_REWARDS.toReversed().map(([score, points]) => (
+              <tr key={score} className="border-t border-borde">
+                <th scope="row" className="py-2 pr-3 text-left font-normal tabular-nums">
+                  {score.toLocaleString("es-CO")}
+                </th>
+                <td className="py-2 text-right tabular-nums">{points}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </details>
     </section>
   );

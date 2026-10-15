@@ -5,6 +5,7 @@ import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
+import { getGamerProfile } from "@/modules/participation";
 import { dayKeyFor } from "@/modules/participation/domain/gamification-pure";
 import { balanceFor } from "@/modules/participation/domain/ledger";
 import {
@@ -209,6 +210,12 @@ describe("Sudoku con la solución en el servidor", () => {
     expect(entries[0]?.reason).not.toMatch(itemPattern(tList("T-2712")[assisted ? 0 : 1]));
     expect(entries[0]?.reason).not.toContain("·");
     expect(await balanceFor(personId, entries[0]?.termId ?? "")).toBe(0);
+    expect(await getGamerProfile(personId, entries[0]?.termId ?? "")).toMatchObject({
+      points: esperado,
+      participations: 1,
+      activeDays: 1,
+      rankingMetric: "POINTS",
+    });
 
     const fila = await rowOf(run.id);
     expect(fila.creditedPoints).toBe(esperado);
@@ -475,6 +482,11 @@ describe("Sudoku con la solución en el servidor", () => {
 
     const segunda = await solveAndFinish(personId, { difficulty: "HARD", assisted: false });
     expect(segunda.result).toMatchObject({ ok: true, run: { status: "SOLVED", points: 0 } });
+    expect(await getGamerProfile(personId, await seedTerm())).toMatchObject({
+      points: 1,
+      participations: 1,
+      activeDays: 1,
+    });
 
     expect(await db().select().from(pointEntry)).toHaveLength(1);
     const hoy = await getTodaySudoku(personId);

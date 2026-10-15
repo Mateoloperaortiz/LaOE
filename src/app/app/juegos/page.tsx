@@ -139,7 +139,13 @@ export default async function JuegosPage({ searchParams }: PageProps<"/app/juego
         />
       ) : null}
 
-      {term ? <GamerLeaderboard leaderboard={leaderboard} personId={actor.personId} /> : null}
+      {term && profile ? (
+        <GamerLeaderboard
+          leaderboard={leaderboard}
+          personId={actor.personId}
+          rankingMetric={profile.rankingMetric}
+        />
+      ) : null}
     </div>
   );
 }

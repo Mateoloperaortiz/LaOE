@@ -1395,11 +1395,11 @@ Reglas aprobadas por Mateo el 2026-09-07: una partida diaria, cinco letras, seis
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-1230 | Juegos: título del Wordle | Wordle de hoy | MATEO | Propuesta |
-| T-1231 | Wordle: introducción | Una palabra distinta para vos cada día. Hágale: resolvela y sumá una participación gamer. | MATEO | Propuesta |
+| T-1231 | Wordle: introducción | Una palabra distinta para vos cada día. Hágale: resolvela y sumá puntos gamer según tus intentos. | MATEO | Propuesta |
 | T-1232 | Wordle: iniciar partida | Jugar el Wordle de hoy | MATEO | Propuesta |
 | T-1233 | Wordle: reglas | Adiviná una palabra de 5 letras en 6 intentos. Podés escribir con o sin tilde; la Ñ es distinta de la N. Cada intento válido queda guardado para que sigás en otro dispositivo. | MATEO | Propuesta |
 | T-1234 | Wordle: título de premios | Cómo suma el Wordle | MATEO | Propuesta |
-| T-1235 | Wordle: escala de premios | Intentos · Participaciones | MATEO | Propuesta |
+| T-1235 | Wordle: escala de premios | Intentos · Puntos gamer | MATEO | Propuesta |
 | T-1236 | Wordle: campo de palabra | Tu palabra de cinco letras | MATEO | Propuesta |
 | T-1237 | Wordle: enviar intento | Probar palabra | MATEO | Propuesta |
 | T-1238 | Wordle: borrar letra | Borrar | MATEO | Propuesta |
@@ -1409,14 +1409,14 @@ Reglas aprobadas por Mateo el 2026-09-07: una partida diaria, cinco letras, seis
 | T-1242 | Wordle: celda accesible | {letra}: {estado} | MATEO | Propuesta |
 | T-1243 | Wordle: longitud o caracteres incorrectos | Escribí una palabra de cinco letras. | MATEO | Propuesta |
 | T-1244 | Wordle: palabra ausente del diccionario | No la encontré en el diccionario. Probá otra; no perdiste un intento. | MATEO | Propuesta |
-| T-1245 | Wordle: victoria | ¡Qué nota, la resolviste en {n}/6! Sumaste una participación gamer. ¡OE OE OE! | MATEO | Propuesta |
-| T-1246 | Wordle: derrota | Se acabaron los intentos. Este Wordle no suma una participación; probá otro juego para sumar hoy. | MATEO | Propuesta |
+| T-1245 | Wordle: victoria | ¡Qué nota, la resolviste en {n}/6! Sumaste {premio}. ¡OE OE OE! | MATEO | Propuesta |
+| T-1246 | Wordle: derrota | Se acabaron los intentos. Este Wordle no suma puntos gamer; probá otro juego para sumar hoy. | MATEO | Propuesta |
 | T-1247 | Wordle: respuesta al terminar | La palabra era {palabra}. | MATEO | Propuesta |
 | T-1248 | Wordle: próximo reto | Próxima palabra: {fecha}, a las 12:00 a. m. de Colombia. | MATEO | Propuesta |
 | T-1249 | Wordle: sin semestre o puntos cerrados | Los juegos estarán disponibles cuando haya un semestre vigente con la temporada abierta. | MATEO | Propuesta |
 | T-1250 | Wordle: miembro no elegible | El Wordle está disponible para miembros activos y honorarios. | MATEO | Propuesta |
 | T-1251 | Wordle: catálogo no disponible | No pudimos preparar tu palabra. Probá otra vez en un ratico. | MATEO | Propuesta |
-| T-1252 | Wordle: partida vencida | Terminó el día de esta partida. No sumó una participación; ya podés consultar el reto de hoy. | MATEO | Propuesta |
+| T-1252 | Wordle: partida vencida | Terminó el día de esta partida. No sumó puntos gamer; ya podés consultar el reto de hoy. | MATEO | Propuesta |
 | T-1253 | Wordle: otro dispositivo avanzó | Tu partida cambió en otro dispositivo. Ya trajimos los intentos guardados; revisalos antes de seguir. | MATEO | Propuesta |
 | T-1254 | Wordle: respuesta de red incierta | No recibimos la confirmación. Reintentá la misma jugada: si ya se guardó, no contará dos veces. | MATEO | Propuesta |
 | T-1255 | Wordle: partida no encontrada o solicitud inválida | No pudimos recuperar esa jugada. Actualizá la partida para seguir. | MATEO | Propuesta |
@@ -1428,7 +1428,7 @@ Reglas aprobadas por Mateo el 2026-09-07: una partida diaria, cinco letras, seis
 | T-1261 | Ledger: motivo del premio Wordle | Wordle del {fecha}: intento {intento}/6 | MATEO | Propuesta |
 | T-1262 | Wordle: nombre accesible del tablero | Tus seis intentos | MATEO | Propuesta |
 | T-1263 | Wordle: pista de celda vacía | Sin letra | MATEO | Propuesta |
-| T-1264 | Wordle: premio posible | Podés sumar {n} GH Points en este intento. | MATEO | Propuesta |
+| T-1264 | Wordle: premio posible | Podés sumar {premio} en este intento. | MATEO | Propuesta |
 | T-1265 | Wordle: sin premio por perder | Si no acertás, no sumás puntos. | MATEO | Propuesta |
 | T-1266 | Wordle: día nuevo | Ya cambió el día en Colombia. Actualizá para jugar tu nueva palabra. | MATEO | Propuesta |
 | T-1267 | Wordle: partida cerrada | Tu partida ya terminó. | MATEO | Propuesta |
@@ -2266,15 +2266,15 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | --- | --- | --- | --- | --- |
 | T-2618 | Asignar a un comité inactivo | {comité} está inactivo: ya no recibe integrantes. | MATEO | Propuesta |
 | T-2619 | Roster: comité inactivo en la fila | {sigla} está inactivo: ya no recibe integrantes. Quitá esa sigla o pedí que la junta lo reactive. | MATEO | Propuesta |
-| T-2620 | Push: Wordle del día (ADR-074) | ¿Qué más? El Wordle de hoy te espera · Resolvelo y sumá una participación gamer. | GH | Propuesta |
+| T-2620 | Push: Wordle del día (ADR-074) | ¿Qué más? El Wordle de hoy te espera · Resolvelo y sumá puntos gamer. | GH | Propuesta |
 
 ## Biblioteca de juegos y 2048 (ADR-075)
 
 | Código | Dónde | Texto | Fuente | Estado |
 | --- | --- | --- | --- | --- |
 | T-2621 | Juegos: título de la sección | Juegos | MATEO | Propuesta |
-| T-2622 | Juegos: introducción | Jugá a tu ritmo, sumá participaciones y competí por ser la persona más gamer del semestre. | MATEO | Propuesta |
-| T-2623 | Juegos: estado de la tarjeta | Disponible hoy · Participación sumada hoy · No disponible ahora | MATEO | Propuesta |
+| T-2622 | Juegos: introducción | Jugá a tu ritmo, sumá puntos gamer por tus resultados y competí por ser la persona más gamer del semestre. | MATEO | Propuesta |
+| T-2623 | Juegos: estado de la tarjeta | Disponible hoy · Ya sumaste hoy · No disponible ahora | MATEO | Propuesta |
 | T-2624 | Juegos: botón de la tarjeta | Jugar | MATEO | Propuesta |
 | T-2625 | GH Points: enlace a la biblioteca | Ver todos los juegos | MATEO | Propuesta |
 | T-2626 | Juegos: nombre del Wordle en la tarjeta | Wordle | MATEO | Propuesta |
@@ -2282,7 +2282,7 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2628 | Juegos: nombre del 2048 en la tarjeta | 2048 | MATEO | Propuesta |
 | T-2629 | Juegos: de qué va el 2048 | Juntá fichas iguales. Terminá una partida con al menos 1.000 puntos para sumar una participación al día. | MATEO | Propuesta |
 | T-2630 | 2048: título | 2048 | MATEO | Propuesta |
-| T-2631 | 2048: introducción | Deslizá las fichas: dos iguales se juntan en una. Terminá una partida con al menos 1.000 puntos para sumar tu participación de hoy. | MATEO | Propuesta |
+| T-2631 | 2048: introducción | Deslizá las fichas: dos iguales se juntan en una. Tu primera partida terminada con al menos 1.000 puntos de juego suma puntos gamer según su puntaje. | MATEO | Propuesta |
 | T-2632 | 2048: cómo se juega | Movés todo el tablero de una vez, con las flechas, con los botones de abajo o deslizando el dedo. Dos fichas iguales que chocan se juntan y suman su valor. Después de cada movimiento aparece una ficha nueva. Se acaba cuando ya no queda ninguna jugada. | MATEO | Propuesta |
 | T-2633 | 2048: empezar partida | Empezar una partida | MATEO | Propuesta |
 | T-2634 | 2048: envío pendiente | Guardando tu partida… | MATEO | Propuesta |
@@ -2294,22 +2294,22 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2640 | 2048: puntaje de la partida | Puntaje: {puntaje} | MATEO | Propuesta |
 | T-2641 | 2048: ficha más alta | Tu ficha más alta: {n} | MATEO | Propuesta |
 | T-2642 | 2048: aviso de ficha nueva | Llegaste a la ficha {n}. | MATEO | Propuesta |
-| T-2643 | 2048: aviso de umbral | Ya llegaste al mínimo para sumar una participación cuando termine la partida. | MATEO | Propuesta |
-| T-2644 | 2048: fin de la partida | No quedan jugadas. Hiciste {puntaje} puntos. | MATEO | Propuesta |
+| T-2643 | 2048: aviso de umbral | Ya llegaste al mínimo para sumar puntos gamer cuando termine la partida, si todavía no acreditaste hoy. | MATEO | Propuesta |
+| T-2644 | 2048: fin de la partida | No quedan jugadas. Hiciste {puntaje} puntos de juego. | MATEO | Propuesta |
 | T-2645 | 2048: tope de movimientos | Llegaste a los 4.000 movimientos y cerramos la partida ahí. Empezá otra cuando quieras. | MATEO | Propuesta |
 | T-2646 | 2048: partida guardada | Tenés una partida a medias. ¿La seguís? | MATEO | Propuesta |
 | T-2647 | 2048: retomar la partida guardada | Seguir la partida | MATEO | Propuesta |
 | T-2648 | 2048: descartar la partida guardada | Empezar de cero | MATEO | Propuesta |
 | T-2649 | 2048: título de premios | Cómo suma el 2048 | MATEO | Propuesta |
-| T-2650 | 2048: escala de premios | Puntaje · Participaciones | MATEO | Propuesta |
-| T-2651 | 2048: premio acreditado | ¡Severo! Sumaste una participación gamer. ¡OE OE OE! | MATEO | Propuesta |
-| T-2652 | 2048: sin premio por puntaje bajo | Esta partida no llegó a 1.000 puntos. Hágale a otra: todavía podés sumar tu participación de hoy. | MATEO | Propuesta |
-| T-2653 | 2048: ya acreditaste hoy | Hoy ya sumaste tu participación del 2048. Podés seguir por tu récord y mañana vuelve a contar. | MATEO | Propuesta |
+| T-2650 | 2048: escala de premios | Desde este puntaje de juego · Puntos gamer | MATEO | Propuesta |
+| T-2651 | 2048: premio acreditado | ¡Severo! Sumaste {premio}. ¡OE OE OE! | MATEO | Propuesta |
+| T-2652 | 2048: sin premio por puntaje bajo | Esta partida no llegó a 1.000 puntos de juego. Hágale a otra: todavía podés sumar puntos gamer hoy. | MATEO | Propuesta |
+| T-2653 | 2048: ya acreditaste hoy | Hoy ya sumaste puntos gamer con el 2048. Podés seguir por tu récord, sin aumentar ese premio; mañana vuelve a contar. | MATEO | Propuesta |
 | T-2654 | Ledger: motivo del premio 2048 | 2048 del {fecha}: {puntaje} puntos | MATEO | Propuesta |
-| T-2655 | 2048: partida vencida | Terminó el día de esta partida. No sumó una participación; empezá una nueva. | MATEO | Propuesta |
+| T-2655 | 2048: partida vencida | Terminó el día de esta partida. No sumó puntos gamer; empezá una nueva. | MATEO | Propuesta |
 | T-2656 | 2048: partida cerrada | Esa partida ya terminó. | MATEO | Propuesta |
 | T-2657 | 2048 y Sudoku: día nuevo | Ya cambió el día en Colombia. Actualizá para que tu partida cuente. | MATEO | Propuesta |
-| T-2658 | 2048: no hay semestre con puntos abiertos | El 2048 suma participaciones mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre. | MATEO | Propuesta |
+| T-2658 | 2048: no hay semestre con puntos abiertos | El 2048 suma puntos gamer mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre. | MATEO | Propuesta |
 | T-2659 | 2048: no elegible | El 2048 es para miembros activos y honorarios. | MATEO | Propuesta |
 | T-2660 | 2048: partida no encontrada o solicitud inválida | No pudimos recuperar esa partida. Empezá una nueva para seguir. | MATEO | Propuesta |
 | T-2661 | 2048: partida ilegible | No pudimos reconstruir esa partida, así que no la guardamos. Empezá otra: todavía podés sumar hoy. | MATEO | Propuesta |
@@ -2336,21 +2336,21 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | Código | Dónde | Texto | Fuente | Estado |
 | --- | --- | --- | --- | --- |
 | T-2675 | Juegos: nombre del Sudoku en la tarjeta | Sudoku | MATEO | Propuesta |
-| T-2676 | Juegos: de qué va el Sudoku | Completá la cuadrícula sin repetir números. Resolver cualquier tablero suma una participación al día. | MATEO | Propuesta |
+| T-2676 | Juegos: de qué va el Sudoku | Completá la cuadrícula sin repetir números. Tu primer tablero resuelto del día suma puntos gamer según la dificultad y las ayudas. | MATEO | Propuesta |
 | T-2677 | Sudoku: título | Sudoku | MATEO | Propuesta |
-| T-2678 | Sudoku: introducción | Llená cada fila, columna y caja del 1 al 9 sin repetir. Resolver un tablero de cualquier dificultad, con o sin ayudas, suma una participación al día. | MATEO | Propuesta |
+| T-2678 | Sudoku: introducción | Llená cada fila, columna y caja del 1 al 9 sin repetir. Tu primer tablero resuelto del día suma puntos gamer según la dificultad y las ayudas que elijás. | MATEO | Propuesta |
 | T-2679 | Sudoku: cómo se juega | Elegí una casilla y después un número, con el teclado de abajo o con el tuyo. Con el lápiz anotás candidatos sin comprometerte. Un número repetido en su fila, columna o caja se marca solo. Cada tablero tiene una sola solución y sale con pura lógica: nunca hace falta adivinar. | MATEO | Propuesta |
 | T-2680 | Sudoku: leyenda del selector de dificultad | Dificultad | MATEO | Propuesta |
 | T-2681 | Sudoku: dificultades | Fácil · Medio · Difícil | MATEO | Propuesta |
 | T-2682 | Sudoku: leyenda del selector de modo | Modo | MATEO | Propuesta |
 | T-2683 | Sudoku: modos | Sin ayudas · Con ayudas | MATEO | Propuesta |
 | T-2684 | Sudoku: qué trae cada modo | Notas a lápiz y repetidos marcados. · Además te marca los errores al instante y te da pistas. | MATEO | Propuesta |
-| T-2685 | Sudoku: aviso antes de empezar | El primer Sudoku que resuelvas hoy suma una participación. Elegí la dificultad y las ayudas con las que querás jugar. | MATEO | Propuesta |
-| T-2686 | Sudoku: premio de la combinación elegida | Este tablero cuenta igual para el ranking gamer, con o sin ayudas. | MATEO | Propuesta |
+| T-2685 | Sudoku: aviso antes de empezar | Solo el primer Sudoku que resuelvas hoy suma puntos gamer. Elegí la dificultad y las ayudas antes de empezar: los siguientes tableros no aumentan ese premio. | MATEO | Propuesta |
+| T-2686 | Sudoku: premio de la combinación elegida | Este tablero puede sumar {premio}. | MATEO | Propuesta |
 | T-2687 | Sudoku: empezar | Empezar el tablero | MATEO | Propuesta |
 | T-2688 | Sudoku: tablero en camino | Armando tu tablero… | MATEO | Propuesta |
 | T-2689 | Sudoku: título de premios | Cómo suma el Sudoku | MATEO | Propuesta |
-| T-2690 | Sudoku: encabezados de la tabla de premios | Dificultad · Sin ayudas · Con ayudas | MATEO | Propuesta |
+| T-2690 | Sudoku: encabezados de la tabla de premios | Dificultad · Puntos gamer sin ayudas · Puntos gamer con ayudas | MATEO | Propuesta |
 | T-2691 | Sudoku: tablero a medias | Tenés un Sudoku a medias: {dificultad}, {modo}. ¿Lo seguís? | MATEO | Propuesta |
 | T-2692 | Sudoku: retomar el tablero | Seguir el tablero | MATEO | Propuesta |
 | T-2693 | Sudoku: abandonar el tablero | Abandonar el tablero | MATEO | Propuesta |
@@ -2368,14 +2368,14 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2705 | Sudoku: aviso de pista | Pista: en la fila {fila}, columna {columna} va un {n}. | MATEO | Propuesta |
 | T-2706 | Sudoku: pista sin casilla vacía elegida | Elegí una casilla vacía para pedir la pista. | MATEO | Propuesta |
 | T-2707 | Sudoku: envío pendiente | Revisando tu tablero… | MATEO | Propuesta |
-| T-2708 | Sudoku: resuelto con premio | ¡Resuelto, parce! Sumaste una participación gamer. ¡OE OE OE! | MATEO | Propuesta |
+| T-2708 | Sudoku: resuelto con premio | ¡Resuelto, parce! Sumaste {premio}. ¡OE OE OE! | MATEO | Propuesta |
 | T-2709 | Sudoku: resuelto sin premio | ¡Resuelto! Hoy ya habías sumado con el Sudoku, así que este fue por puro gusto. | MATEO | Propuesta |
-| T-2710 | Sudoku: ya acreditaste hoy | Hoy ya sumaste tu participación del Sudoku. Podés seguir jugando por gusto y mañana vuelve a contar. | MATEO | Propuesta |
+| T-2710 | Sudoku: ya acreditaste hoy | Hoy ya sumaste puntos gamer con el Sudoku. Podés seguir jugando por gusto, sin aumentar ese premio; mañana vuelve a contar. | MATEO | Propuesta |
 | T-2711 | Sudoku: jugar otro | Jugar otro tablero | MATEO | Propuesta |
 | T-2712 | Ledger: motivo del premio del Sudoku, por modo | Sudoku del {fecha}: {dificultad}, sin ayudas · Sudoku del {fecha}: {dificultad}, con ayudas | MATEO | Propuesta |
-| T-2713 | Sudoku: tablero vencido | Terminó el día de este tablero. No sumó una participación; empezá uno nuevo. | MATEO | Propuesta |
+| T-2713 | Sudoku: tablero vencido | Terminó el día de este tablero. No sumó puntos gamer; empezá uno nuevo. | MATEO | Propuesta |
 | T-2714 | Sudoku: tablero cerrado | Ese tablero ya está cerrado. | MATEO | Propuesta |
-| T-2715 | Sudoku: no hay semestre con puntos abiertos | El Sudoku suma participaciones mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre. | MATEO | Propuesta |
+| T-2715 | Sudoku: no hay semestre con puntos abiertos | El Sudoku suma puntos gamer mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre. | MATEO | Propuesta |
 | T-2716 | Sudoku: no elegible | El Sudoku es para miembros activos y honorarios. | MATEO | Propuesta |
 | T-2717 | Sudoku: tablero no encontrado o solicitud inválida | No pudimos recuperar ese tablero. Empezá uno nuevo para seguir. | MATEO | Propuesta |
 | T-2718 | Sudoku: cuadrícula que no es la solución | Ese tablero todavía no está resuelto. Revisá las casillas y volvé a intentarlo. | MATEO | Propuesta |
@@ -2408,10 +2408,10 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2735 | Panal: Vacío | Tu primera palabra abre el panal. Usá siempre la letra del centro. | MATEO | Propuesta |
 | T-2736 | Panal: Reglas | Cómo jugar | MATEO | Propuesta |
 | T-2737 | Panal: Reglas lista | Formá palabras de al menos cuatro letras con las siete del panal. · Incluí siempre la letra del centro; podés repetir letras. · Las tildes y la diéresis son opcionales. La ñ es distinta de la n. · Se aceptan plurales y conjugaciones del diccionario del juego. · Cuatro letras dan 1 punto; desde cinco, un punto por letra. · Usar las siete letras en una palabra es un pangrama y suma 7 puntos extra. | MATEO | Propuesta |
-| T-2738 | Panal: Premio | Encontrá al menos cinco palabras para sumar una participación gamer al día. Después podés seguir hasta Genio o completar el panal. | MATEO | Propuesta |
+| T-2738 | Panal: Premio | Llegá a Genio para sumar {premio} en el Panal de hoy. El puntaje de las palabras se cuenta aparte. | MATEO | Propuesta |
 | T-2739 | Panal: Rangos | Principiante · Buen comienzo · En camino · Bien · Muy bien · Genial · Excelente · Brillante · Genio · Panal completo | MATEO | Propuesta |
 | T-2740 | Panal: Meta | Te faltan {n} puntos para Genio | MATEO | Propuesta |
-| T-2741 | Panal: Premio recibido | ¡Qué nota! Llegaste a Genio. Tu participación de hoy ya está sumada. ¡OE OE OE! | MATEO | Propuesta |
+| T-2741 | Panal: Premio recibido | ¡Qué nota! Llegaste a Genio y sumaste los puntos gamer del Panal de hoy. ¡OE OE OE! | MATEO | Propuesta |
 | T-2742 | Panal: Completado | ¡Encontraste todas las palabras! Volvé mañana por otro panal. ¡OE OE OE! | MATEO | Propuesta |
 | T-2743 | Panal: Palabra aceptada | {palabra}: +{n} puntos | MATEO | Propuesta |
 | T-2744 | Panal: Pangrama | ¡Pangrama! {palabra}: +{n} puntos | MATEO | Propuesta |
@@ -2438,20 +2438,20 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 
 | Código | Uso | Texto | Responsable | Estado |
 |---|---|---|---|---|
-| T-3000 | Panal: premios | Tu participación de hoy | MATEO | Aprobado |
-| T-3001 | Panal: total acreditado | {n} participaciones | MATEO | Aprobado |
+| T-3000 | Panal: premios | Tus puntos gamer de hoy | MATEO | Aprobado |
+| T-3001 | Panal: total acreditado | Puntos gamer sumados: {n} | MATEO | Aprobado |
 | T-3002 | Panal: meta de palabras | {n} palabras | MATEO | Aprobado |
 | T-3003 | Panal: meta final | Genio | MATEO | Aprobado |
-| T-3004 | Panal: importe por meta | +{n} puntos de juego | MATEO | Aprobado |
+| T-3004 | Panal: importe por meta | Puntos gamer: +{n} | MATEO | Aprobado |
 | T-3005 | Panal: meta acreditada | Guardado | MATEO | Aprobado |
 | T-3006 | Panal: próxima meta | Próxima meta: {meta} | MATEO | Aprobado |
 | T-3007 | Panal: salir | Volver a Juegos | MATEO | Aprobado |
 | T-3008 | Panal: guardado | Cada palabra se guarda al instante. Podés salir y volver hoy cuando querás. | MATEO | Aprobado |
-| T-3009 | Panal: anuncio de premio | ¡Participación gamer sumada! | MATEO | Aprobado |
+| T-3009 | Panal: anuncio de premio | ¡Sumaste {premio}! | MATEO | Aprobado |
 | T-3010 | Ledger: premio de Panal por avance | Panal del {fecha}: {meta} | MATEO | Aprobado |
-| T-3011 | Panal: reglas de premios | Encontrá cinco palabras para sumar una participación al día. Seguí buscando para mejorar tu puntaje y alcanzar Genio; los avances siguientes no suman otra participación. | MATEO | Aprobado |
+| T-3011 | Panal: reglas de premios | Las metas suman puntos gamer una sola vez cada día y se acumulan entre sí. El puntaje de las palabras se cuenta aparte. | MATEO | Aprobado |
 | T-3012 | Panal: recuperar premio pendiente | Guardar avance | MATEO | Aprobado |
-| T-3013 | Panal: premio pendiente | Ya alcanzaste una meta. Guardá tu avance para registrar tu participación. | MATEO | Aprobado |
+| T-3013 | Panal: premio pendiente | Ya alcanzaste una meta. Guardá tu avance para registrar los puntos gamer pendientes. | MATEO | Aprobado |
 | T-3014 | Panal: introducción corta | Siete letras. Cinco palabras para sumar. Vos elegís hasta dónde llegar. | MATEO | Aprobado |
 
 ## The Games (ADR-089 a ADR-091 y ADR-094)
@@ -2916,9 +2916,9 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 |---|---|---|---|---|
 | T-3400 | Juegos: temporada | Más gamer | MATEO | Aprobado |
 | T-3401 | Juegos: semestre | Temporada {semestre} | MATEO | Aprobado |
-| T-3402 | Juegos: reglas clasificación | Cada juego que alcance su mínimo suma una participación al día: hasta cuatro diarias. Se acumulan durante el semestre en una clasificación propia, separada de GH Points. | MATEO | Aprobado |
+| T-3402 | Juegos: reglas clasificación | Tus resultados suman puntos gamer durante el semestre, en una clasificación separada de GH Points. Wordle, 2048 y Sudoku acreditan una partida válida al día; Panal suma por sus metas diarias. Las participaciones y los días activos se cuentan aparte. | MATEO | Aprobado |
 | T-3403 | Gamer: total | Participaciones | MATEO | Aprobado |
-| T-3404 | Gamer: desempate | Días activos | MATEO | Aprobado |
+| T-3404 | Gamer: días de juego | Días activos | MATEO | Aprobado |
 | T-3405 | Gamer: posición | Tu puesto | MATEO | Aprobado |
 | T-3406 | Gamer: sin posición | Sin puesto aún | MATEO | Aprobado |
 | T-3407 | Gamer: puesto propio | Puesto {n} | MATEO | Aprobado |
@@ -2931,7 +2931,7 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3414 | Gamer: cumplido | Ya mantuviste tu racha de hoy. Los demás juegos todavía pueden sumar a tu clasificación. | MATEO | Aprobado |
 | T-3415 | Gamer: pendiente | Sumá una participación en cualquiera de los cuatro juegos para mantener tu racha hoy. Tenés hasta la medianoche de Colombia. | MATEO | Aprobado |
 | T-3417 | Gamer: cerrada | Esta temporada terminó. La clasificación y los resultados quedan como historia; el próximo semestre empieza de cero. | MATEO | Aprobado |
-| T-3418 | Gamer: comodín disponible | Tenés un comodín esta semana: cubre automáticamente un día sin jugar. Conserva la racha, sin sumar un día ni una participación. | MATEO | Aprobado |
+| T-3418 | Gamer: comodín disponible | Tenés un comodín esta semana: cubre automáticamente un día sin jugar. Conserva la racha, sin sumar un día, una participación ni puntos gamer. | MATEO | Aprobado |
 | T-3419 | Gamer: comodín usado | Ya usaste el comodín de esta semana. El lunes vuelve a estar disponible. | MATEO | Aprobado |
 | T-3420 | Gamer: insignias | Insignias de racha gamer | MATEO | Aprobado |
 | T-3421 | Gamer: hito logrado | {n} días · Conseguida | MATEO | Aprobado |
@@ -2939,15 +2939,15 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3423 | Gamer: progreso | Próxima insignia: {n} días. Te faltan {faltan} días de juego en tu racha actual. | MATEO | Aprobado |
 | T-3424 | Gamer: colección completa | ¡Conseguiste las tres insignias de esta temporada! | MATEO | Aprobado |
 | T-3425 | Gamer: clasificación título | Clasificación gamer | MATEO | Aprobado |
-| T-3426 | Gamer: privacidad desempate | Se muestran los primeros diez puestos y tu puesto propio arriba. Gana quien suma más participaciones; a igualdad, quien juega en más días distintos. Si siguen iguales, comparten puesto. | MATEO | Aprobado |
-| T-3427 | Gamer: vacío | La clasificación está por estrenar. Sumá tu primera participación con cualquiera de los cuatro juegos. | MATEO | Aprobado |
+| T-3426 | Gamer: privacidad desempate | Se muestran los primeros diez puestos y tu puesto propio arriba. Gana quien suma más puntos gamer; a igualdad, quien tiene más participaciones y después más días activos. Si siguen iguales, comparten puesto. | MATEO | Aprobado |
+| T-3427 | Gamer: vacío | La clasificación está por estrenar. Sumá tus primeros puntos gamer con cualquiera de los cuatro juegos. | MATEO | Aprobado |
 | T-3428 | Gamer: persona | Persona | MATEO | Aprobado |
 | T-3429 | GH: separación | Tus GH Points reconocen asistencias, retos, trivias y misiones. Los juegos tienen su propia clasificación dentro de Juegos. | MATEO | Aprobado |
-| T-3430 | Gamer: Wordle regla | Ganar el Wordle suma una participación por día, sin importar cuántos intentos necesités. | MATEO | Aprobado |
-| T-3431 | Gamer: 2048 regla | Terminá una partida con al menos 1.000 puntos para sumar una participación por día. Podés intentar de nuevo si no llegaste al mínimo. | MATEO | Aprobado |
-| T-3432 | Gamer: Sudoku regla | Resolver cualquier tablero suma una participación por día, sea fácil, medio o difícil, con o sin ayudas. | MATEO | Aprobado |
-| T-3433 | Gamer: Panal pendiente | Encontrá cinco palabras para sumar tu participación de hoy. | MATEO | Aprobado |
-| T-3434 | Gamer: Panal conseguido | Ya sumaste tu participación del Panal de hoy. Seguí buscando palabras para mejorar tu puntaje. | MATEO | Aprobado |
+| T-3430 | Gamer: Wordle regla | Los puntos gamer dependen del intento en que acertés. Ganar cumple tu participación del día, sin importar cuántos intentos necesités. No se convierten en GH Points. | MATEO | Aprobado |
+| T-3431 | Gamer: 2048 regla | Solo tu primera partida terminada con al menos 1.000 puntos de juego suma puntos gamer hoy. Si no llegaste al mínimo, podés intentar de nuevo; después de acreditar, las siguientes partidas no aumentan ese premio. | MATEO | Aprobado |
+| T-3432 | Gamer: Sudoku regla | Solo tu primer tablero resuelto del día suma puntos gamer. El premio depende de la dificultad y de las ayudas; resolver cualquier tablero cumple una participación. | MATEO | Aprobado |
+| T-3433 | Gamer: Panal pendiente | Encontrá cinco palabras para empezar a sumar puntos gamer hoy. | MATEO | Aprobado |
+| T-3434 | Gamer: Panal conseguido | Ya cumpliste tu participación del Panal de hoy. Las metas pendientes todavía pueden sumar puntos gamer. | MATEO | Aprobado |
 | T-3435 | GH: niveles | Niveles del semestre | MATEO | Aprobado |
 | T-3436 | GH: corte nivel | Desde {n} GH Points | MATEO | Aprobado |
 | T-3437 | Juegos: sin semestre | Todavía no hay una temporada vigente. Podés consultar la clasificación cuando arranque el semestre. | MATEO | Aprobado |
@@ -2971,12 +2971,21 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3455 | Cierre: resultado gamer | {participaciones} participaciones · {dias} días | MATEO | Aprobado |
 | T-3456 | GH: una semana | {n} semana | MATEO | Aprobado |
 | T-3457 | Gamer: un día | {n} día jugado | MATEO | Aprobado |
-| T-3461 | Gamer: preparado | La racha gamer y sus insignias están preparadas para el lanzamiento. Tus participaciones ya cuentan en la clasificación del semestre. | MATEO | Aprobado |
+| T-3461 | Gamer: preparado | La racha gamer y sus insignias están preparadas para el lanzamiento. Tus puntos gamer ya cuentan en la clasificación del semestre. | MATEO | Aprobado |
 | T-3462 | GH: constancia preparada | La constancia presencial y sus bonos están preparados para el lanzamiento. Tus asistencias y GH Points siguen contando. | MATEO | Aprobado |
 | T-3463 | Admin: alcance del primer lanzamiento | La primera activación lanza también las rachas, las insignias gamer y los bonos presenciales. Después, apagar los retos no detiene esas funciones ni cambia la fecha de lanzamiento. | MATEO | Aprobado |
 | T-3464 | Admin: sin lanzamiento | Rachas y bonos: preparados, todavía sin lanzar. | MATEO | Aprobado |
 | T-3465 | Admin: fecha del lanzamiento | Rachas y bonos lanzados el {fecha}. | MATEO | Aprobado |
 | T-3466 | Gamer: día cumplido antes del lanzamiento | Hoy ya sumaste una participación. Los demás juegos todavía pueden aportar a tu clasificación. | MATEO | Aprobado |
 | T-3467 | Gamer: día pendiente antes del lanzamiento | Podés sumar hasta cuatro participaciones hoy, una por cada juego que alcance su mínimo. | MATEO | Aprobado |
-| T-3468 | Gamer: cuatro participaciones del día | Ya sumaste los cuatro juegos de hoy. Podés seguir por gusto; mañana vuelven a contar. | MATEO | Aprobado |
+| T-3468 | Gamer: cuatro participaciones del día | Ya cumpliste tu participación en los cuatro juegos de hoy. Las metas pendientes del Panal todavía pueden sumar puntos gamer. | MATEO | Aprobado |
 | T-3469 | GH: cierre sin foto de constancia | La constancia presencial no quedó registrada en este cierre histórico. Tus GH Points y las clasificaciones se conservan. | MATEO | Aprobado |
+| T-3477 | Gamer: puntos de la clasificación | Puntos gamer | MATEO | Aprobado |
+| T-3478 | Gamer: importe singular | {n} punto gamer | MATEO | Aprobado |
+| T-3479 | Gamer: importe plural | {n} puntos gamer | MATEO | Aprobado |
+| T-3480 | Gamer: clasificación histórica por participaciones | Este cierre conserva su clasificación por participaciones. Los puntos gamer no quedaron registrados en esa foto histórica. | MATEO | Aprobado |
+| T-3481 | Gamer: desempate histórico por participaciones | Se muestran los primeros diez puestos y tu puesto propio arriba. Este cierre ordenó por participaciones; a igualdad, por días activos. Si seguían iguales, compartían puesto. | MATEO | Aprobado |
+| T-3482 | Cierre: resultado por puntos gamer | {premio} · {participaciones} participaciones · {dias} días | MATEO | Aprobado |
+| T-3483 | Gamer: cierre anterior sin clasificación | Este cierre histórico no guardó una clasificación gamer. No hay puntos gamer ni un puesto de esta competencia disponibles. | MATEO | Aprobado |
+| T-3484 | Gamer: clasificación histórica vacía | No quedaron participaciones gamer registradas en este cierre. | MATEO | Aprobado |
+| T-3485 | Panal: todos los puntos del día | Ya sumaste todos los puntos gamer del Panal de hoy. Podés seguir por tu puntaje de palabras. | MATEO | Aprobado |
