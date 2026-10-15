@@ -123,7 +123,7 @@ test("un Difícil sin ayudas acredita 6 sin que la solución llegue al navegador
   const juego = page.locator("#sudoku");
   await expect(juego.getByText(t("T-2685"))).toBeVisible();
   await opcion(page, DIFICIL).click();
-  await expect(juego.getByText(t("T-2686", { n: 6 }))).toBeVisible();
+  await expect(juego.getByText(t("T-2686", { premio: t("T-3479", { n: 6 }) }))).toBeVisible();
   const run = await empezar(page, DIFICIL, SIN_AYUDAS);
   expect(run).toMatchObject({ difficulty: "HARD", assisted: false });
   // Sin ayudas no hay botón de pista ni marca de error.
@@ -152,7 +152,9 @@ test("un Difícil sin ayudas acredita 6 sin que la solución llegue al navegador
   await juego.getByRole("button", { name: t("T-2692") }).click();
 
   await resolver(page, run);
-  await expect(juego.getByText(t("T-2708", { n: 6 }))).toBeVisible({ timeout: 15_000 });
+  await expect(juego.getByText(t("T-2708", { premio: t("T-3479", { n: 6 }) }))).toBeVisible({
+    timeout: 15_000,
+  });
   const [guardada] = await partidas();
   expect(guardada).toMatchObject({ status: "SOLVED", creditedPoints: 6 });
   expect(await creditos()).toHaveLength(1);
@@ -182,7 +184,7 @@ test("con ayudas marca el error al instante, da pistas y paga la mitad", async (
   await abrir(page);
   const juego = page.locator("#sudoku");
   await opcion(page, CON_AYUDAS).click();
-  await expect(juego.getByText(t("T-2686", { n: 1 }))).toBeVisible();
+  await expect(juego.getByText(t("T-2686", { premio: t("T-3478", { n: 1 }) }))).toBeVisible();
   const run = await empezar(page, FACIL, CON_AYUDAS);
   expect(run).toMatchObject({ difficulty: "EASY", assisted: true });
   const [una, otra] = vacias(run.givens);
@@ -211,7 +213,9 @@ test("con ayudas marca el error al instante, da pistas y paga la mitad", async (
   );
 
   await resolver(page, run, [otra]);
-  await expect(juego.getByText(t("T-2708", { n: 1 }))).toBeVisible({ timeout: 15_000 });
+  await expect(juego.getByText(t("T-2708", { premio: t("T-3478", { n: 1 }) }))).toBeVisible({
+    timeout: 15_000,
+  });
   expect((await partidas())[0]).toMatchObject({ status: "SOLVED", creditedPoints: 1 });
 });
 

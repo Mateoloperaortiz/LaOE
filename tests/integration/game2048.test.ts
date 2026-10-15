@@ -5,6 +5,7 @@ import { closeDb, getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
+import { getGamerProfile } from "@/modules/participation";
 import {
   finishGame2048As,
   getTodayGame2048,
@@ -182,6 +183,12 @@ describe("2048 con replay verificado", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ kind: "GAME2048", game2048RunId: run.id, points: esperado });
     expect(await balanceFor(personId, entries[0]?.termId ?? "")).toBe(0);
+    expect(await getGamerProfile(personId, entries[0]?.termId ?? "")).toMatchObject({
+      points: esperado,
+      participations: 1,
+      activeDays: 1,
+      rankingMetric: "POINTS",
+    });
 
     const [fila] = await db().select().from(game2048Run).where(eq(game2048Run.id, run.id));
     expect(fila?.creditedAt).not.toBeNull();
@@ -270,6 +277,11 @@ describe("2048 con replay verificado", () => {
     expect(segunda.result.run.status).toBe("FINISHED");
     expect(game2048Reward(segunda.result.run.score)).toBeGreaterThan(0);
     expect(segunda.result.run.points).toBe(0);
+    expect(await getGamerProfile(personId, await seedTerm())).toMatchObject({
+      points: primera.result.run.points,
+      participations: 1,
+      activeDays: 1,
+    });
 
     expect(await db().select().from(pointEntry)).toHaveLength(1);
     const acreditadas = (await db().select().from(game2048Run)).filter(

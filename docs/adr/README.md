@@ -13,7 +13,8 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) | GH Points y Más gamer con rachas separadas | Aceptada; implementada y verificada en local, revisión y publicación pendientes |
+| [ADR-133](ADR-133-mas-gamer-por-puntos-de-desempeno.md) | Más gamer por puntos de desempeño | Aceptada |
+| [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) | GH Points y Más gamer con rachas separadas | Aceptada (enmendada por ADR-133) |
 | [ADR-130](ADR-130-fotos-privadas-en-mi-oe.md) | Fotos privadas en Mi OE y carga reanudable de DÍAS 2026 | Aceptada |
 | [ADR-129](ADR-129-reglas-de-consolidacion-del-decimoseptimo-ciclo.md) | Reglas de consolidación del decimoséptimo ciclo del refactor | Aceptada |
 | [ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) | Reglas de corrección del decimosexto ciclo del refactor | Aceptada (enmendada por ADR-129) |

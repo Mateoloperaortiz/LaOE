@@ -4,7 +4,11 @@ import {
   rankGamer,
   uniqueGamerParticipations,
 } from "@/modules/participation/domain/gamer-pure";
-import { GAMER_GAMES, type GamerParticipation } from "@/modules/participation/gamer-types";
+import {
+  GAMER_GAMES,
+  type GamerCredit,
+  type GamerParticipation,
+} from "@/modules/participation/gamer-types";
 import { addDays } from "@/shared/lib/dates-pure";
 
 const season = (days: string[], today: string) =>
@@ -21,8 +25,11 @@ describe("clasificación gamer", () => {
       uniqueGamerParticipations([...rows, { personId: "a", day: "2026-09-07", game: "PANAL" }]),
     ).toHaveLength(4);
     expect(
-      rankGamer([{ personId: "a", name: "Ana", anonymized: false }], [...rows, ...rows])[0],
-    ).toMatchObject({ participations: 4, activeDays: 1 });
+      rankGamer(
+        [{ personId: "a", name: "Ana", anonymized: false }],
+        [...rows, ...rows].map((row) => ({ ...row, points: 1 })),
+      )[0],
+    ).toMatchObject({ points: 8, participations: 4, activeDays: 1 });
   });
 
   it("desempata por días activos y después comparte puesto sin usar la racha ni el nombre", () => {
@@ -41,11 +48,66 @@ describe("clasificación gamer", () => {
       { personId: "d", day: "2026-09-07", game: "SUDOKU" },
       { personId: "excluded", day: "2026-09-07", game: "WORDLE" },
     ];
-    expect(rankGamer(members, rows).map((row) => [row.personId, row.rank])).toEqual([
+    expect(
+      rankGamer(
+        members,
+        rows.map((row) => ({ ...row, points: 1 })),
+      ).map((row) => [row.personId, row.rank]),
+    ).toEqual([
       ["b", 1],
       ["c", 1],
       ["a", 3],
       ["d", 4],
+    ]);
+  });
+
+  it("suma 1+2+3 del Panal sin convertir sus avances en tres participaciones", () => {
+    const rows: GamerCredit[] = [1, 2, 3].map((points) => ({
+      personId: "a",
+      game: "PANAL",
+      day: "2026-09-25",
+      points,
+    }));
+    expect(
+      rankGamer([{ personId: "a", name: "Persona sintética", anonymized: false }], rows),
+    ).toMatchObject([{ points: 6, participations: 1, activeDays: 1 }]);
+  });
+
+  it("conserva los importes positivos sin inventar un techo para la historia legada", () => {
+    const rows: GamerCredit[] = [1, 6].map((points) => ({
+      personId: "a",
+      game: "WORDLE",
+      day: "2026-09-25",
+      points,
+    }));
+    expect(
+      rankGamer([{ personId: "a", name: "Persona sintética", anonymized: false }], rows),
+    ).toMatchObject([{ points: 7, participations: 1, activeDays: 1 }]);
+  });
+
+  it("ordena puntos, participaciones y días, y comparte puesto al coincidir las tres cifras", () => {
+    const members = ["a", "b", "c", "d", "e"].map((personId) => ({
+      personId,
+      name: personId,
+      anonymized: false,
+    }));
+    const rows: GamerCredit[] = [
+      { personId: "a", day: "2026-09-07", game: "WORDLE", points: 6 },
+      { personId: "b", day: "2026-09-07", game: "WORDLE", points: 1 },
+      { personId: "b", day: "2026-09-08", game: "WORDLE", points: 1 },
+      { personId: "c", day: "2026-09-07", game: "WORDLE", points: 3 },
+      { personId: "c", day: "2026-09-08", game: "WORDLE", points: 3 },
+      { personId: "d", day: "2026-09-07", game: "WORDLE", points: 4 },
+      { personId: "d", day: "2026-09-07", game: "PANAL", points: 2 },
+      { personId: "e", day: "2026-09-07", game: "WORDLE", points: 4 },
+      { personId: "e", day: "2026-09-07", game: "SUDOKU", points: 2 },
+    ];
+    expect(rankGamer(members, rows).map((row) => [row.personId, row.rank])).toEqual([
+      ["c", 1],
+      ["d", 2],
+      ["e", 2],
+      ["a", 4],
+      ["b", 5],
     ]);
   });
 });

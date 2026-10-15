@@ -1948,7 +1948,7 @@ export const textos = {
   },
   "T-1231": {
     where: "Wordle: introducción",
-    text: "Una palabra distinta para vos cada día. Hágale: resolvela y sumá una participación gamer.",
+    text: "Una palabra distinta para vos cada día. Hágale: resolvela y sumá puntos gamer según tus intentos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1972,7 +1972,7 @@ export const textos = {
   },
   "T-1235": {
     where: "Wordle: escala de premios",
-    text: "Intentos · Participaciones",
+    text: "Intentos · Puntos gamer",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2038,13 +2038,13 @@ export const textos = {
   },
   "T-1245": {
     where: "Wordle: victoria",
-    text: "¡Qué nota, la resolviste en {n}/6! Sumaste una participación gamer. ¡OE OE OE!",
+    text: "¡Qué nota, la resolviste en {n}/6! Sumaste {premio}. ¡OE OE OE!",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1246": {
     where: "Wordle: derrota",
-    text: "Se acabaron los intentos. Este Wordle no suma una participación; probá otro juego para sumar hoy.",
+    text: "Se acabaron los intentos. Este Wordle no suma puntos gamer; probá otro juego para sumar hoy.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2086,7 +2086,7 @@ export const textos = {
   },
   "T-1252": {
     where: "Wordle: partida vencida",
-    text: "Terminó el día de esta partida. No sumó una participación; ya podés consultar el reto de hoy.",
+    text: "Terminó el día de esta partida. No sumó puntos gamer; ya podés consultar el reto de hoy.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2164,7 +2164,7 @@ export const textos = {
   },
   "T-1264": {
     where: "Wordle: premio posible",
-    text: "Podés sumar {n} GH Points en este intento.",
+    text: "Podés sumar {premio} en este intento.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6970,7 +6970,7 @@ export const textos = {
   },
   "T-2620": {
     where: "Push: Wordle del día (ADR-074)",
-    text: "¿Qué más? El Wordle de hoy te espera · Resolvelo y sumá una participación gamer.",
+    text: "¿Qué más? El Wordle de hoy te espera · Resolvelo y sumá puntos gamer.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -6982,13 +6982,13 @@ export const textos = {
   },
   "T-2622": {
     where: "Juegos: introducción",
-    text: "Jugá a tu ritmo, sumá participaciones y competí por ser la persona más gamer del semestre.",
+    text: "Jugá a tu ritmo, sumá puntos gamer por tus resultados y competí por ser la persona más gamer del semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2623": {
     where: "Juegos: estado de la tarjeta",
-    text: "Disponible hoy · Participación sumada hoy · No disponible ahora",
+    text: "Disponible hoy · Ya sumaste hoy · No disponible ahora",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7042,7 +7042,7 @@ export const textos = {
   },
   "T-2631": {
     where: "2048: introducción",
-    text: "Deslizá las fichas: dos iguales se juntan en una. Terminá una partida con al menos 1.000 puntos para sumar tu participación de hoy.",
+    text: "Deslizá las fichas: dos iguales se juntan en una. Tu primera partida terminada con al menos 1.000 puntos de juego suma puntos gamer según su puntaje.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7120,13 +7120,13 @@ export const textos = {
   },
   "T-2643": {
     where: "2048: aviso de umbral",
-    text: "Ya llegaste al mínimo para sumar una participación cuando termine la partida.",
+    text: "Ya llegaste al mínimo para sumar puntos gamer cuando termine la partida, si todavía no acreditaste hoy.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2644": {
     where: "2048: fin de la partida",
-    text: "No quedan jugadas. Hiciste {puntaje} puntos.",
+    text: "No quedan jugadas. Hiciste {puntaje} puntos de juego.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7168,25 +7168,25 @@ export const textos = {
   },
   "T-2650": {
     where: "2048: escala de premios",
-    text: "Puntaje · Participaciones",
+    text: "Desde este puntaje de juego · Puntos gamer",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2651": {
     where: "2048: premio acreditado",
-    text: "¡Severo! Sumaste una participación gamer. ¡OE OE OE!",
+    text: "¡Severo! Sumaste {premio}. ¡OE OE OE!",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2652": {
     where: "2048: sin premio por puntaje bajo",
-    text: "Esta partida no llegó a 1.000 puntos. Hágale a otra: todavía podés sumar tu participación de hoy.",
+    text: "Esta partida no llegó a 1.000 puntos de juego. Hágale a otra: todavía podés sumar puntos gamer hoy.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2653": {
     where: "2048: ya acreditaste hoy",
-    text: "Hoy ya sumaste tu participación del 2048. Podés seguir por tu récord y mañana vuelve a contar.",
+    text: "Hoy ya sumaste puntos gamer con el 2048. Podés seguir por tu récord, sin aumentar ese premio; mañana vuelve a contar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7198,7 +7198,7 @@ export const textos = {
   },
   "T-2655": {
     where: "2048: partida vencida",
-    text: "Terminó el día de esta partida. No sumó una participación; empezá una nueva.",
+    text: "Terminó el día de esta partida. No sumó puntos gamer; empezá una nueva.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7216,7 +7216,7 @@ export const textos = {
   },
   "T-2658": {
     where: "2048: no hay semestre con puntos abiertos",
-    text: "El 2048 suma participaciones mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre.",
+    text: "El 2048 suma puntos gamer mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7306,7 +7306,7 @@ export const textos = {
   },
   "T-2676": {
     where: "Juegos: de qué va el Sudoku",
-    text: "Completá la cuadrícula sin repetir números. Resolver cualquier tablero suma una participación al día.",
+    text: "Completá la cuadrícula sin repetir números. Tu primer tablero resuelto del día suma puntos gamer según la dificultad y las ayudas.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7318,7 +7318,7 @@ export const textos = {
   },
   "T-2678": {
     where: "Sudoku: introducción",
-    text: "Llená cada fila, columna y caja del 1 al 9 sin repetir. Resolver un tablero de cualquier dificultad, con o sin ayudas, suma una participación al día.",
+    text: "Llená cada fila, columna y caja del 1 al 9 sin repetir. Tu primer tablero resuelto del día suma puntos gamer según la dificultad y las ayudas que elijás.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7366,13 +7366,13 @@ export const textos = {
   },
   "T-2685": {
     where: "Sudoku: aviso antes de empezar",
-    text: "El primer Sudoku que resuelvas hoy suma una participación. Elegí la dificultad y las ayudas con las que querás jugar.",
+    text: "Solo el primer Sudoku que resuelvas hoy suma puntos gamer. Elegí la dificultad y las ayudas antes de empezar: los siguientes tableros no aumentan ese premio.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2686": {
     where: "Sudoku: premio de la combinación elegida",
-    text: "Este tablero cuenta igual para el ranking gamer, con o sin ayudas.",
+    text: "Este tablero puede sumar {premio}.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7402,7 +7402,7 @@ export const textos = {
   },
   "T-2690": {
     where: "Sudoku: encabezados de la tabla de premios",
-    text: "Dificultad · Sin ayudas · Con ayudas",
+    text: "Dificultad · Puntos gamer sin ayudas · Puntos gamer con ayudas",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7516,7 +7516,7 @@ export const textos = {
   },
   "T-2708": {
     where: "Sudoku: resuelto con premio",
-    text: "¡Resuelto, parce! Sumaste una participación gamer. ¡OE OE OE!",
+    text: "¡Resuelto, parce! Sumaste {premio}. ¡OE OE OE!",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7534,7 +7534,7 @@ export const textos = {
   },
   "T-2710": {
     where: "Sudoku: ya acreditaste hoy",
-    text: "Hoy ya sumaste tu participación del Sudoku. Podés seguir jugando por gusto y mañana vuelve a contar.",
+    text: "Hoy ya sumaste puntos gamer con el Sudoku. Podés seguir jugando por gusto, sin aumentar ese premio; mañana vuelve a contar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7552,7 +7552,7 @@ export const textos = {
   },
   "T-2713": {
     where: "Sudoku: tablero vencido",
-    text: "Terminó el día de este tablero. No sumó una participación; empezá uno nuevo.",
+    text: "Terminó el día de este tablero. No sumó puntos gamer; empezá uno nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7564,7 +7564,7 @@ export const textos = {
   },
   "T-2715": {
     where: "Sudoku: no hay semestre con puntos abiertos",
-    text: "El Sudoku suma participaciones mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre.",
+    text: "El Sudoku suma puntos gamer mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7714,7 +7714,7 @@ export const textos = {
   },
   "T-2738": {
     where: "Panal: Premio",
-    text: "Encontrá al menos cinco palabras para sumar una participación gamer al día. Después podés seguir hasta Genio o completar el panal.",
+    text: "Llegá a Genio para sumar {premio} en el Panal de hoy. El puntaje de las palabras se cuenta aparte.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7738,7 +7738,7 @@ export const textos = {
   },
   "T-2741": {
     where: "Panal: Premio recibido",
-    text: "¡Qué nota! Llegaste a Genio. Tu participación de hoy ya está sumada. ¡OE OE OE!",
+    text: "¡Qué nota! Llegaste a Genio y sumaste los puntos gamer del Panal de hoy. ¡OE OE OE!",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9004,13 +9004,13 @@ export const textos = {
   },
   "T-3000": {
     where: "Panal: premios",
-    text: "Tu participación de hoy",
+    text: "Tus puntos gamer de hoy",
     owner: "MATEO",
     status: "Aprobado",
   },
   "T-3001": {
     where: "Panal: total acreditado",
-    text: "{n} participaciones",
+    text: "Puntos gamer sumados: {n}",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -9028,7 +9028,7 @@ export const textos = {
   },
   "T-3004": {
     where: "Panal: importe por meta",
-    text: "+{n} puntos de juego",
+    text: "Puntos gamer: +{n}",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -9058,7 +9058,7 @@ export const textos = {
   },
   "T-3009": {
     where: "Panal: anuncio de premio",
-    text: "¡Participación gamer sumada!",
+    text: "¡Sumaste {premio}!",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -9076,7 +9076,7 @@ export const textos = {
   },
   "T-3011": {
     where: "Panal: reglas de premios",
-    text: "Encontrá cinco palabras para sumar una participación al día. Seguí buscando para mejorar tu puntaje y alcanzar Genio; los avances siguientes no suman otra participación.",
+    text: "Las metas suman puntos gamer una sola vez cada día y se acumulan entre sí. El puntaje de las palabras se cuenta aparte.",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -9088,7 +9088,7 @@ export const textos = {
   },
   "T-3013": {
     where: "Panal: premio pendiente",
-    text: "Ya alcanzaste una meta. Guardá tu avance para registrar tu participación.",
+    text: "Ya alcanzaste una meta. Guardá tu avance para registrar los puntos gamer pendientes.",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -11071,7 +11071,7 @@ export const textos = {
   },
   "T-3402": {
     where: "Juegos: reglas clasificación",
-    text: "Cada juego que alcance su mínimo suma una participación al día: hasta cuatro diarias. Se acumulan durante el semestre en una clasificación propia, separada de GH Points.",
+    text: "Tus resultados suman puntos gamer durante el semestre, en una clasificación separada de GH Points. Wordle, 2048 y Sudoku acreditan una partida válida al día; Panal suma por sus metas diarias. Las participaciones y los días activos se cuentan aparte.",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -11082,7 +11082,7 @@ export const textos = {
     status: "Aprobado",
   },
   "T-3404": {
-    where: "Gamer: desempate",
+    where: "Gamer: días de juego",
     text: "Días activos",
     owner: "MATEO",
     status: "Aprobado",
@@ -11167,7 +11167,7 @@ export const textos = {
   },
   "T-3418": {
     where: "Gamer: comodín disponible",
-    text: "Tenés un comodín esta semana: cubre automáticamente un día sin jugar. Conserva la racha, sin sumar un día ni una participación.",
+    text: "Tenés un comodín esta semana: cubre automáticamente un día sin jugar. Conserva la racha, sin sumar un día, una participación ni puntos gamer.",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -11221,13 +11221,13 @@ export const textos = {
   },
   "T-3426": {
     where: "Gamer: privacidad desempate",
-    text: "Se muestran los primeros diez puestos y tu puesto propio arriba. Gana quien suma más participaciones; a igualdad, quien juega en más días distintos. Si siguen iguales, comparten puesto.",
+    text: "Se muestran los primeros diez puestos y tu puesto propio arriba. Gana quien suma más puntos gamer; a igualdad, quien tiene más participaciones y después más días activos. Si siguen iguales, comparten puesto.",
     owner: "MATEO",
     status: "Aprobado",
   },
   "T-3427": {
     where: "Gamer: vacío",
-    text: "La clasificación está por estrenar. Sumá tu primera participación con cualquiera de los cuatro juegos.",
+    text: "La clasificación está por estrenar. Sumá tus primeros puntos gamer con cualquiera de los cuatro juegos.",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -11251,31 +11251,31 @@ export const textos = {
   },
   "T-3430": {
     where: "Gamer: Wordle regla",
-    text: "Ganar el Wordle suma una participación por día, sin importar cuántos intentos necesités.",
+    text: "Los puntos gamer dependen del intento en que acertés. Ganar cumple tu participación del día, sin importar cuántos intentos necesités. No se convierten en GH Points.",
     owner: "MATEO",
     status: "Aprobado",
   },
   "T-3431": {
     where: "Gamer: 2048 regla",
-    text: "Terminá una partida con al menos 1.000 puntos para sumar una participación por día. Podés intentar de nuevo si no llegaste al mínimo.",
+    text: "Solo tu primera partida terminada con al menos 1.000 puntos de juego suma puntos gamer hoy. Si no llegaste al mínimo, podés intentar de nuevo; después de acreditar, las siguientes partidas no aumentan ese premio.",
     owner: "MATEO",
     status: "Aprobado",
   },
   "T-3432": {
     where: "Gamer: Sudoku regla",
-    text: "Resolver cualquier tablero suma una participación por día, sea fácil, medio o difícil, con o sin ayudas.",
+    text: "Solo tu primer tablero resuelto del día suma puntos gamer. El premio depende de la dificultad y de las ayudas; resolver cualquier tablero cumple una participación.",
     owner: "MATEO",
     status: "Aprobado",
   },
   "T-3433": {
     where: "Gamer: Panal pendiente",
-    text: "Encontrá cinco palabras para sumar tu participación de hoy.",
+    text: "Encontrá cinco palabras para empezar a sumar puntos gamer hoy.",
     owner: "MATEO",
     status: "Aprobado",
   },
   "T-3434": {
     where: "Gamer: Panal conseguido",
-    text: "Ya sumaste tu participación del Panal de hoy. Seguí buscando palabras para mejorar tu puntaje.",
+    text: "Ya cumpliste tu participación del Panal de hoy. Las metas pendientes todavía pueden sumar puntos gamer.",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -11437,7 +11437,7 @@ export const textos = {
   },
   "T-3461": {
     where: "Gamer: preparado",
-    text: "La racha gamer y sus insignias están preparadas para el lanzamiento. Tus participaciones ya cuentan en la clasificación del semestre.",
+    text: "La racha gamer y sus insignias están preparadas para el lanzamiento. Tus puntos gamer ya cuentan en la clasificación del semestre.",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -11479,7 +11479,7 @@ export const textos = {
   },
   "T-3468": {
     where: "Gamer: cuatro participaciones del día",
-    text: "Ya sumaste los cuatro juegos de hoy. Podés seguir por gusto; mañana vuelven a contar.",
+    text: "Ya cumpliste tu participación en los cuatro juegos de hoy. Las metas pendientes del Panal todavía pueden sumar puntos gamer.",
     owner: "MATEO",
     status: "Aprobado",
   },
@@ -11495,11 +11495,65 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3477": {
+    where: "Gamer: puntos de la clasificación",
+    text: "Puntos gamer",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3478": {
+    where: "Gamer: importe singular",
+    text: "{n} punto gamer",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3479": {
+    where: "Gamer: importe plural",
+    text: "{n} puntos gamer",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
   "T-348": {
     where: "Ediciones: campo nombre",
     text: "Nombre de la edición (por ejemplo 2026-2)",
     owner: "MATEO",
     status: "Propuesta",
+  },
+  "T-3480": {
+    where: "Gamer: clasificación histórica por participaciones",
+    text: "Este cierre conserva su clasificación por participaciones. Los puntos gamer no quedaron registrados en esa foto histórica.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3481": {
+    where: "Gamer: desempate histórico por participaciones",
+    text: "Se muestran los primeros diez puestos y tu puesto propio arriba. Este cierre ordenó por participaciones; a igualdad, por días activos. Si seguían iguales, compartían puesto.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3482": {
+    where: "Cierre: resultado por puntos gamer",
+    text: "{premio} · {participaciones} participaciones · {dias} días",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3483": {
+    where: "Gamer: cierre anterior sin clasificación",
+    text: "Este cierre histórico no guardó una clasificación gamer. No hay puntos gamer ni un puesto de esta competencia disponibles.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3484": {
+    where: "Gamer: clasificación histórica vacía",
+    text: "No quedaron participaciones gamer registradas en este cierre.",
+    owner: "MATEO",
+    status: "Aprobado",
+  },
+  "T-3485": {
+    where: "Panal: todos los puntos del día",
+    text: "Ya sumaste todos los puntos gamer del Panal de hoy. Podés seguir por tu puntaje de palabras.",
+    owner: "MATEO",
+    status: "Aprobado",
   },
   "T-349": {
     where: "Páginas, eventos y ediciones: campo identificador en la URL",

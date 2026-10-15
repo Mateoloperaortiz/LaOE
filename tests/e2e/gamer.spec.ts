@@ -65,8 +65,14 @@ test("la historia del semestre vive en gamer, muestra sus hitos y conserva GH se
   await expect(page.getByText(t("T-3421", { n: 3 }), { exact: true })).toBeVisible();
   await expect(page.getByText(t("T-3422", { n: 7 }), { exact: true })).toBeVisible();
   await expect(page.getByText(t("T-3409", { n: 1 }), { exact: true })).toBeVisible();
-  await expect(page.getByRole("table").getByRole("row")).toHaveCount(2);
-  await expect(page.getByRole("table").getByRole("row").last()).toContainText("3");
+  const ranking = page.getByRole("table", { name: t("T-3425") });
+  await expect(ranking.getByRole("row")).toHaveCount(2);
+  await expect(ranking.getByRole("columnheader", { name: t("T-3477") })).toBeVisible();
+  await expect(ranking.getByRole("row").last().getByRole("cell").nth(1)).toHaveText("18");
+  await expect(ranking.getByRole("row").last().getByRole("cell").nth(2)).toHaveText("3");
+  await expect(
+    page.getByRole("region", { name: t("T-3400"), exact: true }).getByText("18", { exact: true }),
+  ).toBeVisible();
   await sinViolaciones(page);
   await page.screenshot({ path: ".impeccable/review/gamer-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -98,7 +104,9 @@ test("las rachas esperan el lanzamiento y siguen activas después de apagar los 
   await expect(page.getByText(t("T-3461"), { exact: true })).toBeVisible();
   await expect(page.getByText(t("T-3421", { n: 3 }), { exact: true })).toHaveCount(0);
   await expect(page.getByText(t("T-3413", { n: 3 }), { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("table").getByRole("row").last()).toContainText("3");
+  const ranking = page.getByRole("table", { name: t("T-3425") });
+  await expect(ranking.getByRole("row").last().getByRole("cell").nth(1)).toHaveText("18");
+  await expect(ranking.getByRole("row").last().getByRole("cell").nth(2)).toHaveText("3");
   await page.screenshot({ path: ".impeccable/review/gamer-prepared-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(

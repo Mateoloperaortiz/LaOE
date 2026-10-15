@@ -1,7 +1,7 @@
 import type { WordleLetterState } from "../wordle-types";
 
 export const WORDLE_RULES_VERSION = "es-5x6-v1";
-export const WORDLE_MAX_ATTEMPTS = 6;
+export { WORDLE_MAX_ATTEMPTS, wordleReward } from "../wordle-rules";
 
 /** NFC conserva Ñ incluso si llega descompuesta; solo se omiten acentos de vocales. */
 export function normalizeWordleGuess(value: string): string {
@@ -42,10 +42,4 @@ export function scoreWordleGuess(guess: string, answer: string): WordleLetterSta
     }
   }
   return result;
-}
-
-export function wordleReward(attempt: number): number {
-  return Number.isInteger(attempt) && attempt >= 1 && attempt <= WORDLE_MAX_ATTEMPTS
-    ? 7 - attempt
-    : 0;
 }

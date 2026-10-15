@@ -1,8 +1,12 @@
 import { eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { runCommand } from "@/db/tx";
-import { setGamificationEnabledAs } from "@/modules/participation";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import {
+  closeTermPointsAs,
+  getTermStanding,
+  setGamificationEnabledAs,
+} from "@/modules/participation";
 import { adjustPointsAs, reverseEntryAs } from "@/modules/participation/domain/commands";
 import {
   getGamerLeaderboard,
@@ -12,9 +16,11 @@ import {
 } from "@/modules/participation/domain/gamer";
 import { balanceFor, creditGame } from "@/modules/participation/domain/ledger";
 import { pointEntry } from "@/modules/participation/schema";
+import { anonymizePersonAs, requestDeletionAs } from "@/modules/people";
 import { membership } from "@/modules/people/schema";
-import { lockOpenTermPoints } from "@/modules/terms";
+import { closeTermPoints, lockOpenTermPoints } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
+import { t } from "@/shared/copy";
 import {
   seedMembership,
   seedPanalGame,
@@ -23,6 +29,7 @@ import {
   seedTermStanding,
   seedWordleGame,
 } from "../factories";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -88,7 +95,7 @@ describe("temporada gamer persistida", () => {
       dictionaryVersion: "test",
       rulesVersion: "test",
     });
-    for (const checkpoint of [1, 2, 3] as const)
+    for (const checkpoint of [1, 2, 3] as const) {
       await credit({
         personId,
         termId,
@@ -98,6 +105,12 @@ describe("temporada gamer persistida", () => {
         points: checkpoint,
         reason: "Avance de Panal sintético",
       });
+      expect(await getGamerProfile(personId, termId)).toMatchObject({
+        points: checkpoint === 1 ? 1 : checkpoint === 2 ? 3 : 6,
+        participations: 1,
+        activeDays: 1,
+      });
+    }
     const wordleId = await seedWordleGame(personId, termId, "2026-09-15", { status: "WON" });
     await credit({
       personId,
@@ -119,6 +132,8 @@ describe("temporada gamer persistida", () => {
     expect(await balanceFor(personId, termId)).toBe(10);
     expect(await getGamerProfile(personId, termId)).toMatchObject({
       launched: false,
+      points: 12,
+      rankingMetric: "POINTS",
       participations: 2,
       activeDays: 1,
       rank: 1,
@@ -157,6 +172,7 @@ describe("temporada gamer persistida", () => {
     await legacy(personId, termId, "2026-09-15", 6);
     await reverseEntryAs({ personId, ip: null }, reversed, "Corrección histórica sintética");
     expect(await getGamerProfile(personId, termId)).toMatchObject({
+      points: 7,
       participations: 1,
       activeDays: 1,
     });
@@ -168,11 +184,15 @@ describe("temporada gamer persistida", () => {
     const personId = await player(termId);
     for (const kind of [" wordle ", "game2048", "2048", "sudoku", "panal"])
       await legacy(personId, termId, "2026-09-15", 1, kind);
+    await legacy(personId, termId, "2026-09-15", 8, "TRIVIA");
+    await legacy(personId, termId, "2026-09-15", 9, "EVIDENCE");
+    await legacy(personId, termId, "2026-09-15", -4, "WORDLE");
     expect(await getGamerProfile(personId, termId)).toMatchObject({
       participations: 4,
       activeDays: 1,
+      points: 5,
     });
-    expect(await balanceFor(personId, termId)).toBe(0);
+    expect(await balanceFor(personId, termId)).toBe(17);
   });
 
   it("incluye honorarios y limita los nombres públicos a diez mientras conserva el puesto propio", async () => {
@@ -224,12 +244,97 @@ describe("temporada gamer persistida", () => {
       .where(eq(membership.personId, personId));
     vi.setSystemTime(new Date("2026-12-31T18:00:00Z"));
     expect(await getGamerProfile(personId, termId)).toMatchObject({
+      rankingMetric: "PARTICIPATIONS",
+      points: null,
       rank: 1,
       currentStreak: 3,
       longestStreak: 3,
       totalPlayers: 1,
     });
-    expect(await getGamerLeaderboard(termId)).toMatchObject([{ personId, rank: 1 }]);
+    expect(await getGamerLeaderboard(termId)).toMatchObject([{ personId, rank: 1, points: null }]);
+  });
+
+  it("cierra por puntos, conserva el puesto propio fuera del top10 y anonimiza sin borrar importes", async () => {
+    const termId = await seedTerm("2026-2");
+    const ids: string[] = [];
+    for (let index = 0; index < 11; index += 1) {
+      const personId = await player(termId, `cierre-gamer-${index}@example.test`);
+      ids.push(personId);
+      await legacy(personId, termId, "2026-09-15", 11 - index);
+    }
+    const firstId = ids[0];
+    const lastId = ids[10];
+    if (!firstId || !lastId) throw new Error("Faltan personas sintéticas del cierre");
+    await closeTermPointsAs({ personId: lastId, ip: null }, termId);
+    const standing = await getTermStanding(termId);
+    expect(standing?.stats.gamerRankingMetric).toBe("POINTS");
+    expect(standing?.topGamer).toHaveLength(10);
+    expect(standing?.topGamer[0]).toMatchObject({
+      personId: firstId,
+      points: 11,
+      participations: 1,
+      activeDays: 1,
+      rank: 1,
+    });
+    expect(await getGamerProfile(lastId, termId)).toMatchObject({
+      rankingMetric: "POINTS",
+      points: 1,
+      rank: 11,
+      participations: 1,
+      activeDays: 1,
+      totalPlayers: 11,
+    });
+    expect(standing?.stats.pointsAwarded).toBe(0);
+    expect(await balanceFor(lastId, termId)).toBe(0);
+
+    await requestDeletionAs({ personId: firstId, ip: null });
+    await anonymizePersonAs({ personId: lastId, ip: null }, firstId);
+    await drainOutbox();
+    expect((await getTermStanding(termId))?.topGamer[0]).toMatchObject({
+      personId: firstId,
+      name: t("T-223"),
+      points: 11,
+      participations: 1,
+      activeDays: 1,
+      rank: 1,
+    });
+    expect((await getGamerLeaderboard(termId))[0]).toMatchObject({
+      personId: firstId,
+      name: t("T-223"),
+      points: 11,
+      rank: 1,
+    });
+    expect(await getGamerProfile(lastId, termId)).toMatchObject({
+      points: 1,
+      rank: 11,
+      rankingMetric: "POINTS",
+    });
+  });
+
+  it.each([
+    false,
+    true,
+  ])("un cierre previo sin foto gamer no inventa ranking desde créditos actuales, standing=%s", async (withStanding) => {
+    const termId = await seedTerm("2026-2");
+    const personId = await player(termId);
+    await legacy(personId, termId, "2026-09-15", 6);
+    await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
+    if (withStanding)
+      await seedTermStanding({
+        termId,
+        topNew: [],
+        topVeteran: [],
+        topCommittees: [],
+        stats: { activeMembers: 1, newMembers: 0, occasions: 0, checkIns: 0, pointsAwarded: 0 },
+      });
+    expect(await getGamerLeaderboard(termId)).toEqual([]);
+    expect(await getGamerProfile(personId, termId)).toMatchObject({
+      rankingMetric: null,
+      points: null,
+      rank: null,
+      totalPlayers: 0,
+    });
+    if (withStanding) expect((await getTermStanding(termId))?.stats.gamerRankingMetric).toBeNull();
   });
 
   it("Mis datos devuelve la historia propia de cada temporada sin datos ajenos", async () => {

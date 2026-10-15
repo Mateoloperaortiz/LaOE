@@ -7,6 +7,7 @@ import { APP_TIME_ZONE, atHourIn } from "@/shared/lib/dates-pure";
 import { ArrowsHorizontalIcon } from "@/shared/ui/icons/ArrowsHorizontalIcon";
 import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { XIcon } from "@/shared/ui/icons/XIcon";
+import { WORDLE_MAX_ATTEMPTS, wordleReward } from "../wordle-rules";
 import type {
   SubmitWordleInput,
   TodayWordle,
@@ -16,7 +17,7 @@ import type {
 } from "../wordle-types";
 
 const KEYS = ["QWERTYUIOP", "ASDFGHJKLÑ", "ZXCVBNM"];
-const ROWS = [0, 1, 2, 3, 4, 5];
+const ROWS = Array.from({ length: WORDLE_MAX_ATTEMPTS }, (_, index) => index);
 const COLUMNS = [0, 1, 2, 3, 4];
 const COLORS: Record<WordleLetterState, string> = {
   correct: "border-oe-blue bg-oe-blue text-oe-navy",
@@ -89,6 +90,8 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
   const active = canPlay && game?.status === "IN_PROGRESS";
   const editable = active && !pending && !retry;
   const [correct = "", present = "", absent = ""] = tList("T-1240");
+  const [attemptHeading, pointsHeading] = tList("T-1235");
+  const possiblePoints = wordleReward(attempts.length + 1);
   const labels = { correct, present, absent };
   const letterStates = new Map<string, WordleLetterState>();
   for (const attempt of attempts) {
@@ -226,7 +229,10 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
               ? t("T-1239")
               : message ||
                 (game?.status === "WON"
-                  ? t("T-1245", { n: attempts.length })
+                  ? t("T-1245", {
+                      n: attempts.length,
+                      premio: t(game.points === 1 ? "T-3478" : "T-3479", { n: game.points }),
+                    })
                   : game?.status === "LOST"
                     ? t("T-1246")
                     : game?.status === "EXPIRED"
@@ -234,7 +240,11 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
                         ? t("T-1252")
                         : ""
                       : active
-                        ? t("T-1264", { n: 6 - attempts.length })
+                        ? t("T-1264", {
+                            premio: t(possiblePoints === 1 ? "T-3478" : "T-3479", {
+                              n: possiblePoints,
+                            }),
+                          })
                         : "")}
           </output>
           {game?.answer ? (
@@ -373,6 +383,29 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
           <div>
             <h3 className="mb-3 text-titulo-sm">{t("T-1234")}</h3>
             <p className="max-w-prose text-sm text-tinta-suave">{t("T-3430")}</p>
+            <table className="mt-3 w-full text-sm">
+              <caption className="sr-only">{t("T-1234")}</caption>
+              <thead>
+                <tr>
+                  <th scope="col" className="py-2 pr-3 text-left">
+                    {attemptHeading}
+                  </th>
+                  <th scope="col" className="py-2 text-right">
+                    {pointsHeading}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {ROWS.map((index) => (
+                  <tr key={index} className="border-t border-borde">
+                    <th scope="row" className="py-2 pr-3 text-left font-normal tabular-nums">
+                      {index + 1}
+                    </th>
+                    <td className="py-2 text-right tabular-nums">{wordleReward(index + 1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
           {initial.availability === "AVAILABLE" && !blocked ? (
             <p className="text-sm text-tinta-suave">

@@ -46,7 +46,8 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Traslado | `BudgetTransfer` | Movimiento de disponible entre dos rubros del mismo presupuesto, con motivo ([ADR-059](adr/ADR-059-presupuesto-del-comite.md)) |
 | Entrada de puntos | `PointEntry` | Fila del ledger: crédito por check-in, ajuste, reversión o legado |
 | GH Points | `GhPoints` | Reconocimiento principal semestral de la OE por check-ins, retos presenciales, trivias, misiones con evidencia y beneficios GH; los videojuegos no se suman a su clasificación |
-| Más gamer | `GamerRanking` | Competencia semestral de Juegos por participaciones válidas; desempata por días activos y comparte puesto si ambos coinciden |
+| Puntos gamer | `GamerPoints` | Premio competitivo de los videojuegos según el desempeño de la primera partida acreditable del día, con avances acumulativos de Panal; separado de GH Points |
+| Más gamer | `GamerRanking` | Competencia semestral de Juegos por puntos gamer; desempata por participaciones válidas y después días activos, con puesto compartido si las tres cantidades coinciden |
 | Participación gamer válida | `GamerParticipation` | Cumplir el primer umbral acreditable de un videojuego: ganar Wordle, alcanzar 1.000 en 2048, resolver Sudoku o aceptar cinco palabras en Panal. Cada juego cuenta una vez por día |
 | Día activo gamer | `activeDays` | Día civil de Colombia en el que se cumplió al menos un videojuego, aunque se hayan cumplido varios |
 | Racha gamer | `GamerStreak` | Días jugados de una secuencia que protege un comodín semanal; el comodín no suma día ni participación. Tiene hitos a los 3, 7 y 30 días |

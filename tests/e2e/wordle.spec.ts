@@ -63,7 +63,9 @@ test("inicia sin filtrar la respuesta, rechaza palabras ausentes y acredita una 
   await expect(word).toBeFocused();
   await word.fill(saved.answer.toLowerCase());
   await word.press("Enter");
-  await expect(game.getByRole("status")).toContainText(copyPattern("T-1245", { puntos: 6 }));
+  await expect(game.getByRole("status")).toContainText(
+    copyPattern("T-1245", { premio: t("T-3479", { n: 6 }) }),
+  );
   await expect(game.getByText(t("T-1247", { palabra: saved.answer }))).toBeVisible();
   // La victoria suma para gamer, sin aparecer entre los movimientos de GH.
   await page.goto("/app/gh-points");
@@ -72,7 +74,9 @@ test("inicia sin filtrar la respuesta, rechaza palabras ausentes y acredita una 
   await expect(page.getByText(t("T-3409", { n: 1 }))).toBeVisible();
   await expect(page.getByText(t("T-3466"))).toBeVisible();
   await page.goto("/app/juegos/wordle");
-  await expect(game.getByRole("status")).toContainText(copyPattern("T-1245", { puntos: 6 }));
+  await expect(game.getByRole("status")).toContainText(
+    copyPattern("T-1245", { premio: t("T-3479", { n: 6 }) }),
+  );
   await expect(game.getByRole("button", { name: t("T-1232") })).toHaveCount(0);
   const credits = await getDb()
     .select()
@@ -99,14 +103,20 @@ test("retoma los intentos en otra pestaña y funciona en móvil con teclado tác
   for (const letter of wrong)
     await keyboard.getByRole("button", { name: letter, exact: true }).click();
   await panel.getByRole("button", { name: t("T-1237") }).click();
-  await expect(panel.getByRole("status")).toContainText(t("T-1264", { n: 5 }));
+  await expect(panel.getByRole("status")).toContainText(
+    t("T-1264", { premio: t("T-3479", { n: 5 }) }),
+  );
   await expect(panel.getByRole("textbox")).toBeFocused();
   await page.keyboard.type(saved.answer === "AREPA" ? "TIGRE" : "AREPA");
   await page.keyboard.press("Enter");
-  await expect(panel.getByRole("status")).toContainText(t("T-1264", { n: 4 }));
+  await expect(panel.getByRole("status")).toContainText(
+    t("T-1264", { premio: t("T-3479", { n: 4 }) }),
+  );
   const second = await context.newPage();
   await second.goto("/app/juegos/wordle");
-  await expect(second.locator("#wordle").getByRole("status")).toContainText(t("T-1264", { n: 4 }));
+  await expect(second.locator("#wordle").getByRole("status")).toContainText(
+    t("T-1264", { premio: t("T-3479", { n: 4 }) }),
+  );
   await expect(second.locator("#wordle").getByRole("listitem").first()).toContainText("Ñ");
   await second.close();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
@@ -139,7 +149,9 @@ test("recupera una victoria cuya respuesta de red se perdió sin duplicar el pre
   await page.keyboard.press("Enter");
   await expect(panel.getByRole("status")).toContainText(t("T-1254"));
   await panel.getByRole("button", { name: t("T-1268") }).click();
-  await expect(panel.getByRole("status")).toContainText(copyPattern("T-1245", { puntos: 6 }));
+  await expect(panel.getByRole("status")).toContainText(
+    copyPattern("T-1245", { premio: t("T-3479", { n: 6 }) }),
+  );
   const credits = await getDb()
     .select()
     .from(pointEntry)

@@ -7,10 +7,18 @@ export interface GamerParticipation {
   game: GamerGame;
 }
 
+/** Un crédito vivo del ledger; Panal puede aportar varios a una sola participación. */
+export interface GamerCredit extends GamerParticipation {
+  points: number;
+}
+
+export type GamerRankingMetric = "POINTS" | "PARTICIPATIONS";
+
 export interface GamerStanding {
   personId: string;
   name: string;
   anonymized: boolean;
+  points: number | null;
   participations: number;
   activeDays: number;
   rank: number;
@@ -23,6 +31,9 @@ export interface GamerMilestone {
 
 export interface GamerProfile {
   launched: boolean;
+  points: number | null;
+  /** Nulo cuando el cierre anterior no guardó una clasificación gamer. */
+  rankingMetric: GamerRankingMetric | null;
   participations: number;
   activeDays: number;
   rank: number | null;

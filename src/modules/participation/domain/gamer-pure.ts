@@ -1,5 +1,10 @@
 import { APP_TIME_ZONE, addDays, atHourIn } from "@/shared/lib/dates-pure";
-import type { GamerMilestone, GamerParticipation, GamerStanding } from "../gamer-types";
+import type {
+  GamerCredit,
+  GamerMilestone,
+  GamerParticipation,
+  GamerStanding,
+} from "../gamer-types";
 import { weekKeyFor } from "./gamification-pure";
 
 function monday(day: string): string {
@@ -15,15 +20,21 @@ export function uniqueGamerParticipations(
   return [...unique.values()];
 }
 
-/** Participaciones, después días activos; el nombre solo ordena visualmente un puesto compartido. */
+/** Suma los créditos vivos; participaciones y días solo desempatan. El nombre no da mérito. */
 export function rankGamer(
   members: readonly { personId: string; name: string; anonymized: boolean }[],
-  participations: readonly GamerParticipation[],
+  credits: readonly GamerCredit[],
 ): GamerStanding[] {
-  const counts = new Map<string, { total: number; days: Set<string> }>();
-  for (const row of uniqueGamerParticipations(participations)) {
-    const count = counts.get(row.personId) ?? { total: 0, days: new Set<string>() };
-    count.total += 1;
+  const counts = new Map<string, { points: number; games: Set<string>; days: Set<string> }>();
+  for (const row of credits) {
+    if (row.points <= 0) continue;
+    const count = counts.get(row.personId) ?? {
+      points: 0,
+      games: new Set<string>(),
+      days: new Set<string>(),
+    };
+    count.points += row.points;
+    count.games.add(`${row.day}:${row.game}`);
     count.days.add(row.day);
     counts.set(row.personId, count);
   }
@@ -31,11 +42,20 @@ export function rankGamer(
     .flatMap((member) => {
       const count = counts.get(member.personId);
       return count
-        ? [{ ...member, participations: count.total, activeDays: count.days.size, rank: 0 }]
+        ? [
+            {
+              ...member,
+              points: count.points,
+              participations: count.games.size,
+              activeDays: count.days.size,
+              rank: 0,
+            },
+          ]
         : [];
     })
     .sort(
       (a, b) =>
+        b.points - a.points ||
         b.participations - a.participations ||
         b.activeDays - a.activeDays ||
         a.name.localeCompare(b.name, "es") ||
@@ -45,6 +65,7 @@ export function rankGamer(
   return rows.map((row, index) => {
     row.rank =
       previous &&
+      previous.points === row.points &&
       previous.participations === row.participations &&
       previous.activeDays === row.activeDays
         ? previous.rank

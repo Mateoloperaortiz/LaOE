@@ -3,7 +3,13 @@
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent, useEffect, useRef, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tLabels, tList } from "@/shared/copy/client";
-import { looksSolved, SUDOKU_DIFFICULTIES, sudokuConflicts } from "../sudoku-engine";
+import {
+  looksSolved,
+  SUDOKU_DIFFICULTIES,
+  SUDOKU_REWARDS,
+  sudokuConflicts,
+  sudokuReward,
+} from "../sudoku-engine";
 import {
   applySudokuAction,
   isSudokuCellLocked,
@@ -112,6 +118,8 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
   const modes = tList("T-2683");
   const modeNotes = tList("T-2684");
   const [confirmar, seguir] = tList("T-2695");
+  const [difficultyHeading, plainHeading, assistedHeading] = tList("T-2690");
+  const selectedPoints = sudokuReward(difficulty, assisted);
 
   // Retoma la partida abierta con lo que guardó este navegador, o desde las dadas si no hay nada.
   // `adopted` evita que un refresco del servidor reabra el aviso sobre la partida que se está jugando.
@@ -354,7 +362,13 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
       ) : null}
 
       {done ? (
-        <p className="text-sm font-semibold">{done.points > 0 ? t("T-2708") : t("T-2709")}</p>
+        <p className="text-sm font-semibold">
+          {done.points > 0
+            ? t("T-2708", {
+                premio: t(done.points === 1 ? "T-3478" : "T-3479", { n: done.points }),
+              })
+            : t("T-2709")}
+        </p>
       ) : null}
 
       {!live && available ? (
@@ -413,7 +427,11 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
           ) : (
             <div className="flex flex-col gap-1 rounded-xl border-2 border-oe-orange bg-fondo p-3 text-sm">
               <p className="font-semibold">{t("T-2685")}</p>
-              <p>{t("T-2686")}</p>
+              <p>
+                {t("T-2686", {
+                  premio: t(selectedPoints === 1 ? "T-3478" : "T-3479", { n: selectedPoints }),
+                })}
+              </p>
             </div>
           )}
           <div>
@@ -492,6 +510,33 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
         <summary className="cursor-pointer font-semibold">{t("T-2689")}</summary>
         <p className="mt-2 max-w-prose text-tinta-suave">{t("T-2679")}</p>
         <p className="mt-3 max-w-prose font-semibold">{t("T-3432")}</p>
+        <table className="mt-3 w-full max-w-prose">
+          <caption className="sr-only">{t("T-2689")}</caption>
+          <thead>
+            <tr>
+              <th scope="col" className="py-2 pr-3 text-left">
+                {difficultyHeading}
+              </th>
+              <th scope="col" className="py-2 pr-3 text-right">
+                {plainHeading}
+              </th>
+              <th scope="col" className="py-2 text-right">
+                {assistedHeading}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {SUDOKU_DIFFICULTIES.map((value) => (
+              <tr key={value} className="border-t border-borde">
+                <th scope="row" className="py-2 pr-3 text-left font-normal">
+                  {difficultyName(value)}
+                </th>
+                <td className="py-2 pr-3 text-right tabular-nums">{SUDOKU_REWARDS[value][0]}</td>
+                <td className="py-2 text-right tabular-nums">{SUDOKU_REWARDS[value][1]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </details>
     </section>
   );

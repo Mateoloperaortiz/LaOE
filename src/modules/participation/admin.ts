@@ -56,6 +56,7 @@ import {
   occasionInputSchema,
 } from "./domain/occasions";
 import { type Board, peopleBoards } from "./domain/rankings";
+import type { GamerRankingMetric } from "./gamer-types";
 import { occasionApproval } from "./schema";
 
 // Recurso del admin para las ocasiones (ADR-017, ADR-035): listado con filtros y acciones Abrir y
@@ -523,6 +524,8 @@ interface GamerRankingExportRow {
   name: string;
   participations: number;
   activeDays: number;
+  points: number | null;
+  rankingMetric: GamerRankingMetric | null;
   termCode: string;
 }
 
@@ -543,8 +546,10 @@ export const gamerRankingsResource: ResourceDefinition<GamerRankingExportRow, Em
       terms[0];
     if (!term) return { rows: [], total: 0 };
     const standing = term.pointsClosedAt ? await getTermStanding(term.id) : null;
-    const ranking = standing
-      ? standing.topGamer
+    const ranking = term.pointsClosedAt
+      ? standing?.stats.gamerRankingMetric
+        ? standing.topGamer
+        : []
       : await rankGamerFromMembers(getDb(), term.id, await listActiveMemberRefs(true));
     const rows = ranking.map((item) => ({
       id: item.personId,
@@ -552,6 +557,8 @@ export const gamerRankingsResource: ResourceDefinition<GamerRankingExportRow, Em
       name: "anonymized" in item && item.anonymized ? t("T-223") : item.name,
       participations: item.participations,
       activeDays: item.activeDays,
+      points: standing && standing.stats.gamerRankingMetric !== "POINTS" ? null : item.points,
+      rankingMetric: standing ? standing.stats.gamerRankingMetric : ("POINTS" as const),
       termCode: term.code,
     }));
     return { rows, total: rows.length };
@@ -563,6 +570,8 @@ export const gamerRankingsResource: ResourceDefinition<GamerRankingExportRow, Em
     semestre: row.termCode,
     puesto: row.rank,
     nombre: row.name,
+    puntos_gamer: row.points,
+    criterio: row.rankingMetric,
     participaciones: row.participations,
     dias_activos: row.activeDays,
   }),

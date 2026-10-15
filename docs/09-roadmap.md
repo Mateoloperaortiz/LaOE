@@ -4,18 +4,33 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## GH Points y Más gamer (ADR-131) · `en curso`
+## Más gamer por puntos de desempeño (ADR-133) · `en curso`
+
+- [x] Registrar la elección: puntos de la primera partida acreditable diaria con las escalas existentes, separados de GH ([ADR-133](adr/ADR-133-mas-gamer-por-puntos-de-desempeno.md)).
+- [x] Proyectar la suma exacta de créditos gamer positivos vivos, Panal acumulativo y LEGACY sin recortes nuevos; conservar dedupe solo para participaciones y días.
+- [x] Ordenar por puntos, participaciones y días; conservar la métrica de las fotos anteriores y la falta de foto de los cierres antiguos.
+- [x] Presentar puntos, escalas y primera acreditación en Juegos, perfiles y exportes, sin prometer premios por partidas posteriores ni GH Points.
+- [ ] Verificar invariantes, reintentos, historia, cierres y E2E; `npm run check` y revisión Standards/Spec sobre un SHA fijo.
+- [ ] Publicar el SHA validado con el flujo habitual; sin nueva activación o recálculo manual de premios.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-15 | Implementación y verificación local | Suma gamer exacta, desempates por participaciones y días, UI con escalas vigentes y primera acreditación, exporte con criterio y tres generaciones de fotos tipadas. 79 integraciones focales y 42 unitarias de proyección/render/copy aprobadas; check amplio con 2.538 unitarias, 1.969 integraciones, 11 Python y build. E2E de cinco superficies: se corrigió foco por teclado de la tabla móvil detectado por axe, con repetición gamer 4/4; los demás casos pasaron. Comparación sintética contra D9: una participación de 6 puntos supera a una de 1, antes empatadas. QA de escritorio, 390 px y oscuro sin defectos pendientes. Falta cierre de verificación del candidato y revisión Standards/Spec sobre SHA fijo; sin publicación ni cambios de producción. |
+| 2026-10-15 | Decisión y diseño | Se conserva la primera partida válida diaria, elegida por Mateo: Más gamer suma los importes de desempeño existentes. Wordle 6→1 por intento; Sudoku 2/4/6 sin ayudas y 1/2/3 con ayudas; 2048 por seis umbrales; Panal 1+2+3. Desempate por participaciones y días. El ledger no cambia, los legados no reciben caps nuevos y las fotos cerradas conservan métrica o indisponibilidad. Implementación y verificación pendientes; sin despliegue ni configuración nueva. |
+
+## GH Points y Más gamer (ADR-131) · `lista`
 
 - [x] Consolidar la decisión: GH Points principal, videojuegos por participaciones válidas, rachas separadas, historia del semestre y cortes 0/25/75/150/250.
 - [x] Separar proyecciones, cierre y reconstrucción histórica; liquidar bonos presenciales 0/2/3/5 desde el lanzamiento sin duplicados.
 - [x] Mostrar rachas, clasificación gamer, hitos 3/7/30 y progreso con copy centralizado, sin beneficios GH nuevos por jugar.
 - [x] Aviso gamer opcional a las 20:00 de Colombia, con preferencia propia y entregas idempotentes.
 - [x] Verificar migración, concurrencia, límites de Colombia, historia, licencias, cancelaciones y E2E; `npm run check` completo.
-- [ ] Revisar el SHA validado en los ejes Standards y Spec antes del PR.
-- [ ] Publicar el SHA validado, revisar el semestre reconstruido y activar junto con la gamificación; registrar la fecha real del primer bono pagable.
+- [x] Revisar el SHA validado en los ejes Standards y Spec antes del PR.
+- [x] Publicar el SHA validado, comprobar migraciones y salud y registrar el primer lanzamiento conservado por el release.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
+| 2026-10-15 | Publicación verificada | [PR 368](https://github.com/Mateoloperaortiz/LaOE/pull/368), sin hallazgos pendientes de Standards ni Spec, mezclado y promovido como `d9d25ac83a4c2dd64f876eacf9cb7626be082892`. CI completo aprobado, staging y producción `SUCCESS`, migraciones y health con el SHA exacto. Smoke de producción 6/6 y comprobación independiente 6/6. Con gamificación ya habilitada, el release fijó el primer lanzamiento en `2026-10-15T10:20:10.924Z`, sin activación manual adicional ni bonos por actividades anteriores. El criterio gamer por puntos de ADR-133 se entrega por separado. |
 | 2026-10-15 | Correcciones de revisión local | Barrera global antes de los lotes/término exclusivo, incluidos dos semestres abiertos; foto de constancia presencial que no cambia por excusas posteriores al cierre, con fallback explícito para cierres antiguos sin foto; niveles históricos 0/100/250/500/1000 y runbook de activación coherente. Excusas tardías siguen admitidas sin reabrir pagos y escritores individuales mantienen paralelismo. Regresiones rojas reales de deadlock y bono inexistente; lecturas preventivas independientes sin objeciones residuales. `npm run check` completo aprobado: 2.531 unitarias, 1.966 integraciones, 11 Python y build; E2E afectados 25/25, incluido 500=Pilar histórico y texto de cierre sin reconocimiento. Pendiente revisión formal del nuevo SHA y publicación. |
 | 2026-10-15 | Implementación y verificación local | Proyecciones GH/gamer, historial por semestre con ancla inmutable, rachas separadas, bonos presenciales versionados, cierre doble, exportes, UI preparada/activa y aviso gamer opcional. Migraciones aditivas `0053`–`0056`; el primer lanzamiento se fija atómicamente al activar y no se mueve al apagar/reactivar. Excusas tras cierre conservadas; historia de comités por intervalos y licencia por fecha efectiva sin quitar GH base. `npm run check` completo aprobado: 2.520 unitarias, 1.956 de integración, 11 Python, lint, tipos, dependencias, código muerto y build; E2E del alcance 23/23 y QA de interfaz sin errores. Pendientes revisión fresca, PR y publicación; no se modificó producción ni se activó configuración real. |
 | 2026-10-14 | Decisión y alcance | [ADR-131](adr/ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) registra las decisiones de Mateo: GH Points incluye asistencias, retos, trivias y evidencia; Más gamer suma una participación por juego/día y desempata por días activos. Racha presencial semanal 0/2/3/5 con pausas, racha gamer con comodín e hitos 3/7/30, todo el semestre reclasificado y bonos solo desde lanzamiento. Niveles 0/25/75/150/250 según el análisis reproducible. Implementación en curso; no acredita cambios en producción. |
