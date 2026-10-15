@@ -88,6 +88,7 @@ describe("campañas", () => {
         pushPoints: true,
         pushReminders: true,
         pushWordle: true,
+        pushGamerStreak: false,
       },
     );
     const segmentId = await seedSegment("todos");

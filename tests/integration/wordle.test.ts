@@ -153,7 +153,7 @@ describe("Wordle diario persistido", () => {
         game: { status: "WON", answer, points: 7 - winningAttempt },
       });
     }
-    expect(await balanceFor(personId, game.termId)).toBe(7 - winningAttempt);
+    expect(await balanceFor(personId, game.termId)).toBe(0);
     expect(await db().select().from(pointEntry)).toHaveLength(1);
     expect(await db().select().from(wordleAttempt)).toHaveLength(winningAttempt);
     expect(
@@ -394,14 +394,15 @@ describe("Wordle diario persistido", () => {
     await submit(personId, game.id, answer, 1, requestId);
     await closeTermPointsAs({ personId, ip: null }, game.termId);
     const standing = await getTermStanding(game.termId);
-    expect(standing?.stats.pointsAwarded).toBe(6);
-    expect(standing?.topNew).toMatchObject([{ personId, total: 6 }]);
+    expect(standing?.stats.pointsAwarded).toBe(0);
+    expect(standing?.topNew).toEqual([]);
+    expect(standing?.topGamer).toMatchObject([{ personId, participations: 1, activeDays: 1 }]);
     expect(standing?.topCommittees).toEqual([]);
     expect(await submit(personId, game.id, answer, 1, requestId)).toMatchObject({
       ok: true,
       game: { points: 6 },
     });
-    expect(await balanceFor(personId, game.termId)).toBe(6);
+    expect(await balanceFor(personId, game.termId)).toBe(0);
   });
 
   it("victoria simultánea con cierre queda completa en el snapshot o se rechaza sin acreditar", async () => {
@@ -418,12 +419,14 @@ describe("Wordle diario persistido", () => {
     if (result.ok) {
       expect(result.game.status).toBe("WON");
       expect(stored?.status).toBe("WON");
-      expect(standing?.stats.pointsAwarded).toBe(6);
-      expect(standing?.topNew).toMatchObject([{ personId, total: 6 }]);
+      expect(standing?.stats.pointsAwarded).toBe(0);
+      expect(standing?.topNew).toEqual([]);
+      expect(standing?.topGamer).toMatchObject([{ personId, participations: 1, activeDays: 1 }]);
     } else {
       expect(result.reason).toBe("TERM_CLOSED");
       expect(stored?.status).toBe("EXPIRED");
       expect(standing?.stats.pointsAwarded).toBe(0);
+      expect(standing?.topGamer).toEqual([]);
       expect(await db().select().from(wordleAttempt)).toHaveLength(0);
       expect(await db().select().from(pointEntry)).toHaveLength(0);
     }

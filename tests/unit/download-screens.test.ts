@@ -192,6 +192,7 @@ vi.mock("@/modules/comms", () => ({
     pushPoints: false,
     pushReminders: false,
     pushWordle: false,
+    pushGamerStreak: false,
     emailCampaigns: false,
   }),
 }));

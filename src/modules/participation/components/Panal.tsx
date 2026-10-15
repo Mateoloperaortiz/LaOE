@@ -8,7 +8,6 @@ import { APP_TIME_ZONE, atHourIn } from "@/shared/lib/dates-pure";
 import {
   isPanalPangram,
   normalizePanalWord,
-  panalCheckpoints,
   panalRank,
   panalWordError,
   panalWordScore,
@@ -66,11 +65,6 @@ export function Panal({ initial, onStart, onWord }: Props) {
   const editable = active && !pending && !retry;
   const rank = puzzle ? (tList("T-2739")[panalRank(score, puzzle.maxScore)] ?? "") : "";
 
-  const checkpoints =
-    initial.checkpointsEnabled && puzzle ? panalCheckpoints(puzzle.geniusScore) : [];
-  const nextCheckpoint = checkpoints.find(
-    (checkpoint) => !current?.awardedCheckpoints.includes(checkpoint.id),
-  );
   const pendingReward = Boolean(
     current &&
       puzzle &&
@@ -79,9 +73,6 @@ export function Panal({ initial, onStart, onWord }: Props) {
         (checkpoint) => !current.awardedCheckpoints.includes(checkpoint.id),
       ),
   );
-  const checkpointLabel = (id: number) =>
-    id === 3 ? t("T-3003") : t("T-3002", { n: id === 1 ? 5 : 10 });
-
   useEffect(() => {
     const checkDay = () => {
       if (Date.now() >= Date.parse(initial.nextAvailableAt)) setNewDay(true);
@@ -123,12 +114,10 @@ export function Panal({ initial, onStart, onWord }: Props) {
                 })
               : t("T-2745");
             setMessage(
-              award > 0 && initial.checkpointsEnabled
-                ? `${wordMessage} ${t("T-3009", { n: award })}`
-                : wordMessage,
+              award > 0 && !current?.points ? `${wordMessage} ${t("T-3009")}` : wordMessage,
             );
-          } else if (current && result.game.points > current.points) {
-            setMessage(t("T-3009", { n: result.game.points - current.points }));
+          } else if (current && current.points === 0 && result.game.points > 0) {
+            setMessage(t("T-3009"));
           }
         } else {
           setMessage(t(ERROR_COPY[result.reason]));
@@ -207,12 +196,7 @@ export function Panal({ initial, onStart, onWord }: Props) {
                 ? t("T-2742")
                 : current?.points === 6
                   ? t("T-2741")
-                  : nextCheckpoint
-                    ? t("T-3006", {
-                        meta: checkpointLabel(nextCheckpoint.id),
-                        n: nextCheckpoint.points,
-                      })
-                    : t("T-2740", { n: Math.max(0, puzzle.geniusScore - score) })}
+                  : t("T-2740", { n: Math.max(0, puzzle.geniusScore - score) })}
             </p>
           </div>
           <div className={styles.columns}>
@@ -329,53 +313,24 @@ export function Panal({ initial, onStart, onWord }: Props) {
               ) : null}
             </div>
             <aside className="flex min-w-0 flex-col gap-6">
-              {initial.checkpointsEnabled ? (
-                <div>
-                  <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                    <h2 className="text-titulo-md">{t("T-3000")}</h2>
-                    <strong className="text-sm tabular-nums">
-                      {t("T-3001", { n: current?.points ?? 0 })}
-                    </strong>
+              <div>
+                <h2 className="mb-3 text-titulo-md">{t("T-3000")}</h2>
+                <p className="text-sm font-semibold">{t(current?.points ? "T-3434" : "T-3433")}</p>
+                <p className="mt-3 text-sm text-tinta-suave">{t("T-3008")}</p>
+                {pendingReward && canPlay ? (
+                  <div className="mt-3 flex flex-col items-start gap-2">
+                    <p className="text-sm">{t("T-3013")}</p>
+                    <button
+                      type="button"
+                      className="boton-secundario"
+                      disabled={pending}
+                      onClick={() => act()}
+                    >
+                      {t("T-3012")}
+                    </button>
                   </div>
-                  <ol className={styles.checkpoints}>
-                    {checkpoints.map((checkpoint) => {
-                      const awarded = current?.awardedCheckpoints.includes(checkpoint.id);
-                      return (
-                        <li key={checkpoint.id} data-awarded={awarded || undefined}>
-                          <span className="font-semibold">{checkpointLabel(checkpoint.id)}</span>
-                          <span className="tabular-nums">
-                            {t("T-3004", { n: checkpoint.points })}
-                          </span>
-                          <span className="text-xs">
-                            {awarded
-                              ? t("T-3005")
-                              : checkpoint.id === 3
-                                ? t("T-2732", { n: puzzle.geniusScore })
-                                : t("T-2733", {
-                                    n: Math.min(words.length, checkpoint.words),
-                                    total: checkpoint.words,
-                                  })}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                  <p className="mt-3 text-sm text-tinta-suave">{t("T-3008")}</p>
-                  {pendingReward && canPlay ? (
-                    <div className="mt-3 flex flex-col items-start gap-2">
-                      <p className="text-sm">{t("T-3013")}</p>
-                      <button
-                        type="button"
-                        className="boton-secundario"
-                        disabled={pending}
-                        onClick={() => act()}
-                      >
-                        {t("T-3012")}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
+                ) : null}
+              </div>
               <div>
                 <h2 className="mb-3 text-titulo-md">{t("T-2734")}</h2>
                 {words.length ? (

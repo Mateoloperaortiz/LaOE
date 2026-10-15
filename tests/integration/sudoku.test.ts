@@ -208,7 +208,7 @@ describe("Sudoku con la solución en el servidor", () => {
     expect(entries[0]?.reason).toMatch(itemPattern(tList("T-2712")[assisted ? 1 : 0]));
     expect(entries[0]?.reason).not.toMatch(itemPattern(tList("T-2712")[assisted ? 0 : 1]));
     expect(entries[0]?.reason).not.toContain("·");
-    expect(await balanceFor(personId, entries[0]?.termId ?? "")).toBe(esperado);
+    expect(await balanceFor(personId, entries[0]?.termId ?? "")).toBe(0);
 
     const fila = await rowOf(run.id);
     expect(fila.creditedPoints).toBe(esperado);

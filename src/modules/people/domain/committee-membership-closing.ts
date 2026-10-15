@@ -25,6 +25,12 @@ export async function closeCommitteeMembership(
     .set({ leftAt: now })
     .where(eq(committeeMembership.id, row.id));
   await endRoles(ctx.tx, row.id, now);
+  await ctx.audit({
+    action: "committee-membership.closed",
+    entityType: "person",
+    entityId: row.personId,
+    after: { termId: row.termId, committeeId: row.committeeId, effectiveAt: now.toISOString() },
+  });
   const retired = await ctx.tx
     .delete(committeeRepresentative)
     .where(

@@ -22,7 +22,7 @@ export interface Game2048RunView {
   score: number;
   maxTile: number;
   moveCount: number;
-  /** GH Points acreditados por esta partida; 0 si no acreditó. */
+  /** Puntaje interno acreditado por esta partida; 0 si no acreditó. No son GH Points. */
   points: number;
 }
 

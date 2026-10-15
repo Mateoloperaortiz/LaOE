@@ -10,7 +10,7 @@ export interface SudokuRunView {
   difficulty: SudokuDifficulty;
   /** Modo con ayudas: errores al instante y pistas, a cambio de la mitad del premio. */
   assisted: boolean;
-  /** GH Points acreditados por esta partida; 0 si no acreditó. */
+  /** Puntaje interno acreditado por esta partida; 0 si no acreditó. No son GH Points. */
   points: number;
 }
 

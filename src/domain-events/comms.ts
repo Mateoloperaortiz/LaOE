@@ -13,6 +13,7 @@ export const NOTIFICATION_KINDS = [
   "SURVEY",
   "TRANSACTIONAL",
   "WORDLE",
+  "GAMER_STREAK",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];

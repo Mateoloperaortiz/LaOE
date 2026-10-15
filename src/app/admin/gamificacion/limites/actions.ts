@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { actorContext } from "@/app/_lib/actor";
 import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
+import { setGamificationEnabledAs } from "@/modules/participation";
 import { setConfigAs } from "@/modules/system";
 
 // Guardado de límites y activación (ADR-067 regla 15): solo ADMIN; cada clave es un comando
@@ -53,7 +54,9 @@ export async function saveLimitsAction(formData: FormData): Promise<void> {
   const me = await actorContext(actor);
   await setConfigAs(me, "gamification.caps", caps.data);
   await setConfigAs(me, "gamification.defaults", defaults.data);
-  await setConfigAs(me, "gamification.enabled", formData.get("enabled") === "1");
+  await setGamificationEnabledAs(me, formData.get("enabled") === "1");
+  revalidatePath("/app/gh-points");
+  revalidatePath("/app/juegos");
   revalidatePath(BACK);
   redirect(`${BACK}?guardado=1`);
 }

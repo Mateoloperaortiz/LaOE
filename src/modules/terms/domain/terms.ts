@@ -7,7 +7,7 @@ import type { CommandContext, Executor, Tx } from "@/db/tx";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { term } from "../schema";
+import { pointSeparationPolicy, term } from "../schema";
 
 // El término es el reloj universal (ADR-004): el actual se deriva de la fecha; el cierre de puntos es explícito.
 
@@ -159,8 +159,16 @@ async function assertNoOverlap(tx: Tx, input: TermInput, ownId: string | null): 
 export async function createTerm(ctx: CommandContext, input: TermInput): Promise<{ id: string }> {
   await lockTermCalendar(ctx.tx);
   await assertNoOverlap(ctx.tx, input, null);
+  const [policy] = await ctx.tx
+    .select()
+    .from(pointSeparationPolicy)
+    .where(eq(pointSeparationPolicy.id, "GH_GAMER"));
+  if (!policy) throw new Error("Falta la frontera de separación de GH Points y Juegos");
   try {
-    const [row] = await ctx.tx.insert(term).values(toValues(input)).returning({ id: term.id });
+    const [row] = await ctx.tx
+      .insert(term)
+      .values({ ...toValues(input), gamePointsSeparated: input.code >= policy.firstTermCode })
+      .returning({ id: term.id });
     if (!row) {
       throw new Error("No se pudo crear el término");
     }
@@ -238,18 +246,44 @@ export async function ensureNextTerm(
 }
 
 /**
- * Barrera compartida del ledger y de los datos que congela el cierre. Los escritores pueden correr
- * juntos; el cierre toma FOR UPDATE y espera a que todos terminen. Siempre usa la transacción dada.
+ * Barrera del término sin exigir puntos abiertos: una excusa tardía espera la foto del cierre,
+ * pero sigue admitida después. Se toma antes de ocasión/persona/asistencias/premios.
  */
-export async function lockOpenTermPoints(tx: Tx, termId: string): Promise<TermRow> {
-  const [row] = await tx.select().from(term).where(eq(term.id, termId)).for("share");
+export async function lockTermPoints(
+  tx: Tx,
+  termId: string,
+  mode: "shared" | "exclusive" = "shared",
+): Promise<TermRow> {
+  const [row] = await tx
+    .select()
+    .from(term)
+    .where(eq(term.id, termId))
+    .for(mode === "shared" ? "share" : "update");
   if (!row) {
     throw new DomainError(t("T-032"));
   }
+  return row;
+}
+
+/**
+ * Los escritores de una persona corren juntos. Un lote de personas y el cierre toman exclusividad
+ * desde su primer candado: nunca ascienden después de retener un reward de su subconjunto.
+ */
+export async function lockOpenTermPoints(
+  tx: Tx,
+  termId: string,
+  mode: "shared" | "exclusive" = "shared",
+): Promise<TermRow> {
+  const row = await lockTermPoints(tx, termId, mode);
   if (row.pointsClosedAt) {
     throw new DomainError(t("T-629"));
   }
   return row;
+}
+
+/** Reserva el cierre antes de liquidar sus premios pendientes, sin estampar todavía el término. */
+export async function lockOpenTermForClosing(tx: Tx, termId: string): Promise<TermRow> {
+  return lockOpenTermPoints(tx, termId, "exclusive");
 }
 
 /** Estampa el cierre de puntos (ADR-004): desde ahí el ledger del término no acepta entradas. Sin reapertura. */

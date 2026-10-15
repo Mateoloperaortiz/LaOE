@@ -7,6 +7,8 @@ import {
   assemblyStatusFor,
   attendedRequired,
   balanceFor,
+  getPresenceStreak,
+  levelCutoffsForTerm,
   levelFor,
   listEntriesFor,
   loadGamificationSettings,
@@ -19,6 +21,7 @@ import {
 } from "@/modules/participation";
 import { BadgeUnlock } from "@/modules/participation/components/BadgeUnlock";
 import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
+import { PresenceStreak } from "@/modules/participation/components/PresenceStreak";
 import { getMembershipRef, listCommitteesByIds } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -46,7 +49,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const tablero: BoardKey = BOARDS.includes(tableroParam as BoardKey)
     ? (tableroParam as BoardKey)
     : "nuevos";
-  const [terms, current, membership, cutoffs, gamification] = await Promise.all([
+  const [terms, current, membership, configuredCutoffs, gamification] = await Promise.all([
     listAllTerms(),
     getCurrentTerm(),
     getMembershipRef(actor.personId),
@@ -74,16 +77,18 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
 
   // El puesto propio y el top 10 salen de los mismos tableros: se arman una vez por vista.
   const boards = peopleBoards(term.id);
-  const [total, entries, position, assemblies] = await Promise.all([
+  const [total, entries, position, assemblies, presenceStreak] = await Promise.all([
     balanceFor(actor.personId, term.id),
     listEntriesFor(actor.personId, term.id),
     membership ? boards.position(actor.personId, membership.firstTermId) : Promise.resolve(null),
     assemblyStatusFor(actor.personId, term),
+    getPresenceStreak(actor.personId, term.id),
   ]);
   const assemblyKindLabels = tLabels("T-546", ASSEMBLY_KINDS);
   const [firmada, pendienteAsamblea, noFuiste] = tList("T-547");
   const requiredTotalCount = requiredTotal(assemblies.requirement);
   const attendedRequiredCount = attendedRequired(assemblies.requirement, assemblies.compliance);
+  const cutoffs = levelCutoffsForTerm(term, configuredCutoffs);
   const level = levelFor(total, cutoffs);
   const nextLabel = level.next === null ? null : (levelLabels[level.index + 1] ?? "");
   // «Tu próximo reto» es de quien tiene membresía, con la gamificación encendida.
@@ -210,6 +215,20 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
         </p>
       </Cartel>
 
+      <PresenceStreak streak={presenceStreak} />
+
+      <details className="text-sm">
+        <summary className="cursor-pointer font-semibold">{t("T-3435")}</summary>
+        <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-3">
+          {cutoffs.map((cutoff, index) => (
+            <div key={cutoff}>
+              <dt className="font-semibold">{levelLabels[index]}</dt>
+              <dd className="text-tinta-suave">{t("T-3436", { n: cutoff })}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+
       {showNextChallenge ? (
         <section aria-labelledby="proximo-reto" className="flex flex-col items-start gap-4">
           <h2 id="proximo-reto" className="text-display-md">
@@ -233,7 +252,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
         <h2 id="juegos" className="text-display-md">
           {t("T-2621")}
         </h2>
-        <p>{term.id === current?.id ? t("T-2622") : t("T-1258")}</p>
+        <p className="max-w-prose text-sm text-tinta-suave">{t("T-3429")}</p>
         <div className="flex flex-wrap gap-2">
           <Link href="/app/juegos" className="boton-secundario">
             {t("T-2625")}

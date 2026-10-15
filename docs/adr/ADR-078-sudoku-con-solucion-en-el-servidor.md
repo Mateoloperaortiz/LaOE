@@ -1,6 +1,6 @@
 # ADR-078: Sudoku con la solución en el servidor
 
-- Estado: Aceptada; en producción desde el 2026-09-19 (`4ac5920`)
+- Estado: Aceptada (enmendada por ADR-131); en producción desde el 2026-09-19 (`4ac5920`)
 - Fecha: 2026-09-19
 - Enmienda: ADR-075 (regla 1: la biblioteca tiene un tercer juego; regla 12: la disponibilidad compartida vale para los tres), ADR-067 (regla 4: el Sudoku también queda fuera de los topes y no admite boosters), ADR-007 (tipo `SUDOKU`)
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-020, ADR-030, ADR-032, ADR-035, ADR-038, ADR-041, ADR-076
@@ -85,3 +85,7 @@ Lo que fijan estos números:
 - **Sin tope técnico de partidas por día.** Generar es más barato que rejugar un 2048 largo.
 - **«Ambiguos»** es la verificación cruzada: los primeros 1.000 tableros de cada dificultad pasaron por un conteo de soluciones hasta 2 y todos tienen exactamente una, como predice la regla 4.
 - En Fácil el primer intento siempre sirve, porque el cavado mismo conserva solo lo que el único lugar resuelve. En Medio y Difícil la mediana de dadas es la misma, 28: los separa la técnica.
+
+## Enmienda (2026-10-14, ADR-131)
+
+Las reglas 7, 13 a 15 conservan los modos, ayudas, solución en servidor y resultados internos. Resolver cualquier dificultad o modo cuenta una participación gamer por día, sin el distinto peso competitivo de las escalas 1/2/3 o 2/4/6; el resultado deja de aportar GH Points. Se reconoce racha diaria gamer y sus hitos sin boosters GH. La nota económica de hasta 18 GH Points por día es histórica y no describe la competencia separada. Ver [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md).

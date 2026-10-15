@@ -110,13 +110,14 @@ export {
   prepareEvidenceUpload,
   resolveEvidenceRedirect,
 } from "./domain/evidence";
-export { listCheckInsForExport } from "./domain/exports";
+export { listCheckInsForExport, listPresenceHistoryFor } from "./domain/exports";
 export {
   finishGame2048As,
   getTodayGame2048,
   listGame2048RunsFor,
   startGame2048As,
 } from "./domain/game2048";
+export { getGamerLeaderboard, getGamerProfile, listGamerHistoryFor } from "./domain/gamer";
 export {
   annulParticipationAs,
   cancelCampaignAs,
@@ -139,6 +140,7 @@ export {
   submitTriviaAs,
   updateChallengeAs,
 } from "./domain/gamification-commands";
+export { getGamificationLaunch, setGamificationEnabledAs } from "./domain/gamification-launch";
 export { gamificationOverview } from "./domain/gamification-metrics";
 export { isVoluntaryOccasion } from "./domain/gamification-pure";
 export {
@@ -148,7 +150,12 @@ export {
   listEntriesForPerson,
   listLedger,
 } from "./domain/ledger";
-export { levelFor, POINT_ENTRY_KINDS, type PointEntryKind } from "./domain/ledger-pure";
+export {
+  levelCutoffsForTerm,
+  levelFor,
+  POINT_ENTRY_KINDS,
+  type PointEntryKind,
+} from "./domain/ledger-pure";
 export { buildLiveSnapshot, checkInLink } from "./domain/live";
 export { type GamificationSettings, loadGamificationSettings } from "./domain/member-context";
 export {
@@ -172,6 +179,7 @@ export {
   searchOccasions,
 } from "./domain/occasions";
 export { getTodayPanal, listPanalGamesFor, startPanalAs, submitPanalWordAs } from "./domain/panal";
+export { getPresenceStreak } from "./domain/presence-streak";
 export { isPublicId } from "./domain/public-id-pure";
 export { peopleBoards, rankCommittees } from "./domain/rankings";
 export {

@@ -122,6 +122,7 @@ async function fixture() {
     pushPoints: true,
     pushReminders: true,
     pushWordle: true,
+    pushGamerStreak: false,
   });
   await db()
     .update(committeeMembership)

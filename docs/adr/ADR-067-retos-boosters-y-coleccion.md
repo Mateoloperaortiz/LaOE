@@ -1,6 +1,6 @@
 # ADR-067: Retos relámpago, boosters y colección de insignias
 
-- Estado: Aceptada (enmendada por ADR-068, ADR-075, ADR-078, ADR-087, ADR-111, ADR-113, ADR-118 y ADR-122)
+- Estado: Aceptada (enmendada por ADR-068, ADR-075, ADR-078, ADR-087, ADR-111, ADR-113, ADR-118 y ADR-122, ADR-131)
 - Fecha: 2026-09-14
 - Relacionadas: ADR-004, ADR-007, ADR-008, ADR-011, ADR-012, ADR-014, ADR-020, ADR-022, ADR-030, ADR-032, ADR-035, ADR-038, ADR-041, ADR-062
 - Enmienda: ADR-007 (tipos `CHALLENGE` y `BOOST` del ledger), ADR-022 (evidencias con almacenamiento y autorización propios, fuera de `/api/media`), ADR-035 (participación en retos, boosters sobre asistencias, cierre de puntos que exige resolver pendientes), ADR-041 (el Wordle alimenta insignias y no admite boosters)
@@ -95,3 +95,7 @@ Regla 3: decía que el reto presencial no tiene acción propia y que su entrega 
 Regla 6: decía que el mismo `requestId` con otro contenido se rechaza, y se rechazaba con `INVALID_INPUT`, que la pantalla pintaba como «Respondé todas las preguntas antes de enviar» (DT-236, inciso d). Ahora responde `REQUEST_CONFLICT`, que ya tenía su texto (T-2444), en la trivia y en la evidencia. El formulario de la evidencia tiene además sus textos para el largo (T-3261) y para lo que la casa no acepta (T-3262), y una imagen de menos de 5 KB recibe el suyo (T-3264) en vez del de las que pesan de más. Ver [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) reglas 16 y 18.
 
 Regla 6: no decía qué pasa con la imagen que se sube y se quita de la lista antes de entregar: quedaba en el bucket bajo `evidence/<personId>/` (DT-324, inciso b). Ahora quitarla la borra, si es de quien la quita y ninguna entrega la usa, y la entrega mira sus objetos dentro de su transacción, bajo el candado que también toma quitar, para que no quede una entrega apuntando a un objeto borrado. Ver [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 20.
+
+## Enmienda (2026-10-14, ADR-131)
+
+Los retos presenciales, trivias y misiones con evidencia, sus premios y boosters legítimos siguen siendo GH Points. Los videojuegos y sus reversiones salen de esa proyección; sus hitos de racha 3/7/30 y las nuevas concesiones exclusivamente gamer no entregan boosters GH. Los beneficios ya concedidos con la política anterior conservan su historia, incluso los boosters disponibles; la reconstrucción no concede otros. El bono semanal presencial fijo 0/2/3/5 tiene techo propio y no admite boosters ni consume los topes de retos/boosters. Ver [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md).

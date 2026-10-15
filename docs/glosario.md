@@ -31,6 +31,9 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Permiso | `Permission` | Derecho técnico: `ADMIN`, `BOARD` o `COMMITTEE_LEADER` de un comité (todas las capacidades de ese comité). No es un título |
 | Término | `Term` | Semestre académico (`2026-2`) con fechas; reloj universal del sistema |
 | Cierre de puntos | `Term.pointsClosedAt` | Momento desde el que el ledger del término no acepta más entradas |
+| Competencias separadas | `Term.gamePointsSeparated` | Política del semestre que distingue GH Points de Más gamer; los semestres cerrados antes del lanzamiento conservan su competencia original |
+| Primer semestre separado | `PointSeparationPolicy.firstTermCode` | Ancla de la competencia GH/Más gamer: los semestres anteriores conservan su política aunque se registren después |
+| Lanzamiento de gamificación | `gamification.launch` | Primera activación que inicia bonos, rachas e hitos del sistema separado; apagar y encender después conserva ese corte |
 | Ocasión | `Occasion` | Momento con check-in: actividad GH, asamblea o sesión de una edición |
 | Check-in | `CheckIn` | Registro de una persona en una ocasión; único por par |
 | Modo anfitrión | `CheckIn.source=HOST` | El organizador marca el check-in por la persona |
@@ -42,12 +45,21 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Rubro | `BudgetLine` | Partida del presupuesto anual de un comité con su monto asignado |
 | Traslado | `BudgetTransfer` | Movimiento de disponible entre dos rubros del mismo presupuesto, con motivo ([ADR-059](adr/ADR-059-presupuesto-del-comite.md)) |
 | Entrada de puntos | `PointEntry` | Fila del ledger: crédito por check-in, ajuste, reversión o legado |
-| Ledger | `PointEntry[]` | Historial inmutable de puntos; el saldo es la suma |
+| GH Points | `GhPoints` | Reconocimiento principal semestral de la OE por check-ins, retos presenciales, trivias, misiones con evidencia y beneficios GH; los videojuegos no se suman a su clasificación |
+| Más gamer | `GamerRanking` | Competencia semestral de Juegos por participaciones válidas; desempata por días activos y comparte puesto si ambos coinciden |
+| Participación gamer válida | `GamerParticipation` | Cumplir el primer umbral acreditable de un videojuego: ganar Wordle, alcanzar 1.000 en 2048, resolver Sudoku o aceptar cinco palabras en Panal. Cada juego cuenta una vez por día |
+| Día activo gamer | `activeDays` | Día civil de Colombia en el que se cumplió al menos un videojuego, aunque se hayan cumplido varios |
+| Racha gamer | `GamerStreak` | Días jugados de una secuencia que protege un comodín semanal; el comodín no suma día ni participación. Tiene hitos a los 3, 7 y 30 días |
+| Comodín gamer | `wildcardAvailable` | Protección automática de un día perdido por semana, no acumulable, que conserva una racha viva sin hacer avanzar su contador |
+| Racha presencial | `PresenceStreak` | Semanas de lunes a domingo con al menos un check-in presencial aprobado, incluso de cero puntos; se pausa sin oportunidades disponibles y reinicia por semestre |
+| Bono de constancia presencial | `PresenceStreakBonus` | Reconocimiento GH una vez por semana válida: 0, 2, 3 y luego 5 puntos según las semanas consecutivas. Solo se paga desde el lanzamiento |
+| Pausa de racha | `PAUSED` | Período sin oportunidad exigible que conserva la secuencia, sin sumar constancia ni entregar premio |
+| Ledger | `PointEntry[]` | Historial inmutable de créditos y reversiones; el saldo GH suma las entradas de su competencia y conserva aparte la historia de videojuegos |
 | Reversión | `PointEntry.kind=REVERSAL` | Entrada que anula otra; nunca se edita la original |
 | Score de comité | `CommitteeParticipation` | Participación relativa de un comité en una ocasión y su promedio por término |
 | Tablero | ranking | Clasificación del término: nuevos, veteranos y comités; el miembro ve el top 10 y su propio puesto |
-| Nivel | `points.levels` | Tramo del saldo del semestre según cortes configurables (0, 100, 250, 500, 1000) con las etiquetas de T-082 |
-| Standing del término | `TermStanding` | Snapshot de los tableros al cerrar los puntos, con ids y nombres congelados |
+| Nivel | `points.levels` | Tramo del saldo de GH Points del semestre: Recién llegado, Parchado, De planta, Pilar y Leyenda OE. Los mínimos son 0/25/75/150/250 en la clasificación separada y 0/100/250/500/1000 en el saldo mixto histórico |
+| Standing del término | `TermStanding` | Resultado conservado de las clasificaciones GH y gamer al cerrar los puntos del semestre, con la identidad visible que corresponda |
 | Asamblea | `Occasion.kind=ASSEMBLY` | Ocasión sin puntos que cuenta para el requisito del término |
 | Requisito de asambleas | `AssemblyRequirement` | Las asambleas obligatorias de una persona en un término: una ordinaria y, en segundo semestre, la elección de junta y su segunda vuelta |
 | Asamblea obligatoria | `AssemblyRequirement` | Faltar a una implica expulsión de la OE; la app avisa antes y propone la salida en el cierre. Distinta del criterio del 10 %, que exige tres asistencias |
@@ -158,9 +170,9 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Reto relámpago | `Challenge` | Reto de un término que GH publica para la membresía elegible, con formato presencial (ocasión vinculada), trivia (1 a 5 preguntas) o misión con evidencia; premio base de 0 a 20 GH Points; estados `DRAFT`, `PUBLISHED`, `CANCELLED` y, derivados de sus fechas, programado, abierto y vencido ([ADR-067](adr/ADR-067-retos-boosters-y-coleccion.md)) |
 | Participación en reto | `ChallengeParticipation` | Una por reto y persona: pendiente de revisión, completada, rechazada o anulada; guarda la entrega (respuestas o texto y evidencias) y el premio que reservó |
 | Premio | `Reward` | Fila que reserva y luego confirma, libera o revierte los puntos de una participación o de una asistencia impulsada: base, extra, porcentajes, día y semana de Colombia y topes vigentes al reservar |
-| Booster | `BoosterItem` | Impulso (+50 %) o Superimpulso (+100 %) personal de un uso, otorgado por un nivel de insignia o por GH con motivo; vence al terminar el semestre de emisión; se elige antes de participar |
+| Booster | `BoosterItem` | Impulso (+50 %) o Superimpulso (+100 %) personal de un uso para premios GH, otorgado por un logro de participación GH o por GH con motivo; los nuevos hitos gamer no lo conceden. Vence al terminar el semestre de emisión y se elige antes de participar |
 | Campaña de puntos | `BoostCampaign` | +25 %, +50 % o +100 % que GH programa sobre un reto o una actividad durante una ventana; si coinciden aplica la más favorable |
-| Tope diario y semanal | `gamification.caps` | Máximo de puntos extra por miembro (20 por día civil y 60 por semana desde el lunes, en Colombia) que suma el premio base de los retos y los extras de boosters; la asistencia normal, el Wordle, el 2048 y el Sudoku quedan fuera |
+| Tope diario y semanal | `gamification.caps` | Máximo por miembro del premio base de retos y extras de boosters: 20 por día civil y 60 por semana desde el lunes, en Colombia. La asistencia base y el bono semanal presencial quedan fuera; los videojuegos compiten aparte |
 | Partida de 2048 | `Game2048Run` | Una partida del juego, con su semilla, la lista de movimientos, el puntaje que calculó el servidor y, si acreditó, el día y los puntos; se puede jugar sin límite y solo la primera del día que alcance el primer umbral acredita |
 | Replay verificado | `replayGame2048()` | El servidor no lee el puntaje del cliente: rejuega la partida entera desde la semilla que él mismo repartió y la lista de movimientos, y el puntaje que sale de ahí es el único que vale |
 | Partida de Sudoku | `SudokuRun` | Un tablero repartido a una persona, con su dificultad, su modo, las dadas, la solución que guarda el servidor y, si acreditó, el día y los puntos; se puede jugar sin límite y solo el primer tablero resuelto del día acredita |

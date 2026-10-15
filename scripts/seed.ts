@@ -32,7 +32,7 @@ import {
   workGroupMembership,
 } from "@/modules/permanence/schema";
 import { appConfig } from "@/modules/system/schema";
-import { term } from "@/modules/terms/schema";
+import { pointSeparationPolicy, term } from "@/modules/terms/schema";
 import { logger } from "@/shared/log";
 import { seedFase5 } from "./lib/seed-fase5";
 import { seedFase6 } from "./lib/seed-fase6";
@@ -113,10 +113,12 @@ const TERMS = [
 
 async function seedTerms(): Promise<Map<string, string>> {
   const ids = new Map<string, string>();
+  const [policy] = await db.select().from(pointSeparationPolicy);
+  if (!policy) throw new Error("Falta la frontera de GH Points y Juegos");
   for (const item of TERMS) {
     const [row] = await db
       .insert(term)
-      .values(item)
+      .values({ ...item, gamePointsSeparated: item.code >= policy.firstTermCode })
       .onConflictDoUpdate({
         target: term.code,
         set: { startsOn: item.startsOn, endsOn: item.endsOn },

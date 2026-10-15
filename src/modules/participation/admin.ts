@@ -1,8 +1,14 @@
 import { z } from "zod";
+import { getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
 import { listEditionOptions } from "@/modules/events";
 import { listSurveyFormOptions } from "@/modules/forms";
-import { getPeopleByIds, listAllCommittees, listCommitteesForSelection } from "@/modules/people";
+import {
+  getPeopleByIds,
+  listActiveMemberRefs,
+  listAllCommittees,
+  listCommitteesForSelection,
+} from "@/modules/people";
 import { createAlias, getAlias, type LegacyAliasRow, listAliases } from "@/modules/system";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import type {
@@ -15,6 +21,7 @@ import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { type AssemblyOverviewRow, assemblyOverview } from "./domain/assemblies";
 import { CHECK_IN_SOURCES, CHECK_IN_STATUSES } from "./domain/check-in-pure";
+import { getTermStanding } from "./domain/closing";
 import {
   closeOccasionAs,
   createOccasionAs,
@@ -29,6 +36,7 @@ import {
   listCheckInsForExport,
   listParticipationsForExport,
 } from "./domain/exports";
+import { rankGamerFromMembers } from "./domain/gamer";
 import { type LedgerListRow, listLedger } from "./domain/ledger";
 import { POINT_ENTRY_KINDS } from "./domain/ledger-pure";
 import {
@@ -429,6 +437,7 @@ export const ledgerResource: ResourceDefinition<LedgerExportRow, Empty> = {
     correo: row.email,
     semestre: row.termCode,
     movimiento: kindLabelsForLedger[row.kind] ?? row.kind,
+    competencia: row.account === "GH" ? t("T-080") : t("T-3400"),
     puntos: row.points,
     motivo: row.reason,
     revertida: row.reversedById ? "si" : "no",
@@ -505,6 +514,57 @@ export const rankingsResource: ResourceDefinition<RankingExportRow, Empty> = {
     nombre: row.name,
     semestre_de_ingreso: row.firstTermCode,
     puntos: row.total,
+  }),
+};
+
+interface GamerRankingExportRow {
+  id: string;
+  rank: number;
+  name: string;
+  participations: number;
+  activeDays: number;
+  termCode: string;
+}
+
+/** Exporte propio del premio Más gamer; conserva el step-up y la auditoría del admin kit. */
+export const gamerRankingsResource: ResourceDefinition<GamerRankingExportRow, Empty> = {
+  key: "gamer-rankings",
+  names: { plural: t("T-3425"), singular: t("T-3400") },
+  basePath: "/admin/gamer-rankings",
+  schema: emptySchema,
+  fields: [],
+  columns: [{ key: "name", label: t("T-3428"), render: (row) => row.name }],
+  filters: async () => [await termFilter(filterLabels[0] ?? "")],
+  list: async (params) => {
+    const terms = await listAllTerms();
+    const term =
+      terms.find((item) => item.id === params.filters.termId) ??
+      (await getCurrentTerm()) ??
+      terms[0];
+    if (!term) return { rows: [], total: 0 };
+    const standing = term.pointsClosedAt ? await getTermStanding(term.id) : null;
+    const ranking = standing
+      ? standing.topGamer
+      : await rankGamerFromMembers(getDb(), term.id, await listActiveMemberRefs(true));
+    const rows = ranking.map((item) => ({
+      id: item.personId,
+      rank: item.rank,
+      name: "anonymized" in item && item.anonymized ? t("T-223") : item.name,
+      participations: item.participations,
+      activeDays: item.activeDays,
+      termCode: term.code,
+    }));
+    return { rows, total: rows.length };
+  },
+  get: () => Promise.resolve(null),
+  toFormValues: () => ({}),
+  personalData: true,
+  exportRow: (row) => ({
+    semestre: row.termCode,
+    puesto: row.rank,
+    nombre: row.name,
+    participaciones: row.participations,
+    dias_activos: row.activeDays,
   }),
 };
 

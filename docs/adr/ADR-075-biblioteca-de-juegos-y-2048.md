@@ -1,6 +1,6 @@
 # ADR-075: Biblioteca de juegos y 2048 con replay verificado
 
-- Estado: Aceptada (enmendada por ADR-078, ADR-088 y ADR-122); en producción desde el 2026-09-18 (`b3226a5`)
+- Estado: Aceptada (enmendada por ADR-078, ADR-088 y ADR-122, ADR-131); en producción desde el 2026-09-18 (`b3226a5`)
 - Fecha: 2026-09-17
 - Enmienda: ADR-041 (regla 1: el tablero deja `/app/gh-points` y sí hay ruta de juego; regla 6: el ledger gana un tipo más), ADR-067 (regla 17: el Wordle deja de estar en Resumen; regla 4: el 2048 también queda fuera de los topes), ADR-074 (regla 5: la URL del aviso), ADR-007 (tipo `GAME2048`)
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-020, ADR-030, ADR-032, ADR-035, ADR-038
@@ -93,3 +93,7 @@ La biblioteca suma `/app/juegos/panal` como cuarto juego y su disponibilidad sig
 ## Enmienda (2026-10-10, ADR-122)
 
 Regla 7: decía que el navegador reconstruye el tablero para retomarlo, y no qué pasa si lo reconstruido ya terminó, que es lo que deja un cierre que no llegó a la casa: «Seguir la partida» lo dejaba en juego sin jugada posible y sin ningún botón (DT-236, inciso c). Ahora «seguir» sobre un tablero sin jugada manda su cierre con los movimientos guardados, como lo habría hecho su última jugada. Qué acredita una partida y cuándo no cambia. Ver [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 15.
+
+## Enmienda (2026-10-14, ADR-131)
+
+Las reglas 8 a 13 conservan el replay y el puntaje interno del 2048, sus versiones, primer umbral y unicidad diaria. Esos créditos dejan de sumar GH Points; alcanzar 1.000 valida una participación gamer por día, del mismo valor competitivo que cumplir cualquier otro juego. La biblioteca muestra clasificación, racha y reconocimientos gamer separados. Las escalas internas de resultado no son puntos convertibles a GH; no hay un tope compartido de cinco. Ver [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md).

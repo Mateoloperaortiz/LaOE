@@ -523,6 +523,7 @@ export async function addCommitteeMember(
       termId: scope.termId,
       roles: change.after,
       revived: existing !== null,
+      effectiveAt: now.toISOString(),
     },
   });
   await ctx.emit(

@@ -181,7 +181,7 @@ describe("2048 con replay verificado", () => {
     const entries = await db().select().from(pointEntry);
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ kind: "GAME2048", game2048RunId: run.id, points: esperado });
-    expect(await balanceFor(personId, entries[0]?.termId ?? "")).toBe(esperado);
+    expect(await balanceFor(personId, entries[0]?.termId ?? "")).toBe(0);
 
     const [fila] = await db().select().from(game2048Run).where(eq(game2048Run.id, run.id));
     expect(fila?.creditedAt).not.toBeNull();

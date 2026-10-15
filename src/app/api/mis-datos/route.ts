@@ -14,8 +14,10 @@ import {
   listBoostersFor,
   listEvidenceFilesFor,
   listGame2048RunsFor,
+  listGamerHistoryFor,
   listPanalGamesFor,
   listParticipationsForPerson,
+  listPresenceHistoryFor,
   listRewardsForPerson,
   listSudokuRunsFor,
   listWordleGamesFor,
@@ -59,6 +61,8 @@ export async function GET() {
     achievements,
     rewards,
     competitionStaff,
+    gamerParticipations,
+    presenceRecognitions,
   ] = await Promise.all([
     listInteractions(actor.personId, "ALL", 1000),
     listTasks({ q: "", personId: actor.personId, page: 1, pageSize: 500 }),
@@ -79,6 +83,8 @@ export async function GET() {
     listAchievementsForPerson(actor.personId),
     listRewardsForPerson(actor.personId),
     listStaffFor(actor.personId),
+    listGamerHistoryFor(actor.personId),
+    listPresenceHistoryFor(actor.personId),
   ]);
   await recordSelfExport(await actorContext(actor));
   const body = {
@@ -102,6 +108,8 @@ export async function GET() {
     // Sudoku (ADR-078): dificultad, modo, estado y puntos; sin semilla, dadas ni solución.
     sudokuRuns,
     panalGames,
+    gamerParticipations,
+    presenceRecognitions,
     // The Games (ADR-089, ADR-101): dónde está asignada la persona como operadora, líder de base
     // (jueza) o apoyo de una base (calificadora, veedora o VAR).
     competitionStaff,
@@ -166,6 +174,7 @@ export async function GET() {
       pushPoints: preferences.pushPoints,
       pushReminders: preferences.pushReminders,
       pushWordle: preferences.pushWordle,
+      pushGamerStreak: preferences.pushGamerStreak,
     },
     pushSubscriptions: subscriptions.map((item) => ({
       id: item.id,

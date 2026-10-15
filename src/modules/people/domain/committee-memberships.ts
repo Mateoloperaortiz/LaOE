@@ -430,7 +430,7 @@ async function writeCommitteeMemberships(
     entityType: "person",
     entityId: personId,
     before: { termId, committees: before },
-    after: { termId, committees: after },
+    after: { termId, committees: after, effectiveAt: now.toISOString() },
   });
   await ctx.emit(
     eventOf(committeeMembershipChanged, {

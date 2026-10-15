@@ -10,7 +10,13 @@ const EMPTYING = "tests/integration/db.ts";
 
 // Los únicos nombres que el archivo puede traer: los catálogos que llenan las migraciones, que no se
 // pueden deducir (spec #244). Las migraciones también llenan `page` y `event`, y esas se vacían.
-const CATALOGS = ["app_config", "badge_definition", "committee_role", "macroevent_role"];
+const CATALOGS = [
+  "app_config",
+  "badge_definition",
+  "committee_role",
+  "macroevent_role",
+  "point_separation_policy",
+];
 
 const SCHEMA = schemaTables(
   readdirSync("src", { recursive: true, encoding: "utf8" })

@@ -25,6 +25,7 @@ export const messageKind = pgEnum("message_kind", [
   "SURVEY",
   "CAMPAIGN",
   "WORDLE",
+  "GAMER_STREAK",
 ]);
 export const campaignStatus = pgEnum("campaign_status", [
   "DRAFT",
@@ -179,7 +180,7 @@ export const pushSubscription = pgTable(
   ],
 );
 
-// Qué quiere recibir cada persona; la fila se crea perezosa con todo encendido.
+// Qué quiere recibir cada persona; el aviso gamer se activa expresamente (ADR-131).
 export const notificationPreference = pgTable(
   "notification_preference",
   {
@@ -191,8 +192,9 @@ export const notificationPreference = pgTable(
     pushAnnouncements: boolean().notNull().default(true),
     pushPoints: boolean().notNull().default(true),
     pushReminders: boolean().notNull().default(true),
-    // El Wordle tiene interruptor propio por ser el único push diario (ADR-074 regla 4).
+    // Los dos avisos diarios conservan interruptores independientes (ADR-074 y ADR-131).
     pushWordle: boolean().notNull().default(true),
+    pushGamerStreak: boolean().notNull().default(false),
     unsubscribeToken: text().notNull(),
     updatedAt: updatedAt(),
   },

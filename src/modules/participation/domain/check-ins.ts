@@ -2,11 +2,12 @@ import { and, asc, desc, eq, inArray, type SQL, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { lockPersonAnonymization } from "@/modules/people";
-import { lockOpenTermPoints } from "@/modules/terms";
+import { lockOpenTermPoints, lockTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { asScopeId } from "@/shared/lib/scope-id";
 import { checkIn, occasion } from "../schema";
+import { lockParticipationBatch } from "./batch-lock";
 import {
   CHECK_IN_STATUSES,
   type CheckInDecision,
@@ -43,7 +44,8 @@ import { verifyRotatingCode } from "./rotating-code-pure";
 // en el outbox: un solo pendiente, el segundo que lo encola espera al primero) → premio
 // (`reward:<persona>`, su fila, el booster) → reto presencial y su entrega. Quien toma varias
 // asistencias las toma todas antes de encolar nada: nadie espera una fila con el recálculo encolado.
-// La excusa no toma el del término (regla 3).
+// Los lotes toman el término exclusivo desde el inicio. La excusa comparte la barrera sin exigir
+// puntos abiertos: espera al cierre, pero sigue admitida después (enmienda ADR-131 a ADR-116).
 
 export type CheckInRow = typeof checkIn.$inferSelect;
 
@@ -443,7 +445,10 @@ export async function decideMany(
   if (!observed) {
     throw new DomainError(t("T-032"));
   }
-  await lockOpenTermPoints(ctx.tx, observed.termId);
+  await lockParticipationBatch(ctx.tx);
+  await lockOpenTermPoints(ctx.tx, observed.termId, "exclusive");
+  // El lote puede tomar rewards en otro orden que las asistencias; se excluye desde el término,
+  // antes de ocasión y filas, para no cruzarse con otro lote ni con la conciliación del semestre.
   // La ocasión antes que sus asistencias (ADR-119 regla 1).
   const row = await lockOccasion(ctx, observed);
   const rows = await lockCheckIns(ctx, inArray(checkIn.id, ids));
@@ -517,6 +522,9 @@ export async function excuseCheckIn(
     throw new DomainError(t("T-2227"));
   }
   const now = input.now ?? new Date();
+  // La foto de constancia ahora sí depende de las excusas. Compartir la barrera sin exigir abierto
+  // conserva la excusa tardía y hace que el cierre vea la excusa completa o conserve su foto previa.
+  await lockTermPoints(ctx.tx, row.termId);
   // ADR-114 regla 4: el motivo es texto de la persona y no se escribe si ya fue anonimizada, ni en
   // la asistencia, ni en la auditoría, ni en el evento. Se mira con candado dentro de la transacción:
   // una anonimización que llegue ahora espera, y su aviso borra lo que aquí quede escrito.
@@ -525,9 +533,7 @@ export async function excuseCheckIn(
     throw new DomainError(t("T-032"));
   }
   const reason = who.anonymized ? null : input.reason.trim() || null;
-  // ADR-116 reglas 2 y 3: la persona va antes que la asistencia, como ya iba (la fila se tomaba al
-  // escribirla), y sin el candado de puntos del término: la excusa no escribe en el ledger ni en
-  // nada que el cierre de puntos congele.
+  // La persona va antes que la asistencia; la excusa no escribe en el ledger ni reabre puntos.
   const [current] = await lockCheckIns(ctx, ofPerson(row.id, input.personId));
   if (current?.status === "EXCUSED") {
     return;

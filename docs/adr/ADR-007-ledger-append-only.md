@@ -1,6 +1,6 @@
 # ADR-007: Ledger append-only por término
 
-- Estado: Aceptada (enmendada por ADR-041, ADR-078 y ADR-088)
+- Estado: Aceptada (enmendada por ADR-041, ADR-078 y ADR-088, ADR-131)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-004, ADR-006, ADR-018
 
@@ -29,3 +29,7 @@ El tipo SUDOKU acredita 2, 4 o 6 puntos según la dificultad del tablero, o la m
 ## Enmienda (2026-09-23, ADR-088)
 
 El tipo `PANAL` acredita exactamente 6 GH Points una vez por persona y día al alcanzar Genio en el panal diario. La entrada referencia `panal_game_id` con índice único; las restricciones vinculan tipo, partida y premio. Se conserva el ledger append-only y las correcciones siguen por ajuste administrativo con motivo. Ver [ADR-088](ADR-088-panal-diario-en-espanol.md).
+
+## Enmienda (2026-10-14, ADR-131)
+
+El ledger sigue siendo append-only, pero su suma completa deja de representar el saldo de GH Points. La proyección GH excluye los créditos de los cuatro videojuegos y las reversiones de esas entradas; la historia de juegos se conserva y alimenta la competencia Más gamer por participaciones válidas deduplicadas. Los legados conservan su clasificación por origen identificable. Ver [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md).

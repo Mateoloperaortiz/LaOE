@@ -141,6 +141,13 @@ const EXCEPTIONS: Exception[] = [
       "Es la segunda partida acreditada de una persona en un mismo día, que la prueba espera ver rechazada por `game2048_run_person_day_credited_unique`: ningún comando llega a escribirla.",
   },
   {
+    path: "tests/integration/gamer.test.ts",
+    target: "pointEntry",
+    inserts: 1,
+    reason:
+      "Son créditos legados de partidas importadas de GHPOINTS, anteriores al modelo actual, con fecha y origen originales: los comandos de hoy no crean entradas LEGACY y la fábrica no puede escribir el libro (ADR-119 regla 8).",
+  },
+  {
     path: "tests/integration/gamification-regressions.test.ts",
     target: "achievement",
     inserts: 1,

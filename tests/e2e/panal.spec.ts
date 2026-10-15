@@ -78,11 +78,11 @@ test("biblioteca, teclado, guardado, pangrama y premio único hasta completar", 
       hasPanalCheckpoints(new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10)) &&
       found === 5
     ) {
-      await expect(page.getByText(t("T-3001", { n: 1 }))).toBeVisible();
+      await expect(page.getByText(t("T-3434"), { exact: true })).toBeVisible();
       await page.getByRole("link", { name: t("T-3007"), exact: true }).click();
       await expect(page).toHaveURL(/\/app\/juegos$/);
       await page.goto("/app/juegos/panal");
-      await expect(page.getByText(t("T-3001", { n: 1 }))).toBeVisible();
+      await expect(page.getByText(t("T-3434"), { exact: true })).toBeVisible();
     }
     if (score >= panalPuzzleView(puzzle).geniusScore && score < panalPuzzleView(puzzle).maxScore) {
       await expect(page.getByText(t("T-2741"))).toBeVisible();
@@ -122,9 +122,9 @@ test("celular, botones, mezclar sin cambiar la central y temas accesibles", asyn
   if (hasPanalCheckpoints(game?.day ?? "")) {
     for (const additional of puzzle.words.filter((item) => item !== word).slice(0, 4))
       await send(page, additional);
-    await expect(page.getByText(t("T-3001", { n: 1 }))).toBeVisible();
+    await expect(page.getByText(t("T-3434"), { exact: true })).toBeVisible();
   } else {
-    await expect(page.getByText(t("T-3000"))).toHaveCount(0);
+    await expect(page.getByText(t("T-3000"))).toBeVisible();
     await expect(
       page.getByText(t("T-2738", { n: panalPuzzleView(puzzle).geniusScore })),
     ).toBeVisible();

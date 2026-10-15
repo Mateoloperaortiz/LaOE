@@ -1,6 +1,6 @@
 # ADR-041: Wordle diario y cierre transaccional de puntos
 
-- Estado: Aceptada (enmendada por ADR-074, ADR-075 y ADR-119)
+- Estado: Aceptada (enmendada por ADR-074, ADR-075 y ADR-119, ADR-131)
 - Fecha: 2026-09-07
 - Relacionadas: ADR-007, ADR-008, ADR-011, ADR-012, ADR-020, ADR-030, ADR-032, ADR-035
 - Enmienda: ADR-035 (palabra del día, ledger y coordinación de escrituras con el cierre); ADR-007 (tipo WORDLE).
@@ -40,3 +40,7 @@ La regla 1 cambia en un punto y solo en uno: **sí hay ruta de juego**. El table
 ## Enmienda (2026-10-09, ADR-119)
 
 Regla 2: el día de la partida sigue siendo el día civil de Colombia, pero ya no sale de restarle cinco horas fijas al instante («UTC−05:00»). Lo da la zona de la app ([ADR-020](ADR-020-zona-horaria.md)) con el mismo cálculo de los otros juegos y de los topes diarios (`dayKeyFor`), y «cuándo empieza el siguiente» sale de ese día más uno a la medianoche de la zona. Hoy las dos fórmulas dan lo mismo en todo instante: las comparó una propiedad sobre un año. Si la zona dejara de ser UTC−5 todo el año, el día cambiaría en la medianoche civil y no a las 05:00Z. Cuándo termina la partida («al cambiar de día, cerrar puntos o dejar de pertenecer al término vigente») no cambia: lo que el Wordle responde en cada caso queda declarado en la guardia única de la partida diaria, y lo que no coincide con los otros juegos espera las decisiones abiertas 49 y 50. Ver [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) reglas 6 y 7.
+
+## Enmienda (2026-10-14, ADR-131)
+
+Las reglas 1, 2 y 6 conservan partida, intentos, motor, validación y registro histórico del resultado; ese crédito ya no aporta GH Points. Ganar Wordle cuenta una participación gamer por día, sin ponderarla por intento, y cumple el día de racha gamer. La racha reconoce hitos 3/7/30 sin GH Points ni boosters. La coordinación transaccional con el cierre de la regla 7 se mantiene. Ver [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md).

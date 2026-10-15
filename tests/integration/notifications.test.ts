@@ -93,6 +93,7 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
         pushPoints: true,
         pushReminders: true,
         pushWordle: true,
+        pushGamerStreak: false,
       },
     );
     expect((await getPreferences(ana)).pushAnnouncements).toBe(false);
@@ -233,6 +234,7 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
         pushPoints: true,
         pushReminders: true,
         pushWordle: true,
+        pushGamerStreak: false,
       },
     );
     await runCommand(SYSTEM_ACTOR, (ctx) =>

@@ -372,6 +372,34 @@
       "when": 1791994895958,
       "tag": "0052_fotos_privadas",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792040180710,
+      "tag": "0053_gh_points_y_gamer",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792040776188,
+      "tag": "0054_compatibilidad_de_semestres_cerrados",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792040876765,
+      "tag": "0055_frontera_inmutable_gh_y_juegos",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1792041233094,
+      "tag": "0056_lanzamiento_efectivo_de_gamificacion",
+      "breakpoints": true
     }
   ]
 }

@@ -6,10 +6,11 @@ export {
   listAliases,
   resolveAlias,
 } from "./domain/aliases";
-export { redactAuditEntries } from "./domain/audit";
+export { listEntityAuditFacts, redactAuditEntries } from "./domain/audit";
 export {
   type ConfigKey,
   type ConfigValue,
+  clearConfigCache,
   getConfig,
   readConfigNow,
   requireConfig,

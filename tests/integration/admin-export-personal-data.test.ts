@@ -71,6 +71,7 @@ describe("exportes del admin con nombres de personas", () => {
   it.each([
     ["tareas", "/admin/tareas"],
     ["grupos", "/admin/permanencia/grupos"],
+    ["gamer-rankings", "/admin/gamer-rankings"],
   ])("el exporte de %s sin paso de seguridad reciente manda al paso y no entrega ni registra nada", async (key, screen) => {
     const adminId = await seedMember("admin.exportes@eafit.edu.co");
     session.getActor.mockResolvedValue(adminSession(adminId, 16));
@@ -87,6 +88,7 @@ describe("exportes del admin con nombres de personas", () => {
   it.each([
     "tareas",
     "grupos",
+    "gamer-rankings",
   ])("el exporte de %s con paso de seguridad reciente entrega el CSV y deja su fila de auditoría", async (key) => {
     const adminId = await seedMember("admin.exportes@eafit.edu.co");
     session.getActor.mockResolvedValue(adminSession(adminId, 1));
@@ -708,6 +710,7 @@ describe("marca de datos personales en el registro del admin", () => {
     expect(marked.map((resource) => resource.key).sort()).toEqual([
       "asambleas",
       "check-ins",
+      "gamer-rankings",
       "grupos",
       "horario-preferencial",
       "inscritos",

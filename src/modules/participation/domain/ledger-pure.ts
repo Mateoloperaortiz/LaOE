@@ -10,7 +10,8 @@ export type PointEntryKind =
   | "BOOST"
   | "GAME2048"
   | "SUDOKU"
-  | "PANAL";
+  | "PANAL"
+  | "PRESENCE_STREAK";
 export const POINT_ENTRY_KINDS = [
   "CHECKIN",
   "ADJUSTMENT",
@@ -25,6 +26,7 @@ export const POINT_ENTRY_KINDS = [
   // ADR-078: premio del Sudoku; cierra la lista T-085.
   "SUDOKU",
   "PANAL",
+  "PRESENCE_STREAK",
 ] as const satisfies readonly PointEntryKind[];
 
 export interface Level {
@@ -36,6 +38,17 @@ export interface Level {
   next: number | null;
   /** Puntos que faltan para el siguiente nivel, o null en el último. */
   remaining: number | null;
+}
+
+// ADR-035/0005: los semestres anteriores a la separación conservan esta escala sobre su saldo mixto.
+const HISTORICAL_LEVEL_CUTOFFS: readonly number[] = [0, 100, 250, 500, 1000];
+
+/** ADR-131: los cortes nuevos acompañan la separación de juegos, nunca el saldo mixto histórico. */
+export function levelCutoffsForTerm(
+  term: { gamePointsSeparated: boolean },
+  separatedCutoffs: readonly number[],
+): readonly number[] {
+  return term.gamePointsSeparated ? separatedCutoffs : HISTORICAL_LEVEL_CUTOFFS;
 }
 
 /** Nivel de un saldo según cortes crecientes (`points.levels`, etiquetas de T-082). */

@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -189,5 +190,48 @@ describe("los scripts de npm que corren Vitest", () => {
     const check = (scripts.check ?? "").split(" && ");
     expect(check).toContain("npm run test");
     expect(check).toContain("npm run test:integration");
+  });
+
+  const environments: Array<
+    [project: "unit" | "integration", inherited: "development" | "production"]
+  > = [
+    ["unit", "development"],
+    ["integration", "development"],
+    ["unit", "production"],
+    ["integration", "production"],
+  ];
+  it.each(
+    environments,
+  )("%s fija test para Vitest sin cambiar el entorno %s de quien lo lanza", (project, inherited) => {
+    // Carga el runner real y captura su frontera con el proceso hijo: no arranca Vitest recursivo
+    // ni la base. Su hijo sintético produce un informe válido para conservar la compuerta completa.
+    const runner = new URL("../../scripts/ci/run.mjs", import.meta.url).href;
+    const source = `
+      import childProcess from "node:child_process";
+      import { writeFileSync } from "node:fs";
+      import { syncBuiltinESMExports } from "node:module";
+      let child;
+      childProcess.spawnSync = (_command, args, options) => {
+        child = { nodeEnv: options.env?.NODE_ENV ?? process.env.NODE_ENV,
+          inheritedValue: options.env?.VITEST_ENV_SENTINEL ?? process.env.VITEST_ENV_SENTINEL };
+        const output = args.find((arg) => arg.startsWith("--outputFile="));
+        if (!output) throw new Error("El runner no pidió su informe");
+        writeFileSync(output.slice("--outputFile=".length), ${JSON.stringify(JSON.stringify(report(["passed"])))});
+        return { status: 0 };
+      };
+      syncBuiltinESMExports();
+      process.argv = [process.execPath, ${JSON.stringify(runner)}, "vitest", ${JSON.stringify(project)}];
+      await import(${JSON.stringify(runner)});
+      process.stdout.write(JSON.stringify({ child, parentNodeEnv: process.env.NODE_ENV }) + "\\n");
+    `;
+    const result = spawnSync(process.execPath, ["--input-type=module", "--eval", source], {
+      encoding: "utf8",
+      env: { ...process.env, NODE_ENV: inherited, VITEST_ENV_SENTINEL: "conservado" },
+    });
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout.trim().split("\n").at(-1) ?? "null")).toEqual({
+      child: { nodeEnv: "test", inheritedValue: "conservado" },
+      parentNodeEnv: inherited,
+    });
   });
 });

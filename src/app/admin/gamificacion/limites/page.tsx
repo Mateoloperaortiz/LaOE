@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
-import { loadGamificationSettings } from "@/modules/participation";
+import { getGamificationLaunch, loadGamificationSettings } from "@/modules/participation";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
+import { formatDateTime } from "@/shared/lib/dates";
 import { saveLimitsAction } from "./actions";
 
 // Límites y activación (ADR-067 regla 15): topes diario/semanal, premios por defecto y la
@@ -24,7 +25,10 @@ export default async function LimitesPage({
   const search = (await searchParams) as Search;
   const error = single(search.error);
   const guardado = single(search.guardado) === "1";
-  const settings = await loadGamificationSettings();
+  const [settings, launch] = await Promise.all([
+    loadGamificationSettings(),
+    getGamificationLaunch(),
+  ]);
   const fields = tList("T-2551");
 
   return (
@@ -32,6 +36,12 @@ export default async function LimitesPage({
       <header className="flex flex-col gap-2">
         <h1 className="text-display-lg">{tList("T-2405")[5] ?? ""}</h1>
         <p className="text-sm text-tinta-suave">{t("T-2553")}</p>
+        <p className="text-sm text-tinta-suave">{t("T-3463")}</p>
+        <p className="text-sm font-semibold">
+          {launch.launchedAt
+            ? t("T-3465", { fecha: formatDateTime(new Date(launch.launchedAt)) })
+            : t("T-3464")}
+        </p>
         {guardado ? (
           <output className="block font-semibold text-oe-blue">{t("T-2554")}</output>
         ) : null}

@@ -209,22 +209,33 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     expect((await closingSummary(f.termId)).reservedRewards).toBeGreaterThan(0);
     const requestId = await requestExcuse({ personId, ip: null }, occasion.id);
 
-    const held = await holdTerm(f.termId);
-    const approving = decideInOwnOccasion(f.admin, {
-      checkInId: attendance.checkInId,
-      decision: "APPROVE",
-    });
-    void approving.catch(() => undefined);
+    // La excusa comparte ahora la barrera del término sin exigir abierto (ADR-131). Se fija el
+    // orden en la asistencia: la primera excusa hace cola antes de que llegue la aprobación.
+    const held = await holdRows((tx) =>
+      tx
+        .select({ id: checkIn.id })
+        .from(checkIn)
+        .where(eq(checkIn.id, attendance.checkInId))
+        .for("no key update"),
+    );
+    const excusing = decideRequestAs(f.other, requestId, { decision: "APPROVED" });
+    void excusing.catch(() => undefined);
+    let approving: Promise<unknown> | undefined;
     try {
       await expect.poll(() => waitingOn(held.pid)).toBe(1);
-      // La excusa no toma el candado de puntos (ADR-116 regla 3): entra aunque el término esté retenido.
-      await decideRequestAs(f.other, requestId, { decision: "APPROVED" });
+      approving = decideInOwnOccasion(f.admin, {
+        checkInId: attendance.checkInId,
+        decision: "APPROVE",
+      });
+      void approving.catch(() => undefined);
+      await expect.poll(() => waitingForLock()).toBe(2);
       held.release();
       await held.done;
+      await excusing;
       await expect(approving).rejects.toThrow(notApplicable("EXCUSED"));
     } finally {
       held.release();
-      await Promise.allSettled([held.done, approving]);
+      await Promise.allSettled([held.done, excusing, approving]);
     }
 
     expect((await findCheckIn(occasion.id, personId))?.status).toBe("EXCUSED");

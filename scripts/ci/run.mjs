@@ -273,7 +273,12 @@ try {
         process.argv.slice(4),
         join(directory, "report.json"),
         (args) => {
-          const run = spawnSync(process.execPath, [VITEST, ...args], { stdio: "inherit" });
+          const run = spawnSync(process.execPath, [VITEST, ...args], {
+            stdio: "inherit",
+            // El .env usado para la BD puede traer development. Solo Vitest fuerza test; el
+            // proceso que lo lanzó conserva su entorno para el build que corre después.
+            env: { ...process.env, NODE_ENV: "test" },
+          });
           if (run.error) throw run.error;
           return run.status ?? 1;
         },

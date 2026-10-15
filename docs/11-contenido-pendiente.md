@@ -76,7 +76,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 - [ ] Puntos por tipo de ocasión para el término (tope de comités y asambleas ya están decididos)
 - [ ] Fechas de las dos asambleas ordinarias (una sola es obligatoria) y, en el segundo semestre, de la elección de junta
-- [ ] Nombres y cortes de los niveles de GH Points (T-082); mientras tanto rigen los propuestos (0, 100, 250, 500, 1000)
+- [x] Nombres y cortes de los niveles de GH Points (T-082): Recién llegado, Parchado, De planta, Pilar y Leyenda OE, con mínimos 0, 25, 75, 150 y 250. Acordados para el sistema separado; se aplican junto con ADR-131, sin videojuegos en el saldo. La decisión no acredita todavía publicación.
 - [ ] Texto de "Unirse": requisitos y fechas de convocatoria
 - [ ] Preguntas reales del formulario de admisión (el seed trae unas sintéticas) y el texto de gracias que ve quien postula
 - [ ] Etapas reales del proceso de admisión si difieren de la plantilla (Recibida, Entrevista, Admitida, Alta, No admitida) y de la de patrocinio (Contacto, Propuesta, Negociación, Cerrado, Sin acuerdo)
@@ -121,7 +121,7 @@ Las pruebas reales y el diagnóstico de los proveedores se registran siguiendo [
 - [ ] Confirmar los topes de 20 puntos extra diarios y 60 semanales por miembro (`gamification.caps`)
 - [ ] Textos, fechas y públicos de los retos reales del semestre; la primera activación no publica retos inventados: GH deja sus borradores y los publica cuando quiera
 - [ ] Política de ediciones especiales: a qué ocasiones o retos se vinculan y con qué nombre
-- [ ] Activar `gamification.enabled` desde Límites cuando la conciliación histórica haya corrido en producción y los borradores estén listos
+- [ ] Activar `gamification.enabled` desde Límites cuando la conciliación histórica haya corrido en producción y los borradores estén listos, junto con la separación GH/Más gamer y las rachas de ADR-131; verificar antes el semestre reconstruido y la fecha de inicio del pago de bonos. No entregar boosters GH nuevos por hitos gamer.
 
 ### The Games · 2026-09-23 ([ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md), [ADR-091](adr/ADR-091-apuestas-de-the-games.md))
 

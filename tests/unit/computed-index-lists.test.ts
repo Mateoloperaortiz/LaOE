@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Day } from "@/modules/competition/domain/schedule-pure";
 import { representationLadder } from "@/modules/participation/domain/committee-assembly";
-import { levelFor } from "@/modules/participation/domain/ledger-pure";
+import { levelCutoffsForTerm, levelFor } from "@/modules/participation/domain/ledger-pure";
 import { PANAL_RANK_PERCENTAGES, panalRank } from "@/modules/participation/panal-engine";
 import { parseRoleAssignments, type RosterCommittee } from "@/modules/people/domain/roster-pure";
 import type { ProposalReason } from "@/modules/permanence/domain/permanence-pure";
@@ -71,16 +71,22 @@ const BADGE_CONDITION_LISTS = [
   ),
 ].map(([, code]) => code);
 
-const LEVELS_SEED = "0005_participacion_y_gh_points.sql";
+// ADR-131 recalibra los cortes, conserva los cinco nombres de T-082 y no modifica la semilla vieja.
+const LEVELS_SEED = "0053_gh_points_y_gamer.sql";
 const SEEDED_CUTOFFS: number[] = JSON.parse(
-  writtenIn(`drizzle/${LEVELS_SEED}`, /\('points\.levels', '(\[[\d, ]+\])'\)/),
+  writtenIn(`drizzle/${LEVELS_SEED}`, /"value" = '(\[[\d, ]+\])'::jsonb/),
+);
+const LEVEL_POLICIES = [false, true].map((gamePointsSeparated) =>
+  levelCutoffsForTerm({ gamePointsSeparated }, SEEDED_CUTOFFS),
 );
 const LEVEL_POSITIONS = distinct(
-  SEEDED_CUTOFFS.flatMap((total) => {
-    const level = levelFor(total, SEEDED_CUTOFFS);
-    // La página lee el nivel del miembro y, si hay uno más arriba, el siguiente.
-    return level.next === null ? [level.index] : [level.index, level.index + 1];
-  }),
+  LEVEL_POLICIES.flatMap((cutoffs) =>
+    cutoffs.flatMap((total) => {
+      const level = levelFor(total, cutoffs);
+      // La página lee el nivel del miembro y, si hay uno más arriba, el siguiente.
+      return level.next === null ? [level.index] : [level.index, level.index + 1];
+    }),
+  ),
 );
 
 const GAME_STATES = writtenIn("src/app/app/juegos/page.tsx", /type Estado = ([\d |]+);/)
@@ -175,9 +181,9 @@ const LISTS: ListRow[] = [
   {
     code: "T-082",
     number: "el nivel de GH Points",
-    source: `los cortes de \`points.levels\` que siembra \`drizzle/${LEVELS_SEED}\`, por \`levelFor\`; lo guardado es configuración y esta prueba no lo ve`,
+    source: `los cortes históricos y separados que elige \`levelCutoffsForTerm\`, por \`levelFor\`; la escala separada se lee de \`drizzle/${LEVELS_SEED}\`, no de la configuración guardada`,
     seen: "text",
-    pieces: SEEDED_CUTOFFS.length,
+    pieces: Math.max(...LEVEL_POLICIES.map((cutoffs) => cutoffs.length)),
     positions: LEVEL_POSITIONS,
   },
   {
@@ -266,11 +272,11 @@ describe("cada lista del catálogo que se lee con un subíndice calculado", () =
     );
   });
 
-  it("los cortes de GH Points los siembra una sola migración: otra que los cambie pide mirar T-082", () => {
+  it("solo las migraciones revisadas cambian los cortes de GH Points: otra pide mirar T-082", () => {
     const writers = readdirSync(join(ROOT, "drizzle")).filter(
       (file) => file.endsWith(".sql") && sourceOf(`drizzle/${file}`).includes("points.levels"),
     );
-    expect(writers).toEqual([LEVELS_SEED]);
+    expect(writers).toEqual(["0005_participacion_y_gh_points.sql", LEVELS_SEED]);
   });
 });
 

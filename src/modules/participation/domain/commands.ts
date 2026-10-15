@@ -1,11 +1,17 @@
 import { type Actor, runCommand } from "@/db/tx";
 import { getMembershipRef, listActiveMemberRefs, listAllCommittees } from "@/modules/people";
 import { getConfig, requireConfig } from "@/modules/system";
-import { closeTermPoints, findTermContaining, getTerm } from "@/modules/terms";
+import {
+  closeTermPoints,
+  findTermContaining,
+  getTerm,
+  lockOpenTermForClosing,
+} from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { type AdjustRequirementInput, adjustRequirement } from "./assemblies";
+import { lockParticipationBatch } from "./batch-lock";
 import { AlreadyCheckedIn, BoosterDenied } from "./check-in-transition";
 import {
   type BatchDecision,
@@ -37,6 +43,7 @@ import {
   setRotatingCode,
   updateOccasion,
 } from "./occasions";
+import { captureTermPresenceRecognitions, reconcileTermPresenceBonuses } from "./presence-streak";
 import { countPendingGamification } from "./rewards";
 
 // Los comandos abren su transacción aquí (ADR-012). Membresía, nombres y config se resuelven antes;
@@ -96,6 +103,7 @@ export async function cancelOccasionAs(
     const cancelledCheckIns = await cancelOccasionCheckIns(ctx, before, reason.trim(), {
       settings,
     });
+    await reconcileTermPresenceBonuses(ctx, before.termId);
     return { cancelledCheckIns };
   });
 }
@@ -219,9 +227,14 @@ export async function closeTermPointsAs(
   actor: Actor & { personId: string },
   termId: string,
 ): Promise<{ id: string }> {
-  const [members, committees] = await Promise.all([listActiveMemberRefs(), listAllCommittees()]);
+  const [members, gamerMembers, committees] = await Promise.all([
+    listActiveMemberRefs(),
+    listActiveMemberRefs(true),
+    listAllCommittees(),
+  ]);
   return runCommand(actor, async (ctx) => {
-    await closeTermPoints(ctx, termId);
+    await lockParticipationBatch(ctx.tx);
+    await lockOpenTermForClosing(ctx.tx, termId);
     const openOccasions = await countOpenOccasions(termId, ctx.tx);
     if (openOccasions > 0) {
       throw new DomainError(t("T-646", { n: openOccasions }));
@@ -233,7 +246,17 @@ export async function closeTermPointsAs(
         t("T-2562", { n: pending.pendingParticipations, m: pending.reservedRewards }),
       );
     }
-    const standing = await buildStanding(termId, { exec: ctx.tx, members, committees });
+    const closedAt = new Date();
+    await reconcileTermPresenceBonuses(ctx, termId, closedAt);
+    const presenceRecognitions = await captureTermPresenceRecognitions(ctx, termId, closedAt);
+    await closeTermPoints(ctx, termId, closedAt);
+    const standing = await buildStanding(termId, {
+      exec: ctx.tx,
+      members,
+      gamerMembers,
+      presenceRecognitions,
+      committees,
+    });
     return writeTermStanding(ctx, termId, standing, { openOccasions });
   });
 }

@@ -3,6 +3,7 @@ import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
 import { type ActiveMemberRef, listActiveMemberRefs, listLiveCommitteeIds } from "@/modules/people";
 import { committeeParticipation, occasion, pointEntry } from "../schema";
+import { ghPointCondition } from "./ledger-classification";
 import { competitionRanks, type Ranked, termCommitteeScore } from "./ledger-pure";
 
 // Tableros (ADR-008, ADR-024, ADR-035 regla 10): nuevos y veteranos por `firstTermId`, solo activos,
@@ -28,7 +29,9 @@ async function totalsFor(
   const rows = await exec
     .select({ personId: pointEntry.personId, total: sql<number>`sum(${pointEntry.points})::int` })
     .from(pointEntry)
-    .where(and(eq(pointEntry.termId, termId), inArray(pointEntry.personId, personIds)))
+    .where(
+      and(eq(pointEntry.termId, termId), inArray(pointEntry.personId, personIds), ghPointCondition),
+    )
     .groupBy(pointEntry.personId);
   return new Map(rows.map((row) => [row.personId, row.total]));
 }

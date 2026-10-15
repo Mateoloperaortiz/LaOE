@@ -1,14 +1,17 @@
 import { expect } from "@playwright/test";
 import { and, eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
+import { runCommand } from "@/db/tx";
 import { adjustPointsAs } from "@/modules/participation";
 import { pointEntry } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
+import { closeTermPoints } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedTerm, seedTermStanding } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
-import { E2E_TERM } from "./calendar";
+import { E2E_CALENDAR, E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
 import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
 
@@ -65,4 +68,47 @@ test("el miembro ve su saldo, su nivel, sus movimientos y los rankings", async (
   await expect(page).toHaveURL(/tablero=comites/);
   await tableros.getByRole("link", { name: tList("T-083")[1], exact: true }).click();
   await expect(page.getByText(copyPattern("T-551"))).toBeVisible();
+});
+
+test("el semestre histórico conserva Pilar con 500 GH y distingue un cierre sin foto de constancia", async ({
+  page,
+}) => {
+  const historicalId = await seedTerm(E2E_CALENDAR.previous.code, E2E_CALENDAR.previous);
+  const [member] = await getDb()
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.email, E2E_MEMBER_EMAIL));
+  const [admin] = await getDb()
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.email, E2E_EMAIL));
+  if (!member || !admin) throw new Error("Faltan identidades sintéticas de la historia");
+  await adjustPointsAs(
+    { personId: admin.id, ip: null },
+    { personId: member.id, termId: historicalId, points: 500, reason: "Saldo histórico sintético" },
+  );
+  await page.goto(`/app/gh-points?semestre=${historicalId}`);
+  await expect(
+    page.getByText(t("T-535", { nivel: tList("T-082")[3] ?? "" }), { exact: false }),
+  ).toBeVisible();
+  await page.getByText(t("T-3435"), { exact: true }).click();
+  await expect(page.getByText(t("T-3436", { n: 1000 }), { exact: true })).toBeVisible();
+  await expect(page.getByText(t("T-3436", { n: 75 }), { exact: true })).toHaveCount(0);
+
+  // Formato de cierre previo a ADR-131: mantiene su saldo y no inventa reconocimiento presencial.
+  await runCommand({ personId: admin.id, ip: null }, (ctx) => closeTermPoints(ctx, historicalId));
+  await seedTermStanding({
+    termId: historicalId,
+    topNew: [],
+    topVeteran: [],
+    topCommittees: [],
+    stats: { activeMembers: 1, newMembers: 0, occasions: 0, checkIns: 0, pointsAwarded: 500 },
+  });
+  await page.reload();
+  await expect(page.getByRole("heading", { name: t("T-081", { n: 500 }) })).toBeVisible();
+  await expect(page.getByText(t("T-3469"), { exact: true })).toBeVisible();
+  await expect(page.getByText(t("T-3462"), { exact: true })).toHaveCount(0);
+  await expect(page.getByText(t("T-3447", { n: 0 }), { exact: true })).toHaveCount(0);
+  await sinViolaciones(page);
+  await closeDb();
 });

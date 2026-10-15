@@ -30,7 +30,9 @@ import {
   challengeQuestion,
   checkIn,
   occasion,
+  panalGame,
   reward,
+  termStanding,
   wordleGame,
 } from "@/modules/participation/schema";
 import {
@@ -41,6 +43,7 @@ import {
   committeeRoleAssignment,
   consent,
   membership,
+  membershipEvent,
   membershipTerm,
   person,
   segment,
@@ -57,7 +60,7 @@ import {
 } from "@/modules/permanence/schema";
 import { appConfig, legacyAlias } from "@/modules/system/schema";
 import { conventionalTermDates } from "@/modules/terms";
-import { term } from "@/modules/terms/schema";
+import { pointSeparationPolicy, term } from "@/modules/terms/schema";
 import { walletPass } from "@/modules/wallet/schema";
 import { todayKey } from "@/shared/lib/dates";
 import { TEST_POLICY_VERSION } from "./policy-version";
@@ -89,11 +92,17 @@ export async function seedTerm(
   if (existing) {
     return existing.id;
   }
+  const [policy] = await db()
+    .select()
+    .from(pointSeparationPolicy)
+    .where(eq(pointSeparationPolicy.id, "GH_GAMER"));
+  if (!policy) throw new Error("seed term: falta la frontera GH/gamer");
   const [row] = await db()
     .insert(term)
     .values({
       code,
       semester: code.endsWith("-2") ? 2 : 1,
+      gamePointsSeparated: code >= policy.firstTermCode,
       ...conventionalTermDates(code),
       ...dates,
     })
@@ -241,6 +250,21 @@ export async function seedMembership(
   const [id] = await seedMemberships([personId], termId, status, exit);
   if (!id) throw new Error("seed membership");
   return id;
+}
+
+/** Historia de un estado conocido en una fecha explícita, sin cambiar el estado final sembrado. */
+export async function seedMembershipEvent(
+  personId: string,
+  input: { from: MembershipStatus | null; to: MembershipStatus; at: Date },
+): Promise<void> {
+  const [current] = await db()
+    .select({ id: membership.id })
+    .from(membership)
+    .where(eq(membership.personId, personId));
+  if (!current) throw new Error("seed membership event: falta la membresía");
+  await db()
+    .insert(membershipEvent)
+    .values({ membershipId: current.id, fromStatus: input.from, toStatus: input.to, at: input.at });
 }
 
 /** Persona del roster con membresía activa en el término actual; devuelve su id. */
@@ -517,6 +541,7 @@ type OccasionOverrides = Partial<{
   rotatingSecret: string | null;
   committeeId: string | null;
   startsAt: Date;
+  openedAt: Date | null;
   checkInOpensAt: Date;
   checkInClosesAt: Date;
   publicId: string;
@@ -551,6 +576,12 @@ export async function seedOccasion(
       points: overrides.points ?? 10,
       approval: overrides.approval ?? "AUTO",
       status: overrides.status ?? "OPEN",
+      openedAt:
+        overrides.openedAt !== undefined
+          ? overrides.openedAt
+          : overrides.status === "DRAFT"
+            ? null
+            : new Date(now),
       requireRotatingCode: overrides.requireRotatingCode ?? false,
       rotatingSecret: overrides.rotatingSecret ?? null,
       committeeId: overrides.committeeId ?? null,
@@ -573,11 +604,17 @@ export async function seedCheckIn(
   occasionId: string,
   personId: string,
   status: NonNullable<CheckInRow["status"]> = "APPROVED",
-  overrides: Partial<{ source: NonNullable<CheckInRow["source"]>; at: Date; reason: string }> = {},
+  overrides: Partial<{
+    id: string;
+    source: NonNullable<CheckInRow["source"]>;
+    at: Date;
+    reason: string;
+  }> = {},
 ): Promise<string> {
   const [row] = await db()
     .insert(checkIn)
     .values({
+      ...(overrides.id ? { id: overrides.id } : {}),
       occasionId,
       personId,
       status,
@@ -587,6 +624,20 @@ export async function seedCheckIn(
     })
     .returning({ id: checkIn.id });
   if (!row) throw new Error("seed check-in");
+  return row.id;
+}
+
+/** Partida histórica de Panal para probar proyecciones, sin distribuir un tablero nuevo. */
+export async function seedPanalGame(input: typeof panalGame.$inferInsert): Promise<string> {
+  const [row] = await db().insert(panalGame).values(input).returning({ id: panalGame.id });
+  if (!row) throw new Error("seed panal game");
+  return row.id;
+}
+
+/** Foto de un cierre anterior: sus nombres y puestos ya están congelados. */
+export async function seedTermStanding(input: typeof termStanding.$inferInsert): Promise<string> {
+  const [row] = await db().insert(termStanding).values(input).returning({ id: termStanding.id });
+  if (!row) throw new Error("seed term standing");
   return row.id;
 }
 

@@ -7,6 +7,7 @@ import { termPointsClosed } from "@/domain-events/participation";
 import { type ActiveMemberRef, listActiveMemberRefs, listAllCommittees } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import type { PresenceRecognitionSnapshot } from "../presence-types";
 import {
   challenge,
   challengeParticipation,
@@ -15,6 +16,8 @@ import {
   pointEntry,
   termStanding,
 } from "../schema";
+import { rankGamerFromMembers } from "./gamer";
+import { ghPointCondition } from "./ledger-classification";
 import { rankCommittees, rankPeopleFromMembers } from "./rankings";
 import { countPendingGamification } from "./rewards";
 
@@ -34,6 +37,13 @@ const standingCommittee = z.object({
   score: z.number(),
   rawScore: z.number(),
   occasions: z.number().int(),
+});
+const standingGamer = z.object({
+  rank: z.number().int(),
+  personId: z.string(),
+  name: z.string(),
+  participations: z.number().int(),
+  activeDays: z.number().int(),
 });
 const standingStats = z
   .object({
@@ -57,6 +67,7 @@ export interface TermStandingView {
   topNew: StandingPerson[];
   topVeteran: StandingPerson[];
   topCommittees: StandingCommittee[];
+  topGamer: z.infer<typeof standingGamer>[];
   stats: StandingStats;
   createdAt: Date;
 }
@@ -69,18 +80,25 @@ export async function buildStanding(
   context?: {
     exec: Executor;
     members: readonly ActiveMemberRef[];
+    gamerMembers?: readonly ActiveMemberRef[];
+    presenceRecognitions?: PresenceRecognitionSnapshot[];
     committees: readonly { id: string; name: string; status: "ACTIVE" | "INACTIVE" | "ON_TRIAL" }[];
   },
 ): Promise<Omit<TermStandingView, "termId" | "createdAt">> {
   // La migración histórica también consume esta lectura fuera de un comando. El cierre siempre
   // pasa contexto completo para no abrir conexiones del pool dentro de su transacción.
   if (!context) {
-    const [members, committees] = await Promise.all([listActiveMemberRefs(), listAllCommittees()]);
-    context = { exec: getDb(), members, committees };
+    const [members, gamerMembers, committees] = await Promise.all([
+      listActiveMemberRefs(),
+      listActiveMemberRefs(true),
+      listAllCommittees(),
+    ]);
+    context = { exec: getDb(), members, gamerMembers, committees };
   }
   const { exec: db, members, committees } = context;
   const nuevos = await rankPeopleFromMembers(db, termId, "NEW", members);
   const veteranos = await rankPeopleFromMembers(db, termId, "VETERAN", members);
+  const gamers = await rankGamerFromMembers(db, termId, context.gamerMembers ?? members);
   // Los comités llegan leídos fuera de la transacción del cierre; de ahí salen los vivos (ADR-073).
   const comites = await rankCommittees(
     termId,
@@ -103,7 +121,7 @@ export async function buildStanding(
   const [points] = await db
     .select({ total: sql<number>`coalesce(sum(${pointEntry.points}), 0)::int` })
     .from(pointEntry)
-    .where(eq(pointEntry.termId, termId));
+    .where(and(eq(pointEntry.termId, termId), ghPointCondition));
   const termChallenges = db
     .select({ id: challenge.id })
     .from(challenge)
@@ -134,6 +152,13 @@ export async function buildStanding(
   return {
     topNew: top(nuevos),
     topVeteran: top(veteranos),
+    topGamer: gamers.slice(0, TOP_SIZE).map((item) => ({
+      rank: item.rank,
+      personId: item.personId,
+      name: item.anonymized ? t("T-223") : item.name,
+      participations: item.participations,
+      activeDays: item.activeDays,
+    })),
     topCommittees: comites.map((item) => ({
       rank: item.rank,
       committeeId: item.row.committeeId,
@@ -150,6 +175,13 @@ export async function buildStanding(
       pointsAwarded: points?.total ?? 0,
       challengesCompleted: challengesDone?.n ?? 0,
       boostPoints: boost?.total ?? 0,
+      gamerParticipants: gamers.length,
+      gamerParticipations: gamers.reduce((sum, item) => sum + item.participations, 0),
+      gamerPlayers: gamers.length,
+      gamerPositions: gamers.map((item) => ({ personId: item.personId, rank: item.rank })),
+      ...(context.presenceRecognitions
+        ? { presenceRecognitions: context.presenceRecognitions }
+        : {}),
     },
   };
 }
@@ -171,6 +203,7 @@ export async function writeTermStanding(
       topNew: standing.topNew,
       topVeteran: standing.topVeteran,
       topCommittees: standing.topCommittees,
+      topGamer: standing.topGamer,
       stats: standing.stats,
     })
     .returning({ id: termStanding.id });
@@ -201,6 +234,7 @@ export async function getTermStanding(termId: string): Promise<TermStandingView 
     topNew: z.array(standingPerson).catch([]).parse(row.topNew),
     topVeteran: z.array(standingPerson).catch([]).parse(row.topVeteran),
     topCommittees: z.array(standingCommittee).catch([]).parse(row.topCommittees),
+    topGamer: z.array(standingGamer).catch([]).parse(row.topGamer),
     stats: standingStats
       .catch({ activeMembers: 0, newMembers: 0, occasions: 0, checkIns: 0, pointsAwarded: 0 })
       .parse(row.stats),
@@ -226,10 +260,24 @@ export async function scrubStandingName(personId: string): Promise<number> {
     };
     const topNew = scrub(row.topNew);
     const topVeteran = scrub(row.topVeteran);
-    if (topNew.touched || topVeteran.touched) {
+    const topGamer = z.array(standingGamer).safeParse(row.topGamer);
+    const gamerTouched =
+      topGamer.success &&
+      topGamer.data.some((item) => item.personId === personId && item.name !== t("T-223"));
+    if (topNew.touched || topVeteran.touched || gamerTouched) {
       await getDb()
         .update(termStanding)
-        .set({ topNew: topNew.value, topVeteran: topVeteran.value })
+        .set({
+          topNew: topNew.value,
+          topVeteran: topVeteran.value,
+          ...(gamerTouched && topGamer.success
+            ? {
+                topGamer: topGamer.data.map((item) =>
+                  item.personId === personId ? { ...item, name: t("T-223") } : item,
+                ),
+              }
+            : {}),
+        })
         .where(eq(termStanding.id, row.id));
       changed += 1;
     }
@@ -262,11 +310,11 @@ export async function closingSummary(termId: string): Promise<{
   const [members] = await db
     .select({ n: sql<number>`count(distinct ${pointEntry.personId})::int` })
     .from(pointEntry)
-    .where(eq(pointEntry.termId, termId));
+    .where(and(eq(pointEntry.termId, termId), ghPointCondition));
   const [points] = await db
     .select({ total: sql<number>`coalesce(sum(${pointEntry.points}), 0)::int` })
     .from(pointEntry)
-    .where(eq(pointEntry.termId, termId));
+    .where(and(eq(pointEntry.termId, termId), ghPointCondition));
   const gamification = await countPendingGamification(termId, db);
   return {
     openOccasions: open?.n ?? 0,

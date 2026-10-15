@@ -4,6 +4,22 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## GH Points y Más gamer (ADR-131) · `en curso`
+
+- [x] Consolidar la decisión: GH Points principal, videojuegos por participaciones válidas, rachas separadas, historia del semestre y cortes 0/25/75/150/250.
+- [x] Separar proyecciones, cierre y reconstrucción histórica; liquidar bonos presenciales 0/2/3/5 desde el lanzamiento sin duplicados.
+- [x] Mostrar rachas, clasificación gamer, hitos 3/7/30 y progreso con copy centralizado, sin beneficios GH nuevos por jugar.
+- [x] Aviso gamer opcional a las 20:00 de Colombia, con preferencia propia y entregas idempotentes.
+- [x] Verificar migración, concurrencia, límites de Colombia, historia, licencias, cancelaciones y E2E; `npm run check` completo.
+- [ ] Revisar el SHA validado en los ejes Standards y Spec antes del PR.
+- [ ] Publicar el SHA validado, revisar el semestre reconstruido y activar junto con la gamificación; registrar la fecha real del primer bono pagable.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-15 | Correcciones de revisión local | Barrera global antes de los lotes/término exclusivo, incluidos dos semestres abiertos; foto de constancia presencial que no cambia por excusas posteriores al cierre, con fallback explícito para cierres antiguos sin foto; niveles históricos 0/100/250/500/1000 y runbook de activación coherente. Excusas tardías siguen admitidas sin reabrir pagos y escritores individuales mantienen paralelismo. Regresiones rojas reales de deadlock y bono inexistente; lecturas preventivas independientes sin objeciones residuales. `npm run check` completo aprobado: 2.531 unitarias, 1.966 integraciones, 11 Python y build; E2E afectados 25/25, incluido 500=Pilar histórico y texto de cierre sin reconocimiento. Pendiente revisión formal del nuevo SHA y publicación. |
+| 2026-10-15 | Implementación y verificación local | Proyecciones GH/gamer, historial por semestre con ancla inmutable, rachas separadas, bonos presenciales versionados, cierre doble, exportes, UI preparada/activa y aviso gamer opcional. Migraciones aditivas `0053`–`0056`; el primer lanzamiento se fija atómicamente al activar y no se mueve al apagar/reactivar. Excusas tras cierre conservadas; historia de comités por intervalos y licencia por fecha efectiva sin quitar GH base. `npm run check` completo aprobado: 2.520 unitarias, 1.956 de integración, 11 Python, lint, tipos, dependencias, código muerto y build; E2E del alcance 23/23 y QA de interfaz sin errores. Pendientes revisión fresca, PR y publicación; no se modificó producción ni se activó configuración real. |
+| 2026-10-14 | Decisión y alcance | [ADR-131](adr/ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) registra las decisiones de Mateo: GH Points incluye asistencias, retos, trivias y evidencia; Más gamer suma una participación por juego/día y desempata por días activos. Racha presencial semanal 0/2/3/5 con pausas, racha gamer con comodín e hitos 3/7/30, todo el semestre reclasificado y bonos solo desde lanzamiento. Niveles 0/25/75/150/250 según el análisis reproducible. Implementación en curso; no acredita cambios en producción. |
+
 ## Refactor progresivo (ADR-109) · `en curso`
 
 Ciclos cortos sobre el [ledger de deuda](20-deuda-tecnica.md). Cada ciclo sale de una spec y sus tickets en GitHub, va en una rama de integración con un commit por ticket y termina con `npm run check`, las E2E de lo tocado, revisión de código y un PR que Mateo mezcla y promueve.
