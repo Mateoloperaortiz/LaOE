@@ -7,12 +7,17 @@ import { requireConfigIn } from "@/modules/system";
 import { getTerm, lockOpenTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import type { PresenceRecognitionSnapshot, PresenceStreak } from "../presence-types";
+import {
+  PRESENCE_PAUSE_REASONS,
+  type PresenceRecognitionSnapshot,
+  type PresenceStreak,
+} from "../presence-types";
 import { checkIn, occasion, pointEntry, presenceBonus, termStanding } from "../schema";
 import { lockParticipationBatch } from "./batch-lock";
 import { getGamificationLaunch } from "./gamification-launch";
 import { weekKeyFor } from "./gamification-pure";
 import { creditPresenceBonus, reversePresenceBonus } from "./ledger";
+import { presenceNoticeEffectiveAt } from "./presence-notice-policy";
 import { presenceStreakFromFacts } from "./presence-streak-pure";
 
 const presenceRecognition = z.object({
@@ -24,12 +29,14 @@ const presenceRecognition = z.object({
   weekKey: z.string(),
   bonus: z.number().int().nonnegative(),
   nextBonus: z.number().int().nonnegative(),
+  weekPauseReasons: z.array(z.enum(PRESENCE_PAUSE_REASONS)).default([]),
   weeks: z.array(
     z.object({
       weekKey: z.string(),
       status: z.enum(["COMPLETED", "PENDING", "PAUSED", "MISSED"]),
       streak: z.number().int().nonnegative(),
       bonus: z.number().int().nonnegative(),
+      pauseReasons: z.array(z.enum(PRESENCE_PAUSE_REASONS)).default([]),
     }),
   ),
 });
@@ -82,6 +89,7 @@ async function readPresenceStreak(
     member,
     occasions,
     launchedAt: term.gamePointsSeparated ? launchedAt : null,
+    notice24hEffectiveAt: await presenceNoticeEffectiveAt(exec),
     now: term.pointsClosedAt && term.pointsClosedAt < now ? term.pointsClosedAt : now,
   });
 }

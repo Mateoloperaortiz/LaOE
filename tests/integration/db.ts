@@ -20,6 +20,7 @@ const CATALOGS = [
   "committee_role",
   "macroevent_role",
   "point_separation_policy",
+  "presence_notice_policy",
 ];
 
 // Dónde queda la foto de los catálogos: un esquema de la base de pruebas que no es `public`, así el

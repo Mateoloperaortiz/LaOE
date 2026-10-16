@@ -25,6 +25,12 @@ import type { WordleLetterState } from "./wordle-types";
 // (ocasión + check-in), ledger append-only por término, score de comité por ocasión, standing al
 // cerrar los puntos y ajustes al requisito de asambleas.
 
+export const presenceNoticePolicy = pgTable(
+  "presence_notice_policy",
+  { id: text().primaryKey(), effectiveAt: timestampTz() },
+  (t) => [check("presence_notice_policy_singleton", sql`${t.id} = 'NOTICE_24H'`)],
+);
+
 export const occasionKind = pgEnum("occasion_kind", ["ACTIVITY", "ASSEMBLY", "EDITION_SESSION"]);
 export const assemblyKind = pgEnum("assembly_kind", ["ORDINARY", "BOARD_ELECTION", "RUNOFF"]);
 export const occasionCategory = pgEnum("occasion_category", [
