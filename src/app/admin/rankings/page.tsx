@@ -23,7 +23,6 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
   const term = terms.find((item) => item.id === single(search.termId)) ?? current ?? terms[0];
   const [tabNuevos, tabVeteranos, tabComites] = tList("T-083");
   const columns = tList("T-636");
-  const committeeColumns = tList("T-543");
   if (!term) {
     return (
       <div className="flex flex-col gap-6">
@@ -42,6 +41,17 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
   const committees = await listCommitteesByIds(comites.map((item) => item.row.committeeId));
   const committeeName = new Map(committees.map((item) => [item.id, item.name]));
   const termCode = new Map(terms.map((item) => [item.id, item.code]));
+  const combinedCommittees = comites[0]?.row.rankingMetric === "COMBINED";
+  const committeeColumns = tList(combinedCommittees ? "T-3573" : "T-543");
+  const decimal = new Intl.NumberFormat("es-CO", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const percentage = new Intl.NumberFormat("es-CO", {
+    style: "percent",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   const boards: Array<[string, typeof nuevos]> = [
     [tabNuevos ?? "", nuevos],
@@ -117,7 +127,11 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
 
       <section aria-label={tabComites ?? ""} className="flex flex-col gap-3">
         <h2 className="text-display-md">{tabComites}</h2>
-        <p className="max-w-prose text-sm text-tinta-suave">{t("T-084")}</p>
+        {comites.length > 0 && (
+          <p className="max-w-prose text-sm text-tinta-suave">
+            {t(combinedCommittees ? "T-3566" : "T-3572")}
+          </p>
+        )}
         {comites.length === 0 ? (
           <p className="text-tinta-suave">{t("T-542")}</p>
         ) : (
@@ -142,12 +156,32 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
                       <Numeral valor={item.rank} className="text-display-md text-titulo" />
                     </td>
                     <td className="py-2 pr-4 font-semibold">
-                      {committeeName.get(item.row.committeeId) ?? ""}
+                      {item.row.name ?? committeeName.get(item.row.committeeId) ?? ""}
                     </td>
-                    <td className="py-2 pr-4 tabular-nums">{Math.round(item.row.score * 100)} %</td>
                     <td className="py-2 pr-4 tabular-nums">
-                      {Math.round(item.row.rawScore * 100)} %
+                      {item.row.rankingMetric === "COMBINED"
+                        ? decimal.format(item.total / 100)
+                        : percentage.format(item.total / 10_000)}
                     </td>
+                    {combinedCommittees ? (
+                      <>
+                        <td className="py-2 pr-4 tabular-nums">
+                          {item.row.ghAverage === null
+                            ? t("T-3574")
+                            : decimal.format(item.row.ghAverage)}
+                        </td>
+                        <td className="py-2 pr-4 tabular-nums">
+                          {item.row.activeMembers ?? t("T-3574")}
+                        </td>
+                        <td className="py-2 pr-4 tabular-nums">
+                          {percentage.format(item.row.attendanceScore)}
+                        </td>
+                      </>
+                    ) : (
+                      <td className="py-2 pr-4 tabular-nums">
+                        {percentage.format(item.row.rawScore)}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

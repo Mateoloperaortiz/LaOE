@@ -1,6 +1,6 @@
 # ADR-009: Score de comité por participación relativa
 
-- Estado: Aceptada (enmendada por ADR-024, ADR-035 y ADR-070)
+- Estado: Aceptada (enmendada por ADR-024, ADR-035 y ADR-070 y ADR-136)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-005, ADR-006, ADR-012, ADR-024
 
@@ -29,3 +29,7 @@ El handler abre su propia transacción (los handlers del outbox no corren dentro
 ## Enmienda (2026-09-15, ADR-070)
 
 En Mi OE, el ranking presenta los tres primeros puestos como podio y conserva dos decimales del porcentaje ajustado. La tasa sin ajustar queda disponible en el detalle de cada comité. La fórmula permanece igual. Ver [ADR-070](ADR-070-podio-de-comites-en-gh-points.md).
+
+## Enmienda (2026-10-16, ADR-136)
+
+La tasa ajustada por ocasión y su promedio se conservan como dimensión de participación. El ranking nuevo del término combina 50 % de esa dimensión y 50 % del promedio GH neto por integrante activo actual, ambas normalizadas respecto al mejor comité comparable. El cierre conserva criterio y componentes; las fotos antiguas mantienen su métrica original. Ver [ADR-136](ADR-136-comites-promedio-gh-y-participacion.md).

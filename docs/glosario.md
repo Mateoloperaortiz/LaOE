@@ -59,7 +59,8 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Pausa de racha | `PAUSED` | Período sin oportunidad exigible que conserva la secuencia, sin sumar constancia ni entregar premio |
 | Ledger | `PointEntry[]` | Historial inmutable de créditos y reversiones; el saldo GH suma las entradas de su competencia y conserva aparte la historia de videojuegos |
 | Reversión | `PointEntry.kind=REVERSAL` | Entrada que anula otra; nunca se edita la original |
-| Score de comité | `CommitteeParticipation` | Participación relativa de un comité en una ocasión y su promedio por término |
+| Participación ajustada de comité | `CommitteeParticipation` | Participación relativa por ocasión corregida hacia la media; su promedio del término es la dimensión de asistencia del ranking combinado y el criterio de los rankings históricos |
+| Puntaje de comité | `CommitteeScore` | Índice semestral que combina por mitades promedio GH neto por integrante activo actual y participación ajustada, normalizados respecto al mejor comité; conserva puestos compartidos |
 | Tablero | ranking | Clasificación del término: nuevos, veteranos y comités; el miembro ve el top 10 y su propio puesto |
 | Nivel | `points.levels` | Tramo del saldo de GH Points del semestre: Recién llegado, Parchado, De planta, Pilar y Leyenda OE. Los mínimos son 0/25/75/150/250 en la clasificación separada y 0/100/250/500/1000 en el saldo mixto histórico |
 | Standing del término | `TermStanding` | Resultado conservado de las clasificaciones GH y gamer al cerrar los puntos del semestre, con la identidad visible que corresponda |

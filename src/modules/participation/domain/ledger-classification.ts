@@ -17,20 +17,28 @@ export function legacyGamerKind(column: SQLWrapper): SQL<GamerGame | null> {
  * historial; una reversión pertenece a la misma competencia que su entrada original. No se
  * adivina el origen de un ajuste por su motivo.
  */
-export const ghPointCondition = sql`(
-  not exists (
-    select 1 from point_entry color_origin
-    where color_origin.id = coalesce(point_entry.reversal_of_id, point_entry.id)
-      and color_origin.kind::text = 'COLOR'
-  )
-  and (
-  exists (select 1 from term historical_term
-    where historical_term.id = point_entry.term_id and not historical_term.game_points_separated)
-  or not exists (
+const nonColorOrigin = sql`not exists (
+  select 1 from point_entry color_origin
+  where color_origin.id = coalesce(point_entry.reversal_of_id, point_entry.id)
+    and color_origin.kind::text = 'COLOR'
+)`;
+
+const nonOriginalGamerOrigin = sql`not exists (
   select 1 from point_entry origin
   where origin.id = coalesce(point_entry.reversal_of_id, point_entry.id)
     and (
       origin.kind::text in ('WORDLE', 'GAME2048', 'SUDOKU', 'PANAL')
       or (origin.kind::text = 'LEGACY' and ${legacyGamerKind(sql`origin.legacy_type`)} is not null)
     )
-)))`;
+)`;
+
+/** El nuevo combinado siempre separa juegos, sin reescribir la política personal histórica. */
+export const strictGhPointCondition = sql`(${nonColorOrigin} and ${nonOriginalGamerOrigin})`;
+
+export const ghPointCondition = sql`(
+  ${nonColorOrigin}
+  and (
+  exists (select 1 from term historical_term
+    where historical_term.id = point_entry.term_id and not historical_term.game_points_separated)
+  or ${nonOriginalGamerOrigin}
+))`;

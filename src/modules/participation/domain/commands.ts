@@ -220,21 +220,21 @@ export function adjustRequirementAs(
 }
 
 /**
- * Precarga solo nombres y membresías. Dentro, el bloqueo exclusivo espera a los escritores y
- * conserva juntos el sello de cierre, los totales definitivos, el standing y su evento.
+ * Precarga las referencias de los tableros personales. El cierre lee los comités vigentes después
+ * de esperar la barrera y conserva juntos el sello, los componentes, el standing y su evento.
  */
 export async function closeTermPointsAs(
   actor: Actor & { personId: string },
   termId: string,
 ): Promise<{ id: string }> {
-  const [members, gamerMembers, committees] = await Promise.all([
+  const [members, gamerMembers] = await Promise.all([
     listActiveMemberRefs(),
     listActiveMemberRefs(true),
-    listAllCommittees(),
   ]);
   return runCommand(actor, async (ctx) => {
     await lockParticipationBatch(ctx.tx);
     await lockOpenTermForClosing(ctx.tx, termId);
+    const committees = await listAllCommittees(ctx.tx);
     const openOccasions = await countOpenOccasions(termId, ctx.tx);
     if (openOccasions > 0) {
       throw new DomainError(t("T-646", { n: openOccasions }));
@@ -255,6 +255,7 @@ export async function closeTermPointsAs(
       members,
       gamerMembers,
       presenceRecognitions,
+      evaluatedAt: closedAt,
       committees,
     });
     return writeTermStanding(ctx, termId, standing, { openOccasions });

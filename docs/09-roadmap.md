@@ -4,6 +4,20 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Comités por promedio GH y participación (ADR-136) · `en curso`
+
+- [x] Registrar promedio por integrante activo actual, combinación 50/50 normalizada y reglas de población/correcciones/historia ([ADR-136](adr/ADR-136-comites-promedio-gh-y-participacion.md)).
+- [x] Proyectar GH neto del comité sin fuentes gamer, incluidas reversiones por origen, ceros, negativos, transferencias y multicomité; sin cambiar saldos personales.
+- [x] Combinar las dos dimensiones con pesos fijos y máximos comparables, conservar vacíos/empates y congelar criterio/componentes/población al cierre.
+- [x] Mostrar el índice y su desglose con promedio GH/activos, participación original y componentes; preservar fotos anteriores sin GH cero inventado.
+- [x] Verificar invariantes, historia y cierres por interfaces públicas, E2E/QA, check global y revisión del candidato.
+- [ ] Publicar sólo por el flujo autorizado, con versión/esquema/salud verificados y lector compatible con las nuevas fotos.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-16 | Decisión y contrato | El usuario eligió combinar promedio GH por integrante activo y participación ajustada, ambas normalizadas respecto al mejor comité con pesos fijos 50/50. Población ACTIVE actual con ceros; saldo completo acompaña transferencias y cuenta entero en cada comité vivo. Videojuegos fuera, netos/correcciones conservados y negativos visibles con piso sólo en normalización. Fotos versionadas preservan el criterio anterior. Documentación aceptada; implementación, pruebas, QA y publicación aún no acreditadas. |
+| 2026-10-16 | Entrega local verificada | Proyección combinada y detalle implementados sin migración ni créditos nuevos. Cierre con catálogo releído tras la barrera, componentes/población congelados y nombre histórico preservado; fotos ATTENDANCE sin GH inventado. `npm run check` PASS: 2.549 unitarias, 2.002 integraciones, 11 del extractor y build. Tres escenarios E2E y dos preparaciones de sesión aprobados, con selector, foco, axe, empates/historia y GH que cambia el puesto con asistencia igual. QA de diez capturas a 1280/360 en claro/oscuro; detector `[]`, revisión visual independiente `ship` y documentación de diseño completada. Standards sin incumplimientos; Spec confirma resuelto el hallazgo de cierre. La primera corrida detectó una consulta redundante; se corrigió con lectura bulk y el presupuesto original de siete consultas sigue aprobado. Sin publicación ni despliegue. |
+
 ## Podio y nombre visible + gamer (ADR-135) · `en curso`
 
 - [x] Registrar el nombre visible + gamer y la política de podio por rangos reales y empates dentro del top 10 ([ADR-135](adr/ADR-135-podio-y-nombre-gamer.md)).

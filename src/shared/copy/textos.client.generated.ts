@@ -437,6 +437,30 @@ export const textosCliente = {
   "T-3547":
     "Retomaste una ronda que ya pasó por la observación. El original sigue oculto; recreá el color que recordás.",
   "T-3548": "Esta partida fue de práctica. El premio de hoy se conserva.",
+  "T-3555": "Puntaje combinado · Sobre 100",
+  "T-3556": "Ver detalle de {comité}, puesto {puesto}, puntaje combinado {puntaje} sobre 100",
+  "T-3557": "Puntaje combinado",
+  "T-3558": "50% GH Points · 50% participación ajustada",
+  "T-3559": "Promedio GH por integrante activo",
+  "T-3560": "Integrantes activos",
+  "T-3561": "Total GH de integrantes activos",
+  "T-3562": "Participación ajustada",
+  "T-3563": "Resultado normalizado · Sobre 100",
+  "T-3564": "Aporte al combinado · Sobre 50",
+  "T-3565": "{n} / 100",
+  "T-3566":
+    "El puesto combina por mitades el promedio de GH Points por integrante activo y la participación ajustada. Cada dimensión se lleva a una escala de 0 a 100 respecto al mejor comité; después se suma la mitad de cada resultado.",
+  "T-3567":
+    "El promedio GH divide el saldo total de los integrantes activos entre todos los activos del comité, incluidos quienes tienen saldo cero. Los puntos de Juegos quedan por fuera. Un promedio negativo se muestra tal cual, pero su aporte al ranking tiene piso cero. Si ninguna cifra de una dimensión es positiva, esa dimensión aporta cero para todos.",
+  "T-3568": "GH Points · 50%",
+  "T-3569": "Participación · 50%",
+  "T-3570":
+    "El saldo GH acompaña al integrante en sus comités actuales del semestre. Si pertenece a varios, cuenta completo en cada uno.",
+  "T-3571":
+    "Compiten los comités con integrantes activos. La participación usa actividades cerradas con GH Points, ajustadas por tamaño; todas pesan igual. El mismo puntaje combinado comparte puesto.",
+  "T-3572":
+    "Este cierre conserva su ranking por participación ajustada. No se recalcula con el criterio combinado ni incluye un promedio GH histórico.",
+  "T-3574": "Dato no disponible",
   "T-375": "Tus comités",
   "T-376": "Todavía no tenés comité este semestre. GH te ubica en uno.",
   "T-382": "Los demás comités",

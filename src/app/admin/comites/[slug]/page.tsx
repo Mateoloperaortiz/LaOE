@@ -282,6 +282,15 @@ async function Actividades({
     canSeeEvents ? listEditionsByCommittee(committeeId) : Promise.resolve([]),
   ]);
   const mine = ranking.find((item) => item.row.committeeId === committeeId);
+  const decimal = new Intl.NumberFormat("es-CO", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const percentage = new Intl.NumberFormat("es-CO", {
+    style: "percent",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   return (
     <div className="flex flex-col gap-8">
@@ -301,10 +310,29 @@ async function Actividades({
 
       <section aria-label={participacion} className="flex flex-col gap-3">
         <h2 className="text-display-md">{participacion}</h2>
-        {mine ? (
+        {mine?.row.rankingMetric === "COMBINED" ? (
+          <>
+            <p className="font-semibold">
+              {t("T-3557")}: {t("T-3565", { n: decimal.format(mine.total / 100) })}
+            </p>
+            <p className="text-sm text-tinta-suave">{t("T-3558")}</p>
+            <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-2 text-sm">
+              <dt>{t("T-3559")}</dt>
+              <dd className="text-right tabular-nums">
+                {mine.row.ghAverage === null ? t("T-3574") : decimal.format(mine.row.ghAverage)}
+              </dd>
+              <dt>{t("T-3560")}</dt>
+              <dd className="text-right tabular-nums">{mine.row.activeMembers ?? t("T-3574")}</dd>
+              <dt>{t("T-3562")}</dt>
+              <dd className="text-right tabular-nums">
+                {percentage.format(mine.row.attendanceScore)}
+              </dd>
+            </dl>
+          </>
+        ) : mine ? (
           <p className="font-semibold">
-            {Math.round(mine.row.score * 100)} % · {tList("T-543")[2]}:{" "}
-            {Math.round(mine.row.rawScore * 100)} %
+            {percentage.format(mine.row.score)} · {tList("T-543")[2]}:{" "}
+            {percentage.format(mine.row.rawScore)}
           </p>
         ) : null}
         {scores.length === 0 ? (
