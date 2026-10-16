@@ -177,7 +177,7 @@ test("la biblioteca muestra los juegos y se llega desde GH Points", async ({ pag
   await expect(page.getByRole("link", { name: copyPattern("T-2626") })).toBeVisible();
   await expect(page.getByRole("link", { name: copyPattern("T-2628") })).toBeVisible();
   // Biblioteca completa; cada juego nuevo tiene su flujo en su propio spec.
-  await expect(page.getByText(tList("T-2623")[0])).toHaveCount(4);
+  await expect(page.getByText(tList("T-2623")[0])).toHaveCount(5);
   await sinViolaciones(page);
 
   await page.getByRole("link", { name: copyPattern("T-2628") }).click();
