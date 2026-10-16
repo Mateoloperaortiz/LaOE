@@ -189,7 +189,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-082 | Niveles (0, 100, 250, 500, 1000 puntos) | Recién llegado · Parchado · De planta · Pilar · Leyenda OE | GH | Propuesta; GH puede renombrar o cambiar los cortes |
 | T-083 | Rankings, pestañas | Nuevos · Veteranos · Comités | GH | Propuesta |
 | T-084 | Ranking de comités, nota de la tasa suavizada | El porcentaje de cada comité es su participación relativa, ajustada para que los comités chicos no dependan de un solo evento. | GH | Propuesta |
-| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico · Wordle · Reto · Impulso · 2048 · Sudoku · Panal · Constancia presencial | MATEO | Propuesta |
+| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico · Wordle · Reto · Impulso · 2048 · Sudoku · Panal · Constancia presencial · Color | MATEO | Propuesta |
 | T-086 | Sin movimientos | Todavía no tenés puntos. Tu primera asistencia los estrena. | COM | Propuesta |
 
 ### Registro de asistencia (QR)
@@ -2273,7 +2273,7 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | Código | Dónde | Texto | Fuente | Estado |
 | --- | --- | --- | --- | --- |
 | T-2621 | Juegos: título de la sección | Juegos | MATEO | Propuesta |
-| T-2622 | Juegos: introducción | Jugá a tu ritmo, sumá puntos gamer por tus resultados y competí por ser la persona más gamer del semestre. | MATEO | Propuesta |
+| T-2622 | Juegos: introducción | Jugá a tu ritmo, sumá puntos gamer por tus resultados y competí en + gamer este semestre. | MATEO | Propuesta |
 | T-2623 | Juegos: estado de la tarjeta | Disponible hoy · Ya sumaste hoy · No disponible ahora | MATEO | Propuesta |
 | T-2624 | Juegos: botón de la tarjeta | Jugar | MATEO | Propuesta |
 | T-2625 | GH Points: enlace a la biblioteca | Ver todos los juegos | MATEO | Propuesta |
@@ -2914,22 +2914,22 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 
 | Código | Uso | Texto | Responsable | Estado |
 |---|---|---|---|---|
-| T-3400 | Juegos: temporada | Más gamer | MATEO | Aprobado |
+| T-3400 | Juegos: temporada | + gamer | MATEO | Aprobado |
 | T-3401 | Juegos: semestre | Temporada {semestre} | MATEO | Aprobado |
-| T-3402 | Juegos: reglas clasificación | Tus resultados suman puntos gamer durante el semestre, en una clasificación separada de GH Points. Wordle, 2048 y Sudoku acreditan una partida válida al día; Panal suma por sus metas diarias. Las participaciones y los días activos se cuentan aparte. | MATEO | Aprobado |
+| T-3402 | Juegos: reglas clasificación | Tus resultados suman puntos gamer durante el semestre, en una clasificación separada de GH Points. Wordle, 2048 y Sudoku acreditan una partida válida al día; Color, la primera partida completa válida; Panal suma por sus metas diarias. Las participaciones y los días activos se cuentan aparte. | MATEO | Aprobado |
 | T-3403 | Gamer: total | Participaciones | MATEO | Aprobado |
 | T-3404 | Gamer: días de juego | Días activos | MATEO | Aprobado |
 | T-3405 | Gamer: posición | Tu puesto | MATEO | Aprobado |
 | T-3406 | Gamer: sin posición | Sin puesto aún | MATEO | Aprobado |
 | T-3407 | Gamer: puesto propio | Puesto {n} | MATEO | Aprobado |
 | T-3408 | Gamer: hoy | Juegos sumados hoy | MATEO | Aprobado |
-| T-3409 | Gamer: máximo diario | {n} de 4 | MATEO | Aprobado |
+| T-3409 | Gamer: máximo diario | {n} de 5 | MATEO | Aprobado |
 | T-3410 | Gamer: racha | Tu racha gamer | MATEO | Aprobado |
 | T-3411 | Rachas: actual | Racha actual | MATEO | Aprobado |
 | T-3412 | Rachas: récord | Récord del semestre | MATEO | Aprobado |
 | T-3413 | Gamer: días | {n} días jugados | MATEO | Aprobado |
 | T-3414 | Gamer: cumplido | Ya mantuviste tu racha de hoy. Los demás juegos todavía pueden sumar a tu clasificación. | MATEO | Aprobado |
-| T-3415 | Gamer: pendiente | Sumá una participación en cualquiera de los cuatro juegos para mantener tu racha hoy. Tenés hasta la medianoche de Colombia. | MATEO | Aprobado |
+| T-3415 | Gamer: pendiente | Sumá una participación en cualquiera de los juegos para mantener tu racha hoy. Tenés hasta la medianoche de Colombia. | MATEO | Aprobado |
 | T-3417 | Gamer: cerrada | Esta temporada terminó. La clasificación y los resultados quedan como historia; el próximo semestre empieza de cero. | MATEO | Aprobado |
 | T-3418 | Gamer: comodín disponible | Tenés un comodín esta semana: cubre automáticamente un día sin jugar. Conserva la racha, sin sumar un día, una participación ni puntos gamer. | MATEO | Aprobado |
 | T-3419 | Gamer: comodín usado | Ya usaste el comodín de esta semana. El lunes vuelve a estar disponible. | MATEO | Aprobado |
@@ -2938,9 +2938,9 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3422 | Gamer: hito pendiente | {n} días · Por conseguir | MATEO | Aprobado |
 | T-3423 | Gamer: progreso | Próxima insignia: {n} días. Te faltan {faltan} días de juego en tu racha actual. | MATEO | Aprobado |
 | T-3424 | Gamer: colección completa | ¡Conseguiste las tres insignias de esta temporada! | MATEO | Aprobado |
-| T-3425 | Gamer: clasificación título | Clasificación gamer | MATEO | Aprobado |
+| T-3425 | Gamer: clasificación título | Clasificación + gamer | MATEO | Aprobado |
 | T-3426 | Gamer: privacidad desempate | Se muestran los primeros diez puestos y tu puesto propio arriba. Gana quien suma más puntos gamer; a igualdad, quien tiene más participaciones y después más días activos. Si siguen iguales, comparten puesto. | MATEO | Aprobado |
-| T-3427 | Gamer: vacío | La clasificación está por estrenar. Sumá tus primeros puntos gamer con cualquiera de los cuatro juegos. | MATEO | Aprobado |
+| T-3427 | Gamer: vacío | La clasificación está por estrenar. Sumá tus primeros puntos gamer con cualquiera de los juegos. | MATEO | Aprobado |
 | T-3428 | Gamer: persona | Persona | MATEO | Aprobado |
 | T-3429 | GH: separación | Tus GH Points reconocen asistencias, retos, trivias y misiones. Los juegos tienen su propia clasificación dentro de Juegos. | MATEO | Aprobado |
 | T-3430 | Gamer: Wordle regla | Los puntos gamer dependen del intento en que acertés. Ganar cumple tu participación del día, sin importar cuántos intentos necesités. No se convierten en GH Points. | MATEO | Aprobado |
@@ -2977,8 +2977,8 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3464 | Admin: sin lanzamiento | Rachas y bonos: preparados, todavía sin lanzar. | MATEO | Aprobado |
 | T-3465 | Admin: fecha del lanzamiento | Rachas y bonos lanzados el {fecha}. | MATEO | Aprobado |
 | T-3466 | Gamer: día cumplido antes del lanzamiento | Hoy ya sumaste una participación. Los demás juegos todavía pueden aportar a tu clasificación. | MATEO | Aprobado |
-| T-3467 | Gamer: día pendiente antes del lanzamiento | Podés sumar hasta cuatro participaciones hoy, una por cada juego que alcance su mínimo. | MATEO | Aprobado |
-| T-3468 | Gamer: cuatro participaciones del día | Ya cumpliste tu participación en los cuatro juegos de hoy. Las metas pendientes del Panal todavía pueden sumar puntos gamer. | MATEO | Aprobado |
+| T-3467 | Gamer: día pendiente antes del lanzamiento | Podés sumar hasta cinco participaciones hoy, una por cada juego que alcance su mínimo. | MATEO | Aprobado |
+| T-3468 | Gamer: cinco participaciones del día | Ya cumpliste tu participación en los cinco juegos de hoy. Las metas pendientes del Panal todavía pueden sumar puntos gamer. | MATEO | Aprobado |
 | T-3469 | GH: cierre sin foto de constancia | La constancia presencial no quedó registrada en este cierre histórico. Tus GH Points y las clasificaciones se conservan. | MATEO | Aprobado |
 | T-3477 | Gamer: puntos de la clasificación | Puntos gamer | MATEO | Aprobado |
 | T-3478 | Gamer: importe singular | {n} punto gamer | MATEO | Aprobado |
@@ -2989,3 +2989,94 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3483 | Gamer: cierre anterior sin clasificación | Este cierre histórico no guardó una clasificación gamer. No hay puntos gamer ni un puesto de esta competencia disponibles. | MATEO | Aprobado |
 | T-3484 | Gamer: clasificación histórica vacía | No quedaron participaciones gamer registradas en este cierre. | MATEO | Aprobado |
 | T-3485 | Panal: todos los puntos del día | Ya sumaste todos los puntos gamer del Panal de hoy. Podés seguir por tu puntaje de palabras. | MATEO | Aprobado |
+| T-3486 | Juegos: introducción del catálogo | Un rato para las palabras, la lógica y el ojo. | MATEO | Aprobado |
+| T-3487 | Color: nombre original | Color | MATEO | Aprobado |
+| T-3488 | Color: invitación destacada | ¿De qué color era? | MATEO | Aprobado |
+| T-3489 | Color: resumen destacado | Miralo un momento. Después, mezclalo de memoria. | MATEO | Aprobado |
+| T-3490 | Color: acceso | Jugar Color | MATEO | Aprobado |
+| T-3491 | Color: formato | Tres rondas · hasta 6 puntos gamer al día | MATEO | Aprobado |
+| T-3492 | Juegos: catálogo de los otros juegos | Seguí jugando | MATEO | Aprobado |
+| T-3493 | Color: introducción | Memorizá un color. Después, mezclalo de memoria. | MATEO | Aprobado |
+| T-3494 | Color: ronda breve | {n} de {total} | MATEO | Aprobado |
+| T-3495 | Color: pasos | Mirar · Mezclar · Comparar | MATEO | Aprobado |
+| T-3496 | Color: antes de observar | Confiá en tu ojo. | MATEO | Aprobado |
+| T-3497 | Color: explicación antes de observar | Vas a ver un color durante tres segundos. Después desaparece y lo recreás con los controles, sin afán. | MATEO | Aprobado |
+| T-3498 | Color: empezar observación | Ver el color | MATEO | Aprobado |
+| T-3499 | Color: muestra accesible | Color para recordar | MATEO | Aprobado |
+| T-3500 | Color: observar | Quedate con la sensación. | MATEO | Aprobado |
+| T-3501 | Color: ayuda al observar | ¿Se siente más cálido o más frío? ¿Más suave o más intenso? | MATEO | Aprobado |
+| T-3502 | Color: estado de observación | Observá el color. Después vas a mezclarlo. | MATEO | Aprobado |
+| T-3503 | Color: muestra propia | Tu mezcla | MATEO | Aprobado |
+| T-3504 | Color: original oculto | El original está oculto | MATEO | Aprobado |
+| T-3505 | Color: ajustar | Traelo de vuelta. | MATEO | Aprobado |
+| T-3506 | Color: controles HSL | Tono · Intensidad · Luz | MATEO | Aprobado |
+| T-3507 | Color: ayuda al ajustar | Mové los tres controles hasta encontrar el color que recordás. | MATEO | Aprobado |
+| T-3508 | Color: enviar mezcla | Comparar color | MATEO | Aprobado |
+| T-3509 | Color: muestra original en resultado | Original | MATEO | Aprobado |
+| T-3510 | Color: comparación | Los dos, a la vista | MATEO | Aprobado |
+| T-3511 | Color: precisión | {n}% de parecido | MATEO | Aprobado |
+| T-3512 | Color: resultado individual | Resultado de la ronda | MATEO | Aprobado |
+| T-3513 | Color: avanzar | Siguiente color | MATEO | Aprobado |
+| T-3514 | Color: resultado completo | Tu resultado final | MATEO | Aprobado |
+| T-3515 | Color: media de la partida | Promedio de las tres rondas | MATEO | Aprobado |
+| T-3516 | Color: cierre de partida | Terminaste los tres colores. Cada ronda aporta por igual a tu promedio final. | MATEO | Aprobado |
+| T-3517 | Color: volver a jugar | Jugar otra partida | MATEO | Aprobado |
+| T-3518 | Color: regreso a pestaña | El tiempo para mirar no se reinicia al cambiar de pestaña. Mezclá el color que recordás. | MATEO | Aprobado |
+| T-3519 | Color: respuesta no confirmada | No pudimos confirmar tu jugada. Reintentá el mismo envío; si ya se guardó, no contará dos veces. | MATEO | Aprobado |
+| T-3520 | Color: envío pendiente | Guardando tu mezcla… | MATEO | Aprobado |
+| T-3521 | Color: inicio pendiente | Preparando el color… | MATEO | Aprobado |
+| T-3522 | Color: primera partida con premio | Tu primera partida completa válida del día suma entre 1 y 6 puntos gamer según el promedio. Las siguientes son de práctica y no aumentan ese premio. | MATEO | Aprobado |
+| T-3523 | Color: premio recibido | Sumaste {premio} con esta partida. | MATEO | Aprobado |
+| T-3524 | Color: premio diario ya usado | Hoy ya sumaste puntos gamer con Color. Podés seguir practicando; las siguientes partidas no aumentan ese premio. | MATEO | Aprobado |
+| T-3525 | Color: partida vencida | Terminó el día de esta partida. No sumó puntos gamer; empezá una nueva. | MATEO | Aprobado |
+| T-3526 | Color: media accesible | Promedio final: {n}% | MATEO | Aprobado |
+| T-3527 | Color: segundos restantes | {n} s | MATEO | Aprobado |
+| T-3528 | Color: ronda accesible | Ronda {n} de {total} | MATEO | Aprobado |
+| T-3529 | Color: un color por ronda | Un color. Un momento. | MATEO | Aprobado |
+| T-3530 | Color: estado para ajustar | El original ya está oculto. Ajustá tono, intensidad y luz. | MATEO | Aprobado |
+| T-3531 | Color: estado al comparar | Comparación lista. Podés seguir a la siguiente ronda. | MATEO | Aprobado |
+| T-3532 | Color: siguiente ronda pendiente | Preparando la siguiente ronda… | MATEO | Aprobado |
+| T-3533 | Color: tabla de premios | Promedio final · Puntos gamer | MATEO | Aprobado |
+| T-3534 | Color: reglas | Cómo suma Color | MATEO | Aprobado |
+| T-3535 | Color: reglas de precisión | Mirá cada color durante tres segundos y recrealo con tono, intensidad y luz. · El parecido de tus tres mezclas forma el promedio final; no hay bono por rapidez. · La primera partida completa válida del día suma puntos gamer, separados de GH Points. | MATEO | Aprobado |
+| T-3536 | Color: resultado por ronda breve | Ronda {ronda}: {n}% | MATEO | Aprobado |
+| T-3537 | Color: volver a consultar | Actualizar partida | MATEO | Aprobado |
+| T-3538 | Color: nota de pantalla | El parecido es una referencia del juego; la percepción del color puede variar entre pantallas. | MATEO | Aprobado |
+| T-3539 | Color: rango de precisión | Desde {minimo}% | MATEO | Aprobado |
+| T-3540 | Color: motivo del crédito | Color {fecha} · Precisión media: {promedio} % | MATEO | Aprobado |
+| T-3541 | Color: no elegible | Color es para miembros activos y honorarios. | MATEO | Aprobado |
+| T-3542 | Color: temporada no disponible | Color suma puntos gamer mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre. | MATEO | Aprobado |
+| T-3543 | Color: partida no recuperable | No pudimos recuperar esa partida. Actualizá la partida para seguir con el estado guardado. | MATEO | Aprobado |
+| T-3544 | Color: observación no terminada | Todavía no terminó el tiempo para mirar. Esperá un momento y volvé a comparar. | MATEO | Aprobado |
+| T-3545 | Color: ronda no disponible | Esta ronda cambió en otra pestaña. Actualizá la partida para seguir con el estado guardado. | MATEO | Aprobado |
+| T-3546 | Color: pestaña oculta antes de observar | Volvé a esta pestaña para mirar el color. | MATEO | Aprobado |
+| T-3547 | Color: partida retomada al mezclar | Retomaste una ronda que ya pasó por la observación. El original sigue oculto; recreá el color que recordás. | MATEO | Aprobado |
+| T-3548 | Color: práctica finalizada | Esta partida fue de práctica. El premio de hoy se conserva. | MATEO | Aprobado |
+| T-3549 | Gamer: podio | Podio + gamer | MATEO | Aprobado |
+| T-3550 | Gamer: posición compartida | Puesto compartido | MATEO | Aprobado |
+| T-3551 | Gamer: alcance del podio cuando el corte puede incluir un empate | El podio muestra los puestos 1–3 incluidos en el top 10 visible. | MATEO | Aprobado |
+| T-3552 | Gamer: identidad propia en el podio | Vos | MATEO | Aprobado |
+| T-3553 | Gamer: participación singular de un cierre histórico | {n} participación | MATEO | Aprobado |
+| T-3554 | Gamer: participaciones de un cierre histórico | {n} participaciones | MATEO | Aprobado |
+| T-3555 | Comités: indicador combinado | Puntaje combinado · Sobre 100 | MATEO | Aprobado |
+| T-3556 | Comités: acción accesible con puntaje combinado | Ver detalle de {comité}, puesto {puesto}, puntaje combinado {puntaje} sobre 100 | MATEO | Aprobado |
+| T-3557 | Comités: resultado combinado | Puntaje combinado | MATEO | Aprobado |
+| T-3558 | Comités: pesos del ranking | 50% GH Points · 50% participación ajustada | MATEO | Aprobado |
+| T-3559 | Comités: promedio GH por activo | Promedio GH por integrante activo | MATEO | Aprobado |
+| T-3560 | Comités: integrantes del promedio | Integrantes activos | MATEO | Aprobado |
+| T-3561 | Comités: saldo GH de los activos | Total GH de integrantes activos | MATEO | Aprobado |
+| T-3562 | Comités: asistencia real ajustada | Participación ajustada | MATEO | Aprobado |
+| T-3563 | Comités: dimensión normalizada | Resultado normalizado · Sobre 100 | MATEO | Aprobado |
+| T-3564 | Comités: aporte ponderado | Aporte al combinado · Sobre 50 | MATEO | Aprobado |
+| T-3565 | Comités: puntaje con escala | {n} / 100 | MATEO | Aprobado |
+| T-3566 | Comités: fórmula combinada | El puesto combina por mitades el promedio de GH Points por integrante activo y la participación ajustada. Cada dimensión se lleva a una escala de 0 a 100 respecto al mejor comité; después se suma la mitad de cada resultado. | MATEO | Aprobado |
+| T-3567 | Comités: promedio y saldos | El promedio GH divide el saldo total de los integrantes activos entre todos los activos del comité, incluidos quienes tienen saldo cero. Los puntos de Juegos quedan por fuera. Un promedio negativo se muestra tal cual, pero su aporte al ranking tiene piso cero. Si ninguna cifra de una dimensión es positiva, esa dimensión aporta cero para todos. | MATEO | Aprobado |
+| T-3568 | Comités: dimensión GH | GH Points · 50% | MATEO | Aprobado |
+| T-3569 | Comités: dimensión de asistencia | Participación · 50% | MATEO | Aprobado |
+| T-3570 | Comités: pertenencia vigente | El saldo GH acompaña al integrante en sus comités actuales del semestre. Si pertenece a varios, cuenta completo en cada uno. | MATEO | Aprobado |
+| T-3571 | Comités: elegibilidad y empates | Compiten los comités con integrantes activos. La participación usa actividades cerradas con GH Points, ajustadas por tamaño; todas pesan igual. El mismo puntaje combinado comparte puesto. | MATEO | Aprobado |
+| T-3572 | Comités: criterio histórico conservado | Este cierre conserva su ranking por participación ajustada. No se recalcula con el criterio combinado ni incluye un promedio GH histórico. | MATEO | Aprobado |
+| T-3573 | Comités: columnas del ranking combinado | Comité · Puntaje combinado / 100 · Promedio GH por activo · Integrantes activos · Participación ajustada | MATEO | Aprobado |
+| T-3574 | Comités: dato no guardado | Dato no disponible | MATEO | Aprobado |
+| T-3575 | Comités: resultado combinado de cierre | Puntaje combinado: {n} / 100 | MATEO | Aprobado |
+| T-3576 | Comités: resultado histórico de cierre | Participación ajustada: {porcentaje} | MATEO | Aprobado |

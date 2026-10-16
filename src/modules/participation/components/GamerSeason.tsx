@@ -1,6 +1,7 @@
 import { Insignia } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import type { GamerProfile, GamerStanding } from "../gamer-types";
+import { GamerPodium } from "./GamerPodium";
 
 export function GamerSeason({
   profile,
@@ -12,7 +13,7 @@ export function GamerSeason({
   closed: boolean;
 }) {
   const dayStatus =
-    profile.todayGames.length === 4
+    profile.todayGames.length === 5
       ? "T-3468"
       : profile.launched
         ? profile.todayGames.length
@@ -80,6 +81,7 @@ export function GamerLeaderboard({
       <h2 id="gamer-ranking" className="text-display-md">
         {t("T-3425")}
       </h2>
+      <GamerPodium leaderboard={leaderboard} personId={personId} rankingMetric={rankingMetric} />
       <p className="max-w-prose text-sm text-tinta-suave">{t(byPoints ? "T-3402" : "T-3480")}</p>
       <p className="max-w-prose text-sm text-tinta-suave">{t(byPoints ? "T-3426" : "T-3481")}</p>
       {leaderboard.length === 0 ? (

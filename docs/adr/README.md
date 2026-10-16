@@ -13,8 +13,11 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-133](ADR-133-mas-gamer-por-puntos-de-desempeno.md) | Más gamer por puntos de desempeño | Aceptada |
-| [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) | GH Points y Más gamer con rachas separadas | Aceptada (enmendada por ADR-133) |
+| [ADR-136](ADR-136-comites-promedio-gh-y-participacion.md) | Comités por promedio GH y participación, con pesos 50/50 | Aceptada |
+| [ADR-135](ADR-135-podio-y-nombre-gamer.md) | Podio gráfico y nombre visible «+ gamer» | Aceptada |
+| [ADR-134](ADR-134-juegos-protagonista-y-color.md) | Juegos con reto protagonista y Color integrado a Más gamer | Aceptada; enmendada por ADR-135 |
+| [ADR-133](ADR-133-mas-gamer-por-puntos-de-desempeno.md) | Más gamer por puntos de desempeño | Aceptada; enmendada por ADR-134; enmendada por ADR-135 |
+| [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) | GH Points y Más gamer con rachas separadas | Aceptada (enmendada por ADR-133); enmendada por ADR-134; enmendada por ADR-135; enmendada por ADR-136 |
 | [ADR-130](ADR-130-fotos-privadas-en-mi-oe.md) | Fotos privadas en Mi OE y carga reanudable de DÍAS 2026 | Aceptada |
 | [ADR-129](ADR-129-reglas-de-consolidacion-del-decimoseptimo-ciclo.md) | Reglas de consolidación del decimoséptimo ciclo del refactor | Aceptada |
 | [ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) | Reglas de corrección del decimosexto ciclo del refactor | Aceptada (enmendada por ADR-129) |
@@ -70,12 +73,12 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-078](ADR-078-sudoku-con-solucion-en-el-servidor.md) | Sudoku con la solución en el servidor | Aceptada; en producción; enmendada por ADR-131 |
 | [ADR-077](ADR-077-el-lanzador-e2e-suma-su-origen-al-cors-del-bucket.md) | El lanzador E2E suma su origen al CORS del bucket local | Aceptada |
 | [ADR-076](ADR-076-biblioteca-de-iconos.md) | Biblioteca de iconos detrás de una fachada propia | Aceptada; en producción |
-| [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md) | Biblioteca de juegos y 2048 con replay verificado | Aceptada; enmendada por ADR-078, ADR-088 y ADR-122; en producción; enmendada por ADR-131 |
+| [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md) | Biblioteca de juegos y 2048 con replay verificado | Aceptada; enmendada por ADR-078, ADR-088 y ADR-122; en producción; enmendada por ADR-131; enmendada por ADR-134 |
 | [ADR-074](ADR-074-aviso-diario-del-wordle.md) | Aviso diario del Wordle | Aceptada; en producción; enmendada por ADR-131 |
 | [ADR-073](ADR-073-un-comite-inactivo-sale-de-la-app.md) | Un comité inactivo sale de la app | Aceptada; en producción |
 | [ADR-072](ADR-072-alcance-autorizado-en-el-dominio.md) | El alcance autorizado se verifica en el dominio | Aceptada (enmendada por ADR-112 y ADR-122); en producción |
 | [ADR-071](ADR-071-gt-de-macroevento-cumple-gap.md) | El GT de macroevento cumple el criterio GAP | Aceptada; en producción |
-| [ADR-070](ADR-070-podio-de-comites-en-gh-points.md) | Podio de comités en GH Points | Aceptada |
+| [ADR-070](ADR-070-podio-de-comites-en-gh-points.md) | Podio de comités en GH Points | Aceptada; enmendada por ADR-136 |
 | [ADR-069](ADR-069-directorio-de-comites-de-mi-oe.md) | Directorio de comités de Mi OE | Implementada en local; publicación pendiente |
 | [ADR-068](ADR-068-correcciones-de-gamificacion.md) | Correcciones de gamificación antes de producción | Aceptada |
 | [ADR-067](ADR-067-retos-boosters-y-coleccion.md) | Retos relámpago, boosters y colección de insignias | Aceptada; enmendada por ADR-068, ADR-075, ADR-078, ADR-087, ADR-111, ADR-113, ADR-118 y ADR-122; enmendada por ADR-131 |
@@ -106,9 +109,9 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-004](ADR-004-termino-como-reloj.md) | El término académico es el reloj universal | Aceptada (enmendada por ADR-118) |
 | [ADR-005](ADR-005-comites-por-termino.md) | Pertenencia a comité por término | Aceptada (enmendada por ADR-039) |
 | [ADR-006](ADR-006-una-sola-asistencia.md) | Una sola mecánica de asistencia | Aceptada (enmendada por ADR-024 y ADR-035) |
-| [ADR-007](ADR-007-ledger-append-only.md) | Ledger append-only por término | Aceptada (enmendada por ADR-041); enmendada por ADR-131 |
+| [ADR-007](ADR-007-ledger-append-only.md) | Ledger append-only por término | Aceptada (enmendada por ADR-041); enmendada por ADR-131; enmendada por ADR-134 |
 | [ADR-008](ADR-008-tableros-derivados.md) | Tableros nuevos/veteranos derivados | Aceptada |
-| [ADR-009](ADR-009-score-de-comite.md) | Score de comité por participación relativa | Aceptada (enmendada por ADR-024, ADR-035 y ADR-070) |
+| [ADR-009](ADR-009-score-de-comite.md) | Score de comité por participación relativa | Aceptada (enmendada por ADR-024, ADR-035 y ADR-070); enmendada por ADR-136 |
 | [ADR-010](ADR-010-identidad-por-correo-y-otp.md) | Identidad por correo del roster con OTP | Aceptada (enmendada por ADR-034, ADR-039, ADR-050, ADR-051, ADR-113, ADR-114) |
 | [ADR-011](ADR-011-autorizacion-en-servidor.md) | Autorización en servidor | Aceptada (enmendada por ADR-051, ADR-058, ADR-072, ADR-082, ADR-089, ADR-112 y ADR-119) |
 | [ADR-012](ADR-012-outbox-transaccional.md) | Outbox transaccional; efectos fuera del commit | Aceptada (enmendada por ADR-021, ADR-038, ADR-040, ADR-079, ADR-084, ADR-113 y ADR-118) |
@@ -123,7 +126,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-021](ADR-021-infraestructura-railway.md) | Infraestructura: Railway en el workspace Pro existente | Aceptada (enmendada por ADR-022, ADR-023 y ADR-032, ADR-039, ADR-040, ADR-085) |
 | [ADR-022](ADR-022-medios-prefirmados.md) | Medios: subida directa y entrega por URL prefirmada | Aceptada (enmendada por ADR-034, ADR-039, ADR-050 y ADR-130) |
 | [ADR-023](ADR-023-operacion-entornos-respaldo-correo.md) | Operación: entorno de pruebas, copia externa y correo con desbordamiento | Aceptada (enmendada por ADR-038, ADR-039, ADR-050, ADR-115 y ADR-116) |
-| [ADR-024](ADR-024-reglas-de-participacion.md) | Reglas de participación confirmadas por la OE | Aceptada (enmendada por ADR-027, ADR-028, ADR-030 y ADR-035) |
+| [ADR-024](ADR-024-reglas-de-participacion.md) | Reglas de participación confirmadas por la OE | Aceptada (enmendada por ADR-027, ADR-028, ADR-030 y ADR-035); enmendada por ADR-136 |
 | [ADR-025](ADR-025-permanencia-scorecard.md) | Permanencia como tablero de criterios configurable por término | Aceptada (enmendada por ADR-026, ADR-027 y ADR-036) |
 | [ADR-026](ADR-026-permanencia-por-comite.md) | Permanencia en dos niveles: la OE y el comité | Aceptada (enmendada por ADR-027 y ADR-036) |
 | [ADR-027](ADR-027-permanencia-reglas-de-gh.md) | Permanencia: reglas confirmadas por Gestión Humana | Aceptada (enmendada por ADR-028) |
@@ -134,7 +137,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-032](ADR-032-drizzle-y-esquema-por-modulo.md) | Drizzle como capa de datos y esquema por módulo en TypeScript | Aceptada (enmendada por ADR-079) |
 | [ADR-033](ADR-033-contenido-y-medios-fase-1.md) | Contenido editable y medios del portal público (fase 1) | Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039, ADR-113, ADR-114, ADR-116) |
 | [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) | Personas, CRM mínimo y Mi OE (fase 2) | Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113, ADR-115) |
-| [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) | Participación y GH Points (fase 3) | Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116, ADR-119 y ADR-122); enmendada por ADR-131 |
+| [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) | Participación y GH Points (fase 3) | Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116, ADR-119 y ADR-122); enmendada por ADR-131; enmendada por ADR-136 |
 | [ADR-036](ADR-036-permanencia-fase-4.md) | Permanencia (fase 4) | Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058, ADR-116, ADR-118, ADR-121 y ADR-123) |
 | [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md) | Admisión, aliados y contactos (fase 5) | Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050, ADR-056, ADR-060, ADR-115, ADR-116 y ADR-118) |
 | [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md) | Comunicaciones y PWA (fase 6) | Aceptada (enmendada por ADR-039, ADR-074, ADR-113, ADR-115, ADR-116, ADR-118 y ADR-122) |

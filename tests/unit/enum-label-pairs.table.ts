@@ -154,6 +154,7 @@ export const PAIRS: readonly LabelPair[] = [
       SUDOKU: 8,
       PANAL: 9,
       PRESENCE_STREAK: 10,
+      COLOR: 11,
     },
     canonical: POINT_ENTRY_KINDS,
   },

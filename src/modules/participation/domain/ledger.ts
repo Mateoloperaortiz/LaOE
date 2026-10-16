@@ -210,6 +210,7 @@ const GAME_RUN_COLUMN = {
   GAME2048: "game2048RunId",
   SUDOKU: "sudokuRunId",
   PANAL: "panalGameId",
+  COLOR: "colorRunId",
 } as const satisfies Record<GameKind, keyof typeof pointEntry.$inferInsert>;
 
 type GameRun =

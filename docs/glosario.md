@@ -46,9 +46,11 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Traslado | `BudgetTransfer` | Movimiento de disponible entre dos rubros del mismo presupuesto, con motivo ([ADR-059](adr/ADR-059-presupuesto-del-comite.md)) |
 | Entrada de puntos | `PointEntry` | Fila del ledger: crédito por check-in, ajuste, reversión o legado |
 | GH Points | `GhPoints` | Reconocimiento principal semestral de la OE por check-ins, retos presenciales, trivias, misiones con evidencia y beneficios GH; los videojuegos no se suman a su clasificación |
-| Puntos gamer | `GamerPoints` | Premio competitivo de los videojuegos según el desempeño de la primera partida acreditable del día, con avances acumulativos de Panal; separado de GH Points |
-| Más gamer | `GamerRanking` | Competencia semestral de Juegos por puntos gamer; desempata por participaciones válidas y después días activos, con puesto compartido si las tres cantidades coinciden |
-| Participación gamer válida | `GamerParticipation` | Cumplir el primer umbral acreditable de un videojuego: ganar Wordle, alcanzar 1.000 en 2048, resolver Sudoku o aceptar cinco palabras en Panal. Cada juego cuenta una vez por día |
+| Puntos gamer | `GamerPoints` | Premio competitivo de los videojuegos según el desempeño de la primera partida acreditable del día (primera completa en Color), con avances acumulativos de Panal; separado de GH Points |
+| + gamer | `GamerRanking` | Nombre visible actual de la competencia semestral de Juegos, antes Más gamer: se ordena por puntos gamer, participaciones válidas y días activos, con puesto compartido si las tres cantidades coinciden |
+| Podio gamer | `GamerPodium` | Representación de los puestos reales 1–3 de + gamer dentro del top 10 visible; reúne a las personas empatadas con igual jerarquía, sin rellenar puestos ausentes ni prometer el total de un empate no visible |
+| Participación gamer válida | `GamerParticipation` | Cumplir el primer umbral acreditable de un videojuego: ganar Wordle, alcanzar 1.000 en 2048, resolver Sudoku, aceptar cinco palabras en Panal o completar las tres rondas de Color. Cada juego cuenta una vez por día |
+| Color | `ColorRun` | Juego de memoria de colores de tres rondas: observar, recrear con tono/saturación/luminosidad y comparar; la primera partida completa válida del día aporta de uno a seis puntos gamer según su precisión media |
 | Día activo gamer | `activeDays` | Día civil de Colombia en el que se cumplió al menos un videojuego, aunque se hayan cumplido varios |
 | Racha gamer | `GamerStreak` | Días jugados de una secuencia que protege un comodín semanal; el comodín no suma día ni participación. Tiene hitos a los 3, 7 y 30 días |
 | Comodín gamer | `wildcardAvailable` | Protección automática de un día perdido por semana, no acumulable, que conserva una racha viva sin hacer avanzar su contador |
@@ -57,7 +59,8 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Pausa de racha | `PAUSED` | Período sin oportunidad exigible que conserva la secuencia, sin sumar constancia ni entregar premio |
 | Ledger | `PointEntry[]` | Historial inmutable de créditos y reversiones; el saldo GH suma las entradas de su competencia y conserva aparte la historia de videojuegos |
 | Reversión | `PointEntry.kind=REVERSAL` | Entrada que anula otra; nunca se edita la original |
-| Score de comité | `CommitteeParticipation` | Participación relativa de un comité en una ocasión y su promedio por término |
+| Participación ajustada de comité | `CommitteeParticipation` | Participación relativa por ocasión corregida hacia la media; su promedio del término es la dimensión de asistencia del ranking combinado y el criterio de los rankings históricos |
+| Puntaje de comité | `CommitteeScore` | Índice semestral que combina por mitades promedio GH neto por integrante activo actual y participación ajustada, normalizados respecto al mejor comité; conserva puestos compartidos |
 | Tablero | ranking | Clasificación del término: nuevos, veteranos y comités; el miembro ve el top 10 y su propio puesto |
 | Nivel | `points.levels` | Tramo del saldo de GH Points del semestre: Recién llegado, Parchado, De planta, Pilar y Leyenda OE. Los mínimos son 0/25/75/150/250 en la clasificación separada y 0/100/250/500/1000 en el saldo mixto histórico |
 | Standing del término | `TermStanding` | Resultado conservado de las clasificaciones GH y gamer al cerrar los puntos del semestre, con la identidad visible que corresponda |

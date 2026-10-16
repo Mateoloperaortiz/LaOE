@@ -13,6 +13,15 @@ export interface CommitteePodiumEntry {
   rawScore: string;
   adjustment: string;
   occasions: number;
+  rankingMetric: "COMBINED" | "ATTENDANCE";
+  attendanceScore: string;
+  ghAverage: string | null;
+  ghTotal: string | null;
+  activeMembers: number | null;
+  ghNormalized: string | null;
+  attendanceNormalized: string | null;
+  ghContribution: string | null;
+  attendanceContribution: string | null;
 }
 
 export function CommitteePodium({ entries }: { entries: CommitteePodiumEntry[] }) {
@@ -21,6 +30,7 @@ export function CommitteePodium({ entries }: { entries: CommitteePodiumEntry[] }
   const detailRef = useRef<HTMLHeadingElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const selected = entries.find((entry) => entry.id === selectedId);
+  const combined = entries[0]?.rankingMetric === "COMBINED";
   const groups = [1, 2, 3]
     .map((rank) => ({ rank, entries: entries.filter((entry) => entry.rank === rank) }))
     .filter((group) => group.entries.length > 0);
@@ -40,6 +50,9 @@ export function CommitteePodium({ entries }: { entries: CommitteePodiumEntry[] }
   }
 
   function buttonLabel(entry: CommitteePodiumEntry) {
+    if (entry.rankingMetric === "COMBINED") {
+      return t("T-3556", { comité: entry.name, puesto: entry.rank, puntaje: entry.score });
+    }
     return t("T-2603", { comité: entry.name, puesto: entry.rank, porcentaje: entry.score });
   }
 
@@ -49,7 +62,8 @@ export function CommitteePodium({ entries }: { entries: CommitteePodiumEntry[] }
         <h3 id={`${id}-title`}>{t("T-2600")}</h3>
       </header>
       <div className={styles.stage}>
-        <p className={styles.measure}>{t("T-2601")}</p>
+        <p className={styles.measure}>{t(combined ? "T-3555" : "T-2601")}</p>
+        {combined && <p className={styles.weights}>{t("T-3558")}</p>}
         <div className={styles.podium} data-single={groups.length === 1}>
           {groups.map((group) => (
             <fieldset
@@ -105,7 +119,48 @@ export function CommitteePodium({ entries }: { entries: CommitteePodiumEntry[] }
               {t("T-2607")}
             </button>
           </div>
-          {selected && (
+          {selected?.rankingMetric === "COMBINED" ? (
+            <>
+              <div className={styles.dimensions}>
+                <section aria-labelledby={`${id}-gh-title`}>
+                  <h5 id={`${id}-gh-title`}>{t("T-3568")}</h5>
+                  <dl className={styles.breakdown}>
+                    <dt>{t("T-3559")}</dt>
+                    <dd>{selected.ghAverage ?? t("T-3574")}</dd>
+                    <dt>{t("T-3560")}</dt>
+                    <dd>{selected.activeMembers ?? t("T-3574")}</dd>
+                    <dt>{t("T-3561")}</dt>
+                    <dd>{selected.ghTotal ?? t("T-3574")}</dd>
+                    <dt>{t("T-3563")}</dt>
+                    <dd>{selected.ghNormalized ?? t("T-3574")}</dd>
+                    <dt>{t("T-3564")}</dt>
+                    <dd>{selected.ghContribution ?? t("T-3574")}</dd>
+                  </dl>
+                </section>
+                <section aria-labelledby={`${id}-attendance-title`}>
+                  <h5 id={`${id}-attendance-title`}>{t("T-3569")}</h5>
+                  <dl className={styles.breakdown}>
+                    <dt>{t("T-3562")}</dt>
+                    <dd>{selected.attendanceScore}</dd>
+                    <dt>{rawLabel}</dt>
+                    <dd>{selected.rawScore}</dd>
+                    <dt>{adjustmentLabel}</dt>
+                    <dd>{selected.adjustment}</dd>
+                    <dt>{occasionsLabel}</dt>
+                    <dd>{selected.occasions}</dd>
+                    <dt>{t("T-3563")}</dt>
+                    <dd>{selected.attendanceNormalized ?? t("T-3574")}</dd>
+                    <dt>{t("T-3564")}</dt>
+                    <dd>{selected.attendanceContribution ?? t("T-3574")}</dd>
+                  </dl>
+                </section>
+              </div>
+              <dl className={styles.total}>
+                <dt>{t("T-3557")}</dt>
+                <dd>{t("T-3565", { n: selected.score })}</dd>
+              </dl>
+            </>
+          ) : selected ? (
             <dl className={styles.breakdown}>
               <dt>{rawLabel}</dt>
               <dd>{selected.rawScore}</dd>
@@ -116,14 +171,14 @@ export function CommitteePodium({ entries }: { entries: CommitteePodiumEntry[] }
               <dt>{occasionsLabel}</dt>
               <dd>{selected.occasions}</dd>
             </dl>
-          )}
+          ) : null}
           <p className={styles.note}>{t("T-2610")}</p>
         </section>
         {remaining.length > 0 && (
           <>
             <div className={styles.listHeading} aria-hidden="true">
               <span>{t("T-2611")}</span>
-              <span>{scoreLabel}</span>
+              <span>{combined ? t("T-3557") : scoreLabel}</span>
             </div>
             <ol className={styles.list} start={remaining[0]?.rank} aria-label={t("T-2611")}>
               {remaining.map((entry) => (
@@ -148,8 +203,20 @@ export function CommitteePodium({ entries }: { entries: CommitteePodiumEntry[] }
         )}
         <details className={styles.help}>
           <summary>{t("T-2612")}</summary>
-          <p>{t("T-2613")}</p>
-          <p>{t("T-2614")}</p>
+          {combined ? (
+            <>
+              <p>{t("T-3566")}</p>
+              <p>{t("T-3567")}</p>
+              <p>{t("T-3570")}</p>
+              <p>{t("T-3571")}</p>
+            </>
+          ) : (
+            <>
+              <p>{t("T-3572")}</p>
+              <p>{t("T-2613")}</p>
+              <p>{t("T-2614")}</p>
+            </>
+          )}
         </details>
       </div>
     </section>

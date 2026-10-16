@@ -47,6 +47,9 @@ const CHECKED: Record<string, Record<string, string>> = {
   challenge: { occasion_id: "'x'" },
   challenge_evidence_file: { object_key: "'evidence/aaaaaaaaaa/bbbbbbbbbb.jpg'" },
   challenge_question: { options: `'["a", "b"]'` },
+  color_run: {
+    targets: `'[{"h":0,"s":50,"l":50},{"h":120,"s":50,"l":50},{"h":240,"s":50,"l":50}]'`,
+  },
   committee_budget: { year: "2026" },
   competition_extra_jury_score: { scores: "'{5,5,5,5,5}'" },
   competition_point_entry: { result_id: "'x'" },

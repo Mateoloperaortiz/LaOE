@@ -1,9 +1,16 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
-import { type ActiveMemberRef, listActiveMemberRefs, listLiveCommitteeIds } from "@/modules/people";
-import { committeeParticipation, occasion, pointEntry } from "../schema";
-import { ghPointCondition } from "./ledger-classification";
+import {
+  type ActiveMemberRef,
+  listActiveMemberRefs,
+  listTermCommitteeMembers,
+} from "@/modules/people";
+import { getTerm, type TermRow } from "@/modules/terms";
+import type { CommitteeScore } from "../committee-ranking-types";
+import { committeeParticipation, occasion, pointEntry, termStanding } from "../schema";
+import { storedCommitteeRanking } from "./committee-snapshot";
+import { ghPointCondition, strictGhPointCondition } from "./ledger-classification";
 import { competitionRanks, type Ranked, termCommitteeScore } from "./ledger-pure";
 
 // Tableros (ADR-008, ADR-024, ADR-035 regla 10): nuevos y veteranos por `firstTermId`, solo activos,
@@ -117,27 +124,74 @@ export function peopleBoards(termId: string): PeopleBoards {
   };
 }
 
-export interface CommitteeScore {
-  committeeId: string;
-  /** Promedio de la tasa suavizada (0 a 1). */
-  score: number;
-  /** Promedio de la tasa cruda (0 a 1). */
-  rawScore: number;
-  occasions: number;
-}
-
 /**
- * Score del término por comité: promedio simple sobre las ocasiones cerradas con puntos. Un comité
- * desactivado no compite (ADR-073 regla 4): sus filas quedan como historia y no entran al ranking,
- * así que tampoco corren los puestos de los demás. Dentro de una transacción el llamador pasa los
- * comités vivos que ya leyó; afuera se resuelven acá.
+ * El cierre conserva criterio, componentes y puestos. Una foto antigua sigue representando sólo
+ * participación; un término cerrado sin foto no se reconstruye con la población de hoy.
  */
 export async function rankCommittees(
   termId: string,
   exec: Executor = getDb(),
   live?: ReadonlySet<string>,
 ): Promise<Ranked<CommitteeScore>[]> {
-  const alive = live ?? (await listLiveCommitteeIds());
+  const term = await getTerm(termId, exec);
+  if (!term) return [];
+  if (term.pointsClosedAt) {
+    const [standing] = await exec
+      .select({ rows: termStanding.topCommittees })
+      .from(termStanding)
+      .where(eq(termStanding.termId, termId))
+      .limit(1);
+    return storedCommitteeRanking(standing?.rows).map(({ rank, ...row }) => ({
+      rank,
+      total: Math.round(row.score * 10_000),
+      row,
+    }));
+  }
+  return rankCurrentCommittees(term, exec, live);
+}
+
+/** Proyección definitiva también después de sellar el término, dentro del cierre exclusivo. */
+export async function rankCurrentCommittees(
+  term: TermRow,
+  exec: Executor,
+  live?: ReadonlySet<string>,
+  now = new Date(),
+): Promise<Ranked<CommitteeScore>[]> {
+  const effectiveAt = new Date(
+    Math.max(
+      new Date(`${term.startsOn}T00:00:00-05:00`).getTime(),
+      Math.min(now.getTime(), new Date(`${term.endsOn}T23:59:59.999-05:00`).getTime()),
+    ),
+  );
+  const population = new Map<string, Set<string>>();
+  for (const member of await listTermCommitteeMembers(term.id, exec, {
+    liveCommitteesOnly: live === undefined,
+  })) {
+    if (
+      (live !== undefined && !live.has(member.committeeId)) ||
+      member.status !== "ACTIVE" ||
+      (member.joinedAt && member.joinedAt > effectiveAt) ||
+      (member.leftAt && member.leftAt <= effectiveAt)
+    )
+      continue;
+    const people = population.get(member.committeeId) ?? new Set<string>();
+    people.add(member.personId);
+    population.set(member.committeeId, people);
+  }
+  if (population.size === 0) return [];
+  const people = [...new Set([...population.values()].flatMap((members) => [...members]))];
+  const ghRows = await exec
+    .select({ personId: pointEntry.personId, total: sql<number>`sum(${pointEntry.points})::int` })
+    .from(pointEntry)
+    .where(
+      and(
+        eq(pointEntry.termId, term.id),
+        inArray(pointEntry.personId, people),
+        strictGhPointCondition,
+      ),
+    )
+    .groupBy(pointEntry.personId);
+  const ghTotals = new Map(ghRows.map((row) => [row.personId, row.total]));
   const rows = await exec
     .select({
       committeeId: committeeParticipation.committeeId,
@@ -148,14 +202,14 @@ export async function rankCommittees(
     .innerJoin(occasion, eq(occasion.id, committeeParticipation.occasionId))
     .where(
       and(
-        eq(committeeParticipation.termId, termId),
+        eq(committeeParticipation.termId, term.id),
         eq(occasion.status, "CLOSED"),
         sql`${occasion.points} > 0`,
       ),
     );
   const byCommittee = new Map<string, { smoothed: number[]; raw: number[] }>();
   for (const row of rows) {
-    if (!alive.has(row.committeeId)) {
+    if (!population.has(row.committeeId)) {
       continue;
     }
     const bucket = byCommittee.get(row.committeeId) ?? { smoothed: [], raw: [] };
@@ -163,12 +217,43 @@ export async function rankCommittees(
     bucket.raw.push(row.rate);
     byCommittee.set(row.committeeId, bucket);
   }
-  const scores: CommitteeScore[] = [...byCommittee.entries()].map(([committeeId, bucket]) => ({
-    committeeId,
-    score: termCommitteeScore(bucket.smoothed) ?? 0,
-    rawScore: termCommitteeScore(bucket.raw) ?? 0,
-    occasions: bucket.smoothed.length,
-  }));
+  // Una observación neta de cero sí es historia; un roster vacío de hechos no fabrica ganadores.
+  if (ghRows.length === 0 && byCommittee.size === 0) return [];
+  const components = [...population].map(([committeeId, members]) => {
+    const bucket = byCommittee.get(committeeId);
+    const ghTotal = [...members].reduce((sum, personId) => sum + (ghTotals.get(personId) ?? 0), 0);
+    return {
+      committeeId,
+      attendanceScore: termCommitteeScore(bucket?.smoothed ?? []) ?? 0,
+      rawScore: termCommitteeScore(bucket?.raw ?? []) ?? 0,
+      occasions: bucket?.smoothed.length ?? 0,
+      ghTotal,
+      activeMembers: members.size,
+      ghAverage: ghTotal / members.size,
+    };
+  });
+  const ghAverageMax = Math.max(0, ...components.map((row) => row.ghAverage));
+  const attendanceMax = Math.max(...components.map((row) => row.attendanceScore));
+  const policy = {
+    version: "GH_ATTENDANCE_50_50_V1",
+    effectiveAt: effectiveAt.toISOString(),
+    ghWeight: 0.5,
+    attendanceWeight: 0.5,
+    ghAverageMax,
+    attendanceMax,
+  } as const;
+  const scores: CommitteeScore[] = components.map((row) => {
+    const ghNormalized = ghAverageMax > 0 ? Math.max(0, row.ghAverage) / ghAverageMax : 0;
+    const attendanceNormalized = attendanceMax > 0 ? row.attendanceScore / attendanceMax : 0;
+    return {
+      ...row,
+      rankingMetric: "COMBINED",
+      ghNormalized,
+      attendanceNormalized,
+      score: policy.ghWeight * ghNormalized + policy.attendanceWeight * attendanceNormalized,
+      policy,
+    };
+  });
   return competitionRanks(
     scores,
     (row) => Math.round(row.score * 10_000),

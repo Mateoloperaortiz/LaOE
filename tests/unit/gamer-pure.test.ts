@@ -15,7 +15,7 @@ const season = (days: string[], today: string) =>
   gamerStreak(days, "2026-09-01", "2026-12-31", today);
 
 describe("clasificación gamer", () => {
-  it("cuenta los cuatro juegos una vez por día aunque Panal entregue varios avances", () => {
+  it("cuenta los cinco juegos una vez por día aunque Panal entregue varios avances", () => {
     const rows: GamerParticipation[] = GAMER_GAMES.map((game) => ({
       personId: "a",
       day: "2026-09-07",
@@ -23,13 +23,13 @@ describe("clasificación gamer", () => {
     }));
     expect(
       uniqueGamerParticipations([...rows, { personId: "a", day: "2026-09-07", game: "PANAL" }]),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
     expect(
       rankGamer(
         [{ personId: "a", name: "Ana", anonymized: false }],
         [...rows, ...rows].map((row) => ({ ...row, points: 1 })),
       )[0],
-    ).toMatchObject({ points: 8, participations: 4, activeDays: 1 });
+    ).toMatchObject({ points: 10, participations: 5, activeDays: 1 });
   });
 
   it("desempata por días activos y después comparte puesto sin usar la racha ni el nombre", () => {

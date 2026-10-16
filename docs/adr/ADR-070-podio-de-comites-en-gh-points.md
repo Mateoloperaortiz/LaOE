@@ -1,6 +1,6 @@
 # ADR-070: Podio de comités en GH Points
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-136)
 - Fecha: 2026-09-15
 - Relacionadas: ADR-009, ADR-024, ADR-035, ADR-044
 - Enmienda: presentación del ranking de comités en Mi OE (ADR-009 y ADR-035).
@@ -20,3 +20,7 @@ La lista mostraba dos porcentajes redondeados a enteros sin rótulos cercanos. M
 ## Consecuencias
 
 No cambian la fórmula, los datos de participación, los permisos ni las reglas de cierre. El alcance es la presentación en Mi OE. La lectura accesible anuncia comité, puesto y porcentaje; abrir el detalle lleva el foco a su título y cerrarlo lo devuelve al comité.
+
+## Enmienda (2026-10-16, ADR-136)
+
+El indicador principal del nuevo podio es el puntaje combinado 50/50 de GH promedio por activo y participación normalizadas, no la participación ajustada sola. El detalle conserva esa participación y explica promedio GH, población y componentes. Los puestos compartidos/top 10 y las fotos históricas de participación mantienen su significado. Ver [ADR-136](ADR-136-comites-promedio-gh-y-participacion.md).

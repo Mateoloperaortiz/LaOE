@@ -1,5 +1,6 @@
 // API pública del módulo participation (ADR-035, ADR-038).
 
+export type { ColorResult } from "./color-types";
 export { listAgendaForPerson } from "./domain/agenda";
 export { agendaEntries } from "./domain/agenda-pure";
 export {
@@ -75,6 +76,13 @@ export {
   type SelfCheckInResult,
 } from "./domain/check-ins";
 export { closingSummary, getTermStanding } from "./domain/closing";
+export {
+  getTodayColor,
+  listColorRunsFor,
+  nextColorRoundAs,
+  startColorAs,
+  submitColorRoundAs,
+} from "./domain/color";
 export {
   adjustPointsAs,
   adjustRequirementAs,

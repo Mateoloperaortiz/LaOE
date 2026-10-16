@@ -3,7 +3,7 @@ import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
@@ -91,7 +91,7 @@ export async function getCommittee(id: string): Promise<CommitteeRow | null> {
   return row ?? null;
 }
 
-export async function listAllCommittees(): Promise<
+export async function listAllCommittees(exec: Executor = getDb()): Promise<
   Array<{
     id: string;
     slug: string;
@@ -100,7 +100,7 @@ export async function listAllCommittees(): Promise<
     trialEndsOn: string | null;
   }>
 > {
-  return getDb()
+  return exec
     .select({
       id: committee.id,
       slug: committee.slug,

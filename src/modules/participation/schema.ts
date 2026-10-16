@@ -18,6 +18,7 @@ import { eventEdition } from "@/modules/events/schema";
 import { form } from "@/modules/forms/schema";
 import { committee, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import type { HslColor } from "./color-types";
 import type { WordleLetterState } from "./wordle-types";
 
 // Participación (ADR-006, ADR-007, ADR-009, ADR-024, ADR-035): una sola mecánica de asistencia
@@ -63,11 +64,14 @@ export const pointEntryKind = pgEnum("point_entry_kind", [
   "SUDOKU",
   "PANAL",
   "PRESENCE_STREAK",
+  "COLOR",
 ]);
 
 export const wordleStatus = pgEnum("wordle_status", ["IN_PROGRESS", "WON", "LOST", "EXPIRED"]);
 
 export const game2048Status = pgEnum("game2048_status", ["IN_PROGRESS", "FINISHED", "EXPIRED"]);
+
+export const colorStatus = pgEnum("color_status", ["IN_PROGRESS", "FINISHED", "EXPIRED"]);
 
 export const sudokuStatus = pgEnum("sudoku_status", [
   "IN_PROGRESS",
@@ -362,6 +366,84 @@ export const sudokuRun = pgTable(
   ],
 );
 
+// Color (ADR-134): objetivos privados por partida y tres respuestas verificadas por servidor.
+export const colorRun = pgTable(
+  "color_run",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    day: date({ mode: "string" }).notNull(),
+    rulesVersion: text().notNull(),
+    status: colorStatus().notNull().default("IN_PROGRESS"),
+    startRequestId: text().notNull(),
+    targets: jsonb().$type<HslColor[]>().notNull(),
+    round: integer().notNull().default(1),
+    watchStartedAt: timestampTz().notNull(),
+    nextRoundRequests: jsonb().$type<string[]>().notNull().default([]),
+    results: jsonb()
+      .$type<
+        Array<{
+          round: number;
+          target: HslColor;
+          answer: HslColor;
+          accuracy: number;
+          requestId: string;
+        }>
+      >()
+      .notNull()
+      .default([]),
+    average: numeric({ precision: 4, scale: 1, mode: "number" }),
+    creditedAt: timestampTz(),
+    creditedPoints: integer(),
+    finishedAt: timestampTz(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("color_run_person_day_credited_unique")
+      .on(t.personId, t.day)
+      .where(sql`${t.creditedAt} is not null`),
+    uniqueIndex("color_run_person_open_unique")
+      .on(t.personId)
+      .where(sql`${t.status} = 'IN_PROGRESS'`),
+    uniqueIndex("color_run_start_request_unique").on(t.personId, t.startRequestId),
+    index("color_run_person_day_idx").on(t.personId, t.day),
+    index("color_run_term_idx").on(t.termId),
+    check("color_run_round_range", sql`${t.round} between 1 and 3`),
+    check(
+      "color_run_targets_length",
+      sql`jsonb_typeof(${t.targets}) = 'array' and jsonb_array_length(${t.targets}) = 3`,
+    ),
+    check(
+      "color_run_results_length",
+      sql`jsonb_typeof(${t.results}) = 'array' and jsonb_array_length(${t.results}) between 0 and 3`,
+    ),
+    check(
+      "color_run_finished_consistent",
+      sql`(${t.status} = 'IN_PROGRESS') = (${t.finishedAt} is null)`,
+    ),
+    check(
+      "color_run_average_consistent",
+      sql`(${t.status} = 'FINISHED') = (${t.average} is not null)`,
+    ),
+    check("color_run_average_range", sql`${t.average} is null or ${t.average} between 0 and 100`),
+    check(
+      "color_run_credit_consistent",
+      sql`(${t.creditedAt} is null) = (${t.creditedPoints} is null)`,
+    ),
+    check("color_run_credit_finished", sql`${t.creditedAt} is null or ${t.status} = 'FINISHED'`),
+    check(
+      "color_run_credit_range",
+      sql`${t.creditedPoints} is null or ${t.creditedPoints} between 1 and 6`,
+    ),
+  ],
+);
+
 // Momento con check-in: actividad, asamblea o sesión de una edición. `publicId` va en la URL y el QR.
 export const occasion = pgTable(
   "occasion",
@@ -471,6 +553,7 @@ export const pointEntry = pgTable(
     wordleGameId: text().references(() => wordleGame.id),
     game2048RunId: text().references(() => game2048Run.id),
     sudokuRunId: text().references(() => sudokuRun.id),
+    colorRunId: text().references(() => colorRun.id),
     panalGameId: text().references(() => panalGame.id),
     panalCheckpoint: integer(),
     rewardId: text().references((): AnyPgColumn => reward.id),
@@ -491,6 +574,7 @@ export const pointEntry = pgTable(
     uniqueIndex("point_entry_wordle_game_unique").on(t.wordleGameId),
     uniqueIndex("point_entry_game2048_run_unique").on(t.game2048RunId),
     uniqueIndex("point_entry_sudoku_run_unique").on(t.sudokuRunId),
+    uniqueIndex("point_entry_color_run_unique").on(t.colorRunId),
     uniqueIndex("point_entry_panal_game_unique")
       .on(t.panalGameId)
       .where(sql`${t.panalCheckpoint} is null`),
@@ -550,6 +634,14 @@ export const pointEntry = pgTable(
     check(
       "point_entry_sudoku_reward",
       sql`${t.kind}::text <> 'SUDOKU' or ${t.points} between 1 and 6`,
+    ),
+    check(
+      "point_entry_color_consistent",
+      sql`(${t.kind}::text = 'COLOR') = (${t.colorRunId} is not null)`,
+    ),
+    check(
+      "point_entry_color_reward",
+      sql`${t.kind}::text <> 'COLOR' or ${t.points} between 1 and 6`,
     ),
     check(
       "point_entry_reversal_consistent",

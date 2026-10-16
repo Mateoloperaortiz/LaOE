@@ -5,8 +5,10 @@ import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { termPointsClosed } from "@/domain-events/participation";
 import { type ActiveMemberRef, listActiveMemberRefs, listAllCommittees } from "@/modules/people";
+import { getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import type { CommitteeStanding } from "../committee-ranking-types";
 import type { GamerRankingMetric } from "../gamer-types";
 import type { PresenceRecognitionSnapshot } from "../presence-types";
 import {
@@ -17,10 +19,11 @@ import {
   pointEntry,
   termStanding,
 } from "../schema";
+import { storedCommitteeRanking } from "./committee-snapshot";
 import { rankGamerFromMembers } from "./gamer";
 import { gamerSnapshotStats, standingGamer, storedGamerMetric } from "./gamer-snapshot";
 import { ghPointCondition } from "./ledger-classification";
-import { rankCommittees, rankPeopleFromMembers } from "./rankings";
+import { rankCurrentCommittees, rankPeopleFromMembers } from "./rankings";
 import { countPendingGamification } from "./rewards";
 
 // Cierre de puntos del término (ADR-004, ADR-035 regla 13): snapshot de los tableros con ids y nombres
@@ -32,14 +35,6 @@ const standingPerson = z.object({
   name: z.string(),
   total: z.number().int(),
 });
-const standingCommittee = z.object({
-  rank: z.number().int(),
-  committeeId: z.string(),
-  name: z.string(),
-  score: z.number(),
-  rawScore: z.number(),
-  occasions: z.number().int(),
-});
 const standingStats = z
   .object({
     activeMembers: z.number().int(),
@@ -50,12 +45,13 @@ const standingStats = z
     // ADR-067: retos completados y puntos entregados por boosters y campañas.
     challengesCompleted: z.number().int().optional(),
     boostPoints: z.number().int().optional(),
+    committeeRankingMetric: z.enum(["ATTENDANCE", "COMBINED"]).default("ATTENDANCE"),
     ...gamerSnapshotStats.shape,
   })
   .passthrough();
 
 export type StandingPerson = z.infer<typeof standingPerson>;
-export type StandingCommittee = z.infer<typeof standingCommittee>;
+export type StandingCommittee = CommitteeStanding;
 export type StandingStats = z.infer<typeof standingStats> & {
   gamerRankingMetric: GamerRankingMetric | null;
 };
@@ -80,6 +76,7 @@ export async function buildStanding(
     members: readonly ActiveMemberRef[];
     gamerMembers?: readonly ActiveMemberRef[];
     presenceRecognitions?: PresenceRecognitionSnapshot[];
+    evaluatedAt?: Date;
     committees: readonly { id: string; name: string; status: "ACTIVE" | "INACTIVE" | "ON_TRIAL" }[];
   },
 ): Promise<Omit<TermStandingView, "termId" | "createdAt">> {
@@ -97,11 +94,14 @@ export async function buildStanding(
   const nuevos = await rankPeopleFromMembers(db, termId, "NEW", members);
   const veteranos = await rankPeopleFromMembers(db, termId, "VETERAN", members);
   const gamers = await rankGamerFromMembers(db, termId, context.gamerMembers ?? members);
-  // Los comités llegan leídos fuera de la transacción del cierre; de ahí salen los vivos (ADR-073).
-  const comites = await rankCommittees(
-    termId,
+  // El cierre pasa los comités releídos tras su barrera, por la misma conexión (ADR-136).
+  const term = await getTerm(termId, db);
+  if (!term) throw new Error("No existe el término del cierre");
+  const comites = await rankCurrentCommittees(
+    term,
     db,
     new Set(committees.filter((item) => item.status !== "INACTIVE").map((item) => item.id)),
+    context.evaluatedAt,
   );
   const committeeName = new Map(committees.map((item) => [item.id, item.name]));
   const [occasions] = await db
@@ -159,12 +159,9 @@ export async function buildStanding(
       activeDays: item.activeDays,
     })),
     topCommittees: comites.map((item) => ({
+      ...item.row,
       rank: item.rank,
-      committeeId: item.row.committeeId,
       name: committeeName.get(item.row.committeeId) ?? "",
-      score: item.row.score,
-      rawScore: item.row.rawScore,
-      occasions: item.row.occasions,
     })),
     stats: {
       activeMembers: members.length,
@@ -174,6 +171,7 @@ export async function buildStanding(
       pointsAwarded: points?.total ?? 0,
       challengesCompleted: challengesDone?.n ?? 0,
       boostPoints: boost?.total ?? 0,
+      committeeRankingMetric: "COMBINED",
       gamerParticipants: gamers.length,
       gamerParticipations: gamers.reduce((sum, item) => sum + item.participations, 0),
       gamerPlayers: gamers.length,
@@ -236,14 +234,21 @@ export async function getTermStanding(termId: string): Promise<TermStandingView 
     return null;
   }
   const stats = standingStats
-    .catch({ activeMembers: 0, newMembers: 0, occasions: 0, checkIns: 0, pointsAwarded: 0 })
+    .catch({
+      activeMembers: 0,
+      newMembers: 0,
+      occasions: 0,
+      checkIns: 0,
+      pointsAwarded: 0,
+      committeeRankingMetric: "ATTENDANCE",
+    })
     .parse(row.stats);
   const gamerStats = gamerSnapshotStats.parse(row.stats);
   return {
     termId: row.termId,
     topNew: z.array(standingPerson).catch([]).parse(row.topNew),
     topVeteran: z.array(standingPerson).catch([]).parse(row.topVeteran),
-    topCommittees: z.array(standingCommittee).catch([]).parse(row.topCommittees),
+    topCommittees: storedCommitteeRanking(row.topCommittees),
     topGamer: z.array(standingGamer).catch([]).parse(row.topGamer),
     stats: { ...stats, ...gamerStats, gamerRankingMetric: storedGamerMetric(gamerStats) },
     createdAt: row.createdAt,

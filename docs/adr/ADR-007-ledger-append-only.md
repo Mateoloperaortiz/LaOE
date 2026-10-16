@@ -1,6 +1,6 @@
 # ADR-007: Ledger append-only por término
 
-- Estado: Aceptada (enmendada por ADR-041, ADR-078 y ADR-088, ADR-131)
+- Estado: Aceptada (enmendada por ADR-041, ADR-078 y ADR-088, ADR-131 y ADR-134)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-004, ADR-006, ADR-018
 
@@ -33,3 +33,7 @@ El tipo `PANAL` acredita exactamente 6 GH Points una vez por persona y día al a
 ## Enmienda (2026-10-14, ADR-131)
 
 El ledger sigue siendo append-only, pero su suma completa deja de representar el saldo de GH Points. La proyección GH excluye los créditos de los cuatro videojuegos y las reversiones de esas entradas; la historia de juegos se conserva y alimenta la competencia Más gamer por participaciones válidas deduplicadas. Los legados conservan su clasificación por origen identificable. Ver [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md).
+
+## Enmienda (2026-10-15, ADR-134)
+
+El origen nativo `COLOR` acredita de uno a seis puntos gamer al completar la primera partida válida del día, ligado a su partida con procedencia única. Sus entradas y reversiones siguen append-only y el bloqueo de término; no aportan GH Points. No se convierte ni recorta historia LEGACY. Ver [ADR-134](ADR-134-juegos-protagonista-y-color.md).

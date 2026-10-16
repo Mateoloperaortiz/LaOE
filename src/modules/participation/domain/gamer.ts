@@ -15,7 +15,15 @@ import type {
   GamerStanding,
 } from "../gamer-types";
 import { GAMER_GAMES } from "../gamer-types";
-import { game2048Run, panalGame, pointEntry, sudokuRun, termStanding, wordleGame } from "../schema";
+import {
+  colorRun,
+  game2048Run,
+  panalGame,
+  pointEntry,
+  sudokuRun,
+  termStanding,
+  wordleGame,
+} from "../schema";
 import { gamerStreak, rankGamer, uniqueGamerParticipations } from "./gamer-pure";
 import { gamerSnapshotStats, standingGamer, storedGamerMetric } from "./gamer-snapshot";
 import { getGamificationLaunch } from "./gamification-launch";
@@ -37,13 +45,14 @@ async function participationRows(
       termId: pointEntry.termId,
       points: pointEntry.points,
       game: sql<GamerGame>`case when ${pointEntry.kind}::text = 'LEGACY' then ${legacyGamerKind(pointEntry.legacyType)} else ${pointEntry.kind}::text end`,
-      day: sql<string>`coalesce(${wordleGame.day}, ${game2048Run.day}, ${sudokuRun.day}, ${panalGame.day}, (${pointEntry.createdAt} at time zone 'America/Bogota')::date)::text`,
+      day: sql<string>`coalesce(${wordleGame.day}, ${game2048Run.day}, ${sudokuRun.day}, ${panalGame.day}, ${colorRun.day}, (${pointEntry.createdAt} at time zone 'America/Bogota')::date)::text`,
     })
     .from(pointEntry)
     .leftJoin(wordleGame, eq(wordleGame.id, pointEntry.wordleGameId))
     .leftJoin(game2048Run, eq(game2048Run.id, pointEntry.game2048RunId))
     .leftJoin(sudokuRun, eq(sudokuRun.id, pointEntry.sudokuRunId))
     .leftJoin(panalGame, eq(panalGame.id, pointEntry.panalGameId))
+    .leftJoin(colorRun, eq(colorRun.id, pointEntry.colorRunId))
     .where(
       and(
         termId ? eq(pointEntry.termId, termId) : undefined,

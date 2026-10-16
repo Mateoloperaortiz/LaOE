@@ -11,7 +11,8 @@ export type PointEntryKind =
   | "GAME2048"
   | "SUDOKU"
   | "PANAL"
-  | "PRESENCE_STREAK";
+  | "PRESENCE_STREAK"
+  | "COLOR";
 export const POINT_ENTRY_KINDS = [
   "CHECKIN",
   "ADJUSTMENT",
@@ -27,6 +28,7 @@ export const POINT_ENTRY_KINDS = [
   "SUDOKU",
   "PANAL",
   "PRESENCE_STREAK",
+  "COLOR",
 ] as const satisfies readonly PointEntryKind[];
 
 export interface Level {

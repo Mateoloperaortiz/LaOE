@@ -5,6 +5,7 @@ import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import {
   closeTermPointsAs,
   getTermStanding,
+  rankCommittees,
   setGamificationEnabledAs,
 } from "@/modules/participation";
 import { adjustPointsAs, reverseEntryAs } from "@/modules/participation/domain/commands";
@@ -22,6 +23,8 @@ import { closeTermPoints, lockOpenTermPoints } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import {
+  seedCommittee,
+  seedCommitteeMembership,
   seedMembership,
   seedPanalGame,
   seedPerson,
@@ -182,17 +185,32 @@ describe("temporada gamer persistida", () => {
   it("reconoce el mismo origen legado que GH, con alias, espacios y minúsculas", async () => {
     const termId = await seedTerm("2026-2");
     const personId = await player(termId);
+    const committeeId = await seedCommittee("legado-comite");
+    await seedCommitteeMembership(personId, committeeId, termId);
     for (const kind of [" wordle ", "game2048", "2048", "sudoku", "panal"])
       await legacy(personId, termId, "2026-09-15", 1, kind);
     await legacy(personId, termId, "2026-09-15", 8, "TRIVIA");
     await legacy(personId, termId, "2026-09-15", 9, "EVIDENCE");
+    // COLOR es nuevo y nativo: ese nombre no amplía la allowlist legada de los cuatro juegos.
+    await legacy(personId, termId, "2026-09-15", 4, "Color");
     await legacy(personId, termId, "2026-09-15", -4, "WORDLE");
     expect(await getGamerProfile(personId, termId)).toMatchObject({
       participations: 4,
       activeDays: 1,
       points: 5,
     });
-    expect(await balanceFor(personId, termId)).toBe(17);
+    expect(await balanceFor(personId, termId)).toBe(21);
+    // El nuevo combinado separa estos orígenes incluso si el saldo personal conserva la era mixta.
+    await db().update(term).set({ gamePointsSeparated: false }).where(eq(term.id, termId));
+    expect(await balanceFor(personId, termId)).toBe(22);
+    expect((await rankCommittees(termId))[0]?.row).toMatchObject({ ghTotal: 21, ghAverage: 21 });
+    const removed = await legacy(personId, termId, "2026-09-16", 6, " WORDLE ");
+    await reverseEntryAs({ personId, ip: null }, removed, "Reversión gamer sintética");
+    expect((await rankCommittees(termId))[0]?.row.ghTotal).toBe(21);
+    const gh = await legacy(personId, termId, "2026-09-16", 8, "TRIVIA");
+    expect((await rankCommittees(termId))[0]?.row.ghTotal).toBe(29);
+    await reverseEntryAs({ personId, ip: null }, gh, "Reversión GH sintética");
+    expect((await rankCommittees(termId))[0]?.row.ghTotal).toBe(21);
   });
 
   it("incluye honorarios y limita los nombres públicos a diez mientras conserva el puesto propio", async () => {
