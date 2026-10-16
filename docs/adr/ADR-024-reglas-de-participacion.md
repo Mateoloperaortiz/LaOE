@@ -1,6 +1,6 @@
 # ADR-024: Reglas de participación confirmadas por la OE
 
-- Estado: Aceptada (enmendada por ADR-027 y ADR-028 en el punto 2, asambleas; por ADR-030 en el punto 6, egresados; por ADR-035 en la redacción del punto 2)
+- Estado: Aceptada (enmendada por ADR-027 y ADR-028 en el punto 2, asambleas; por ADR-030 en el punto 6, egresados; por ADR-035 en la redacción del punto 2 y ADR-136)
 - Fecha: 2026-09-02
 - Enmienda: ADR-006 (tipos de asamblea y código rotativo) y ADR-009 (suavizado del score)
 - Relacionadas: ADR-002, ADR-004, ADR-005, ADR-010, ADR-014
@@ -39,3 +39,7 @@ Los egresados no vuelven a entrar (pierden el correo institucional) y su perfil 
 ## Enmienda (2026-09-03, ADR-035)
 
 Redacción vigente del punto 2: se programan dos asambleas ordinarias por término, pero **una sola es obligatoria** (`assemblies.requiredOrdinary = 1`, ADR-028); en el segundo semestre se suman la elección de junta y su segunda vuelta si existe; tres asistencias dan el criterio del 10 % de permanencia. El requisito por persona se deriva del término y `AssemblyRequirement` guarda solo los ajustes. Ver [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md).
+
+## Enmienda (2026-10-16, ADR-136)
+
+La regla 4 conserva la fórmula de participación por ocasión y el aporte completo multicomité. Esa participación deja de resolver sola el ranking nuevo: se combina 50/50 con el promedio GH neto por integrante activo actual, normalizando ambas dimensiones de 0 a 100. No se adopta la fórmula futura 60/20/10/10 mencionada en el texto original. Ver [ADR-136](ADR-136-comites-promedio-gh-y-participacion.md).

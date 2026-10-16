@@ -22,13 +22,16 @@ import {
   pointEntry,
   termStanding,
 } from "@/modules/participation/schema";
+import { committeesResource } from "@/modules/people/admin";
 import { auditLog, outbox } from "@/modules/system/schema";
-import { closeTermPoints, getTerm } from "@/modules/terms";
+import { closeTermPoints, getTerm, lockOpenTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
+import { todayKey } from "@/shared/lib/dates";
 import {
   seedChallenge,
   seedCheckIn,
   seedCommittee,
+  seedCommitteeMembership,
   seedMember,
   seedOccasion,
   seedParticipation,
@@ -78,6 +81,8 @@ describe("cierre transaccional de participación", () => {
   it("espera un crédito en curso y lo incluye en el ranking y el total congelados", async () => {
     const termId = await seedTerm();
     const personId = await seedMember("cierre-credito@eafit.edu.co");
+    const committeeId = await seedCommittee("credito-en-curso");
+    await seedCommitteeMembership(personId, committeeId, termId);
     const held = await holdCommand(personId, (ctx) =>
       adjustPoints(ctx, { personId, termId, points: 6, reason: "Crédito sintético en curso" }),
     );
@@ -90,6 +95,16 @@ describe("cierre transaccional de participación", () => {
       const standing = await getTermStanding(termId);
       expect(standing?.stats.pointsAwarded).toBe(6);
       expect(standing?.topNew).toEqual([expect.objectContaining({ personId, total: 6, rank: 1 })]);
+      expect(standing?.topCommittees).toEqual([
+        expect.objectContaining({
+          committeeId,
+          rankingMetric: "COMBINED",
+          ghTotal: 6,
+          ghAverage: 6,
+          activeMembers: 1,
+          score: 0.5,
+        }),
+      ]);
       expect(await balanceFor(personId, termId)).toBe(6);
     } finally {
       held.release();
@@ -125,6 +140,37 @@ describe("cierre transaccional de participación", () => {
     } finally {
       held.release();
       await Promise.allSettled([held.done, late]);
+    }
+  });
+
+  it("excluye del cierre el comité desactivado mientras esperaba la barrera del término", async () => {
+    const termId = await seedTerm();
+    const personId = await seedMember("cierre-comite-carrera@example.test");
+    const committeeId = await seedCommittee("cierre-comite-carrera");
+    await seedCommitteeMembership(personId, committeeId, termId);
+    await adjustPointsAs(
+      { personId, ip: null },
+      { personId, termId, points: 10, reason: "GH sintético" },
+    );
+    const held = await holdCommand(personId, (ctx) => lockOpenTermPoints(ctx.tx, termId));
+    const closing = closeTermPointsAs({ personId, ip: null }, termId);
+    void closing.catch(() => undefined);
+    try {
+      await expect.poll(async () => (await blockedBy(held.pid)).length).toBeGreaterThan(0);
+      if (!committeesResource.update) throw new Error("No existe el comando público del comité");
+      await committeesResource.update({ personId, ip: null }, committeeId, {
+        slug: "cierre-comite-carrera",
+        name: "Comité desactivado sintético",
+        status: "INACTIVE",
+        deactivatedOn: todayKey(),
+        lifecycleReason: "Decisión sintética de la junta",
+      });
+      held.release();
+      await Promise.all([held.done, closing]);
+      expect((await getTermStanding(termId))?.topCommittees).toEqual([]);
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, closing]);
     }
   });
 

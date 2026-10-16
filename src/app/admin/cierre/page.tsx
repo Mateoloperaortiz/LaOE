@@ -169,7 +169,21 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
                 standing.topCommittees.map((item) => ({
                   rank: item.rank,
                   name: item.name,
-                  value: `${Math.round(item.score * 100)} %`,
+                  value:
+                    item.rankingMetric === "COMBINED"
+                      ? t("T-3575", {
+                          n: new Intl.NumberFormat("es-CO", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }).format(item.score * 100),
+                        })
+                      : t("T-3576", {
+                          porcentaje: new Intl.NumberFormat("es-CO", {
+                            style: "percent",
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }).format(item.score),
+                        }),
                 })),
               ],
               [

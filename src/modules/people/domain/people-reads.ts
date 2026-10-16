@@ -5,6 +5,7 @@ import type { Executor } from "@/db/tx";
 import { listEntityAuditFacts } from "@/modules/system";
 import {
   appointment,
+  committee,
   committeeMembership,
   membership,
   membershipEvent,
@@ -181,8 +182,12 @@ export interface TermCommitteeMember {
 }
 
 /** Pertenencias de un término con el estado de la membresía: los elegibles del score de comité (ADR-005, ADR-009). */
-export async function listTermCommitteeMembers(termId: string): Promise<TermCommitteeMember[]> {
-  return getDb()
+export async function listTermCommitteeMembers(
+  termId: string,
+  exec: Executor = getDb(),
+  options: { liveCommitteesOnly?: boolean } = {},
+): Promise<TermCommitteeMember[]> {
+  return exec
     .select({
       personId: committeeMembership.personId,
       committeeId: committeeMembership.committeeId,
@@ -192,7 +197,20 @@ export async function listTermCommitteeMembers(termId: string): Promise<TermComm
     })
     .from(committeeMembership)
     .innerJoin(membership, eq(membership.personId, committeeMembership.personId))
-    .where(eq(committeeMembership.termId, termId));
+    .where(
+      and(
+        eq(committeeMembership.termId, termId),
+        options.liveCommitteesOnly
+          ? inArray(
+              committeeMembership.committeeId,
+              exec
+                .select({ id: committee.id })
+                .from(committee)
+                .where(inArray(committee.status, ["ACTIVE", "ON_TRIAL"])),
+            )
+          : undefined,
+      ),
+    );
 }
 
 export interface MemberRef {

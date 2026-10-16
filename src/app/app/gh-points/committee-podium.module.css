@@ -25,6 +25,12 @@
   font-size: 0.875rem;
   text-align: center;
 }
+.weights {
+  margin-top: 0.375rem;
+  color: var(--color-oe-sky);
+  font-size: 0.75rem;
+  text-align: center;
+}
 .podium {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -166,6 +172,28 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+.dimensions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem 2rem;
+}
+.dimensions h5 {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.total {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--borde);
+  font-weight: 700;
+}
+.total dd {
+  font-variant-numeric: tabular-nums;
+}
 .note {
   margin-top: 0.875rem;
   color: var(--tinta-suave);
@@ -244,6 +272,9 @@
 }
 
 @container (max-width: 30rem) {
+  .dimensions {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .header {
     padding: 1.25rem 1rem;
   }

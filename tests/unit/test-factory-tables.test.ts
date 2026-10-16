@@ -45,7 +45,7 @@ const EXCEPTIONS: Exception[] = [
     target: "committeeParticipation",
     inserts: 1,
     reason:
-      "Son las fotos de participación de once comités sin miembros, con las tasas escritas a mano para comprobar porcentajes y puestos del podio: el recálculo las saca de las asistencias y no deja foto de un comité sin elegibles.",
+      "Son fotos históricas de participación con tasas y denominadores explícitos, distintas de la población actual de un integrante por comité: el recálculo actual no reproduce esa historia y la prueba necesita conservarla para contrastar los componentes y puestos del podio.",
   },
   {
     path: "tests/e2e/database.ts",

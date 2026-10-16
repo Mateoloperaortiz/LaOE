@@ -113,17 +113,44 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
       maximumFractionDigits: 2,
       signDisplay: "exceptZero",
     });
+    const decimal = new Intl.NumberFormat("es-CO", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
     committeeBoard = ranked.slice(0, 10).map((item) => {
       // La precisión visible coincide con la usada por el dominio para asignar los puestos.
       const raw = Math.round(item.row.rawScore * 10_000);
+      const attendance = Math.round(item.row.attendanceScore * 10_000);
+      const combined = item.row.rankingMetric === "COMBINED";
       return {
         id: item.row.committeeId,
         rank: item.rank,
-        name: names.get(item.row.committeeId) ?? "",
-        score: percentage.format(item.total / 10_000),
+        name: item.row.name ?? names.get(item.row.committeeId) ?? "",
+        rankingMetric: item.row.rankingMetric,
+        score: combined ? decimal.format(item.total / 100) : percentage.format(item.total / 10_000),
         rawScore: percentage.format(raw / 10_000),
-        adjustment: t("T-2609", { n: difference.format((item.total - raw) / 100) }),
+        attendanceScore: percentage.format(attendance / 10_000),
+        adjustment: t("T-2609", { n: difference.format((attendance - raw) / 100) }),
         occasions: item.row.occasions,
+        ghAverage: item.row.ghAverage === null ? null : decimal.format(item.row.ghAverage),
+        ghTotal: item.row.ghTotal === null ? null : decimal.format(item.row.ghTotal),
+        activeMembers: item.row.activeMembers,
+        ghNormalized:
+          item.row.ghNormalized === null ? null : decimal.format(item.row.ghNormalized * 100),
+        attendanceNormalized:
+          item.row.attendanceNormalized === null
+            ? null
+            : decimal.format(item.row.attendanceNormalized * 100),
+        ghContribution:
+          item.row.ghNormalized === null || item.row.policy === null
+            ? null
+            : decimal.format(item.row.ghNormalized * item.row.policy.ghWeight * 100),
+        attendanceContribution:
+          item.row.attendanceNormalized === null || item.row.policy === null
+            ? null
+            : decimal.format(
+                item.row.attendanceNormalized * item.row.policy.attendanceWeight * 100,
+              ),
       };
     });
   } else {

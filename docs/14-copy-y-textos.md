@@ -3058,3 +3058,25 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3552 | Gamer: identidad propia en el podio | Vos | MATEO | Aprobado |
 | T-3553 | Gamer: participación singular de un cierre histórico | {n} participación | MATEO | Aprobado |
 | T-3554 | Gamer: participaciones de un cierre histórico | {n} participaciones | MATEO | Aprobado |
+| T-3555 | Comités: indicador combinado | Puntaje combinado · Sobre 100 | MATEO | Aprobado |
+| T-3556 | Comités: acción accesible con puntaje combinado | Ver detalle de {comité}, puesto {puesto}, puntaje combinado {puntaje} sobre 100 | MATEO | Aprobado |
+| T-3557 | Comités: resultado combinado | Puntaje combinado | MATEO | Aprobado |
+| T-3558 | Comités: pesos del ranking | 50% GH Points · 50% participación ajustada | MATEO | Aprobado |
+| T-3559 | Comités: promedio GH por activo | Promedio GH por integrante activo | MATEO | Aprobado |
+| T-3560 | Comités: integrantes del promedio | Integrantes activos | MATEO | Aprobado |
+| T-3561 | Comités: saldo GH de los activos | Total GH de integrantes activos | MATEO | Aprobado |
+| T-3562 | Comités: asistencia real ajustada | Participación ajustada | MATEO | Aprobado |
+| T-3563 | Comités: dimensión normalizada | Resultado normalizado · Sobre 100 | MATEO | Aprobado |
+| T-3564 | Comités: aporte ponderado | Aporte al combinado · Sobre 50 | MATEO | Aprobado |
+| T-3565 | Comités: puntaje con escala | {n} / 100 | MATEO | Aprobado |
+| T-3566 | Comités: fórmula combinada | El puesto combina por mitades el promedio de GH Points por integrante activo y la participación ajustada. Cada dimensión se lleva a una escala de 0 a 100 respecto al mejor comité; después se suma la mitad de cada resultado. | MATEO | Aprobado |
+| T-3567 | Comités: promedio y saldos | El promedio GH divide el saldo total de los integrantes activos entre todos los activos del comité, incluidos quienes tienen saldo cero. Los puntos de Juegos quedan por fuera. Un promedio negativo se muestra tal cual, pero su aporte al ranking tiene piso cero. Si ninguna cifra de una dimensión es positiva, esa dimensión aporta cero para todos. | MATEO | Aprobado |
+| T-3568 | Comités: dimensión GH | GH Points · 50% | MATEO | Aprobado |
+| T-3569 | Comités: dimensión de asistencia | Participación · 50% | MATEO | Aprobado |
+| T-3570 | Comités: pertenencia vigente | El saldo GH acompaña al integrante en sus comités actuales del semestre. Si pertenece a varios, cuenta completo en cada uno. | MATEO | Aprobado |
+| T-3571 | Comités: elegibilidad y empates | Compiten los comités con integrantes activos. La participación usa actividades cerradas con GH Points, ajustadas por tamaño; todas pesan igual. El mismo puntaje combinado comparte puesto. | MATEO | Aprobado |
+| T-3572 | Comités: criterio histórico conservado | Este cierre conserva su ranking por participación ajustada. No se recalcula con el criterio combinado ni incluye un promedio GH histórico. | MATEO | Aprobado |
+| T-3573 | Comités: columnas del ranking combinado | Comité · Puntaje combinado / 100 · Promedio GH por activo · Integrantes activos · Participación ajustada | MATEO | Aprobado |
+| T-3574 | Comités: dato no guardado | Dato no disponible | MATEO | Aprobado |
+| T-3575 | Comités: resultado combinado de cierre | Puntaje combinado: {n} / 100 | MATEO | Aprobado |
+| T-3576 | Comités: resultado histórico de cierre | Participación ajustada: {porcentaje} | MATEO | Aprobado |

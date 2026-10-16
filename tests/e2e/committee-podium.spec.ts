@@ -2,11 +2,22 @@ import { mkdir } from "node:fs/promises";
 import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { adjustPointsAs } from "@/modules/participation";
 import { committeeParticipation } from "@/modules/participation/schema";
+import { listAllCommittees } from "@/modules/people";
+import { committeesResource } from "@/modules/people/admin";
 import { committee } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
-import { seedCommittee, seedOccasion, seedTerm } from "../factories";
+import { todayKey } from "@/shared/lib/dates";
+import {
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMember,
+  seedOccasion,
+  seedTerm,
+  seedTermStanding,
+} from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -14,11 +25,24 @@ import { test } from "./fixtures";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
-// Snapshots sintéticos para comprobar porcentajes y puestos en la página real.
+// Hechos sintéticos de asistencia y población: la página real calcula el índice combinado.
 async function seedRanking(scores: number[]) {
   const db = getDb();
   const [current] = await db.select().from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("sin término sintético");
+  const actorId = await seedMember("podio-admin@example.test");
+  // Los comités del baseline tienen sus propios saldos GH. Esta matriz usa su población sintética.
+  for (const existing of await listAllCommittees()) {
+    if (existing.status === "INACTIVE") continue;
+    if (!committeesResource.update) throw new Error("Falta el comando administrativo del comité");
+    await committeesResource.update({ personId: actorId, ip: null }, existing.id, {
+      slug: existing.slug,
+      name: existing.name,
+      status: "INACTIVE",
+      deactivatedOn: todayKey(),
+      lifecycleReason: "Aislamiento de población sintética del podio",
+    });
+  }
   await db.delete(committeeParticipation).where(eq(committeeParticipation.termId, current.id));
   const names = [
     "ALFA",
@@ -38,7 +62,9 @@ async function seedRanking(scores: number[]) {
     const name = names[i];
     if (!name) throw new Error("faltan nombres sintéticos para el ranking");
     const id = await seedCommittee(`e2e-podium-${i}`, name, { publicationStatus: "DRAFT" });
-    committees.push({ id, name, score });
+    const personId = await seedMember(`comite-${i}@example.test`);
+    await seedCommitteeMembership(personId, id, current.id);
+    committees.push({ id, name, score, personId });
   }
   for (const index of [0, 1, 2]) {
     const startsAt = new Date(`${current.startsOn}T12:00:00-05:00`);
@@ -67,7 +93,7 @@ async function seedRanking(scores: number[]) {
   return { current, committees };
 }
 
-test("porcentajes calculados del semestre, top diez, detalle por teclado y cambio de semestre", async ({
+test("índice combinado del semestre, top diez, detalle por teclado y cambio de semestre", async ({
   page,
 }) => {
   const { current } = await seedRanking([
@@ -75,13 +101,19 @@ test("porcentajes calculados del semestre, top diez, detalle por teclado y cambi
   ]);
   await page.goto(`/app/gh-points?tablero=comites&semestre=${current.id}`);
   const podium = page.getByRole("region", { name: t("T-2600"), exact: true });
-  await expect(podium.getByRole("button", { name: copyPattern("T-2603") })).toHaveCount(10);
+  await expect(podium.getByRole("button", { name: copyPattern("T-3556") })).toHaveCount(10);
   const first = podium.getByRole("group", { name: t("T-2604", { n: 1 }), exact: true });
   const second = podium.getByRole("group", { name: t("T-2604", { n: 2 }), exact: true });
   const third = podium.getByRole("group", { name: t("T-2604", { n: 3 }), exact: true });
-  await expect(first).toContainText(/4,18\s*%/);
-  await expect(second).toContainText(/1,43\s*%/);
-  await expect(third).toContainText(/1,27\s*%/);
+  await expect(first.getByRole("button")).toHaveAccessibleName(
+    t("T-3556", { comité: "ALFA", puesto: 1, puntaje: "50,00" }),
+  );
+  await expect(second.getByRole("button")).toHaveAccessibleName(
+    t("T-3556", { comité: "BETA", puesto: 2, puntaje: "17,11" }),
+  );
+  await expect(third.getByRole("button")).toHaveAccessibleName(
+    t("T-3556", { comité: "GAMMA", puesto: 3, puntaje: "15,19" }),
+  );
   const [one, two, three] = await Promise.all([
     first.boundingBox(),
     second.boundingBox(),
@@ -99,17 +131,21 @@ test("porcentajes calculados del semestre, top diez, detalle por teclado y cambi
   const detail = podium.getByRole("region", { name: t("T-2606", { comité: "ALFA", puesto: 1 }) });
   await expect(detail).toContainText(/4,30\s*%/);
   await expect(detail).toContainText(copyPattern("T-2609", { n: "-0,12" }));
-  await expect(detail.locator("dd").last()).toHaveText("2");
+  await expect(detail.getByText(t("T-3560"), { exact: true }).locator("+ dd")).toHaveText("1");
+  await expect(detail.getByText(t("T-3559"), { exact: true }).locator("+ dd")).toHaveText("0,00");
+  await expect(detail.getByText(t("T-3562"), { exact: true }).locator("+ dd")).toHaveText(
+    /4,18\s*%/,
+  );
   await detail.getByRole("button", { name: t("T-2607") }).click();
   await expect(trigger).toBeFocused();
   await expect(detail).toBeHidden();
-  await podium.getByRole("button", { name: copyPattern("T-2603", { comité: "DELTA" }) }).click();
+  await podium.getByRole("button", { name: copyPattern("T-3556", { comité: "DELTA" }) }).click();
   await expect(
     podium.getByRole("heading", { name: t("T-2606", { comité: "DELTA", puesto: 4 }) }),
   ).toBeFocused();
   await podium.getByText(t("T-2612"), { exact: true }).click();
-  await expect(podium.getByText(copyPattern("T-2614"))).toBeVisible();
-  const last = podium.getByRole("button", { name: copyPattern("T-2603", { comité: "KAPPA" }) });
+  await expect(podium.getByText(t("T-3571"), { exact: true })).toBeVisible();
+  const last = podium.getByRole("button", { name: copyPattern("T-3556", { comité: "KAPPA" }) });
   await last.click();
   await podium.getByRole("button", { name: t("T-2607") }).click();
   await expect(last).toBeFocused();
@@ -153,22 +189,91 @@ test("empates en el mismo escalón y un único grupo con nombres extensos", asyn
   await expect(podium.getByRole("list")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await sinViolaciones(page);
+  if (process.env.PODIUM_REVIEW_DIR) {
+    await mkdir(process.env.PODIUM_REVIEW_DIR, { recursive: true });
+    await podium.screenshot({
+      path: `${process.env.PODIUM_REVIEW_DIR}/empates.png`,
+      animations: "disabled",
+    });
+  }
+  const historical = await seedTerm("1901-1");
+  await getDb().update(term).set({ pointsClosedAt: new Date() }).where(eq(term.id, historical));
+  const firstCommittee = committees[0];
+  if (!firstCommittee) throw new Error("falta comité histórico");
+  await seedTermStanding({
+    termId: historical,
+    topNew: [],
+    topVeteran: [],
+    topCommittees: [
+      {
+        rank: 1,
+        committeeId: firstCommittee.id,
+        name: "Nombre congelado sintético",
+        score: 0.0903,
+        rawScore: 0.1,
+        occasions: 2,
+      },
+    ],
+    stats: { activeMembers: 1, newMembers: 0, occasions: 2, checkIns: 0, pointsAwarded: 0 },
+  });
+  await page.goto(`/app/gh-points?tablero=comites&semestre=${historical}`);
+  await podium.getByText(t("T-2612"), { exact: true }).click();
+  await expect(podium.getByText(t("T-3572"), { exact: true })).toBeVisible();
+  await podium
+    .getByRole("button", {
+      name: t("T-2603", {
+        comité: "Nombre congelado sintético",
+        puesto: 1,
+        porcentaje: new Intl.NumberFormat("es-CO", {
+          style: "percent",
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(0.0903),
+      }),
+    })
+    .click();
+  await expect(podium.getByText(t("T-3559"), { exact: true })).toHaveCount(0);
+  await expect(podium.getByText(t("T-3555"), { exact: true })).toHaveCount(0);
+  if (process.env.PODIUM_REVIEW_DIR) {
+    await podium.screenshot({
+      path: `${process.env.PODIUM_REVIEW_DIR}/historico.png`,
+      animations: "disabled",
+    });
+  }
 });
 
-test("podio legible en escritorio, celular, tema oscuro y texto ampliado", async ({ page }) => {
-  await seedRanking([
-    0.0418, 0.0224, 0.0143, 0.0127, 0.0116, 0.0107, 0.0096, 0.0076, 0.0067, 0.0056,
-  ]);
+test("GH cambia el puesto con asistencia igual y el detalle es legible en ambos temas y tamaños", async ({
+  page,
+}) => {
+  const { current, committees } = await seedRanking([0.4, 0.4, 0.4]);
   await page.goto("/app/gh-points?tablero=comites");
-  await page.evaluate(() => document.fonts.ready);
   const podium = page.getByRole("region", { name: t("T-2600"), exact: true });
+  await expect(
+    podium.getByRole("group", { name: t("T-2604", { n: 1 }), exact: true }).getByRole("button"),
+  ).toHaveCount(3);
+  for (const [index, points] of [30, 60].entries()) {
+    const member = committees[index];
+    if (!member) throw new Error("falta integrante del comité");
+    await adjustPointsAs(
+      { personId: member.personId, ip: null },
+      { personId: member.personId, termId: current.id, points, reason: "Aporte GH sintético" },
+    );
+  }
+  await page.reload();
+  await expect(
+    podium.getByRole("group", { name: t("T-2604", { n: 1 }), exact: true }).getByRole("button"),
+  ).toHaveAccessibleName(t("T-3556", { comité: "BETA", puesto: 1, puntaje: "100,00" }));
+  await expect(
+    podium.getByRole("group", { name: t("T-2604", { n: 2 }), exact: true }).getByRole("button"),
+  ).toHaveAccessibleName(t("T-3556", { comité: "ALFA", puesto: 2, puntaje: "75,00" }));
+  await page.evaluate(() => document.fonts.ready);
   const directory = process.env.PODIUM_REVIEW_DIR;
   if (directory) await mkdir(directory, { recursive: true });
   for (const [width, theme, scale, name] of [
-    [1440, "light", "100%", "desktop"],
-    [390, "light", "100%", "mobile"],
-    [320, "dark", "100%", "mobile-dark"],
-    [390, "light", "200%", "large-text"],
+    [1280, "light", "100%", "desktop-light"],
+    [1280, "dark", "100%", "desktop-dark"],
+    [360, "light", "100%", "mobile-light"],
+    [360, "dark", "100%", "mobile-dark"],
   ] as const) {
     await page.setViewportSize({ width, height: 1000 });
     await page.evaluate(
@@ -197,5 +302,21 @@ test("podio legible en escritorio, celular, tema oscuro y texto ampliado", async
         style: "[data-review-overlay] { visibility: hidden !important; }",
       });
     }
+    await podium.getByRole("button", { name: copyPattern("T-3556", { comité: "ALFA" }) }).click();
+    const detail = podium.getByRole("region", { name: t("T-2606", { comité: "ALFA", puesto: 2 }) });
+    await expect(detail.getByText(t("T-3559"), { exact: true }).locator("+ dd")).toHaveText(
+      "30,00",
+    );
+    await expect(detail.getByText(t("T-3562"), { exact: true }).locator("+ dd")).toHaveText(
+      /40,00\s*%/,
+    );
+    await sinViolaciones(page);
+    if (directory)
+      await podium.screenshot({
+        path: `${directory}/${name}-detalle.png`,
+        animations: "disabled",
+        style: "[data-review-overlay] { visibility: hidden !important; }",
+      });
+    await detail.getByRole("button", { name: t("T-2607") }).click();
   }
 });
