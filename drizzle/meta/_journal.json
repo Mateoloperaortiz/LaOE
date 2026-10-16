@@ -407,6 +407,13 @@
       "when": 1792096172418,
       "tag": "0057_color_memoria_y_puntos",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1792183520131,
+      "tag": "0058_aviso_presencial_24h",
+      "breakpoints": true
     }
   ]
 }

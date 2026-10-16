@@ -58,7 +58,7 @@ import {
   workGroupEvaluator,
   workGroupMembership,
 } from "@/modules/permanence/schema";
-import { appConfig, legacyAlias } from "@/modules/system/schema";
+import { appConfig, auditLog, legacyAlias } from "@/modules/system/schema";
 import { conventionalTermDates } from "@/modules/terms";
 import { pointSeparationPolicy, term } from "@/modules/terms/schema";
 import { walletPass } from "@/modules/wallet/schema";
@@ -71,6 +71,11 @@ import { TEST_POLICY_VERSION } from "./policy-version";
 // `tests/integration` ni de `tests/e2e`, para que las dos suites puedan compartirlas.
 
 const db = () => getDb();
+
+/** Evidencia sintética fechada para reconstruir publicaciones y otras historias auditadas. */
+export async function seedAuditFact(input: typeof auditLog.$inferInsert): Promise<void> {
+  await db().insert(auditLog).values(input);
+}
 
 /** El código del término que contiene hoy en Bogotá, con fechas por semestre calendario. */
 export function currentTermCode(): string {

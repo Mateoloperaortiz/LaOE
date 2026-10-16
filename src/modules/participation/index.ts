@@ -187,6 +187,7 @@ export {
   searchOccasions,
 } from "./domain/occasions";
 export { getTodayPanal, listPanalGamesFor, startPanalAs, submitPanalWordAs } from "./domain/panal";
+export { activatePresenceNotice24hAs } from "./domain/presence-notice-policy";
 export { getPresenceStreak } from "./domain/presence-streak";
 export { isPublicId } from "./domain/public-id-pure";
 export { peopleBoards, rankCommittees } from "./domain/rankings";

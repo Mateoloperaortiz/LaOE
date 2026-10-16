@@ -2957,7 +2957,7 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3442 | GH: semanas | {n} semanas | MATEO | Aprobado |
 | T-3443 | GH: semana cumplida | Ya cumpliste esta semana. | MATEO | Aprobado |
 | T-3444 | GH: semana pendiente | Esta semana sigue pendiente. Todavía tenés tiempo para asistir. | MATEO | Aprobado |
-| T-3445 | GH: semana pausada | Tu racha está en pausa esta semana; no tenías actividades disponibles o tenés una licencia o excusa aprobada. | MATEO | Aprobado |
+| T-3445 | GH: semana pausada | Tu racha está en pausa esta semana. Conservás las semanas cumplidas, sin sumar una semana ni un bono por la pausa. | MATEO | Aprobado |
 | T-3446 | GH: semana incumplida | Esta semana terminó sin asistencia. La próxima vez empezás una racha nueva. | MATEO | Aprobado |
 | T-3447 | GH: bono semana | Bono de esta semana: {n} GH Points. | MATEO | Aprobado |
 | T-3448 | GH: bono siguiente | Tu próxima semana cumplida puede sumar {n} GH Points de constancia. | MATEO | Aprobado |
@@ -2980,6 +2980,13 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3467 | Gamer: día pendiente antes del lanzamiento | Podés sumar hasta cinco participaciones hoy, una por cada juego que alcance su mínimo. | MATEO | Aprobado |
 | T-3468 | Gamer: cinco participaciones del día | Ya cumpliste tu participación en los cinco juegos de hoy. Las metas pendientes del Panal todavía pueden sumar puntos gamer. | MATEO | Aprobado |
 | T-3469 | GH: cierre sin foto de constancia | La constancia presencial no quedó registrada en este cierre histórico. Tus GH Points y las clasificaciones se conservan. | MATEO | Aprobado |
+| T-3470 | GH: pausa por publicación tardía | Se registraron actividades publicadas después de empezar la semana. Una asistencia aprobada puede cumplirla; no asistir a esas actividades no rompe tu racha. | MATEO | Aprobado |
+| T-3471 | GH: pausa por licencia | La licencia registrada para esta semana protege tu racha. | MATEO | Aprobado |
+| T-3472 | GH: pausa por excusa | Tenés una excusa aprobada para una actividad de esta semana; esa actividad no rompe tu racha. | MATEO | Aprobado |
+| T-3473 | GH: pausa sin actividades habilitadas registradas | No hay actividades presenciales habilitadas registradas para esta semana. | MATEO | Aprobado |
+| T-3474 | GH: pausa sin historia suficiente | No hay información histórica suficiente para determinar a qué actividades podías asistir esta semana. La falta de ese registro no rompe tu racha. | MATEO | Aprobado |
+| T-3475 | GH: pausa sin motivo guardado | El motivo de esta pausa no quedó registrado. | MATEO | Aprobado |
+| T-3476 | GH: pausa por aviso menor a 24 horas | Se registraron actividades que no tuvieron 24 horas de aviso antes de empezar. Una asistencia aprobada puede cumplir la semana; no asistir a esas actividades no rompe tu racha. | MATEO | Aprobado |
 | T-3477 | Gamer: puntos de la clasificación | Puntos gamer | MATEO | Aprobado |
 | T-3478 | Gamer: importe singular | {n} punto gamer | MATEO | Aprobado |
 | T-3479 | Gamer: importe plural | {n} puntos gamer | MATEO | Aprobado |

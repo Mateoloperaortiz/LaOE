@@ -8,7 +8,7 @@ import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
 // Lo que el vaciado de la base de pruebas deja entre una prueba y la siguiente (spec #244, ADR-124):
-// cada tabla de `public` sin filas y los cinco catálogos de migración como en la foto que tomó la
+// cada tabla de `public` sin filas y los catálogos de migración como en la foto que tomó la
 // preparación de la suite. Nació como caracterización del vaciado anterior (DT-030 y DT-149 inciso e):
 // las celdas que fijaban que una prueba le heredaba la configuración o un cargo a la siguiente
 // cambiaron con #300 y llevan «DT-149 e» en el título.
@@ -16,7 +16,13 @@ import { truncateAll } from "./db";
 // Los catálogos que llenan las migraciones y vuelven a su foto. Las migraciones también llenan `page`
 // y `event`, y esas quedan vacías.
 const ROLE_CATALOGS = ["committee_role", "macroevent_role"];
-const CATALOGS = ["app_config", "badge_definition", ...ROLE_CATALOGS, "point_separation_policy"];
+const CATALOGS = [
+  "app_config",
+  "badge_definition",
+  ...ROLE_CATALOGS,
+  "point_separation_policy",
+  "presence_notice_policy",
+];
 
 // Dónde deja la preparación de la suite la foto de los catálogos (ADR-124 regla 2): escrito acá y no
 // leído del vaciado.

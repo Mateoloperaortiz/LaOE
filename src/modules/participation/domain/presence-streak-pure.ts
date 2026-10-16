@@ -1,5 +1,5 @@
 import { APP_TIME_ZONE, addDays, atHourIn } from "@/shared/lib/dates-pure";
-import type { PresenceStreak, PresenceWeek } from "../presence-types";
+import type { PresencePauseReason, PresenceStreak, PresenceWeek } from "../presence-types";
 import { dayKeyFor, weekKeyFor } from "./gamification-pure";
 
 type MembershipStatus = "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE";
@@ -44,17 +44,23 @@ function onLeaveDuring(member: PresenceMemberHistory, from: Date, to: Date): boo
 
 /**
  * Reconstrucción determinista: las semanas sin oportunidades pausan, el día de aprobación no
- * participa y la semana corriente no se pierde antes de terminar. La agenda punitiva es la que ya
- * estaba publicada al empezar la semana (o al ingresar); un evento tardío solo puede mejorarla.
+ * participa y la semana corriente no se pierde antes de terminar. Desde la vigencia de ADR-132,
+ * omitir exige publicación demostrada al menos 24 h antes del inicio; las actividades anteriores
+ * conservan el corte de comienzo de semana (o ingreso). Una aprobación siempre puede cumplirla.
  */
 export function presenceStreakFromFacts(input: {
   term: { id: string; startsOn: string; endsOn: string };
   member: PresenceMemberHistory | null;
   occasions: readonly PresenceOccasionFact[];
   launchedAt: Date | null;
+  notice24hEffectiveAt?: Date | null;
   now: Date;
 }): PresenceStreak {
   const { term, member, occasions, launchedAt, now } = input;
+  const uses24hNotice = (row: PresenceOccasionFact) =>
+    input.notice24hEffectiveAt !== null &&
+    input.notice24hEffectiveAt !== undefined &&
+    row.startsAt >= input.notice24hEffectiveAt;
   const today = dayKeyFor(now);
   const weekKey = weekKeyFor(now);
   const weeks: PresenceWeek[] = [];
@@ -71,6 +77,8 @@ export function presenceStreakFromFacts(input: {
     const from = atHourIn(APP_TIME_ZONE, key, 0);
     const to = atHourIn(APP_TIME_ZONE, addDays(key, 7), 0);
     const cutoff = new Date(Math.max(from.getTime(), start.getTime(), joinedAt.getTime()));
+    const publicationDeadline = (row: PresenceOccasionFact) =>
+      uses24hNotice(row) ? new Date(row.startsAt.getTime() - 24 * 60 * 60 * 1000) : cutoff;
     const facts = occasions.filter(
       (row) =>
         row.startsAt >= from &&
@@ -86,15 +94,12 @@ export function presenceStreakFromFacts(input: {
         row.startsAt <= now &&
         (!member || statusAt(member, row.startsAt) !== "ON_LEAVE"),
     );
-    const opportunities = member
+    const eligible = member
       ? facts.filter((row) => {
           const status = statusAt(member, row.startsAt);
           return (
             (status === "ACTIVE" || status === "HONORARY") &&
             row.startsAt >= joinedAt &&
-            row.checkInStatus !== "EXCUSED" &&
-            row.openedAt !== null &&
-            row.openedAt <= cutoff &&
             (!row.newMembersOnly || member.firstTermId === term.id) &&
             (!row.committeeId ||
               member.committees.some(
@@ -106,6 +111,15 @@ export function presenceStreakFromFacts(input: {
           );
         })
       : [];
+    // Tener oferta no equivale a poder perder la semana por no asistir: una publicación tardía
+    // permite cumplir, pero conserva la protección. Se mantienen separados para explicar la pausa.
+    const opportunities = eligible.filter(
+      (row) =>
+        row.checkInStatus !== "EXCUSED" &&
+        row.openedAt !== null &&
+        row.openedAt <= publicationDeadline(row) &&
+        (!uses24hNotice(row) || row.openedAt <= now),
+    );
     let status: PresenceWeek["status"];
     let bonus = 0;
     if (approved.length > 0) {
@@ -122,7 +136,43 @@ export function presenceStreakFromFacts(input: {
       status = "MISSED";
       currentStreak = 0;
     }
-    weeks.push({ weekKey: key, status, streak: currentStreak, bonus });
+    const pauseReasons: PresencePauseReason[] = [];
+    if (status === "PAUSED") {
+      if (member && onLeaveDuring(member, from, to)) pauseReasons.push("ON_LEAVE");
+      if (eligible.some((row) => row.checkInStatus === "EXCUSED")) pauseReasons.push("EXCUSED");
+      const unexcused = eligible.filter((row) => row.checkInStatus !== "EXCUSED");
+      if (
+        unexcused.some(
+          (row) =>
+            !uses24hNotice(row) &&
+            row.openedAt !== null &&
+            row.openedAt > cutoff &&
+            row.openedAt <= now,
+        )
+      ) {
+        pauseReasons.push("LATE_PUBLICATION");
+      }
+      if (
+        unexcused.some(
+          (row) =>
+            uses24hNotice(row) &&
+            row.openedAt !== null &&
+            row.openedAt > publicationDeadline(row) &&
+            row.openedAt <= now,
+        )
+      ) {
+        pauseReasons.push("SHORT_NOTICE");
+      }
+      if (unexcused.some((row) => row.openedAt === null || row.openedAt > now)) {
+        pauseReasons.push("INSUFFICIENT_HISTORY");
+      }
+      if (pauseReasons.length === 0) {
+        // Sin hechos de la semana podemos afirmar que no hay actividades registradas. Si existen
+        // hechos pero no se demuestra su elegibilidad/publicación, no se inventa ausencia de oferta.
+        pauseReasons.push(facts.length === 0 ? "NO_RECORDED_ACTIVITIES" : "INSUFFICIENT_HISTORY");
+      }
+    }
+    weeks.push({ weekKey: key, status, streak: currentStreak, bonus, pauseReasons });
   }
   const current = weeks.find((row) => row.weekKey === weekKey) ?? weeks.at(-1);
   return {
@@ -135,5 +185,6 @@ export function presenceStreakFromFacts(input: {
     bonus: current?.bonus ?? 0,
     nextBonus: presenceBonusFor(currentStreak + 1),
     weeks,
+    weekPauseReasons: current?.pauseReasons ?? [],
   };
 }
