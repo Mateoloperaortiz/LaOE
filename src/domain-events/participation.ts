@@ -27,7 +27,7 @@ export const checkinPartial = defineEvent(
   "checkin.partial",
   checkInFacts.extend({
     attendanceExtent: z.literal("PARTIAL"),
-    attendanceList: z.enum(["FIRST", "SECOND"]),
+    attendanceList: z.string().min(1),
   }),
 );
 export const checkinPending = defineEvent("checkin.pending", checkInFacts);

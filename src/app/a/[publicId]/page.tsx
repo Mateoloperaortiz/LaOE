@@ -66,10 +66,10 @@ function existingView(existing: CheckInRow): View {
     (existing.status === "APPROVED" || existing.status === "EXCUSED")
   ) {
     const lists = tLabels("T-3579", ATTENDANCE_LISTS);
-    const lista = existing.attendanceList ? lists[existing.attendanceList] : "";
+    const listLabel = existing.attendanceList ? lists[existing.attendanceList] : "";
     return {
       kind: "message",
-      text: t(existing.status === "EXCUSED" ? "T-3585" : "T-3583", { lista }),
+      text: t(existing.status === "EXCUSED" ? "T-3585" : "T-3583", { lista: listLabel }),
     };
   }
   switch (existing.status) {

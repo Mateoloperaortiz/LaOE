@@ -101,6 +101,28 @@ describe("eventOf, onEvent y onEvents", () => {
 });
 
 describe("contratos de participation y de comms", () => {
+  it("una lista nueva conserva el hecho de asistencia parcial sin mandar el evento a dead letter", async () => {
+    const { checkinPartial } = await import("@/domain-events/participation");
+    const payload = {
+      occasionId: "o1",
+      occasionTitle: "Asamblea sintética",
+      personId: "p1",
+      termId: "t1",
+      category: "OTHER",
+      kind: "ASSEMBLY",
+      points: 0,
+      source: "ADMIN",
+      attendanceExtent: "PARTIAL",
+      attendanceList: "THIRD",
+    };
+    const seen: unknown[] = [];
+    onEvent(checkinPartial, async (received) => {
+      seen.push(received);
+    });
+    await getHandlers(checkinPartial.type)[0]?.(payload, jobContext);
+    expect(seen).toEqual([payload]);
+  });
+
   it("un logro puede no tener término ni traer booster", async () => {
     const { badgeUnlocked } = await import("@/domain-events/participation");
     const base = {
