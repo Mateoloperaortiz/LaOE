@@ -6,6 +6,7 @@ import {
   checkinApproved,
   checkinCancelled,
   checkinExcused,
+  checkinPartial,
   checkinPending,
   scoreRecompute,
 } from "@/domain-events/participation";
@@ -15,11 +16,14 @@ import { checkIn } from "../schema";
 import { type BoosterRow, setBoosterTarget } from "./boosters";
 import { applyPresentialCheckIn } from "./challenge-participation";
 import {
+  type AttendanceExtent,
+  type AttendanceList,
   CHECK_IN_STATUSES,
   type CheckInSource,
   type CheckInStatus,
   canCancelWithOccasion,
   canTransitionCheckIn,
+  isCompleteAttendance,
 } from "./check-in-pure";
 import { applyCheckInBoost, type CheckInBoostOutcome } from "./checkin-boost";
 import { creditCheckIn, reverseCheckInCredit } from "./ledger";
@@ -169,6 +173,8 @@ export interface CheckInChange {
    * manda la excusa, y es el que dice su evento. Sin él, el evento lleva el origen de la fila.
    */
   source?: CheckInSource | undefined;
+  attendanceExtent?: AttendanceExtent | undefined;
+  attendanceList?: AttendanceList | null | undefined;
   /** El motivo ya limpio, como queda en la fila, la auditoría y el evento. */
   reason?: string | null | undefined;
   /** Booster que la persona elige en su propio registro (ADR-067 regla 7). */
@@ -186,7 +192,7 @@ export interface CheckInChange {
 function admits(from: CheckInStatus, change: CheckInChange): boolean {
   return change.occasionCancelled
     ? change.to === "CANCELLED" && canCancelWithOccasion(from)
-    : canTransitionCheckIn(from, change.to);
+    : canTransitionCheckIn(from, change.to, change.current?.attendanceExtent);
 }
 
 /**
@@ -216,10 +222,20 @@ export async function transitionCheckIn(
   }
   const row = current
     ? await rewrite(ctx, current, to, reason, now)
-    : await insert(ctx, { occasion, personId, to, source, reason, now });
+    : await insert(ctx, {
+        occasion,
+        personId,
+        to,
+        source,
+        reason,
+        attendanceExtent: to === "EXCUSED" ? null : (change.attendanceExtent ?? "FULL"),
+        attendanceList: change.attendanceList ?? null,
+        now,
+      });
+  const approvedPartial = to === "APPROVED" && row.attendanceExtent === "PARTIAL";
 
   let reversed = 0;
-  if (effects.ledger === "CREDIT") {
+  if (effects.ledger === "CREDIT" && isCompleteAttendance(row)) {
     await creditCheckIn(ctx, {
       checkInId: row.id,
       personId,
@@ -240,7 +256,14 @@ export async function transitionCheckIn(
       action: "checkin.created",
       entityType: "check_in",
       entityId: row.id,
-      after: { occasionId: occasion.id, personId, status: to, source },
+      after: {
+        occasionId: occasion.id,
+        personId,
+        status: to,
+        source,
+        attendanceExtent: row.attendanceExtent,
+        attendanceList: row.attendanceList,
+      },
     });
   } else {
     if (!effects.action) {
@@ -255,10 +278,19 @@ export async function transitionCheckIn(
     });
   }
 
-  if (effects.event) {
+  if (approvedPartial) {
+    if (row.attendanceList === null) throw new Error("Una parcial necesita su toma de asistencia");
+    await ctx.emit(
+      eventOf(checkinPartial, {
+        ...checkInEventPayload(occasion, personId, source),
+        attendanceExtent: "PARTIAL",
+        attendanceList: row.attendanceList,
+      }),
+    );
+  } else if (effects.event) {
     await ctx.emit(effects.event(checkInEventPayload(occasion, personId, source), reason));
   }
-  if (effects.recompute && occasion.points > 0) {
+  if (!approvedPartial && effects.recompute && occasion.points > 0) {
     await ctx.emit(
       eventOf(scoreRecompute, { occasionId: occasion.id }, { dedupeKey: `score:${occasion.id}` }),
     );
@@ -295,7 +327,7 @@ export async function transitionCheckIn(
 
   // ADR-119 regla 4: el booster de la ocasión se resuelve antes que el reto presencial. La que
   // nace excusada no tenía nada reservado y no pasa por los ganchos.
-  if (current || to !== "EXCUSED") {
+  if (!approvedPartial && (current || to !== "EXCUSED")) {
     const own = effects.hookReasons?.(occasion);
     const hookReason = own ? own.reason : reason;
     await applyCheckInBoost(
@@ -318,7 +350,7 @@ export async function transitionCheckIn(
   }
   // Una excusa sigue siendo admisible después del cierre (ADR-116). Su evento concilia en una
   // transacción posterior solo si los puntos siguen abiertos, sin invertir asistencia→término.
-  if (to === "APPROVED" || to === "CANCELLED") {
+  if ((!approvedPartial && to === "APPROVED") || to === "CANCELLED") {
     await reconcilePresenceBonuses(ctx, personId, occasion.termId, now);
   }
   return row;
@@ -331,11 +363,29 @@ async function rewrite(
   reason: string | null,
   now: Date,
 ): Promise<CheckInRow> {
+  const attendanceExtent =
+    to === "EXCUSED" && current.attendanceExtent !== "PARTIAL" ? null : current.attendanceExtent;
+  const attendanceList = attendanceExtent === "PARTIAL" ? current.attendanceList : null;
   await ctx.tx
     .update(checkIn)
-    .set({ status: to, decidedById: ctx.actor.personId, decidedAt: now, reason })
+    .set({
+      status: to,
+      decidedById: ctx.actor.personId,
+      decidedAt: now,
+      reason,
+      attendanceExtent,
+      attendanceList,
+    })
     .where(eq(checkIn.id, current.id));
-  return { ...current, status: to };
+  return {
+    ...current,
+    status: to,
+    decidedById: ctx.actor.personId,
+    decidedAt: now,
+    reason,
+    attendanceExtent,
+    attendanceList,
+  };
 }
 
 async function insert(
@@ -346,6 +396,8 @@ async function insert(
     to: CheckInStatus;
     source: CheckInSource;
     reason: string | null;
+    attendanceExtent: AttendanceExtent | null;
+    attendanceList: AttendanceList | null;
     now: Date;
   },
 ): Promise<CheckInRow> {
@@ -363,6 +415,8 @@ async function insert(
         decidedById: born.source === "SELF_QR" ? null : ctx.actor.personId,
         decidedAt: born.to === "PENDING" ? null : born.now,
         reason: born.reason,
+        attendanceExtent: born.attendanceExtent,
+        attendanceList: born.attendanceList,
       })
       .returning();
     if (!created) {

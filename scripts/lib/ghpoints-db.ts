@@ -2,7 +2,7 @@ import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Executor, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
-import { checkinApproved, scoreRecompute } from "@/domain-events/participation";
+import { checkinApproved, checkinPartial, scoreRecompute } from "@/domain-events/participation";
 import {
   evaluationRecorded,
   permanenceRecompute,
@@ -97,6 +97,8 @@ export async function readGhSnapshot(
           occasion_id: checkIn.occasionId,
           person_id: checkIn.personId,
           status: checkIn.status,
+          attendance_extent: checkIn.attendanceExtent,
+          attendance_list: checkIn.attendanceList,
         })
         .from(checkIn)
         .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
@@ -322,15 +324,27 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
       }
       for (const row of rows) {
         if (!row.personId) throw new GhImportError("Asistencia sin persona");
+        if (row.attendanceExtent === "PARTIAL" && !row.attendanceList)
+          throw new GhImportError("La asistencia parcial necesita la lista acreditada");
         const participant = activity.participants.find((p) => p.recordId === row.recordId);
+        const primaryEvidence = participant?.attendanceEvidence?.[0];
+        const sourceKey = primaryEvidence?.sourceKey ?? activity.sourceKey;
         const evidence = {
           importJobId: job.id,
-          sourceKey: activity.sourceKey,
-          fileKey: options.evidenceKeys[activity.sourceKey],
-          sourceRow: participant?.sourceRow,
-          sourceSheet: activity.sourceSheet ?? null,
+          sourceKey,
+          fileKey: options.evidenceKeys[sourceKey],
+          sourceRow: primaryEvidence?.sourceRow ?? participant?.sourceRow,
+          sourceSheet: primaryEvidence
+            ? (primaryEvidence.sourceSheet ?? null)
+            : (activity.sourceSheet ?? null),
           recordId: row.recordId,
           datePrecision: "DAY",
+          attendanceExtent: row.attendanceExtent,
+          attendanceList: row.attendanceList,
+          attendanceEvidence: participant?.attendanceEvidence?.map((reference) => ({
+            ...reference,
+            fileKey: options.evidenceKeys[reference.sourceKey],
+          })),
         };
         if (row.action === "ADD") {
           const [created] = await ctx.tx
@@ -340,6 +354,8 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
               personId: row.personId,
               source: "IMPORT",
               status: "APPROVED",
+              attendanceExtent: row.attendanceExtent,
+              attendanceList: row.attendanceList,
               at: window.startsAt,
               decidedAt: now,
               decidedById: options.actorId,
@@ -348,31 +364,39 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
             })
             .returning({ id: checkIn.id });
           if (!created) throw new GhImportError("No se creó la asistencia");
-          await creditCheckIn(ctx, {
-            checkInId: created.id,
-            personId: row.personId,
-            termId: plan.termId,
-            points: row.points,
-            reason: activity.title,
-          });
+          if (row.attendanceExtent === "FULL")
+            await creditCheckIn(ctx, {
+              checkInId: created.id,
+              personId: row.personId,
+              termId: plan.termId,
+              points: row.points,
+              reason: activity.title,
+            });
           await ctx.audit({
             action: "checkin.imported",
             entityType: "check_in",
             entityId: created.id,
             after: { ...evidence, personId: row.personId, occasionId, points: row.points },
           });
-          await ctx.emit(
-            eventOf(checkinApproved, {
-              personId: row.personId,
-              occasionId,
-              occasionTitle: activity.title,
-              termId: plan.termId,
-              category: categoryFor(activity.type),
-              kind: kindFor(activity.type),
-              points: row.points,
-              source: "IMPORT",
-            }),
-          );
+          const facts = {
+            personId: row.personId,
+            occasionId,
+            occasionTitle: activity.title,
+            termId: plan.termId,
+            category: categoryFor(activity.type),
+            kind: kindFor(activity.type),
+            points: row.points,
+            source: "IMPORT",
+          };
+          if (row.attendanceExtent === "PARTIAL" && row.attendanceList)
+            await ctx.emit(
+              eventOf(checkinPartial, {
+                ...facts,
+                attendanceExtent: "PARTIAL",
+                attendanceList: row.attendanceList,
+              }),
+            );
+          else await ctx.emit(eventOf(checkinApproved, facts));
         }
         const ref = evidenceGroup(activity);
         if (ref && row.evidenceAction !== "NONE") {
@@ -453,7 +477,7 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
           }
         }
       }
-      if (rows.some((r) => r.action === "ADD"))
+      if (rows.some((r) => r.action === "ADD" && r.attendanceExtent === "FULL"))
         await ctx.emit(
           eventOf(scoreRecompute, { occasionId }, { dedupeKey: `score:${occasionId}` }),
         );

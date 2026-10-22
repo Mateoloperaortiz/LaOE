@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { checkIn, committeeParticipation, occasion } from "../schema";
+import { approvedCompleteAttendanceCondition } from "./attendance-query";
 import { meanRate, rawRate, round4, smoothedRate } from "./ledger-pure";
 
 // Score de comité por ocasión (ADR-009, ADR-024, ADR-035 regla 11). Corre por outbox con clave por
@@ -61,7 +62,7 @@ export async function recomputeOccasionScore(
     const approved = await tx
       .select({ personId: checkIn.personId })
       .from(checkIn)
-      .where(and(eq(checkIn.occasionId, occasionId), eq(checkIn.status, "APPROVED")));
+      .where(and(eq(checkIn.occasionId, occasionId), approvedCompleteAttendanceCondition()));
     const present = new Set(approved.map((item) => item.personId));
     const existing = await tx
       .select()

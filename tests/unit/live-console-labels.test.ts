@@ -6,7 +6,7 @@ import { labelsFromProps } from "@/shared/copy/client";
 
 // Las etiquetas que la consola en vivo de una ocasión recibe por props (ADR-126 regla 5). Antes
 // recibía las listas T-596 y T-597 y las leía con dos órdenes propios; ahora recibe la etiqueta de
-// cada valor. Lo que no cambia es qué nombra: las cuatro fuentes y cuatro de los cinco estados.
+// cada valor. Nombra las cuatro fuentes y los cinco estados, incluida una excusa aceptada.
 // Como la tabla de enum-label-pairs, compara con posiciones literales de la lista.
 
 describe("las etiquetas que la consola en vivo recibe por props", () => {
@@ -30,14 +30,15 @@ describe("las etiquetas que la consola en vivo recibe por props", () => {
       APPROVED: list[1],
       REJECTED: list[2],
       CANCELLED: list[3],
+      EXCUSED: list[4],
     });
   });
 
-  it("no traen EXCUSED: una asistencia excusada sigue mostrando su código en la consola (DT-364, decisión abierta 75)", () => {
+  it("una asistencia excusada lleva su etiqueta conocida", () => {
     const statuses = labelsFromProps(liveConsoleLabels().statuses);
 
     expect(CHECK_IN_STATUSES).toContain("EXCUSED");
-    expect(statuses.EXCUSED ?? "EXCUSED").toBe("EXCUSED");
+    expect(statuses.EXCUSED ?? "EXCUSED").toBe(tList("T-597")[4]);
   });
 
   it("son objetos llanos, los únicos que React deja pasar a un componente de cliente", () => {

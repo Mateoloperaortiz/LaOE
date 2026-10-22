@@ -2,15 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { single } from "@/app/_lib/search";
+import { listExcuseStates } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import {
+  ATTENDANCE_LISTS,
   BOOSTER_KINDS,
   type BoosterKind,
   type BoosterView,
   type CheckInRow,
+  canRequestExcuse,
   findCheckIn,
   getOccasion,
   getOccasionByPublicId,
+  isCompleteAttendance,
   isPublicId,
   isVoluntaryOccasion,
   listBoostersFor,
@@ -20,6 +24,7 @@ import {
   type SelfCheckInFacts,
   selfCheckInEligibilityDenial,
 } from "@/modules/participation";
+import { excuseCell } from "@/modules/participation/admin";
 import { getMembershipRef } from "@/modules/people";
 import { resolveAlias } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
@@ -56,6 +61,17 @@ type View =
   | { kind: "form"; needsCode: boolean; codeError: string | null; boosterError: string | null };
 
 function existingView(existing: CheckInRow): View {
+  if (
+    existing.attendanceExtent === "PARTIAL" &&
+    (existing.status === "APPROVED" || existing.status === "EXCUSED")
+  ) {
+    const lists = tLabels("T-3579", ATTENDANCE_LISTS);
+    const listLabel = existing.attendanceList ? lists[existing.attendanceList] : "";
+    return {
+      kind: "message",
+      text: t(existing.status === "EXCUSED" ? "T-3585" : "T-3583", { lista: listLabel }),
+    };
+  }
   switch (existing.status) {
     case "PENDING":
       return { kind: "message", text: t("T-094") };
@@ -63,6 +79,8 @@ function existingView(existing: CheckInRow): View {
       return { kind: "message", text: t("T-532") };
     case "CANCELLED":
       return { kind: "message", text: t("T-533", { motivo: existing.reason ?? "—" }) };
+    case "EXCUSED":
+      return { kind: "message", text: `${t("T-3580")} · ${t("T-3581")}: ${excuseCell(existing)}` };
     default:
       return { kind: "message", text: t("T-095") };
   }
@@ -79,6 +97,7 @@ function resultView(
   points: number,
 ): View | null {
   const success = SUCCESS_VIEWS[result];
+  if (success?.status === "APPROVED" && existing && !isCompleteAttendance(existing)) return null;
   return success && existing?.status === success.status ? success.view(points) : null;
 }
 
@@ -199,6 +218,16 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
     getTerm(row.termId),
   ]);
   const now = new Date();
+  const excuseState =
+    existing?.attendanceExtent === "PARTIAL"
+      ? (await listExcuseStates({ personId: actor.personId })).find(
+          (item) => item.occasionId === row.id,
+        )
+      : undefined;
+  const offerExcuse =
+    existing?.attendanceExtent === "PARTIAL" &&
+    canRequestExcuse(existing) &&
+    excuseState?.status !== "PENDING";
   const fresh = claimed ? resultView(claimed, existing, row.points) : null;
   // Un resultado de éxito que la fila no respalda no cuenta para nada de lo que sigue.
   const result = claimed && SUCCESS_VIEWS[claimed] && !fresh ? null : claimed;
@@ -263,7 +292,13 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
           ) : null}
           <div className="flex gap-2">
             <dt className="shrink-0 font-semibold">{puntosLabel}</dt>
-            <dd>{row.points > 0 ? t("T-529", { n: row.points }) : t("T-530")}</dd>
+            <dd>
+              {existing?.attendanceExtent === "PARTIAL" || existing?.status === "EXCUSED"
+                ? t("T-3598")
+                : row.points > 0
+                  ? t("T-529", { n: row.points })
+                  : t("T-530")}
+            </dd>
           </div>
         </dl>
         <div className="mt-8 flex flex-col items-start gap-4" aria-live="polite">
@@ -274,6 +309,23 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
               <p className="max-w-prose text-xl font-semibold" data-resultado={result ?? "estado"}>
                 {view.text}
               </p>
+              {existing?.attendanceExtent === "PARTIAL" ? (
+                <>
+                  <p className="text-base">
+                    {t("T-3581")}: {excuseCell(existing, excuseState?.status)}
+                  </p>
+                  <Link
+                    href={
+                      offerExcuse
+                        ? `/app/solicitudes?tipo=excusa&ocasion=${encodeURIComponent(row.id)}`
+                        : "/app/solicitudes#solicitudes"
+                    }
+                    className="boton-primario"
+                  >
+                    {t(offerExcuse ? "T-3584" : "T-3589")}
+                  </Link>
+                </>
+              ) : null}
               {applied ? (
                 <p className="text-base font-semibold">
                   {t("T-2462", { booster: boosterName(applied.kind) })}

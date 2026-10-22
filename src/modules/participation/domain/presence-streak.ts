@@ -79,6 +79,7 @@ async function readPresenceStreak(
       committeeId: occasion.committeeId,
       newMembersOnly: occasion.newMembersOnly,
       checkInStatus: checkIn.status,
+      attendanceExtent: checkIn.attendanceExtent,
     })
     .from(occasion)
     .leftJoin(checkIn, and(eq(checkIn.occasionId, occasion.id), eq(checkIn.personId, personId)))

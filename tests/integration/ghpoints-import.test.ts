@@ -1,7 +1,14 @@
 import { eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { runCommand } from "@/db/tx";
 import { pushPointsCredited } from "@/modules/comms/domain/events";
+import {
+  excuseCheckIn,
+  findCheckIn,
+  listTermAssemblies,
+  loadGamificationSettings,
+} from "@/modules/participation";
 import * as ledger from "@/modules/participation/domain/ledger";
 import { checkIn, occasion, pointEntry } from "@/modules/participation/schema";
 import { membership } from "@/modules/people/schema";
@@ -68,6 +75,150 @@ const opts = (hash: string, skipBlocked = false) => ({
 });
 
 describe("importación administrativa de GH Points", () => {
+  it("importa completas y parciales por separado, conserva ambas fuentes y permite reintentar", async () => {
+    const otherId = await seedPerson("other@example.test");
+    await seedMembership(otherId, termId);
+    const base = first(m.activities);
+    m.sources.push({ key: "SECOND", path: "second.xlsx", sha256: "1".repeat(64) });
+    m.activities = [
+      {
+        ...base,
+        type: "ASAMBLEA",
+        assemblyKind: "ORDINARY",
+        newMembersOnly: false,
+        endDate: base.date,
+        participants: [
+          {
+            recordId: "PARTIAL-RECORD",
+            email: "person@example.test",
+            sourceRow: 7,
+            attendanceExtent: "PARTIAL",
+            attendanceEvidence: [
+              { list: "SECOND", sourceKey: "SECOND", sourceSheet: "Segunda", sourceRow: 7 },
+            ],
+          },
+          {
+            recordId: "FULL-RECORD",
+            email: "other@example.test",
+            sourceRow: 8,
+            attendanceExtent: "FULL",
+            attendanceEvidence: [
+              { list: "FIRST", sourceKey: "SOURCE", sourceSheet: "Primera", sourceRow: 8 },
+              { list: "SECOND", sourceKey: "SECOND", sourceSheet: "Segunda", sourceRow: 9 },
+            ],
+          },
+        ],
+      },
+    ];
+    const preview = await previewGhImport(m, "test");
+    expect(preview.summary).toMatchObject({
+      rowsToAdd: 2,
+      fullToAdd: 1,
+      partialToAdd: 1,
+      pointsToAdd: 0,
+    });
+    const options = {
+      ...opts(preview.planHash),
+      evidenceKeys: { SOURCE: "imports/test/source.txt", SECOND: "imports/test/second.xlsx" },
+    };
+    await applyGhImport(m, options);
+    const assembly = first(await listTermAssemblies(termId));
+    expect(await findCheckIn(assembly.id, personId)).toMatchObject({
+      status: "APPROVED",
+      attendanceExtent: "PARTIAL",
+      attendanceList: "SECOND",
+    });
+    expect(await findCheckIn(assembly.id, otherId)).toMatchObject({
+      status: "APPROVED",
+      attendanceExtent: "FULL",
+      attendanceList: null,
+    });
+    const audit = await getDb()
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, "checkin.imported"));
+    expect(audit.map((row) => row.after)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          personId,
+          attendanceExtent: "PARTIAL",
+          attendanceList: "SECOND",
+          attendanceEvidence: [
+            {
+              list: "SECOND",
+              sourceKey: "SECOND",
+              sourceSheet: "Segunda",
+              sourceRow: 7,
+              fileKey: "imports/test/second.xlsx",
+            },
+          ],
+        }),
+        expect.objectContaining({
+          personId: otherId,
+          attendanceExtent: "FULL",
+          attendanceList: null,
+          attendanceEvidence: [
+            {
+              list: "FIRST",
+              sourceKey: "SOURCE",
+              sourceSheet: "Primera",
+              sourceRow: 8,
+              fileKey: "imports/test/source.txt",
+            },
+            {
+              list: "SECOND",
+              sourceKey: "SECOND",
+              sourceSheet: "Segunda",
+              sourceRow: 9,
+              fileKey: "imports/test/second.xlsx",
+            },
+          ],
+        }),
+      ]),
+    );
+    const events = await getDb()
+      .select()
+      .from(outbox)
+      .where(eq(outbox.eventType, "checkin.approved"));
+    expect(events.map((row) => row.payload)).toEqual([
+      expect.objectContaining({ personId: otherId, kind: "ASSEMBLY", source: "IMPORT", points: 0 }),
+    ]);
+    const partials = await getDb()
+      .select()
+      .from(outbox)
+      .where(eq(outbox.eventType, "checkin.partial"));
+    expect(partials.map((row) => row.payload)).toEqual([
+      expect.objectContaining({ personId, attendanceExtent: "PARTIAL", attendanceList: "SECOND" }),
+    ]);
+    expect(await getDb().select().from(pointEntry)).toHaveLength(0);
+    const recheck = await previewGhImport(m, "test");
+    expect(recheck.summary).toMatchObject({ rowsToAdd: 0, rowsExisting: 2, rowsBlocked: 0 });
+    expect((await applyGhImport(m, { ...options, planHash: recheck.planHash })).applied).toBe(
+      false,
+    );
+    expect(await listTermAssemblies(termId)).toHaveLength(1);
+    const settings = await loadGamificationSettings();
+    await runCommand({ personId: actorId, ip: null }, (ctx) =>
+      excuseCheckIn(
+        ctx,
+        { occasionId: assembly.id, personId, reason: "Excusa sintética aceptada" },
+        { settings },
+      ),
+    );
+    const excused = await findCheckIn(assembly.id, personId);
+    expect(excused).toMatchObject({
+      status: "EXCUSED",
+      attendanceExtent: "PARTIAL",
+      attendanceList: "SECOND",
+      reason: "Excusa sintética aceptada",
+    });
+    const afterExcuse = await previewGhImport(m, "test");
+    expect(afterExcuse.summary).toMatchObject({ rowsExisting: 2, rowsToAdd: 0, rowsBlocked: 0 });
+    expect((await applyGhImport(m, { ...options, planHash: afterExcuse.planHash })).applied).toBe(
+      false,
+    );
+    expect(await findCheckIn(assembly.id, personId)).toEqual(excused);
+  });
   it("tres asambleas aportan 10% sin créditos, conservan hoja/fila y se pueden reconsultar sin duplicar", async () => {
     await getDb()
       .update(membership)

@@ -4,6 +4,25 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Asistencia parcial y excusa por separado (ADR-137) · `en curso`
+
+- [x] Registrar presencia completa/parcial y toma de asistencia, separadas de la solicitud de excusa ([ADR-137](adr/ADR-137-asistencia-parcial-y-excusa-separadas.md)).
+- [x] Agregar la migración histórica sin inventar presencia en las excusas y aplicar una regla de asistencia completa en todos sus efectos.
+- [x] Permitir justificar una parcial sin perder su presencia ni la lista acreditada; mostrar asistencia y excusa por separado en consola y Mi OE.
+- [x] Extender la importación con evidencia de ambas listas, vista previa separada e idempotencia que preserve excusas.
+- [x] Verificar dominio, importación, consola y recorrido completo del miembro; completar `npm run check` y revisión.
+- [x] Preparar y auditar el lote privado de 198 completas y 83 parciales, con correo propio y evidencia de las fuentes para las 281 personas.
+- [ ] Publicar el cambio por CI, verificar staging y promover el mismo SHA a producción, con esquema y procesos comprobados.
+- [ ] Conciliar fichas y membresías en el destino, revisar el plan y aplicar la carga real; verificar las 198 completas y 83 parciales sin importar excusas.
+
+La carga real sigue pendiente: conciliar término, asamblea, fichas y membresías en el destino, generar el manifiesto y revisar su plan. El lote privado conserva las fuentes fuera del repositorio; no se importaron excusas ni se aplicó la carga.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-22 | Cierre de revisión para publicación | Revisión independiente de reglas y alcance cerrada sin hallazgos pendientes. Corregidos un identificador y el contrato del evento: la lista viaja como texto compatible con valores futuros (ADR-084), mientras el productor admite FIRST/SECOND. Prueba nueva observada en rojo y verde; `npm run check` final **exit 0** con 2.603 unitarias, 2.020 integraciones, 11 Python y build. [PR 374](https://github.com/Mateoloperaortiz/LaOE/pull/374) abierto; publicación y conciliación productiva en curso. |
+| 2026-10-22 | Entrega local verificada | Presencia completa/parcial y lista separadas de la excusa; parcial excusada conserva su evidencia, sin acreditar asistencia completa ni beneficios. Importación mixta con referencias verificadas, plan separado e idempotencia. `npm run check` **exit 0**: 2.602 unitarias en 196 archivos, 2.020 integraciones en 221 archivos, 11 Python y build de 90 rutas estáticas. E2E de regresión **16/16** (14 escenarios y dos sesiones); confirmación final de parcial **4/4** (dos recorridos y dos sesiones), con rechazo, corrección, aprobación tardía, axe y límite de ancho móvil. QA de consola 1280/390 y miembro 390 aprobado; revisión cruzada sin hallazgos pendientes. Lote privado auditado: 198 completas, 41 parciales de Lista 1 y 42 de Lista 2, 281 correos propios únicos, las dos fuentes intactas y todas sus filas trazables. Preparación lista; destino, manifiesto ejecutable, carga y despliegue pendientes. |
+| 2026-10-22 | Decisión y alcance | El usuario confirmó completa en ambas listas y parcial en una sola, con excusa independiente. Acordó pruebas de registro/consulta, excusas, importación, consola y recorrido completo del miembro. Implementación y validación en curso; sin carga ni despliegue. |
+
 ## Comités por promedio GH y participación (ADR-136) · `en curso`
 
 - [x] Registrar promedio por integrante activo actual, combinación 50/50 normalizada y reglas de población/correcciones/historia ([ADR-136](adr/ADR-136-comites-promedio-gh-y-participacion.md)).

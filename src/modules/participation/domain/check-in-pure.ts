@@ -7,6 +7,29 @@ import { type OccasionStatus, windowState } from "./occasion-pure";
 export type CheckInStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "EXCUSED";
 export type CheckInSource = "SELF_QR" | "HOST" | "ADMIN" | "IMPORT";
 export type CheckInDecision = "APPROVE" | "REJECT" | "CANCEL";
+export type AttendanceExtent = "FULL" | "PARTIAL";
+export type AttendanceList = "FIRST" | "SECOND";
+
+export const ATTENDANCE_EXTENTS = ["FULL", "PARTIAL"] as const;
+export const ATTENDANCE_LISTS = ["FIRST", "SECOND"] as const;
+
+type AttendanceFact = {
+  status: CheckInStatus;
+  attendanceExtent?: AttendanceExtent | null;
+};
+
+/** La aprobación valida el registro; solo la presencia completa acredita la asistencia. */
+export function isCompleteAttendance(fact: AttendanceFact): boolean {
+  return (
+    fact.status === "APPROVED" &&
+    (fact.attendanceExtent === undefined || fact.attendanceExtent === "FULL")
+  );
+}
+
+/** La excusa justifica lo que faltó: una parcial sigue siendo excusable aunque esté aprobada. */
+export function canRequestExcuse(existing: AttendanceFact | null | undefined): boolean {
+  return !existing || (existing.status !== "EXCUSED" && !isCompleteAttendance(existing));
+}
 
 export const CHECK_IN_STATUSES = [
   "PENDING",
@@ -30,7 +53,12 @@ const TRANSITIONS: Record<CheckInStatus, readonly CheckInStatus[]> = {
   EXCUSED: [],
 };
 
-export function canTransitionCheckIn(from: CheckInStatus, to: CheckInStatus): boolean {
+export function canTransitionCheckIn(
+  from: CheckInStatus,
+  to: CheckInStatus,
+  attendanceExtent?: AttendanceExtent | null,
+): boolean {
+  if (from === "APPROVED" && to === "EXCUSED" && attendanceExtent === "PARTIAL") return true;
   return TRANSITIONS[from].includes(to);
 }
 

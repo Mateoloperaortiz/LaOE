@@ -42,6 +42,16 @@ const state = (
   });
 
 describe("constancia presencial por semana", () => {
+  it("una asistencia parcial no completa la semana ni entrega el bono presencial", () => {
+    const partial = { ...occasion("2026-09-15"), attendanceExtent: "PARTIAL" as const };
+    const result = state([occasion("2026-09-08"), partial, occasion("2026-09-22")]);
+    expect(result.weeks.slice(0, 3).map((week) => [week.status, week.streak, week.bonus])).toEqual([
+      ["COMPLETED", 1, 0],
+      ["MISSED", 0, 0],
+      ["COMPLETED", 1, 0],
+    ]);
+  });
+
   it("reconoce una sola semana y un solo bono aunque haya varias asistencias", () => {
     const result = state([
       occasion("2026-09-08"),

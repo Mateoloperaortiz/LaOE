@@ -70,6 +70,7 @@ function labels(): TimelineLabels {
   return {
     texts: tList("T-458"),
     participationTexts: tList("T-667"),
+    partialAttendanceText: t("T-3595"),
     boosterNames: tLabels("T-2451", BOOSTER_KINDS),
     permanenceTexts: tList("T-832"),
     crmTexts: tList("T-1046"),

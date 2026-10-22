@@ -22,6 +22,7 @@ import {
   occasion,
   wordleGame,
 } from "../schema";
+import { approvedCompleteAttendanceCondition } from "./attendance-query";
 import { grantBoosterForAchievement } from "./boosters";
 import { isVoluntaryOccasion } from "./gamification-pure";
 
@@ -75,7 +76,7 @@ export async function badgeFactsFor(
     })
     .from(checkIn)
     .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
-    .where(and(eq(checkIn.personId, personId), eq(checkIn.status, "APPROVED")))
+    .where(and(eq(checkIn.personId, personId), approvedCompleteAttendanceCondition()))
     .orderBy(asc(checkIn.at));
   const enParche: BadgeFact[] = [];
   const explorador: BadgeFact[] = [];
@@ -450,7 +451,7 @@ export async function createSpecialBadge(
       const attendees = await ctx.tx
         .select({ personId: checkIn.personId })
         .from(checkIn)
-        .where(and(eq(checkIn.occasionId, linked.id), eq(checkIn.status, "APPROVED")));
+        .where(and(eq(checkIn.occasionId, linked.id), approvedCompleteAttendanceCondition()));
       await awardSpecialBadge(
         ctx,
         row.id,
@@ -609,7 +610,7 @@ export async function awardSpecialBadgesForOccasion(occasionId: string): Promise
     const attendees = await ctx.tx
       .select({ personId: checkIn.personId })
       .from(checkIn)
-      .where(and(eq(checkIn.occasionId, occasionId), eq(checkIn.status, "APPROVED")));
+      .where(and(eq(checkIn.occasionId, occasionId), approvedCompleteAttendanceCondition()));
     let awarded = 0;
     for (const badge of specials) {
       awarded += await awardSpecialBadge(

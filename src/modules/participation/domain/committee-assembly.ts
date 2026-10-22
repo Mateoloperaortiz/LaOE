@@ -1,4 +1,4 @@
-import { and, eq, inArray, notInArray } from "drizzle-orm";
+import { and, eq, notInArray, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   listCommitteesForSelection,
@@ -9,6 +9,7 @@ import {
   type RepresentativeView,
 } from "@/modules/people";
 import { checkIn, committeeAssemblyAttendance, occasion } from "../schema";
+import { approvedCompleteAttendanceCondition } from "./attendance-query";
 
 // Asistencia de los comités a la Asamblea Directiva (Est. art. 16.2, 33.3 y 34.3; Regl. art. 14, 17 y
 // 64; ADR-060 regla 7): dato derivado por asamblea cerrada y la escalera de consecuencias del término.
@@ -56,7 +57,10 @@ export async function recomputeCommitteeAssembly(occasionId: string): Promise<nu
       .select({ personId: checkIn.personId, status: checkIn.status })
       .from(checkIn)
       .where(
-        and(eq(checkIn.occasionId, occasionId), inArray(checkIn.status, ["APPROVED", "EXCUSED"])),
+        and(
+          eq(checkIn.occasionId, occasionId),
+          or(approvedCompleteAttendanceCondition(), eq(checkIn.status, "EXCUSED")),
+        ),
       ),
     listLiveCommitteeIds(),
   ]);

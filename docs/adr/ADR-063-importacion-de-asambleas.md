@@ -1,6 +1,6 @@
 # ADR-063: Importación de asistencias a asambleas
 
-- Estado: Implementada y verificada en producción; 400 asistencias cargadas y diez reservadas por instrucción de GH
+- Estado: Implementada y verificada en producción; 400 asistencias cargadas y diez reservadas por instrucción de GH; enmendada por ADR-137
 - Fecha: 2026-09-14
 - Relacionadas: ADR-024, ADR-028, ADR-035, ADR-036, ADR-060, ADR-062
 - Enmienda: ADR-062 (asambleas sin crédito y procedencia por hoja)
@@ -26,3 +26,7 @@ No cambia el esquema de la base ni se crea una pantalla de importación. Las asa
 ## Verificación productiva · 2026-09-14
 
 [PR 26](https://github.com/Mateoloperaortiz/LaOE/pull/26), versión `af58b9990bcc3f72cbdadfa9a5778fa6a622bb75`, publicada con CI y smoke en staging y producción. Importación `czwh3bv146xic194kjo8sjp4`: 400 asistencias aprobadas de 217 personas, cinco asambleas ordinarias, cero puntos y cero entradas de ledger. Reconsulta con 400 existentes y cero altas; exactamente diez registros excluidos. El 10% coincide para 48 personas evaluables y nueve personas conservan su exención. Auditoría por archivo/hoja/fila, dos objetos privados verificados y datos previos intactos. Detalle operativo en [el runbook](../15-runbook.md#carga-parcial-de-asambleas--2026-09-14).
+
+## Enmienda (2026-10-22, ADR-137)
+
+La presencia completa o parcial y su toma se conservan por separado de la solicitud de excusa. Solo una completa aprobada acredita asistencia; una parcial puede justificarse sin perder su evidencia. La importación, las lecturas y los efectos aplican esa distinción. Ver [ADR-137](ADR-137-asistencia-parcial-y-excusa-separadas.md).

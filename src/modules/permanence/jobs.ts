@@ -6,6 +6,7 @@ import {
   checkinApproved,
   checkinCancelled,
   checkinExcused,
+  checkinPartial,
   occasionClosed,
   termPointsClosed,
 } from "@/domain-events/participation";
@@ -48,9 +49,12 @@ onEvent(permanenceRecompute, async ({ termId, personId }, ctx) => {
 });
 
 // Check-ins aprobados o anulados: la persona en el término de la ocasión.
-onEvents([checkinApproved, checkinCancelled, checkinExcused], async ({ personId, termId }) => {
-  await enqueueRecompute(termId, personId);
-});
+onEvents(
+  [checkinApproved, checkinCancelled, checkinExcused, checkinPartial],
+  async ({ personId, termId }) => {
+    await enqueueRecompute(termId, personId);
+  },
+);
 
 // Cambio de comités en un término.
 onEvent(committeeMembershipChanged, async ({ personId, termId }) => {

@@ -451,7 +451,7 @@ export interface OccasionListRow extends OccasionRow {
 // calificar y `"id"` resolvería al id de `ci` (lección de la fase 1).
 const approvedCount = sql<number>`(
   select count(*)::int from check_in ci
-  where ci.occasion_id = occasion.id and ci.status = 'APPROVED'
+  where ci.occasion_id = occasion.id and ci.status = 'APPROVED' and ci.attendance_extent = 'FULL'
 )`;
 
 function listConditions(params: OccasionListParams) {

@@ -7,6 +7,7 @@ import {
   checkinApproved,
   checkinCancelled,
   checkinExcused,
+  checkinPartial,
   evidenceProcess,
   gamerStreakReminder,
   gamificationReconcile,
@@ -221,11 +222,14 @@ onEvent(occasionClosed, async ({ occasionId }, ctx) => {
 });
 
 // Un check-in decidido después de cerrar una asamblea cambia qué comités estuvieron representados.
-onEvents([checkinApproved, checkinCancelled, checkinExcused], async ({ occasionId, kind }) => {
-  if (kind === "ASSEMBLY") {
-    await recomputeCommitteeAssembly(occasionId);
-  }
-});
+onEvents(
+  [checkinApproved, checkinCancelled, checkinExcused, checkinPartial],
+  async ({ occasionId, kind }) => {
+    if (kind === "ASSEMBLY") {
+      await recomputeCommitteeAssembly(occasionId);
+    }
+  },
+);
 
 // Al anonimizar, el nombre congelado en los standings pasa a T-223 (ADR-030): people no toca
 // tablas de participation. Las invitaciones de encuesta tampoco son historia, y el motivo de una

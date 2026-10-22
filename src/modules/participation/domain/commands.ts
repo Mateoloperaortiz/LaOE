@@ -21,6 +21,7 @@ import {
   decideCheckIn,
   decideMany,
   findCheckIn,
+  type HostCheckInInput,
   hostCheckIn,
   type SelfCheckInResult,
 } from "./check-ins";
@@ -153,7 +154,7 @@ export async function checkInSelfAs(
 /** Alta por el organizador (anfitrión o admin): la autorización la decide la acción de la página. */
 export async function hostCheckInAs(
   actor: Actor & { personId: string },
-  input: { occasionId: string; personId: string; personName: string; source: "HOST" | "ADMIN" },
+  input: Omit<HostCheckInInput, "now">,
 ): Promise<{ checkInId: string; points: number }> {
   const membership = await getMembershipRef(input.personId);
   const settings = await loadGamificationSettings();

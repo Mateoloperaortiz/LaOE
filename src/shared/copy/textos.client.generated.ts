@@ -461,6 +461,9 @@ export const textosCliente = {
   "T-3572":
     "Este cierre conserva su ranking por participación ajustada. No se recalcula con el criterio combinado ni incluye un promedio GH histórico.",
   "T-3574": "Dato no disponible",
+  "T-3578": "Completa · Parcial",
+  "T-3579": "Lista 1 · Lista 2",
+  "T-3590": "La asistencia y el estado de la excusa se conservan por separado.",
   "T-375": "Tus comités",
   "T-376": "Todavía no tenés comité este semestre. GH te ubica en uno.",
   "T-382": "Los demás comités",

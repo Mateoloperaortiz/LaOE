@@ -55,10 +55,14 @@ export {
   nextChallengeForMember,
 } from "./domain/challenges";
 export {
+  ATTENDANCE_EXTENTS,
+  ATTENDANCE_LISTS,
   CHECK_IN_SOURCES,
   CHECK_IN_STATUSES,
   type CheckInSource,
   type CheckInStatus,
+  canRequestExcuse,
+  isCompleteAttendance,
   type SelfCheckInEligibilityDenial,
   type SelfCheckInFacts,
   selfCheckInEligibilityDenial,

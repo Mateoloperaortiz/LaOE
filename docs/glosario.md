@@ -36,6 +36,9 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Lanzamiento de gamificación | `gamification.launch` | Primera activación que inicia bonos, rachas e hitos del sistema separado; apagar y encender después conserva ese corte |
 | Ocasión | `Occasion` | Momento con check-in: actividad GH, asamblea o sesión de una edición |
 | Check-in | `CheckIn` | Registro de una persona en una ocasión; único por par |
+| Asistencia completa | `AttendanceExtent.FULL` | Presencia durante toda la ocasión; en una asamblea con dos tomas, la persona figura en ambas |
+| Asistencia parcial | `AttendanceExtent.PARTIAL` | Presencia en una sola toma de una asamblea; requiere excusa por la parte faltante y conserva ese carácter cuando se justifica |
+| Toma de asistencia | `AttendanceList` | Primera o segunda verificación de presencia dentro de una misma asamblea |
 | Modo anfitrión | `CheckIn.source=HOST` | El organizador marca el check-in por la persona |
 | Código rotativo | `Occasion.requireRotatingCode`, `Occasion.rotatingSecret` | Código de 6 dígitos derivado del secreto de la ocasión que cambia cada minuto; el QR de la consola lo embebe para evitar QR reenviados |
 | Consola de la ocasión | `/admin/ocasiones/[id]` | Pantalla del organizador: QR, contador en vivo, pendientes, asistentes, alta manual y ciclo de vida |

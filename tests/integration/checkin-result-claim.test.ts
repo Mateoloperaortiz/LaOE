@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import type { ReactNode } from "react";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { occasion } from "@/modules/participation/schema";
+import { checkIn, occasion } from "@/modules/participation/schema";
 import { t } from "@/shared/copy";
 import {
   currentTermCode,
@@ -111,6 +111,41 @@ afterAll(async () => {
 });
 
 describe("el resultado que trae la dirección de un check-in", () => {
+  it.each([
+    { status: "APPROVED", attendanceExtent: "PARTIAL", attendanceList: "FIRST" },
+    { status: "EXCUSED", attendanceExtent: "PARTIAL", attendanceList: "SECOND" },
+    { status: "EXCUSED", attendanceExtent: null, attendanceList: null },
+  ] as const)("$status/$attendanceExtent no anuncia asistencia completa en la información de puntos", async ({
+    status,
+    attendanceExtent,
+    attendanceList,
+  }) => {
+    const termId = await seedTerm(currentTermCode());
+    const personId = await seedPerson("parcial.pantalla@eafit.edu.co");
+    await seedMembership(personId, termId, "ACTIVE");
+    const assembly = await seedOccasion(termId, {
+      kind: "ASSEMBLY",
+      assemblyKind: "ORDINARY",
+      points: 0,
+      status: "CLOSED",
+    });
+    const checkInId = await seedCheckIn(assembly.id, personId);
+    await db()
+      .update(checkIn)
+      .set({ status, attendanceExtent, attendanceList })
+      .where(eq(checkIn.id, checkInId));
+    session = { personId };
+    const tree = await CheckInPage({
+      params: Promise.resolve({ publicId: assembly.publicId }),
+      searchParams: Promise.resolve({ r: "registrado" }),
+    });
+    const values = elements(tree)
+      .filter((item) => item.type === "dd")
+      .map((item) => item.props.children);
+    expect(values).not.toContain(t("T-530"));
+    expect(values).toContain("Sin puntos");
+  });
+
   it.each<[result: string, existing: Existing, mark: string, text: () => string, seal: boolean]>([
     // Con la fila que lo respalda, el resultado pinta su texto y su marca.
     ["puntos", "APPROVED", "puntos", withPoints, true],

@@ -10,7 +10,7 @@ import { countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
 
 // La consola en vivo de una ocasión (ADR-035 regla 16): cinco conteos por estado y los diez últimos
-// registros con nombre, hora, origen y estado. La consola lo pide cada 4 segundos (DT-225): lo que
+// registros con nombre, hora, origen, estado y presencia. La consola lo pide cada 4 segundos (DT-225): lo que
 // devuelve se fija primero, y después cuánto lee para armarlo.
 
 const db = () => getDb();
@@ -24,6 +24,8 @@ interface Seeded {
   at: string;
   source: CheckInSource;
   status: CheckInStatus;
+  attendanceExtent: "FULL" | null;
+  attendanceList: null;
 }
 
 /** Un registro por estado de la lista, cada uno un minuto después del anterior. */
@@ -46,12 +48,18 @@ async function seedCheckIns(
       at,
       reason: "motivo que la consola no lleva",
     });
+    const attendanceExtent = status === "EXCUSED" ? null : "FULL";
+    if (attendanceExtent === null) {
+      await db().update(checkIn).set({ attendanceExtent: null }).where(eq(checkIn.id, id));
+    }
     seeded.push({
       id,
       name: `${firstName} Sintética`,
       at: at.toISOString(),
       source,
       status,
+      attendanceExtent,
+      attendanceList: null,
     });
   }
   return seeded;
@@ -104,6 +112,8 @@ describe("consola en vivo: lo que devuelve el snapshot", () => {
     expect(snapshot.recent).toEqual(seeded.slice(-10).reverse());
     expect(Object.keys(snapshot.recent[0] ?? {}).sort()).toEqual([
       "at",
+      "attendanceExtent",
+      "attendanceList",
       "id",
       "name",
       "source",

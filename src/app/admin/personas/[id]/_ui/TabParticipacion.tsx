@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ExcuseState } from "@/modules/crm";
 import {
   type AchievementRow,
   type BadgeRow,
@@ -12,6 +13,7 @@ import {
   type OccasionRow,
   POINT_ENTRY_KINDS,
 } from "@/modules/participation";
+import { attendanceCell, excuseCell } from "@/modules/participation/admin";
 import { Bloque } from "@/shared/admin-kit/AdminFields";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
@@ -27,6 +29,7 @@ export function TabParticipacion({
   termCodes,
   achievements,
   boosters,
+  excuses,
 }: {
   personId: string;
   checkIns: CheckInRow[];
@@ -35,6 +38,7 @@ export function TabParticipacion({
   termCodes: Map<string, string>;
   achievements: Array<AchievementRow & { badge: BadgeRow }>;
   boosters: BoosterView[];
+  excuses: ExcuseState[];
 }) {
   const [tituloCheckIns, tituloMovimientos] = tList("T-668");
   const statusLabels = tLabels("T-597", CHECK_IN_STATUSES);
@@ -44,6 +48,7 @@ export function TabParticipacion({
   const boosterStates = tLabels("T-2455", BOOSTER_STATES);
   const columns = tList("T-595");
   const ledgerColumns = tList("T-623");
+  const excuseStates = new Map(excuses.map((item) => [item.occasionId, item.status]));
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -77,6 +82,12 @@ export function TabParticipacion({
                   <th scope="col" className="eyebrow py-2 pr-4 text-xs">
                     {columns[4]}
                   </th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {t("T-3577")}
+                  </th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {t("T-3581")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -105,6 +116,12 @@ export function TabParticipacion({
                       </td>
                       <td data-label={columns[4]} className="py-2 pr-4">
                         {statusLabels[item.status] ?? item.status}
+                      </td>
+                      <td data-label={t("T-3577")} className="py-2 pr-4">
+                        {attendanceCell(item)}
+                      </td>
+                      <td data-label={t("T-3581")} className="py-2 pr-4">
+                        {excuseCell(item, excuseStates.get(item.occasionId))}
                       </td>
                     </tr>
                   );

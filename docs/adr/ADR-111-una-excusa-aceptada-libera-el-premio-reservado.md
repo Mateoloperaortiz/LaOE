@@ -1,6 +1,6 @@
 # ADR-111: Una excusa aceptada libera el premio reservado y cierra el reto presencial pendiente
 
-- Estado: Aceptada
+- Estado: Aceptada; enmendada por ADR-137
 - Fecha: 2026-10-07
 - Relacionadas: ADR-014, ADR-031, ADR-060, ADR-067, ADR-109
 - Enmienda: ADR-060 (regla 5), ADR-067 (regla 3)
@@ -29,3 +29,7 @@ El defecto es la fila DT-001 del [ledger](../20-deuda-tecnica.md) ([ADR-109](ADR
 - **Queda abierto (DT-082).** La excusa sigue sin tomar el lock del término (`lockOpenTermPoints`), igual que antes de esta ADR: se puede aprobar con los puntos del término ya cerrados, y aprobar y excusar la misma asistencia pendiente compiten sin bloquear la fila. Va con DT-008, que junta los cinco caminos de una asistencia.
 - `excuseCheckIn` cambia de firma dentro del dominio (un tercer argumento obligatorio); su único llamador es `crm`. `applyPresentialCheckIn` acepta el motivo de la entrega que se cierra con un rechazo; sin él vale T-2579, así que rechazar y anular una asistencia no cambian. Un texto nuevo, T-3205, en [14-copy-y-textos](../14-copy-y-textos.md). Sin migración y sin cambios en rutas, eventos de dominio ni API pública.
 - Pruebas: `tests/integration/requests-excuse-rewards.test.ts` (libera la reserva y el booster, deja cerrar el semestre, audita la liberación sin el motivo de la persona, conserva la auditoría y la línea de tiempo de la excusa, no vuelve a tocar una asistencia ya rechazada, y cierra la entrega del reto presencial con el motivo de la asistencia excusada, que es el que viaja en `challenge.rejected`).
+
+## Enmienda (2026-10-22, ADR-137)
+
+La presencia completa o parcial y su toma se conservan por separado de la solicitud de excusa. Solo una completa aprobada acredita asistencia; una parcial puede justificarse sin perder su evidencia. La importación, las lecturas y los efectos aplican esa distinción. Ver [ADR-137](ADR-137-asistencia-parcial-y-excusa-separadas.md).

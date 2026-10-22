@@ -1,6 +1,7 @@
 // Requisito de asambleas por persona y término (ADR-024, ADR-028, ADR-035 regla 12): derivado del
 // término salvo ajuste individual; el cumplimiento se calcula, nunca se persiste.
 
+import { type AttendanceExtent, isCompleteAttendance } from "./check-in-pure";
 import type { AssemblyKind, OccasionStatus } from "./occasion-pure";
 
 export interface AssemblyRequirementView {
@@ -51,6 +52,7 @@ export function termAssemblyRequirement(
 export interface AttendedAssembly {
   assemblyKind: AssemblyKind;
   status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "EXCUSED";
+  attendanceExtent?: AttendanceExtent | null;
 }
 
 export interface AssemblyCompliance {
@@ -68,7 +70,7 @@ export function assemblyCompliance(
   requirement: AssemblyRequirementView,
   attended: ReadonlyArray<AttendedAssembly>,
 ): AssemblyCompliance {
-  const approved = attended.filter((item) => item.status === "APPROVED");
+  const approved = attended.filter(isCompleteAttendance);
   const excused = attended.filter((item) => item.status === "EXCUSED");
   const ordinaryAttended = approved.filter((item) => item.assemblyKind === "ORDINARY").length;
   const boardElectionAttended = approved.some((item) => item.assemblyKind === "BOARD_ELECTION");

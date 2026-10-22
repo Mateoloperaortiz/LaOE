@@ -421,6 +421,33 @@ describe("elegibles del score", () => {
 });
 
 describe("asambleas", () => {
+  it("una presencia parcial confirmada no cumple la obligatoria ni suma una asistencia completa", () => {
+    const requirement = termAssemblyRequirement({ requiredOrdinaryAssemblies: 1 }, []);
+    const partial = {
+      assemblyKind: "ORDINARY" as const,
+      status: "APPROVED" as const,
+      attendanceExtent: "PARTIAL" as const,
+    };
+    expect(assemblyCompliance(requirement, [partial])).toMatchObject({
+      compliant: false,
+      missing: ["ORDINARY"],
+      ordinaryAttended: 0,
+      attendedTotal: 0,
+    });
+  });
+
+  it("una parcial excusada cumple por justificación sin sumar una asistencia completa", () => {
+    const requirement = termAssemblyRequirement({ requiredOrdinaryAssemblies: 1 }, [
+      { assemblyKind: "BOARD_ELECTION", status: "CLOSED" },
+    ]);
+    expect(
+      assemblyCompliance(requirement, [
+        { assemblyKind: "ORDINARY", status: "EXCUSED", attendanceExtent: "PARTIAL" },
+        { assemblyKind: "BOARD_ELECTION", status: "EXCUSED", attendanceExtent: "PARTIAL" },
+      ]),
+    ).toMatchObject({ compliant: true, attendedTotal: 0, ordinaryAttended: 0 });
+  });
+
   it("deriva el requisito de las ocasiones del término: elección y segunda vuelta cuando existen (ADR-060 regla 13)", () => {
     const none = termAssemblyRequirement({ requiredOrdinaryAssemblies: 1 }, []);
     expect(none).toMatchObject({

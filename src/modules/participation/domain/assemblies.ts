@@ -11,6 +11,7 @@ import {
   assemblyCompliance,
   termAssemblyRequirement,
 } from "./assembly-pure";
+import type { AttendanceExtent, AttendanceList } from "./check-in-pure";
 import type { OccasionRow } from "./occasions";
 
 // Asambleas (ADR-024, ADR-028, ADR-035 regla 12): el requisito se deriva del término y solo los
@@ -55,6 +56,8 @@ export interface PersonAssemblyStatus {
   assemblies: Array<{
     occasion: OccasionRow;
     status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "EXCUSED" | null;
+    attendanceExtent: AttendanceExtent | null;
+    attendanceList: AttendanceList | null;
   }>;
 }
 
@@ -74,7 +77,12 @@ export async function assemblyStatusFor(
     assemblies.length === 0
       ? []
       : await getDb()
-          .select({ occasionId: checkIn.occasionId, status: checkIn.status })
+          .select({
+            occasionId: checkIn.occasionId,
+            status: checkIn.status,
+            attendanceExtent: checkIn.attendanceExtent,
+            attendanceList: checkIn.attendanceList,
+          })
           .from(checkIn)
           .where(
             and(
@@ -85,19 +93,22 @@ export async function assemblyStatusFor(
               ),
             ),
           );
-  const statusByOccasion = new Map(checkIns.map((item) => [item.occasionId, item.status]));
+  const checkInByOccasion = new Map(checkIns.map((item) => [item.occasionId, item]));
   const attended = assemblies
-    .filter((item) => item.assemblyKind !== null && statusByOccasion.has(item.id))
+    .filter((item) => item.assemblyKind !== null && checkInByOccasion.has(item.id))
     .map((item) => ({
       assemblyKind: item.assemblyKind as "ORDINARY" | "BOARD_ELECTION" | "RUNOFF",
-      status: statusByOccasion.get(item.id) ?? "PENDING",
+      status: checkInByOccasion.get(item.id)?.status ?? "PENDING",
+      attendanceExtent: checkInByOccasion.get(item.id)?.attendanceExtent ?? null,
     }));
   return {
     requirement,
     compliance: assemblyCompliance(requirement, attended),
     assemblies: assemblies.map((item) => ({
       occasion: item,
-      status: statusByOccasion.get(item.id) ?? null,
+      status: checkInByOccasion.get(item.id)?.status ?? null,
+      attendanceExtent: checkInByOccasion.get(item.id)?.attendanceExtent ?? null,
+      attendanceList: checkInByOccasion.get(item.id)?.attendanceList ?? null,
     })),
   };
 }
@@ -153,6 +164,7 @@ export async function assemblyOverview(term: TermLike): Promise<AssemblyOverview
             occasionId: checkIn.occasionId,
             personId: checkIn.personId,
             status: checkIn.status,
+            attendanceExtent: checkIn.attendanceExtent,
           })
           .from(checkIn)
           .where(
@@ -166,13 +178,14 @@ export async function assemblyOverview(term: TermLike): Promise<AssemblyOverview
     Array<{
       assemblyKind: "ORDINARY" | "BOARD_ELECTION" | "RUNOFF";
       status: typeof checkIn.$inferSelect.status;
+      attendanceExtent: AttendanceExtent | null;
     }>
   >();
   for (const item of checkIns) {
     const kind = kindByOccasion.get(item.occasionId);
     if (!kind) continue;
     const list = byPerson.get(item.personId) ?? [];
-    list.push({ assemblyKind: kind, status: item.status });
+    list.push({ assemblyKind: kind, status: item.status, attendanceExtent: item.attendanceExtent });
     byPerson.set(item.personId, list);
   }
   const adjustmentByPerson = new Map(adjustments.map((row) => [row.personId, row]));

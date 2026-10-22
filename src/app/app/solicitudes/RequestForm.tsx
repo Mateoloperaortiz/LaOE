@@ -113,6 +113,7 @@ export function RequestForm({
   currentCommittees,
   otherCommittees,
   occasions = [],
+  initialOccasionId = "",
   causes = [],
   policyReady,
   policyNotice,
@@ -128,6 +129,7 @@ export function RequestForm({
   otherCommittees: CommitteeOption[];
   /** Ocasiones que se pueden excusar y causales del Anexo 1 (solo EXCUSE, ADR-060 regla 5). */
   occasions?: OccasionOption[];
+  initialOccasionId?: string;
   causes?: CauseOption[];
   policyReady: boolean;
   policyNotice: ReactNode;
@@ -144,7 +146,7 @@ export function RequestForm({
     reason: "",
     until: "",
     personalEmail: "",
-    occasionId: "",
+    occasionId: initialOccasionId,
     cause: "",
     evidence: "",
     lateSubmission: false,
@@ -209,6 +211,9 @@ export function RequestForm({
         <p id="request-explanation" className="max-w-prose text-sm leading-relaxed">
           {explanation}
         </p>
+        {kind === "EXCUSE" ? (
+          <p className="max-w-prose text-sm text-tinta-suave">{t("T-3590")}</p>
+        ) : null}
       </header>
       {existingPending && !state.success ? (
         <p className="rounded-xl border border-borde bg-fondo-suave p-3 text-sm">
