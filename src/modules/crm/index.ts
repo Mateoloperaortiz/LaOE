@@ -38,6 +38,7 @@ export {
   markOnboardingStepAs,
 } from "./domain/commands";
 export { dashboardForAdmin } from "./domain/dashboard";
+export { type ExcuseState, listExcuseStates } from "./domain/excuse-states";
 export {
   type InteractionView,
   latestContact,

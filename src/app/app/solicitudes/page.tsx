@@ -3,7 +3,11 @@ import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { EXCUSE_CAUSES, excuseDeadline, listRequestsByPerson } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
-import { listCheckInsForPerson, listOccasionsForTerm } from "@/modules/participation";
+import {
+  canRequestExcuse,
+  listCheckInsForPerson,
+  listOccasionsForTerm,
+} from "@/modules/participation";
 import { getMembershipRef, getMyMembership, listCommitteesForSelection } from "@/modules/people";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
@@ -45,12 +49,19 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
         ])
       : [[], []];
   const covered = new Set(
-    myCheckIns
-      .filter((row) => row.status === "APPROVED" || row.status === "EXCUSED")
+    myCheckIns.filter((row) => !canRequestExcuse(row)).map((row) => row.occasionId),
+  );
+  const submittedExcuses = new Set(
+    requests
+      .filter(
+        (row) => row.kind === "EXCUSE" && (row.status === "PENDING" || row.status === "APPROVED"),
+      )
       .map((row) => row.occasionId),
   );
   const occasionOptions = termOccasions
-    .filter((row) => !covered.has(row.id) && row.startsAt <= horizon)
+    .filter(
+      (row) => !covered.has(row.id) && !submittedExcuses.has(row.id) && row.startsAt <= horizon,
+    )
     .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
     .map((row) => ({
       id: row.id,
@@ -110,6 +121,9 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
     },
   ] as const;
   const activeOption = options.find((option) => option.kind === selected);
+  const initialOccasionId = occasionOptions.some((item) => item.id === single(search.ocasion))
+    ? single(search.ocasion)
+    : "";
 
   return (
     <div className="flex min-w-0 flex-col gap-8">
@@ -144,6 +158,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
             .filter((committee) => !mineIds.has(committee.id))
             .map((committee) => ({ id: committee.id, name: committee.name }))}
           occasions={occasionOptions}
+          initialOccasionId={initialOccasionId}
           causes={causeOptions}
           policyReady={policy.ready}
           policyNotice={!policy.ready ? <PrivacyPolicyNotice /> : null}

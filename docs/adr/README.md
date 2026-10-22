@@ -13,12 +13,13 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-137](ADR-137-asistencia-parcial-y-excusa-separadas.md) | Asistencia parcial y excusa por separado | Aceptada |
 | [ADR-136](ADR-136-comites-promedio-gh-y-participacion.md) | Comités por promedio GH y participación, con pesos 50/50 | Aceptada |
 | [ADR-135](ADR-135-podio-y-nombre-gamer.md) | Podio gráfico y nombre visible «+ gamer» | Aceptada |
 | [ADR-134](ADR-134-juegos-protagonista-y-color.md) | Juegos con reto protagonista y Color integrado a Más gamer | Aceptada; enmendada por ADR-135 |
 | [ADR-133](ADR-133-mas-gamer-por-puntos-de-desempeno.md) | Más gamer por puntos de desempeño | Aceptada; enmendada por ADR-134; enmendada por ADR-135 |
 | [ADR-132](ADR-132-aviso-de-24-horas-para-la-racha-presencial.md) | Aviso de 24 horas para la racha presencial | Aceptada |
-| [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) | GH Points y Más gamer con rachas separadas | Aceptada (enmendada por ADR-132 y ADR-133); enmendada por ADR-134; enmendada por ADR-135; enmendada por ADR-136 |
+| [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) | GH Points y Más gamer con rachas separadas | Aceptada (enmendada por ADR-132 y ADR-133); enmendada por ADR-134; enmendada por ADR-135; enmendada por ADR-136; enmendada por ADR-137 |
 | [ADR-130](ADR-130-fotos-privadas-en-mi-oe.md) | Fotos privadas en Mi OE y carga reanudable de DÍAS 2026 | Aceptada |
 | [ADR-129](ADR-129-reglas-de-consolidacion-del-decimoseptimo-ciclo.md) | Reglas de consolidación del decimoséptimo ciclo del refactor | Aceptada |
 | [ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) | Reglas de corrección del decimosexto ciclo del refactor | Aceptada (enmendada por ADR-129) |
@@ -38,7 +39,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) | Reglas de seguridad, privacidad e integridad del tercer ciclo del refactor | Aceptada (enmendada por ADR-116) |
 | [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md) | Reglas de seguridad e integridad del segundo ciclo del refactor | Aceptada (enmendada por ADR-114, ADR-116, ADR-119 y ADR-120) |
 | [ADR-112](ADR-112-toda-sancion-declara-su-alcance.md) | Toda sanción se registra con su alcance declarado | Aceptada (enmendada por ADR-114 y ADR-116) |
-| [ADR-111](ADR-111-una-excusa-aceptada-libera-el-premio-reservado.md) | Una excusa aceptada libera el premio reservado y cierra el reto presencial pendiente | Aceptada |
+| [ADR-111](ADR-111-una-excusa-aceptada-libera-el-premio-reservado.md) | Una excusa aceptada libera el premio reservado y cierra el reto presencial pendiente | Aceptada; enmendada por ADR-137 |
 | [ADR-110](ADR-110-el-grafo-de-modulos-de-dominio-no-tiene-ciclos.md) | El grafo de módulos de dominio no tiene ciclos | Aceptada |
 | [ADR-109](ADR-109-refactor-progresivo-con-ledger-de-deuda.md) | Refactor progresivo con ledger de deuda técnica | Aceptada (enmendada por ADR-116 y ADR-129) |
 | [ADR-108](ADR-108-los-issues-de-github-son-la-cola-de-trabajo.md) | Los issues de GitHub son la cola de trabajo de las skills de ingeniería | Aceptada |
@@ -85,11 +86,11 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-067](ADR-067-retos-boosters-y-coleccion.md) | Retos relámpago, boosters y colección de insignias | Aceptada; enmendada por ADR-068, ADR-075, ADR-078, ADR-087, ADR-111, ADR-113, ADR-118 y ADR-122; enmendada por ADR-131 |
 | [ADR-061](ADR-061-verificacion-y-correcciones-de-normativa-2026.md) | Verificación y correcciones de normativa 2026 | Aceptada (enmendada por ADR-118) |
 | [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) | Importación histórica de asistencias y evidencias de GH | En producción; enmendada por ADR-063 |
-| [ADR-063](ADR-063-importacion-de-asambleas.md) | Importación de asistencias a asambleas | Implementada en local; altas pendientes |
+| [ADR-063](ADR-063-importacion-de-asambleas.md) | Importación de asistencias a asambleas | Implementada en local; altas pendientes; enmendada por ADR-137 |
 | [ADR-064](ADR-064-gestion-de-macroeventos.md) | Gestión de macroeventos, cargos y GT por semestre | Implementación y verificación (enmendada por ADR-089) |
 | [ADR-066](ADR-066-cargos-vigentes-e-historial.md) | Cargos vigentes e historial por semestre y ámbito | Aceptada; verificada en producción |
 | [ADR-065](ADR-065-areas-y-participacion-gt-gap.md) | Áreas y participación en GT y GAP | Aceptada; enmendada por ADR-071 |
-| [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) | Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026 | Aceptada; enmendada por ADR-061, ADR-073, ADR-111, ADR-112, ADR-118 y ADR-129; en curso por tramos |
+| [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) | Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026 | Aceptada; enmendada por ADR-061, ADR-073, ADR-111, ADR-112, ADR-118 y ADR-129; en curso por tramos; enmendada por ADR-137 |
 | [ADR-059](ADR-059-presupuesto-del-comite.md) | Presupuesto del comité por rubros, gastos y traslados | Propuesta; enmendada por ADR-060 |
 | [ADR-058](ADR-058-direccion-del-comite-por-areas.md) | La dirección del comité por áreas: capacidades por cargo, cargos múltiples y codirección | Aceptada (enmendada por ADR-060 y ADR-115); promovida a producción, verificación con la dirección real pendiente |
 | [ADR-057](ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md) | Vicepresidencia de Comunicaciones y Publicidad como cargo de junta | Aceptada; en producción |
@@ -138,7 +139,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-032](ADR-032-drizzle-y-esquema-por-modulo.md) | Drizzle como capa de datos y esquema por módulo en TypeScript | Aceptada (enmendada por ADR-079) |
 | [ADR-033](ADR-033-contenido-y-medios-fase-1.md) | Contenido editable y medios del portal público (fase 1) | Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039, ADR-113, ADR-114, ADR-116) |
 | [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) | Personas, CRM mínimo y Mi OE (fase 2) | Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113, ADR-115) |
-| [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) | Participación y GH Points (fase 3) | Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116, ADR-119 y ADR-122); enmendada por ADR-131; enmendada por ADR-136 |
+| [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) | Participación y GH Points (fase 3) | Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116, ADR-119 y ADR-122); enmendada por ADR-131; enmendada por ADR-136; enmendada por ADR-137 |
 | [ADR-036](ADR-036-permanencia-fase-4.md) | Permanencia (fase 4) | Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058, ADR-116, ADR-118, ADR-121 y ADR-123) |
 | [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md) | Admisión, aliados y contactos (fase 5) | Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050, ADR-056, ADR-060, ADR-115, ADR-116 y ADR-118) |
 | [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md) | Comunicaciones y PWA (fase 6) | Aceptada (enmendada por ADR-039, ADR-074, ADR-113, ADR-115, ADR-116, ADR-118 y ADR-122) |

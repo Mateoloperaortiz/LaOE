@@ -131,9 +131,9 @@ const inlineCopies = copies.filter(
 );
 
 describe("la tabla de los pares", () => {
-  it("trae los 85 pares que salen de las expresiones de la spec y 19 que esas expresiones no ven", () => {
+  it("trae los pares históricos de la spec y los tres de asistencia y excusa separadas", () => {
     expect(PAIRS).toHaveLength(81);
-    expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(1);
+    expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(0);
     // Los que completan los 85 son el par de largo distinto de T-791, que la migración deshizo, el
     // de T-427, que dejó el `zip` por posiciones escritas, y el de T-801, que dejó de ser un par: la
     // pestaña de permanencia lee el número que le da el dominio.
@@ -142,7 +142,8 @@ describe("la tabla de los pares", () => {
     expect(DOMAIN_REASONS).toMatchObject({ code: "T-801", seen: true });
     // Dieciocho uno a uno y el de largo distinto de T-566, también deshecho; el de T-2174 entró
     // con DT-370.
-    expect(UNSEEN_PAIRS).toHaveLength(18);
+    // Los tres nuevos fijan cobertura, lista acreditada y estado de excusa por separado.
+    expect(UNSEEN_PAIRS).toHaveLength(21);
     expect(UNEVEN_PAIRS.filter((pair) => !pair.seen)).toHaveLength(0);
     expect(UNDONE_UNEVEN_PAIRS.filter((pair) => !pair.seen)).toHaveLength(1);
   });
@@ -248,9 +249,7 @@ describe("los pares que no son uno a uno", () => {
     const shared = UNEVEN_PAIRS.flatMap((uneven) =>
       ONE_TO_ONE.filter((pair) => pair.code === uneven.code).map((pair) => ({ uneven, pair })),
     );
-    expect(shared.map(({ uneven }) => `${uneven.code} × ${uneven.order}`)).toEqual([
-      "T-597 × CONSOLE_STATUSES",
-    ]);
+    expect(shared.map(({ uneven }) => `${uneven.code} × ${uneven.order}`)).toEqual([]);
     for (const { uneven, pair } of shared) {
       expect(pair.positions).toMatchObject(uneven.positions);
     }
@@ -380,7 +379,7 @@ describe("las constantes que guardan la posición de cada valor", () => {
       "T-2511 × STATE_INDEX de src/app/admin/gamificacion/campanas/page.tsx",
     ]);
     // Eran cuatro con el de T-801, que dejó la pestaña de permanencia (ADR-128 regla 1).
-    expect(UNEVEN_PAIRS.length + uneven.length).toBe(3);
+    expect(UNEVEN_PAIRS.length + uneven.length).toBe(2);
     expect(UNDONE_UNEVEN_PAIRS).toHaveLength(2);
   });
 });

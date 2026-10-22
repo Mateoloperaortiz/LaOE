@@ -1,6 +1,6 @@
 # ADR-131: GH Points y Más gamer con rachas separadas
 
-- Estado: Aceptada (enmendada por ADR-132, ADR-133, ADR-134, ADR-135 y ADR-136)
+- Estado: Aceptada (enmendada por ADR-132, ADR-133, ADR-134, ADR-135 y ADR-136); enmendada por ADR-137
 - Fecha: 2026-10-14
 - Relacionadas: ADR-007, ADR-020, ADR-030, ADR-035, ADR-038, ADR-041, ADR-067, ADR-068, ADR-074, ADR-075, ADR-078, ADR-087, ADR-088, ADR-092, ADR-116, ADR-117, ADR-119, ADR-124
 - Enmienda: ADR-007 y ADR-035 (proyección del saldo, niveles y cierre); ADR-041, ADR-075, ADR-078, ADR-088 y ADR-092 (premios de juegos fuera de GH Points); ADR-067 (insignias gamer sin boosters de GH); ADR-074 (aviso gamer opcional además del aviso de Wordle); ADR-116 y ADR-119 (orden global de lotes y barrera de excusa sin exigir puntos abiertos)
@@ -90,3 +90,7 @@ Las reglas 2 y 17 usan desde esta presentación el nombre visible **+ gamer**. E
 ## Enmienda (2026-10-16, ADR-136)
 
 La regla 1 incorpora GH Points al nuevo ranking de comités mediante el promedio neto por integrante activo actual, combinado 50/50 con participación ajustada y ambas dimensiones normalizadas. Los videojuegos permanecen excluidos, también sus correcciones y legados identificables; la nueva proyección no cambia los saldos personales históricos o las fotos anteriores. No cambian permanencia, + gamer o sus premios. Ver [ADR-136](ADR-136-comites-promedio-gh-y-participacion.md).
+
+## Enmienda (2026-10-22, ADR-137)
+
+La presencia completa o parcial y su toma se conservan por separado de la solicitud de excusa. Solo una completa aprobada acredita asistencia; una parcial puede justificarse sin perder su evidencia. La importación, las lecturas y los efectos aplican esa distinción. Ver [ADR-137](ADR-137-asistencia-parcial-y-excusa-separadas.md).

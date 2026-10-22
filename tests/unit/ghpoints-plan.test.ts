@@ -66,6 +66,208 @@ const snapshot = (): GhSnapshot => ({
 const row = (s: GhSnapshot, m = manifest()) => planGhImport(m, s).activities[0]?.rows[0];
 
 describe("preparación de GH Points", () => {
+  it("admite la asistencia parcial de una asamblea con su lista y la fila de origen", () => {
+    const m = manifest();
+    const a = first(m.activities);
+    const parsed = ghManifestSchema.parse({
+      ...m,
+      activities: [
+        {
+          ...a,
+          type: "ASAMBLEA",
+          assemblyKind: "ORDINARY",
+          newMembersOnly: false,
+          endDate: a.date,
+          participants: [
+            {
+              ...first(a.participants),
+              attendanceExtent: "PARTIAL",
+              attendanceEvidence: [
+                { list: "FIRST", sourceKey: "SOURCE", sourceSheet: "Primera", sourceRow: 7 },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(first(first(parsed.activities).participants)).toMatchObject({
+      attendanceExtent: "PARTIAL",
+      attendanceEvidence: [
+        { list: "FIRST", sourceKey: "SOURCE", sourceSheet: "Primera", sourceRow: 7 },
+      ],
+    });
+  });
+  it("retiene una clasificación que no coincide con las listas o sus fuentes", () => {
+    const m = manifest();
+    const a = first(m.activities);
+    const p = first(a.participants);
+    const firstEvidence = { list: "FIRST", sourceKey: "SOURCE", sourceRow: 7 };
+    const secondEvidence = { list: "SECOND", sourceKey: "SOURCE", sourceRow: 9 };
+    const assembly = {
+      ...a,
+      type: "ASAMBLEA",
+      assemblyKind: "ORDINARY",
+      newMembersOnly: false,
+      endDate: a.date,
+    };
+    for (const invalid of [
+      { ...p, attendanceExtent: "PARTIAL" },
+      { ...p, attendanceExtent: "FULL", attendanceEvidence: [firstEvidence] },
+      {
+        ...p,
+        attendanceExtent: "PARTIAL",
+        attendanceEvidence: [firstEvidence, secondEvidence],
+      },
+      {
+        ...p,
+        attendanceExtent: "FULL",
+        attendanceEvidence: [firstEvidence, firstEvidence],
+      },
+      {
+        ...p,
+        attendanceExtent: "PARTIAL",
+        attendanceEvidence: [{ ...firstEvidence, sourceKey: "UNKNOWN" }],
+      },
+    ])
+      expect(
+        ghManifestSchema.safeParse({ ...m, activities: [{ ...assembly, participants: [invalid] }] })
+          .success,
+      ).toBe(false);
+    expect(
+      ghManifestSchema.safeParse({
+        ...m,
+        activities: [
+          {
+            ...a,
+            participants: [
+              { ...p, attendanceExtent: "PARTIAL", attendanceEvidence: [firstEvidence] },
+            ],
+          },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      ghManifestSchema.safeParse({
+        ...m,
+        activities: [
+          {
+            ...a,
+            participants: [{ ...p, attendanceEvidence: [firstEvidence, secondEvidence] }],
+          },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      ghManifestSchema.safeParse({
+        ...m,
+        activities: [
+          {
+            ...assembly,
+            participants: [
+              {
+                ...p,
+                attendanceExtent: "FULL",
+                attendanceEvidence: [firstEvidence, secondEvidence],
+              },
+            ],
+          },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+  it("la vista previa separa completas y parciales y conserva la lista acreditada", () => {
+    const m = manifest();
+    const a = first(m.activities);
+    const p = first(a.participants);
+    Object.assign(a, {
+      type: "ASAMBLEA",
+      assemblyKind: "ORDINARY",
+      newMembersOnly: false,
+      endDate: a.date,
+      participants: [
+        {
+          ...p,
+          attendanceExtent: "PARTIAL",
+          attendanceEvidence: [{ list: "FIRST", sourceKey: "SOURCE", sourceRow: 7 }],
+        },
+        { recordId: "FULL-RECORD", email: "other@example.test", sourceRow: 8 },
+      ],
+    });
+    const s = snapshot();
+    s.people.push({ ...first(s.people), id: "other-person", email: "other@example.test" });
+    const plan = planGhImport(m, s);
+    expect(plan.summary).toMatchObject({
+      rowsToAdd: 2,
+      fullToAdd: 1,
+      partialToAdd: 1,
+      pointsToAdd: 0,
+    });
+    expect(first(first(plan.activities).rows)).toMatchObject({
+      action: "ADD",
+      attendanceExtent: "PARTIAL",
+      attendanceList: "FIRST",
+      points: 0,
+    });
+    expect(first(plan.activities).rows[1]).toMatchObject({
+      action: "ADD",
+      attendanceExtent: "FULL",
+      attendanceList: null,
+    });
+  });
+  it("reconoce una parcial ya excusada sin perder su lista ni cambiar la decisión", () => {
+    const m = manifest();
+    const a = first(m.activities);
+    Object.assign(a, {
+      type: "ASAMBLEA",
+      assemblyKind: "ORDINARY",
+      newMembersOnly: false,
+      endDate: a.date,
+    });
+    Object.assign(first(a.participants), {
+      attendanceExtent: "PARTIAL",
+      attendanceEvidence: [{ list: "FIRST", sourceKey: "SOURCE", sourceRow: 7 }],
+    });
+    const s = snapshot();
+    s.occasions = [
+      {
+        id: "assembly-test",
+        legacy_id: legacyKey(m, a),
+        title: a.title,
+        kind: "ASSEMBLY",
+        assembly_kind: "ORDINARY",
+        category: "OTHER",
+        new_members_only: false,
+        status: "CLOSED",
+        points: 0,
+        starts_at: "2025-09-08T05:00:00Z",
+        ends_at: "2025-09-09T05:00:00Z",
+      },
+    ];
+    s.checkIns = [
+      {
+        id: "check-test",
+        occasion_id: "assembly-test",
+        person_id: "person-test",
+        status: "EXCUSED",
+      },
+    ];
+    Object.assign(first(s.checkIns), { attendance_extent: "PARTIAL", attendance_list: "FIRST" });
+    expect(row(s, m)).toMatchObject({ action: "EXISTS", attendanceExtent: "PARTIAL", points: 0 });
+    Object.assign(first(s.checkIns), { attendance_list: "SECOND" });
+    expect(row(s, m)?.reason).toBe("EXISTING_ATTENDANCE_CONFLICT");
+    Object.assign(first(s.checkIns), {
+      attendance_extent: "FULL",
+      attendance_list: null,
+      status: "APPROVED",
+    });
+    expect(row(s, m)?.reason).toBe("EXISTING_ATTENDANCE_CONFLICT");
+    Object.assign(first(s.checkIns), { attendance_extent: null, status: "EXCUSED" });
+    Object.assign(first(a.participants), {
+      attendanceExtent: "FULL",
+      attendanceEvidence: undefined,
+    });
+    expect(row(s, m)?.reason).toBe("EXISTING_ATTENDANCE_CONFLICT");
+  });
   it("exige clasificar las asambleas y no admite tipo de asamblea en actividades", () => {
     const m = manifest(),
       a = first(m.activities);

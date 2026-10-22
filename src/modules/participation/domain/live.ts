@@ -1,7 +1,12 @@
 import QRCode from "qrcode";
 import { getEnv } from "@/env";
 import { getPeopleByIds } from "@/modules/people";
-import type { CheckInSource, CheckInStatus } from "./check-in-pure";
+import type {
+  AttendanceExtent,
+  AttendanceList,
+  CheckInSource,
+  CheckInStatus,
+} from "./check-in-pure";
 import { countCheckInsByStatus, listRecentCheckIns } from "./check-ins";
 import type { OccasionStatus } from "./occasion-pure";
 import type { OccasionRow } from "./occasions";
@@ -19,6 +24,8 @@ export interface LiveCheckIn {
   at: string;
   source: CheckInSource;
   status: CheckInStatus;
+  attendanceExtent: AttendanceExtent | null;
+  attendanceList: AttendanceList | null;
 }
 
 export interface LiveSnapshot {
@@ -78,6 +85,8 @@ export async function buildLiveSnapshot(
       at: item.at.toISOString(),
       source: item.source,
       status: item.status,
+      attendanceExtent: item.attendanceExtent,
+      attendanceList: item.attendanceList,
     })),
     code,
     link,

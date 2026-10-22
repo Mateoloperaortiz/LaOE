@@ -22,6 +22,14 @@ const checkInFacts = z.object({
 const checkInDecision = checkInFacts.extend({ reason: z.string().nullable() });
 
 export const checkinApproved = defineEvent("checkin.approved", checkInFacts);
+/** Presencia parcial confirmada: conserva evidencia, sin acreditar una asistencia completa. */
+export const checkinPartial = defineEvent(
+  "checkin.partial",
+  checkInFacts.extend({
+    attendanceExtent: z.literal("PARTIAL"),
+    attendanceList: z.enum(["FIRST", "SECOND"]),
+  }),
+);
 export const checkinPending = defineEvent("checkin.pending", checkInFacts);
 export const checkinCancelled = defineEvent("checkin.cancelled", checkInDecision);
 export const checkinExcused = defineEvent("checkin.excused", checkInDecision);

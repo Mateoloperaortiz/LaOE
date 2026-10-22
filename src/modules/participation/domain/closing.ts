@@ -19,6 +19,7 @@ import {
   pointEntry,
   termStanding,
 } from "../schema";
+import { approvedCompleteAttendanceCondition } from "./attendance-query";
 import { storedCommitteeRanking } from "./committee-snapshot";
 import { rankGamerFromMembers } from "./gamer";
 import { gamerSnapshotStats, standingGamer, storedGamerMetric } from "./gamer-snapshot";
@@ -115,7 +116,7 @@ export async function buildStanding(
   const [approved] = await db
     .select({ n: count() })
     .from(checkIn)
-    .where(and(inArray(checkIn.occasionId, termOccasions), eq(checkIn.status, "APPROVED")));
+    .where(and(inArray(checkIn.occasionId, termOccasions), approvedCompleteAttendanceCondition()));
   const [points] = await db
     .select({ total: sql<number>`coalesce(sum(${pointEntry.points}), 0)::int` })
     .from(pointEntry)

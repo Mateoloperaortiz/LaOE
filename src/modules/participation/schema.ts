@@ -55,6 +55,8 @@ export const checkInStatus = pgEnum("check_in_status", [
   "EXCUSED",
 ]);
 export const checkInSource = pgEnum("check_in_source", ["SELF_QR", "HOST", "ADMIN", "IMPORT"]);
+export const attendanceExtent = pgEnum("attendance_extent", ["FULL", "PARTIAL"]);
+export const attendanceList = pgEnum("attendance_list", ["FIRST", "SECOND"]);
 export const pointEntryKind = pgEnum("point_entry_kind", [
   "CHECKIN",
   "ADJUSTMENT",
@@ -527,6 +529,9 @@ export const checkIn = pgTable(
       .notNull()
       .references(() => person.id, { onDelete: "cascade" }),
     status: checkInStatus().notNull().default("PENDING"),
+    // La presencia se conserva aunque una excusa aceptada cambie el estado del registro.
+    attendanceExtent: attendanceExtent().default("FULL"),
+    attendanceList: attendanceList(),
     source: checkInSource().notNull().default("SELF_QR"),
     at: timestampTz().notNull().defaultNow(),
     decidedById: text().references(() => person.id, { onDelete: "set null" }),
@@ -540,6 +545,14 @@ export const checkIn = pgTable(
     uniqueIndex("check_in_legacy_id_unique").on(t.legacyId).where(sql`${t.legacyId} is not null`),
     index("check_in_person_idx").on(t.personId, t.at),
     index("check_in_occasion_status_idx").on(t.occasionId, t.status),
+    check(
+      "check_in_attendance_list_consistent",
+      sql`(${t.attendanceExtent} is not distinct from 'PARTIAL') = (${t.attendanceList} is not null)`,
+    ),
+    check(
+      "check_in_absence_is_excused",
+      sql`${t.attendanceExtent} is not null or ${t.status} = 'EXCUSED'`,
+    ),
   ],
 );
 

@@ -5,6 +5,7 @@ import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { requestCreated, requestDecided, requestWithdrawn } from "@/domain-events/crm";
 import { eventOf } from "@/domain-events/define";
 import {
+  canRequestExcuse,
   excuseCheckIn,
   findCheckIn,
   type GamificationSettings,
@@ -276,7 +277,7 @@ export async function createRequestAs(
       throw new DomainError(t("T-2219"), "occasionId");
     }
     const existing = await findCheckIn(row.id, actor.personId);
-    if (existing && (existing.status === "APPROVED" || existing.status === "EXCUSED")) {
+    if (!canRequestExcuse(existing)) {
       throw new DomainError(t("T-2223"), "occasionId");
     }
     occasionId = row.id;

@@ -4,13 +4,17 @@ import { notFound, redirect } from "next/navigation";
 import { requireOperator } from "@/app/_authz/occasion";
 import { single } from "@/app/_lib/search";
 import { getEnv } from "@/env";
+import { listExcuseStates } from "@/modules/crm";
 import { hasRecentStepUp } from "@/modules/identity";
 import {
+  ATTENDANCE_EXTENTS,
+  ATTENDANCE_LISTS,
   buildLiveSnapshot,
   CHECK_IN_SOURCES,
   CHECK_IN_STATUSES,
   type CheckInStatus,
   canOpenOccasion,
+  canRequestExcuse,
   getOccasion,
   listCheckIns,
   listOccasionScores,
@@ -18,6 +22,8 @@ import {
   surveySummary,
 } from "@/modules/participation";
 import {
+  attendanceCell,
+  excuseCell,
   liveConsoleLabels,
   occasionKindLabel,
   occasionStatusCell,
@@ -91,14 +97,16 @@ export default async function ConsolaPage({
   const statusFilter = CHECK_IN_STATUSES.includes(estado as CheckInStatus)
     ? [estado as CheckInStatus]
     : undefined;
-  const [snapshot, checkIns, roster, committees, scores, results] = await Promise.all([
+  const [snapshot, checkIns, roster, committees, scores, results, excuses] = await Promise.all([
     buildLiveSnapshot(occasion),
     listCheckIns(id, statusFilter),
     listTermCommitteeMembers(occasion.termId),
     listAllCommittees(),
     listOccasionScores(id),
     q ? searchMembersByName(q) : Promise.resolve([]),
+    listExcuseStates({ occasionId: id }),
   ]);
+  const excuseStates = new Map(excuses.map((item) => [item.personId, item.status]));
   const people = await getPeopleByIds(checkIns.map((item) => item.personId));
   const committeeName = new Map(committees.map((item) => [item.id, item.name]));
   const committeesOf = new Map<string, string[]>();
@@ -111,6 +119,8 @@ export default async function ConsolaPage({
   const pending = checkIns.filter((item) => item.status === "PENDING");
   const statusLabels = tLabels("T-597", CHECK_IN_STATUSES);
   const sourceLabels = tLabels("T-596", CHECK_IN_SOURCES);
+  const extentLabels = tLabels("T-3578", ATTENDANCE_EXTENTS);
+  const listLabels = tLabels("T-3579", ATTENDANCE_LISTS);
   const [abrir, cerrar, cancelar] = tList("T-589");
   const [activar, rotar, desactivar] = tList("T-588");
   const [aprobar, rechazar, anularLabel] = tList("T-592");
@@ -330,11 +340,29 @@ export default async function ConsolaPage({
                     className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-borde bg-fondo px-4 py-2"
                   >
                     <span className="font-semibold">{item.fullName.trim()}</span>
-                    <form action={registerAction}>
+                    <form action={registerAction} className="flex flex-wrap items-end gap-3">
                       <AdminFormBody>
                         <input type="hidden" name="occasionId" value={id} />
                         <input type="hidden" name="personId" value={item.id} />
                         <input type="hidden" name="back" value="consola" />
+                        {occasion.kind === "ASSEMBLY" ? (
+                          <label className="flex flex-col gap-1 text-sm">
+                            <span className="font-semibold">{t("T-3577")}</span>
+                            <select
+                              name="attendanceChoice"
+                              defaultValue="FULL"
+                              aria-describedby="asistencia-ayuda"
+                              className={inputClass}
+                            >
+                              <option value="FULL">{extentLabels.FULL}</option>
+                              {ATTENDANCE_LISTS.map((list) => (
+                                <option key={list} value={list}>
+                                  {t("T-3586", { lista: listLabels[list] })}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : null}
                         <AdminSubmitButton
                           type="submit"
                           className="boton-primario min-h-9 px-4 py-1 text-sm"
@@ -347,6 +375,11 @@ export default async function ConsolaPage({
                 ))}
               </ul>
             )
+          ) : null}
+          {occasion.kind === "ASSEMBLY" ? (
+            <p id="asistencia-ayuda" className="max-w-prose text-sm text-tinta-suave">
+              {t("T-3587")}
+            </p>
           ) : null}
         </section>
       ) : null}
@@ -411,35 +444,65 @@ export default async function ConsolaPage({
           {checkIns.length === 0 ? (
             <p className="text-tinta-suave">{t("T-671")}</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="admin-data-table w-full text-sm">
+            <section
+              aria-label={t("T-594")}
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: región desplazable accesible con teclado
+              tabIndex={0}
+              className="admin-table-region min-w-0 overflow-x-auto"
+            >
+              <table className="admin-data-table w-full text-sm sm:min-w-[56rem]">
                 <thead>
                   <tr className="text-left">
                     {columnLabels.map((label) => (
-                      <th scope="col" key={label} className="eyebrow py-2 pr-4 text-xs">
+                      <th
+                        scope="col"
+                        key={label}
+                        className="eyebrow py-2 pr-4 text-xs whitespace-nowrap"
+                      >
                         {label}
                       </th>
                     ))}
+                    <th scope="col" className="eyebrow py-2 pr-4 text-xs whitespace-nowrap">
+                      {t("T-3577")}
+                    </th>
+                    <th scope="col" className="eyebrow py-2 pr-4 text-xs whitespace-nowrap">
+                      {t("T-3581")}
+                    </th>
                     {canDecide ? <th scope="col" className="py-2" /> : null}
                   </tr>
                 </thead>
                 <tbody>
                   {checkIns.map((item) => (
                     <tr key={item.id} className="border-borde border-t">
-                      <td data-label={columnLabels[0]} className="py-2 pr-4 font-semibold">
+                      <td
+                        data-label={columnLabels[0]}
+                        className="py-2 pr-4 font-semibold sm:min-w-40"
+                      >
                         {people.get(item.personId)?.fullName?.trim()}
                       </td>
                       <td data-label={columnLabels[1]} className="py-2 pr-4">
                         {(committeesOf.get(item.personId) ?? []).join(", ") || "—"}
                       </td>
-                      <td data-label={columnLabels[2]} className="py-2 pr-4">
+                      <td data-label={columnLabels[2]} className="py-2 pr-4 sm:whitespace-nowrap">
                         {formatTime(item.at)}
                       </td>
-                      <td data-label={columnLabels[3]} className="py-2 pr-4">
+                      <td data-label={columnLabels[3]} className="py-2 pr-4 sm:whitespace-nowrap">
                         {sourceLabels[item.source] ?? item.source}
                       </td>
-                      <td data-label={columnLabels[4]} className="py-2 pr-4">
+                      <td data-label={columnLabels[4]} className="py-2 pr-4 sm:whitespace-nowrap">
                         {statusLabel(item.status)}
+                      </td>
+                      <td data-label={t("T-3577")} className="py-2 pr-4 sm:min-w-48">
+                        <span className="whitespace-nowrap">{attendanceCell(item)}</span>
+                        {item.attendanceExtent === "PARTIAL" && canRequestExcuse(item) ? (
+                          <p className="mt-1 max-w-prose text-xs text-tinta-suave">{t("T-3588")}</p>
+                        ) : null}
+                      </td>
+                      <td
+                        data-label={t("T-3581")}
+                        className="py-2 pr-4 sm:min-w-44 sm:whitespace-nowrap"
+                      >
+                        {excuseCell(item, excuseStates.get(item.personId))}
                       </td>
                       {canDecide ? (
                         <td data-label={t("T-1500")} className="py-2">
@@ -491,7 +554,7 @@ export default async function ConsolaPage({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </section>
           )}
         </details>
       </section>

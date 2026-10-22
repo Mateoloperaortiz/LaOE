@@ -14,7 +14,12 @@ import {
   presenceBonus,
   reward,
 } from "../schema";
-import type { CheckInSource, CheckInStatus } from "./check-in-pure";
+import type {
+  AttendanceExtent,
+  AttendanceList,
+  CheckInSource,
+  CheckInStatus,
+} from "./check-in-pure";
 import { getPresenceStreak } from "./presence-streak";
 
 /** Reconocimientos propios: no incluye clasificaciones ni nombres de otras personas. */
@@ -45,6 +50,8 @@ export interface CheckInExportRow {
   at: Date;
   source: CheckInSource;
   status: CheckInStatus;
+  attendanceExtent: AttendanceExtent | null;
+  attendanceList: AttendanceList | null;
   reason: string | null;
 }
 
@@ -111,6 +118,8 @@ export async function listCheckInsForExport(params: {
     at: item.row.at,
     source: item.row.source,
     status: item.row.status,
+    attendanceExtent: item.row.attendanceExtent,
+    attendanceList: item.row.attendanceList,
     reason: item.row.reason,
   }));
   return { rows: mapped, total: total?.n ?? 0 };

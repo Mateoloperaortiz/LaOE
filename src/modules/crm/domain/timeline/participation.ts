@@ -6,6 +6,7 @@ import {
   checkinApproved,
   checkinCancelled,
   checkinExcused,
+  checkinPartial,
   checkinPending,
   game2048Completed,
   panalCheckpointReached,
@@ -25,6 +26,11 @@ import { fill, rule, type TimelineRule } from "./kit";
 const [FIRST_BOOSTER_KIND] = BOOSTER_KINDS;
 
 export const PARTICIPATION_RULES: readonly TimelineRule[] = [
+  rule(checkinPartial, ({ occasionId, occasionTitle, attendanceList }, { labels }) => ({
+    kind: "PARTICIPATION",
+    summary: fill(labels.partialAttendanceText ?? "", { ocasion: occasionTitle }),
+    metadata: { occasionId, attendanceExtent: "PARTIAL", attendanceList },
+  })),
   rule(checkinApproved, ({ occasionId, occasionTitle, points, category }, { labels }) => ({
     kind: "PARTICIPATION",
     summary:

@@ -31,6 +31,7 @@ import { DomainError } from "@/shared/lib/errors";
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 const backSchema = z.enum(["consola", "anfitrion"]).catch("consola");
+const attendanceChoiceSchema = z.enum(["FULL", "FIRST", "SECOND"]);
 
 function pageUrl(id: string, back: "consola" | "anfitrion", extra: Record<string, string> = {}) {
   const base = back === "anfitrion" ? `/admin/ocasiones/${id}/anfitrion` : `/admin/ocasiones/${id}`;
@@ -161,6 +162,9 @@ export async function registerAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("occasionId"));
   const personId = idSchema.parse(formData.get("personId"));
   const back = backSchema.parse(formText(formData, "back"));
+  const attendanceChoice = attendanceChoiceSchema.parse(
+    formText(formData, "attendanceChoice") || "FULL",
+  );
   const { actor } = await operator(id, back);
   const people = await getPeopleByIds([personId]);
   const personName = people.get(personId)?.fullName?.trim() ?? "";
@@ -170,6 +174,8 @@ export async function registerAction(formData: FormData): Promise<void> {
       personId,
       personName,
       source: actor.isAdmin ? "ADMIN" : "HOST",
+      attendanceExtent: attendanceChoice === "FULL" ? "FULL" : "PARTIAL",
+      attendanceList: attendanceChoice === "FULL" ? null : attendanceChoice,
     });
     return { nombre: personName };
   });

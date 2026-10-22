@@ -48,7 +48,12 @@ import {
 import { budgetKindLabel, budgetStatusLabel } from "@/modules/finance/domain/budgets";
 import { FIELD_TYPES } from "@/modules/forms/domain/pure";
 import { occasionStatusCell } from "@/modules/participation/admin";
-import { CHECK_IN_SOURCES, CHECK_IN_STATUSES } from "@/modules/participation/domain/check-in-pure";
+import {
+  ATTENDANCE_EXTENTS,
+  ATTENDANCE_LISTS,
+  CHECK_IN_SOURCES,
+  CHECK_IN_STATUSES,
+} from "@/modules/participation/domain/check-in-pure";
 import { checkInStatusLabel } from "@/modules/participation/domain/check-in-transition";
 import { VIABILITY_ALERTS } from "@/modules/participation/domain/committee-viability-pure";
 import { POINT_ENTRY_KINDS } from "@/modules/participation/domain/ledger-pure";
@@ -1024,6 +1029,33 @@ export const UNSEEN_PAIRS: readonly LabelPair[] = [
     positions: { DRAFT: 0, LIVE: 1, FINISHED: 2, ARCHIVED: 3 },
     canonical: COMPETITION_STATUSES,
   },
+  {
+    code: "T-3578",
+    order: "ATTENDANCE_EXTENTS",
+    positions: { FULL: 0, PARTIAL: 1 },
+    canonical: ATTENDANCE_EXTENTS,
+    copies: ["src/modules/participation/components/ConsolaEnVivo.tsx"],
+  },
+  {
+    code: "T-3579",
+    order: "ATTENDANCE_LISTS",
+    positions: { FIRST: 0, SECOND: 1 },
+    canonical: ATTENDANCE_LISTS,
+    copies: ["src/modules/participation/components/ConsolaEnVivo.tsx"],
+  },
+  {
+    code: "T-3582",
+    order: "EXCUSE_DISPLAY_STATES",
+    positions: {
+      NOT_REQUIRED: 0,
+      NOT_SUBMITTED: 1,
+      PENDING: 2,
+      APPROVED: 3,
+      REJECTED: 4,
+      WITHDRAWN: 5,
+    },
+    copies: ["src/modules/participation/admin.ts"],
+  },
 ];
 
 export type UnevenPair = {
@@ -1045,20 +1077,8 @@ export type UnevenPair = {
 
 /** Los pares que no son uno a uno: la lista y el orden tienen distinto largo. Quedan fuera de
  * `tLabels` (spec #242, «Implementation Decisions»): ninguno se recorta ni se alarga. */
-export const UNEVEN_PAIRS: readonly UnevenPair[] = [
-  // La consola no nombra EXCUSED: una asistencia excusada cae al respaldo y muestra el código. Desde
-  // el ticket #317 sus cuatro estados leen por valor el `Record` del par uno a uno (DT-364).
-  {
-    code: "T-597",
-    order: "CONSOLE_STATUSES",
-    file: "src/modules/participation/admin.ts",
-    tuple: ["PENDING", "APPROVED", "REJECTED", "CANCELLED"],
-    pieces: 5,
-    positions: { PENDING: 0, APPROVED: 1, REJECTED: 2, CANCELLED: 3 },
-    read: "CONSOLE_STATUSES.map((status) => [status, statuses[status]])",
-    seen: true,
-  },
-];
+// La consola ya nombra los cinco estados conocidos de CHECK_IN_STATUSES (ADR-137).
+export const UNEVEN_PAIRS: readonly UnevenPair[] = [];
 
 /** El par de largo distinto que armaba la pestaña de permanencia de la Persona 360: los seis motivos
  * automáticos del cierre (T-801) con las cuatro decisiones. Tres decisiones leían su posición y

@@ -7,6 +7,7 @@ import {
   type InteractionKind,
   latestContact,
   listCardsByPerson,
+  listExcuseStates,
   listInteractions,
   listRecognitionsFor,
   listRequestsByPerson,
@@ -160,14 +161,16 @@ export default async function PersonaPage({
   const tasks =
     tab === "tareas" ? (await listTasks({ q: "", personId: id, page: 1, pageSize: 100 })).rows : [];
   const assignees = accion === "tarea" ? await assigneeOptions() : [];
-  const [checkIns, entries, balance, assemblies, achievements, boosters] = await Promise.all([
-    tab === "participacion" ? listCheckInsForPerson(id) : Promise.resolve([]),
-    tab === "participacion" ? listEntriesForPerson(id) : Promise.resolve([]),
-    my.term ? balanceFor(id, my.term.id) : Promise.resolve(null),
-    my.term && tab === "resumen" ? assemblyStatusFor(id, my.term) : Promise.resolve(null),
-    tab === "participacion" ? listAchievementsForPerson(id) : Promise.resolve([]),
-    tab === "participacion" ? listBoostersFor(id) : Promise.resolve([]),
-  ]);
+  const [checkIns, entries, balance, assemblies, achievements, boosters, excuses] =
+    await Promise.all([
+      tab === "participacion" ? listCheckInsForPerson(id) : Promise.resolve([]),
+      tab === "participacion" ? listEntriesForPerson(id) : Promise.resolve([]),
+      my.term ? balanceFor(id, my.term.id) : Promise.resolve(null),
+      my.term && tab === "resumen" ? assemblyStatusFor(id, my.term) : Promise.resolve(null),
+      tab === "participacion" ? listAchievementsForPerson(id) : Promise.resolve([]),
+      tab === "participacion" ? listBoostersFor(id) : Promise.resolve([]),
+      tab === "participacion" ? listExcuseStates({ personId: id }) : Promise.resolve([]),
+    ]);
   const occasions = await getOccasionsByIds(checkIns.map((item) => item.occasionId));
   const requests = tab === "solicitudes" ? await listRequestsByPerson(id) : [];
   const [submissions, registrations, cards] = await Promise.all([
@@ -225,6 +228,7 @@ export default async function PersonaPage({
           termCodes={termCodes}
           achievements={achievements}
           boosters={boosters}
+          excuses={excuses}
         />
       );
       break;

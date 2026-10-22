@@ -12,7 +12,15 @@ import { afterPoll, type LiveStatus, showsAsCurrent } from "./console-live";
 export interface LiveData {
   status: string;
   counts: Record<string, number>;
-  recent: Array<{ id: string; name: string; at: string; source: string; status: string }>;
+  recent: Array<{
+    id: string;
+    name: string;
+    at: string;
+    source: string;
+    status: string;
+    attendanceExtent?: "FULL" | "PARTIAL" | null;
+    attendanceList?: "FIRST" | "SECOND" | null;
+  }>;
   code: { value: string; secondsLeft: number } | null;
   link: string;
   qrSvg: string;
@@ -45,6 +53,8 @@ type Props = {
 // lo recibe por props (ADR-126 regla 5). Las etiquetas de estado y de fuente sí llegan por props.
 const COUNTER_ORDER = ["APPROVED", "PENDING", "REJECTED", "CANCELLED"] as const;
 const COUNTER_LABELS = tLabels("T-585", COUNTER_ORDER);
+const ATTENDANCE_LABELS = tLabels("T-3578", ["FULL", "PARTIAL"] as const);
+const LIST_LABELS = tLabels("T-3579", ["FIRST", "SECOND"] as const);
 
 function fill(text: string, values: Record<string, string>): string {
   return text.replace(/\{([a-z]+)\}/g, (match, key: string) => values[key] ?? match);
@@ -179,6 +189,8 @@ export function ConsolaEnVivo({
                   <span className="text-tinta-suave">
                     {time.format(new Date(item.at))} · {sources[item.source] ?? item.source} ·{" "}
                     {statuses[item.status] ?? item.status}
+                    {item.attendanceExtent ? ` · ${ATTENDANCE_LABELS[item.attendanceExtent]}` : ""}
+                    {item.attendanceList ? ` · ${LIST_LABELS[item.attendanceList]}` : ""}
                   </span>
                 </li>
               ))}

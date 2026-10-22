@@ -24,6 +24,7 @@ import {
   checkIn,
   occasion,
 } from "../schema";
+import { completeAttendanceCondition } from "./attendance-query";
 import { listChallengesForMember, type MemberChallengeCard } from "./challenges";
 import {
   audienceIncludes,
@@ -316,6 +317,7 @@ export async function setBoosterTarget(
           eq(checkIn.occasionId, occasionId),
           eq(checkIn.personId, input.personId),
           inArray(checkIn.status, ["PENDING", "APPROVED"]),
+          completeAttendanceCondition(),
           input.forCheckInId ? ne(checkIn.id, input.forCheckInId) : undefined,
         ),
       )
@@ -392,6 +394,7 @@ export async function listBoosterTargetsForMember(
             eq(checkIn.personId, personId),
             inArray(checkIn.occasionId, occasionIds),
             inArray(checkIn.status, ["PENDING", "APPROVED"]),
+            completeAttendanceCondition(),
           ),
         )
     : [];

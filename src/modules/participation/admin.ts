@@ -20,7 +20,14 @@ import type {
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { type AssemblyOverviewRow, assemblyOverview } from "./domain/assemblies";
-import { CHECK_IN_SOURCES, CHECK_IN_STATUSES } from "./domain/check-in-pure";
+import {
+  ATTENDANCE_EXTENTS,
+  ATTENDANCE_LISTS,
+  CHECK_IN_SOURCES,
+  CHECK_IN_STATUSES,
+  type CheckInStatus,
+  canRequestExcuse,
+} from "./domain/check-in-pure";
 import { getTermStanding } from "./domain/closing";
 import {
   closeOccasionAs,
@@ -110,11 +117,44 @@ export function occasionStatusCell(status: OccasionStatus): { text: string; badg
   };
 }
 
-/**
- * Los estados que la consola en vivo nombra en sus últimos registros. No trae `EXCUSED`: una
- * asistencia excusada muestra ahí su código, como hasta hoy (DT-364, decisión abierta 75).
- */
-const CONSOLE_STATUSES = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"] as const;
+type AttendanceCellFact = {
+  status: CheckInStatus;
+  attendanceExtent: (typeof ATTENDANCE_EXTENTS)[number] | null;
+  attendanceList: (typeof ATTENDANCE_LISTS)[number] | null;
+};
+
+/** La cobertura conserva la parte asistida incluso después de aceptar una excusa. */
+export function attendanceCell(row: AttendanceCellFact): string {
+  if (row.attendanceExtent === null) return t("T-3580");
+  const extent = tLabels("T-3578", ATTENDANCE_EXTENTS)[row.attendanceExtent];
+  const list = row.attendanceList ? tLabels("T-3579", ATTENDANCE_LISTS)[row.attendanceList] : null;
+  return list ? `${extent} · ${list}` : extent;
+}
+
+const EXCUSE_DISPLAY_STATES = [
+  "NOT_REQUIRED",
+  "NOT_SUBMITTED",
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "WITHDRAWN",
+] as const;
+type ExcuseRequestState = "PENDING" | "APPROVED" | "REJECTED" | "WITHDRAWN";
+
+/** Solo recibe el estado del trámite: nunca su causal ni el texto de la persona. */
+export function excuseCell(
+  row: AttendanceCellFact,
+  requestState?: ExcuseRequestState | null,
+): string {
+  const state =
+    row.status === "EXCUSED"
+      ? "APPROVED"
+      : (requestState ?? (canRequestExcuse(row) ? "NOT_SUBMITTED" : "NOT_REQUIRED"));
+  return tLabels("T-3582", EXCUSE_DISPLAY_STATES)[state];
+}
+
+/** Los últimos registros también nombran la excusa aceptada, conservando la cobertura parcial. */
+const CONSOLE_STATUSES = CHECK_IN_STATUSES;
 
 /**
  * Las etiquetas de fuente (T-596) y de estado (T-597) que la consola en vivo recibe por props, por
@@ -374,6 +414,9 @@ export const checkInsResource: ResourceDefinition<CheckInExportRow, Empty> = {
     fecha: row.at.toISOString(),
     fuente: row.source,
     estado: row.status,
+    asistencia: row.attendanceExtent,
+    lista: row.attendanceList,
+    excusa_aceptada: row.status === "EXCUSED" ? 1 : 0,
     motivo: row.reason,
   }),
 };

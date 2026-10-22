@@ -276,7 +276,14 @@ const created = (c: Cell, status: string, source: string) => ({
   action: "checkin.created",
   entityId: c.checkInId,
   before: null,
-  after: { occasionId: c.f.occasion.id, personId: c.f.personId, status, source },
+  after: {
+    occasionId: c.f.occasion.id,
+    personId: c.f.personId,
+    status,
+    source,
+    attendanceExtent: "FULL",
+    attendanceList: null,
+  },
 });
 
 const decided = (

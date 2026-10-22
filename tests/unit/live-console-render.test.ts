@@ -97,10 +97,15 @@ describe("la consola en vivo de una ocasión", () => {
     ]);
   });
 
-  it("una asistencia excusada muestra su código: la consola no nombra ese estado (DT-364, decisión abierta 75)", () => {
-    expect(sourceAndStatus(consoleHtml([entry("1", "HOST", "EXCUSED")]))).toEqual([
-      [tList("T-596")[1], "EXCUSED"],
-    ]);
+  it("una parcial excusada muestra su etiqueta y conserva la lista acreditada", () => {
+    const partial = {
+      ...entry("1", "HOST", "EXCUSED"),
+      attendanceExtent: "PARTIAL" as const,
+      attendanceList: "FIRST" as const,
+    };
+    const html = consoleHtml([partial]);
+    expect(sourceAndStatus(html)).toEqual([[tList("T-596")[1], tList("T-597")[4]]]);
+    expect(html).toContain("Excusado · Parcial · Lista 1");
   });
 
   it("una fuente o un estado sin etiqueta se muestran tal cual, también si se llaman como una propiedad de Object (decisión abierta 75)", () => {

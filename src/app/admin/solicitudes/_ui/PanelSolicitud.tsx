@@ -98,6 +98,20 @@ export function PanelSolicitud({
               <input type="hidden" name="requestId" value={request.id} />
               <input type="hidden" name="returnTo" value={returnTo} />
               <input type="hidden" name="decision" value="APPROVED" />
+              {request.kind === "EXCUSE" ? (
+                <Campo id={`aprobacion-motivo-${request.id}`} label={t("T-3596")}>
+                  <textarea
+                    id={`aprobacion-motivo-${request.id}`}
+                    name="reason"
+                    rows={3}
+                    aria-describedby={`aprobacion-ayuda-${request.id}`}
+                    className={inputClass}
+                  />
+                  <p id={`aprobacion-ayuda-${request.id}`} className="text-sm text-tinta-suave">
+                    {t("T-3597")}
+                  </p>
+                </Campo>
+              ) : null}
               <AdminSubmitButton type="submit" className="boton-calido self-start">
                 {aprobar}
               </AdminSubmitButton>

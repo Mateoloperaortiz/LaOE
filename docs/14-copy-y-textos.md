@@ -3087,3 +3087,30 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3574 | Comités: dato no guardado | Dato no disponible | MATEO | Aprobado |
 | T-3575 | Comités: resultado combinado de cierre | Puntaje combinado: {n} / 100 | MATEO | Aprobado |
 | T-3576 | Comités: resultado histórico de cierre | Participación ajustada: {porcentaje} | MATEO | Aprobado |
+
+### Asistencia parcial y excusa separada
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-3577 | Consola y Persona 360: cobertura de asistencia | Asistencia | MATEO | Propuesta |
+| T-3578 | Asistencia: cobertura por valor FULL, PARTIAL | Completa · Parcial | MATEO | Propuesta |
+| T-3579 | Asistencia: lista acreditada por valor FIRST, SECOND | Lista 1 · Lista 2 | MATEO | Propuesta |
+| T-3580 | Asistencia: excusa sin presencia registrada | Sin asistencia registrada | MATEO | Propuesta |
+| T-3581 | Consola y Persona 360: estado independiente de la excusa | Excusa | MATEO | Propuesta |
+| T-3582 | Excusa: estados por valor NOT_REQUIRED, NOT_SUBMITTED, PENDING, APPROVED, REJECTED, WITHDRAWN | No requerida · Sin presentar · Pendiente de revisión · Aprobada · Rechazada · Retirada | MATEO | Propuesta |
+| T-3583 | Miembro: asistencia parcial que requiere excusa | Asistencia parcial: {lista}. Necesitás una excusa aprobada por la parte de la asamblea a la que no asististe. | GH | Propuesta |
+| T-3584 | Miembro: acceso a justificar asistencia parcial | Presentar excusa | MATEO | Propuesta |
+| T-3585 | Miembro: asistencia parcial con excusa aceptada | Asistencia parcial: {lista}. Tu excusa fue aprobada; el registro parcial se conserva. | GH | Propuesta |
+| T-3586 | Consola: opción de alta parcial | Parcial ({lista}) | MATEO | Propuesta |
+| T-3587 | Consola: ayuda del registro completo o parcial | Registrá si la persona completó la asamblea o en cuál lista quedó registrada. | GH | Propuesta |
+| T-3588 | Consola: explicación de la aprobación de una parcial | La asistencia parcial requiere excusa. Aprobar este registro conserva su carácter parcial. | GH | Propuesta |
+| T-3589 | Miembro: acceso al estado de su excusa | Ver mis solicitudes | MATEO | Propuesta |
+| T-3590 | Solicitudes: asistencia y excusa son datos separados | La asistencia y el estado de la excusa se conservan por separado. | GH | Propuesta |
+| T-3595 | Línea de tiempo: presencia parcial | Asistió parcialmente a {ocasion} | GH | Propuesta |
+| T-3598 | Asistencia parcial: información de puntos sin acreditar asistencia completa | Sin puntos | GH | Propuesta |
+| T-3591 | Asistencia parcial: tipo de ocasión incompatible | La asistencia parcial solo se registra en asambleas. | GH | Propuesta |
+| T-3592 | Asistencia parcial: toma requerida | Elegí en cuál toma de asistencia aparece la persona. | GH | Propuesta |
+| T-3593 | Asistencia completa: toma parcial incompatible | Una asistencia completa no lleva una toma parcial. | GH | Propuesta |
+| T-3594 | Asistencia: cambio de presencia al aprobar un registro existente | La presencia de una asistencia existente no se cambia al aprobarla. | GH | Propuesta |
+| T-3596 | Excusa: motivo de una aprobación excepcional | Motivo de la aprobación fuera de plazo | GH | Propuesta |
+| T-3597 | Excusa: ayuda del motivo de aprobación excepcional | Si la excusa se presentó fuera de plazo, explicá por qué aprobás la revisión excepcional. En los demás casos podés dejarlo vacío. | GH | Propuesta |

@@ -10,6 +10,7 @@ export interface TimelineLabels {
   texts: string[];
   /** Los textos de participación de T-667, en orden (fase 3). */
   participationTexts: string[];
+  partialAttendanceText?: string;
   /** El nombre de cada tipo de booster de T-2451, por valor (ADR-067); los usa booster.granted. */
   boosterNames?: Readonly<Record<string, string>>;
   /** Los textos de permanencia de T-832, en orden (fase 4; los dos últimos, ADR-056). */

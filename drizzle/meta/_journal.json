@@ -414,6 +414,13 @@
       "when": 1792183520131,
       "tag": "0058_aviso_presencial_24h",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792703147181,
+      "tag": "0059_asistencias_parciales",
+      "breakpoints": true
     }
   ]
 }

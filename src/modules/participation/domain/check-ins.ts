@@ -7,8 +7,11 @@ import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { asScopeId } from "@/shared/lib/scope-id";
 import { checkIn, occasion } from "../schema";
+import { approvedCompleteAttendanceCondition } from "./attendance-query";
 import { lockParticipationBatch } from "./batch-lock";
 import {
+  type AttendanceExtent,
+  type AttendanceList,
   CHECK_IN_STATUSES,
   type CheckInDecision,
   type CheckInOutcome,
@@ -248,6 +251,8 @@ export interface HostCheckInInput {
   personId: string;
   personName: string;
   source: "HOST" | "ADMIN";
+  attendanceExtent?: AttendanceExtent | undefined;
+  attendanceList?: AttendanceList | null | undefined;
   now?: Date;
 }
 
@@ -273,8 +278,29 @@ export async function hostCheckIn(
   // ADR-119 regla 1: el estado que vale es el de la ocasión tomada.
   const row = await lockOccasion(ctx, observed);
   assertOpenForOrganizer(row, input.source);
+  const extent = input.attendanceExtent ?? "FULL";
+  const list = input.attendanceList ?? null;
+  if (extent !== "FULL" && extent !== "PARTIAL") {
+    throw new DomainError(t("T-260"), "attendanceExtent");
+  }
+  if (extent === "PARTIAL") {
+    if (row.kind !== "ASSEMBLY") {
+      throw new DomainError(t("T-3591"), "attendanceExtent");
+    }
+    if (list !== "FIRST" && list !== "SECOND") {
+      throw new DomainError(t("T-3592"), "attendanceList");
+    }
+  } else if (list !== null) {
+    throw new DomainError(t("T-3593"), "attendanceList");
+  }
   const [existing] = await lockCheckIns(ctx, ofPerson(row.id, input.personId));
   if (existing) {
+    if (
+      (input.attendanceExtent !== undefined && extent !== existing.attendanceExtent) ||
+      (input.attendanceList !== undefined && list !== existing.attendanceList)
+    ) {
+      throw new DomainError(t("T-3594"), "attendanceExtent");
+    }
     if (!canTransitionCheckIn(existing.status, "APPROVED")) {
       throw new DomainError(t("T-601", { nombre: input.personName }));
     }
@@ -289,6 +315,8 @@ export async function hostCheckIn(
       current: null,
       to: "APPROVED",
       source: input.source,
+      attendanceExtent: extent,
+      attendanceList: list,
       now,
     },
     context,
@@ -538,7 +566,7 @@ export async function excuseCheckIn(
   if (current?.status === "EXCUSED") {
     return;
   }
-  if (current && !canTransitionCheckIn(current.status, "EXCUSED")) {
+  if (current && !canTransitionCheckIn(current.status, "EXCUSED", current.attendanceExtent)) {
     throw new DomainError(t("T-2223"));
   }
   try {
@@ -624,7 +652,10 @@ export async function countCheckInsByStatus(
   return counts;
 }
 
-export type RecentCheckIn = Pick<CheckInRow, "id" | "personId" | "at" | "source" | "status">;
+export type RecentCheckIn = Pick<
+  CheckInRow,
+  "id" | "personId" | "at" | "source" | "status" | "attendanceExtent" | "attendanceList"
+>;
 
 /**
  * Los últimos check-ins de una ocasión, del más reciente al más viejo, con lo que la consola en vivo
@@ -641,6 +672,8 @@ export async function listRecentCheckIns(
       at: checkIn.at,
       source: checkIn.source,
       status: checkIn.status,
+      attendanceExtent: checkIn.attendanceExtent,
+      attendanceList: checkIn.attendanceList,
     })
     .from(checkIn)
     .where(eq(checkIn.occasionId, occasionId))
@@ -669,7 +702,7 @@ export async function listApprovedCheckInsForTerm(termId: string): Promise<Appro
     .select({ personId: checkIn.personId, occasionId: checkIn.occasionId })
     .from(checkIn)
     .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
-    .where(and(eq(occasion.termId, termId), eq(checkIn.status, "APPROVED")));
+    .where(and(eq(occasion.termId, termId), approvedCompleteAttendanceCondition()));
 }
 
 /** Ocasiones del término con excusa aceptada, por persona (ADR-060 regla 5). */
@@ -711,7 +744,7 @@ export async function listApprovedCheckInsForPersonInTerm(
       and(
         eq(occasion.termId, termId),
         eq(checkIn.personId, personId),
-        eq(checkIn.status, "APPROVED"),
+        approvedCompleteAttendanceCondition(),
       ),
     );
   return rows.map((row) => row.occasionId);

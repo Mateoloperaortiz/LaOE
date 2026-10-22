@@ -3,7 +3,7 @@ import { mediaProcess } from "@/domain-events/content";
 import { cardCreated, requestDecided } from "@/domain-events/crm";
 import { submissionReceived } from "@/domain-events/forms";
 import { permissionGranted } from "@/domain-events/identity";
-import { sudokuCompleted } from "@/domain-events/participation";
+import { checkinPartial, sudokuCompleted } from "@/domain-events/participation";
 import {
   appointmentChanged,
   committeeMembershipChanged,
@@ -56,6 +56,31 @@ const lookup = {
 const persona = { actorId: null, personId: "p" };
 
 describe("línea de tiempo", () => {
+  it("conserva una presencia parcial como tal en la historia de la persona", () => {
+    const entry = summarizeEvent(
+      checkinPartial,
+      {
+        personId: "parcial-sintetica",
+        occasionId: "asamblea-prueba",
+        occasionTitle: "Asamblea de prueba",
+        termId: "t1",
+        category: "OTHER",
+        kind: "ASSEMBLY",
+        points: 0,
+        source: "IMPORT",
+        attendanceExtent: "PARTIAL",
+        attendanceList: "FIRST",
+      },
+      { ...labels, partialAttendanceText: "Asistió parcialmente a {ocasion}" },
+      lookup,
+    );
+    expect(entry).toMatchObject({
+      personId: "parcial-sintetica",
+      summary: "Asistió parcialmente a Asamblea de prueba",
+      metadata: { attendanceExtent: "PARTIAL", attendanceList: "FIRST" },
+    });
+  });
+
   it("traduce cada evento a su texto de T-458 con los nombres resueltos", () => {
     expect(
       summarizeEvent(
@@ -210,7 +235,7 @@ describe("línea de tiempo", () => {
   it("cada tipo de evento tiene una sola regla", () => {
     const types = TIMELINE_RULES.map((rule) => rule.definition.type);
     expect(new Set(types).size).toBe(types.length);
-    expect(types.length).toBe(46);
+    expect(types.length).toBe(47);
     expect(types).toContain("panal.checkpoint-reached");
     expect(types).toContain("panal.completed");
   });

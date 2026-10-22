@@ -8,8 +8,22 @@ const key = z.string().regex(/^[A-Za-z0-9-]{2,80}$/);
 const day = z.iso.date();
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
 const source = z.object({ key, path: z.string().min(1), sha256: hash }).strict();
+const attendanceEvidence = z
+  .object({
+    list: z.enum(["FIRST", "SECOND"]),
+    sourceKey: key,
+    sourceSheet: z.string().min(1).max(31).optional(),
+    sourceRow: z.number().int().positive(),
+  })
+  .strict();
 const participant = z
-  .object({ recordId: key, email: z.email().toLowerCase(), sourceRow: z.number().int().positive() })
+  .object({
+    recordId: key,
+    email: z.email().toLowerCase(),
+    sourceRow: z.number().int().positive(),
+    attendanceExtent: z.enum(["FULL", "PARTIAL"]).optional(),
+    attendanceEvidence: z.array(attendanceEvidence).min(1).max(2).optional(),
+  })
   .strict();
 export const ghManifestSchema = z
   .object({
@@ -86,6 +100,20 @@ export const ghManifestSchema = z
       for (const p of a.participants) {
         if (emails.has(p.email) || records.has(p.recordId))
           ctx.addIssue({ code: "custom", message: "Participante o registro repetido" });
+        const extent = p.attendanceExtent ?? "FULL";
+        const evidence = p.attendanceEvidence;
+        if (
+          (a.type !== "ASAMBLEA" && (extent === "PARTIAL" || evidence)) ||
+          (extent === "PARTIAL" && evidence?.length !== 1) ||
+          (extent === "FULL" && evidence && evidence.length !== 2) ||
+          (evidence &&
+            (new Set(evidence.map((e) => e.list)).size !== evidence.length ||
+              evidence.some((e) => !sources.has(e.sourceKey))))
+        )
+          ctx.addIssue({
+            code: "custom",
+            message: "La asistencia completa o parcial no coincide con sus listas y fuentes",
+          });
         emails.add(p.email);
         records.add(p.recordId);
       }
@@ -128,7 +156,15 @@ export interface GhSnapshot {
     starts_at: string;
     ends_at: string | null;
   }[];
-  checkIns: { id: string; occasion_id: string; person_id: string; status: string }[];
+  checkIns: {
+    id: string;
+    occasion_id: string;
+    person_id: string;
+    status: string;
+    /** Las consultas privadas anteriores no incluían estos campos. */
+    attendance_extent?: "FULL" | "PARTIAL" | null;
+    attendance_list?: "FIRST" | "SECOND" | null;
+  }[];
   entries: {
     id: string;
     person_id: string;
@@ -194,6 +230,8 @@ export interface GhPlannedRow {
   personId: string | null;
   action: "ADD" | "EXISTS" | "BLOCKED";
   reason: string;
+  attendanceExtent: "FULL" | "PARTIAL";
+  attendanceList: "FIRST" | "SECOND" | null;
   points: number;
   decoration: "ADD_PENDING" | "ADD_GOOD" | "EXISTS" | "NONE";
   evidenceAction: "ADD" | "EVALUATE" | "EXISTS" | "NONE";
@@ -307,6 +345,9 @@ export function planGhImport(manifest: GhManifest, snapshot: GhSnapshot) {
     )
       reason = term.permanence_closed_at ? "PERMANENCE_CLOSED" : "EVIDENCE_GROUP_NEEDS_MAPPING";
     const rows = a.participants.map((p) => {
+      const attendanceExtent = p.attendanceExtent ?? "FULL";
+      const attendanceList =
+        attendanceExtent === "PARTIAL" ? (p.attendanceEvidence?.[0]?.list ?? null) : null;
       const person = people.get(p.email);
       let block = reason;
       if (!block && !person) block = "PERSON_MISSING";
@@ -341,8 +382,25 @@ export function planGhImport(manifest: GhManifest, snapshot: GhSnapshot) {
           : live.length !== 1 ||
             live[0]?.points !== expectedPoints ||
             live[0]?.person_id !== person?.id;
-      if (!block && check && (checks.length !== 1 || check.status !== "APPROVED" || creditConflict))
-        block = "EXISTING_CHECKIN_CONFLICT";
+      if (!block && check) {
+        const compatibleStatus =
+          check.status === "APPROVED" || (a.type === "ASAMBLEA" && check.status === "EXCUSED");
+        if (checks.length !== 1 || !compatibleStatus || creditConflict)
+          block = "EXISTING_CHECKIN_CONFLICT";
+        else {
+          const storedExtent =
+            check.attendance_extent === undefined
+              ? check.status === "EXCUSED"
+                ? null
+                : "FULL"
+              : check.attendance_extent;
+          if (
+            storedExtent !== attendanceExtent ||
+            (check.attendance_list ?? null) !== attendanceList
+          )
+            block = "EXISTING_ATTENDANCE_CONFLICT";
+        }
+      }
       if (
         !block &&
         !check &&
@@ -380,6 +438,8 @@ export function planGhImport(manifest: GhManifest, snapshot: GhSnapshot) {
         personId: person?.id ?? null,
         action,
         reason: block,
+        attendanceExtent,
+        attendanceList,
         points: action === "ADD" ? pointsFor(a.type) : 0,
         evidenceAction,
         decoration:
@@ -407,6 +467,8 @@ export function planGhImport(manifest: GhManifest, snapshot: GhSnapshot) {
     ).length,
     activitiesToReuse: activities.filter((a) => a.action === "REUSE").length,
     rowsToAdd: rows.filter((r) => r.action === "ADD").length,
+    fullToAdd: rows.filter((r) => r.action === "ADD" && r.attendanceExtent === "FULL").length,
+    partialToAdd: rows.filter((r) => r.action === "ADD" && r.attendanceExtent === "PARTIAL").length,
     rowsExisting: rows.filter((r) => r.action === "EXISTS").length,
     rowsBlocked: rows.filter((r) => r.action === "BLOCKED").length,
     pointsToAdd: rows.reduce((s, r) => s + r.points, 0),

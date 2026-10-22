@@ -10,6 +10,7 @@ import { requireConfig } from "@/modules/system";
 import { t } from "@/shared/copy";
 import { splitTitleBody } from "@/shared/copy/render";
 import { checkIn, occasion, occasionSurveyInvite, occasionSurveyResponse } from "../schema";
+import { approvedCompleteAttendanceCondition } from "./attendance-query";
 import { type SurveySummary, summarizeAnswers } from "./surveys-pure";
 
 // Encuesta anónima tras la ocasión (ADR-038 regla 13): al cerrar, una invitación con token por
@@ -50,7 +51,7 @@ export async function createSurveyInvites(
   const approved = await db
     .select({ personId: checkIn.personId })
     .from(checkIn)
-    .where(and(eq(checkIn.occasionId, occasionId), eq(checkIn.status, "APPROVED")));
+    .where(and(eq(checkIn.occasionId, occasionId), approvedCompleteAttendanceCondition()));
   const existing = new Set(
     (
       await db

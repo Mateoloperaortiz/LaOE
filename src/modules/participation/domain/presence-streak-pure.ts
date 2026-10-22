@@ -1,5 +1,6 @@
 import { APP_TIME_ZONE, addDays, atHourIn } from "@/shared/lib/dates-pure";
 import type { PresencePauseReason, PresenceStreak, PresenceWeek } from "../presence-types";
+import { type AttendanceExtent, isCompleteAttendance } from "./check-in-pure";
 import { dayKeyFor, weekKeyFor } from "./gamification-pure";
 
 type MembershipStatus = "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE";
@@ -19,6 +20,7 @@ export interface PresenceOccasionFact {
   committeeId: string | null;
   newMembersOnly: boolean;
   checkInStatus: "APPROVED" | "PENDING" | "REJECTED" | "CANCELLED" | "EXCUSED" | null;
+  attendanceExtent?: AttendanceExtent | null;
 }
 
 /** El bono es fijo por semana; nunca multiplica asistencias ni premios de retos. */
@@ -90,7 +92,11 @@ export function presenceStreakFromFacts(input: {
     );
     const approved = facts.filter(
       (row) =>
-        row.checkInStatus === "APPROVED" &&
+        row.checkInStatus !== null &&
+        isCompleteAttendance({
+          status: row.checkInStatus,
+          attendanceExtent: row.attendanceExtent === undefined ? "FULL" : row.attendanceExtent,
+        }) &&
         row.startsAt <= now &&
         (!member || statusAt(member, row.startsAt) !== "ON_LEAVE"),
     );
