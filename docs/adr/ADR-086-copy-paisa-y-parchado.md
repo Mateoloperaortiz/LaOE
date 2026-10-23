@@ -1,6 +1,6 @@
 # ADR-086: Copy paisa y parchado
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-138)
 - Fecha: 2026-09-22
 - Relacionadas: ADR-079, ADR-081
 - Enmienda: la voz de [07-marca.md](../07-marca.md) §1 y de [14-copy-y-textos.md](../14-copy-y-textos.md) §1
@@ -48,3 +48,7 @@ El 2026-09-22 Mateo pidió que todo el copy suene más colombiano, paisa y parch
 
 - **El contenido editable desde el admin** (páginas del CMS, plantillas y campañas de correo, normativa importada): es de sus dueños y vive en la base.
 - **Los PDF oficiales y el manual**: el texto institucional aprobado no cambia de voz.
+
+## Enmienda (2026-10-23, ADR-138)
+
+La voz pasa de «voseo paisa» a **tuteo paisa sutil**: el trato es «tú» colombiano y el toque paisa queda en el vocabulario permitido de esta ADR. Todo lo demás —intensidad, vetos, sensibles serios, aprobados intactos, invariantes y pruebas por catálogo— sigue igual. El eslogan del manual «Lo hacemos por vos» y la muletilla «hágale» se conservan como citas fijas. Detalle en [ADR-138](ADR-138-tu-paisa-sutil-sin-acentuacion-argentina.md).

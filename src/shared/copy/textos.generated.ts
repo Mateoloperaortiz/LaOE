@@ -23,13 +23,13 @@ export const textos = {
   },
   "T-004": {
     where: "Inicio, botón principal",
-    text: "Entrá a Mi OE",
+    text: "Entra a Mi OE",
     owner: "COM",
     status: "Propuesta",
   },
   "T-005": {
     where: "Inicio, botón secundario",
-    text: "Conocé los comités",
+    text: "Conoce los comités",
     owner: "COM",
     status: "Propuesta",
   },
@@ -53,7 +53,7 @@ export const textos = {
   },
   "T-009": {
     where: "Inicio, cuando no hay anuncios ni encuentros",
-    text: "Por ahora no hay nada programado. Volvé pronto, pues.",
+    text: "Por ahora no hay nada programado. Vuelve pronto, pues.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -113,13 +113,13 @@ export const textos = {
   },
   "T-019": {
     where: "Edición, botón de inscripción propia",
-    text: "Inscribite",
+    text: "Inscríbete",
     owner: "COM",
     status: "Propuesta",
   },
   "T-020": {
     where: "Edición, botón de inscripción externa",
-    text: "Inscribite (te lleva a otro sitio)",
+    text: "Inscríbete (te lleva a otro sitio)",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -131,7 +131,7 @@ export const textos = {
   },
   "T-022": {
     where: "Comités, intro",
-    text: "18 comités, 18 formas de vivir la OE. Encontrá tu parche.",
+    text: "18 comités, 18 formas de vivir la OE. Encuentra tu parche.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -143,13 +143,13 @@ export const textos = {
   },
   "T-024": {
     where: "Comité, botón de contacto",
-    text: "Escribiles",
+    text: "Escríbeles",
     owner: "COM",
     status: "Propuesta",
   },
   "T-025": {
     where: "Unirse, título",
-    text: "¿Te querés pegar a la OE?",
+    text: "¿Te quieres pegar a la OE?",
     owner: "GH",
     status: "Propuesta",
   },
@@ -161,13 +161,13 @@ export const textos = {
   },
   "T-027": {
     where: "Unirse, botón",
-    text: "Postulate",
+    text: "Postúlate",
     owner: "GH",
     status: "Propuesta",
   },
   "T-028": {
     where: "Unirse, cuando no hay convocatoria abierta",
-    text: "Ahora no hay convocatoria abierta, pero dejanos tu correo y te avisamos de una cuando abra.",
+    text: "Ahora no hay convocatoria abierta, pero déjanos tu correo y te avisamos de una cuando abra.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -191,13 +191,13 @@ export const textos = {
   },
   "T-032": {
     where: 'Error genérico "no encontrado" de acciones y dominio (el 404 usa T-2721)',
-    text: "Esta página no existe. Volvé al inicio.",
+    text: "Esta página no existe. Vuelve al inicio.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-033": {
     where: "Error del servidor",
-    text: "Algo se nos dañó de este lado. Ya nos dimos cuenta; intentá otra vez en un ratico.",
+    text: "Algo se nos dañó de este lado. Ya nos dimos cuenta; intenta otra vez en un ratico.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -239,13 +239,13 @@ export const textos = {
   },
   "T-040": {
     where: "Ingresar, título",
-    text: "Entrá a Mi OE",
+    text: "Entra a Mi OE",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-041": {
     where: "Ingresar, texto",
-    text: "Escribí tu correo institucional y te mandamos un código de seis dígitos.",
+    text: "Escribe tu correo institucional y te mandamos un código de seis dígitos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -257,19 +257,19 @@ export const textos = {
   },
   "T-043": {
     where: "Ingresar, botón",
-    text: "Enviame el código",
+    text: "Envíame el código",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-044": {
     where: "Ingresar, respuesta siempre igual (no revela si el correo está en el roster)",
-    text: "Si tu correo está en el roster de la OE, el código te llega en un momento. Revisá también el correo no deseado.",
+    text: "Si tu correo está en el roster de la OE, el código te llega en un momento. Revisa también el correo no deseado.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-045": {
     where: "Código, título",
-    text: "Escribí el código",
+    text: "Escribe el código",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -287,7 +287,7 @@ export const textos = {
   },
   "T-048": {
     where: "Código vencido",
-    text: "Ese código ya venció. Pedí uno nuevo.",
+    text: "Ese código ya venció. Pide uno nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -299,13 +299,13 @@ export const textos = {
   },
   "T-050": {
     where: "Demasiados intentos",
-    text: "Superaste los intentos. Esperá 15 minutos y volvé a pedir un código.",
+    text: "Superaste los intentos. Espera 15 minutos y vuelve a pedir un código.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-051": {
     where: "Sesión vencida",
-    text: "Tu sesión venció. Entrá de nuevo.",
+    text: "Tu sesión venció. Entra de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -323,7 +323,7 @@ export const textos = {
   },
   "T-054": {
     where: "Correo del código, cuerpo",
-    text: "Hola, {nombre}. Tu código es **{código}** y vence en 10 minutos. Si no fuiste vos, ignorá este correo.",
+    text: "Hola, {nombre}. Tu código es **{código}** y vence en 10 minutos. Si no fuiste tú, ignora este correo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -353,7 +353,7 @@ export const textos = {
   },
   "T-063": {
     where: "Agenda vacía",
-    text: "No tenés nada esta semana. Pegate a un evento o pasá por tu comité.",
+    text: "No tienes nada esta semana. Pégate a un evento o pasa por tu comité.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -377,13 +377,13 @@ export const textos = {
   },
   "T-067": {
     where: "Onboarding, pasos",
-    text: "1. Leé los estatutos y el reglamento · 2. Conocé a tu comité · 3. Pegate a tu primera integración · 4. Activá las notificaciones · 5. Decorá la oficina con los nuevos",
+    text: "1. Lee los estatutos y el reglamento · 2. Conoce a tu comité · 3. Pégate a tu primera integración · 4. Activa las notificaciones · 5. Decora la oficina con los nuevos",
     owner: "GH",
     status: "Propuesta; GH define los pasos",
   },
   "T-068": {
     where: "Onboarding completado",
-    text: "Ya sos parte de este parche. ¡OE OE OE!",
+    text: "Ya eres parte de este parche. ¡OE OE OE!",
     owner: "COM",
     status: "Propuesta",
   },
@@ -395,7 +395,7 @@ export const textos = {
   },
   "T-071": {
     where: "Directorio, buscador",
-    text: "Buscá por nombre o comité",
+    text: "Busca por nombre o comité",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -407,7 +407,7 @@ export const textos = {
   },
   "T-073": {
     where: "Comités internos, intro",
-    text: "Tus comités y los demás. Acá está lo que no se publica afuera.",
+    text: "Tus comités y los demás. Aquí está lo que no se publica afuera.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -431,7 +431,7 @@ export const textos = {
   },
   "T-081": {
     where: "Saldo",
-    text: "Tenés {n} puntos este semestre",
+    text: "Tienes {n} puntos este semestre",
     owner: "GH",
     status: "Propuesta",
   },
@@ -461,7 +461,7 @@ export const textos = {
   },
   "T-086": {
     where: "Sin movimientos",
-    text: "Todavía no tenés puntos. Tu primera asistencia los estrena.",
+    text: "Todavía no tienes puntos. Tu primera asistencia los estrena.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -503,7 +503,7 @@ export const textos = {
   },
   "T-096": {
     where: "Ventana cerrada",
-    text: "El registro de esta actividad ya cerró. Si estuviste, hablá con quien la organizó.",
+    text: "El registro de esta actividad ya cerró. Si estuviste, habla con quien la organizó.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -515,25 +515,25 @@ export const textos = {
   },
   "T-098": {
     where: "Código rotativo, campo",
-    text: "Escribí el código que está en la pantalla",
+    text: "Escribe el código que está en la pantalla",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-099": {
     where: "Código rotativo inválido",
-    text: "Ese código ya cambió. Mirá la pantalla y volvé a escribirlo.",
+    text: "Ese código ya cambió. Mira la pantalla y vuelve a escribirlo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-100": {
     where: "Sin sesión",
-    text: "Para registrarte primero entrá a Mi OE. Volvés aquí solo.",
+    text: "Para registrarte primero entra a Mi OE. Vuelves aquí solo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1000": {
     where: "Solicitudes (admin): sin solicitudes",
-    text: "Nada por acá: no hay solicitudes en esta lista.",
+    text: "Nada por aquí: no hay solicitudes en esta lista.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -551,7 +551,7 @@ export const textos = {
   },
   "T-1003": {
     where: "Solicitudes (admin): rechazo sin motivo",
-    text: "Para rechazar tenés que escribir el motivo.",
+    text: "Para rechazar tienes que escribir el motivo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -707,7 +707,7 @@ export const textos = {
   },
   "T-1029": {
     where: "Convocatoria: sin permiso",
-    text: "No operás esta convocatoria.",
+    text: "No operas esta convocatoria.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -737,7 +737,7 @@ export const textos = {
   },
   "T-1034": {
     where: "Tablero: sin pendientes",
-    text: "No tenés tareas pendientes. Todo al día, pues.",
+    text: "No tienes tareas pendientes. Todo al día, pues.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -853,13 +853,13 @@ export const textos = {
   },
   "T-1053": {
     where: "Persona 360, Membresía: aviso para prospectos y postulantes",
-    text: "Sin membresía: podés darla de alta.",
+    text: "Sin membresía: puedes darla de alta.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1054": {
     where: "Kanban: buscador de persona u organización, texto",
-    text: "Buscá por nombre o correo",
+    text: "Busca por nombre o correo",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -913,7 +913,7 @@ export const textos = {
   },
   "T-1063": {
     where: "Notificaciones: intro",
-    text: "Recibí en tu celular los anuncios, tus GH Points y los recordatorios de la OE, y no te perdés de ningún parche. Activalas en cada dispositivo que uses.",
+    text: "Recibe en tu celular los anuncios, tus GH Points y los recordatorios de la OE, y no te pierdes de ningún parche. Activalas en cada dispositivo que uses.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -937,13 +937,13 @@ export const textos = {
   },
   "T-1067": {
     where: "Notificaciones: permiso bloqueado por el navegador",
-    text: "Tu navegador tiene las notificaciones bloqueadas para Mi OE. Permitilas en la configuración del sitio y volvé a intentar.",
+    text: "Tu navegador tiene las notificaciones bloqueadas para Mi OE. Permítelas en la configuración del sitio y vuelve a intentar.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1068": {
     where: "Notificaciones: navegador sin soporte",
-    text: "Este navegador no admite notificaciones. Probá con Chrome, Edge, Firefox o Safari actualizado.",
+    text: "Este navegador no admite notificaciones. Prueba con Chrome, Edge, Firefox o Safari actualizado.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -955,7 +955,7 @@ export const textos = {
   },
   "T-1070": {
     where: "Notificaciones: iPhone o iPad sin la app instalada",
-    text: 'En iPhone o iPad primero instalá Mi OE: tocá Compartir y después "Agregar a pantalla de inicio". Desde la app instalada podés activar las notificaciones.',
+    text: 'En iPhone o iPad primero instala Mi OE: toca Compartir y después "Agregar a pantalla de inicio". Desde la app instalada puedes activar las notificaciones.',
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -973,7 +973,7 @@ export const textos = {
   },
   "T-1073": {
     where: "Instalar: instrucciones cuando el navegador no ofrece el botón",
-    text: 'Para instalar Mi OE, abrí el menú del navegador y elegí "Instalar" o "Agregar a pantalla de inicio".',
+    text: 'Para instalar Mi OE, abre el menú del navegador y elige "Instalar" o "Agregar a pantalla de inicio".',
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1009,7 +1009,7 @@ export const textos = {
   },
   "T-1079": {
     where: "Preferencias: título",
-    text: "Qué querés recibir",
+    text: "Qué quieres recibir",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1040,7 +1040,7 @@ export const textos = {
   },
   "T-1084": {
     where: "Calendario: intro",
-    text: "Tené tu agenda de la OE a la mano: suscribite desde el calendario de tu celular o computador y ves las ediciones de los eventos, las asambleas y las actividades de tus comités.",
+    text: "Ten tu agenda de la OE a la mano: suscríbete desde el calendario de tu celular o computador y ves las ediciones de los eventos, las asambleas y las actividades de tus comités.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1082,13 +1082,13 @@ export const textos = {
   },
   "T-1091": {
     where: "Calendario: advertencia",
-    text: "Este enlace es personal: quien lo tenga ve tu agenda. Si lo compartiste por error, regeneralo.",
+    text: "Este enlace es personal: quien lo tenga ve tu agenda. Si lo compartiste por error, regenéralo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1092": {
     where: "Inicio: aviso de instalar y activar (título · texto · botón)",
-    text: "Llevá Mi OE en el celular · Hágale: instalá la app y activá las notificaciones para no perderte anuncios ni recordatorios. · Activar",
+    text: "Lleva Mi OE en el celular · Hágale: instala la app y activa las notificaciones para no perderte anuncios ni recordatorios. · Activar",
     owner: "COM",
     status: "Propuesta",
   },
@@ -1148,7 +1148,7 @@ export const textos = {
   },
   "T-1101": {
     where: "Encuesta: no encontrada",
-    text: "No encontramos esta encuesta. Revisá el enlace de la notificación.",
+    text: "No encontramos esta encuesta. Revisa el enlace de la notificación.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1166,7 +1166,7 @@ export const textos = {
   },
   "T-1104": {
     where: "Baja: texto",
-    text: "Si confirmás, no te mandamos más campañas por correo. Los correos sobre tu ingreso, tus solicitudes y tu permanencia siguen llegando. Podés volver a activarlas en Ajustes de Mi OE.",
+    text: "Si confirmas, no te mandamos más campañas por correo. Los correos sobre tu ingreso, tus solicitudes y tu permanencia siguen llegando. Puedes volver a activarlas en Ajustes de Mi OE.",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -1196,13 +1196,13 @@ export const textos = {
   },
   "T-1109": {
     where: "Notificaciones: falló activar",
-    text: "No pudimos activar las notificaciones. Intentá otra vez en un ratico.",
+    text: "No pudimos activar las notificaciones. Intenta otra vez en un ratico.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-111": {
     where: "Intro",
-    text: "Así va tu semestre. Para seguir en la OE necesitás {umbral} % en cada comité: lo que sumás en la tabla general más lo que sumás en el comité.",
+    text: "Así va tu semestre. Para seguir en la OE necesitas {umbral} % en cada comité: lo que sumas en la tabla general más lo que sumas en el comité.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -1268,7 +1268,7 @@ export const textos = {
   },
   "T-112": {
     where: "Condición",
-    text: "Activo · Nuevo (necesitás 80 %) · En periodo de prueba (necesitás 80 %) · Transferencia a {comité} (necesitás 70 % ahí)",
+    text: "Activo · Nuevo (necesitas 80 %) · En periodo de prueba (necesitas 80 %) · Transferencia a {comité} (necesitas 70 % ahí)",
     owner: "GH",
     status: "Propuesta",
   },
@@ -1383,7 +1383,7 @@ export const textos = {
   },
   "T-1137": {
     where: "Campaña: solo se edita en borrador",
-    text: "Una campaña programada o enviada no se edita. Creá otra.",
+    text: "Una campaña programada o enviada no se edita. Crea otra.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1401,7 +1401,7 @@ export const textos = {
   },
   "T-114": {
     where: "Estado: en camino",
-    text: "Vas bien. Todavía podés sumar {n} %.",
+    text: "Vas bien. Todavía puedes sumar {n} %.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -1468,7 +1468,7 @@ export const textos = {
   },
   "T-115": {
     where: "Estado: en riesgo",
-    text: "Ojo: te queda poco margen. Todavía podés sumar {n} %; no te pierdas lo que viene.",
+    text: "Ojo: te queda poco margen. Todavía puedes sumar {n} %; no te pierdas lo que viene.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -1534,7 +1534,7 @@ export const textos = {
   },
   "T-116": {
     where: "Estado: no alcanza",
-    text: "Con lo que queda del semestre ya no llegás al {umbral} % en {comité}. Hablá con GH cuanto antes.",
+    text: "Con lo que queda del semestre ya no llegas al {umbral} % en {comité}. Habla con GH cuanto antes.",
     owner: "GH",
     status: "Propuesta; texto sensible",
   },
@@ -1600,7 +1600,7 @@ export const textos = {
   },
   "T-117": {
     where: "Estado: cumple (cierre)",
-    text: "Cumpliste en {comité}. Seguís en la OE. ¡OE OE OE!",
+    text: "Cumpliste en {comité}. Sigues en la OE. ¡OE OE OE!",
     owner: "GH",
     status: "Propuesta",
   },
@@ -1612,7 +1612,7 @@ export const textos = {
   },
   "T-1171": {
     where: "Formulario: calificación fuera de rango",
-    text: "Elegí una calificación de 1 a 5.",
+    text: "Elige una calificación de 1 a 5.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1648,19 +1648,19 @@ export const textos = {
   },
   "T-1178": {
     where: "Política pendiente: aviso público en consentimientos y formularios",
-    text: "La política de tratamiento de datos está en preparación. Podés entrar a Mi OE y registrar tu asistencia; las nuevas autorizaciones estarán disponibles cuando se publique.",
+    text: "La política de tratamiento de datos está en preparación. Puedes entrar a Mi OE y registrar tu asistencia; las nuevas autorizaciones estarán disponibles cuando se publique.",
     owner: "JUNTA",
     status: "Propuesta; texto sensible",
   },
   "T-1179": {
     where: "Política pendiente: aviso administrativo en altas, roster y consentimientos",
-    text: "Publicá la política de tratamiento de datos y configurá su versión antes de registrar nuevas autorizaciones o dar de alta a personas.",
+    text: "Publica la política de tratamiento de datos y configura su versión antes de registrar nuevas autorizaciones o dar de alta a personas.",
     owner: "JUNTA",
     status: "Propuesta; texto sensible",
   },
   "T-118": {
     where: "Estado: prueba (cierre)",
-    text: "Quedaste en periodo de prueba en {comité}: el próximo semestre necesitás 80 %. GH te va a escribir.",
+    text: "Quedaste en periodo de prueba en {comité}: el próximo semestre necesitas 80 %. GH te va a escribir.",
     owner: "GH",
     status: "Propuesta; texto sensible",
   },
@@ -1672,7 +1672,7 @@ export const textos = {
   },
   "T-1181": {
     where: "Política de datos: orden de publicación y habilitación",
-    text: "Publicá primero el texto aprobado en Páginas, con audiencia Público, y revisá cómo se ve en Privacidad. Al final, guardá aquí su versión para habilitar nuevas autorizaciones y la importación del roster.",
+    text: "Publica primero el texto aprobado en Páginas, con audiencia Público, y revisa cómo se ve en Privacidad. Al final, guarda aquí su versión para habilitar nuevas autorizaciones y la importación del roster.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1684,7 +1684,7 @@ export const textos = {
   },
   "T-1183": {
     where: "Política de datos: ayuda de versión y bloqueo",
-    text: "Usá el identificador de la versión aprobada. Para bloquear nuevas autorizaciones, guardá pendiente. El acceso, la asistencia y las revocaciones siguen disponibles.",
+    text: "Usa el identificador de la versión aprobada. Para bloquear nuevas autorizaciones, guarda pendiente. El acceso, la asistencia y las revocaciones siguen disponibles.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1708,19 +1708,19 @@ export const textos = {
   },
   "T-1187": {
     where: "Política de datos: falta publicar antes de habilitar",
-    text: "Publicá la página Privacidad con el texto aprobado y audiencia Público antes de habilitar su versión.",
+    text: "Publica la página Privacidad con el texto aprobado y audiencia Público antes de habilitar su versión.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1188": {
     where: "Política de datos: versión inválida",
-    text: "Escribí una versión de entre 1 y 120 caracteres.",
+    text: "Escribe una versión de entre 1 y 120 caracteres.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1189": {
     where: "Carnet: sección billeteras, título",
-    text: "Llevalo en tu billetera",
+    text: "Llévalo en tu billetera",
     owner: "COM",
     status: "Propuesta",
   },
@@ -1732,7 +1732,7 @@ export const textos = {
   },
   "T-1190": {
     where: "Carnet: texto de billeteras",
-    text: "Agregá tu carnet a Apple Wallet o Google Wallet y mostralo sin abrir Mi OE. Si cambian tus comités, en Google se actualiza solo; en Apple volvé a agregarlo.",
+    text: "Agrega tu carnet a Apple Wallet o Google Wallet y muéstralo sin abrir Mi OE. Si cambian tus comités, en Google se actualiza solo; en Apple vuelve a agregarlo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1756,19 +1756,19 @@ export const textos = {
   },
   "T-1194": {
     where: "Carnet: explicación de revocar",
-    text: "Si perdiste el celular o alguien copió el QR de tu billetera, revocalo. Ese QR deja de servir y Google recibe uno nuevo cuando termina la actualización. En Apple, volvé a agregar el carnet. El carnet de Mi OE sigue funcionando.",
+    text: "Si perdiste el celular o alguien copió el QR de tu billetera, revócalo. Ese QR deja de servir y Google recibe uno nuevo cuando termina la actualización. En Apple, vuelve a agregar el carnet. El carnet de Mi OE sigue funcionando.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1195": {
     where: "Carnet: confirmación tras revocar",
-    text: "Listo: el QR anterior de tus billeteras ya no vale. Si usás Google Wallet, la actualización quedó pendiente; si usás Apple Wallet, agregá el carnet otra vez.",
+    text: "Listo: el QR anterior de tus billeteras ya no vale. Si usas Google Wallet, la actualización quedó pendiente; si usas Apple Wallet, agrega el carnet otra vez.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1196": {
     where: "Carnet: pase de Apple con QR o datos desactualizados",
-    text: "Tu carnet de Apple Wallet es del {fecha}. Agregalo de nuevo para que muestre el QR y tus datos actuales.",
+    text: "Tu carnet de Apple Wallet es del {fecha}. Agrégalo de nuevo para que muestre el QR y tus datos actuales.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1816,7 +1816,7 @@ export const textos = {
   },
   "T-1203": {
     where: "Pase: dorso, cómo funciona",
-    text: "Mostrá el QR en la entrada de las actividades. Vale mientras seas miembro; si lo revocás desde Mi OE, este pase deja de servir.",
+    text: "Muestra el QR en la entrada de las actividades. Vale mientras seas miembro; si lo revocas desde Mi OE, este pase deja de servir.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1828,7 +1828,7 @@ export const textos = {
   },
   "T-1205": {
     where: "Pase: dorso, cómo actualizarlo",
-    text: "Si cambian tus comités o tu semestre, volvé a agregar el carnet desde Mi OE: reemplaza a este.",
+    text: "Si cambian tus comités o tu semestre, vuelve a agregar el carnet desde Mi OE: reemplaza a este.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1840,13 +1840,13 @@ export const textos = {
   },
   "T-1207": {
     where: "Anfitrión: carnet revocado o desconocido",
-    text: "Ese carnet ya no vale. Pedile que abra Mi OE y muestre el carnet, o que lo vuelva a agregar a su billetera.",
+    text: "Ese carnet ya no vale. Pídele que abra Mi OE y muestre el carnet, o que lo vuelva a agregar a su billetera.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1208": {
     where: "Carnet: Google Wallet no respondió",
-    text: "Google Wallet no respondió. Probá de nuevo en un ratico.",
+    text: "Google Wallet no respondió. Prueba de nuevo en un ratico.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1900,7 +1900,7 @@ export const textos = {
   },
   "T-1216": {
     where: "Carnet: no se pudo preparar el pase de Apple",
-    text: "No pudimos preparar tu carnet de Apple Wallet. Probá de nuevo en un rato.",
+    text: "No pudimos preparar tu carnet de Apple Wallet. Prueba de nuevo en un rato.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1912,7 +1912,7 @@ export const textos = {
   },
   "T-1218": {
     where: "Carnet: Google pendiente de actualización",
-    text: "La actualización de Google Wallet está pendiente. Mientras termina, mostrá el carnet de Mi OE.",
+    text: "La actualización de Google Wallet está pendiente. Mientras termina, muestra el carnet de Mi OE.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1948,7 +1948,7 @@ export const textos = {
   },
   "T-1231": {
     where: "Wordle: introducción",
-    text: "Una palabra distinta para vos cada día. Hágale: resolvela y sumá puntos gamer según tus intentos.",
+    text: "Una palabra distinta para ti cada día. Hágale: resuélvela y suma puntos gamer según tus intentos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1960,7 +1960,7 @@ export const textos = {
   },
   "T-1233": {
     where: "Wordle: reglas",
-    text: "Adiviná una palabra de 5 letras en 6 intentos. Podés escribir con o sin tilde; la Ñ es distinta de la N. Cada intento válido queda guardado para que sigás en otro dispositivo.",
+    text: "Adivina una palabra de 5 letras en 6 intentos. Puedes escribir con o sin tilde; la Ñ es distinta de la N. Cada intento válido queda guardado para que sigas en otro dispositivo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2026,13 +2026,13 @@ export const textos = {
   },
   "T-1243": {
     where: "Wordle: longitud o caracteres incorrectos",
-    text: "Escribí una palabra de cinco letras.",
+    text: "Escribe una palabra de cinco letras.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1244": {
     where: "Wordle: palabra ausente del diccionario",
-    text: "No la encontré en el diccionario. Probá otra; no perdiste un intento.",
+    text: "No la encontré en el diccionario. Prueba otra; no perdiste un intento.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2044,7 +2044,7 @@ export const textos = {
   },
   "T-1246": {
     where: "Wordle: derrota",
-    text: "Se acabaron los intentos. Este Wordle no suma puntos gamer; probá otro juego para sumar hoy.",
+    text: "Se acabaron los intentos. Este Wordle no suma puntos gamer; prueba otro juego para sumar hoy.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2080,31 +2080,31 @@ export const textos = {
   },
   "T-1251": {
     where: "Wordle: catálogo no disponible",
-    text: "No pudimos preparar tu palabra. Probá otra vez en un ratico.",
+    text: "No pudimos preparar tu palabra. Prueba otra vez en un ratico.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1252": {
     where: "Wordle: partida vencida",
-    text: "Terminó el día de esta partida. No sumó puntos gamer; ya podés consultar el reto de hoy.",
+    text: "Terminó el día de esta partida. No sumó puntos gamer; ya puedes consultar el reto de hoy.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1253": {
     where: "Wordle: otro dispositivo avanzó",
-    text: "Tu partida cambió en otro dispositivo. Ya trajimos los intentos guardados; revisalos antes de seguir.",
+    text: "Tu partida cambió en otro dispositivo. Ya trajimos los intentos guardados; revísalos antes de seguir.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1254": {
     where: "Wordle: respuesta de red incierta",
-    text: "No recibimos la confirmación. Reintentá la misma jugada: si ya se guardó, no contará dos veces.",
+    text: "No recibimos la confirmación. Reintenta la misma jugada: si ya se guardó, no contará dos veces.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1255": {
     where: "Wordle: partida no encontrada o solicitud inválida",
-    text: "No pudimos recuperar esa jugada. Actualizá la partida para seguir.",
+    text: "No pudimos recuperar esa jugada. Actualiza la partida para seguir.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2164,19 +2164,19 @@ export const textos = {
   },
   "T-1264": {
     where: "Wordle: premio posible",
-    text: "Podés sumar {premio} en este intento.",
+    text: "Puedes sumar {premio} en este intento.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1265": {
     where: "Wordle: sin premio por perder",
-    text: "Si no acertás, no sumás puntos.",
+    text: "Si no aciertas, no sumas puntos.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1266": {
     where: "Wordle: día nuevo",
-    text: "Ya cambió el día en Colombia. Actualizá para jugar tu nueva palabra.",
+    text: "Ya cambió el día en Colombia. Actualiza para jugar tu nueva palabra.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2212,7 +2212,7 @@ export const textos = {
   },
   "T-1283": {
     where: "Documentos: aviso de vista previa administrativa",
-    text: "Esta vista previa es solo para ADMIN. Revisá el contenido y el PDF antes de publicar. Abrirla no marca el paso de normativa del onboarding.",
+    text: "Esta vista previa es solo para ADMIN. Revisa el contenido y el PDF antes de publicar. Abrirla no marca el paso de normativa del onboarding.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2230,7 +2230,7 @@ export const textos = {
   },
   "T-1286": {
     where: "Documentos: vista previa sin contenido",
-    text: "Todavía no hay contenido cargado. Cargá el JSON revisado para ver los artículos y las secciones.",
+    text: "Todavía no hay contenido cargado. Carga el JSON revisado para ver los artículos y las secciones.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2242,7 +2242,7 @@ export const textos = {
   },
   "T-1288": {
     where: "Normativa: imagen no disponible",
-    text: "La imagen no está disponible. Podés consultarla en el PDF original.",
+    text: "La imagen no está disponible. Puedes consultarla en el PDF original.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2266,7 +2266,7 @@ export const textos = {
   },
   "T-1292": {
     where: "Documentos: PDF confirmado",
-    text: "Listo: el PDF quedó guardado. Ahora cargá el contenido revisado.",
+    text: "Listo: el PDF quedó guardado. Ahora carga el contenido revisado.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2278,7 +2278,7 @@ export const textos = {
   },
   "T-1300": {
     where: "Normativa, publicación vacía",
-    text: "Cargá el contenido del documento antes de publicarlo.",
+    text: "Carga el contenido del documento antes de publicarlo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2290,19 +2290,19 @@ export const textos = {
   },
   "T-1302": {
     where: "Normativa, edición de publicado",
-    text: "Despublicá el documento antes de reemplazar su contenido y revisalo antes de volver a publicarlo.",
+    text: "Despublica el documento antes de reemplazar su contenido y revísalo antes de volver a publicarlo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1303": {
     where: "Normativa, imagen inválida",
-    text: "Las imágenes del documento deben estar disponibles y ser privadas. Revisá sus referencias.",
+    text: "Las imágenes del documento deben estar disponibles y ser privadas. Revisa sus referencias.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1304": {
     where: "Normativa, publicación concurrente",
-    text: "El contenido cambió desde tu revisión. Revisá la vista previa antes de publicarlo.",
+    text: "El contenido cambió desde tu revisión. Revisa la vista previa antes de publicarlo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2314,7 +2314,7 @@ export const textos = {
   },
   "T-132": {
     where: "Carnet, texto",
-    text: "Mostralo en la entrada de las actividades. Cambia solo cada 24 horas.",
+    text: "Muéstralo en la entrada de las actividades. Cambia solo cada 24 horas.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2326,7 +2326,7 @@ export const textos = {
   },
   "T-134": {
     where: "Ajustes, editar datos",
-    text: "Podés cambiar tu foto, tu celular y tu correo personal. Tu correo institucional no se cambia: es tu identidad en la OE.",
+    text: "Puedes cambiar tu foto, tu celular y tu correo personal. Tu correo institucional no se cambia: es tu identidad en la OE.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2411,13 +2411,13 @@ export const textos = {
   },
   "T-1407": {
     where: "Administración, error de búsqueda",
-    text: "No pudimos buscar. Intentá de nuevo.",
+    text: "No pudimos buscar. Intenta de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1408": {
     where: "Administración, ayuda de búsqueda",
-    text: "Buscá personas, comités, ocasiones u organizaciones.",
+    text: "Busca personas, comités, ocasiones u organizaciones.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2441,7 +2441,7 @@ export const textos = {
   },
   "T-142": {
     where: "Solicitud rechazada",
-    text: "GH no aprobó tu solicitud de {tipo}: {motivo}. Si querés hablarlo, escribiles.",
+    text: "GH no aprobó tu solicitud de {tipo}: {motivo}. Si quieres hablarlo, escríbeles.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -2477,7 +2477,7 @@ export const textos = {
   },
   "T-1425": {
     where: "Ayuda colección vacía",
-    text: "Creá el primer registro para empezar.",
+    text: "Crea el primer registro para empezar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2495,7 +2495,7 @@ export const textos = {
   },
   "T-1428": {
     where: "Buscador multiselección",
-    text: "Buscá una opción",
+    text: "Busca una opción",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2507,7 +2507,7 @@ export const textos = {
   },
   "T-143": {
     where: "Retiro voluntario, confirmación",
-    text: "¿Seguro querés retirarte de la OE? Tu historia se conserva, pero no vas a poder volver a entrar a Mi OE.",
+    text: "¿Seguro quieres retirarte de la OE? Tu historia se conserva, pero no vas a poder volver a entrar a Mi OE.",
     owner: "GH",
     status: "Propuesta; texto sensible",
   },
@@ -2555,7 +2555,7 @@ export const textos = {
   },
   "T-145": {
     where: "Convocatorias, intro",
-    text: "Grupos de trabajo, GAP y barra brava que están buscando gente. Pegate a uno desde acá.",
+    text: "Grupos de trabajo, GAP y barra brava que están buscando gente. Pégate a uno desde aquí.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -2573,25 +2573,25 @@ export const textos = {
   },
   "T-1461": {
     where: "Administración: archivos e importación",
-    text: "Guardá los PDF, revisá su contenido y elegí cuándo publicarlos.",
+    text: "Guarda los PDF, revisa su contenido y elige cuándo publicarlos.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1462": {
     where: "Administración: archivos e importación",
-    text: "Todavía no hay documentos. Subí el primer PDF para empezar.",
+    text: "Todavía no hay documentos. Sube el primer PDF para empezar.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1463": {
     where: "Administración: archivos e importación",
-    text: "Buscá documentos por título",
+    text: "Busca documentos por título",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1464": {
     where: "Administración: archivos e importación",
-    text: "Escribí un título de al menos 2 caracteres y una versión.",
+    text: "Escribe un título de al menos 2 caracteres y una versión.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2603,7 +2603,7 @@ export const textos = {
   },
   "T-1466": {
     where: "Administración: archivos e importación",
-    text: "Seleccioná un archivo para continuar.",
+    text: "Selecciona un archivo para continuar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2615,7 +2615,7 @@ export const textos = {
   },
   "T-1468": {
     where: "Administración: archivos e importación",
-    text: "Cargá el archivo JSON revisado del documento. Si está publicado, despublicalo antes de reemplazar el contenido; después revisalo y volvé a publicar.",
+    text: "Carga el archivo JSON revisado del documento. Si está publicado, despublícalo antes de reemplazar el contenido; después revísalo y vuelve a publicar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2627,7 +2627,7 @@ export const textos = {
   },
   "T-147": {
     where: "Convocatoria con cupo lleno",
-    text: "Ya se llenó, pero podés quedar en lista de espera.",
+    text: "Ya se llenó, pero puedes quedar en lista de espera.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -2639,19 +2639,19 @@ export const textos = {
   },
   "T-1471": {
     where: "Administración: archivos e importación",
-    text: "Todavía no hay imágenes. Subí la primera para usarla en páginas y anuncios.",
+    text: "Todavía no hay imágenes. Sube la primera para usarla en páginas y anuncios.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1472": {
     where: "Administración: archivos e importación",
-    text: "Buscá imágenes por nombre",
+    text: "Busca imágenes por nombre",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1473": {
     where: "Administración: archivos e importación",
-    text: "Elegí la imagen y su visibilidad antes de subirla.",
+    text: "Elige la imagen y su visibilidad antes de subirla.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2687,7 +2687,7 @@ export const textos = {
   },
   "T-1479": {
     where: "Administración: archivos e importación",
-    text: "Revisá el resumen y los permisos de líder antes de aplicar. Las filas con errores se omitirán.",
+    text: "Revisa el resumen y los permisos de líder antes de aplicar. Las filas con errores se omitirán.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2699,7 +2699,7 @@ export const textos = {
   },
   "T-1480": {
     where: "Administración: archivos e importación",
-    text: "Importá personas en cuatro pasos. Podés revisar los cambios antes de aplicarlos.",
+    text: "Importa personas en cuatro pasos. Puedes revisar los cambios antes de aplicarlos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2759,7 +2759,7 @@ export const textos = {
   },
   "T-1490": {
     where: "Importación: selección desactualizada",
-    text: "Las propuestas de permisos cambiaron. Revisalas y elegí de nuevo cuáles querés aplicar.",
+    text: "Las propuestas de permisos cambiaron. Revisalas y elige de nuevo cuáles quieres aplicar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2831,13 +2831,13 @@ export const textos = {
   },
   "T-1543": {
     where: "Portal: acción para visitantes sin admisión abierta",
-    text: "Unite a la OE",
+    text: "Únete a la OE",
     owner: "COM",
     status: "Propuesta",
   },
   "T-1544": {
     where: "Portal: buscar comité",
-    text: "Buscá un comité",
+    text: "Busca un comité",
     owner: "COM",
     status: "Propuesta",
   },
@@ -2849,7 +2849,7 @@ export const textos = {
   },
   "T-1546": {
     where: "Portal: ayuda de búsqueda de comités",
-    text: "Escribí el nombre o la sigla del comité.",
+    text: "Escribe el nombre o la sigla del comité.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -2861,7 +2861,7 @@ export const textos = {
   },
   "T-1548": {
     where: "Unirse: convocatoria cerrada sin lista de interés",
-    text: "Ahora no hay convocatoria abierta. Cuando haya una nueva, vas a encontrarla acá. Mientras tanto, date una vuelta por nuestros eventos.",
+    text: "Ahora no hay convocatoria abierta. Cuando haya una nueva, vas a encontrarla aquí. Mientras tanto, date una vuelta por nuestros eventos.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -2873,7 +2873,7 @@ export const textos = {
   },
   "T-1550": {
     where: "Portal: búsqueda sin coincidencias",
-    text: "No encontramos comités con ese nombre o sigla. Probá otra búsqueda o limpiala para verlos todos.",
+    text: "No encontramos comités con ese nombre o sigla. Prueba otra búsqueda o límpiala para verlos todos.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -2891,7 +2891,7 @@ export const textos = {
   },
   "T-1581": {
     where: "Solicitudes: elección de trámite",
-    text: "Elegí qué querés solicitar para ver los datos que necesitás completar.",
+    text: "Elige qué quieres solicitar para ver los datos que necesitas completar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2909,37 +2909,37 @@ export const textos = {
   },
   "T-1584": {
     where: "Solicitudes: resumen de errores",
-    text: "Revisá los campos señalados antes de enviar.",
+    text: "Revisa los campos señalados antes de enviar.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1585": {
     where: "Solicitudes: motivo inválido y ayuda",
-    text: "Escribí entre 2 y 500 caracteres.",
+    text: "Escribe entre 2 y 500 caracteres.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1586": {
     where: "Solicitudes: fecha inválida",
-    text: "Ingresá una fecha válida.",
+    text: "Ingresa una fecha válida.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1587": {
     where: "Solicitudes: correo inválido",
-    text: "Revisá el correo: debe tener un formato válido y hasta 254 caracteres.",
+    text: "Revisa el correo: debe tener un formato válido y hasta 254 caracteres.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1588": {
     where: "Solicitudes: fallo de envío",
-    text: "No pudimos confirmar el envío. Tus datos siguen acá; intentá de nuevo.",
+    text: "No pudimos confirmar el envío. Tus datos siguen aquí; intenta de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1589": {
     where: "Solicitudes: buscar comités",
-    text: "Buscá un comité",
+    text: "Busca un comité",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2975,13 +2975,13 @@ export const textos = {
   },
   "T-1595": {
     where: "Solicitudes: fallo al retirar",
-    text: "No pudimos confirmar el retiro. Intentá de nuevo.",
+    text: "No pudimos confirmar el retiro. Intenta de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1596": {
     where: "Solicitudes: fecha de regreso, ayuda",
-    text: "La licencia dura máximo un año (Estatutos, art. 5.4). Al volver retomás la condición que tenías.",
+    text: "La licencia dura máximo un año (Estatutos, art. 5.4). Al volver retomas la condición que tenías.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3005,13 +3005,13 @@ export const textos = {
   },
   "T-161": {
     where: "Confirmar cancelar una actividad",
-    text: 'Vas a cancelar "{actividad}". Se revierten los puntos de {n} personas. Esto no se deshace. Escribí el motivo.',
+    text: 'Vas a cancelar "{actividad}". Se revierten los puntos de {n} personas. Esto no se deshace. Escribe el motivo.',
     owner: "GH",
     status: "Propuesta",
   },
   "T-162": {
     where: "Confirmar dar de baja",
-    text: "Vas a dar de baja a {nombre}. Su historia se conserva y su perfil pasa a egresado. Escribí el motivo y confirmá los consentimientos.",
+    text: "Vas a dar de baja a {nombre}. Su historia se conserva y su perfil pasa a egresado. Escribe el motivo y confirma los consentimientos.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -3041,7 +3041,7 @@ export const textos = {
   },
   "T-1624": {
     where: "Foto propia, antes de seleccionar",
-    text: "Seleccioná una imagen para revisarla antes de guardar.",
+    text: "Selecciona una imagen para revisarla antes de guardar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3071,7 +3071,7 @@ export const textos = {
   },
   "T-1629": {
     where: "Ajustes, error de envío",
-    text: "No pudimos guardar. Conservamos tus cambios para que lo intentés de nuevo.",
+    text: "No pudimos guardar. Conservamos tus cambios para que lo intentes de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3089,25 +3089,25 @@ export const textos = {
   },
   "T-1631": {
     where: "Ajustes, validación de campo",
-    text: "Revisá este campo.",
+    text: "Revisa este campo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1632": {
     where: "Ajustes, validación general",
-    text: "Revisá los campos marcados antes de guardar.",
+    text: "Revisa los campos marcados antes de guardar.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1633": {
     where: "Ajustes, contexto de categorías",
-    text: "Elegí qué querés ajustar. Tus datos, dispositivos y permisos están organizados por sección.",
+    text: "Elige qué quieres ajustar. Tus datos, dispositivos y permisos están organizados por sección.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-164": {
     where: "Cierre, propuesta por persona",
-    text: "Propuesta: {estado}. Motivo automático: {detalle}. Podés cambiarla con motivo.",
+    text: "Propuesta: {estado}. Motivo automático: {detalle}. Puedes cambiarla con motivo.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -3203,7 +3203,7 @@ export const textos = {
   },
   "T-1672": {
     where: "Introducción de Agenda",
-    text: "Mirá qué se viene y pegate al plan. Cuando abra el registro, marcás tu asistencia desde acá.",
+    text: "Mira qué se viene y pégate al plan. Cuando abra el registro, marcas tu asistencia desde aquí.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3215,7 +3215,7 @@ export const textos = {
   },
   "T-1674": {
     where: "Ayuda de carnet en Inicio",
-    text: "Pilas: tené tu código a mano para registrar tu asistencia.",
+    text: "Pilas: ten tu código a mano para registrar tu asistencia.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3251,7 +3251,7 @@ export const textos = {
   },
   "T-168": {
     where: "Evaluación, ventana abierta (aviso a evaluadores)",
-    text: "Se abrió la ventana de evaluación de {término}. Tenés {n} personas pendientes hasta el {fecha}.",
+    text: "Se abrió la ventana de evaluación de {término}. Tienes {n} personas pendientes hasta el {fecha}.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -3263,7 +3263,7 @@ export const textos = {
   },
   "T-1681": {
     where: "Agenda sin actividades",
-    text: "Todavía no hay actividades programadas. Mientras tanto, mirá la cartelera y volvé pronto, pues.",
+    text: "Todavía no hay actividades programadas. Mientras tanto, mira la cartelera y vuelve pronto, pues.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3299,7 +3299,7 @@ export const textos = {
   },
   "T-1687": {
     where: "Estado de agenda seleccionada",
-    text: "Esa actividad ya no está en la agenda. Consultá las próximas actividades.",
+    text: "Esa actividad ya no está en la agenda. Consulta las próximas actividades.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3335,43 +3335,43 @@ export const textos = {
   },
   "T-183": {
     where: "Asamblea obligatoria (día anterior y dos horas antes)",
-    text: "Asamblea obligatoria {día} · {hora} en {lugar}. Recordá que faltar implica salir de la OE.",
+    text: "Asamblea obligatoria {día} · {hora} en {lugar}. Recuerda que faltar implica salir de la OE.",
     owner: "GH",
     status: "Propuesta; texto sensible, confirmar tono",
   },
   "T-184": {
     where: "Permanencia, mitad de semestre",
-    text: "Vas en {n} % en {comité} · Necesitás {umbral} %. Mirá qué podés sumar.",
+    text: "Vas en {n} % en {comité} · Necesitas {umbral} %. Mira qué puedes sumar.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-185": {
     where: "Permanencia, tres semanas antes del cierre (solo por debajo)",
-    text: "Quedan 3 semanas · Vas en {n} % en {comité} y necesitás {umbral} %. Todavía podés sumar {m} %.",
+    text: "Quedan 3 semanas · Vas en {n} % en {comité} y necesitas {umbral} %. Todavía puedes sumar {m} %.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-186": {
     where: 'Permanencia, "no alcanza"',
-    text: "Hablá con GH · Con lo que queda del semestre no llegás al mínimo en {comité}.",
+    text: "Habla con GH · Con lo que queda del semestre no llegas al mínimo en {comité}.",
     owner: "GH",
     status: "Propuesta; texto sensible",
   },
   "T-187": {
     where: "Cierre de semestre",
-    text: "Cerró {término} · Entrá a ver tu resultado en cada comité.",
+    text: "Cerró {término} · Entra a ver tu resultado en cada comité.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-188": {
     where: "Evaluación pendiente (a evaluadores)",
-    text: "Tenés {n} evaluaciones pendientes · La ventana cierra el {fecha}.",
+    text: "Tienes {n} evaluaciones pendientes · La ventana cierra el {fecha}.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-189": {
     where: "Solicitud respondida",
-    text: "Tu solicitud fue {decisión} · Pediste {tipo}. Entrá a ver la respuesta.",
+    text: "Tu solicitud fue {decisión} · Pediste {tipo}. Entra a ver la respuesta.",
     owner: "GH",
     status:
       "Propuesta; el tipo va en el cuerpo para que la decisión quepa entera en los 40 caracteres del título con cualquier tipo de T-894",
@@ -3384,7 +3384,7 @@ export const textos = {
   },
   "T-191": {
     where: "Encuesta tras la actividad",
-    text: "¿Cómo estuvo {actividad}? · Contanos en un ratico.",
+    text: "¿Cómo estuvo {actividad}? · Cuéntanos en un ratico.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -3414,13 +3414,13 @@ export const textos = {
   },
   "T-200": {
     where: "Bienvenida al dar de alta",
-    text: "Bienvenido a la OE, {nombre} · ¡Qué nota tenerte! Ya estás en el roster y tus comités son: {comités}. Para entrar a Mi OE en {url} necesitás tu contraseña: pedile tu enlace de acceso a Gestión Humana o a cualquier persona de la junta. Lo hacemos por vos. ¡OE OE OE!",
+    text: "Bienvenido a la OE, {nombre} · ¡Qué nota tenerte! Ya estás en el roster y tus comités son: {comités}. Para entrar a Mi OE en {url} necesitas tu contraseña: pídele tu enlace de acceso a Gestión Humana o a cualquier persona de la junta. Lo hacemos por vos. ¡OE OE OE!",
     owner: "GH",
     status: "Propuesta",
   },
   "T-201": {
     where: "Roster importado (primer semestre de la app)",
-    text: "Ya tenés tu Mi OE · Explica qué es Mi OE, cómo entrar y qué va a encontrar",
+    text: "Ya tienes tu Mi OE · Explica qué es Mi OE, cómo entrar y qué va a encontrar",
     owner: "COM",
     status: "Propuesta; se escribe con la campaña de lanzamiento",
   },
@@ -3456,13 +3456,13 @@ export const textos = {
   },
   "T-2015": {
     where: "Ajustes: ayuda de identificación propia",
-    text: "Podés consultar estos datos. Si necesitás corregirlos, contactá a Gestión Humana.",
+    text: "Puedes consultar estos datos. Si necesitas corregirlos, contacta a Gestión Humana.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2016": {
     where: "Edición administrativa: borrado de identificadores",
-    text: "Si dejás vacío uno de estos cuatro campos, se borra el dato guardado.",
+    text: "Si dejas vacío uno de estos cuatro campos, se borra el dato guardado.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3510,7 +3510,7 @@ export const textos = {
   },
   "T-205": {
     where: "Solicitud respondida",
-    text: "Respuesta a tu solicitud de {tipo} · Hola, {nombre}. GH {decisión} tu solicitud de {tipo}.{motivo} Si querés hablarlo, escribiles. Lo hacemos por vos.",
+    text: "Respuesta a tu solicitud de {tipo} · Hola, {nombre}. GH {decisión} tu solicitud de {tipo}.{motivo} Si quieres hablarlo, escríbeles. Lo hacemos por vos.",
     owner: "GH",
     status:
       'Propuesta; {decisión} es "aprobó" o "no aprobó" y {motivo} lleva el motivo del rechazo',
@@ -3529,7 +3529,7 @@ export const textos = {
   },
   "T-208": {
     where: "Pie legal de todos los correos",
-    text: "Organización Estudiantil · Universidad EAFIT · Bloque 29 of. 525 · Recibís este correo porque estás en el roster de la OE. {enlace de baja si aplica}",
+    text: "Organización Estudiantil · Universidad EAFIT · Bloque 29 of. 525 · Recibes este correo porque estás en el roster de la OE. {enlace de baja si aplica}",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -3565,13 +3565,13 @@ export const textos = {
   },
   "T-2085": {
     where: "Autorización: título de la pantalla",
-    text: "Antes de entrar, autorizá el tratamiento de tus datos",
+    text: "Antes de entrar, autoriza el tratamiento de tus datos",
     owner: "JUNTA",
     status: "Propuesta",
   },
   "T-2086": {
     where: "Autorización: explicación",
-    text: "Para usar Mi OE necesitamos tu autorización. Leé la política y aceptala: queda registrada con la fecha y la versión que estás viendo.",
+    text: "Para usar Mi OE necesitamos tu autorización. Lee la política y acéptala: queda registrada con la fecha y la versión que estás viendo.",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -3583,7 +3583,7 @@ export const textos = {
   },
   "T-2088": {
     where: "Autorización: política sin publicar",
-    text: "La política de tratamiento de datos todavía no está publicada, así que no podemos pedirte una autorización válida. Avisale a Gestión Humana antes de continuar.",
+    text: "La política de tratamiento de datos todavía no está publicada, así que no podemos pedirte una autorización válida. Avísale a Gestión Humana antes de continuar.",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -3613,7 +3613,7 @@ export const textos = {
   },
   "T-2093": {
     where: "Ingresar, texto",
-    text: "Escribí tu correo institucional y tu contraseña.",
+    text: "Escribe tu correo institucional y tu contraseña.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3639,13 +3639,13 @@ export const textos = {
   "T-2097": {
     where:
       "Ingresar, paso de seguridad con contraseña y cambio de contraseña en Ajustes: bloqueo temporal por intentos (ADR-051, ADR-114)",
-    text: "Demasiados intentos. Esperá 15 minutos y volvé a probar.",
+    text: "Demasiados intentos. Espera 15 minutos y vuelve a probar.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2098": {
     where: "Ingresar, ayuda fija de primer ingreso y olvido (nunca depende del correo tecleado)",
-    text: "¿Primera vez acá o perdiste la contraseña? Pedile tu enlace de acceso a Gestión Humana o a cualquier persona de la junta.",
+    text: "¿Primera vez aquí o perdiste la contraseña? Pídele tu enlace de acceso a Gestión Humana o a cualquier persona de la junta.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3663,13 +3663,13 @@ export const textos = {
   },
   "T-2100": {
     where: "Ingresar por código, aviso del filtro de EAFIT",
-    text: "El correo de EAFIT está reteniendo nuestros mensajes, así que el código puede no llegarte. Si no llega, pedile tu enlace de acceso a la junta.",
+    text: "El correo de EAFIT está reteniendo nuestros mensajes, así que el código puede no llegarte. Si no llega, pídele tu enlace de acceso a la junta.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2101": {
     where: "Activación, título",
-    text: "Elegí tu contraseña",
+    text: "Elige tu contraseña",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3687,13 +3687,13 @@ export const textos = {
   },
   "T-2104": {
     where: "Activación, campo de confirmación",
-    text: "Repetí la contraseña",
+    text: "Repite la contraseña",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2105": {
     where: "Activación, requisitos",
-    text: "Mínimo 10 caracteres. Usá algo que solo vos sepas y que no uses en otro lado.",
+    text: "Mínimo 10 caracteres. Usa algo que solo tú sepas y que no uses en otro lado.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3705,7 +3705,7 @@ export const textos = {
   },
   "T-2107": {
     where: "Activación, enlace vencido, ya usado o desconocido",
-    text: "Este enlace ya no sirve: vence a la hora y se puede usar una sola vez. Pedile uno nuevo a la junta.",
+    text: "Este enlace ya no sirve: vence a la hora y se puede usar una sola vez. Pídele uno nuevo a la junta.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3723,7 +3723,7 @@ export const textos = {
   },
   "T-2110": {
     where: "Activación, contraseña predecible",
-    text: "Esa contraseña es muy fácil de adivinar. Probá con otra que no lleve tu nombre ni tu correo.",
+    text: "Esa contraseña es muy fácil de adivinar. Prueba con otra que no lleve tu nombre ni tu correo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3735,7 +3735,7 @@ export const textos = {
   },
   "T-2112": {
     where: "Ajustes, crear la primera contraseña",
-    text: "Creá tu contraseña",
+    text: "Crea tu contraseña",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3765,7 +3765,7 @@ export const textos = {
   },
   "T-2117": {
     where: "Step-up con contraseña",
-    text: "Esta acción es sensible: confirmá con tu contraseña.",
+    text: "Esta acción es sensible: confirma con tu contraseña.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3795,13 +3795,13 @@ export const textos = {
   },
   "T-2122": {
     where: "Emisión, el enlace se muestra una sola vez",
-    text: "Copialo ahora: no lo vas a poder volver a ver. Vence a las {hora} y sirve una sola vez.",
+    text: "Cópialo ahora: no lo vas a poder volver a ver. Vence a las {hora} y sirve una sola vez.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2123": {
     where: "Emisión, cómo se entrega",
-    text: "Entregáselo en persona o por un canal que ya conozcas de esa persona. Nunca emitas un enlace porque alguien te lo pidió por mensaje.",
+    text: "Entrégaselo en persona o por un canal que ya conozcas de esa persona. Nunca emitas un enlace porque alguien te lo pidió por mensaje.",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -3819,7 +3819,7 @@ export const textos = {
   },
   "T-2126": {
     where: "Emisión, intento de emitirse a uno mismo",
-    text: "No podés emitirte un enlace a vos. Cambiá tu contraseña desde Ajustes.",
+    text: "No puedes emitirte un enlace a ti mismo. Cambia tu contraseña desde Ajustes.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3837,7 +3837,7 @@ export const textos = {
   },
   "T-2129": {
     where: "Jornada de activación, instrucción",
-    text: "Elegí a la persona, mostrale el QR y esperá a que entre. Un QR a la vez.",
+    text: "Elige a la persona, muéstrale el QR y espera a que entre. Un QR a la vez.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3849,13 +3849,13 @@ export const textos = {
   },
   "T-2131": {
     where: "Jornada de activación, persona que ya tiene contraseña",
-    text: "Ya tiene contraseña. Emitile un enlace solo si la perdió.",
+    text: "Ya tiene contraseña. Emítele un enlace solo si la perdió.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2132": {
     where: "Push: enlace de acceso emitido (título · cuerpo)",
-    text: "Emitieron tu enlace de acceso · Si no lo pediste, avisale a la junta ya mismo.",
+    text: "Emitieron tu enlace de acceso · Si no lo pediste, avísale a la junta ya mismo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3867,7 +3867,7 @@ export const textos = {
   },
   "T-2134": {
     where: "Activación, bienvenida (solo cuando es la primera contraseña)",
-    text: "¡Bienvenido a la OE! Elegí tu contraseña y entrás a Mi OE: ahí están tus comités, tus GH Points y tu permanencia.",
+    text: "¡Bienvenido a la OE! Elige tu contraseña y entras a Mi OE: ahí están tus comités, tus GH Points y tu permanencia.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3879,7 +3879,7 @@ export const textos = {
   },
   "T-2136": {
     where: "Jornada de activación, sin comité elegido",
-    text: "Elegí un comité para ver a su gente.",
+    text: "Elige un comité para ver a su gente.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3909,7 +3909,7 @@ export const textos = {
   },
   "T-2141": {
     where: "Step-up, título de la pantalla",
-    text: "Confirmá que sos vos",
+    text: "Confirma que eres tú",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3921,7 +3921,7 @@ export const textos = {
   },
   "T-2143": {
     where: "Condición del semestre: ayuda del panel",
-    text: "Marcá o quitá el periodo de prueba de ese semestre, en todos sus comités o solo en uno. Cambia el umbral que le aplica en permanencia y queda en la línea de tiempo con tu motivo.",
+    text: "Marca o quita el periodo de prueba de ese semestre, en todos sus comités o solo en uno. Cambia el umbral que le aplica en permanencia y queda en la línea de tiempo con tu motivo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3940,7 +3940,7 @@ export const textos = {
   },
   "T-2146": {
     where: "Vista del comité, área Personas: ayuda para la dirección",
-    text: "Podés agregar miembros activos y cambiar cargos. Sacar a alguien es un pedido a GH, que lo resuelve desde la ficha.",
+    text: "Puedes agregar miembros activos y cambiar cargos. Sacar a alguien es un pedido a GH, que lo resuelve desde la ficha.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -3952,7 +3952,7 @@ export const textos = {
   },
   "T-2148": {
     where: "Agregar miembro: campo de búsqueda",
-    text: "Buscá por nombre",
+    text: "Busca por nombre",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4006,7 +4006,7 @@ export const textos = {
   },
   "T-2157": {
     where: "Pedir retiro: ayuda",
-    text: "No lo saca del comité: GH recibe tu pedido como tarea y decide desde la ficha. Contale el motivo.",
+    text: "No lo saca del comité: GH recibe tu pedido como tarea y decide desde la ficha. Cuéntale el motivo.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -4036,7 +4036,7 @@ export const textos = {
   },
   "T-2162": {
     where: "Guarda: sin esa capacidad en el comité",
-    text: "No tenés a cargo esta área de {comité}.",
+    text: "No tienes a cargo esta área de {comité}.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4048,7 +4048,7 @@ export const textos = {
   },
   "T-2164": {
     where: "Guarda: la persona no está activa",
-    text: "Solo podés agregar a miembros activos de la OE.",
+    text: "Solo puedes agregar a miembros activos de la OE.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4072,7 +4072,7 @@ export const textos = {
   },
   "T-2168": {
     where: "Guarda: cargo obligatorio sin titular",
-    text: "El comité no puede quedar sin {cargo} titular: nombrá primero a quien lo reemplace.",
+    text: "El comité no puede quedar sin {cargo} titular: nombra primero a quien lo reemplace.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4180,7 +4180,7 @@ export const textos = {
   },
   "T-2186": {
     where: "Vista del comité, área Aliados: aviso",
-    text: "Acá van a vivir las organizaciones y patrocinios del comité.",
+    text: "Aquí van a vivir las organizaciones y patrocinios del comité.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4228,7 +4228,7 @@ export const textos = {
   },
   "T-2197": {
     where: "Área Finanzas: sin presupuesto del año",
-    text: "Sin presupuesto cargado para {año}: pedíselo a la junta.",
+    text: "Sin presupuesto cargado para {año}: pídeselo a la junta.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4282,7 +4282,7 @@ export const textos = {
   },
   "T-2205": {
     where: "Área Finanzas: ayuda",
-    text: "Registrá cada gasto en su rubro y, si un rubro va a sobrar, trasladalo a tiempo: lo que no se ejecuta en el año se pierde.",
+    text: "Registra cada gasto en su rubro y, si un rubro va a sobrar, trasládalo a tiempo: lo que no se ejecuta en el año se pierde.",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -4330,7 +4330,7 @@ export const textos = {
   },
   "T-2212": {
     where: "Guarda: nombrar un cargo retirado con reemplazo",
-    text: "El cargo {cargo} está retirado del catálogo: usá {nuevo}.",
+    text: "El cargo {cargo} está retirado del catálogo: usa {nuevo}.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4372,7 +4372,7 @@ export const textos = {
   },
   "T-2219": {
     where: "Excusa: fuera de plazo",
-    text: "La excusa se presenta antes de la ocasión o hasta tres días hábiles después (Reglamento, Anexo 1). Ya pasó el plazo: hablá con GH.",
+    text: "La excusa se presenta antes de la ocasión o hasta tres días hábiles después (Reglamento, Anexo 1). Ya pasó el plazo: habla con GH.",
     owner: "GH",
     status: "Propuesta; texto sensible",
   },
@@ -4384,19 +4384,19 @@ export const textos = {
   },
   "T-2220": {
     where: "Excusa: ya hay una pendiente para esa ocasión",
-    text: "Ya tenés una excusa pendiente para esa ocasión.",
+    text: "Ya tienes una excusa pendiente para esa ocasión.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2221": {
     where: "Excusa: explicación",
-    text: "Si no pudiste ir a una asamblea, actividad, reunión o partido por una causal del Reglamento, presentá la excusa antes o hasta tres días hábiles después. Si GH o tu comité la aceptan, no cuenta como falta ni te expulsa por una asamblea obligatoria; tampoco suma puntos.",
+    text: "Si no pudiste ir a una asamblea, actividad, reunión o partido por una causal del Reglamento, presenta la excusa antes o hasta tres días hábiles después. Si GH o tu comité la aceptan, no cuenta como falta ni te expulsa por una asamblea obligatoria; tampoco suma puntos.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-2222": {
     where: "Excusa: falta la ocasión o la causal",
-    text: "Elegí la ocasión y la causal.",
+    text: "Elige la ocasión y la causal.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4456,7 +4456,7 @@ export const textos = {
   },
   "T-2231": {
     where: "Sanciones: ayuda del formulario",
-    text: "Un llamado de atención suspende derechos y beneficios 7 días y una falta leve 20; una suspensión dura hasta un mes; una falta grave no suspende pero advierte de expulsión y, con otra sanción vigente, el cierre propone la salida; la inhabilidad para cargos dura un año. Toda falta vence al año. Anotá los descargos en la causal.",
+    text: "Un llamado de atención suspende derechos y beneficios 7 días y una falta leve 20; una suspensión dura hasta un mes; una falta grave no suspende pero advierte de expulsión y, con otra sanción vigente, el cierre propone la salida; la inhabilidad para cargos dura un año. Toda falta vence al año. Anota los descargos en la causal.",
     owner: "GH",
     status: "Propuesta; texto sensible",
   },
@@ -4492,13 +4492,13 @@ export const textos = {
   },
   "T-2237": {
     where: "Mi OE, permanencia: derechos suspendidos",
-    text: "Tus derechos y beneficios en la OE están suspendidos hasta el {fecha}. Seguís con tus deberes y tus reuniones.",
+    text: "Tus derechos y beneficios en la OE están suspendidos hasta el {fecha}. Sigues con tus deberes y tus reuniones.",
     owner: "GH",
     status: "Propuesta; texto sensible",
   },
   "T-2238": {
     where: "Mi OE, permanencia: advertencia de expulsión",
-    text: "Tenés una falta grave vigente más otra sanción: el cierre del semestre propone tu salida de la OE (Reglamento, art. 69). Hablá con GH.",
+    text: "Tienes una falta grave vigente más otra sanción: el cierre del semestre propone tu salida de la OE (Reglamento, art. 69). Habla con GH.",
     owner: "GH",
     status: "Propuesta; texto sensible",
   },
@@ -4804,7 +4804,7 @@ export const textos = {
   },
   "T-2289": {
     where: "Rubros: guarda al borrar uno con movimientos",
-    text: "El rubro {rubro} tiene movimientos: no se borra; trasladá lo que queda.",
+    text: "El rubro {rubro} tiene movimientos: no se borra; traslada lo que queda.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4822,19 +4822,19 @@ export const textos = {
   },
   "T-2292": {
     where: "Gasto: guarda sin presolicitud del mes",
-    text: "Sin presolicitud de {mes} el comité no tiene acceso a los recursos ese mes (Estatutos, art. 38): registrala primero.",
+    text: "Sin presolicitud de {mes} el comité no tiene acceso a los recursos ese mes (Estatutos, art. 38): regístrala primero.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2293": {
     where: "Traslado: guarda de rubros iguales",
-    text: "Elegí dos rubros distintos.",
+    text: "Elige dos rubros distintos.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2294": {
     where: "Aval: guarda de aval no aprobado o de otro comité",
-    text: "Elegí un aval aprobado para este comité y presupuesto.",
+    text: "Elige un aval aprobado para este comité y presupuesto.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5038,7 +5038,7 @@ export const textos = {
   },
   "T-2325": {
     where: "Comité: fecha de desactivación",
-    text: "Registrá la fecha de desactivación, sin usar una fecha futura.",
+    text: "Registra la fecha de desactivación, sin usar una fecha futura.",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -5050,13 +5050,13 @@ export const textos = {
   },
   "T-2327": {
     where: "Comité: límites del periodo de prueba",
-    text: "El periodo de prueba va de seis a doce meses desde su inicio. Conservá la fecha de inicio y esperá al vencimiento antes de pasarlo a activo.",
+    text: "El periodo de prueba va de seis a doce meses desde su inicio. Conserva la fecha de inicio y espera al vencimiento antes de pasarlo a activo.",
     owner: "JUNTA",
     status: "Propuesta",
   },
   "T-2328": {
     where: "Comité: motivo de ampliación",
-    text: "Para ampliar la prueba más allá de seis meses, registrá el motivo de la decisión de la junta.",
+    text: "Para ampliar la prueba más allá de seis meses, registra el motivo de la decisión de la junta.",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -5182,7 +5182,7 @@ export const textos = {
   },
   "T-2348": {
     where: "Macroeventos: GT vacío",
-    text: "Todavía no hay un GT preparado para este semestre. Podés organizar el equipo aunque la fecha del evento esté pendiente.",
+    text: "Todavía no hay un GT preparado para este semestre. Puedes organizar el equipo aunque la fecha del evento esté pendiente.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5206,25 +5206,25 @@ export const textos = {
   },
   "T-2351": {
     where: "Macroeventos: cargo inválido",
-    text: "Ese cargo no corresponde a este macroevento. Elegí uno de los cargos disponibles.",
+    text: "Ese cargo no corresponde a este macroevento. Elige uno de los cargos disponibles.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2352": {
     where: "Macroeventos: GT repetido",
-    text: "Ya existe un GT de este macroevento en el semestre. Usá ese equipo para conservar sus evaluaciones.",
+    text: "Ya existe un GT de este macroevento en el semestre. Usa ese equipo para conservar sus evaluaciones.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2353": {
     where: "Macroeventos: vínculo inválido",
-    text: "El macroevento, la edición y el grupo deben corresponder. Revisá la selección.",
+    text: "El macroevento, la edición y el grupo deben corresponder. Revisa la selección.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2354": {
     where: "Macroeventos: sin edición",
-    text: "Todavía no hay ediciones registradas. Registrá una edición con su fecha real para nombrar la mesa directiva.",
+    text: "Todavía no hay ediciones registradas. Registra una edición con su fecha real para nombrar la mesa directiva.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5338,13 +5338,13 @@ export const textos = {
   },
   "T-2371": {
     where: "Macroeventos: semestre cerrado",
-    text: "Este semestre está cerrado. Podés consultar su equipo y sus evaluaciones.",
+    text: "Este semestre está cerrado. Puedes consultar su equipo y sus evaluaciones.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-2372": {
     where: "Macroeventos: historial",
-    text: "Cada edición conserva su propia mesa directiva. Seleccioná una edición para consultar sus cargos.",
+    text: "Cada edición conserva su propia mesa directiva. Selecciona una edición para consultar sus cargos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5458,7 +5458,7 @@ export const textos = {
   },
   "T-239": {
     where: "Ingresar: correo con formato inválido",
-    text: "Ese correo no tiene un formato válido. Revisalo.",
+    text: "Ese correo no tiene un formato válido. Revísalo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5572,13 +5572,13 @@ export const textos = {
   },
   "T-2407": {
     where: "Retos: intro",
-    text: "Retos cortos con premio en GH Points. Elegí uno, hacelo antes de la fecha límite y sumá.",
+    text: "Retos cortos con premio en GH Points. Elige uno, hazlo antes de la fecha límite y suma.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-2408": {
     where: "Retos: vacío",
-    text: "Por ahora no hay retos abiertos. Volvé pronto, pues: GH publica nuevos durante el semestre.",
+    text: "Por ahora no hay retos abiertos. Vuelve pronto, pues: GH publica nuevos durante el semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5620,13 +5620,13 @@ export const textos = {
   },
   "T-2414": {
     where: "Reto: admite booster",
-    text: "Podés usar un booster",
+    text: "Puedes usar un booster",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2415": {
     where: "Reto: booster elegido",
-    text: "Vas a usar tu {booster} acá",
+    text: "Vas a usar tu {booster} aquí",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5638,19 +5638,19 @@ export const textos = {
   },
   "T-2417": {
     where: "Reto presencial: acción requerida",
-    text: "Registrá tu asistencia en {actividad} antes de {fecha}. Con eso queda completo.",
+    text: "Registra tu asistencia en {actividad} antes de {fecha}. Con eso queda completo.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-2418": {
     where: "Trivia: acción requerida",
-    text: "Respondé {n} preguntas. Necesitás al menos el {porcentaje} % de aciertos y tenés un solo envío.",
+    text: "Responde {n} preguntas. Necesitas al menos el {porcentaje} % de aciertos y tienes un solo envío.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-2419": {
     where: "Evidencia: acción requerida",
-    text: "Contanos qué hiciste y subí hasta tres fotos. GH lo revisa y te avisa.",
+    text: "Cuéntanos qué hiciste y sube hasta tres fotos. GH lo revisa y te avisa.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -5698,19 +5698,19 @@ export const textos = {
   },
   "T-2426": {
     where: "Trivia: falta responder",
-    text: "Respondé todas las preguntas antes de enviar.",
+    text: "Responde todas las preguntas antes de enviar.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2427": {
     where: "Evidencia: instrucciones",
-    text: "Escribí qué hiciste ({min} a {max} caracteres) y subí hasta 3 imágenes JPG, PNG o WebP de máximo 5 MB cada una.",
+    text: "Escribe qué hiciste ({min} a {max} caracteres) y sube hasta 3 imágenes JPG, PNG o WebP de máximo 5 MB cada una.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2428": {
     where: "Evidencia: campo de texto",
-    text: "Contanos qué hiciste",
+    text: "Cuéntanos qué hiciste",
     owner: "GH",
     status: "Propuesta",
   },
@@ -5728,7 +5728,7 @@ export const textos = {
   },
   "T-2430": {
     where: "Evidencia: errores de imagen",
-    text: "Ese archivo no es una imagen JPG, PNG o WebP. · Esa imagen pesa más de 5 MB. · Ya subiste tres imágenes. · No pudimos subir la imagen. Probá de nuevo.",
+    text: "Ese archivo no es una imagen JPG, PNG o WebP. · Esa imagen pesa más de 5 MB. · Ya subiste tres imágenes. · No pudimos subir la imagen. Prueba de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5764,7 +5764,7 @@ export const textos = {
   },
   "T-2436": {
     where: "Reto: tope aplicado",
-    text: "El tope de puntos extra redujo este premio. Mañana o la próxima semana volvés a tener cupo.",
+    text: "El tope de puntos extra redujo este premio. Mañana o la próxima semana vuelves a tener cupo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5818,7 +5818,7 @@ export const textos = {
   },
   "T-2444": {
     where: "Reto: envío repetido con otro contenido",
-    text: "Ese envío ya llegó con otro contenido. Recargá para ver tu estado.",
+    text: "Ese envío ya llegó con otro contenido. Recarga para ver tu estado.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5884,7 +5884,7 @@ export const textos = {
   },
   "T-2454": {
     where: "Boosters: vacío",
-    text: "Todavía no tenés boosters. Los ganás al subir de nivel en tu colección.",
+    text: "Todavía no tienes boosters. Los ganas al subir de nivel en tu colección.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5902,7 +5902,7 @@ export const textos = {
   },
   "T-2457": {
     where: "Boosters: elegir objetivo",
-    text: "¿Dónde lo usás?",
+    text: "¿Dónde lo usas?",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5914,7 +5914,7 @@ export const textos = {
   },
   "T-2459": {
     where: "Boosters: asignado",
-    text: "¡De una! Tu {booster} está reservado para {objetivo}. Podés cambiarlo hasta que participes.",
+    text: "¡De una! Tu {booster} está reservado para {objetivo}. Puedes cambiarlo hasta que participes.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5962,7 +5962,7 @@ export const textos = {
   },
   "T-2466": {
     where: "Boosters: errores",
-    text: "Ya tenés un booster en esa participación. · Ese booster ya venció. · Ese booster ya se usó. · Los boosters no aplican a esa actividad. · Ya participaste ahí: el booster no se puede mover.",
+    text: "Ya tienes un booster en esa participación. · Ese booster ya venció. · Ese booster ya se usó. · Los boosters no aplican a esa actividad. · Ya participaste ahí: el booster no se puede mover.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5986,7 +5986,7 @@ export const textos = {
   },
   "T-247": {
     where: "Admin, sistema: lista vacía",
-    text: "Nada por acá en esta lista.",
+    text: "Nada por aquí en esta lista.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6004,7 +6004,7 @@ export const textos = {
   },
   "T-2472": {
     where: "Colección: intro",
-    text: "Cada insignia cuenta algo que hiciste en la OE. Suben de nivel con vos y se quedan para siempre.",
+    text: "Cada insignia cuenta algo que hiciste en la OE. Suben de nivel contigo y se quedan para siempre.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -6130,13 +6130,13 @@ export const textos = {
   },
   "T-2493": {
     where: "Colección: límite de destacadas",
-    text: "Ya destacaste tres. Quitá una para destacar otra.",
+    text: "Ya destacaste tres. Quita una para destacar otra.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2494": {
     where: "Colección: explicación de destacadas",
-    text: "Podés destacar hasta tres insignias en tu tarjeta del directorio.",
+    text: "Puedes destacar hasta tres insignias en tu tarjeta del directorio.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6154,7 +6154,7 @@ export const textos = {
   },
   "T-2497": {
     where: "Desbloqueo: con booster",
-    text: "Además ganaste un {booster}. Pilas: usalo antes de que termine el semestre.",
+    text: "Además ganaste un {booster}. Pilas: úsalo antes de que termine el semestre.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -6232,7 +6232,7 @@ export const textos = {
   },
   "T-2509": {
     where: "Admin retos: ayuda de preguntas",
-    text: "De 1 a 5 preguntas con 2 a 6 opciones cada una; marcá la correcta.",
+    text: "De 1 a 5 preguntas con 2 a 6 opciones cada una; marca la correcta.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6256,13 +6256,13 @@ export const textos = {
   },
   "T-2512": {
     where: "Admin retos: aviso al publicar",
-    text: "Al publicar se congelan formato, preguntas, público, premio y ocasión. Después solo podés cambiar título y descripción.",
+    text: "Al publicar se congelan formato, preguntas, público, premio y ocasión. Después solo puedes cambiar título y descripción.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2513": {
     where: "Admin retos: aviso al cancelar",
-    text: "Cancelar libera las participaciones pendientes y sus reservas. Los premios ya entregados no se tocan: anulalos uno a uno si hace falta.",
+    text: "Cancelar libera las participaciones pendientes y sus reservas. Los premios ya entregados no se tocan: anúlalos uno a uno si hace falta.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6274,7 +6274,7 @@ export const textos = {
   },
   "T-2515": {
     where: "Admin retos: cancelar con premios exige step-up",
-    text: "Este reto ya entregó premios. Confirmá tu identidad para cancelarlo.",
+    text: "Este reto ya entregó premios. Confirma tu identidad para cancelarlo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6310,7 +6310,7 @@ export const textos = {
   },
   "T-2520": {
     where: "Admin retos: errores del editor",
-    text: "La fecha de cierre debe ser posterior a la de apertura. · Elegí al menos un comité. · Una trivia necesita entre 1 y 5 preguntas. · Cada pregunta necesita entre 2 y 6 opciones y una correcta. · Un reto presencial necesita una ocasión con puntos del mismo semestre. · El premio base va de 0 a 20. · Solo se puede publicar un borrador. · Este reto ya no está en borrador: solo cambian título y descripción. · Cada pregunta y cada opción necesitan texto.",
+    text: "La fecha de cierre debe ser posterior a la de apertura. · Elige al menos un comité. · Una trivia necesita entre 1 y 5 preguntas. · Cada pregunta necesita entre 2 y 6 opciones y una correcta. · Un reto presencial necesita una ocasión con puntos del mismo semestre. · El premio base va de 0 a 20. · Solo se puede publicar un borrador. · Este reto ya no está en borrador: solo cambian título y descripción. · Cada pregunta y cada opción necesitan texto.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6334,7 +6334,7 @@ export const textos = {
   },
   "T-2524": {
     where: "Admin revisión: vacío",
-    text: "Nada por revisar por acá: todo al día.",
+    text: "Nada por revisar por aquí: todo al día.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6430,7 +6430,7 @@ export const textos = {
   },
   "T-2539": {
     where: "Admin campañas: errores",
-    text: "Elegí al menos un objetivo. · La campaña debe terminar después de empezar. · El objetivo debe ser del mismo semestre.",
+    text: "Elige al menos un objetivo. · La campaña debe terminar después de empezar. · El objetivo debe ser del mismo semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6496,7 +6496,7 @@ export const textos = {
   },
   "T-2549": {
     where: "Admin insignias: booster usado tras revocar",
-    text: "Este logro se revocó y su booster ya se usó: revisá si hace falta un ajuste.",
+    text: "Este logro se revocó y su booster ya se usó: revisa si hace falta un ajuste.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6550,7 +6550,7 @@ export const textos = {
   },
   "T-2557": {
     where: "Admin panel: ayuda de conciliación",
-    text: "Reconoce insignias por asistencias aprobadas, retos completados y Wordles resueltos de cualquier semestre. No entrega puntos, boosters ni avisos. Simulá primero.",
+    text: "Reconoce insignias por asistencias aprobadas, retos completados y Wordles resueltos de cualquier semestre. No entrega puntos, boosters ni avisos. Simula primero.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6568,7 +6568,7 @@ export const textos = {
   },
   "T-256": {
     where: "Listados y paleta: sin resultados",
-    text: "Nada por acá con esa búsqueda.",
+    text: "Nada por aquí con esa búsqueda.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6586,7 +6586,7 @@ export const textos = {
   },
   "T-2562": {
     where: "Cierre de puntos: pendientes de retos",
-    text: "Quedan {n} entregas pendientes y {m} premios reservados. Resolvelos antes de cerrar.",
+    text: "Quedan {n} entregas pendientes y {m} premios reservados. Resuélvelos antes de cerrar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6598,7 +6598,7 @@ export const textos = {
   },
   "T-2564": {
     where: "Admin: motivo obligatorio",
-    text: "Escribí un motivo.",
+    text: "Escribe un motivo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6610,7 +6610,7 @@ export const textos = {
   },
   "T-2566": {
     where: "Push: reto publicado",
-    text: "Nuevo reto: {reto} · Tenés hasta {fecha}. De una: entrá y participá.",
+    text: "Nuevo reto: {reto} · Tienes hasta {fecha}. De una: entra y participa.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -6664,7 +6664,7 @@ export const textos = {
   },
   "T-2574": {
     where: "Admin retos: título de la lista y vacío",
-    text: "Retos del semestre · Todavía no hay retos. Creá el primero.",
+    text: "Retos del semestre · Todavía no hay retos. Crea el primero.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6730,7 +6730,7 @@ export const textos = {
   },
   "T-2584": {
     where: "Admin retos: ocasión vinculada, ayuda",
-    text: "Elegí una actividad con puntos del mismo semestre; el reto se completa al aprobar su asistencia dentro de la ventana del reto.",
+    text: "Elige una actividad con puntos del mismo semestre; el reto se completa al aprobar su asistencia dentro de la ventana del reto.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6742,7 +6742,7 @@ export const textos = {
   },
   "T-2586": {
     where: "Admin: sin sesión reciente para anular",
-    text: "Confirmá tu identidad para anular un premio entregado.",
+    text: "Confirma tu identidad para anular un premio entregado.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6778,7 +6778,7 @@ export const textos = {
   },
   "T-2591": {
     where: "Admin panel: aplicar exige step-up",
-    text: "Aplicar escribe logros históricos, sin puntos ni boosters. Confirmá tu identidad para seguir.",
+    text: "Aplicar escribe logros históricos, sin puntos ni boosters. Confirma tu identidad para seguir.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6814,7 +6814,7 @@ export const textos = {
   },
   "T-2597": {
     where: "Comités internos: buscador de los demás comités",
-    text: "Buscá entre los demás comités",
+    text: "Busca entre los demás comités",
     owner: "COM",
     status: "Propuesta",
   },
@@ -6832,7 +6832,7 @@ export const textos = {
   },
   "T-260": {
     where: "Panel: hay errores de validación",
-    text: "Revisá los campos marcados.",
+    text: "Revisa los campos marcados.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6958,7 +6958,7 @@ export const textos = {
   },
   "T-2619": {
     where: "Roster: comité inactivo en la fila",
-    text: "{sigla} está inactivo: ya no recibe integrantes. Quitá esa sigla o pedí que la junta lo reactive.",
+    text: "{sigla} está inactivo: ya no recibe integrantes. Quita esa sigla o pide que la junta lo reactive.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6970,7 +6970,7 @@ export const textos = {
   },
   "T-2620": {
     where: "Push: Wordle del día (ADR-074)",
-    text: "¿Qué más? El Wordle de hoy te espera · Resolvelo y sumá puntos gamer.",
+    text: "¿Qué más? El Wordle de hoy te espera · Resuélvelo y suma puntos gamer.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -6982,7 +6982,7 @@ export const textos = {
   },
   "T-2622": {
     where: "Juegos: introducción",
-    text: "Jugá a tu ritmo, sumá puntos gamer por tus resultados y competí en + gamer este semestre.",
+    text: "Juega a tu ritmo, suma puntos gamer por tus resultados y compite en + gamer este semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7012,7 +7012,7 @@ export const textos = {
   },
   "T-2627": {
     where: "Juegos: de qué va el Wordle",
-    text: "Una palabra distinta para vos cada día. Ganá en seis intentos o menos para sumar una participación.",
+    text: "Una palabra distinta para ti cada día. Gana en seis intentos o menos para sumar una participación.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7024,7 +7024,7 @@ export const textos = {
   },
   "T-2629": {
     where: "Juegos: de qué va el 2048",
-    text: "Juntá fichas iguales. Terminá una partida con al menos 1.000 puntos para sumar una participación al día.",
+    text: "Junta fichas iguales. Termina una partida con al menos 1.000 puntos para sumar una participación al día.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7042,13 +7042,13 @@ export const textos = {
   },
   "T-2631": {
     where: "2048: introducción",
-    text: "Deslizá las fichas: dos iguales se juntan en una. Tu primera partida terminada con al menos 1.000 puntos de juego suma puntos gamer según su puntaje.",
+    text: "Desliza las fichas: dos iguales se juntan en una. Tu primera partida terminada con al menos 1.000 puntos de juego suma puntos gamer según su puntaje.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2632": {
     where: "2048: cómo se juega",
-    text: "Movés todo el tablero de una vez, con las flechas, con los botones de abajo o deslizando el dedo. Dos fichas iguales que chocan se juntan y suman su valor. Después de cada movimiento aparece una ficha nueva. Se acaba cuando ya no queda ninguna jugada.",
+    text: "Mueves todo el tablero de una vez, con las flechas, con los botones de abajo o deslizando el dedo. Dos fichas iguales que chocan se juntan y suman su valor. Después de cada movimiento aparece una ficha nueva. Se acaba cuando ya no queda ninguna jugada.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7096,7 +7096,7 @@ export const textos = {
   },
   "T-264": {
     where: "Paleta ⌘K: campo de búsqueda",
-    text: "Buscá personas o comités",
+    text: "Busca personas o comités",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7132,13 +7132,13 @@ export const textos = {
   },
   "T-2645": {
     where: "2048: tope de movimientos",
-    text: "Llegaste a los 4.000 movimientos y cerramos la partida ahí. Empezá otra cuando quieras.",
+    text: "Llegaste a los 4.000 movimientos y cerramos la partida ahí. Empieza otra cuando quieras.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2646": {
     where: "2048: partida guardada",
-    text: "Tenés una partida a medias. ¿La seguís?",
+    text: "Tienes una partida a medias. ¿La sigues?",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7180,13 +7180,13 @@ export const textos = {
   },
   "T-2652": {
     where: "2048: sin premio por puntaje bajo",
-    text: "Esta partida no llegó a 1.000 puntos de juego. Hágale a otra: todavía podés sumar puntos gamer hoy.",
+    text: "Esta partida no llegó a 1.000 puntos de juego. Hágale a otra: todavía puedes sumar puntos gamer hoy.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2653": {
     where: "2048: ya acreditaste hoy",
-    text: "Hoy ya sumaste puntos gamer con el 2048. Podés seguir por tu récord, sin aumentar ese premio; mañana vuelve a contar.",
+    text: "Hoy ya sumaste puntos gamer con el 2048. Puedes seguir por tu récord, sin aumentar ese premio; mañana vuelve a contar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7198,7 +7198,7 @@ export const textos = {
   },
   "T-2655": {
     where: "2048: partida vencida",
-    text: "Terminó el día de esta partida. No sumó puntos gamer; empezá una nueva.",
+    text: "Terminó el día de esta partida. No sumó puntos gamer; empieza una nueva.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7210,13 +7210,13 @@ export const textos = {
   },
   "T-2657": {
     where: "2048 y Sudoku: día nuevo",
-    text: "Ya cambió el día en Colombia. Actualizá para que tu partida cuente.",
+    text: "Ya cambió el día en Colombia. Actualiza para que tu partida cuente.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2658": {
     where: "2048: no hay semestre con puntos abiertos",
-    text: "El 2048 suma puntos gamer mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre.",
+    text: "El 2048 suma puntos gamer mientras la temporada esté abierta. Vuelve cuando arranque el próximo semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7234,19 +7234,19 @@ export const textos = {
   },
   "T-2660": {
     where: "2048: partida no encontrada o solicitud inválida",
-    text: "No pudimos recuperar esa partida. Empezá una nueva para seguir.",
+    text: "No pudimos recuperar esa partida. Empieza una nueva para seguir.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2661": {
     where: "2048: partida ilegible",
-    text: "No pudimos reconstruir esa partida, así que no la guardamos. Empezá otra: todavía podés sumar hoy.",
+    text: "No pudimos reconstruir esa partida, así que no la guardamos. Empieza otra: todavía puedes sumar hoy.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2662": {
     where: "2048 y Sudoku: respuesta de red incierta",
-    text: "No recibimos la confirmación. Reintentá el mismo envío: si ya se guardó, no contará dos veces.",
+    text: "No recibimos la confirmación. Reintenta el mismo envío: si ya se guardó, no contará dos veces.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7306,7 +7306,7 @@ export const textos = {
   },
   "T-2676": {
     where: "Juegos: de qué va el Sudoku",
-    text: "Completá la cuadrícula sin repetir números. Tu primer tablero resuelto del día suma puntos gamer según la dificultad y las ayudas.",
+    text: "Completa la cuadrícula sin repetir números. Tu primer tablero resuelto del día suma puntos gamer según la dificultad y las ayudas.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7318,13 +7318,13 @@ export const textos = {
   },
   "T-2678": {
     where: "Sudoku: introducción",
-    text: "Llená cada fila, columna y caja del 1 al 9 sin repetir. Tu primer tablero resuelto del día suma puntos gamer según la dificultad y las ayudas que elijás.",
+    text: "Llena cada fila, columna y caja del 1 al 9 sin repetir. Tu primer tablero resuelto del día suma puntos gamer según la dificultad y las ayudas que elijas.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2679": {
     where: "Sudoku: cómo se juega",
-    text: "Elegí una casilla y después un número, con el teclado de abajo o con el tuyo. Con el lápiz anotás candidatos sin comprometerte. Un número repetido en su fila, columna o caja se marca solo. Cada tablero tiene una sola solución y sale con pura lógica: nunca hace falta adivinar.",
+    text: "Elige una casilla y después un número, con el teclado de abajo o con el tuyo. Con el lápiz anotas candidatos sin comprometerte. Un número repetido en su fila, columna o caja se marca solo. Cada tablero tiene una sola solución y sale con pura lógica: nunca hace falta adivinar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7366,7 +7366,7 @@ export const textos = {
   },
   "T-2685": {
     where: "Sudoku: aviso antes de empezar",
-    text: "Solo el primer Sudoku que resuelvas hoy suma puntos gamer. Elegí la dificultad y las ayudas antes de empezar: los siguientes tableros no aumentan ese premio.",
+    text: "Solo el primer Sudoku que resuelvas hoy suma puntos gamer. Elige la dificultad y las ayudas antes de empezar: los siguientes tableros no aumentan ese premio.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7408,7 +7408,7 @@ export const textos = {
   },
   "T-2691": {
     where: "Sudoku: tablero a medias",
-    text: "Tenés un Sudoku a medias: {dificultad}, {modo}. ¿Lo seguís?",
+    text: "Tienes un Sudoku a medias: {dificultad}, {modo}. ¿Lo sigues?",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7426,7 +7426,7 @@ export const textos = {
   },
   "T-2694": {
     where: "Sudoku: confirmar el abandono",
-    text: "¿Abandonás este tablero? Se pierde lo que llevás escrito. Abandonar no cuesta puntos.",
+    text: "¿Abandonas este tablero? Se pierde lo que llevas escrito. Abandonar no cuesta puntos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7504,7 +7504,7 @@ export const textos = {
   },
   "T-2706": {
     where: "Sudoku: pista sin casilla vacía elegida",
-    text: "Elegí una casilla vacía para pedir la pista.",
+    text: "Elige una casilla vacía para pedir la pista.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7534,7 +7534,7 @@ export const textos = {
   },
   "T-2710": {
     where: "Sudoku: ya acreditaste hoy",
-    text: "Hoy ya sumaste puntos gamer con el Sudoku. Podés seguir jugando por gusto, sin aumentar ese premio; mañana vuelve a contar.",
+    text: "Hoy ya sumaste puntos gamer con el Sudoku. Puedes seguir jugando por gusto, sin aumentar ese premio; mañana vuelve a contar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7552,7 +7552,7 @@ export const textos = {
   },
   "T-2713": {
     where: "Sudoku: tablero vencido",
-    text: "Terminó el día de este tablero. No sumó puntos gamer; empezá uno nuevo.",
+    text: "Terminó el día de este tablero. No sumó puntos gamer; empieza uno nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7564,7 +7564,7 @@ export const textos = {
   },
   "T-2715": {
     where: "Sudoku: no hay semestre con puntos abiertos",
-    text: "El Sudoku suma puntos gamer mientras la temporada esté abierta. Volvé cuando arranque el próximo semestre.",
+    text: "El Sudoku suma puntos gamer mientras la temporada esté abierta. Vuelve cuando arranque el próximo semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7576,19 +7576,19 @@ export const textos = {
   },
   "T-2717": {
     where: "Sudoku: tablero no encontrado o solicitud inválida",
-    text: "No pudimos recuperar ese tablero. Empezá uno nuevo para seguir.",
+    text: "No pudimos recuperar ese tablero. Empieza uno nuevo para seguir.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2718": {
     where: "Sudoku: cuadrícula que no es la solución",
-    text: "Ese tablero todavía no está resuelto. Revisá las casillas y volvé a intentarlo.",
+    text: "Ese tablero todavía no está resuelto. Revisa las casillas y vuelve a intentarlo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2719": {
     where: "Sudoku: ya hay otro tablero abierto",
-    text: "Ya tenés otro tablero abierto. Seguilo o abandonalo antes de empezar uno nuevo.",
+    text: "Ya tienes otro tablero abierto. Síguelo o abandónalo antes de empezar uno nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7606,7 +7606,7 @@ export const textos = {
   },
   "T-2721": {
     where: "Página no encontrada (404); el primer punto separa el título del botón",
-    text: "Uy, esta página no existe. Volvé al inicio.",
+    text: "Uy, esta página no existe. Vuelve al inicio.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7618,13 +7618,13 @@ export const textos = {
   },
   "T-2723": {
     where: "Panal: Biblioteca",
-    text: "Encontrá palabras con siete letras y una central obligatoria. Un panal nuevo cada día.",
+    text: "Encuentra palabras con siete letras y una central obligatoria. Un panal nuevo cada día.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2724": {
     where: "Panal: Introducción",
-    text: "Siete letras, muchas palabras. ¿Hasta dónde llegás hoy?",
+    text: "Siete letras, muchas palabras. ¿Hasta dónde llegas hoy?",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7696,7 +7696,7 @@ export const textos = {
   },
   "T-2735": {
     where: "Panal: Vacío",
-    text: "Tu primera palabra abre el panal. Usá siempre la letra del centro.",
+    text: "Tu primera palabra abre el panal. Usa siempre la letra del centro.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7708,13 +7708,13 @@ export const textos = {
   },
   "T-2737": {
     where: "Panal: Reglas lista",
-    text: "Formá palabras de al menos cuatro letras con las siete del panal. · Incluí siempre la letra del centro; podés repetir letras. · Las tildes y la diéresis son opcionales. La ñ es distinta de la n. · Se aceptan plurales y conjugaciones del diccionario del juego. · Cuatro letras dan 1 punto; desde cinco, un punto por letra. · Usar las siete letras en una palabra es un pangrama y suma 7 puntos extra.",
+    text: "Forma palabras de al menos cuatro letras con las siete del panal. · Incluye siempre la letra del centro; puedes repetir letras. · Las tildes y la diéresis son opcionales. La ñ es distinta de la n. · Se aceptan plurales y conjugaciones del diccionario del juego. · Cuatro letras dan 1 punto; desde cinco, un punto por letra. · Usar las siete letras en una palabra es un pangrama y suma 7 puntos extra.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2738": {
     where: "Panal: Premio",
-    text: "Llegá a Genio para sumar {premio} en el Panal de hoy. El puntaje de las palabras se cuenta aparte.",
+    text: "Llega a Genio para sumar {premio} en el Panal de hoy. El puntaje de las palabras se cuenta aparte.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7744,7 +7744,7 @@ export const textos = {
   },
   "T-2742": {
     where: "Panal: Completado",
-    text: "¡Encontraste todas las palabras! Volvé mañana por otro panal. ¡OE OE OE!",
+    text: "¡Encontraste todas las palabras! Vuelve mañana por otro panal. ¡OE OE OE!",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7762,31 +7762,31 @@ export const textos = {
   },
   "T-2745": {
     where: "Panal: Repetida",
-    text: "Ya encontraste esa palabra. Probá otra.",
+    text: "Ya encontraste esa palabra. Prueba otra.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2746": {
     where: "Panal: Corta",
-    text: "Escribí al menos cuatro letras.",
+    text: "Escribe al menos cuatro letras.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2747": {
     where: "Panal: Falta centro",
-    text: "Incluí la letra del centro.",
+    text: "Incluye la letra del centro.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2748": {
     where: "Panal: Letras ajenas",
-    text: "Usá solo las siete letras del panal.",
+    text: "Usa solo las siete letras del panal.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2749": {
     where: "Panal: Desconocida",
-    text: "Esa palabra no está en el diccionario del juego. Probá otra.",
+    text: "Esa palabra no está en el diccionario del juego. Prueba otra.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7804,7 +7804,7 @@ export const textos = {
   },
   "T-2751": {
     where: "Panal: Red",
-    text: "No pudimos confirmar el envío. Reintentá la misma palabra; no se contará dos veces.",
+    text: "No pudimos confirmar el envío. Reintenta la misma palabra; no se contará dos veces.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7816,7 +7816,7 @@ export const textos = {
   },
   "T-2753": {
     where: "Panal: Nuevo día",
-    text: "Ya hay un nuevo panal. Actualizá para jugar el de hoy.",
+    text: "Ya hay un nuevo panal. Actualiza para jugar el de hoy.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7828,13 +7828,13 @@ export const textos = {
   },
   "T-2755": {
     where: "Panal: No disponible",
-    text: "El panal no está disponible ahora. Actualizá para volver a intentarlo.",
+    text: "El panal no está disponible ahora. Actualiza para volver a intentarlo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2756": {
     where: "Panal: Datos incorrectos",
-    text: "Escribí una palabra de hasta 32 letras, sin espacios ni signos.",
+    text: "Escribe una palabra de hasta 32 letras, sin espacios ni signos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7894,7 +7894,7 @@ export const textos = {
   },
   "T-2765": {
     where: "The Games: Sin permiso",
-    text: "No tenés permiso para operar esta competencia.",
+    text: "No tienes permiso para operar esta competencia.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7948,7 +7948,7 @@ export const textos = {
   },
   "T-2773": {
     where: "The Games: Rotación en curso",
-    text: "Ya hay una rotación en curso. Cerrala antes de iniciar otra.",
+    text: "Ya hay una rotación en curso. Ciérrala antes de iniciar otra.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7960,13 +7960,13 @@ export const textos = {
   },
   "T-2775": {
     where: "The Games: Juez fuera de base",
-    text: "Solo podés registrar resultados de tu base, en la rotación en curso.",
+    text: "Solo puedes registrar resultados de tu base, en la rotación en curso.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2776": {
     where: "The Games: Validador bloquea",
-    text: "El cambio deja el calendario con errores. Revisá los equipos y la base.",
+    text: "El cambio deja el calendario con errores. Revisa los equipos y la base.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7984,7 +7984,7 @@ export const textos = {
   },
   "T-2779": {
     where: "The Games: Código bloqueado",
-    text: "El código de este equipo quedó bloqueado por intentos fallidos. Probá otra vez a las {hora}.",
+    text: "El código de este equipo quedó bloqueado por intentos fallidos. Prueba otra vez a las {hora}.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7996,7 +7996,7 @@ export const textos = {
   },
   "T-2780": {
     where: "The Games: Sin código",
-    text: "Este equipo todavía no tiene código. Emitilo desde Equipos.",
+    text: "Este equipo todavía no tiene código. Emítelo desde Equipos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8020,7 +8020,7 @@ export const textos = {
   },
   "T-2784": {
     where: "The Games: Opción inválida",
-    text: "Elegí uno de los equipos de la apuesta.",
+    text: "Elige uno de los equipos de la apuesta.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8050,7 +8050,7 @@ export const textos = {
   },
   "T-2789": {
     where: "The Games: Motivo",
-    text: "Escribí el motivo.",
+    text: "Escribe el motivo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8062,13 +8062,13 @@ export const textos = {
   },
   "T-2790": {
     where: "The Games: Sin puntos iniciales",
-    text: "Definí los puntos iniciales de apuestas antes de repartirlos.",
+    text: "Define los puntos iniciales de apuestas antes de repartirlos.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2791": {
     where: "The Games: Enfrentamiento con resultado",
-    text: "Ese enfrentamiento ya tiene resultado. Anulalo antes de cambiarlo.",
+    text: "Ese enfrentamiento ya tiene resultado. Anúlalo antes de cambiarlo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8230,7 +8230,7 @@ export const textos = {
   },
   "T-2816": {
     where: "The Games: Sin formulario",
-    text: "Ligá el formulario de inscripción en Resumen para ver aquí las respuestas.",
+    text: "Liga el formulario de inscripción en Resumen para ver aquí las respuestas.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8248,7 +8248,7 @@ export const textos = {
   },
   "T-2819": {
     where: "The Games: Aviso de códigos",
-    text: "Los códigos se muestran una sola vez. Imprimí las tarjetas antes de salir de esta pantalla; si se pierden, volvé a emitirlos.",
+    text: "Los códigos se muestran una sola vez. Imprime las tarjetas antes de salir de esta pantalla; si se pierden, vuelve a emitirlos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8626,7 +8626,7 @@ export const textos = {
   },
   "T-2876": {
     where: "The Games: Sin base",
-    text: "No tenés una base asignada en esta competencia.",
+    text: "No tienes una base asignada en esta competencia.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8740,7 +8740,7 @@ export const textos = {
   },
   "T-2893": {
     where: "The Games: Sin construcción",
-    text: "No hay un calendario automático para {bases} bases en la jornada {dia}. Con 15 bases sí lo hay; con otro número, consultá antes de generar.",
+    text: "No hay un calendario automático para {bases} bases en la jornada {dia}. Con 15 bases sí lo hay; con otro número, consulta antes de generar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8806,7 +8806,7 @@ export const textos = {
   },
   "T-2903": {
     where: "The Games: Ayuda de importar",
-    text: "Copiá de la hoja de cálculo las columnas Equipo, Rotación, Base y Rival, con o sin encabezado, y pegalas acá. Va una fila por equipo y rotación, y las rotaciones conservan el número de la hoja. Si la competencia no tiene equipos, se crean en el orden de la hoja; si ya tiene, los nombres tienen que coincidir. Si la jornada no tiene bases, se crean con el número que trae la hoja: «Base 1», «Base 16», etc.",
+    text: "Copia de la hoja de cálculo las columnas Equipo, Rotación, Base y Rival, con o sin encabezado, y pégalas aquí. Va una fila por equipo y rotación, y las rotaciones conservan el número de la hoja. Si la competencia no tiene equipos, se crean en el orden de la hoja; si ya tiene, los nombres tienen que coincidir. Si la jornada no tiene bases, se crean con el número que trae la hoja: «Base 1», «Base 16», etc.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8938,19 +8938,19 @@ export const textos = {
   },
   "T-2923": {
     where: "The Games: Hoja muy larga",
-    text: "La hoja pegada es demasiado larga. Pegá solo las cuatro columnas de una jornada.",
+    text: "La hoja pegada es demasiado larga. Pega solo las cuatro columnas de una jornada.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2924": {
     where: "The Games: Importación bloqueada",
-    text: "No se importó nada. Corregí la hoja y volvé a importarla.",
+    text: "No se importó nada. Corrige la hoja y vuelve a importarla.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2925": {
     where: "The Games: Importación con advertencias",
-    text: "La hoja no tiene errores, pero sí advertencias. Revisalas y, si están bien, confirmá para importarla.",
+    text: "La hoja no tiene errores, pero sí advertencias. Revisalas y, si están bien, confirma para importarla.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8998,7 +8998,7 @@ export const textos = {
   },
   "T-300": {
     where: "La OE, Unirse o Privacidad sin publicar todavía",
-    text: "Estamos camellando en este contenido. Volvé pronto.",
+    text: "Estamos camellando en este contenido. Vuelve pronto.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9106,7 +9106,7 @@ export const textos = {
   },
   "T-3016": {
     where: "The Games: Ayuda de capitanes",
-    text: "Copiá de la hoja de la OE tres columnas, Equipo, Nombre y Celular, con o sin encabezado, y pegalas acá. El equipo va por su número («Equipo 7» o «7») o por su nombre. Una fila con más columnas se rechaza: no pegués la fila completa, que trae la cédula y datos de salud. Cada carga reemplaza a todos los capitanes.",
+    text: "Copia de la hoja de la OE tres columnas, Equipo, Nombre y Celular, con o sin encabezado, y pégalas aquí. El equipo va por su número («Equipo 7» o «7») o por su nombre. Una fila con más columnas se rechaza: no pegues la fila completa, que trae la cédula y datos de salud. Cada carga reemplaza a todos los capitanes.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9130,7 +9130,7 @@ export const textos = {
   },
   "T-302": {
     where: "Cartelera sin anuncios",
-    text: "La cartelera está quieta por ahora. Volvé pronto.",
+    text: "La cartelera está quieta por ahora. Vuelve pronto.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9154,7 +9154,7 @@ export const textos = {
   },
   "T-3023": {
     where: "The Games: Capitanes con columnas de más",
-    text: "Línea {linea}: sobran columnas. Pegá solo Equipo, Nombre y Celular, no la fila completa de la hoja.",
+    text: "Línea {linea}: sobran columnas. Pega solo Equipo, Nombre y Celular, no la fila completa de la hoja.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9190,7 +9190,7 @@ export const textos = {
   },
   "T-3029": {
     where: "The Games: Hoja de capitanes muy larga",
-    text: "La hoja pegada es demasiado larga. Pegá solo las tres columnas de los capitanes.",
+    text: "La hoja pegada es demasiado larga. Pega solo las tres columnas de los capitanes.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9226,7 +9226,7 @@ export const textos = {
   },
   "T-3034": {
     where: "The Games: Ayuda de la vitrina de capitanes",
-    text: "Prendela solo con la autorización de la inscripción confirmada. Archivar la competencia borra los capitanes.",
+    text: "Préndela solo con la autorización de la inscripción confirmada. Archivar la competencia borra los capitanes.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9238,25 +9238,25 @@ export const textos = {
   },
   "T-3036": {
     where: "Hub de capitanes: código que no corresponde",
-    text: "Ese código no corresponde a ningún equipo en competencia. Revisalo en la tarjeta.",
+    text: "Ese código no corresponde a ningún equipo en competencia. Revísalo en la tarjeta.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3037": {
     where: "Hub de capitanes: demasiados intentos",
-    text: "Hubo demasiados intentos desde esta conexión. Esperá 15 minutos o pedile al operador que registre la apuesta.",
+    text: "Hubo demasiados intentos desde esta conexión. Espera 15 minutos o pídele al operador que registre la apuesta.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3038": {
     where: "Hub de capitanes: sesión vencida",
-    text: "Tu sesión venció o el código de tu equipo cambió. Escribí el código otra vez.",
+    text: "Tu sesión venció o el código de tu equipo cambió. Escribe el código otra vez.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3039": {
     where: "The Games: dirección del hub en la tarjeta",
-    text: "Apostá en {direccion}",
+    text: "Apuesta en {direccion}",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9274,13 +9274,13 @@ export const textos = {
   },
   "T-3041": {
     where: "The Games: Cambio de resultados",
-    text: "Invierte el resultado de la base: si perdés, ganás; si ganás, perdés. Si empatás, ganás.",
+    text: "Invierte el resultado de la base: si pierdes, ganas; si ganas, pierdes. Si empatas, ganas.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3042": {
     where: "The Games: Multiplicador x2",
-    text: "Duplica tus puntos en la base: 2.000 si ganás y 1.000 si empatás. Si perdés, no suma.",
+    text: "Duplica tus puntos en la base: 2.000 si ganas y 1.000 si empatas. Si pierdes, no suma.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9352,7 +9352,7 @@ export const textos = {
   },
   "T-3053": {
     where: "The Games: Tarjeta sin entregar",
-    text: "{equipo} no tiene esa tarjeta entregada para hoy. Si la tiene en la mano, pedile a la operación que registre la entrega.",
+    text: "{equipo} no tiene esa tarjeta entregada para hoy. Si la tiene en la mano, pídele a la operación que registre la entrega.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9364,7 +9364,7 @@ export const textos = {
   },
   "T-3055": {
     where: "The Games: Anular tarjeta usada",
-    text: "Esa tarjeta ya se usó: primero revertí el uso.",
+    text: "Esa tarjeta ya se usó: primero revierte el uso.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9376,7 +9376,7 @@ export const textos = {
   },
   "T-3057": {
     where: "The Games: Motivo del poder",
-    text: "Escribí el motivo, de 2 a 200 caracteres.",
+    text: "Escribe el motivo, de 2 a 200 caracteres.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9430,7 +9430,7 @@ export const textos = {
   },
   "T-3065": {
     where: "The Games: Ayuda del reparto",
-    text: "Pegá tres columnas, Equipo, Poder y Jornada, con o sin encabezado. El equipo va por su número o su nombre; el poder, por el nombre de la tarjeta («Multiplicador x2», «Cambio de resultados», «Cancelar poder», «1 min tarde» o «Un jugador menos»); la jornada, «jueves» o «viernes». Cada equipo lleva 5 tarjetas, 2 un día y 3 el otro, y se pueden repetir. Entra todo o nada, y las tarjetas quedan por entregar.",
+    text: "Pega tres columnas, Equipo, Poder y Jornada, con o sin encabezado. El equipo va por su número o su nombre; el poder, por el nombre de la tarjeta («Multiplicador x2», «Cambio de resultados», «Cancelar poder», «1 min tarde» o «Un jugador menos»); la jornada, «jueves» o «viernes». Cada equipo lleva 5 tarjetas, 2 un día y 3 el otro, y se pueden repetir. Entra todo o nada, y las tarjetas quedan por entregar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9466,7 +9466,7 @@ export const textos = {
   },
   "T-3070": {
     where: "The Games: Reparto con columnas de más",
-    text: "Línea {linea}: sobran columnas. Pegá solo Equipo, Poder y Jornada.",
+    text: "Línea {linea}: sobran columnas. Pega solo Equipo, Poder y Jornada.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9496,7 +9496,7 @@ export const textos = {
   },
   "T-3075": {
     where: "The Games: Reparto muy largo",
-    text: "El reparto pegado es demasiado largo. Pegá solo las tres columnas.",
+    text: "El reparto pegado es demasiado largo. Pega solo las tres columnas.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9526,7 +9526,7 @@ export const textos = {
   },
   "T-308": {
     where: "Eventos y ediciones, enlace al calendario público (ICS)",
-    text: "Agregá los eventos de la OE a tu calendario",
+    text: "Agrega los eventos de la OE a tu calendario",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9622,7 +9622,7 @@ export const textos = {
   },
   "T-3094": {
     where: "The Games: Sin reparto",
-    text: "Todavía no hay reparto. Pegalo arriba.",
+    text: "Todavía no hay reparto. Pégalo arriba.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9664,13 +9664,13 @@ export const textos = {
   },
   "T-3100": {
     where: "The Games: Ayuda de confirmar tarjeta",
-    text: "Registrala solo con la tarjeta física en la mano. Después de confirmar los poderes ya no se puede.",
+    text: "Regístrala solo con la tarjeta física en la mano. Después de confirmar los poderes ya no se puede.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3101": {
     where: "The Games: Sí, la recibí",
-    text: "Sí, la recibí",
+    text: "Sí, la recibe",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9694,7 +9694,7 @@ export const textos = {
   },
   "T-3105": {
     where: "The Games: Aviso de confirmar poderes",
-    text: "¿Seguro? Después de confirmar no se pueden agregar ni quitar poderes en esta base. Si hay un error, llamá a la operación.",
+    text: "¿Seguro? Después de confirmar no se pueden agregar ni quitar poderes en esta base. Si hay un error, llama a la operación.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9796,7 +9796,7 @@ export const textos = {
   },
   "T-3120": {
     where: "Hub de capitanes: instrucciones sin aceptar",
-    text: "Antes de entrar, leé y aceptá las instrucciones del hub.",
+    text: "Antes de entrar, lee y acepta las instrucciones del hub.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9826,7 +9826,7 @@ export const textos = {
   },
   "T-3125": {
     where: "The Games: Ayuda del personal",
-    text: "Elegí la jornada y pegá las columnas A a C de la hoja del GAP: Persona, Base y Función, con o sin encabezado. La base va en la fila del líder y vale para las filas de abajo. Si un nombre no aparece, escribilo como está en la casa o poné su correo institucional. El calificador, los veedores y el VAR pueden estar en licencia; el líder no, porque es quien registra. Guardar reemplaza a los líderes y al apoyo de esa jornada; los operadores no cambian.",
+    text: "Elige la jornada y pega las columnas A a C de la hoja del GAP: Persona, Base y Función, con o sin encabezado. La base va en la fila del líder y vale para las filas de abajo. Si un nombre no aparece, escríbelo como está en la casa o pon su correo institucional. El calificador, los veedores y el VAR pueden estar en licencia; el líder no, porque es quien registra. Guardar reemplaza a los líderes y al apoyo de esa jornada; los operadores no cambian.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9874,7 +9874,7 @@ export const textos = {
   },
   "T-3132": {
     where: "The Games: Nombres parciales",
-    text: "Revisá estos nombres: la hoja no los trae completos.",
+    text: "Revisa estos nombres: la hoja no los trae completos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9910,7 +9910,7 @@ export const textos = {
   },
   "T-3138": {
     where: "The Games: Revisión vencida",
-    text: "Algo cambió desde que revisaste. Mirá la revisión nueva y guardá otra vez.",
+    text: "Algo cambió desde que revisaste. Mira la revisión nueva y guarda otra vez.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9940,7 +9940,7 @@ export const textos = {
   },
   "T-3142": {
     where: "The Games: Personal con columnas de más",
-    text: "Línea {linea}: sobran columnas. Pegá solo las columnas A a C.",
+    text: "Línea {linea}: sobran columnas. Pega solo las columnas A a C.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9982,7 +9982,7 @@ export const textos = {
   },
   "T-3149": {
     where: "The Games: Persona ambigua",
-    text: "Línea {linea}: «{nombre}» puede ser {opciones}. Escribí el nombre completo o el correo institucional.",
+    text: "Línea {linea}: «{nombre}» puede ser {opciones}. Escribe el nombre completo o el correo institucional.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10006,7 +10006,7 @@ export const textos = {
   },
   "T-3152": {
     where: "The Games: Hoja de personal muy larga",
-    text: "La hoja pegada es demasiado larga. Pegá solo las columnas A a C de una jornada.",
+    text: "La hoja pegada es demasiado larga. Pega solo las columnas A a C de una jornada.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10066,7 +10066,7 @@ export const textos = {
   },
   "T-3161": {
     where: "The Games: Equipo de la base",
-    text: "Con vos en {base}",
+    text: "Contigo en {base}",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10084,7 +10084,7 @@ export const textos = {
   },
   "T-3164": {
     where: "The Games: Ayuda de los jurados",
-    text: "Escribí el nombre del jurado y pegá su tabla, desde el encabezado hasta el último equipo: sirve la plantilla de jurado o la hoja Consolidado de la OE. Cada equipo va con sus 5 notas del 1 al 10, en el orden de la rúbrica; el total y el nivel se ignoran. Volver a cargar un jurado reemplaza solo sus notas. Las notas no dan puntos: el podio se pone abajo, en los puntos de cada equipo.",
+    text: "Escribe el nombre del jurado y pega su tabla, desde el encabezado hasta el último equipo: sirve la plantilla de jurado o la hoja Consolidado de la OE. Cada equipo va con sus 5 notas del 1 al 10, en el orden de la rúbrica; el total y el nivel se ignoran. Volver a cargar un jurado reemplaza solo sus notas. Las notas no dan puntos: el podio se pone abajo, en los puntos de cada equipo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10138,13 +10138,13 @@ export const textos = {
   },
   "T-3172": {
     where: "The Games: Tabla de notas muy larga",
-    text: "La hoja pegada es demasiado larga. Pegá solo la tabla de un jurado.",
+    text: "La hoja pegada es demasiado larga. Pega solo la tabla de un jurado.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3173": {
     where: "The Games: Nombre del jurado",
-    text: "Escribí el nombre del jurado, hasta 60 caracteres.",
+    text: "Escribe el nombre del jurado, hasta 60 caracteres.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10282,19 +10282,19 @@ export const textos = {
   },
   "T-3194": {
     where: "The Games: Aviso al líder",
-    text: "Ya registraron {registradas} de {total} bases. Falta el resultado de {base}: registralo apenas termine el juego.",
+    text: "Ya registraron {registradas} de {total} bases. Falta el resultado de {base}: regístralo apenas termine el juego.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3195": {
     where: "The Games: Deuda del líder",
-    text: "La rotación {n} se cerró sin el resultado de {base}. Pasáselo a la operación para que lo registre.",
+    text: "La rotación {n} se cerró sin el resultado de {base}. Pásaselo a la operación para que lo registre.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3196": {
     where: "The Games: Aviso de confirmar el resultado",
-    text: "¿Seguro? Queda «{resultado}» y después no lo podés cambiar. Si hay un error, llamá a la operación.",
+    text: "¿Seguro? Queda «{resultado}» y después no lo puedes cambiar. Si hay un error, llama a la operación.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10312,7 +10312,7 @@ export const textos = {
   },
   "T-3199": {
     where: "The Games: Resultado bloqueado",
-    text: "Resultado registrado: {resultado}. Si hay un error, llamá a la operación.",
+    text: "Resultado registrado: {resultado}. Si hay un error, llama a la operación.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10324,13 +10324,13 @@ export const textos = {
   },
   "T-3200": {
     where: "The Games: El líder ya registró",
-    text: "El resultado de esta base ya está registrado. Si hay que cambiarlo, llamá a la operación.",
+    text: "El resultado de esta base ya está registrado. Si hay que cambiarlo, llama a la operación.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3201": {
     where: "The Games: Confirmar antes del resultado",
-    text: "Hay poderes registrados: confirmalos antes de registrar el resultado.",
+    text: "Hay poderes registrados: confírmalos antes de registrar el resultado.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10348,7 +10348,7 @@ export const textos = {
   },
   "T-3204": {
     where: "The Games: Ayuda de la vitrina de la tabla",
-    text: "Ocultala mientras se juega para que los equipos compitan sin estar pendientes de la tabla. El podio se oculta con ella: para proyectarlo, mostrala antes.",
+    text: "Ocúltala mientras se juega para que los equipos compitan sin estar pendientes de la tabla. El podio se oculta con ella: para proyectarlo, muéstrala antes.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10360,14 +10360,14 @@ export const textos = {
   },
   "T-3206": {
     where: "Emisión, persona con permisos que quien emite no tiene (ADR-113)",
-    text: "Esta persona tiene permisos que vos no tenés. Su enlace de acceso solo lo emite un ADMIN: pedíselo a uno.",
+    text: "Esta persona tiene permisos que tú no tienes. Su enlace de acceso solo lo emite un ADMIN: pídeselo a uno.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3207": {
     where:
       "Medios y evidencias: motivo de una imagen que no se procesó (no se pudo leer · no es un formato admitido · pasa del tope de píxeles · no se pudo codificar · decodificada no cabe en el presupuesto de memoria; ADR-113)",
-    text: "No se pudo decodificar la imagen. · El archivo no es una imagen JPG, PNG o WebP. · La imagen tiene más de 40 megapíxeles. · No se pudo codificar la imagen. · La imagen pide demasiada memoria para abrirla. Reducila y subila de nuevo.",
+    text: "No se pudo decodificar la imagen. · El archivo no es una imagen JPG, PNG o WebP. · La imagen tiene más de 40 megapíxeles. · No se pudo codificar la imagen. · La imagen pide demasiada memoria para abrirla. Redúcela y súbela de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10379,7 +10379,7 @@ export const textos = {
   },
   "T-3209": {
     where: "Notificaciones: tope de dispositivos por persona (ADR-113)",
-    text: "Ya tenés 10 dispositivos con notificaciones. Quitá uno en Ajustes para activar este.",
+    text: "Ya tienes 10 dispositivos con notificaciones. Quita uno en Ajustes para activar este.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10392,26 +10392,26 @@ export const textos = {
   "T-3210": {
     where:
       "Importación: aplicar, descartar o cambiar las columnas de una que ya se aplicó o se descartó (ADR-113)",
-    text: "Esta importación ya no está en revisión. Para repetirla, subí el archivo de nuevo.",
+    text: "Esta importación ya no está en revisión. Para repetirla, sube el archivo de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3211": {
     where:
       "Pantalla a la que se vuelve tras el ingreso o el paso de seguridad que pidió una descarga (exportes del admin, Mis datos, PDF de normativa, evidencia de un reto y pases de billetera; ADR-113)",
-    text: "La descarga quedó pendiente porque primero había que confirmar que sos vos. Pedila otra vez desde acá.",
+    text: "La descarga quedó pendiente porque primero había que confirmar que eres tú. Pídela otra vez desde aquí.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3212": {
     where: "Importación: registrar los permisos de líder de una que no está aplicada (ADR-114)",
-    text: "Esta importación no está aplicada, así que no hay permisos de líder que registrar. Aplicala primero o, si se descartó o falló, subí el archivo de nuevo.",
+    text: "Esta importación no está aplicada, así que no hay permisos de líder que registrar. Aplícala primero o, si se descartó o falló, sube el archivo de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3213": {
     where: "Evaluaciones: la persona ya salió del grupo (ADR-116)",
-    text: "Esta persona ya salió del grupo: no se puede evaluar. Si fue un error, agregala otra vez al grupo.",
+    text: "Esta persona ya salió del grupo: no se puede evaluar. Si fue un error, agrégala otra vez al grupo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10472,7 +10472,7 @@ export const textos = {
   },
   "T-3222": {
     where: "Campaña en curso: el margen cubre todo el cupo del día",
-    text: "Están en espera: el margen para lo transaccional cubre todo el cupo del día y así no sale ninguna campaña. Bajalo en el cupo de correo.",
+    text: "Están en espera: el margen para lo transaccional cubre todo el cupo del día y así no sale ninguna campaña. Bájalo en el cupo de correo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10503,7 +10503,7 @@ export const textos = {
   },
   "T-3227": {
     where: "Cupo de correo: intro",
-    text: "Las campañas comparten el cupo del día con los correos transaccionales y les dejan un margen. Acá ves cuánto cabe hoy y, si el proveedor cortó los envíos, hasta cuándo.",
+    text: "Las campañas comparten el cupo del día con los correos transaccionales y les dejan un margen. Aquí ves cuánto cabe hoy y, si el proveedor cortó los envíos, hasta cuándo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10521,7 +10521,7 @@ export const textos = {
   },
   "T-3230": {
     where: "Cupo de correo: el proveedor no lleva cupo del día",
-    text: "{proveedor} no lleva cupo del día acá: el margen no frena las campañas mientras salgan por ahí.",
+    text: "{proveedor} no lleva cupo del día aquí: el margen no frena las campañas mientras salgan por ahí.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10575,7 +10575,7 @@ export const textos = {
   },
   "T-3239": {
     where: "Cupo de correo: ayuda de levantar el corte",
-    text: "Levantalo solo si sabés que el proveedor ya está recibiendo: si vuelve a rechazar, el corte se escribe otra vez.",
+    text: "Levántalo solo si sabes que el proveedor ya está recibiendo: si vuelve a rechazar, el corte se escribe otra vez.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10605,7 +10605,7 @@ export const textos = {
   },
   "T-3244": {
     where: "Mesa directiva: el semestre de la edición todavía no existe (ADR-118)",
-    text: "El semestre de esta edición todavía no existe. Crealo antes de nombrar su mesa.",
+    text: "El semestre de esta edición todavía no existe. Créalo antes de nombrar su mesa.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10630,44 +10630,44 @@ export const textos = {
   },
   "T-3248": {
     where: "Exporte CSV: última fila de un archivo recortado (ADR-118)",
-    text: "Archivo recortado: van {n} filas de {total}. Filtrá el listado y volvé a exportar para sacar el resto.",
+    text: "Archivo recortado: van {n} filas de {total}. Filtra el listado y vuelve a exportar para sacar el resto.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3249": {
     where: "Listados: aviso de que el CSV va a salir recortado (ADR-118)",
-    text: "El CSV sale recortado: trae {n} filas y este listado tiene {total}. Filtrá antes de exportar para que salga completo.",
+    text: "El CSV sale recortado: trae {n} filas y este listado tiene {total}. Filtra antes de exportar para que salga completo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3250": {
     where: "Plantillas y campañas: la prueba que el proveedor rechazó (ADR-118)",
-    text: "No pudimos mandar la prueba a {correo}: el proveedor de correo la rechazó. Revisá el motivo en Mensajes antes de programar un envío.",
+    text: "No pudimos mandar la prueba a {correo}: el proveedor de correo la rechazó. Revisa el motivo en Mensajes antes de programar un envío.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3251": {
     where: "Anfitrión: la lectura del carnet no llegó a la casa (ADR-118)",
-    text: "No pudimos registrar la lectura. Revisá la conexión y volvé a escanear el carnet.",
+    text: "No pudimos registrar la lectura. Revisa la conexión y vuelve a escanear el carnet.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3252": {
     where:
       "Formularios: la acción no respondió, por la red o por un fallo que la casa no atrapó (ADR-118)",
-    text: "No pudimos confirmar el envío. Revisá la conexión e intentá de nuevo.",
+    text: "No pudimos confirmar el envío. Revisa la conexión e intenta de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3253": {
     where: "Reto: el envío de la trivia o de la evidencia no tuvo respuesta (ADR-118)",
-    text: "No recibimos la confirmación. Reintentá el envío tal como está: si ya se guardó, no contará dos veces.",
+    text: "No recibimos la confirmación. Reintenta el envío tal como está: si ya se guardó, no contará dos veces.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3254": {
     where: "Términos: fechas que se cruzan con las de otro término (ADR-118)",
-    text: "Esas fechas se cruzan con las de {término}: dos términos no pueden compartir un día. Ajustá el inicio o el fin.",
+    text: "Esas fechas se cruzan con las de {término}: dos términos no pueden compartir un día. Ajusta el inicio o el fin.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10679,7 +10679,7 @@ export const textos = {
   },
   "T-3256": {
     where: "Anfitrión: la foto del carnet no abre (ADR-120)",
-    text: "No pudimos abrir esa foto. Tomá otra, escaneá el carnet con la cámara o buscá a la persona por nombre.",
+    text: "No pudimos abrir esa foto. Toma otra, escanea el carnet con la cámara o busca a la persona por nombre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10691,51 +10691,51 @@ export const textos = {
   },
   "T-3258": {
     where: "Membresía: se pide cambiar el estado de quien ya está de baja (ADR-120)",
-    text: "Esa persona ya está de baja: no se cambió nada. Para que vuelva, reactivala.",
+    text: "Esa persona ya está de baja: no se cambió nada. Para que vuelva, reactívala.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3259": {
     where:
       "Cupo de correo: el día es el del proveedor y cuándo vuelve a empezar la cuenta (ADR-121)",
-    text: "Ojo: {proveedor} no cuenta el día como acá. El suyo va en hora UTC y en Colombia empieza a las 7:00 p. m. La cuenta de hoy vuelve a empezar el {fecha}.",
+    text: "Ojo: {proveedor} no cuenta el día como aquí. El suyo va en hora UTC y en Colombia empieza a las 7:00 p. m. La cuenta de hoy vuelve a empezar el {fecha}.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3260": {
     where: "Consola: el sondeo falló y lo que muestra dejó de valer (ADR-122)",
-    text: "Esta pantalla dejó de actualizarse: el QR y el código que mostraba ya no valen. Recargá la página y, si te pide ingresar, entrá de nuevo.",
+    text: "Esta pantalla dejó de actualizarse: el QR y el código que mostraba ya no valen. Recarga la página y, si te pide ingresar, entra de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3261": {
     where: "Evidencia: el texto no tiene el largo pedido (ADR-122)",
-    text: "Tu texto debe tener entre {min} y {max} caracteres. Ajustalo y enviá de nuevo.",
+    text: "Tu texto debe tener entre {min} y {max} caracteres. Ajústalo y envía de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3262": {
     where: "Evidencia: la casa no aceptó el contenido del envío (ADR-122)",
-    text: "No pudimos recibir tu evidencia así. Revisá el texto y las imágenes, y enviala de nuevo.",
+    text: "No pudimos recibir tu evidencia así. Revisa el texto y las imágenes, y envíala de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3263": {
     where: "Cerrar sesión: el pedido de salida no tuvo respuesta (ADR-122)",
-    text: "No pudimos confirmar que tu sesión se cerró. Revisá la conexión e intentá de nuevo.",
+    text: "No pudimos confirmar que tu sesión se cerró. Revisa la conexión e intenta de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3264": {
     where: "Evidencia: imagen de menos de 5 KB (ADR-122)",
-    text: "Esa imagen pesa menos de 5 KB. Subí una de entre 5 KB y 5 MB.",
+    text: "Esa imagen pesa menos de 5 KB. Sube una de entre 5 KB y 5 MB.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3265": {
     where:
       "Importación del roster: error de la fila que pasa a honorario a quien está en prueba o con los derechos suspendidos (ADR-123)",
-    text: "{nombre} está en periodo de prueba o con derechos suspendidos y no puede pasar a honorario (Reglamento, art. 73). Esta fila no se importa: corregí su estado.",
+    text: "{nombre} está en periodo de prueba o con derechos suspendidos y no puede pasar a honorario (Reglamento, art. 73). Esta fila no se importa: corrige su estado.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10759,7 +10759,7 @@ export const textos = {
   },
   "T-3269": {
     where: "Check-in: quien abre el enlace no tiene una membresía que admita el registro (ADR-123)",
-    text: "No tenés una membresía activa este semestre: el registro no está disponible.",
+    text: "No tienes una membresía activa este semestre: el registro no está disponible.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -10843,19 +10843,19 @@ export const textos = {
   },
   "T-3283": {
     where: "Fotos: volver",
-    text: "Volvé a {coleccion}",
+    text: "Vuelve a {coleccion}",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3284": {
     where: "Fotos: abrir foto",
-    text: "Abrí la foto {n}",
+    text: "Abre la foto {n}",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3285": {
     where: "Fotos: abrir álbum",
-    text: "Abrí el álbum {album}",
+    text: "Abre el álbum {album}",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10897,13 +10897,13 @@ export const textos = {
   },
   "T-3292": {
     where: "Fotos: carga fallida",
-    text: "No pudimos cargar las fotos. Volvé a intentar.",
+    text: "No pudimos cargar las fotos. Vuelve a intentar.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-3293": {
     where: "Fotos: reintento",
-    text: "Volvé a intentar",
+    text: "Vuelve a intentar",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10993,7 +10993,7 @@ export const textos = {
   },
   "T-3307": {
     where: "Fotos: cambio sobre colección publicada",
-    text: "La colección ya está publicada. Prepará sus cambios en borrador antes de volver a publicarla.",
+    text: "La colección ya está publicada. Prepara sus cambios en borrador antes de volver a publicarla.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -11035,7 +11035,7 @@ export const textos = {
   },
   "T-337": {
     where: "Contenido: ayuda del campo cuerpo",
-    text: "Podés usar títulos, listas, negritas y enlaces. Las imágenes se suben en Medios.",
+    text: "Puedes usar títulos, listas, negritas y enlaces. Las imágenes se suben en Medios.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -12242,7 +12242,7 @@ export const textos = {
   },
   "T-3583": {
     where: "Miembro: asistencia parcial que requiere excusa",
-    text: "Asistencia parcial: {lista}. Necesitás una excusa aprobada por la parte de la asamblea a la que no asististe.",
+    text: "Asistencia parcial: {lista}. Necesitas una excusa aprobada por la parte de la asamblea a la que no asististe.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -12266,7 +12266,7 @@ export const textos = {
   },
   "T-3587": {
     where: "Consola: ayuda del registro completo o parcial",
-    text: "Registrá si la persona completó la asamblea o en cuál lista quedó registrada.",
+    text: "Registra si la persona completó la asamblea o en cuál lista quedó registrada.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -12302,7 +12302,7 @@ export const textos = {
   },
   "T-3592": {
     where: "Asistencia parcial: toma requerida",
-    text: "Elegí en cuál toma de asistencia aparece la persona.",
+    text: "Elige en cuál toma de asistencia aparece la persona.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -12332,7 +12332,7 @@ export const textos = {
   },
   "T-3597": {
     where: "Excusa: ayuda del motivo de aprobación excepcional",
-    text: "Si la excusa se presentó fuera de plazo, explicá por qué aprobás la revisión excepcional. En los demás casos podés dejarlo vacío.",
+    text: "Si la excusa se presentó fuera de plazo, explica por qué apruebas la revisión excepcional. En los demás casos puedes dejarlo vacío.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -12362,7 +12362,7 @@ export const textos = {
   },
   "T-363": {
     where: "Medios: error de subida",
-    text: "No se pudo subir la imagen. Intentá de nuevo.",
+    text: "No se pudo subir la imagen. Intenta de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -12410,7 +12410,7 @@ export const textos = {
   },
   "T-371": {
     where: "Directorio sin resultados",
-    text: "No encontramos a nadie con ese nombre. Probá con otro o filtrá por comité.",
+    text: "No encontramos a nadie con ese nombre. Prueba con otro o filtra por comité.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -12440,7 +12440,7 @@ export const textos = {
   },
   "T-376": {
     where: "Inicio, sin comité en el semestre",
-    text: "Todavía no tenés comité este semestre. GH te ubica en uno.",
+    text: "Todavía no tienes comité este semestre. GH te ubica en uno.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -12500,7 +12500,7 @@ export const textos = {
   },
   "T-386": {
     where: "Egresados sin nadie en la galería",
-    text: "Todavía no hay egresados en la galería. Cuando alguien salga de la OE y lo autorice, aparece acá.",
+    text: "Todavía no hay egresados en la galería. Cuando alguien salga de la OE y lo autorice, aparece aquí.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -12524,7 +12524,7 @@ export const textos = {
   },
   "T-390": {
     where: "Normativa, campo de búsqueda",
-    text: "Buscá en los estatutos y el reglamento",
+    text: "Busca en los estatutos y el reglamento",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -12536,7 +12536,7 @@ export const textos = {
   },
   "T-392": {
     where: "Normativa sin resultados",
-    text: "No encontramos nada con esas palabras. Probá con otras.",
+    text: "No encontramos nada con esas palabras. Prueba con otras.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -12632,7 +12632,7 @@ export const textos = {
   },
   "T-408": {
     where: "Ajustes, ayuda de la foto",
-    text: "JPG, PNG o WebP de entre 5 KB y 5 MB. Solo se muestra si autorizás la foto en el directorio.",
+    text: "JPG, PNG o WebP de entre 5 KB y 5 MB. Solo se muestra si autorizas la foto en el directorio.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -12644,7 +12644,7 @@ export const textos = {
   },
   "T-410": {
     where: "Ajustes y admin, celular inválido",
-    text: "Ese celular no tiene un formato válido. Escribí 10 dígitos.",
+    text: "Ese celular no tiene un formato válido. Escribe 10 dígitos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -12668,7 +12668,7 @@ export const textos = {
   },
   "T-414": {
     where: "Consentimientos, nota sobre el de membresía",
-    text: "Autorizaste el tratamiento de tus datos al entrar por primera vez. Para retirar esa autorización, pedí la eliminación de tus datos.",
+    text: "Autorizaste el tratamiento de tus datos al entrar por primera vez. Para retirar esa autorización, pide la eliminación de tus datos.",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -12818,7 +12818,7 @@ export const textos = {
   },
   "T-439": {
     where: "Reactivar: texto",
-    text: "Vas a reactivar a {nombre}: vuelve a ser miembro activo con su historia. Si tiene un correo institucional nuevo, escribilo.",
+    text: "Vas a reactivar a {nombre}: vuelve a ser miembro activo con su historia. Si tiene un correo institucional nuevo, escríbelo.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -12915,7 +12915,7 @@ export const textos = {
   },
   "T-455": {
     where: "Línea de tiempo: ayuda del compositor de notas",
-    text: "Escribí una nota para el equipo. La persona puede pedir verla.",
+    text: "Escribe una nota para el equipo. La persona puede pedir verla.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -12927,7 +12927,7 @@ export const textos = {
   },
   "T-457": {
     where: "Línea de tiempo vacía",
-    text: "Todavía no hay nada por acá en la línea de tiempo.",
+    text: "Todavía no hay nada por aquí en la línea de tiempo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13095,7 +13095,7 @@ export const textos = {
   },
   "T-485": {
     where: "Importación: semestres por crear",
-    text: "Estos semestres no existen y se crean al confirmar con fechas por semestre calendario: {lista}. Podés corregir las fechas después en Términos.",
+    text: "Estos semestres no existen y se crean al confirmar con fechas por semestre calendario: {lista}. Puedes corregir las fechas después en Términos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13161,7 +13161,7 @@ export const textos = {
   },
   "T-496": {
     where: "Documentos: ayuda",
-    text: "PDF de hasta 20 MB. Después cargá los artículos desde el JSON del extractor para que se puedan buscar.",
+    text: "PDF de hasta 20 MB. Después carga los artículos desde el JSON del extractor para que se puedan buscar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13293,7 +13293,7 @@ export const textos = {
   },
   "T-518": {
     where: "Documentos: error de subida",
-    text: "No se pudo subir el PDF. Intentá de nuevo.",
+    text: "No se pudo subir el PDF. Intenta de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13305,7 +13305,7 @@ export const textos = {
   },
   "T-520": {
     where: "Documentos: subida confirmada",
-    text: "De una: el PDF quedó guardado. Ahora cargá los artículos.",
+    text: "De una: el PDF quedó guardado. Ahora carga los artículos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13348,7 +13348,7 @@ export const textos = {
   },
   "T-527": {
     where: "Check-in: enlace que no corresponde a ninguna actividad",
-    text: "Este enlace no corresponde a ninguna actividad. Pedile el QR vigente a quien organiza.",
+    text: "Este enlace no corresponde a ninguna actividad. Pídele el QR vigente a quien organiza.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13378,7 +13378,7 @@ export const textos = {
   },
   "T-532": {
     where: "Check-in: registro rechazado (al volver a abrir el enlace)",
-    text: "GH no aprobó tu registro en esta actividad. Si creés que es un error, hablá con quien la organizó.",
+    text: "GH no aprobó tu registro en esta actividad. Si crees que es un error, habla con quien la organizó.",
     owner: "GH",
     status: "Propuesta; texto sensible",
   },
@@ -13390,7 +13390,7 @@ export const textos = {
   },
   "T-534": {
     where: "Check-in: eyebrow sobre el título",
-    text: "Registrá tu asistencia",
+    text: "Registra tu asistencia",
     owner: "GH",
     status: "Propuesta",
   },
@@ -13432,7 +13432,7 @@ export const textos = {
   },
   "T-541": {
     where: "GH Points: sin puesto todavía",
-    text: "Todavía no tenés puesto: sumá tu primera asistencia.",
+    text: "Todavía no tienes puesto: suma tu primera asistencia.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -13474,7 +13474,7 @@ export const textos = {
   },
   "T-548": {
     where: "GH Points: sin semestre activo",
-    text: "No hay un semestre activo. Apenas GH lo abra, acá ves tus puntos.",
+    text: "No hay un semestre activo. Apenas GH lo abra, aquí ves tus puntos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13618,13 +13618,13 @@ export const textos = {
   },
   "T-572": {
     where: "Ocasiones: una asamblea no da puntos",
-    text: "Una asamblea no da GH Points: dejá los puntos en 0.",
+    text: "Una asamblea no da GH Points: deja los puntos en 0.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-573": {
     where: "Ocasiones: la asamblea necesita su tipo",
-    text: "Elegí el tipo de asamblea.",
+    text: "Elige el tipo de asamblea.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13666,7 +13666,7 @@ export const textos = {
   },
   "T-580": {
     where: "Ocasiones: ayuda de la ventana por defecto",
-    text: "Si dejás la ventana vacía, el registro abre 30 minutos antes y cierra 3 horas después del inicio.",
+    text: "Si dejas la ventana vacía, el registro abre 30 minutos antes y cierra 3 horas después del inicio.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13702,7 +13702,7 @@ export const textos = {
   },
   "T-586": {
     where: "Consola: título sobre el QR (pantalla proyectada)",
-    text: "Escaneá para registrar tu asistencia",
+    text: "Escanea para registrar tu asistencia",
     owner: "GH",
     status: "Propuesta",
   },
@@ -13780,7 +13780,7 @@ export const textos = {
   },
   "T-599": {
     where: "Consola y anfitrión: campo de búsqueda",
-    text: "Buscá por nombre",
+    text: "Busca por nombre",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13840,7 +13840,7 @@ export const textos = {
   },
   "T-609": {
     where: "Consola: anular sin motivo",
-    text: "Escribí el motivo para anular.",
+    text: "Escribe el motivo para anular.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13858,7 +13858,7 @@ export const textos = {
   },
   "T-612": {
     where: "Consola: aviso de registro cerrado",
-    text: "Registro cerrado el {fecha}. Podés seguir registrando a mano.",
+    text: "Registro cerrado el {fecha}. Puedes seguir registrando a mano.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13876,7 +13876,7 @@ export const textos = {
   },
   "T-615": {
     where: "Anfitrión: intro",
-    text: "Buscá a la persona por nombre o escaneá el QR de su carnet.",
+    text: "Busca a la persona por nombre o escanea el QR de su carnet.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -13888,7 +13888,7 @@ export const textos = {
   },
   "T-617": {
     where: "Anfitrión: cámara no disponible o permiso negado",
-    text: "No pudimos usar la cámara. Buscá a la persona por nombre o subí una foto del QR.",
+    text: "No pudimos usar la cámara. Busca a la persona por nombre o sube una foto del QR.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13900,7 +13900,7 @@ export const textos = {
   },
   "T-619": {
     where: "Anfitrión: carnet vencido",
-    text: "Ese carnet venció. Pedile que abra Mi OE y muestre el carnet de nuevo.",
+    text: "Ese carnet venció. Pídele que abra Mi OE y muestre el carnet de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13972,7 +13972,7 @@ export const textos = {
   },
   "T-631": {
     where: "Ledger: revertir, confirmación",
-    text: "Vas a revertir {puntos} puntos de {nombre} ({motivo}). Escribí el motivo.",
+    text: "Vas a revertir {puntos} puntos de {nombre} ({motivo}). Escribe el motivo.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -14044,7 +14044,7 @@ export const textos = {
   },
   "T-643": {
     where: "Asambleas admin: sin asambleas en el semestre",
-    text: "Este semestre todavía no tiene asambleas. Creá una desde Ocasiones.",
+    text: "Este semestre todavía no tiene asambleas. Crea una desde Ocasiones.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -14062,7 +14062,7 @@ export const textos = {
   },
   "T-646": {
     where: "Cierre: bloqueo por ocasiones abiertas",
-    text: "Cerrá o cancelá las {n} ocasiones abiertas antes de cerrar los puntos.",
+    text: "Cierra o cancela las {n} ocasiones abiertas antes de cerrar los puntos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -14104,7 +14104,7 @@ export const textos = {
   },
   "T-653": {
     where: "Vista de líder: aviso de apertura",
-    text: "Las ocasiones con GH Points las abre GH. Las reuniones (0 puntos) las abrís vos.",
+    text: "Las ocasiones con GH Points las abre GH. Las reuniones (0 puntos) las abres tú.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -14122,7 +14122,7 @@ export const textos = {
   },
   "T-656": {
     where: "Vista de líder: sin permiso sobre este comité",
-    text: "No sos líder de este comité.",
+    text: "No eres líder de este comité.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -14236,7 +14236,7 @@ export const textos = {
   },
   "T-675": {
     where: "Ocasiones: la fecha de inicio no cae en ningún semestre",
-    text: "No hay un semestre que contenga esa fecha. Crealo primero en Términos.",
+    text: "No hay un semestre que contenga esa fecha. Créalo primero en Términos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -14272,7 +14272,7 @@ export const textos = {
   },
   "T-681": {
     where: "Permanencia: ya llegó al umbral en un comité",
-    text: "Ya llegaste al {umbral} % en {comité}. Seguí sumando.",
+    text: "Ya llegaste al {umbral} % en {comité}. Sigue sumando.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -14284,7 +14284,7 @@ export const textos = {
   },
   "T-683": {
     where: "Permanencia: criterio, lo que aún es posible",
-    text: "Podés sumar {n} más.",
+    text: "Puedes sumar {n} más.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -14350,7 +14350,7 @@ export const textos = {
   },
   "T-694": {
     where: "Permanencia: asamblea obligatoria perdida",
-    text: "Faltaste a {asamblea}. Hablá con GH.",
+    text: "Faltaste a {asamblea}. Habla con GH.",
     owner: "GH",
     status: "Propuesta; texto sensible",
   },
@@ -14398,7 +14398,7 @@ export const textos = {
   },
   "T-702": {
     where: "Comité interno: cartelera vacía",
-    text: "{comité} no tiene anuncios todavía. Volvé en un ratico.",
+    text: "{comité} no tiene anuncios todavía. Vuelve en un ratico.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -14410,7 +14410,7 @@ export const textos = {
   },
   "T-704": {
     where: "Permanencia: umbral que aplica en el comité",
-    text: "Necesitás {umbral} %",
+    text: "Necesitas {umbral} %",
     owner: "GH",
     status: "Propuesta",
   },
@@ -14470,7 +14470,7 @@ export const textos = {
   },
   "T-714": {
     where: "Reglas: aviso de desviación del nominal",
-    text: "Esta tabla se aleja del valor nominal ({nominal}). No bloquea, pero revisá los pesos.",
+    text: "Esta tabla se aleja del valor nominal ({nominal}). No bloquea, pero revisa los pesos.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -14566,19 +14566,19 @@ export const textos = {
   },
   "T-730": {
     where: "Reglas: parámetros inválidos",
-    text: "Revisá los parámetros del cálculo: {detalle}.",
+    text: "Revisa los parámetros del cálculo: {detalle}.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-731": {
     where: "Reglas: tabla bloqueada (para el líder)",
-    text: "GH bloqueó la tabla de {comité} este semestre. Si necesitás un cambio, escribiles.",
+    text: "GH bloqueó la tabla de {comité} este semestre. Si necesitas un cambio, escríbeles.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-732": {
     where: "Reglas: no se borra un criterio con puntajes o créditos",
-    text: "Este criterio ya tiene puntajes o créditos: editalo en vez de borrarlo.",
+    text: "Este criterio ya tiene puntajes o créditos: edítalo en vez de borrarlo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -14620,7 +14620,7 @@ export const textos = {
   },
   "T-739": {
     where: "Reglas: intro para el líder",
-    text: "Tu tabla vale unos {nominal} puntos. Definí los criterios de tu comité: reuniones, eventos, puntajes.",
+    text: "Tu tabla vale unos {nominal} puntos. Define los criterios de tu comité: reuniones, eventos, puntajes.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -14758,7 +14758,7 @@ export const textos = {
   },
   "T-762": {
     where: "Evaluaciones: intro",
-    text: "Marcá si cada persona tuvo buen desempeño antes, durante y después. Insuficiente pide una observación que la persona va a leer.",
+    text: "Marca si cada persona tuvo buen desempeño antes, durante y después. Insuficiente pide una observación que la persona va a leer.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -14776,7 +14776,7 @@ export const textos = {
   },
   "T-765": {
     where: "Evaluaciones: sin grupos",
-    text: "No tenés grupos para evaluar este semestre.",
+    text: "No tienes grupos para evaluar este semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -14794,7 +14794,7 @@ export const textos = {
   },
   "T-768": {
     where: "Evaluaciones: no evalúa ese grupo",
-    text: "No evaluás este grupo.",
+    text: "No evalúas este grupo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -14818,7 +14818,7 @@ export const textos = {
   },
   "T-772": {
     where: "Puntajes del líder: intro",
-    text: "Cada criterio del líder va de 0 al peso. Si bajás el valor, la observación es obligatoria y la persona la ve.",
+    text: "Cada criterio del líder va de 0 al peso. Si bajas el valor, la observación es obligatoria y la persona la ve.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -14836,7 +14836,7 @@ export const textos = {
   },
   "T-775": {
     where: "Puntajes del líder: falta la observación",
-    text: "Si el puntaje es menor al peso, escribí la observación.",
+    text: "Si el puntaje es menor al peso, escribe la observación.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -14956,7 +14956,7 @@ export const textos = {
   },
   "T-795": {
     where: "Cumplimiento: recálculo encolado",
-    text: "Recalculando: refrescá en unos segundos.",
+    text: "Recalculando: refresca en unos segundos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -14980,7 +14980,7 @@ export const textos = {
   },
   "T-799": {
     where: "Cierre: puntos sin cerrar",
-    text: "Primero cerrá los puntos de {término}. Las propuestas se ven, pero no se confirman hasta entonces.",
+    text: "Primero cierra los puntos de {término}. Las propuestas se ven, pero no se confirman hasta entonces.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -15077,7 +15077,7 @@ export const textos = {
   },
   "T-815": {
     where: "Cierre de puntos: enlace al cierre de permanencia",
-    text: "Seguí con el cierre de permanencia",
+    text: "Sigue con el cierre de permanencia",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -15198,7 +15198,7 @@ export const textos = {
   },
   "T-835": {
     where: "Permanencia: sin permiso sobre el grupo",
-    text: "No operás este grupo.",
+    text: "No operas este grupo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -15313,19 +15313,19 @@ export const textos = {
   },
   "T-854": {
     where: "Formulario: correo con formato inválido",
-    text: "Ese correo no tiene un formato válido. Revisalo.",
+    text: "Ese correo no tiene un formato válido. Revísalo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-855": {
     where: "Formulario: celular con formato inválido",
-    text: "Ese celular no se ve bien. Escribilo con indicativo si es de otro país.",
+    text: "Ese celular no se ve bien. Escríbelo con indicativo si es de otro país.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-856": {
     where: "Formulario: opción fuera de la lista",
-    text: "Elegí una opción de la lista.",
+    text: "Elige una opción de la lista.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -15337,7 +15337,7 @@ export const textos = {
   },
   "T-858": {
     where: "Formulario: consentimiento sin marcar",
-    text: "Para enviar tenés que aceptar la política de tratamiento de datos.",
+    text: "Para enviar tienes que aceptar la política de tratamiento de datos.",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -15367,19 +15367,19 @@ export const textos = {
   },
   "T-863": {
     where: "Formulario: demasiados envíos desde la misma red",
-    text: "Recibimos muchos envíos desde tu red. Esperá un ratico e intentá de nuevo.",
+    text: "Recibimos muchos envíos desde tu red. Espera un ratico e intenta de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-864": {
     where: "Ingresar: aviso cuando se llega desde un formulario de miembros",
-    text: "Entrá con tu correo institucional para responder el formulario.",
+    text: "Entra con tu correo institucional para responder el formulario.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-865": {
     where: "Formulario: enlace a la política junto a la casilla",
-    text: "Leé la política de datos",
+    text: "Lee la política de datos",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -15397,7 +15397,7 @@ export const textos = {
   },
   "T-868": {
     where: "Unirse: enlace al formulario de prospecto cuando no hay convocatoria",
-    text: "Dejanos tu correo",
+    text: "Déjanos tu correo",
     owner: "GH",
     status: "Propuesta",
   },
@@ -15409,7 +15409,7 @@ export const textos = {
   },
   "T-870": {
     where: "Formulario: ayuda de una selección múltiple",
-    text: "Podés marcar varias.",
+    text: "Puedes marcar varias.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -15421,7 +15421,7 @@ export const textos = {
   },
   "T-872": {
     where: "Formulario de miembros: respondiendo como",
-    text: "Respondés como {nombre} ({correo}).",
+    text: "Respondes como {nombre} ({correo}).",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -15433,7 +15433,7 @@ export const textos = {
   },
   "T-874": {
     where: "Solicitudes: intro",
-    text: "Pedí una licencia, un cambio de comité para el próximo semestre o tu retiro. GH revisa cada solicitud y te responde acá y por correo.",
+    text: "Pide una licencia, un cambio de comité para el próximo semestre o tu retiro. GH revisa cada solicitud y te responde aquí y por correo.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -15469,49 +15469,49 @@ export const textos = {
   },
   "T-880": {
     where: "Solicitud: campo del motivo",
-    text: "Contanos por qué",
+    text: "Cuéntanos por qué",
     owner: "GH",
     status: "Propuesta",
   },
   "T-881": {
     where: "Licencia: campo hasta cuándo (obligatorio desde ADR-060 regla 10)",
-    text: "Hasta cuándo volvés",
+    text: "Hasta cuándo vuelves",
     owner: "GH",
     status: "Propuesta",
   },
   "T-882": {
     where: "Licencia: explicación",
-    text: "Mientras estés en licencia podés consultar Mi OE y actualizar tus datos personales. No podés participar en actividades ni se te evalúa la permanencia. Para volver, escribile a GH.",
+    text: "Mientras estés en licencia puedes consultar Mi OE y actualizar tus datos personales. No puedes participar en actividades ni se te evalúa la permanencia. Para volver, escríbele a GH.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-883": {
     where: "Cambio de comité: explicación",
-    text: "El cambio aplica desde el próximo semestre y cuenta como transferencia: ese semestre tenés que cumplir el 70 % en el comité nuevo.",
+    text: "El cambio aplica desde el próximo semestre y cuenta como transferencia: ese semestre tienes que cumplir el 70 % en el comité nuevo.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-884": {
     where: "Cambio de comité: comités que dejás",
-    text: "Comités que dejás",
+    text: "Comités que dejas",
     owner: "GH",
     status: "Propuesta",
   },
   "T-885": {
     where: "Cambio de comité: comités a los que entrás",
-    text: "Comités a los que entrás",
+    text: "Comités a los que entras",
     owner: "GH",
     status: "Propuesta",
   },
   "T-886": {
     where: "Cambio de comité: resultado fuera del rango",
-    text: "Tenés que quedar entre {min} y {max} comités.",
+    text: "Tienes que quedar entre {min} y {max} comités.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-887": {
     where: "Cambio de comité: sin cambios elegidos",
-    text: "Elegí al menos un comité para dejar o para entrar.",
+    text: "Elige al menos un comité para dejar o para entrar.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -15535,7 +15535,7 @@ export const textos = {
   },
   "T-891": {
     where: "Solicitud: ya hay una pendiente de ese tipo",
-    text: "Ya tenés una solicitud de {tipo} pendiente.",
+    text: "Ya tienes una solicitud de {tipo} pendiente.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -15566,7 +15566,7 @@ export const textos = {
   },
   "T-896": {
     where: "Convocatorias: sin convocatorias abiertas",
-    text: "No hay convocatorias abiertas ahora. Pilas: cuando se abra una, la vas a ver acá.",
+    text: "No hay convocatorias abiertas ahora. Pilas: cuando se abra una, la vas a ver aquí.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -16072,7 +16072,7 @@ export const textos = {
   },
   "T-980": {
     where: "Kanban: etapa con tarjetas no se borra",
-    text: "Esa etapa tiene tarjetas: movelas antes de borrarla.",
+    text: "Esa etapa tiene tarjetas: muévelas antes de borrarla.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16096,7 +16096,7 @@ export const textos = {
   },
   "T-984": {
     where: "Dar de alta: texto",
-    text: "Vas a dar de alta a {nombre} en {término}. Elegí de {min} a {max} comités; entra como Miembro. Para que pueda entrar a Mi OE hay que emitirle su enlace de acceso desde la ficha.",
+    text: "Vas a dar de alta a {nombre} en {término}. Elige de {min} a {max} comités; entra como Miembro. Para que pueda entrar a Mi OE hay que emitirle su enlace de acceso desde la ficha.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -16108,13 +16108,13 @@ export const textos = {
   },
   "T-986": {
     where: "Dar de alta: la persona ya tiene membresía",
-    text: "{nombre} ya tiene membresía: si está retirada, reactivala.",
+    text: "{nombre} ya tiene membresía: si está retirada, reactívala.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-987": {
     where: "Dar de alta: correo fuera del dominio institucional",
-    text: "Para dar de alta necesita un correo institucional. Editá la persona primero.",
+    text: "Para dar de alta necesita un correo institucional. Edita la persona primero.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16126,7 +16126,7 @@ export const textos = {
   },
   "T-989": {
     where: "Dar de alta: sin semestre vigente",
-    text: "No hay un semestre vigente: crealo en Términos.",
+    text: "No hay un semestre vigente: créalo en Términos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16150,7 +16150,7 @@ export const textos = {
   },
   "T-993": {
     where: "Kanban: ayuda accesible para arrastrar",
-    text: 'Arrastrá la tarjeta a otra columna o usá "Mover a…".',
+    text: 'Arrastra la tarjeta a otra columna o usa "Mover a…".',
     owner: "MATEO",
     status: "Propuesta",
   },
