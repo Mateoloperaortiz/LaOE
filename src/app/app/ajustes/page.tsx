@@ -196,6 +196,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
           <p className="max-w-prose">{t("T-1063")}</p>
           <NotificationsPanel
             vapidPublicKey={vapidPublicKey}
+            serverEndpointsKey={devices.map((item) => item.endpoint).join("\n")}
             labels={{
               enable: t("T-1064"),
               disable: t("T-1066"),

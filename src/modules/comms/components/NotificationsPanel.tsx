@@ -3,12 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  activateSubscription,
+  checkSubscription,
   forgetSubscription,
   isIos,
   isPushSupported,
   isStandalone,
   registerServiceWorker,
-  saveSubscription,
   vapidKeyToBytes,
 } from "./push-client";
 
@@ -29,6 +30,8 @@ type Labels = {
 
 type Props = {
   vapidPublicKey: string | null;
+  /** Endpoints que el servidor tiene de la persona, unidos por salto de línea (como en PwaRegistrar). */
+  serverEndpointsKey: string;
   labels: Labels;
 };
 
@@ -50,7 +53,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 // Activar y desactivar las notificaciones en este dispositivo e instalar Mi OE (ADR-038 regla 5).
 // El servidor no sabe cuál es "este" dispositivo: lo resuelve el navegador con su suscripción.
-export function NotificationsPanel({ vapidPublicKey, labels }: Props) {
+export function NotificationsPanel({ vapidPublicKey, serverEndpointsKey, labels }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("checking");
   const [standalone, setStandalone] = useState(false);
@@ -85,12 +88,22 @@ export function NotificationsPanel({ vapidPublicKey, labels }: Props) {
       if (cancelled) {
         return;
       }
-      const subscription = registration ? await registration.pushManager.getSubscription() : null;
+      // No basta que el navegador tenga una suscripción: «recibe» es que la casa la tenga registrada.
+      // Una huérfana (local sí, en el servidor no) cae a Activar, que con el gesto la reemplaza.
+      const serverEndpoints = serverEndpointsKey ? serverEndpointsKey.split("\n") : [];
+      const local = registration ? await registration.pushManager.getSubscription() : null;
+      const known = Boolean(local && serverEndpoints.includes(local.endpoint));
+      const state = registration ? await checkSubscription(registration, serverEndpoints) : "none";
       if (cancelled) {
         return;
       }
-      if (subscription) {
+      if (state === "subscribed") {
         setStatus("subscribed");
+        if (!known) {
+          router.refresh();
+        }
+      } else if (state === "unregistered") {
+        setStatus("failed");
       } else if (Notification.permission === "denied") {
         setStatus("blocked");
       } else {
@@ -100,7 +113,7 @@ export function NotificationsPanel({ vapidPublicKey, labels }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [vapidPublicKey]);
+  }, [router, serverEndpointsKey, vapidPublicKey]);
 
   async function enable() {
     if (!vapidPublicKey) {
@@ -118,11 +131,10 @@ export function NotificationsPanel({ vapidPublicKey, labels }: Props) {
         setStatus("failed");
         return;
       }
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidKeyToBytes(vapidPublicKey) as BufferSource,
-      });
-      const saved = await saveSubscription(registration, subscription);
+      const saved = await activateSubscription(
+        registration,
+        vapidKeyToBytes(vapidPublicKey) as BufferSource,
+      );
       setStatus(saved ? "just-enabled" : "failed");
       router.refresh();
     } catch {

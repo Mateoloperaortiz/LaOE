@@ -1,7 +1,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { saveSubscription } from "@/modules/comms/components/push-client";
+import {
+  activateSubscription,
+  checkSubscription,
+  saveSubscription,
+} from "@/modules/comms/components/push-client";
 import { readPushEndpoint } from "@/shared/ui/push-endpoint";
 
 // El navegador se simula con lo mínimo de PushSubscription y ServiceWorkerRegistration: lo que se
@@ -106,6 +110,102 @@ describe("registrar la suscripción del navegador", () => {
     expect(keyless.unsubscribe).toHaveBeenCalledTimes(1);
     expect(unused.pushManager.subscribe).not.toHaveBeenCalled();
     expect(once).toHaveLength(1);
+  });
+});
+
+// El panel de Ajustes no puede decir «este dispositivo recibe» solo porque el navegador tiene una
+// suscripción local: si la casa no la conoce y tampoco acepta registrarla, es una suscripción huérfana
+// y la persona no recibe nada (le pasaba a una miembro con iPhone: local sí, en el servidor nunca).
+
+function registrationWith(current: unknown, renewed: unknown = null) {
+  const subscribe = vi.fn(async () => {
+    if (renewed instanceof Error) {
+      throw renewed;
+    }
+    return renewed;
+  });
+  return {
+    pushManager: {
+      getSubscription: vi.fn(async () => current),
+      subscribe,
+    },
+  };
+}
+
+describe("qué sabe la casa de la suscripción de este navegador", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sin suscripción local no hay dispositivo", async () => {
+    house();
+    const sw = registrationWith(null);
+    expect(await checkSubscription(sw as never, [])).toBe("none");
+  });
+
+  it("si el servidor ya conoce el endpoint, está suscrito y no se vuelve a guardar", async () => {
+    const received = house(200);
+    const current = subscription("https://web.push.apple.com/conocida");
+    const sw = registrationWith(current);
+
+    expect(await checkSubscription(sw as never, [current.endpoint])).toBe("subscribed");
+    expect(received).toHaveLength(0);
+  });
+
+  it("si el servidor no la conoce pero acepta registrarla, queda suscrito", async () => {
+    const received = house(200);
+    const current = subscription("https://web.push.apple.com/nueva-para-la-casa");
+    const sw = registrationWith(current);
+
+    expect(await checkSubscription(sw as never, [])).toBe("subscribed");
+    expect(received).toEqual([current.endpoint]);
+  });
+
+  it("si el servidor no la conoce ni la acepta, es huérfana y no cuenta como suscrita", async () => {
+    house(400);
+    const current = subscription("https://web.push.apple.com/huerfana");
+    const sw = registrationWith(current);
+
+    expect(await checkSubscription(sw as never, [])).toBe("unregistered");
+  });
+});
+
+describe("activar con el gesto de la persona", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const bytes = new Uint8Array([4, 9, 9]);
+
+  it("sin suscripción local, pide una y la registra", async () => {
+    const received = house(200);
+    const fresh = subscription("https://web.push.apple.com/fresca");
+    const sw = registrationWith(null, fresh);
+
+    expect(await activateSubscription(sw as never, bytes as never)).toBe(true);
+    expect(received).toEqual([fresh.endpoint]);
+  });
+
+  it("una huérfana se suelta y se reemplaza por una nueva registrable", async () => {
+    const received = house(400, 200);
+    const orphan = subscription("https://web.push.apple.com/huerfana");
+    const fresh = subscription("https://web.push.apple.com/reemplazo");
+    const sw = registrationWith(orphan, fresh);
+
+    expect(await activateSubscription(sw as never, bytes as never)).toBe(true);
+    expect(orphan.unsubscribe).toHaveBeenCalledTimes(1);
+    expect(received).toEqual([orphan.endpoint, fresh.endpoint]);
+  });
+
+  it("si ni la nueva se guarda, responde que no y no insiste", async () => {
+    const received = house(400, 500);
+    const orphan = subscription("https://web.push.apple.com/huerfana");
+    const fresh = subscription("https://web.push.apple.com/reemplazo");
+    const sw = registrationWith(orphan, fresh);
+
+    expect(await activateSubscription(sw as never, bytes as never)).toBe(false);
+    expect(received).toHaveLength(2);
+    expect(sw.pushManager.subscribe).toHaveBeenCalledTimes(1);
   });
 });
 
