@@ -44,7 +44,7 @@ La aplicación tiene portal público, Mi OE y Administración. Se usa desde comp
 
 El usuario exige respetar la identidad oficial de la OE. Las fuentes son la Línea Gráfica OE, los Estatutos y el Reglamento Interno 2026 aportados, junto con las adaptaciones digitales aceptadas en la documentación del proyecto.
 
-Se conservan nombre, logos oficiales, paleta institucional, tono cercano con voseo paisa (ADR-086) y las decisiones documentadas sobre sustitutos tipográficos por falta de licencias. Administración tiene una adaptación sobria ya aceptada; no se interpreta una pieza promocional del manual como una plantilla obligatoria para todo formulario.
+Se conservan nombre, logos oficiales, paleta institucional, tono cercano con tuteo paisa sutil (ADR-086, enmendada por ADR-138) y las decisiones documentadas sobre sustitutos tipográficos por falta de licencias. Administración tiene una adaptación sobria ya aceptada; no se interpreta una pieza promocional del manual como una plantilla obligatoria para todo formulario.
 
 La marca se expresa como servicial, fraternal y versátil. Las comunicaciones sobre obligaciones y decisiones deben ser claras y respetuosas, sin convertir una consecuencia en un recurso de gamificación.
 
