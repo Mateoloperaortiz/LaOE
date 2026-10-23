@@ -93,6 +93,58 @@ export async function saveSubscription(
   }
 }
 
+export type SubscriptionState = "subscribed" | "none" | "unregistered";
+
+/**
+ * Qué sabe la casa de la suscripción de este navegador. Tener una local no basta para decir que este
+ * dispositivo recibe: si el servidor no la conoce se le registra en el acto, y si tampoco la acepta es
+ * una suscripción huérfana (el navegador cree que recibe y la casa no tiene a dónde enviar).
+ */
+export async function checkSubscription(
+  registration: ServiceWorkerRegistration,
+  serverEndpoints: string[],
+): Promise<SubscriptionState> {
+  const current = await registration.pushManager.getSubscription();
+  if (!current) {
+    return "none";
+  }
+  if (serverEndpoints.includes(current.endpoint)) {
+    return "subscribed";
+  }
+  return (await saveSubscription(registration, current)) ? "subscribed" : "unregistered";
+}
+
+/**
+ * Activar con el gesto de la persona: registra la suscripción que ya trae el navegador y, si la casa no
+ * la acepta, la suelta y pide una nueva para registrar esa. Sin gesto no se usa: en silencio manda
+ * `saveSubscription`, que no suelta una suscripción por un rechazo pasajero.
+ */
+export async function activateSubscription(
+  registration: ServiceWorkerRegistration,
+  applicationServerKey: BufferSource,
+): Promise<boolean> {
+  const current = await registration.pushManager.getSubscription();
+  if (current) {
+    if (await saveSubscription(registration, current)) {
+      return true;
+    }
+    try {
+      await current.unsubscribe();
+    } catch {
+      return false;
+    }
+  }
+  try {
+    const fresh = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    });
+    return saveSubscription(registration, fresh);
+  } catch {
+    return false;
+  }
+}
+
 export async function forgetSubscription(endpoint: string): Promise<void> {
   await fetch("/api/push/subscribe", {
     method: "DELETE",
