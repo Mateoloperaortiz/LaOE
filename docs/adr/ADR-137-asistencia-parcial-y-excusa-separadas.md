@@ -1,6 +1,6 @@
 # ADR-137: Asistencia parcial y excusa por separado
 
-- Estado: Aceptada
+- Estado: Publicada en producción; carga verificada
 - Fecha: 2026-10-22
 - Relacionadas: ADR-006, ADR-035, ADR-060, ADR-062, ADR-063, ADR-111, ADR-119, ADR-131
 - Enmienda: ADR-035 (registro, efectos y cumplimiento), ADR-060 (excusa y representación), ADR-063 (importación), ADR-111 (excusa sobre una parcial aprobada), ADR-131 (presencia completa acreditada)
@@ -27,4 +27,8 @@ Los seams acordados son registro y consulta de asistencias, presentación y deci
 
 La migración agrega las dos dimensiones al registro existente. No crea otra asamblea para la segunda toma, ni registra una excusa antes de que exista y se apruebe una solicitud. La carga real se prepara y revisa mediante el flujo de importación vigente, con un plan que identifica el término y conserva las fuentes.
 
-Implementación local verificada el 2026-10-22: `npm run check` aprobado, con 2.603 pruebas unitarias, 2.020 de integración, 11 del extractor y compilación. La regresión de navegador incluye QR, solicitudes y los recorridos de parcial ordinaria y tardía, con rechazo, corrección y aceptación; la confirmación final valida también accesibilidad y ancho móvil. La migración se aplicó en bases aisladas de pruebas (60 migraciones y 167 índices). El contrato de `checkin.partial` conserva valores futuros de lista como texto, según ADR-084; el productor valida las dos listas admitidas. Publicación y carga real siguen pendientes.
+Implementación local verificada el 2026-10-22: `npm run check` aprobado, con 2.603 pruebas unitarias, 2.020 de integración, 11 del extractor y compilación. La regresión de navegador incluye QR, solicitudes y los recorridos de parcial ordinaria y tardía, con rechazo, corrección y aceptación; la confirmación final valida también accesibilidad y ancho móvil. La migración se aplicó en bases aisladas de pruebas (60 migraciones y 167 índices). El contrato de `checkin.partial` conserva valores futuros de lista como texto, según ADR-084; el productor valida las dos listas admitidas.
+
+Publicada el 2026-10-22 por [PR 374](https://github.com/Mateoloperaortiz/LaOE/pull/374), con el SHA `41e8bf66ed109b9c259c7217e4881f4a170b1e17` comprobado en CI completo, staging y producción. Ambos despliegues quedaron `SUCCESS`, con smoke, 60 migraciones y 167 índices exigidos; producción conserva el poller y el scheduler nuevos y retiró todas las instancias anteriores.
+
+La carga real del mismo día conserva una sola asamblea del 16 de octubre: 198 completas y 83 parciales (41 de la primera lista y 42 de la segunda), con 281 fichas únicas. Se conciliaron y conservaron doce check-ins anteriores mediante la transición canónica y se importaron los 269 restantes; las dos solicitudes de excusa previas permanecieron intactas y no se importó ninguna excusa. La asamblea tiene base de cero puntos; seis completas liquidaron los bonos semanales de +5 que ya establece ADR-131, auditados por separado y sin beneficio de las parciales. La verificación independiente confirmó la evidencia privada por hash, el ledger previo intacto, los eventos procesados y una nueva vista previa con 281 existentes y cero altas o conflictos. La operación y su comprobación quedan registradas en el [runbook](../15-runbook.md#asistencia-parcial-y-carga-de-la-asamblea-del-16-de-octubre-adr-137).
