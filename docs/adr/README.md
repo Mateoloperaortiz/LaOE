@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-138](ADR-138-tu-paisa-sutil-sin-acentuacion-argentina.md) | Tú paisa sutil, sin acentuación argentina | Aceptada |
 | [ADR-137](ADR-137-asistencia-parcial-y-excusa-separadas.md) | Asistencia parcial y excusa por separado | Aceptada |
 | [ADR-136](ADR-136-comites-promedio-gh-y-participacion.md) | Comités por promedio GH y participación, con pesos 50/50 | Aceptada |
 | [ADR-135](ADR-135-podio-y-nombre-gamer.md) | Podio gráfico y nombre visible «+ gamer» | Aceptada |
@@ -64,7 +65,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-089](ADR-089-the-games-competencia-por-equipos.md) | The Games: competencia por equipos de Días EAFIT | Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098, ADR-100, ADR-101, ADR-104, ADR-106 y ADR-118); implementación en curso |
 | [ADR-088](ADR-088-panal-diario-en-espanol.md) | Panal diario en español y premio por rango Genio | Aceptada; enmendada por ADR-092 y ADR-119; publicación pendiente; enmendada por ADR-131 |
 | [ADR-087](ADR-087-boosters-sobre-puntos-de-asistencia.md) | Boosters sobre los puntos de la asistencia | Aceptada |
-| [ADR-086](ADR-086-copy-paisa-y-parchado.md) | Copy paisa y parchado | Aceptada |
+| [ADR-086](ADR-086-copy-paisa-y-parchado.md) | Copy paisa y parchado | Aceptada (enmendada por ADR-138) |
 | [ADR-085](ADR-085-plataforma-oe-digital-un-backend-y-frontends-delgados.md) | Plataforma OE Digital: un backend y frontends delgados | Aceptada (enmendada por ADR-090) |
 | [ADR-084](ADR-084-catalogo-tipado-de-eventos-de-dominio.md) | Catálogo tipado de eventos de dominio | Aceptada |
 | [ADR-083](ADR-083-lo-compartido-no-vive-en-la-carpeta-de-una-pantalla.md) | Lo compartido no vive en la carpeta de una pantalla | Aceptada |
