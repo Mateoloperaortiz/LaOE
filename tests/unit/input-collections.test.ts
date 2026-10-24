@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { transferPayloadSchema } from "@/modules/crm/domain/requests-pure";
 import { editionInputSchema } from "@/modules/events/domain/editions";
 import { campaignInputSchema } from "@/modules/participation/domain/boosters";
@@ -6,6 +6,10 @@ import { admitInputSchema } from "@/modules/people/domain/admission";
 import { committeeRoleInputSchema } from "@/modules/people/domain/roles";
 import { segmentInputSchema } from "@/modules/people/domain/segments";
 import { decisionInputSchema } from "@/modules/permanence/domain/closing";
+
+vi.mock("@/env", () => ({
+  getEnv: () => ({ APP_TIMEZONE: "America/Bogota" }),
+}));
 
 // ADR-146: representa solo la longitud de la colección y un acceso. Si Zod intenta validar
 // elementos, falla de inmediato: no se construye ni se recorre un payload de DoS.
