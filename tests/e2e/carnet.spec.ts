@@ -4,6 +4,7 @@ import { t } from "@/shared/copy";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
+import { downloadOwnData } from "./own-data";
 
 // Carnet (ADR-034 regla 10): el QR lleva un token firmado que `verifyCarnet` acepta.
 test.use({ storageState: "tests/e2e/.auth/member.json" });
@@ -90,7 +91,7 @@ for (const standalone of [false, true]) {
 
 test("revoca el QR de billetera y conserva el carnet de Mi OE", async ({ page }) => {
   expect((await page.request.get("/api/wallet/apple")).status()).toBe(200);
-  const before = (await (await page.request.get("/api/mis-datos")).json()) as CarnetExport;
+  const before = (await (await downloadOwnData(page)).json()) as CarnetExport;
   await page.goto("/app/carnet");
   await page
     .locator("summary")
@@ -103,7 +104,7 @@ test("revoca el QR de billetera y conserva el carnet de Mi OE", async ({ page })
   const token = (await page.locator("figure[data-token]").getAttribute("data-token")) ?? "";
   expect(token).toMatch(/^oe1\./);
   expect(verifyCarnet(token, { secret: process.env.SESSION_SECRET ?? "" }).ok).toBe(true);
-  const after = (await (await page.request.get("/api/mis-datos")).json()) as CarnetExport;
+  const after = (await (await downloadOwnData(page)).json()) as CarnetExport;
   expect(after.carnet.revision).toBe(before.carnet.revision + 1);
   expect(after.carnet).not.toHaveProperty("token");
   expect(JSON.stringify(after.walletPasses)).not.toContain("oe2.");
@@ -121,7 +122,7 @@ test("ADMIN revoca desde Comunicaciones de la 360 y el miembro ve el aviso", asy
   browser,
 }) => {
   expect((await page.request.get("/api/wallet/apple")).status()).toBe(200);
-  const before = (await (await page.request.get("/api/mis-datos")).json()) as CarnetExport;
+  const before = (await (await downloadOwnData(page)).json()) as CarnetExport;
   const admin = await browser.newContext({ storageState: "tests/e2e/.auth/admin.json" });
   try {
     const adminPage = await admin.newPage();
@@ -142,7 +143,7 @@ test("ADMIN revoca desde Comunicaciones de la 360 y el miembro ve el aviso", asy
   } finally {
     await admin.close();
   }
-  const after = (await (await page.request.get("/api/mis-datos")).json()) as CarnetExport;
+  const after = (await (await downloadOwnData(page)).json()) as CarnetExport;
   expect(after.carnet.revision).toBe(before.carnet.revision + 1);
   await page.goto("/app/carnet");
   await expect(page.getByText(copyPattern("T-1196"))).toBeVisible();

@@ -225,6 +225,20 @@ const EXCEPTIONS: Exception[] = [
       "Es el evento que deja un poller caído a mitad de un despacho, con su intento contado y su clave tomada: ningún comando deja esa fila.",
   },
   {
+    path: "tests/integration/own-data-completeness.test.ts",
+    target: "colorRun",
+    inserts: 1,
+    reason:
+      "Es una partida histórica dañada con una clave privada adicional dentro de las coordenadas HSL: el escritor de Color construye solo h, s y l, y la regresión necesita ese JSON inesperado para comprobar que el exporte no lo propaga.",
+  },
+  {
+    path: "tests/integration/own-data-completeness.test.ts",
+    target: "permanenceSnapshot",
+    inserts: 1,
+    reason:
+      "Es un snapshot histórico con una clave interna desconocida en el JSON de un criterio: el cálculo vigente no genera ese campo y la regresión necesita la fila dañada para comprobar que la descarga lo elimina sin perder el puntaje propio.",
+  },
+  {
     path: "tests/integration/panal.test.ts",
     target: "panalWord",
     inserts: 2,

@@ -4,6 +4,7 @@ import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
+import { downloadOwnData } from "./own-data";
 
 // Mi OE como miembro sin permisos (ADR-034): inicio, directorio sin correos, comités internos y
 // ajustes con datos propios, consentimientos y el paquete de mis datos.
@@ -63,7 +64,7 @@ test("ajustes: edita el celular, autoriza la foto y descarga sus datos", async (
   await foto.getByRole("button", { name: tList("T-413")[0], exact: true }).click();
   await expect(foto.getByText(copyPattern("T-411"))).toBeVisible();
 
-  const response = await page.request.get("/api/mis-datos");
+  const response = await downloadOwnData(page);
   expect(response.status()).toBe(200);
   expect(response.headers()["content-disposition"]).toContain("mis-datos-");
   const body = (await response.json()) as {

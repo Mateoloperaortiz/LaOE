@@ -214,6 +214,7 @@ casa-digital/
 
 - Cabeceras: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`; CSP en modo enforce con nonce por request desde el proxy.
 - Redirecciones validadas (solo rutas same-origin), celdas de CSV/XLSX neutralizadas contra fórmulas, HTML de correos escapado.
+- IP para límites y auditoría: solo `X-Real-IP` validado del ingreso HTTP público de Railway, sin elegir posiciones de XFF ni confiar directamente en cabeceras de Cloudflare; el listener no debe admitir un ingreso público alternativo sin sanitización ([ADR-142](adr/ADR-142-ip-del-ingreso-publico-de-railway.md)).
 - Secretos solo en variables de servidor; nunca `NEXT_PUBLIC_*` para claves; Postgres y bucket sin exposición pública.
 - Auditoría en la misma transacción de cada mutación administrativa; exportes con datos personales exigen step-up (ver [05-acceso.md](05-acceso.md)).
 

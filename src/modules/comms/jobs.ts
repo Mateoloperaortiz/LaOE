@@ -47,8 +47,13 @@ import { unlessAnonymized } from "./domain/unless-anonymized";
  * respondió el servicio de push (`deviceFailures`), nunca el endpoint ni las claves del dispositivo.
  */
 function logDelivery(ctx: JobContext, stats: DeliveryStats, deliveredMessage: string): void {
-  if (stats.failed > 0) {
+  if (stats.failed > 0 || stats.retryableDevices > 0) {
     ctx.log.warn(stats, "push sin entregar");
+    if (stats.retryableDevices > 0) {
+      // El bus ya confirmó cada resultado y limpió los dispositivos vencidos. El poller reintenta
+      // el evento con su backoff; los éxitos y rechazos permanentes no se vuelven a enviar (ADR-144).
+      throw new Error("Push pendiente por un rechazo transitorio del servicio");
+    }
     return;
   }
   ctx.log.info(stats, deliveredMessage);

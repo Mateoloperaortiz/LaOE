@@ -3,6 +3,7 @@ import { t } from "@/shared/copy";
 import { seedSentEmails } from "../factories";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
+import { downloadOwnData } from "./own-data";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
@@ -105,7 +106,7 @@ for (const width of [375, 768, 1440]) {
       await capture(page, testInfo, `carnet-${width}-${theme}-nombre-sintetico`);
       await expectNoOverflow(page);
 
-      const exported = await (await page.request.get("/api/mis-datos")).json();
+      const exported = await (await downloadOwnData(page)).json();
       // La región accesible se renderiza cuando hay mensajes: este caso prepara el suyo.
       await seedSentEmails(exported.person.id, 1, {
         provider: "console",

@@ -19,6 +19,7 @@ import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { committeeAudience, membersAudience } from "./audiences";
+import { countSentNotifications } from "./messages";
 import { type DeliveryStats, deliverNotification, emptyDeliveryStats } from "./notify";
 import { type NotificationKind, splitPush } from "./pure";
 import { type SendReceipt, sendTransactionalEmail } from "./send";
@@ -65,7 +66,10 @@ export async function pushAnnouncement(
     `announcement:${payload.announcementId}`,
     `announcement-${payload.announcementId}`,
   );
-  await markAnnouncementPushSent(payload.announcementId, stats.sent);
+  await markAnnouncementPushSent(
+    payload.announcementId,
+    await countSentNotifications(`announcement:${payload.announcementId}`),
+  );
   return stats;
 }
 
