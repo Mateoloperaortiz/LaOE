@@ -6,7 +6,7 @@ const head = "b".repeat(40);
 const jobs = (mode = "full") => ({
   cambios: { result: "success", outputs: { mode } },
   ...Object.fromEntries(
-    ["estatica", "unitarias", "build", "respaldo", "integracion", "e2e"].map((name) => [
+    ["estatica", "unitarias", "build", "imagen", "respaldo", "integracion", "e2e"].map((name) => [
       name,
       { result: mode === "full" ? "success" : "skipped" },
     ]),
@@ -67,6 +67,9 @@ describe("resultado final de CI", () => {
     expect(() => verifyJobs({ ...jobs("promotion"), estatica: { result: "failure" } })).toThrow(
       "estatica",
     );
+  });
+  it.each(["failure", "skipped", undefined])("rechaza la imagen con resultado %s", (result) => {
+    expect(() => verifyJobs({ ...jobs(), imagen: { result } })).toThrow("imagen");
   });
   it.each([
     "failure",

@@ -44,7 +44,8 @@
     "wordle:check": "node scripts/generate-wordle-dictionary.mjs --check",
     "test:extractor": "uv run --python 3.12 --with-requirements scripts/requirements-normativa.txt python -m unittest discover -s tests/python -v",
     "normativa:import": "node --conditions=react-server --import tsx scripts/normativa-import.ts",
-    "fotos:importar": "node --conditions=react-server --import tsx scripts/gallery-import.ts"
+    "fotos:importar": "node --conditions=react-server --import tsx scripts/gallery-import.ts",
+    "db:indexes": "node --import tsx scripts/required-indexes.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1125.0",

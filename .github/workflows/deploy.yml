@@ -1,0 +1,205 @@
+name: Despliegue por imagen
+
+# ADR-141: tras la puerta del CI, la imagen del SHA se publica en GHCR y staging la sirve por
+# digest; producción solo recibe un digest que staging ya sirve, por dispatch manual. Los cortes
+# por entorno se encienden con las variables IMAGE_DEPLOY_STAGING / IMAGE_DEPLOY_PRODUCTION.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: SHA completo a promover (debe ser el que staging ya sirve)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  IMAGE: ghcr.io/mateoloperaortiz/casa-digital
+  RAILWAY_CLI: "@railway/cli@5.71.0"
+
+jobs:
+  publicar:
+    name: Publicar imagen y desplegar staging
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Leer el modo de la evidencia aprobada
+        id: evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          gh run download "$RUN_ID" --name ci-result --dir /tmp/ci-result --repo "$GITHUB_REPOSITORY"
+          python3 - <<'PY'
+          import glob, json, os
+          result = json.load(open(glob.glob("/tmp/ci-result/**/ci-result.json", recursive=True)[0]))
+          assert result["sha"] == os.environ["HEAD_SHA"], result
+          assert result["result"] == "success", result
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"mode={result['mode']}\n")
+          print(f"evidencia: modo {result['mode']} del SHA {result['sha']}")
+          PY
+      - uses: docker/setup-buildx-action@v3
+        if: steps.evidence.outputs.mode != 'documentation'
+      - uses: docker/login-action@v3
+        if: steps.evidence.outputs.mode != 'documentation'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: build
+        if: steps.evidence.outputs.mode != 'documentation'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}:sha-${{ github.event.workflow_run.head_sha }}
+          build-args: |
+            APP_COMMIT_SHA=${{ github.event.workflow_run.head_sha }}
+          cache-from: type=gha,scope=imagen
+          cache-to: type=gha,mode=max,scope=imagen
+      - name: Conectar el digest en staging y esperar su salud
+        if: >-
+          steps.evidence.outputs.mode != 'documentation' &&
+          vars.IMAGE_DEPLOY_STAGING == 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+        run: |
+          npm install -g "$RAILWAY_CLI"
+          railway service source connect --image "$IMAGE@$DIGEST" --service web \
+            --environment staging --project "$PROJECT_ID" --json
+          staging_base=$(python3 -c "
+          import json
+          envs = json.load(open('scripts/ci/smoke-environments.json'))
+          print(envs['casa-digital / staging']['base'])
+          ")
+          for i in $(seq 1 90); do
+            if curl -sf "$staging_base/api/health" -o /tmp/health.json; then
+              served=$(python3 -c "import json; print(json.load(open('/tmp/health.json'))['commit'] or '')")
+              if [ "$served" = "$SHA" ]; then echo "staging sirve $SHA"; break; fi
+            fi
+            if [ "$i" = 90 ]; then echo "staging no sirvió $SHA a tiempo"; cat /tmp/health.json || true; exit 1; fi
+            sleep 10
+          done
+      - uses: actions/setup-node@v4
+        if: >-
+          steps.evidence.outputs.mode != 'documentation' &&
+          vars.IMAGE_DEPLOY_STAGING == 'true'
+        with:
+          node-version: 24
+      - name: Smoke de staging
+        if: >-
+          steps.evidence.outputs.mode != 'documentation' &&
+          vars.IMAGE_DEPLOY_STAGING == 'true'
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          read -r base bucket indexing <<EOF
+          $(python3 -c "
+          import json
+          e = json.load(open('scripts/ci/smoke-environments.json'))['casa-digital / staging']
+          print(e['base'], e['bucketOrigin'], str(e['indexing']).lower())
+          ")
+          EOF
+          npm run smoke -- --base "$base" --expected-sha "$SHA" --indexing "$indexing" --bucket-origin "$bucket"
+
+  promover:
+    name: Promover el digest a producción
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exigir el corte encendido y staging sirviendo ese SHA
+        env:
+          SHA: ${{ inputs.sha }}
+          IMAGE_DEPLOY_PRODUCTION: ${{ vars.IMAGE_DEPLOY_PRODUCTION }}
+        run: |
+          [ "$IMAGE_DEPLOY_PRODUCTION" = "true" ] || { echo "IMAGE_DEPLOY_PRODUCTION no está encendido"; exit 1; }
+          [[ "$SHA" =~ ^[a-f0-9]{40}$ ]] || { echo "SHA inválido: $SHA"; exit 1; }
+          staging_base=$(python3 -c "
+          import json
+          print(json.load(open('scripts/ci/smoke-environments.json'))['casa-digital / staging']['base'])
+          ")
+          served=$(curl -sf "$staging_base/api/health" | python3 -c "import json,sys; print(json.load(sys.stdin)['commit'] or '')")
+          [ "$served" = "$SHA" ] || { echo "staging sirve $served, no $SHA: no se promueve"; exit 1; }
+          echo "staging sirve $SHA"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: digest
+        env:
+          SHA: ${{ inputs.sha }}
+        run: |
+          digest=$(docker buildx imagetools inspect "$IMAGE:sha-$SHA" --format '{{.Manifest.Digest}}')
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "digest de sha-$SHA: $digest"
+      - name: Conectar el digest en producción y esperar su salud
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PRODUCTION }}
+          DIGEST: ${{ steps.digest.outputs.digest }}
+          SHA: ${{ inputs.sha }}
+          PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+        run: |
+          npm install -g "$RAILWAY_CLI"
+          railway service source connect --image "$IMAGE@$DIGEST" --service web \
+            --environment production --project "$PROJECT_ID" --json
+          for i in $(seq 1 90); do
+            if curl -sf https://oeeafit.com/api/health -o /tmp/health.json; then
+              served=$(python3 -c "import json; print(json.load(open('/tmp/health.json'))['commit'] or '')")
+              if [ "$served" = "$SHA" ]; then echo "producción sirve $SHA"; break; fi
+            fi
+            if [ "$i" = 90 ]; then echo "producción no sirvió $SHA a tiempo"; cat /tmp/health.json || true; exit 1; fi
+            sleep 10
+          done
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Smoke de producción
+        env:
+          SHA: ${{ inputs.sha }}
+        run: |
+          read -r base bucket indexing <<EOF
+          $(python3 -c "
+          import json
+          e = json.load(open('scripts/ci/smoke-environments.json'))['casa-digital / production']
+          print(e['base'], e['bucketOrigin'], str(e['indexing']).lower())
+          ")
+          EOF
+          npm run smoke -- --base "$base" --expected-sha "$SHA" --indexing "$indexing" --bucket-origin "$bucket"
