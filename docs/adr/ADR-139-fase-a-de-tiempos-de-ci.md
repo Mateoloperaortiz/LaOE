@@ -25,3 +25,7 @@ La alternativa estructural (quitar el aislamiento por archivo en integración, p
 - El modelo con las duraciones de la corrida 40034608488 estima el job más lento en ~303 s (integración) y ~304 s (E2E antes de la caché), con el CI completo alrededor de **5:30–6:00** contra la mediana medida de 8:01, a cambio de ~3 min de runner más por corrida por la preparación fija de los dos runners nuevos.
 - Refrescar duraciones sigue siendo manual: descargar los artefactos `ci-result` y `ci-integration-*` de las últimas cinco corridas plenas de `main` y correr los dos comandos generadores. El aviso de cobertura hace visible cuándo vuelve a degradarse; no bloquea.
 - Seis runners E2E comparten la misma clave de caché de navegador: el primero que la guarda gana y los demás la encuentran ya reservada; ninguno depende de guardarla para pasar.
+
+## Cómo quedó (2026-10-24)
+
+La primera corrida con la matriz nueva (ejecución 40113429214, aprobada) tardó **381 s**, contra la mediana de 481 s de la muestra base (-100 s, -21 %), con los jobs más lentos en E2E 3/6 (352 s), E2E 4/6 (346 s) e integración 1/3 (323 s). La suma de runners fue 50,8 min, apenas por debajo de la mediana base de 51,9 min. Esa corrida todavía no acredita la caché de Chromium: los seis runners la buscaron sin encontrarla y uno solo la guardó al final, así que su efecto se mide desde la siguiente. La estimación de ~5:30–6:00 queda como meta a confirmar con la mediana de las próximas corridas, no con una sola.
