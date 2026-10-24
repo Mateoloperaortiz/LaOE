@@ -4,6 +4,21 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Correcciones de la revisión de seguridad · `lista en local`
+
+- [x] Verificar advisories y actualizar Next a 16.4.1 en ambos checkouts; actualizar Zod a 4.6.6 con el alcance del parche documentado (ADR-145).
+- [x] Usar la IP validada del ingreso público documentado, sin respaldos de cabeceras del cliente (ADR-142).
+- [x] Completar Mis datos con paso de seguridad, límites y proyecciones seguras (ADR-143).
+- [x] Reintentar avisos push transitorios con resultados por dispositivo y migración aditiva (ADR-144).
+- [x] Acotar colecciones de entrada no confiables y verificar rechazo temprano con regresiones sintéticas (ADR-146).
+- [x] Completar la última corrección de alcance de Mis datos y repetir las comprobaciones del conjunto.
+
+Las correcciones están verificadas localmente. Su publicación y la comprobación del ingreso efectivo de Railway siguen pendientes; no se accedió a producción ni staging.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-24 | Seguridad · correcciones locales de la revisión | [ADR-142](adr/ADR-142-ip-del-ingreso-publico-de-railway.md) a [ADR-146](adr/ADR-146-limites-de-colecciones-en-la-entrada.md): Next 16.4.1 en casa y DÍAS; Zod 4.6.6 y límites explícitos de entrada; `X-Real-IP` validado bajo el contrato del ingreso público; Mis datos exige paso reciente, incluye categorías personales con proyecciones seguras y declara topes, omisiones y alcance de auditoría; reintentos push transitorios por dispositivo con migración aditiva `0060_reintentos_push`, sin repetir éxitos ni cambiar la política de correo. Las regresiones se observaron en rojo antes de corregir; se cerraron también las carreras de dispositivos/pool/410 y las referencias compuestas de auditoría encontradas en revisión. Se conserva la condición congelada de licencia y se incluyen las auditorías propias de preferencias y premios; revisión final sin hallazgos P1/P2. `npm run check` completo en ambos repos: casa con 2.652 unitarias, 2.050 de integración, 11 del extractor y build; DÍAS con lint, tipos, build estático y peso. E2E contra build: 33 casos de cinco archivos, incluidos paso vencido, descarga, carnet y juegos. Verificación en copia temporal sin `.env`, PostgreSQL 18 y S3 desechables, todo sintético. Registro de la verificación local previa a la apertura del PR; publicación pendiente. |
+
 ## Asistencia parcial y excusa por separado (ADR-137) · `lista`
 
 - [x] Registrar presencia completa/parcial y toma de asistencia, separadas de la solicitud de excusa ([ADR-137](adr/ADR-137-asistencia-parcial-y-excusa-separadas.md)).

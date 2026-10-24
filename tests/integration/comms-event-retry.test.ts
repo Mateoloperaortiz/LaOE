@@ -251,11 +251,9 @@ describe("correos de un evento que el poller reintenta", () => {
     expect(await sentTo(personId, "PUSH")).toEqual([]);
   });
 
-  // Lo que el bus hace con todo push (ADR-038 regla 2): salta a quien ya tiene un registro con esa
-  // clave, sea de un envío o de un rechazo. Con la clave del evento (ADR-116 regla 17) eso vale también
-  // para este aviso; antes el reintento traía otra clave y lo volvía a intentar. Es la pregunta de la
-  // decisión abierta 15, que está escrita para el correo: esta prueba cambia con lo que se decida.
-  it("un aviso del enlace que el servicio de push rechazó queda fallido y el reintento del evento no lo vuelve a intentar", async () => {
+  // ADR-144 resuelve DT-183 solo para push: el rechazo transitorio provoca su propio reintento y
+  // actualiza la misma fila. La decisión abierta 15 sigue pendiente para el correo transaccional.
+  it("un aviso del enlace que el servicio de push rechazó transitoriamente se entrega al reintentar el evento", async () => {
     const { personId } = await activeMember("rechazo@eafit.edu.co");
     await saveSubscriptionAs(
       { personId, ip: null },
@@ -275,7 +273,6 @@ describe("correos de un evento que el poller reintenta", () => {
     const junta = await seedMember("junta@eafit.edu.co");
     await issueAccessGrantAs({ personId: junta, ip: null }, { personId, kind: "ACTIVATION" });
 
-    neighbourFailures = 1;
     const { lines } = await captureLogs(() => drainOutbox({ expectFailures: [accessGrantIssued] }));
     expect(rejected).toBe(1);
     // El rechazo es una advertencia con el código del servicio, no una línea que dice «entregado»
@@ -295,11 +292,11 @@ describe("correos de un evento que el poller reintenta", () => {
     serviceDown = false;
     const retry = await drainOutbox({ now: afterBackoff() });
     expect(retry.failed).toBe(0);
-    expect(neighbourRuns).toBe(2);
-    expect(pushes).toEqual([]);
+    expect(neighbourRuns).toBe(1);
+    expect(pushes).toEqual([DEVICE]);
     const records = await sentTo(personId, "PUSH");
     expect(records).toHaveLength(1);
-    expect(records[0]).toMatchObject({ status: "FAILED", kind: "TRANSACTIONAL" });
+    expect(records[0]).toMatchObject({ status: "SENT", kind: "TRANSACTIONAL" });
   });
 
   // Lo que el código hace mientras la decisión abierta 15 no diga otra cosa: el registro de un rechazo

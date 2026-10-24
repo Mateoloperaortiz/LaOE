@@ -6,7 +6,7 @@ import {
   sendPush,
 } from "@/shared/adapters/pusher";
 import { logger } from "@/shared/log";
-import { listAlreadyNotified, recordMessage } from "./messages";
+import { findRecordedMessage, listAlreadyNotified } from "./messages";
 import { listPreferencesFor } from "./preferences";
 import {
   type NotificationRequested,
@@ -14,12 +14,9 @@ import {
   notificationRequestedSchema,
   shouldDeliver,
 } from "./pure";
+import { lockPushNotification, reservePushDeliveries, sendPushDelivery } from "./push-deliveries";
 import { isKnownPushEndpoint } from "./push-endpoint-pure";
-import {
-  deleteSubscriptionsByIds,
-  listSubscriptionsForPeople,
-  type SubscriptionRecord,
-} from "./subscriptions";
+import { listSubscriptionsForPeople, type SubscriptionRecord } from "./subscriptions";
 import { unlessAnonymized } from "./unless-anonymized";
 
 // Entrega del bus de notificaciones (ADR-038 regla 2): descarta a quienes ya recibieron esa clave,
@@ -89,6 +86,8 @@ export interface DeliveryStats {
   skippedByPreference: number;
   withoutDevice: number;
   removedDevices: number;
+  /** Dispositivos con rechazo transitorio: el handler deja el evento para el backoff del poller. */
+  retryableDevices: number;
   /**
    * Destinatarios de un aviso que ya había vencido cuando tocó entregarlo (ADR-122 regla 9): no se les
    * envía ni se les registra un `message`.
@@ -110,16 +109,10 @@ export function emptyDeliveryStats(): DeliveryStats {
     skippedByPreference: 0,
     withoutDevice: 0,
     removedDevices: 0,
+    retryableDevices: 0,
     expired: 0,
     deviceFailures: {},
   };
-}
-
-/** El motivo que queda en `message.error`: el código del servicio adelante, si respondió. */
-function failureText(outcome: Extract<PushOutcome, { ok: false }>): string {
-  return outcome.statusCode === null
-    ? outcome.error
-    : `HTTP ${outcome.statusCode}: ${outcome.error}`;
 }
 
 export async function deliverNotification(raw: unknown, now = new Date()): Promise<DeliveryStats> {
@@ -140,7 +133,6 @@ export async function deliverNotification(raw: unknown, now = new Date()): Promi
     listSubscriptionsForPeople(personIds),
   ]);
   const provider = resolveProvider();
-  const gone: string[] = [];
   const payloadBase = buildPushPayload({
     title: request.title,
     body: request.body,
@@ -178,48 +170,66 @@ export async function deliverNotification(raw: unknown, now = new Date()): Promi
     const payload: PushPayload = recipient.url
       ? { ...payloadBase, url: recipient.url }
       : payloadBase;
-    // La persona queda retenida mientras salen sus push y se escribe su registro, y solo ella: un
-    // aviso a muchos retiene de a una (ADR-119 regla 11). Si ya fue anonimizada no se le envía.
-    const sent = await unlessAnonymized(personId, async () => {
-      let delivered = 0;
-      let lastError: string | null = null;
-      for (const device of devices) {
-        const outcome = await provider.send(device, payload);
-        if (outcome.ok) {
-          delivered += 1;
-        } else {
-          lastError = failureText(outcome);
-          const key = outcome.statusCode === null ? NO_RESPONSE : String(outcome.statusCode);
-          stats.deviceFailures[key] = (stats.deviceFailures[key] ?? 0) + 1;
-          if (outcome.gone) {
-            gone.push(device.id);
-          }
-        }
+    // La reserva inicial y cada dispositivo retienen a la persona por separado (ADR-144): el
+    // resultado confirma antes del siguiente envío, sin pedir otra conexión mientras hay una tomada.
+    const progress = await unlessAnonymized(personId, async (tx) => {
+      await lockPushNotification(tx, personId, request.dedupeKey);
+      if ((await listAlreadyNotified([personId], request.dedupeKey, tx)).has(personId)) {
+        return "already" as const;
       }
-      const ok = delivered > 0;
-      await recordMessage({
-        personId,
-        channel: "PUSH",
-        kind: request.kind === "TRANSACTIONAL" ? "TRANSACTIONAL" : request.kind,
-        subject: payload.title,
-        status: ok ? "SENT" : "FAILED",
-        provider: provider.name,
-        error: ok ? null : lastError,
-        dedupeKey: request.dedupeKey,
-        sentAt: ok ? now : null,
-      });
-      return ok;
+      return reservePushDeliveries(
+        tx,
+        {
+          personId,
+          channel: "PUSH",
+          kind: request.kind,
+          subject: payload.title,
+          status: "FAILED",
+          provider: provider.name,
+          dedupeKey: request.dedupeKey,
+        },
+        devices.map((device) => device.id),
+      );
     });
-    if (sent === null) {
-      // Anonimizada entre la lectura de sus dispositivos y su turno: su limpieza se los lleva, así
-      // que cuenta como quien ya no tiene dónde recibirlo.
+    if (progress === null) {
       stats.withoutDevice += 1;
-    } else if (sent) {
+      continue;
+    }
+    if (progress === "already") {
+      stats.alreadySent += 1;
+      continue;
+    }
+    for (const receipt of progress.deliveries) {
+      if (!receipt.retryable) continue;
+      const attempt = await unlessAnonymized(personId, async (tx) => {
+        await lockPushNotification(tx, personId, request.dedupeKey);
+        return sendPushDelivery(
+          tx,
+          personId,
+          progress.messageId,
+          receipt.id,
+          (device) => provider.send(device, payload),
+          now,
+        );
+      });
+      if (!attempt) continue;
+      const { outcome } = attempt;
+      stats.removedDevices += attempt.removed;
+      if (!outcome.ok) {
+        const key = outcome.statusCode === null ? NO_RESPONSE : String(outcome.statusCode);
+        stats.deviceFailures[key] = (stats.deviceFailures[key] ?? 0) + 1;
+        if (attempt.retryable) stats.retryableDevices += 1;
+      }
+    }
+    const recorded = await findRecordedMessage(personId, request.dedupeKey);
+    if (!recorded) {
+      // Anonimizada entre dispositivos: su limpieza ya se llevó el mensaje.
+      stats.withoutDevice += 1;
+    } else if (recorded.status === "SENT") {
       stats.sent += 1;
     } else {
       stats.failed += 1;
     }
   }
-  stats.removedDevices = await deleteSubscriptionsByIds(gone);
   return stats;
 }

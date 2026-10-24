@@ -41,7 +41,7 @@ vi.mock("@/modules/identity", () => ({
   requireAdminActor: async () => ({ personId: "admin-sintetico", isAdmin: true }),
 }));
 vi.mock("next/headers", () => ({
-  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }),
+  headers: async () => new Headers({ "x-real-ip": "203.0.113.7" }),
 }));
 vi.mock("next/navigation", () => ({
   redirect: (path: string) => {

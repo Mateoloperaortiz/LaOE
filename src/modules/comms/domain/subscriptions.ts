@@ -239,18 +239,6 @@ export async function listSubscriptionsForPeople(
   return result;
 }
 
-/** Borra las suscripciones cuyo servicio respondió 404 o 410: el dispositivo ya no existe. */
-export async function deleteSubscriptionsByIds(ids: string[]): Promise<number> {
-  if (ids.length === 0) {
-    return 0;
-  }
-  const rows = await getDb()
-    .delete(pushSubscription)
-    .where(inArray(pushSubscription.id, ids))
-    .returning({ id: pushSubscription.id });
-  return rows.length;
-}
-
 /** Al salir de la OE o anonimizarse (ADR-030). */
 export async function deleteSubscriptionsFor(exec: Executor, personId: string): Promise<number> {
   const rows = await exec

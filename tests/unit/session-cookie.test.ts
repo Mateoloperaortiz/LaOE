@@ -29,7 +29,7 @@ const state = vi.hoisted(() => ({
 vi.mock("next/headers", () => ({
   cookies: async () => ({ set: state.set, get: state.get, delete: state.remove }),
   headers: async () =>
-    new Headers({ "x-forwarded-for": "203.0.113.7", "user-agent": "navegador-sintetico" }),
+    new Headers({ "x-real-ip": "203.0.113.7", "user-agent": "navegador-sintetico" }),
 }));
 vi.mock("next/navigation", () => ({
   redirect: (path: string) => {

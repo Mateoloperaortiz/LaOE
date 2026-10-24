@@ -7,6 +7,7 @@ import type { CommandContext } from "@/db/tx";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
+import { MAX_INPUT_COLLECTION_ITEMS } from "@/shared/lib/input-collections";
 import { editionCommittee, event, eventEdition } from "../schema";
 import { SLUG_PATTERN } from "./events";
 
@@ -35,7 +36,10 @@ export const editionInputSchema = z
       .trim()
       .regex(/^[a-z0-9]{10,40}$/)
       .optional(),
-    committeeIds: z.array(z.string().trim().min(1)).default([]),
+    committeeIds: z
+      .array(z.string().trim().min(1))
+      .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") })
+      .default([]),
   })
   .refine((input) => input.endsAt === undefined || input.endsAt > input.startsAt, {
     path: ["endsAt"],

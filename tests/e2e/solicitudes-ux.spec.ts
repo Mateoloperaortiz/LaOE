@@ -3,6 +3,7 @@ import { type BrowserContext, expect } from "@playwright/test";
 import { and, eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { request, task } from "@/modules/crm/schema";
+import { session } from "@/modules/identity/schema";
 import { occasion } from "@/modules/participation/schema";
 import { committee, person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
@@ -390,6 +391,46 @@ test("Mis datos con sesión vencida lleva al ingreso sin descargar nada, y de vu
   await page.goto(next);
   await expect(page.getByText(t("T-3211"), { exact: true })).toBeVisible();
   // Volver no descarga solo: la persona hace clic otra vez.
+  expect(await selfExports()).toEqual([]);
+  const download = page.waitForEvent("download");
+  await link.click();
+  expect((await download).suggestedFilename()).toMatch(/^mis-datos-.+\.json$/);
+  await expect.poll(selfExports).toHaveLength(1);
+});
+
+test("Mis datos con paso vencido confirma la identidad, vuelve al aviso de Ajustes y exige repetir la descarga", async ({
+  page,
+}) => {
+  const selfExports = () =>
+    getDb()
+      .select({ id: auditLog.id })
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "export.self"), eq(auditLog.entityId, personId)));
+  await getDb()
+    .update(session)
+    .set({ otpVerifiedAt: new Date(Date.now() - 20 * 60_000) })
+    .where(eq(session.personId, personId));
+  const downloads: string[] = [];
+  page.on("download", (download) => downloads.push(download.suggestedFilename()));
+  await page.goto("/app/ajustes#privacidad");
+  const link = page.getByRole("link", { name: t("T-135"), exact: true });
+  await link.click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === "/ingresar/paso" &&
+      url.searchParams.get("next") === "/app/ajustes?descarga=1",
+  );
+  expect(downloads).toEqual([]);
+  expect(await selfExports()).toEqual([]);
+  // Esta identidad entró por OTP y no tiene contraseña: confirma mediante el paso real por código.
+  await page.getByRole("button", { name: t("T-2099"), exact: true }).click();
+  await page.getByLabel(t("T-238"), { exact: true }).fill(process.env.OTP_FIXED_CODE ?? "123456");
+  await page.getByRole("button", { name: t("T-046"), exact: true }).click();
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/app/ajustes" && url.searchParams.get("descarga") === "1",
+  );
+  await expect(page.getByText(t("T-3211"), { exact: true })).toBeVisible();
+  expect(downloads).toEqual([]);
   expect(await selfExports()).toEqual([]);
   const download = page.waitForEvent("download");
   await link.click();

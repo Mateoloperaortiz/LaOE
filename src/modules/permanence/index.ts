@@ -31,6 +31,7 @@ export {
   addMembersAs,
   applyMemberImportAs,
   createGroupAs,
+  evaluatorIdsSchema,
   type GroupRef,
   getGroup,
   getGroupDetail,
@@ -63,6 +64,7 @@ export {
 export { mandatoryCounts } from "./domain/mandatory-counts";
 export { getPersonPermanence } from "./domain/my-permanence";
 export { runNotices } from "./domain/notices";
+export { collectOwnPermanenceData } from "./domain/own-data";
 export {
   APPLIES_TO,
   COMMITTEE_FILTERS,

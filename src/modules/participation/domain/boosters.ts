@@ -8,6 +8,7 @@ import { boosterGranted } from "@/domain-events/participation";
 import { getTerm } from "@/modules/terms";
 import { t, tLabels, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { MAX_INPUT_COLLECTION_ITEMS } from "@/shared/lib/input-collections";
 import {
   BOOSTER_STATES,
   type BoosterKind,
@@ -564,8 +565,14 @@ export async function revokeBooster(
 export const campaignInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
   percent: z.coerce.number().pipe(z.union([z.literal(25), z.literal(50), z.literal(100)])),
-  challengeIds: z.array(z.string().trim().min(1).max(80)).default([]),
-  occasionIds: z.array(z.string().trim().min(1).max(80)).default([]),
+  challengeIds: z
+    .array(z.string().trim().min(1).max(80))
+    .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") })
+    .default([]),
+  occasionIds: z
+    .array(z.string().trim().min(1).max(80))
+    .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") })
+    .default([]),
   startsAt: z.coerce.date(),
   endsAt: z.coerce.date(),
 });

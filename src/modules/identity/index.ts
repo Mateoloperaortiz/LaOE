@@ -35,6 +35,7 @@ export {
   hasRecentStepUp,
 } from "./domain/guards";
 export { requestOtp, verifyOtp } from "./domain/otp";
+export { collectOwnIdentityData } from "./domain/own-data";
 export {
   findPasswordHash,
   hasPassword,

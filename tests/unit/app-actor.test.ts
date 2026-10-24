@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { actorContext, sessionActorContext } from "@/app/_lib/actor";
 
 vi.mock("next/headers", () => ({
-  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }),
+  headers: async () => new Headers({ "x-real-ip": "203.0.113.7" }),
 }));
 
 const session = {

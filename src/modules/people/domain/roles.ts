@@ -5,6 +5,7 @@ import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { MAX_INPUT_COLLECTION_ITEMS } from "@/shared/lib/input-collections";
 import { committeeRole } from "../schema";
 import { capabilitySchema, parseCapabilities } from "./capabilities";
 import type { CommitteeRoleRow } from "./committee-memberships";
@@ -25,6 +26,7 @@ export const committeeRoleInputSchema = z.object({
   required: z.boolean().default(false),
   capabilities: z
     .array(capabilitySchema)
+    .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") })
     .default([])
     .transform((values) => parseCapabilities(values)),
   sortOrder: z.coerce.number().int().min(0).max(999).default(50),

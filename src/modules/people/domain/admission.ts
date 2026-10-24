@@ -8,6 +8,7 @@ import { requirePrivacyPolicyVersion } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { MAX_INPUT_COLLECTION_ITEMS } from "@/shared/lib/input-collections";
 import { committee, membership, membershipEvent, person } from "../schema";
 import { setCommitteeMemberships } from "./committee-memberships";
 import { recordConsent } from "./consents";
@@ -20,7 +21,10 @@ import { hasInstitutionalDomain } from "./person-pure";
 
 export const admitInputSchema = z.object({
   termId: z.string().trim().min(1),
-  committeeIds: z.array(z.string().trim().min(1)).min(1),
+  committeeIds: z
+    .array(z.string().trim().min(1))
+    .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") })
+    .min(1),
 });
 
 export type AdmitInput = z.infer<typeof admitInputSchema>;

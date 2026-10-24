@@ -17,7 +17,7 @@ vi.mock("@/modules/system", () => ({ retryDeadLetterAs: state.retry }));
 // Se simula la sesión, no el guard: `requireAdminActor` corre de verdad, con su regla de licencia.
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => ({ value: "token-sintetico" }) }),
-  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }),
+  headers: async () => new Headers({ "x-real-ip": "203.0.113.7" }),
 }));
 vi.mock("@/modules/identity/domain/session", () => ({
   resolveActor: state.actor,

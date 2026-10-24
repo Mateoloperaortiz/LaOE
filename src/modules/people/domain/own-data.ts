@@ -1,13 +1,27 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
+import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { personDeletionRequested, personUpdated } from "@/domain-events/people";
 import { getMedia } from "@/modules/content";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { person } from "../schema";
-import { getPerson360 } from "./person-360";
+import { OWN_DATA_QUERY_LIMIT, ownDataCollections } from "@/shared/lib/own-data";
+import {
+  appointment,
+  committeeMembership,
+  committeeRepresentative,
+  committeeRoleAssignment,
+  membership,
+  membershipEvent,
+  membershipTerm,
+  person,
+  personTag,
+  sanction,
+  tag,
+} from "../schema";
+import { listConsents } from "./consents";
 import { normalizePhone } from "./person-pure";
 
 // Lo que una persona hace sobre sus propios datos desde Ajustes (ADR-034 reglas 8 y 12): contacto,
@@ -23,6 +37,18 @@ export type OwnContactInput = z.infer<typeof ownContactSchema>;
 const E164 = /^\+\d{8,15}$/;
 const emailSchema = z.email();
 const CONTACT_FIELDS = ["phone", "personalEmail"] as const;
+
+const leaveConditionSchema = z
+  .array(
+    z.object({
+      committeeId: z.string().min(1).nullable(),
+      probation: z.boolean(),
+      reportAsVeteran: z.boolean(),
+      resumedNew: z.boolean(),
+      resumedTransfer: z.boolean().optional(),
+    }),
+  )
+  .nullable();
 
 export async function updateOwnContact(
   ctx: CommandContext,
@@ -129,39 +155,228 @@ export async function requestDeletion(
   return { created: true, requestedAt: now };
 }
 
-export interface PersonalData {
-  person: Record<string, unknown>;
-  membership: Record<string, unknown> | null;
-  events: unknown[];
-  committeesByTerm: unknown[];
-  appointments: unknown[];
-  consents: unknown[];
-  probation: unknown[];
-}
-
-/** Lo que `people` guarda sobre una persona, sin marcas internas (regla 12 de ADR-034). */
-export async function collectPersonalData(personId: string): Promise<PersonalData | null> {
-  const data = await getPerson360(personId);
-  if (!data) {
-    return null;
-  }
-  const {
-    sessionsRevokedAt: _sessions,
-    legacyId: _legacy,
-    anonymizedAt: _anonymized,
-    ...who
-  } = data.person;
+/** Proyección propia cerrada: nunca hereda columnas ni notas de la Persona 360 administrativa. */
+export async function collectPersonalData(personId: string) {
+  const db = getDb();
+  const [who] = await db
+    .select({
+      id: person.id,
+      email: person.email,
+      kind: person.kind,
+      stage: person.stage,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      fullName: person.fullName,
+      preferredName: person.preferredName,
+      phone: person.phone,
+      personalEmail: person.personalEmail,
+      program: person.program,
+      documentType: person.documentType,
+      documentNumber: person.documentNumber,
+      epikId: person.epikId,
+      birthDate: person.birthDate,
+      photoAssetId: person.photoAssetId,
+      source: person.source,
+      deletionRequestedAt: person.deletionRequestedAt,
+      createdAt: person.createdAt,
+      updatedAt: person.updatedAt,
+    })
+    .from(person)
+    .where(eq(person.id, personId))
+    .limit(1);
+  if (!who) return null;
+  const [
+    memberships,
+    events,
+    committeesByTerm,
+    appointments,
+    probation,
+    personTags,
+    sanctions,
+    committeeRoles,
+    committeeRepresentations,
+    consents,
+  ] = await Promise.all([
+    db
+      .select({
+        id: membership.id,
+        status: membership.status,
+        walletEpoch: membership.walletEpoch,
+        firstTermId: membership.firstTermId,
+        lastTermId: membership.lastTermId,
+        leaveUntil: membership.leaveUntil,
+        leaveCondition: membership.leaveCondition,
+        endedAt: membership.endedAt,
+        endReason: membership.endReason,
+        createdAt: membership.createdAt,
+        updatedAt: membership.updatedAt,
+      })
+      .from(membership)
+      .where(eq(membership.personId, personId))
+      .limit(1),
+    db
+      .select({
+        id: membershipEvent.id,
+        fromStatus: membershipEvent.fromStatus,
+        toStatus: membershipEvent.toStatus,
+        at: membershipEvent.at,
+      })
+      .from(membershipEvent)
+      .innerJoin(membership, eq(membership.id, membershipEvent.membershipId))
+      .where(eq(membership.personId, personId))
+      .orderBy(desc(membershipEvent.at), desc(membershipEvent.id))
+      .limit(OWN_DATA_QUERY_LIMIT),
+    db
+      .select({
+        id: committeeMembership.id,
+        committeeId: committeeMembership.committeeId,
+        termId: committeeMembership.termId,
+        roleCode: committeeMembership.roleCode,
+        transferredIn: committeeMembership.transferredIn,
+        joinedAt: committeeMembership.joinedAt,
+        leftAt: committeeMembership.leftAt,
+        createdAt: committeeMembership.createdAt,
+      })
+      .from(committeeMembership)
+      .where(eq(committeeMembership.personId, personId))
+      .orderBy(desc(committeeMembership.createdAt), desc(committeeMembership.id))
+      .limit(OWN_DATA_QUERY_LIMIT),
+    db
+      .select({
+        id: appointment.id,
+        kind: appointment.kind,
+        committeeId: appointment.committeeId,
+        termId: appointment.termId,
+        editionId: appointment.editionId,
+        roleCode: appointment.roleCode,
+        coDirector: appointment.coDirector,
+        title: appointment.title,
+        createdAt: appointment.createdAt,
+      })
+      .from(appointment)
+      .where(eq(appointment.personId, personId))
+      .orderBy(desc(appointment.createdAt), desc(appointment.id))
+      .limit(OWN_DATA_QUERY_LIMIT),
+    db
+      .select({
+        id: membershipTerm.id,
+        termId: membershipTerm.termId,
+        committeeId: membershipTerm.committeeId,
+        probation: membershipTerm.probation,
+        reportAsVeteran: membershipTerm.reportAsVeteran,
+        resumedNew: membershipTerm.resumedNew,
+        resumedTransfer: membershipTerm.resumedTransfer,
+        academicVerifiedOn: membershipTerm.academicVerifiedOn,
+        createdAt: membershipTerm.createdAt,
+      })
+      .from(membershipTerm)
+      .where(eq(membershipTerm.personId, personId))
+      .orderBy(desc(membershipTerm.createdAt), desc(membershipTerm.id))
+      .limit(OWN_DATA_QUERY_LIMIT),
+    db
+      .select({
+        id: personTag.id,
+        tagId: personTag.tagId,
+        name: tag.name,
+        color: tag.color,
+        createdAt: personTag.createdAt,
+      })
+      .from(personTag)
+      .innerJoin(tag, eq(tag.id, personTag.tagId))
+      .where(eq(personTag.personId, personId))
+      .orderBy(desc(personTag.createdAt), desc(personTag.id))
+      .limit(OWN_DATA_QUERY_LIMIT),
+    db
+      .select({
+        id: sanction.id,
+        termId: sanction.termId,
+        committeeId: sanction.committeeId,
+        kind: sanction.kind,
+        reference: sanction.reference,
+        occurredOn: sanction.occurredOn,
+        suspendedFrom: sanction.suspendedFrom,
+        suspendedUntil: sanction.suspendedUntil,
+        expiresOn: sanction.expiresOn,
+        revokedAt: sanction.revokedAt,
+        createdAt: sanction.createdAt,
+      })
+      .from(sanction)
+      .where(eq(sanction.personId, personId))
+      .orderBy(desc(sanction.createdAt), desc(sanction.id))
+      .limit(OWN_DATA_QUERY_LIMIT),
+    db
+      .select({
+        id: committeeRoleAssignment.id,
+        membershipId: committeeRoleAssignment.membershipId,
+        committeeId: committeeRoleAssignment.committeeId,
+        termId: committeeRoleAssignment.termId,
+        roleCode: committeeRoleAssignment.roleCode,
+        coDirector: committeeRoleAssignment.coDirector,
+        startedAt: committeeRoleAssignment.startedAt,
+        endedAt: committeeRoleAssignment.endedAt,
+        createdAt: committeeRoleAssignment.createdAt,
+      })
+      .from(committeeRoleAssignment)
+      .where(eq(committeeRoleAssignment.personId, personId))
+      .orderBy(desc(committeeRoleAssignment.createdAt), desc(committeeRoleAssignment.id))
+      .limit(OWN_DATA_QUERY_LIMIT),
+    db
+      .select({
+        id: committeeRepresentative.id,
+        committeeId: committeeRepresentative.committeeId,
+        termId: committeeRepresentative.termId,
+        role: committeeRepresentative.role,
+        createdAt: committeeRepresentative.createdAt,
+      })
+      .from(committeeRepresentative)
+      .where(eq(committeeRepresentative.personId, personId))
+      .orderBy(desc(committeeRepresentative.createdAt), desc(committeeRepresentative.id))
+      .limit(OWN_DATA_QUERY_LIMIT),
+    listConsents(personId),
+  ]);
+  const collections = ownDataCollections({
+    events,
+    committeesByTerm,
+    appointments,
+    probation,
+    personTags,
+    sanctions,
+    committeeRoles,
+    committeeRepresentations,
+  });
+  const ownConsents = consents.map((state) => {
+    const history = state.history.map((row) => ({
+      id: row.id,
+      purpose: row.purpose,
+      source: row.source,
+      policyVersion: row.policyVersion,
+      acceptedAt: row.acceptedAt,
+      revokedAt: row.revokedAt,
+      // Una aceptación administrativa puede llevar la IP del operador, que no es del titular.
+      ip: row.source === "SELF" ? row.ip : null,
+    }));
+    return {
+      purpose: state.purpose,
+      live: history.find((row) => row.revokedAt === null) ?? null,
+      history,
+    };
+  });
+  const currentMembership = memberships[0];
+  const leaveCondition = leaveConditionSchema.safeParse(currentMembership?.leaveCondition ?? null);
   return {
     person: who,
-    membership: data.membership,
-    events: data.events,
-    committeesByTerm: data.committeesByTerm,
-    appointments: data.appointments,
-    consents: data.consents.map((state) => ({
-      purpose: state.purpose,
-      live: state.live,
-      history: state.history,
-    })),
-    probation: data.probation,
+    membership: currentMembership
+      ? {
+          ...currentMembership,
+          leaveCondition: leaveCondition.success ? leaveCondition.data : null,
+          leaveConditionAvailable: leaveCondition.success,
+        }
+      : null,
+    ...collections.data,
+    consents: ownConsents,
+    exportLimits: {
+      ...collections.limits,
+      consents: { limit: null, returned: ownConsents.length, truncated: false },
+    },
   };
 }
