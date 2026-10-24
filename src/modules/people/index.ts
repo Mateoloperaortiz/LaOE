@@ -184,6 +184,7 @@ export {
   type RosterPreview,
   recordLeaderGrantsAs,
   remapRosterPreviewAs,
+  rosterColumnCountSchema,
 } from "./domain/roster";
 export { ROSTER_MAX_BYTES } from "./domain/roster-file";
 export { HEADER_ALIASES, ROSTER_COLUMNS, type RosterColumn } from "./domain/roster-pure";

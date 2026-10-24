@@ -14,7 +14,7 @@ const state = vi.hoisted(() => ({
   revalidate: vi.fn(),
 }));
 vi.mock("next/headers", () => ({
-  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }),
+  headers: async () => new Headers({ "x-real-ip": "203.0.113.7" }),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: state.revalidate }));
 vi.mock("next/navigation", () => ({

@@ -17,6 +17,7 @@ export {
   setFormFields,
   setFormFieldsAs,
 } from "./domain/forms";
+export { collectOwnFormsData } from "./domain/own-data";
 export {
   answersFromFormData,
   FIELD_TYPES,

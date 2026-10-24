@@ -18,6 +18,7 @@ import {
   configureMacroeventGroupAs,
   evaluateAs,
   evaluationInputSchema,
+  evaluatorIdsSchema,
   findMacroeventGroup,
   prepareMacroeventGroupAs,
   removeMemberAs,
@@ -132,7 +133,7 @@ export async function macroeventAction(form: FormData): Promise<void> {
           );
         if (input.operation === "configure") {
           const leaderPersonId = text(form, "leaderPersonId") || undefined;
-          const evaluatorIds = z.array(id).parse(form.getAll("evaluatorIds"));
+          const evaluatorIds = evaluatorIdsSchema.parse(form.getAll("evaluatorIds"));
           const members = await listActiveMemberRefs();
           const selected = [...evaluatorIds, ...(leaderPersonId ? [leaderPersonId] : [])];
           if (

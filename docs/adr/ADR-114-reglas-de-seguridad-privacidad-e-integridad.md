@@ -1,6 +1,6 @@
 # ADR-114: Reglas de seguridad, privacidad e integridad del tercer ciclo del refactor
 
-- Estado: Aceptada (enmendada por ADR-116)
+- Estado: Aceptada (enmendada por ADR-116); enmendada por ADR-143
 - Fecha: 2026-10-07
 - Relacionadas: ADR-010, ADR-014, ADR-022, ADR-030, ADR-033, ADR-034, ADR-051, ADR-060, ADR-067, ADR-072, ADR-079, ADR-082, ADR-090, ADR-096, ADR-099, ADR-109, ADR-112, ADR-113
 - Enmienda: ADR-010, ADR-030 (regla 4), ADR-033 (reglas 5 y 6), ADR-051 (reglas 7, 8 y 9), ADR-082 (regla 4), ADR-112 (lo que dejó abierto sobre revocar), ADR-113 (reglas 4, 7 y 10)
@@ -143,3 +143,7 @@ El tercer ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
 La regla 3 fijó la firma `revokeSanctionAs(actor, personId, sanctionId, reason)`, y su consecuencia decía que quién puede revocar lo seguía decidiendo la action, sin un alcance como el de registrar (DT-101). [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 11 agrega el alcance como quinto argumento, obligatorio, y el comando deja pasar solo el de ADMIN. La comprobación de la persona de la regla 3 no cambia.
 
 La regla 7 decía que `takeImportJobApplied` bloquea la fila de `import_job` y exige `APPLIED`. No miraba de qué tipo era el trabajo, así que los permisos de líder se registraban sobre una importación aplicada que no era del roster (DT-104). ADR-116 regla 12 lo cierra: la toma recibe el tipo que espera quien llama, obligatorio, y un trabajo de otro tipo responde T-032, como uno que no existe. Lo demás de la regla queda igual.
+
+## Enmienda (2026-10-24, ADR-143)
+
+El residual de DT-065 sobre Mis datos queda corregido por [ADR-143](ADR-143-mis-datos-completo-y-con-paso-de-seguridad.md): la descarga exige paso reciente antes de recopilar y auditar. El contador compartido de contraseña de la regla 2 no cambia.

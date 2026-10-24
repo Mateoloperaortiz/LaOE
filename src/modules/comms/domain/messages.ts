@@ -1,8 +1,19 @@
-import { and, count, desc, eq, ilike, inArray, isNotNull, or } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  exists,
+  ilike,
+  inArray,
+  isNotNull,
+  notExists,
+  or,
+} from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
 import { getPeopleByIds, searchPeople } from "@/modules/people";
-import { campaign, message } from "../schema";
+import { campaign, message, pushDelivery } from "../schema";
 
 // Lo enviado a una persona (pestaña Comunicaciones de la Persona 360 y "mis datos") y el registro
 // que escribe cada envío (ADR-038 regla 2: una fila por persona y notificación).
@@ -113,25 +124,64 @@ export async function findRecordedMessage(
   return row ?? null;
 }
 
-/** Personas que ya tienen un mensaje con esa clave: el bus las salta (idempotencia por persona). */
+/** Avisos terminados: un rechazo transitorio por dispositivo conserva el mensaje reanudable. */
 export async function listAlreadyNotified(
   personIds: string[],
   dedupeKey: string,
+  exec: Executor = getDb(),
 ): Promise<Set<string>> {
   if (personIds.length === 0) {
     return new Set();
   }
-  const rows = await getDb()
+  const rows = await exec
     .select({ personId: message.personId })
     .from(message)
     .where(
       and(
         inArray(message.personId, personIds),
+        eq(message.channel, "PUSH"),
         isNotNull(message.dedupeKey),
         eq(message.dedupeKey, dedupeKey),
+        // Un SENT histórico no tiene detalle; un FAILED histórico puede volver a intentarse.
+        or(
+          eq(message.status, "SENT"),
+          exists(
+            exec
+              .select({ id: pushDelivery.id })
+              .from(pushDelivery)
+              .where(eq(pushDelivery.messageId, message.id)),
+          ),
+        ),
+        notExists(
+          exec
+            .select({ id: pushDelivery.id })
+            .from(pushDelivery)
+            .where(
+              and(
+                eq(pushDelivery.messageId, message.id),
+                eq(pushDelivery.retryable, true),
+                isNotNull(pushDelivery.subscriptionId),
+              ),
+            ),
+        ),
       ),
     );
   return new Set(rows.map((row) => row.personId));
+}
+
+/** Alcance acumulado del aviso, incluso cuando el intento actual solo retoma parte de sus dispositivos. */
+export async function countSentNotifications(dedupeKey: string): Promise<number> {
+  const [row] = await getDb()
+    .select({ n: count() })
+    .from(message)
+    .where(
+      and(
+        eq(message.channel, "PUSH"),
+        eq(message.dedupeKey, dedupeKey),
+        eq(message.status, "SENT"),
+      ),
+    );
+  return row?.n ?? 0;
 }
 
 /** Al anonimizar (ADR-030): los mensajes no son historia institucional. */

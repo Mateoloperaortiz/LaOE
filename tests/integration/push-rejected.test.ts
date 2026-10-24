@@ -64,11 +64,13 @@ async function messageOf(personId: string) {
 }
 
 /** Entrega el aviso por el outbox, como en producción, y devuelve lo que quedó en el registro. */
-async function deliverThroughOutbox(personIds: string[]): Promise<LoggedLine[]> {
+async function deliverThroughOutbox(personIds: string[], retryable = false): Promise<LoggedLine[]> {
   await enqueueEvent(db(), eventOf(notificationRequested, request(personIds)));
-  const { result, lines } = await captureLogs(() => drainOutbox());
-  // El rechazo no hace fallar el evento ni lo reintenta: es DT-183 y la decisión abierta 15.
-  expect(result).toEqual({ processed: 1, failed: 0 });
+  const { result, lines } = await captureLogs(() =>
+    drainOutbox(retryable ? { expectFailures: [notificationRequested] } : {}),
+  );
+  // ADR-144: los transitorios fallan el evento y los definitivos lo terminan sin reintentar.
+  expect(result).toEqual(retryable ? { processed: 0, failed: 1 } : { processed: 1, failed: 0 });
   return lines;
 }
 
@@ -125,7 +127,7 @@ describe("un push que el servicio rechaza", () => {
     await subscribe(ana, "ana-2");
     setPushSenderForTests(rejectedWith(statusCode));
 
-    const lines = await deliverThroughOutbox([ana]);
+    const lines = await deliverThroughOutbox([ana], statusCode === 429 || statusCode === 500);
 
     expect(recordsOf(lines, DELIVERED)).toEqual([]);
     const warnings = recordsOf(lines, NOT_DELIVERED);

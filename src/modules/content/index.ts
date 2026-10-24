@@ -79,4 +79,5 @@ export {
 } from "./domain/media";
 export { processMedia } from "./domain/media-process";
 export { MEDIA_LIMITS, PHOTO_MAX_BYTES } from "./domain/media-pure";
+export { collectOwnMediaData } from "./domain/own-data";
 export { findPublicPage, listPublishedPublicPages, type PublicPage } from "./domain/pages";

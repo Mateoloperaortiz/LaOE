@@ -190,6 +190,7 @@ export {
   occasionInputSchema,
   searchOccasions,
 } from "./domain/occasions";
+export { collectOwnParticipationData } from "./domain/own-data";
 export { getTodayPanal, listPanalGamesFor, startPanalAs, submitPanalWordAs } from "./domain/panal";
 export { activatePresenceNotice24hAs } from "./domain/presence-notice-policy";
 export { getPresenceStreak } from "./domain/presence-streak";

@@ -15,6 +15,7 @@ import {
 } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { MAX_INPUT_COLLECTION_ITEMS } from "@/shared/lib/input-collections";
 import { workGroup, workGroupEvaluator, workGroupMembership } from "../schema";
 import { resolveGroupEvent } from "./group-links";
 import { parseGroupCsv } from "./groups-pure";
@@ -220,13 +221,19 @@ export async function updateGroup(
   });
 }
 
+export const evaluatorIdsSchema = z
+  .array(z.string().regex(/^[a-z0-9-]{10,40}$/))
+  .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") });
+
 /** Reemplaza el conjunto de evaluadores del grupo. */
 export async function setEvaluators(
   ctx: CommandContext,
   groupId: string,
   personIds: string[],
 ): Promise<void> {
-  const wanted = [...new Set(personIds)];
+  const parsed = evaluatorIdsSchema.safeParse(personIds);
+  if (!parsed.success) throw new DomainError(t("T-260"));
+  const wanted = [...new Set(parsed.data)];
   await ctx.tx.delete(workGroupEvaluator).where(eq(workGroupEvaluator.groupId, groupId));
   if (wanted.length > 0) {
     await ctx.tx

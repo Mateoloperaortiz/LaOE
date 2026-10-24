@@ -516,19 +516,23 @@ export async function seedSentEmails(
   },
 ): Promise<void> {
   if (amount === 0) return;
-  await db()
-    .insert(message)
-    .values(
-      Array.from({ length: amount }, (_, index) => ({
-        personId,
-        channel: "EMAIL" as const,
-        kind: sent.kind ?? "TRANSACTIONAL",
-        subject: sent.subject ?? `Previo ${index}`,
-        status: "SENT" as const,
-        provider: sent.provider,
-        sentAt: sent.sentAt,
-      })),
-    );
+  // Lotes acotados también para historiales que superan el tope del exporte: PostgreSQL limita
+  // los parámetros de una sentencia, no el tamaño del historial que puede preparar la fábrica.
+  for (let offset = 0; offset < amount; offset += 1000) {
+    await db()
+      .insert(message)
+      .values(
+        Array.from({ length: Math.min(1000, amount - offset) }, (_, index) => ({
+          personId,
+          channel: "EMAIL" as const,
+          kind: sent.kind ?? "TRANSACTIONAL",
+          subject: sent.subject ?? `Previo ${offset + index}`,
+          status: "SENT" as const,
+          provider: sent.provider,
+          sentAt: sent.sentAt,
+        })),
+      );
+  }
 }
 
 type OccasionOverrides = Partial<{
@@ -1465,6 +1469,8 @@ type InteractionSeed = {
   kind: (typeof interaction.$inferInsert)["kind"];
   summary: string;
   occurredAt: Date;
+  actorId?: string | null;
+  body?: string | null;
 };
 
 /** Interacciones de una persona en su línea de tiempo, en una sola sentencia y en el orden dado. */

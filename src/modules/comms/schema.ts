@@ -180,6 +180,32 @@ export const pushSubscription = pgTable(
   ],
 );
 
+// Resultado por dispositivo de un aviso (ADR-144). FAILED + retryable también reserva el dispositivo
+// antes del primer intento. Quitar la suscripción conserva el resultado, sin conservar sus claves.
+export const pushDelivery = pgTable(
+  "push_delivery",
+  {
+    id: id(),
+    messageId: text()
+      .notNull()
+      .references(() => message.id, { onDelete: "cascade" }),
+    subscriptionId: text().references(() => pushSubscription.id, { onDelete: "set null" }),
+    status: messageStatus().notNull().default("FAILED"),
+    retryable: boolean().notNull().default(true),
+    error: text(),
+    sentAt: timestampTz(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("push_delivery_message_subscription_unique").on(t.messageId, t.subscriptionId),
+    index("push_delivery_subscription_idx").on(t.subscriptionId),
+    check(
+      "push_delivery_sent_result",
+      sql`(${t.status} = 'SENT') = (${t.sentAt} is not null) and (${t.status} != 'SENT' or not ${t.retryable})`,
+    ),
+  ],
+);
+
 // Qué quiere recibir cada persona; el aviso gamer se activa expresamente (ADR-131).
 export const notificationPreference = pgTable(
   "notification_preference",
