@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { listSpecFiles, partitionFiles } from "./e2e-partition.mjs";
 import durations from "./integration-durations.json" with { type: "json" };
 
-/** Runners de integración de la matriz del workflow; el comando rechaza cualquier otro total (ADR-055). */
-export const INTEGRATION_SHARDS = 2;
+/** Runners de integración de la matriz del workflow; el comando rechaza cualquier otro total (ADR-139). */
+export const INTEGRATION_SHARDS = 3;
 const ROOT = "tests/integration";
 
 /** Archivos de integración con la ruta del repo, en orden estable; Vitest los acepta como filtro. */
@@ -41,6 +41,44 @@ export function durationsFromVitestReport(report, sourceRunId = "manual", source
       [...files]
         .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
         .map(([file, seconds]) => [file, Math.round(seconds * 10) / 10]),
+    ),
+  };
+}
+
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+/**
+ * Mediana por archivo entre informes aprobados de varias particiones y ejecuciones. Cada informe se
+ * valida por separado, así que un archivo repetido dentro del mismo informe sigue rechazándose.
+ */
+export function durationsFromVitestReports(
+  reports,
+  sourceRunIds = ["manual"],
+  sourceSha = "manual",
+) {
+  assert(Array.isArray(reports) && reports.length > 0, "Sin informes para aportar duraciones");
+  const ids = (Array.isArray(sourceRunIds) ? sourceRunIds : [sourceRunIds]).map(String);
+  assert(ids.length > 0, "Sin ejecuciones para aportar duraciones");
+  const samples = new Map();
+  for (const report of reports) {
+    const generated = durationsFromVitestReport(report, "manual", "manual");
+    for (const [file, seconds] of Object.entries(generated.files)) {
+      if (!samples.has(file)) samples.set(file, []);
+      samples.get(file).push(seconds);
+    }
+  }
+  return {
+    sourceRunId: ids[0],
+    sourceRunIds: ids,
+    sourceSha: String(sourceSha),
+    files: Object.fromEntries(
+      [...samples]
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .map(([file, values]) => [file, Math.round(median(values) * 10) / 10]),
     ),
   };
 }

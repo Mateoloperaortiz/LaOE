@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-139](ADR-139-fase-a-de-tiempos-de-ci.md) | Fase A de tiempos de CI: tres runners de integración, seis E2E y duraciones medianas | Aceptada |
 | [ADR-138](ADR-138-tu-paisa-sutil-sin-acentuacion-argentina.md) | Tú paisa sutil, sin acentuación argentina | Aceptada |
 | [ADR-137](ADR-137-asistencia-parcial-y-excusa-separadas.md) | Asistencia parcial y excusa por separado | Aceptada |
 | [ADR-136](ADR-136-comites-promedio-gh-y-participacion.md) | Comités por promedio GH y participación, con pesos 50/50 | Aceptada |
@@ -96,7 +97,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-058](ADR-058-direccion-del-comite-por-areas.md) | La dirección del comité por áreas: capacidades por cargo, cargos múltiples y codirección | Aceptada (enmendada por ADR-060 y ADR-115); promovida a producción, verificación con la dirección real pendiente |
 | [ADR-057](ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md) | Vicepresidencia de Comunicaciones y Publicidad como cargo de junta | Aceptada; en producción |
 | [ADR-056](ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md) | Alta y condición del semestre desde la Persona 360 | Aceptada; verificada en producción |
-| [ADR-055](ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) | Cuatro particiones E2E, integración en dos runners y lista documental ampliada | Aceptada; validada en remoto |
+| [ADR-055](ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) | Cuatro particiones E2E, integración en dos runners y lista documental ampliada | Aceptada (enmendada por ADR-139); validada en remoto |
 | [ADR-054](ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) | Reutilización del CI en la promoción y particiones E2E balanceadas | Aceptada (enmendada por ADR-055); validada en remoto |
 | [ADR-052](ADR-052-aislamiento-y-fallos-de-las-pruebas-e2e.md) | Aislamiento, calendario y fallos de las pruebas E2E | Aceptada (enmendada por ADR-077 y ADR-116) |
 | [ADR-053](ADR-053-ci-en-paralelo-y-verificacion-del-despliegue.md) | CI en paralelo, inventario obligatorio y smoke posterior | Aceptada (enmendada por ADR-054, ADR-055 y ADR-120) |

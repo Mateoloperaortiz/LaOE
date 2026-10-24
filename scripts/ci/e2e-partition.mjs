@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
-/** Runners E2E de la matriz del workflow; el comando rechaza cualquier otro total (ADR-055). */
-export const E2E_SHARDS = 5;
+/** Runners E2E de la matriz del workflow; el comando rechaza cualquier otro total (ADR-139). */
+export const E2E_SHARDS = 6;
 
 const SCENARIO = /\.(spec|test)\.[cm]?[jt]sx?$/;
 
@@ -22,6 +22,20 @@ function median(values) {
   const middle = Math.floor(sorted.length / 2);
   if (sorted.length === 0) return null;
   return sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+/** Cuántos archivos actuales tienen duración conocida; una cobertura baja degrada el reparto. */
+export function durationCoverage(files, known) {
+  const durations = known && typeof known === "object" ? known : {};
+  const unique = [...new Set(files)];
+  const knownCount = unique.filter(
+    (file) => Number.isFinite(durations[file]) && durations[file] >= 0,
+  ).length;
+  return {
+    known: knownCount,
+    total: unique.length,
+    ratio: unique.length === 0 ? 0 : knownCount / unique.length,
+  };
 }
 
 /**
@@ -89,6 +103,32 @@ export function durationsFromResult(result) {
       [...files]
         .sort(([a], [b]) => compare(a, b))
         .map(([file, s]) => [file, Math.round(s * 10) / 10]),
+    ),
+  };
+}
+
+/**
+ * Mediana por archivo entre varias ejecuciones completas y aprobadas. Un archivo que solo aparece
+ * en algunas usa las muestras que tenga; la fuente principal es la primera (la más reciente).
+ */
+export function durationsFromResults(results) {
+  assert(Array.isArray(results) && results.length > 0, "Sin ejecuciones para aportar duraciones");
+  const generated = results.map((result) => durationsFromResult(result));
+  const samples = new Map();
+  for (const item of generated) {
+    for (const [file, seconds] of Object.entries(item.files)) {
+      if (!samples.has(file)) samples.set(file, []);
+      samples.get(file).push(seconds);
+    }
+  }
+  return {
+    sourceRunId: generated[0].sourceRunId,
+    sourceRunIds: generated.map((item) => item.sourceRunId),
+    sourceSha: generated[0].sourceSha,
+    files: Object.fromEntries(
+      [...samples]
+        .sort(([a], [b]) => compare(a, b))
+        .map(([file, values]) => [file, Math.round(median(values) * 10) / 10]),
     ),
   };
 }

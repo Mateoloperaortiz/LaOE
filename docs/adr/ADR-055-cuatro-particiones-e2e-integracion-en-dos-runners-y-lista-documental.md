@@ -1,6 +1,6 @@
 # ADR-055: Cuatro particiones E2E, integración en dos runners y lista documental ampliada
 
-- Estado: Aceptada; validada en remoto el 2026-09-11 (PR 9, `main` y promoción)
+- Estado: Aceptada (enmendada por ADR-139); validada en remoto el 2026-09-11 (PR 9, `main` y promoción)
 - Fecha: 2026-09-11
 - Enmienda: ADR-053 (puntos 1, 2 y 7) y ADR-054 (punto 2)
 - Evidencia: [implementación de CI/CD](../ci-cd-2026-09-11.md)
@@ -24,3 +24,7 @@ El PR 8, que solo cambiaba documentación, ejecutó la suite completa y despleg�
 Estimación con las duraciones medidas: cada runner E2E baja a unos 5:30 y cada runner de integración a unos 2:40, con el CI completo alrededor de 5:45 a 6:00; unos 3 minutos de runner más por corrida. Medido el mismo día: 5:41 en el PR 9 y 5:54 en `main`, con 27,5 a 28,4 minutos de runner; el detalle está en el registro de implementación. A partir de aquí la preparación fija de cada runner domina: subir a cinco particiones E2E solo requiere cambiar la matriz y `E2E_SHARDS`, con retornos decrecientes.
 
 Un push que solo toque los dos archivos nuevos de la lista valida en modo documental y no despliega. Si las duraciones versionadas quedan viejas, el reparto se degrada pero no el resultado; refrescarlas es un comando.
+
+## Enmienda (2026-10-24, ADR-139)
+
+Los puntos 2 y 3 cambian de número: E2E corre en **seis** runners e integración en **tres**, y las duraciones de ambas suites pasan a ser la mediana por archivo de las últimas cinco corridas completas de `main`, con aviso si la cobertura cae del 90 %. La lista documental, el gate por partición y los demás modos quedan como están. Detalle en [ADR-139](ADR-139-fase-a-de-tiempos-de-ci.md).
