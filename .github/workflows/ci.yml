@@ -65,8 +65,27 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  calidad:
-    name: Biome · dependency-cruiser · knip · tsc · unit · build
+  # ADR-140: el antiguo job de calidad va en tres runners paralelos; la puerta final exige los tres.
+  estatica:
+    name: Biome · tsc · dependency-cruiser · knip
+    needs: cambios
+    if: needs.cambios.outputs.mode == 'full'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run deps:check
+      - run: npm run deadcode
+
+  unitarias:
+    name: unit · extractor
     needs: cambios
     if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
@@ -79,10 +98,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: mkdir -p ci-results
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run deps:check
-      - run: npm run deadcode
       - run: npm test -- --reporter=default --reporter=json --outputFile=ci-results/unit.json
       - uses: actions/setup-python@v5
         with:
@@ -90,11 +105,34 @@ jobs:
       - name: uv para el extractor de normativa
         run: python -m pip install uv
       - run: npm run test:extractor
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-unit
+          path: ci-results/unit.json
+          if-no-files-found: error
+          retention-days: 14
+
+  build:
+    name: build · inventario E2E
+    needs: cambios
+    if: needs.cambios.outputs.mode == 'full'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: mkdir -p ci-results
       - uses: actions/cache@v4
         with:
           path: .next/cache
-          key: ${{ runner.os }}-node24-next-quality-${{ hashFiles('package-lock.json', 'next.config.ts', 'tsconfig.json') }}-${{ hashFiles('src/**', 'public/**') }}
+          key: ${{ runner.os }}-node24-next-build-${{ hashFiles('package-lock.json', 'next.config.ts', 'tsconfig.json') }}-${{ hashFiles('src/**', 'public/**') }}
           restore-keys: |
+            ${{ runner.os }}-node24-next-build-${{ hashFiles('package-lock.json', 'next.config.ts', 'tsconfig.json') }}-
             ${{ runner.os }}-node24-next-quality-${{ hashFiles('package-lock.json', 'next.config.ts', 'tsconfig.json') }}-
       - run: npm run build
         env:
@@ -108,8 +146,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ci-quality
-          path: ci-results/*.json
+          name: ci-inventory
+          path: ci-results/inventory.json
           if-no-files-found: error
           retention-days: 14
 
@@ -285,7 +323,7 @@ jobs:
   resultado:
     name: CI
     if: always()
-    needs: [cambios, calidad, respaldo, integracion, e2e]
+    needs: [cambios, estatica, unitarias, build, respaldo, integracion, e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

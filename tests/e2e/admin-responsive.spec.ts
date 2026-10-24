@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test";
 import { t, tList } from "@/shared/copy";
 import { copyPattern } from "../helpers/copy";
+import { checkAdminResponsive } from "./admin-responsive-check";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 
@@ -37,49 +38,11 @@ test("navegación agrupada, destino único y panel accesible", async ({ page }) 
   await expect(page.getByRole("button", { name: t("T-253"), exact: true })).toHaveCount(0);
 });
 
-for (const width of [360, 390, 768, 1440]) {
+// Anchos de celular; los amplios viven en admin-responsive-wide para el reparto (ADR-140).
+for (const width of [360, 390]) {
   for (const colorScheme of ["light", "dark"] as const) {
     test(`administración adaptable ${width}px ${colorScheme}`, async ({ page }, testInfo) => {
-      await page.setViewportSize({ width, height: 900 });
-      await page.emulateMedia({ colorScheme });
-      await page.goto("/admin/documentos");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(tList("T-425")[0]);
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-      ).toBe(true);
-      await page.screenshot({
-        path: testInfo.outputPath(`documentos-${width}-${colorScheme}.png`),
-        fullPage: true,
-      });
-      await sinViolaciones(page);
-      if (width < 1024) {
-        const button = page.getByRole("button", { name: t("T-1402"), exact: true });
-        await button.click();
-        const drawer = page.getByRole("dialog", { name: t("T-236"), exact: true });
-        await expect(drawer).toBeVisible();
-        await sinViolaciones(page);
-        await page.keyboard.press("Escape");
-        await expect(drawer).toBeHidden();
-        await expect(button).toBeFocused();
-        await button.click();
-        await drawer.getByRole("link", { name: tList("T-334")[0], exact: true }).click();
-        await expect(page).toHaveURL(/\/admin\/medios$/);
-        await expect(drawer).toBeHidden();
-      }
-      await page.goto("/admin/comites?nuevo=1");
-      const panel = page.getByRole("dialog", { name: copyPattern("T-251") });
-      await expect(panel).toBeVisible();
-      await panel
-        .getByLabel(t("T-273"), { exact: true })
-        .fill("Comité de prueba con un nombre extenso para revisar el ancho");
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-      ).toBe(true);
-      await sinViolaciones(page);
-      await page.screenshot({
-        path: testInfo.outputPath(`panel-${width}-${colorScheme}.png`),
-        fullPage: true,
-      });
+      await checkAdminResponsive(page, testInfo, width, colorScheme);
     });
   }
 }

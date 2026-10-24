@@ -25,6 +25,7 @@ import { deleteObject, getObject } from "@/shared/adapters/storage";
 import { leaveUntilSoon, seedMember } from "../factories";
 import { sampleNormativaPdf } from "../helpers/pdf";
 import { truncateAll } from "./db";
+import { isTestDatabaseUrl } from "./test-database";
 
 const runFile = promisify(execFile);
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -37,7 +38,7 @@ function hash(bytes: Uint8Array): string {
 /** Solo las variables de la base/bucket de pruebas; el hijo nunca carga .env ni hereda NODE_OPTIONS. */
 function childEnvironment(): NodeJS.ProcessEnv {
   const env = getEnv();
-  if (!new URL(env.DATABASE_URL).pathname.endsWith("_test")) {
+  if (!isTestDatabaseUrl(env.DATABASE_URL)) {
     throw new Error("El subprocess de normativa exige la base de integración _test");
   }
   return {

@@ -13,7 +13,8 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-139](ADR-139-fase-a-de-tiempos-de-ci.md) | Fase A de tiempos de CI: tres runners de integración, seis E2E y duraciones medianas | Aceptada |
+| [ADR-140](ADR-140-fase-b-de-tiempos-de-ci.md) | Fase B de tiempos de CI: integración en paralelo con base por worker, calidad en tres jobs y E2E adaptables partidos | Aceptada |
+| [ADR-139](ADR-139-fase-a-de-tiempos-de-ci.md) | Fase A de tiempos de CI: tres runners de integración, seis E2E y duraciones medianas | Aceptada (enmendada por ADR-140) |
 | [ADR-138](ADR-138-tu-paisa-sutil-sin-acentuacion-argentina.md) | Tú paisa sutil, sin acentuación argentina | Aceptada |
 | [ADR-137](ADR-137-asistencia-parcial-y-excusa-separadas.md) | Asistencia parcial y excusa por separado | Aceptada |
 | [ADR-136](ADR-136-comites-promedio-gh-y-participacion.md) | Comités por promedio GH y participación, con pesos 50/50 | Aceptada |
@@ -28,7 +29,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-127](ADR-127-reglas-de-correccion-del-decimoquinto-ciclo.md) | Reglas de corrección del decimoquinto ciclo del refactor | Aceptada (enmendada por ADR-128 y ADR-129) |
 | [ADR-126](ADR-126-reglas-de-las-etiquetas-por-valor-del-decimocuarto-ciclo.md) | Reglas de las etiquetas por valor del decimocuarto ciclo del refactor | Aceptada (enmendada por ADR-128) |
 | [ADR-125](ADR-125-reglas-de-la-interfaz-de-los-modulos-del-decimotercer-ciclo.md) | Reglas de la interfaz pública de los módulos del decimotercer ciclo del refactor | Aceptada (enmendada por ADR-127) |
-| [ADR-124](ADR-124-reglas-de-la-base-de-pruebas-del-duodecimo-ciclo.md) | Reglas de la base de pruebas del duodécimo ciclo del refactor | Aceptada (enmendada por ADR-127 y ADR-128) |
+| [ADR-124](ADR-124-reglas-de-la-base-de-pruebas-del-duodecimo-ciclo.md) | Reglas de la base de pruebas del duodécimo ciclo del refactor | Aceptada (enmendada por ADR-127, ADR-128 y ADR-140) |
 | [ADR-123](ADR-123-reglas-de-verificacion-y-correccion-del-undecimo-ciclo.md) | Reglas de verificación y corrección del undécimo ciclo del refactor | Aceptada (enmendada por ADR-127 y ADR-129) |
 | [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) | Reglas de alcance y corrección del décimo ciclo del refactor | Aceptada (enmendada por ADR-123) |
 | [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) | Reglas de estructura y pruebas del noveno ciclo del refactor | Aceptada (enmendada por ADR-122 y ADR-123) |

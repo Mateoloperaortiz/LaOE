@@ -6,7 +6,7 @@ const head = "b".repeat(40);
 const jobs = (mode = "full") => ({
   cambios: { result: "success", outputs: { mode } },
   ...Object.fromEntries(
-    ["calidad", "respaldo", "integracion", "e2e"].map((name) => [
+    ["estatica", "unitarias", "build", "respaldo", "integracion", "e2e"].map((name) => [
       name,
       { result: mode === "full" ? "success" : "skipped" },
     ]),
@@ -63,8 +63,8 @@ describe("resultado final de CI", () => {
   });
   it("exige que una promoción omita los jobs pesados en vez de ejecutarlos a medias", () => {
     expect(() => verifyJobs({ ...jobs("promotion"), e2e: { result: "success" } })).toThrow("e2e");
-    expect(() => verifyJobs({ ...jobs("promotion"), calidad: { result: "failure" } })).toThrow(
-      "calidad",
+    expect(() => verifyJobs({ ...jobs("promotion"), estatica: { result: "failure" } })).toThrow(
+      "estatica",
     );
   });
   it.each([
