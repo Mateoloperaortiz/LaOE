@@ -134,7 +134,7 @@ jobs:
           retention-days: 7
 
   integracion:
-    name: integración ${{ matrix.shard }}/2
+    name: integración ${{ matrix.shard }}/3
     needs: cambios
     if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
@@ -142,7 +142,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     services:
       postgres:
         image: postgres:18-alpine
@@ -183,7 +183,7 @@ jobs:
         run: docker logs --tail 100 garage
       - id: particion
         name: Reparto balanceado de archivos por duración
-        run: node scripts/ci/run.mjs integration-shard ${{ matrix.shard }}/2
+        run: node scripts/ci/run.mjs integration-shard ${{ matrix.shard }}/3
       # global-setup crea y migra su base _test en cada runner; E2E prepara otra en los suyos.
       - run: npm run test:integration -- --reporter=default --reporter=json --outputFile=ci-results/integration-${{ matrix.shard }}.json ${{ steps.particion.outputs.files }}
       - uses: actions/upload-artifact@v4
@@ -195,7 +195,7 @@ jobs:
           retention-days: 14
 
   e2e:
-    name: E2E ${{ matrix.shard }}/5
+    name: E2E ${{ matrix.shard }}/6
     needs: cambios
     if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
@@ -203,7 +203,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5]
+        shard: [1, 2, 3, 4, 5, 6]
     services:
       postgres:
         image: postgres:18-alpine
@@ -253,10 +253,16 @@ jobs:
         env:
           NODE_ENV: production
           OTP_FIXED_CODE: ""
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-node24-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node24-playwright-
       - run: npx playwright install --with-deps chromium
       - id: particion
         name: Reparto balanceado de escenarios por duración
-        run: node scripts/ci/run.mjs e2e-shard ${{ matrix.shard }}/5
+        run: node scripts/ci/run.mjs e2e-shard ${{ matrix.shard }}/6
       - run: npm run test:e2e -- --workers=1 --forbid-only --reporter=github,json
         env:
           E2E_FILES: ${{ steps.particion.outputs.files }}

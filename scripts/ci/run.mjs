@@ -14,7 +14,9 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import durations from "./e2e-durations.json" with { type: "json" };
 import {
+  durationCoverage,
   durationsFromResult,
+  durationsFromResults,
   E2E_SHARDS,
   listSpecFiles,
   parseShard,
@@ -23,9 +25,11 @@ import {
 import integrationDurations from "./integration-durations.json" with { type: "json" };
 import {
   durationsFromVitestReport,
+  durationsFromVitestReports,
   INTEGRATION_SHARDS,
   integrationFileOf,
   integrationPartitions,
+  listIntegrationFiles,
 } from "./integration-partition.mjs";
 import { classifyPaths, comparisonBase, verifyJobs } from "./policy.mjs";
 import { findPromotionEvidence, promotionHead, REPOSITORY, verifyEvidence } from "./promotion.mjs";
@@ -92,6 +96,17 @@ function downloadResult(runId) {
 
 function currentPartitions() {
   return partitionFiles(listSpecFiles(), durations.files);
+}
+
+function sourceRuns(generated) {
+  return generated.sourceRunIds?.length ? generated.sourceRunIds.join(", ") : generated.sourceRunId;
+}
+
+function warnCoverage(label, coverage) {
+  if (coverage.ratio >= 0.9) return;
+  const text = `Duraciones ${label}: solo ${coverage.known}/${coverage.total} archivos actuales tienen duración conocida; el reparto se degrada.`;
+  summary(`⚠ ${text}`);
+  process.stderr.write(`${text}\n`);
 }
 
 try {
@@ -214,41 +229,65 @@ try {
     process.stdout.write(`CI aprobado: ${mode}\n`);
   } else if (process.argv[2] === "e2e-shard") {
     const current = parseShard(process.argv[3]);
+    warnCoverage("E2E", durationCoverage(listSpecFiles(), durations.files));
     const partition = currentPartitions()[current - 1];
     output("files", partition.files.join(","));
     process.stdout.write(`${partition.files.join("\n")}\n`);
     summary(
-      `Partición ${current}/${E2E_SHARDS}: ${partition.files.length} archivos, ~${partition.seconds.toFixed(0)} s según la ejecución ${durations.sourceRunId}.`,
+      `Partición ${current}/${E2E_SHARDS}: ${partition.files.length} archivos, ~${partition.seconds.toFixed(0)} s según las ejecuciones ${sourceRuns(durations)}.`,
     );
   } else if (process.argv[2] === "integration-shard") {
     const current = parseShard(process.argv[3], INTEGRATION_SHARDS);
+    warnCoverage(
+      "de integración",
+      durationCoverage(listIntegrationFiles(), integrationDurations.files),
+    );
     const partition = integrationPartitions()[current - 1];
     output("files", partition.files.join(" "));
     process.stdout.write(`${partition.files.join("\n")}\n`);
     summary(
-      `Integración ${current}/${INTEGRATION_SHARDS}: ${partition.files.length} archivos, ~${partition.seconds.toFixed(0)} s de pruebas según la ejecución ${integrationDurations.sourceRunId}.`,
+      `Integración ${current}/${INTEGRATION_SHARDS}: ${partition.files.length} archivos, ~${partition.seconds.toFixed(0)} s de pruebas según las ejecuciones ${sourceRuns(integrationDurations)}.`,
     );
   } else if (process.argv[2] === "integration-durations") {
-    const generated = durationsFromVitestReport(
-      readJson(process.argv[3]),
-      process.argv[4] ?? "manual",
-      process.argv[5] ?? "manual",
-    );
+    const args = process.argv.slice(3);
+    const reportPaths = [];
+    let runsFlag;
+    let shaFlag;
+    for (let i = 0; i < args.length; i += 1) {
+      if (args[i] === "--runs") runsFlag = args[++i];
+      else if (args[i] === "--sha") shaFlag = args[++i];
+      else reportPaths.push(args[i]);
+    }
+    const onlyLegacy =
+      !runsFlag && !shaFlag && (args.length <= 1 || !String(args[1]).endsWith(".json"));
+    const generated = onlyLegacy
+      ? durationsFromVitestReport(
+          readJson(reportPaths[0]),
+          process.argv[4] ?? "manual",
+          process.argv[5] ?? "manual",
+        )
+      : durationsFromVitestReports(
+          reportPaths.map(readJson),
+          runsFlag ? runsFlag.split(",").filter(Boolean) : ["manual"],
+          shaFlag ?? "manual",
+        );
     writeFileSync(
       new URL("./integration-durations.json", import.meta.url),
       `${JSON.stringify(generated, null, 2)}\n`,
     );
     process.stdout.write(
-      `Duraciones de ${Object.keys(generated.files).length} archivos de integración desde la ejecución ${generated.sourceRunId}.\n`,
+      `Duraciones de ${Object.keys(generated.files).length} archivos de integración desde las ejecuciones ${sourceRuns(generated)}.\n`,
     );
   } else if (process.argv[2] === "e2e-durations") {
-    const generated = durationsFromResult(readJson(process.argv[3]));
+    const results = process.argv.slice(3).map(readJson);
+    const generated =
+      results.length === 1 ? durationsFromResult(results[0]) : durationsFromResults(results);
     writeFileSync(
       new URL("./e2e-durations.json", import.meta.url),
       `${JSON.stringify(generated, null, 2)}\n`,
     );
     process.stdout.write(
-      `Duraciones de ${Object.keys(generated.files).length} archivos desde la ejecución ${generated.sourceRunId}.\n`,
+      `Duraciones de ${Object.keys(generated.files).length} archivos desde las ejecuciones ${sourceRuns(generated)}.\n`,
     );
   } else if (process.argv[2] === "smoke-context") {
     const config = await readSmokeDeployment(
@@ -295,7 +334,7 @@ try {
     }
   } else {
     throw new Error(
-      "Uso: node scripts/ci/run.mjs classify|gate|vitest <unit|integration> [opciones de Vitest]|e2e-shard k/n|integration-shard k/n|e2e-durations <ci-result.json>|integration-durations <integration.json> [run] [sha]|smoke-context",
+      "Uso: node scripts/ci/run.mjs classify|gate|vitest <unit|integration> [opciones de Vitest]|e2e-shard k/n|integration-shard k/n|e2e-durations <ci-result.json>...|integration-durations <integration.json> [run] [sha]|integration-durations --runs <id,id> --sha <sha> <integration.json>...|smoke-context",
     );
   }
 } catch (error) {

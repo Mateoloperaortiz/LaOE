@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import durations from "../../scripts/ci/e2e-durations.json" with { type: "json" };
 import {
+  durationCoverage,
   durationsFromResult,
+  durationsFromResults,
   E2E_SHARDS,
   listSpecFiles,
   parseShard,
@@ -9,6 +11,7 @@ import {
 } from "../../scripts/ci/e2e-partition.mjs";
 import {
   durationsFromVitestReport,
+  durationsFromVitestReports,
   INTEGRATION_SHARDS,
   integrationFileOf,
   integrationPartitions,
@@ -57,13 +60,27 @@ describe("reparto de escenarios E2E por archivo", () => {
     expect(() => partitionFiles(files, known, 0)).toThrow("particiones");
   });
   it("exige que la matriz del workflow declare el mismo total que el reparto", () => {
-    expect(E2E_SHARDS).toBe(5);
-    expect(parseShard("2/5")).toBe(2);
-    expect(() => parseShard("1/4")).toThrow("declara 4");
-    expect(() => parseShard("6/5")).toThrow("no existe");
-    expect(() => parseShard("0/5")).toThrow("inválida");
+    expect(E2E_SHARDS).toBe(6);
+    expect(INTEGRATION_SHARDS).toBe(3);
+    expect(parseShard("2/6")).toBe(2);
+    expect(() => parseShard("1/5")).toThrow("declara 5");
+    expect(() => parseShard("7/6")).toThrow("no existe");
+    expect(() => parseShard("0/6")).toThrow("inválida");
     expect(parseShard("2/2", 2)).toBe(2);
     expect(() => parseShard(undefined)).toThrow("inválida");
+  });
+  it("cuenta cuántos archivos actuales tienen una duración conocida", () => {
+    expect(durationCoverage(["a.spec.ts", "b.spec.ts", "c.spec.ts"], known)).toEqual({
+      known: 3,
+      total: 3,
+      ratio: 1,
+    });
+    expect(durationCoverage(["a.spec.ts", "z.spec.ts"], known)).toEqual({
+      known: 1,
+      total: 2,
+      ratio: 0.5,
+    });
+    expect(durationCoverage([], known)).toEqual({ known: 0, total: 0, ratio: 0 });
   });
 });
 
@@ -94,6 +111,33 @@ describe("duraciones por archivo desde un resultado de CI", () => {
     expect(() => durationsFromResult(result({ mode: "documentation" }))).toThrow("completo");
     expect(() => durationsFromResult(result({ result: "failure" }))).toThrow("aprobado");
     expect(() => durationsFromResult(result({ e2e: {} }))).toThrow("duraciones");
+  });
+  it("toma la mediana por archivo entre varias ejecuciones y conserva sus ids", () => {
+    const other = result({
+      runId: "34618190391",
+      e2e: {
+        durations: [
+          { file: "a.spec.ts", title: "uno", durationMs: 3000 },
+          { file: "c.spec.ts", title: "tres", durationMs: 900 },
+        ],
+      },
+    });
+    const third = result({
+      runId: "34618190392",
+      e2e: {
+        durations: [
+          { file: "a.spec.ts", title: "uno", durationMs: 20_000 },
+          { file: "b.spec.ts", title: "tres", durationMs: 700 },
+        ],
+      },
+    });
+    expect(durationsFromResults([result(), other, third])).toEqual({
+      sourceRunId: "34618190390",
+      sourceRunIds: ["34618190390", "34618190391", "34618190392"],
+      sourceSha: "d".repeat(40),
+      files: { "a.spec.ts": 3, "b.spec.ts": 0.6, "c.spec.ts": 0.9 },
+    });
+    expect(() => durationsFromResults([])).toThrow("ejecuciones");
   });
 });
 
@@ -147,6 +191,37 @@ describe("reparto de la integración por archivo", () => {
         testResults: [...report.testResults, report.testResults[0]],
       }),
     ).toThrow("repetido");
+  });
+  it("toma la mediana por archivo entre informes de varias particiones y ejecuciones", () => {
+    const report = (seconds: Record<string, number>) => ({
+      success: true,
+      testResults: Object.entries(seconds).map(([name, s]) => ({
+        name: `/repo/tests/integration/${name}`,
+        startTime: 1000,
+        endTime: 1000 + s * 1000,
+      })),
+    });
+    expect(
+      durationsFromVitestReports(
+        [
+          report({ "a.test.ts": 1, "b.test.ts": 10 }),
+          report({ "a.test.ts": 3, "c.test.ts": 5 }),
+          report({ "a.test.ts": 100, "b.test.ts": 12 }),
+        ],
+        ["10", "11"],
+        "abc",
+      ),
+    ).toEqual({
+      sourceRunId: "10",
+      sourceRunIds: ["10", "11"],
+      sourceSha: "abc",
+      files: {
+        "tests/integration/a.test.ts": 3,
+        "tests/integration/b.test.ts": 11,
+        "tests/integration/c.test.ts": 5,
+      },
+    });
+    expect(() => durationsFromVitestReports([], ["10"], "abc")).toThrow("informes");
   });
   it("deja cada archivo actual en una única partición no vacía", () => {
     const listed = listIntegrationFiles();
