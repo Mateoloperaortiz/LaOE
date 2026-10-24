@@ -2,6 +2,7 @@ import {
   bucket,
   defineRailway,
   github,
+  image,
   postgres,
   preserve,
   project,
@@ -24,6 +25,19 @@ export default defineRailway((ctx) => {
     branch: production ? "production" : "main",
     checkSuites: true,
   });
+  // ADR-141: con WEB_IMAGE en el entorno de quien aplica (repo@digest), web despliega la imagen
+  // publicada en GHCR; sin ella, Railpack como hasta hoy. El digest del día a día se mueve con
+  // `railway service source connect`, no reaplicando: un apply debe pasar el digest EN VIVO
+  // (leerlo antes) para no revertirlo en silencio. Las credenciales viven fuera del repo.
+  const webImage = process.env.WEB_IMAGE;
+  const requiredEnv = (name: string): string => {
+    const value = process.env[name];
+    if (!value) {
+      throw new Error(`Falta ${name} para aplicar con WEB_IMAGE (ADR-141)`);
+    }
+    return value;
+  };
+  const webSource = webImage ? image(webImage) : source;
   const db = postgres("Postgres", { region: REGION });
   db.deploy = { ...db.deploy, limitOverride: LIMITS };
   const media = bucket("media", { region: "iad" });
@@ -39,18 +53,23 @@ export default defineRailway((ctx) => {
     S3_FORCE_PATH_STYLE: "false",
   };
   const web = service("web", {
-    source,
-    build: {
-      buildCommand: "npm run build",
-      // ADR-053: todo cambio desconocido despliega; solo se excluye documentación comprobada.
-      watchPatterns: ["**", ...documentationPaths.map((path) => `!/${path}`)],
-    },
+    source: webSource,
+    ...(webImage
+      ? {}
+      : {
+          build: {
+            buildCommand: "npm run build",
+            // ADR-053: todo cambio desconocido despliega; solo se excluye documentación comprobada.
+            watchPatterns: ["**", ...documentationPaths.map((path) => `!/${path}`)],
+          },
+        }),
     // Railpack deja NPM_CONFIG_PRODUCTION en la imagen y npm advierte en cada invocación que la
     // clave está obsoleta; esa línea llega a los registros de Railway con severidad de error.
     // Vaciarla solo en estos comandos la deja en null sin tocar la instalación del build, que sí
-    // necesita las dependencias de desarrollo.
-    start: "NPM_CONFIG_PRODUCTION= npm run start",
-    preDeploy: "NPM_CONFIG_PRODUCTION= npm run db:release",
+    // necesita las dependencias de desarrollo. Con imagen no hay Railpack: el servidor standalone
+    // y el release transpilado entran por su nombre (ADR-141).
+    start: webImage ? "node server.js" : "NPM_CONFIG_PRODUCTION= npm run start",
+    preDeploy: webImage ? "node db-release.mjs" : "NPM_CONFIG_PRODUCTION= npm run db:release",
     healthcheck: "/api/health",
     healthcheckTimeout: 300,
     replicas: { [REGION]: 1 },
@@ -59,6 +78,14 @@ export default defineRailway((ctx) => {
       restartPolicyMaxRetries: 5,
       sleepApplication: false,
       limitOverride: LIMITS,
+      ...(webImage
+        ? {
+            registryCredentials: {
+              username: requiredEnv("GHCR_USERNAME"),
+              password: requiredEnv("GHCR_TOKEN"),
+            },
+          }
+        : {}),
     },
     ...(production ? { domains: [{ domain: "oeeafit.com", port: 8080 }] } : {}),
     env: {

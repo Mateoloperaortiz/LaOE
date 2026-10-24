@@ -29,7 +29,7 @@
     "push:check": "node --conditions=react-server --env-file-if-exists=.env --import tsx scripts/push-check.ts",
     "bootstrap:admin": "node --conditions=react-server --import tsx scripts/bootstrap-admin.ts",
     "bootstrap:access": "node --conditions=react-server --import tsx scripts/bootstrap-access.ts",
-    "smoke": "node --import tsx scripts/smoke.ts",
+    "smoke": "node scripts/smoke.ts",
     "test:backup": "bash tests/backup/run.sh",
     "ghpoints:import": "node --conditions=react-server --env-file-if-exists=.env --import tsx scripts/import-ghpoints.ts",
     "copy:sync": "node --import tsx scripts/copy-sync.ts && biome check --write src/shared/copy/textos.generated.ts src/shared/copy/textos.client.generated.ts",
@@ -44,7 +44,8 @@
     "wordle:check": "node scripts/generate-wordle-dictionary.mjs --check",
     "test:extractor": "uv run --python 3.12 --with-requirements scripts/requirements-normativa.txt python -m unittest discover -s tests/python -v",
     "normativa:import": "node --conditions=react-server --import tsx scripts/normativa-import.ts",
-    "fotos:importar": "node --conditions=react-server --import tsx scripts/gallery-import.ts"
+    "fotos:importar": "node --conditions=react-server --import tsx scripts/gallery-import.ts",
+    "db:indexes": "node --import tsx scripts/required-indexes.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1125.0",

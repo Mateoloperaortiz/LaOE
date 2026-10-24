@@ -32,7 +32,15 @@ import {
   listIntegrationFiles,
 } from "./integration-partition.mjs";
 import { classifyPaths, comparisonBase, verifyJobs } from "./policy.mjs";
-import { findPromotionEvidence, promotionHead, REPOSITORY, verifyEvidence } from "./promotion.mjs";
+import {
+  findPromotionEvidence,
+  findTreeEvidence,
+  promotionHead,
+  REPOSITORY,
+  reuseHead,
+  verifyEvidence,
+  verifyTreeEvidence,
+} from "./promotion.mjs";
 import { verifyE2eReports, verifyIntegrationReports, verifyVitestReport } from "./reports.mjs";
 import { readSmokeDeployment } from "./smoke-context.mjs";
 import { runVitestGated } from "./vitest-gate.mjs";
@@ -62,6 +70,23 @@ function listRuns(head) {
     "gh",
     ["api", `repos/${REPOSITORY}/actions/workflows/ci.yml/runs?${query}`],
     { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], timeout: 30_000 },
+  );
+  return JSON.parse(page).workflow_runs;
+}
+
+/** Las ejecuciones aprobadas recientes de este workflow, candidatas a certificar un árbol. */
+function listRecentRuns() {
+  const query = new URLSearchParams({ status: "success", per_page: "50" });
+  const page = execFileSync(
+    "gh",
+    ["api", `repos/${REPOSITORY}/actions/workflows/ci.yml/runs?${query}`],
+    {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "inherit"],
+      timeout: 30_000,
+      // Cada ejecución trae el repo embebido: 50 rondan el megabyte por defecto de execFileSync.
+      maxBuffer: 16 * 1024 * 1024,
+    },
   );
   return JSON.parse(page).workflow_runs;
 }
@@ -158,6 +183,35 @@ try {
         notes.push(`Evidencia no reutilizable (${message(error)}): se ejecuta toda la suite.`);
       }
     }
+    // ADR-141: un push a main cuyo árbol ya pasó la suite completa no la repite; cualquier duda es full.
+    const reusable = reuseHead(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF, event, head);
+    if (mode === "full" && reusable) {
+      try {
+        const tree = git("rev-parse", "HEAD^{tree}");
+        const found = await findTreeEvidence(tree, {
+          listRuns: listRecentRuns,
+          downloadResult,
+          currentRunId: process.env.GITHUB_RUN_ID,
+        });
+        if (found) {
+          mode = "reuse";
+          mkdirSync("ci-results", { recursive: true });
+          writeFileSync(
+            "ci-results/reuse.json",
+            `${JSON.stringify({ schema: 1, sha: head, tree, ...found }, null, 2)}\n`,
+          );
+          notes.push(
+            `Se reutiliza el CI completo ${found.run.html_url} (${found.run.created_at}): certificó este mismo árbol.`,
+          );
+        } else {
+          notes.push("Sin CI completo reutilizable para este árbol: se ejecuta toda la suite.");
+        }
+      } catch (error) {
+        notes.push(
+          `Evidencia por árbol no reutilizable (${message(error)}): se ejecuta toda la suite.`,
+        );
+      }
+    }
     output("mode", mode);
     process.stdout.write(`${notes.join(" ")}\n`);
     summary(`Validación: **${mode}**. ${notes.join(" ")}`);
@@ -165,9 +219,11 @@ try {
     const mode = verifyJobs(JSON.parse(process.env.CI_NEEDS_JSON ?? "{}"));
     const directory = resolve(process.env.CI_REPORT_DIR ?? "ci-results");
     const head = git("rev-parse", "HEAD");
+    const tree = git("rev-parse", "HEAD^{tree}");
     const evidence = {
       schema: 1,
       sha: head,
+      tree,
       runId: process.env.GITHUB_RUN_ID ?? "local",
       mode,
       result: "success",
@@ -199,13 +255,25 @@ try {
         integration: reused.integration,
         e2e: reused.e2e,
       });
+    } else if (mode === "reuse") {
+      const record = readJson(`${directory}/reuse.json`);
+      assert.equal(record.schema, 1, "Registro de reutilización desconocido");
+      assert.equal(record.sha, head, "El registro de reutilización es de otro SHA");
+      assert.equal(record.tree, tree, "El registro de reutilización es de otro árbol");
+      const reused = verifyTreeEvidence(tree, record.run, record.evidence);
+      Object.assign(evidence, {
+        reused,
+        unit: reused.unit,
+        integration: reused.integration,
+        e2e: reused.e2e,
+      });
     }
     mkdirSync(directory, { recursive: true });
     writeFileSync(`${directory}/ci-result.json`, `${JSON.stringify(evidence, null, 2)}\n`);
     summary(`CI aprobado: **${mode}**, SHA \`${evidence.sha}\`.`);
     if (evidence.reused) {
       summary(
-        `Evidencia reutilizada: ${evidence.reused.url} (main, ${evidence.reused.createdAt}) con ${evidence.unit.cases} unitarias, ${evidence.integration.cases} de integración y ${evidence.e2e.uniqueCases} casos E2E.`,
+        `Evidencia reutilizada: ${evidence.reused.url} (${evidence.reused.headBranch}, ${evidence.reused.createdAt}) con ${evidence.unit.cases} unitarias, ${evidence.integration.cases} de integración y ${evidence.e2e.uniqueCases} casos E2E.`,
       );
     }
     if (evidence.e2e && mode === "full") {

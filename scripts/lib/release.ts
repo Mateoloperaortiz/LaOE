@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { is, sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
@@ -22,8 +22,34 @@ const CUSTOM_INDEXES = [
   "organization_name_trgm_idx",
 ];
 
-/** Índices únicos y GIN de cada `src/modules/<módulo>/schema.ts`, los mismos archivos de drizzle.config.ts. */
-export async function schemaRequiredIndexes(): Promise<string[]> {
+/**
+ * Índices únicos y GIN de cada `src/modules/<módulo>/schema.ts`, los mismos archivos de
+ * drizzle.config.ts. En la imagen (ADR-141) los esquemas no viajan: la lista llega precalculada
+ * en `REQUIRED_INDEXES_FILE`, generada al construir con esta misma función, y una lista inválida
+ * rompe el release en vez de dejarlo sin exigencias.
+ */
+export async function schemaRequiredIndexes(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): Promise<string[]> {
+  const precomputed = env.REQUIRED_INDEXES_FILE;
+  if (precomputed) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(readFileSync(precomputed, "utf8"));
+    } catch {
+      throw new Error(`REQUIRED_INDEXES_FILE no se pudo leer como JSON: ${precomputed}`);
+    }
+    if (
+      !Array.isArray(parsed) ||
+      parsed.length === 0 ||
+      !parsed.every((name) => typeof name === "string" && name.length > 0)
+    ) {
+      throw new Error(
+        `REQUIRED_INDEXES_FILE debe ser una lista no vacía de nombres: ${precomputed}`,
+      );
+    }
+    return [...new Set(parsed)].sort();
+  }
   const modulesDir = new URL("../../src/modules/", import.meta.url);
   const names = new Set<string>();
   for (const entry of readdirSync(modulesDir, { withFileTypes: true })) {

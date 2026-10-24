@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { parseSmokeOptions, runSmoke, type SmokeOptions } from "../../scripts/lib/smoke";
+import { parseSmokeOptions, runSmoke, type SmokeOptions } from "../../scripts/lib/smoke.ts";
 
 const sha = "a".repeat(40);
 const canonical = "https://app.example.test";

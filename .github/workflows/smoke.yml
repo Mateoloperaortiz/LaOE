@@ -37,17 +37,15 @@ jobs:
         with:
           # Usa las herramientas de esta versión del workflow, incluso al revisar un SHA anterior.
           ref: ${{ github.workflow_sha }}
+      # ADR-141: el smoke corre con el Node pelado (type-stripping nativo), sin instalar nada.
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
       - id: deployment
         name: Verificar origen, entorno y SHA del deployment
         run: node scripts/ci/run.mjs smoke-context
         env:
           GH_TOKEN: ${{ github.token }}
-      - run: npm ci
-        if: steps.deployment.outputs.shouldRun == 'true'
       - name: Comprobar la entrega por HTTP
         if: steps.deployment.outputs.shouldRun == 'true'
         run: |

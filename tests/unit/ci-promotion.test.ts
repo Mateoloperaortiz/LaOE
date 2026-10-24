@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   findPromotionEvidence,
+  findTreeEvidence,
   promotionHead,
+  reuseHead,
   selectEvidenceRun,
   verifyEvidence,
+  verifyTreeEvidence,
 } from "../../scripts/ci/promotion.mjs";
 
 const head = "c".repeat(40);
@@ -23,6 +26,7 @@ const run = (overrides: Record<string, unknown> = {}) => ({
 const evidence = (overrides: Record<string, unknown> = {}) => ({
   schema: 1,
   sha: head,
+  tree: "d".repeat(40),
   runId: "1001",
   mode: "full",
   result: "success",
@@ -51,6 +55,16 @@ describe("qué push puede reutilizar evidencia", () => {
       promotionHead("push", "refs/heads/production", { after: "e".repeat(40) }, head),
     ).toBeNull();
     expect(promotionHead("push", "refs/heads/production", { after: "main" }, "main")).toBeNull();
+  });
+});
+
+describe("qué push puede reutilizar por árbol", () => {
+  it("solo un push a main cuyo HEAD es el after del evento", () => {
+    expect(reuseHead("push", "refs/heads/main", { after: head }, head)).toBe(head);
+    expect(reuseHead("push", "refs/heads/production", { after: head }, head)).toBeNull();
+    expect(reuseHead("pull_request", "refs/heads/main", { after: head }, head)).toBeNull();
+    expect(reuseHead("workflow_dispatch", "refs/heads/main", {}, head)).toBeNull();
+    expect(reuseHead("push", "refs/heads/main", { after: "e".repeat(40) }, head)).toBeNull();
   });
 });
 
@@ -144,5 +158,105 @@ describe("búsqueda de evidencia con la API", () => {
         currentRunId: "2000",
       }),
     ).rejects.toThrow("completo");
+  });
+});
+
+const tree = "d".repeat(40);
+const prRun = (overrides: Record<string, unknown> = {}) =>
+  run({ event: "pull_request", head_branch: "feat/algo", ...overrides });
+
+describe("verificación de la evidencia por árbol", () => {
+  it("acepta una ejecución de PR completa y aprobada con el mismo árbol", () => {
+    const reused = verifyTreeEvidence(tree, prRun(), evidence());
+    expect(reused).toMatchObject({
+      runId: "1001",
+      sha: head,
+      tree,
+      headBranch: "feat/algo",
+      unit: { cases: 432 },
+      e2e: { uniqueCases: 169 },
+    });
+  });
+  it.each([
+    ["otro árbol", evidence({ tree: "e".repeat(40) }), "árbol"],
+    ["evidencia sin árbol", evidence({ tree: undefined }), "árbol"],
+    ["una reutilización anterior", evidence({ mode: "reuse" }), "completo"],
+    ["una promoción anterior", evidence({ mode: "promotion" }), "completo"],
+    ["un CI documental", evidence({ mode: "documentation" }), "completo"],
+    ["otra ejecución", evidence({ runId: "999" }), "otra ejecución"],
+    ["unitarias sin casos", evidence({ unit: { cases: 0 } }), "unit"],
+  ])("rechaza %s", (_label, item, message) => {
+    expect(() => verifyTreeEvidence(tree, prRun(), item)).toThrow(message);
+  });
+  it("rechaza ejecuciones que no sean PR o push aprobados de este workflow y repo", () => {
+    expect(() =>
+      verifyTreeEvidence(tree, prRun({ event: "workflow_dispatch" }), evidence()),
+    ).toThrow();
+    expect(() => verifyTreeEvidence(tree, prRun({ conclusion: "failure" }), evidence())).toThrow(
+      "aprobada",
+    );
+    expect(() =>
+      verifyTreeEvidence(tree, prRun({ path: ".github/workflows/smoke.yml" }), evidence()),
+    ).toThrow("workflow");
+    expect(() =>
+      verifyTreeEvidence(tree, prRun({ repository: { full_name: "otro/repo" } }), evidence()),
+    ).toThrow();
+    expect(() => verifyTreeEvidence("no-es-un-arbol", prRun(), evidence())).toThrow(
+      "Árbol inválido",
+    );
+  });
+});
+
+describe("búsqueda de evidencia por árbol", () => {
+  it("devuelve la primera ejecución reciente con evidencia completa del mismo árbol", async () => {
+    const newest = prRun({ id: 1002, created_at: "2026-09-11T16:00:00Z" });
+    const results: Record<number, unknown> = {
+      1002: evidence({ runId: "1002", tree: "e".repeat(40) }),
+      1001: evidence(),
+    };
+    const found = await findTreeEvidence(tree, {
+      listRuns: async () => [run(), newest],
+      downloadResult: async (id: number) => results[id] ?? null,
+      currentRunId: "2000",
+    });
+    expect(found).toMatchObject({ run: { id: 1001 }, evidence: { tree } });
+  });
+  it("salta evidencias no completas o sin árbol y sigue buscando", async () => {
+    const newest = prRun({ id: 1002, created_at: "2026-09-11T16:00:00Z" });
+    const results: Record<number, unknown> = {
+      1002: evidence({ runId: "1002", mode: "documentation" }),
+      1001: evidence(),
+    };
+    const found = await findTreeEvidence(tree, {
+      listRuns: async () => [newest, run()],
+      downloadResult: async (id: number) => results[id] ?? null,
+      currentRunId: "2000",
+    });
+    expect(found?.run.id).toBe(1001);
+  });
+  it("no reutiliza nada sin candidata ni a sí misma", async () => {
+    expect(
+      await findTreeEvidence(tree, {
+        listRuns: async () => [],
+        downloadResult: async () => evidence(),
+        currentRunId: "2000",
+      }),
+    ).toBeNull();
+    expect(
+      await findTreeEvidence(tree, {
+        listRuns: async () => [prRun()],
+        downloadResult: async () => evidence(),
+        currentRunId: "1001",
+      }),
+    ).toBeNull();
+  });
+  it("falla cuando la evidencia completa del mismo árbol está mal formada", async () => {
+    await expect(
+      findTreeEvidence(tree, {
+        listRuns: async () => [prRun()],
+        downloadResult: async () => evidence({ runId: "999" }),
+        currentRunId: "2000",
+      }),
+    ).rejects.toThrow("otra ejecución");
   });
 });

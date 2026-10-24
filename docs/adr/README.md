@@ -18,6 +18,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-144](ADR-144-reintentos-de-avisos-push-fallidos.md) | Reintentos de avisos push fallidos | Aceptada |
 | [ADR-143](ADR-143-mis-datos-completo-y-con-paso-de-seguridad.md) | Mis datos completo y con paso de seguridad | Aceptada |
 | [ADR-142](ADR-142-ip-del-ingreso-publico-de-railway.md) | IP validada del ingreso HTTP público de Railway, sin respaldos de cabeceras del cliente | Aceptada |
+| [ADR-141](ADR-141-fase-c-de-cd.md) | Fase C de CD: reutilización del CI por árbol idéntico, imagen única promovida por digest y smoke sin dependencias | Aceptada |
 | [ADR-140](ADR-140-fase-b-de-tiempos-de-ci.md) | Fase B de tiempos de CI: integración en paralelo con base por worker, calidad en tres jobs y E2E adaptables partidos | Aceptada |
 | [ADR-139](ADR-139-fase-a-de-tiempos-de-ci.md) | Fase A de tiempos de CI: tres runners de integración, seis E2E y duraciones medianas | Aceptada (enmendada por ADR-140) |
 | [ADR-138](ADR-138-tu-paisa-sutil-sin-acentuacion-argentina.md) | Tú paisa sutil, sin acentuación argentina | Aceptada |
@@ -104,7 +105,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-057](ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md) | Vicepresidencia de Comunicaciones y Publicidad como cargo de junta | Aceptada; en producción |
 | [ADR-056](ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md) | Alta y condición del semestre desde la Persona 360 | Aceptada; verificada en producción |
 | [ADR-055](ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) | Cuatro particiones E2E, integración en dos runners y lista documental ampliada | Aceptada (enmendada por ADR-139); validada en remoto |
-| [ADR-054](ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) | Reutilización del CI en la promoción y particiones E2E balanceadas | Aceptada (enmendada por ADR-055); validada en remoto |
+| [ADR-054](ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) | Reutilización del CI en la promoción y particiones E2E balanceadas | Aceptada (enmendada por ADR-055 y ADR-141); validada en remoto |
 | [ADR-052](ADR-052-aislamiento-y-fallos-de-las-pruebas-e2e.md) | Aislamiento, calendario y fallos de las pruebas E2E | Aceptada (enmendada por ADR-077 y ADR-116) |
 | [ADR-053](ADR-053-ci-en-paralelo-y-verificacion-del-despliegue.md) | CI en paralelo, inventario obligatorio y smoke posterior | Aceptada (enmendada por ADR-054, ADR-055 y ADR-120) |
 | [ADR-051](ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) | Acceso con contraseña propia y enlace de un solo uso de la junta | Aceptada (enmendada por ADR-113, ADR-114, ADR-116, ADR-118) |
