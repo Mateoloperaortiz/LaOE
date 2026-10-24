@@ -18,6 +18,7 @@ import type { CommandContext } from "@/db/tx";
 import { getCurrentTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { MAX_INPUT_COLLECTION_ITEMS } from "@/shared/lib/input-collections";
 import {
   committeeMembership,
   committeeRoleAssignment,
@@ -46,6 +47,27 @@ export type SegmentFilter = z.infer<typeof segmentFilterSchema>;
 
 export const segmentInputSchema = segmentFilterSchema.extend({
   name: z.string().trim().min(2).max(80),
+  // Solo la entrada nueva tiene cota: una lectura histórica no debe perder su filtro (ADR-146).
+  stages: segmentFilterSchema.shape.stages
+    .unwrap()
+    .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") })
+    .default([]),
+  statuses: segmentFilterSchema.shape.statuses
+    .unwrap()
+    .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") })
+    .default([]),
+  committeeIds: segmentFilterSchema.shape.committeeIds
+    .unwrap()
+    .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") })
+    .default([]),
+  roleCodes: segmentFilterSchema.shape.roleCodes
+    .unwrap()
+    .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") })
+    .default([]),
+  tagIds: segmentFilterSchema.shape.tagIds
+    .unwrap()
+    .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") })
+    .default([]),
 });
 
 export type SegmentInput = z.infer<typeof segmentInputSchema>;

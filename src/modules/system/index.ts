@@ -35,6 +35,7 @@ export {
 } from "./domain/imports";
 export { checkBackup, getBackupStatus } from "./domain/maintenance";
 export { countDeadLetters, listOutbox, type OutboxRow, retryDeadLetterAs } from "./domain/outbox";
+export { collectOwnAuditData } from "./domain/own-data";
 export {
   getPrivacyPolicyState,
   PrivacyPolicyPendingError,

@@ -21,6 +21,7 @@ import { getObject, putObject } from "@/shared/adapters/storage";
 import { t, tLabels } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
+import { MAX_INPUT_COLLECTION_ITEMS } from "@/shared/lib/input-collections";
 import {
   committee,
   committeeMembership,
@@ -78,6 +79,14 @@ const ROSTER_JOB: ImportJobType = "ROSTER";
 
 const columnSchema = z.enum(ROSTER_COLUMNS).nullable();
 const mappingSchema = z.array(columnSchema);
+const mappingInputSchema = mappingSchema.max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") });
+
+/** El formulario valida la cantidad antes de construir el mapeo (ADR-146). */
+export const rosterColumnCountSchema = z.coerce
+  .number()
+  .int()
+  .min(0)
+  .max(MAX_INPUT_COLLECTION_ITEMS);
 
 const previewRowSchema = z.object({
   row: z.number(),
@@ -539,6 +548,10 @@ export async function remapRosterPreviewAs(
   jobId: string,
   mapping: Array<RosterColumn | null>,
 ): Promise<void> {
+  const parsedMapping = mappingInputSchema.safeParse(mapping);
+  if (!parsedMapping.success) {
+    throw new DomainError(t("T-260"));
+  }
   const job = await getImportJob(jobId);
   if (!job?.fileKey || !job.termId) {
     throw new DomainError(t("T-032"));
@@ -549,7 +562,7 @@ export async function remapRosterPreviewAs(
   }
   const bytes = await getObject(job.fileKey);
   const cells = await readRosterCells(bytes, current.data.format);
-  const built = await buildPreview(cells, mapping, job.termId);
+  const built = await buildPreview(cells, parsedMapping.data, job.termId);
   await runCommand(actor, async (ctx) => {
     await takeImportJobInPreview(ctx, jobId, ROSTER_JOB);
     await updateImportJob(ctx, jobId, {

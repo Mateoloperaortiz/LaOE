@@ -9,6 +9,7 @@ import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
 import { drenarOutbox } from "./outbox";
+import { downloadOwnData } from "./own-data";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
@@ -53,10 +54,10 @@ test("inicia sin filtrar la respuesta, rechaza palabras ausentes y acredita una 
   await expect(word).toBeVisible();
   const saved = await savedGame();
   expect(await page.content()).not.toContain(`"answer":"${saved.answer}"`);
-  const exported = await (await page.request.get("/api/mis-datos")).json();
+  const exported = await (await downloadOwnData(page)).json();
   expect(
-    exported.wordleGames.find((item: { id: string }) => item.id === saved.id).answer,
-  ).toBeNull();
+    exported.wordleGames.find((item: { id: string }) => item.id === saved.id),
+  ).not.toHaveProperty("answer");
   await word.fill("ZZZZZ");
   await game.getByRole("button", { name: t("T-1237") }).click();
   await expect(game.getByRole("status")).toContainText(t("T-1244"));

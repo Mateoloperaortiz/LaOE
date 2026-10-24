@@ -14,6 +14,7 @@ import {
 import { closeTermPermanence, ensureNextTerm, getTerm } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { MAX_INPUT_COLLECTION_ITEMS } from "@/shared/lib/input-collections";
 import { permanenceDecision } from "../schema";
 import {
   type CommitteeDecision,
@@ -304,12 +305,14 @@ export async function listClosingRows(
 export const decisionInputSchema = z.object({
   personId: z.string().min(1),
   person: z.enum(["CONTINUES", "EXIT_OE"]),
-  committees: z.array(
-    z.object({
-      committeeId: z.string().min(1),
-      decision: z.enum(["CONTINUES", "PROBATION", "EXIT_COMMITTEE"]),
-    }),
-  ),
+  committees: z
+    .array(
+      z.object({
+        committeeId: z.string().min(1),
+        decision: z.enum(["CONTINUES", "PROBATION", "EXIT_COMMITTEE"]),
+      }),
+    )
+    .max(MAX_INPUT_COLLECTION_ITEMS, { message: t("T-260") }),
   reason: z.string().trim().max(1000).default(""),
 });
 export type DecisionInput = z.infer<typeof decisionInputSchema>;

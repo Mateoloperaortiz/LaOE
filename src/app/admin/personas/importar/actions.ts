@@ -14,6 +14,7 @@ import {
   type RosterColumn,
   recordLeaderGrantsAs,
   remapRosterPreviewAs,
+  rosterColumnCountSchema,
 } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -36,9 +37,12 @@ function isColumn(value: string): value is RosterColumn {
 export async function remapAction(formData: FormData): Promise<void> {
   const jobId = idSchema.parse(formData.get("jobId"));
   const actor = await requireAdminActor(jobUrl(jobId));
-  const count = Number.parseInt(String(formData.get("columns") ?? "0"), 10) || 0;
+  const count = rosterColumnCountSchema.safeParse(formData.get("columns") ?? 0);
+  if (!count.success) {
+    redirect(jobUrl(jobId, { paso: "columnas", error: t("T-260") }));
+  }
   const mapping: Array<RosterColumn | null> = [];
-  for (let index = 0; index < count; index += 1) {
+  for (let index = 0; index < count.data; index += 1) {
     const value = String(formData.get(`col_${index}`) ?? "");
     mapping.push(isColumn(value) ? value : null);
   }

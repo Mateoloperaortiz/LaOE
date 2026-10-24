@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_INPUT_COLLECTION_ITEMS } from "@/shared/lib/input-collections";
 
 // Solicitudes sin I/O (ADR-031, ADR-037): un payload por tipo y el conjunto de comités que resulta de un
 // cambio para el semestre siguiente. El orden de REQUEST_KINDS es el de T-139 y T-894.
@@ -59,8 +60,14 @@ export type ExcusePayload = z.infer<typeof excusePayloadSchema>;
 
 export const transferPayloadSchema = z
   .object({
-    leaveCommitteeIds: z.array(z.string().trim().min(1)).default([]),
-    joinCommitteeIds: z.array(z.string().trim().min(1)).default([]),
+    leaveCommitteeIds: z
+      .array(z.string().trim().min(1))
+      .max(MAX_INPUT_COLLECTION_ITEMS, { message: "T-887" })
+      .default([]),
+    joinCommitteeIds: z
+      .array(z.string().trim().min(1))
+      .max(MAX_INPUT_COLLECTION_ITEMS, { message: "T-887" })
+      .default([]),
     reason,
   })
   .superRefine((payload, ctx) => {

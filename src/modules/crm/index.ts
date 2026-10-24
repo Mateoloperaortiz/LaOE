@@ -67,6 +67,7 @@ export {
   setPrimaryContactAs,
   updateOrganizationAs,
 } from "./domain/organizations";
+export { collectOwnCrmData } from "./domain/own-data";
 export {
   deleteStageAs,
   getPipeline,
