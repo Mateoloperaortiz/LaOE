@@ -30,7 +30,7 @@ export function verifyJobs(needs) {
   assert.equal(needs.cambios?.result, "success", "Falló la clasificación del cambio");
   const mode = needs.cambios.outputs?.mode;
   assert(["documentation", "promotion", "full"].includes(mode), "Modo de CI ausente o desconocido");
-  for (const name of ["calidad", "respaldo", "integracion", "e2e"]) {
+  for (const name of ["estatica", "unitarias", "build", "respaldo", "integracion", "e2e"]) {
     assert.equal(
       needs[name]?.result,
       mode === "full" ? "success" : "skipped",

@@ -1,7 +1,9 @@
 import walletCredentials from "../fixtures/wallet/toy-credentials.json";
-import { testDatabaseUrl } from "./test-database";
+import { integrationPoolId, testDatabaseUrl } from "./test-database";
 
-// Cada worker apunta a la base de pruebas (creada y migrada por global-setup.ts).
+// Cada worker apunta a su base de pruebas (creada y migrada por global-setup.ts): la ranura de
+// Vitest (`VITEST_POOL_ID`) decide cuál, para que dos archivos en paralelo no se vacíen el uno
+// al otro entre prueba y prueba.
 try {
   process.loadEnvFile(".env");
 } catch {
@@ -13,7 +15,7 @@ if (!process.env.DATABASE_URL) {
     "Las pruebas de integración necesitan DATABASE_URL (copiá .env.example a .env y corré npm run db:up)",
   );
 }
-process.env.DATABASE_URL = testDatabaseUrl(process.env.DATABASE_URL);
+process.env.DATABASE_URL = testDatabaseUrl(process.env.DATABASE_URL, integrationPoolId());
 
 // El .env de desarrollo no decide transportes ni códigos de una prueba.
 Object.assign(process.env, {

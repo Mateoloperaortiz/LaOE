@@ -25,6 +25,7 @@ import { deleteObject, getObject } from "@/shared/adapters/storage";
 import { leaveUntilSoon, seedMember } from "../factories";
 import { sampleNormativaPdf } from "../helpers/pdf";
 import { truncateAll } from "./db";
+import { isTestDatabaseUrl } from "./test-database";
 
 const runFile = promisify(execFile);
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -37,7 +38,7 @@ function hash(bytes: Uint8Array): string {
 /** Solo las variables de la base/bucket de pruebas; el hijo nunca carga .env ni hereda NODE_OPTIONS. */
 function childEnvironment(): NodeJS.ProcessEnv {
   const env = getEnv();
-  if (!new URL(env.DATABASE_URL).pathname.endsWith("_test")) {
+  if (!isTestDatabaseUrl(env.DATABASE_URL)) {
     throw new Error("El subprocess de normativa exige la base de integración _test");
   }
   return {
@@ -195,94 +196,101 @@ describe("comando operativo de normativa", () => {
 
   afterAll(closeDb);
 
-  it("simula, carga un borrador con imagen privada, repite sin duplicados y publica la carga idéntica", async () => {
-    const email = "cli.admin.sintetico@eafit.edu.co";
-    const actorId = await seedMember(email);
-    await grantPermissionAs(SYSTEM_ACTOR, { email, code: "ADMIN" });
-    const input = await fixture();
-    const path = await manifestFile([input.manifest]);
-    const before = await writesSnapshot();
-    const simulated = await runCli(path);
-    expect(simulated.code, simulated.stderr).toBe(0);
-    expect(simulated.stdout).toContain("SIMULACIÓN");
-    expect(await writesSnapshot()).toEqual(before);
+  // Cuatro subprocesos del CLI en serie (15 s de tope cada uno): con los archivos de integración
+  // en paralelo (ADR-140) el límite general de 20 s se queda corto sin que nada esté roto.
+  it(
+    "simula, carga un borrador con imagen privada, repite sin duplicados y publica la carga idéntica",
+    { timeout: 90_000 },
+    async () => {
+      const email = "cli.admin.sintetico@eafit.edu.co";
+      const actorId = await seedMember(email);
+      await grantPermissionAs(SYSTEM_ACTOR, { email, code: "ADMIN" });
+      const input = await fixture();
+      const path = await manifestFile([input.manifest]);
+      const before = await writesSnapshot();
+      const simulated = await runCli(path);
+      expect(simulated.code, simulated.stderr).toBe(0);
+      expect(simulated.stdout).toContain("SIMULACIÓN");
+      expect(await writesSnapshot()).toEqual(before);
 
-    const actorArgs = ["--actor-id", actorId, "--apply"];
-    const premature = await runCli(path, [...actorArgs, "--publish"]);
-    expect(premature.code).toBe(1);
-    expect(premature.stderr).toContain("carga previa idéntica");
-    expect(await writesSnapshot()).toEqual(before);
-    const applied = await runCli(path, actorArgs);
-    expect(applied.code, applied.stderr).toBe(0);
-    const documents = await listDocuments({ q: "", page: 1, pageSize: 100 });
-    expect(documents.total).toBe(1);
-    const document = documents.rows[0];
-    if (!document) throw new Error("Falta el documento cargado por el CLI");
-    expect(document).toMatchObject({
-      status: "DRAFT",
-      articleCount: 1,
-      unitCount: 2,
-      sha256: hash(input.pdf),
-      uploadedById: actorId,
-    });
-    expect(document.contentSha256).toMatch(/^[a-f0-9]{64}$/);
-    const detail = await getDocumentWithArticles(document.id);
-    expect(detail?.articles.map((article) => article.articleKey)).toEqual(["art-1", "anexo-1"]);
-    const media = await listMedia({ q: "", page: 1, pageSize: 100 });
-    expect(media.total).toBe(1);
-    const image = media.rows[0];
-    if (!image) throw new Error("Falta la imagen cargada por el CLI");
-    expect(image).toMatchObject({
-      visibility: "PRIVATE",
-      status: "READY",
-      width: 96,
-      height: 96,
-      uploadedById: actorId,
-    });
-    expect(hash(await getObject(image.objectKey))).toBe(hash(input.png));
-    expect(detail?.articles[0]?.blocks).toContainEqual({
-      type: "image",
-      assetId: image.id,
-      alt: "Organigrama sintético de prueba.",
-    });
-    expect(await resolveMediaRedirect(image.id, null, { authenticated: false })).toEqual({
-      status: 403,
-    });
-    expect(await listPublishedDocuments()).toEqual([]);
-    expect(await listSessionsFor(actorId)).toEqual([]);
+      const actorArgs = ["--actor-id", actorId, "--apply"];
+      const premature = await runCli(path, [...actorArgs, "--publish"]);
+      expect(premature.code).toBe(1);
+      expect(premature.stderr).toContain("carga previa idéntica");
+      expect(await writesSnapshot()).toEqual(before);
+      const applied = await runCli(path, actorArgs);
+      expect(applied.code, applied.stderr).toBe(0);
+      const documents = await listDocuments({ q: "", page: 1, pageSize: 100 });
+      expect(documents.total).toBe(1);
+      const document = documents.rows[0];
+      if (!document) throw new Error("Falta el documento cargado por el CLI");
+      expect(document).toMatchObject({
+        status: "DRAFT",
+        articleCount: 1,
+        unitCount: 2,
+        sha256: hash(input.pdf),
+        uploadedById: actorId,
+      });
+      expect(document.contentSha256).toMatch(/^[a-f0-9]{64}$/);
+      const detail = await getDocumentWithArticles(document.id);
+      expect(detail?.articles.map((article) => article.articleKey)).toEqual(["art-1", "anexo-1"]);
+      const media = await listMedia({ q: "", page: 1, pageSize: 100 });
+      expect(media.total).toBe(1);
+      const image = media.rows[0];
+      if (!image) throw new Error("Falta la imagen cargada por el CLI");
+      expect(image).toMatchObject({
+        visibility: "PRIVATE",
+        status: "READY",
+        width: 96,
+        height: 96,
+        uploadedById: actorId,
+      });
+      expect(hash(await getObject(image.objectKey))).toBe(hash(input.png));
+      expect(detail?.articles[0]?.blocks).toContainEqual({
+        type: "image",
+        assetId: image.id,
+        alt: "Organigrama sintético de prueba.",
+      });
+      expect(await resolveMediaRedirect(image.id, null, { authenticated: false })).toEqual({
+        status: 403,
+      });
+      expect(await listPublishedDocuments()).toEqual([]);
+      expect(await listSessionsFor(actorId)).toEqual([]);
 
-    const loaded = await writesSnapshot();
-    const repeated = await runCli(path, actorArgs);
-    expect(repeated.code, repeated.stderr).toBe(0);
-    expect(repeated.stdout).toContain("unchanged");
-    expect(await writesSnapshot()).toEqual(loaded);
+      const loaded = await writesSnapshot();
+      const repeated = await runCli(path, actorArgs);
+      expect(repeated.code, repeated.stderr).toBe(0);
+      expect(repeated.stdout).toContain("unchanged");
+      expect(await writesSnapshot()).toEqual(loaded);
 
-    const published = await runCli(path, [...actorArgs, "--publish"]);
-    expect(published.code, published.stderr).toBe(0);
-    expect(await listPublishedDocuments()).toMatchObject([
-      { id: document.id, articleCount: 1, unitCount: 2 },
-    ]);
-    expect((await getDocumentWithArticles(document.id))?.articles).toEqual(detail?.articles);
-    expect(
-      (await resolveDocumentRedirect(document.id, { authenticated: true, isAdmin: false })).status,
-    ).toBe(302);
-    expect((await listMedia({ q: "", page: 1, pageSize: 100 })).rows).toEqual(media.rows);
-    const audit = await getDb()
-      .select({ action: auditLog.action, actorId: auditLog.actorId })
-      .from(auditLog);
-    expect(audit).toEqual(
-      expect.arrayContaining([
-        { action: "document.uploaded", actorId },
-        { action: "document.articles-replaced", actorId },
-        { action: "document.published", actorId },
-        { action: "media.uploaded", actorId },
-      ]),
-    );
-    const complete = await writesSnapshot();
-    const republished = await runCli(path, [...actorArgs, "--publish"]);
-    expect(republished.code, republished.stderr).toBe(0);
-    expect(await writesSnapshot()).toEqual(complete);
-  });
+      const published = await runCli(path, [...actorArgs, "--publish"]);
+      expect(published.code, published.stderr).toBe(0);
+      expect(await listPublishedDocuments()).toMatchObject([
+        { id: document.id, articleCount: 1, unitCount: 2 },
+      ]);
+      expect((await getDocumentWithArticles(document.id))?.articles).toEqual(detail?.articles);
+      expect(
+        (await resolveDocumentRedirect(document.id, { authenticated: true, isAdmin: false }))
+          .status,
+      ).toBe(302);
+      expect((await listMedia({ q: "", page: 1, pageSize: 100 })).rows).toEqual(media.rows);
+      const audit = await getDb()
+        .select({ action: auditLog.action, actorId: auditLog.actorId })
+        .from(auditLog);
+      expect(audit).toEqual(
+        expect.arrayContaining([
+          { action: "document.uploaded", actorId },
+          { action: "document.articles-replaced", actorId },
+          { action: "document.published", actorId },
+          { action: "media.uploaded", actorId },
+        ]),
+      );
+      const complete = await writesSnapshot();
+      const republished = await runCli(path, [...actorArgs, "--publish"]);
+      expect(republished.code, republished.stderr).toBe(0);
+      expect(await writesSnapshot()).toEqual(complete);
+    },
+  );
 
   it("un SHA incompatible en el segundo documento impide escribir el primero", async () => {
     const email = "cli.hash.sintetico@eafit.edu.co";

@@ -226,10 +226,9 @@ describe("tope de píxeles de salida", () => {
   it("una imagen de 1600 × 16.000 no sale con más píxeles que el tope en ninguna codificación", async () => {
     // 25,6 megapíxeles en medio mega: pasa el tope de entrada y el presupuesto de memoria.
     const tall = await decodeImage(await flat(1600, 16_000, 4).png().toBuffer());
-    const encoded = [];
-    for (const bound of BOUNDS) {
-      encoded.push({ bound, ...(await tall.toWebp(bound)) });
-    }
+    const encoded = await Promise.all(
+      BOUNDS.map(async (bound) => ({ bound, ...(await tall.toWebp(bound)) })),
+    );
 
     expect(encoded.map((image) => [image.bound, pixels(image) <= IMAGE_MAX_OUTPUT_PIXELS])).toEqual(
       BOUNDS.map((bound) => [bound, true]),
@@ -318,35 +317,54 @@ describe("tope de píxeles de salida", () => {
         },
       });
     // Entre todas cruzan cada escalón: la primera pasa del lado de la completa y del ancho mayor.
-    const commons: Array<[string, Buffer]> = [
-      ["JPEG apaisado de 2700 × 1800", await noise(2700, 1800).jpeg().toBuffer()],
-      ["JPEG vertical de 1201 × 1601", await noise(1201, 1601).jpeg().toBuffer()],
-      ["PNG de captura de 540 × 1170", await noise(540, 1170).png().toBuffer()],
-      ["WebP de 1000 × 563", await noise(1000, 563).webp().toBuffer()],
-      ["PNG pequeño de 300 × 200", await noise(300, 200).png().toBuffer()],
-      [
-        "JPEG girado por EXIF de 1000 × 750",
-        await noise(1000, 750).withMetadata({ orientation: 8 }).jpeg().toBuffer(),
-      ],
-    ];
+    const commons: Array<[string, Buffer]> = await Promise.all([
+      noise(2700, 1800)
+        .jpeg()
+        .toBuffer()
+        .then((bytes): [string, Buffer] => ["JPEG apaisado de 2700 × 1800", bytes]),
+      noise(1201, 1601)
+        .jpeg()
+        .toBuffer()
+        .then((bytes): [string, Buffer] => ["JPEG vertical de 1201 × 1601", bytes]),
+      noise(540, 1170)
+        .png()
+        .toBuffer()
+        .then((bytes): [string, Buffer] => ["PNG de captura de 540 × 1170", bytes]),
+      noise(1000, 563)
+        .webp()
+        .toBuffer()
+        .then((bytes): [string, Buffer] => ["WebP de 1000 × 563", bytes]),
+      noise(300, 200)
+        .png()
+        .toBuffer()
+        .then((bytes): [string, Buffer] => ["PNG pequeño de 300 × 200", bytes]),
+      noise(1000, 750)
+        .withMetadata({ orientation: 8 })
+        .jpeg()
+        .toBuffer()
+        .then((bytes): [string, Buffer] => ["JPEG girado por EXIF de 1000 × 750", bytes]),
+    ]);
 
-    const different: string[] = [];
-    for (const [name, bytes] of commons) {
-      const image = await decodeImage(bytes);
-      for (const bound of BOUNDS) {
-        const expected = await before(
-          bytes,
-          "side" in bound
-            ? { width: bound.side, height: bound.side, fit: "inside" }
-            : { width: bound.width },
+    // Cada pareja (imagen, cota) codifica por su cuenta: van en paralelo y el fallo las nombra todas.
+    const different = await Promise.all(
+      commons.map(async ([name, bytes]) => {
+        const image = await decodeImage(bytes);
+        const mismatches = await Promise.all(
+          BOUNDS.map(async (bound) => {
+            const expected = await before(
+              bytes,
+              "side" in bound
+                ? { width: bound.side, height: bound.side, fit: "inside" }
+                : { width: bound.width },
+            );
+            const encoded = await image.toWebp(bound);
+            return encoded.data.equals(expected) ? null : `${name} a ${JSON.stringify(bound)}`;
+          }),
         );
-        const encoded = await image.toWebp(bound);
-        if (!encoded.data.equals(expected)) {
-          different.push(`${name} a ${JSON.stringify(bound)}`);
-        }
-      }
-    }
-    expect(different).toEqual([]);
+        return mismatches.filter((mismatch) => mismatch !== null);
+      }),
+    );
+    expect(different.flat()).toEqual([]);
   }, 60_000);
 
   it("un lado cuyo cuadrado pasa del tope rompe en vez de dejar fallida la imagen", async () => {

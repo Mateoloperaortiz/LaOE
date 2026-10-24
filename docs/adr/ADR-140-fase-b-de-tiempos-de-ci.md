@@ -1,0 +1,38 @@
+# ADR-140: Fase B de tiempos de CI: integración en paralelo con base por worker, calidad en tres jobs y E2E adaptables partidos
+
+- Estado: Aceptada
+- Fecha: 2026-10-24
+- Relacionadas: ADR-052, ADR-053, ADR-054, ADR-055, ADR-120, ADR-124, ADR-139
+- Enmienda: ADR-124 (el vaciado entre pruebas pasa a ser por base de cada worker, sin tocar sus reglas de contenido) y ADR-139 (la estructura de jobs que la puerta final exige)
+
+## Contexto
+
+Con la Fase A (ADR-139) el CI bajó a 368–381 s por corrida. En la corrida 40114018372 los jobs más lentos fueron E2E (251–336 s por shard, ~97 s de preparación fija y ~239 s de Playwright en el peor), integración (228–302 s) y el job de calidad (300 s, de los cuales 158 s eran solo la suite unitaria en serie con lint, tipos, dependencias y build).
+
+Tres mediciones locales fijaron el diseño:
+
+- Quitar el aislamiento de módulos de Vitest (`--no-isolate`) en un subconjunto representativo de integración ahorra el costo de imports, pero **rompe 12 casos de 235**: el proveedor push y los registros de jobs quedan construidos por un archivo y los hereda el siguiente. Sin aislamiento no hay paralelismo seguro posible vía módulos compartidos.
+- Vitest expone `VITEST_POOL_ID` como ranura estable y reutilizable por worker (1..N), distinto del identificador por archivo. Eso permite correr archivos en paralelo manteniendo el aislamiento de módulos si cada ranura tiene su propia base: el vaciado de ADR-124 deja de ser un candado global entre archivos concurrentes. El subconjunto pasó de 37,5 s en serie a 18,8 s con dos workers y 14,5 s con tres; la suite completa (221 archivos, 2.020 casos) corrió en 159 s locales con dos.
+- Los dos escenarios E2E más largos (`admin-details-responsive`, 130 s; `admin-responsive`, 85 s) son bucles de 4 anchos × 2 temas dentro de un solo archivo, indivisibles para el reparto por archivo. En las unitarias, `image-decoder.test.ts` es el archivo más lento de CI (25,8 s); su caso «byte a byte» codificaba en serie 48 imágenes independientes.
+
+## Decisión
+
+1. **Integración corre archivos en paralelo, una base de pruebas por ranura.** `INTEGRATION_WORKERS` (1–4, dos por defecto) fija `maxWorkers` y `fileParallelism` del proyecto de integración. `tests/integration/test-database.ts` deriva de la URL base la base de cada ranura (`<nombre>_test`, `<nombre>_test_w2`, …) y valida la ranura del proceso; `setup.ts` apunta cada worker a la suya y `global-setup.ts` migra la primera y clona las demás con `CREATE DATABASE … TEMPLATE` — incluida la foto de catálogos de ADR-124 —, terminando antes las sesiones que bloquearían la copia. El aislamiento de módulos por archivo no se toca, y con `INTEGRATION_WORKERS=1` la suite vuelve exactamente al comportamiento anterior. El valor por defecto es dos y no tres: el runner de CI tiene 4 vCPU que comparte con el Postgres del shard, y las pruebas de concurrencia sensibles a tiempos corren bajo la misma presión que cualquier otro archivo.
+2. **El job de calidad se divide en tres jobs paralelos:** `estatica` (Biome, tsc, dependency-cruiser, knip), `unitarias` (unit, extractor de normativa; sube `ci-unit/unit.json`) y `build` (compila e inventaría la E2E; sube `ci-inventory/inventory.json`). La puerta final (`scripts/ci/policy.mjs`) exige los seis jobs pesados — los tres nuevos, respaldo, integración y E2E — con el mismo contrato de modos (full = éxito, documentación/promoción = omitidos). El paso de build usa una clave de caché nueva que restaura también la de la clave anterior, para no pagar un primer build frío.
+3. **Los bucles adaptables E2E se parten por anchos.** `admin-details-responsive` queda con 360/390 px y `admin-details-wide` toma 768/1440 px sobre la siembra compartida de `admin-details-fixture.ts`; `admin-responsive` queda con 360/390 px y `admin-responsive-wide` con 768/1440 px sobre `admin-responsive-check.ts`. Ningún caso cambia: el inventario sigue en 267 casos y los nuevos archivos entran al reparto por duración como cualquier otro (con peso mediano hasta el primer refresco de duraciones que los contenga).
+4. **El caso pesado de `image-decoder` codifica en paralelo lo que ya era independiente**: las seis imágenes comunes, sus 24 comparaciones byte a byte contra la codificación de referencia y las cotas de la imagen alta van con `Promise.all` (de 7,9 s a 5,0 s locales, mismos bytes comparados).
+
+## Consecuencias
+
+- Cada runner de integración paga crear una o más bases clonadas por corrida (segundos contra Postgres local) y cada job nuevo de calidad repite `npm ci` (~24 s): a cambio, el camino crítico estimado baja de ~336 s (E2E) como techo duro, con integración y calidad por debajo de ~200 s si el CI replica la escala local. La medición se registra en este ADR al cerrar la fase, como en la anterior.
+- Las bases `_test_wN` quedan en el Postgres local del desarrollador entre corridas, igual que ya quedaba `_test`; `global-setup` las recrea desde la plantilla en cada corrida.
+- Subir `INTEGRATION_WORKERS` en CI es una variable del job, no un cambio de código: si una medición futura lo justifica, la puerta sigue siendo la suite completa repetida (los casos de concurrencia son los primeros en resentir la presión extra).
+- Lo que no cambia: modos, evidencia por SHA exacto, conteos exactos, cero reintentos, `workers: 1` por shard E2E (la E2E sigue serializada contra su único servidor y su única base por runner; paralelizarla por dentro sigue fuera de alcance) y el refresco manual de duraciones de ADR-139.
+
+## Cómo quedó (2026-10-24)
+
+La primera corrida completa en verde (ejecución 40121735231) tardó **404 s**, todavía por encima de los 368 s tibios de la Fase A, y la descomposición dice por qué: integración bajó a 249–269 s por shard (contra 228–302 s, con el máximo recortado), calidad dejó de ser camino crítico (unitarias 198 s, estática 101 s, build 73 s contra el job único de 300 s), pero E2E quedó desbalanceado (256–372 s) porque los cuatro archivos partidos entraron al reparto con peso mediano provisional (~9 s) en vez de sus ~16–68 s reales. La suma de runners fue 52,6 min. Antes de esa corrida verde, la primera (40121090269) falló por el caso del CLI de normativa: sus cuatro subprocesos en serie tardaban 13,4 s contra el límite general de 20 s y la presión de los dos workers lo pasó; quedó con timeout propio de 90 s, y el barrido de duraciones de la Fase A confirmó que es el único caso de integración sobre 4 s fuera del de los 500 check-ins, que ya tenía el suyo.
+
+Con esa corrida se refrescaron las duraciones (mediana de 40121735231, 40114018372, 40113429214, 40034608488 y 40032673651; cobertura 74/74 E2E y 221/221 integración) y el reparto E2E previsto queda en ~202 s por shard. Las medianas de los dos archivos originales partidos aún cargan muestras anteriores a la partición, así que pesan de más y convergen en cuanto haya tres corridas posteriores; la cifra que acredita la fase es la mediana de las próximas corridas completas, no esta primera.
+
+La segunda corrida, ya con los pesos refrescados (40122739964), tardó **387 s** y 51,5 min de runner: integración 251–264 s, unitarias 199 s, estática 85 s, build 63 s y E2E 263–353 s. Es decir, la fase recorta donde apuntaba — el máximo de integración bajó de ~302 s a ~264 s y calidad de 300 s a 199 s — pero el total aún no baja de los 368–381 s de la Fase A porque E2E sigue siendo el camino crítico y su aritmética no cambió: ~97 s de preparación fija por shard, más la preparación global dentro del paso de pruebas, más su sexta parte de los ~1.140 s de Playwright en serie. Bajar ese muro ya no es reparto: es compartir el build entre shards o subir el número de particiones pagando su preparación fija, que es el territorio que el assessment dejó para la Fase C.
