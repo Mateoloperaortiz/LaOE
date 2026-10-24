@@ -64,6 +64,13 @@ jobs:
           path: ci-results/promotion.json
           if-no-files-found: error
           retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: steps.scope.outputs.mode == 'reuse'
+        with:
+          name: ci-reuse
+          path: ci-results/reuse.json
+          if-no-files-found: error
+          retention-days: 14
 
   # ADR-140: el antiguo job de calidad va en tres runners paralelos; la puerta final exige los tres.
   estatica:

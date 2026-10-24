@@ -60,6 +60,7 @@ describe("resultado final de CI", () => {
     expect(verifyJobs(jobs())).toBe("full");
     expect(verifyJobs(jobs("documentation"))).toBe("documentation");
     expect(verifyJobs(jobs("promotion"))).toBe("promotion");
+    expect(verifyJobs(jobs("reuse"))).toBe("reuse");
   });
   it("exige que una promoción omita los jobs pesados en vez de ejecutarlos a medias", () => {
     expect(() => verifyJobs({ ...jobs("promotion"), e2e: { result: "success" } })).toThrow("e2e");
