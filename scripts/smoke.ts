@@ -1,4 +1,4 @@
-import { parseSmokeOptions, runSmoke } from "./lib/smoke";
+import { parseSmokeOptions, runSmoke } from "./lib/smoke.ts";
 
 // No cargar .env ni getEnv: las expectativas salen de la release, no del servidor comprobado.
 try {
