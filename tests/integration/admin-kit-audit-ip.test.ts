@@ -18,7 +18,8 @@ const session = vi.hoisted(() => ({ getActor: vi.fn() }));
 const IP = "203.0.113.7";
 
 vi.mock("next/headers", () => ({
-  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }),
+  headers: async () =>
+    new Headers({ "x-real-ip": "203.0.113.7", "x-forwarded-for": "198.51.100.9, 10.0.0.1" }),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 vi.mock("next/navigation", () => ({

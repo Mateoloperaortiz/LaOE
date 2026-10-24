@@ -21,7 +21,8 @@ const IP = "203.0.113.7";
 
 // La ruta arma el actor del comando con la IP del request, que sale de las cabeceras del proxy.
 vi.mock("next/headers", () => ({
-  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }),
+  headers: async () =>
+    new Headers({ "x-real-ip": "203.0.113.7", "x-forwarded-for": "198.51.100.9, 10.0.0.1" }),
 }));
 // El barrel del admin kit trae componentes con `next/font`, que no carga fuera de Next: de él la ruta
 // y los recursos solo usan lo que va nombrado acá, de los contratos y del CSV (DT-384).

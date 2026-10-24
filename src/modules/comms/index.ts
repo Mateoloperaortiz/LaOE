@@ -16,6 +16,7 @@ export {
 } from "./domain/campaigns";
 export { listMessagesFor, type MessageView } from "./domain/messages";
 export { deliverNotification, setPushSenderForTests } from "./domain/notify";
+export { collectOwnCommsData } from "./domain/own-data";
 export {
   getPreferences,
   type PreferencesView,
