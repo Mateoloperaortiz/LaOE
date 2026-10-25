@@ -93,8 +93,17 @@ jobs:
           PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
         run: |
           npm install -g "$RAILWAY_CLI"
-          railway service source connect --image "$IMAGE@$DIGEST" --service web \
-            --environment staging --project "$PROJECT_ID" --json
+          # El token de proyecto ya trae su alcance; pasar --project/--environment lo invalida.
+          # Primero se comprueba que el token sea del proyecto y el entorno esperados.
+          railway api 'query { projectToken { environment { name } project { id } } }' > /tmp/scope.json
+          python3 - <<'PYEOF'
+          import json, os
+          token = json.load(open('/tmp/scope.json'))['data']['projectToken']
+          assert token['project']['id'] == os.environ['PROJECT_ID'], token
+          assert token['environment']['name'] == 'staging', token
+          print('token acotado a staging, como se espera')
+          PYEOF
+          railway service source connect --image "$IMAGE@$DIGEST" --service web --json
           staging_base=$(python3 -c "
           import json
           envs = json.load(open('scripts/ci/smoke-environments.json'))
@@ -178,8 +187,16 @@ jobs:
           PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
         run: |
           npm install -g "$RAILWAY_CLI"
-          railway service source connect --image "$IMAGE@$DIGEST" --service web \
-            --environment production --project "$PROJECT_ID" --json
+          # El token de proyecto ya trae su alcance; pasar --project/--environment lo invalida.
+          railway api 'query { projectToken { environment { name } project { id } } }' > /tmp/scope.json
+          python3 - <<'PYEOF'
+          import json, os
+          token = json.load(open('/tmp/scope.json'))['data']['projectToken']
+          assert token['project']['id'] == os.environ['PROJECT_ID'], token
+          assert token['environment']['name'] == 'production', token
+          print('token acotado a producción, como se espera')
+          PYEOF
+          railway service source connect --image "$IMAGE@$DIGEST" --service web --json
           for i in $(seq 1 90); do
             if curl -sf https://oeeafit.com/api/health -o /tmp/health.json; then
               served=$(python3 -c "import json; print(json.load(open('/tmp/health.json'))['commit'] or '')")
