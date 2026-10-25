@@ -25,10 +25,11 @@ export default defineRailway((ctx) => {
     branch: production ? "production" : "main",
     checkSuites: true,
   });
-  // ADR-141: con WEB_IMAGE en el entorno de quien aplica (repo@digest), web despliega la imagen
-  // publicada en GHCR; sin ella, Railpack como hasta hoy. El digest del día a día se mueve con
-  // `railway service source connect`, no reaplicando: un apply debe pasar el digest EN VIVO
-  // (leerlo antes) para no revertirlo en silencio. Las credenciales viven fuera del repo.
+  // ADR-141: con WEB_IMAGE en el entorno de quien aplica (la etiqueta canal del entorno,
+  // `canal-staging` o `canal-produccion`), web despliega la imagen publicada en GHCR; sin ella,
+  // Railpack como hasta hoy. El workflow mueve cada canal solo al digest exacto aprobado y el
+  // token de proyecto redespliega desde esa fuente, sin reaplicar esta IaC en cada release.
+  // Las credenciales del registro viven fuera del repo.
   const webImage = process.env.WEB_IMAGE;
   const requiredEnv = (name: string): string => {
     const value = process.env[name];
