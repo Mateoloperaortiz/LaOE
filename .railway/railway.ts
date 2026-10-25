@@ -10,7 +10,7 @@ import {
   ref,
   service,
 } from "railway/iac";
-import documentationPaths from "../scripts/ci/documentation-paths.json";
+import documentationPaths from "../scripts/ci/documentation-paths.json" with { type: "json" };
 
 const REGION = "us-east4-eqdc4a";
 const LIMITS = { containers: { cpu: 1, memoryBytes: 1_000_000_000 } };

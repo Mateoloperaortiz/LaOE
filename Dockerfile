@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 # El prepare de npm llama este script (no hace nada sin .git) y debe existir para que npm ci pase.
 COPY scripts/install-hooks.mjs ./scripts/install-hooks.mjs
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN --mount=type=cache,id=npm,target=/root/.npm npm ci
 
 COPY . .
 
