@@ -1,8 +1,9 @@
 name: Despliegue por imagen
 
-# ADR-141: tras la puerta del CI, la imagen del SHA se publica en GHCR y staging la sirve por
-# digest; producción solo recibe un digest que staging ya sirve, por dispatch manual. Los cortes
-# por entorno se encienden con las variables IMAGE_DEPLOY_STAGING / IMAGE_DEPLOY_PRODUCTION.
+# ADR-141: tras la puerta del CI, la imagen del SHA se publica en GHCR. Cada entorno sigue una
+# etiqueta canal que este workflow solo mueve al digest exacto aprobado, y su token de proyecto
+# redespliega desde esa fuente; producción solo recibe un digest que staging ya sirve, por
+# dispatch manual. Los cortes se encienden con IMAGE_DEPLOY_STAGING / IMAGE_DEPLOY_PRODUCTION.
 on:
   workflow_run:
     workflows: [CI]
@@ -77,18 +78,27 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.IMAGE }}:sha-${{ github.event.workflow_run.head_sha }}
+          tags: |
+            ${{ env.IMAGE }}:sha-${{ github.event.workflow_run.head_sha }}
+            ${{ env.IMAGE }}:canal-staging
           build-args: |
             APP_COMMIT_SHA=${{ github.event.workflow_run.head_sha }}
           cache-from: type=gha,scope=imagen
           cache-to: type=gha,mode=max,scope=imagen
-      - name: Conectar el digest en staging y esperar su salud
+      - name: Verificar que el canal de staging apunta al digest construido
+        if: steps.evidence.outputs.mode != 'documentation'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          canal=$(docker buildx imagetools inspect "$IMAGE:canal-staging" --format '{{.Manifest.Digest}}')
+          [ "$canal" = "$DIGEST" ] || { echo "canal-staging es $canal, no $DIGEST"; exit 1; }
+          echo "canal-staging -> $DIGEST"
+      - name: Redesplegar staging desde su canal y esperar su salud
         if: >-
           steps.evidence.outputs.mode != 'documentation' &&
           vars.IMAGE_DEPLOY_STAGING == 'true'
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
-          DIGEST: ${{ steps.build.outputs.digest }}
           SHA: ${{ github.event.workflow_run.head_sha }}
           PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
         run: |
@@ -103,7 +113,9 @@ jobs:
           assert token['environment']['name'] == 'staging', token
           print('token acotado a staging, como se espera')
           PYEOF
-          railway service source connect --image "$IMAGE@$DIGEST" --service web --json
+          # Un token de proyecto no puede cambiar la fuente; sí puede redesplegar desde ella.
+          # La fuente de staging es :canal-staging, recién apuntada a este digest.
+          railway redeploy --service web --from-source --yes
           staging_base=$(python3 -c "
           import json
           envs = json.load(open('scripts/ci/smoke-environments.json'))
@@ -146,18 +158,16 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      packages: read
+      packages: write
     concurrency:
       group: deploy-production
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
-      - name: Exigir el corte encendido y staging sirviendo ese SHA
+      - name: Exigir staging sirviendo ese SHA
         env:
           SHA: ${{ inputs.sha }}
-          IMAGE_DEPLOY_PRODUCTION: ${{ vars.IMAGE_DEPLOY_PRODUCTION }}
         run: |
-          [ "$IMAGE_DEPLOY_PRODUCTION" = "true" ] || { echo "IMAGE_DEPLOY_PRODUCTION no está encendido"; exit 1; }
           [[ "$SHA" =~ ^[a-f0-9]{40}$ ]] || { echo "SHA inválido: $SHA"; exit 1; }
           staging_base=$(python3 -c "
           import json
@@ -172,17 +182,30 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - id: digest
+      - name: Apuntar canal-produccion al digest aprobado
+        id: digest
         env:
           SHA: ${{ inputs.sha }}
         run: |
           digest=$(docker buildx imagetools inspect "$IMAGE:sha-$SHA" --format '{{.Manifest.Digest}}')
+          docker buildx imagetools create --tag "$IMAGE:canal-produccion" "$IMAGE@$digest"
+          docker buildx imagetools inspect "$IMAGE:canal-produccion" --format '{{json .Manifest}}' > /tmp/canal.json
+          docker buildx imagetools inspect "$IMAGE:sha-$SHA" --format '{{json .Manifest}}' > /tmp/sha.json
+          python3 - <<'PYEOF'
+          import json
+          def amd64(path):
+              doc = json.load(open(path))
+              return next(m['digest'] for m in doc.get('manifests', [])
+                          if m.get('platform', {}).get('architecture') == 'amd64')
+          assert amd64('/tmp/canal.json') == amd64('/tmp/sha.json'), 'el canal no apunta al mismo manifiesto'
+          print('canal-produccion apunta al manifiesto exacto de este SHA')
+          PYEOF
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           echo "digest de sha-$SHA: $digest"
-      - name: Conectar el digest en producción y esperar su salud
+      - name: Redesplegar producción desde su canal y esperar su salud
+        if: vars.IMAGE_DEPLOY_PRODUCTION == 'true'
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PRODUCTION }}
-          DIGEST: ${{ steps.digest.outputs.digest }}
           SHA: ${{ inputs.sha }}
           PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
         run: |
@@ -196,7 +219,8 @@ jobs:
           assert token['environment']['name'] == 'production', token
           print('token acotado a producción, como se espera')
           PYEOF
-          railway service source connect --image "$IMAGE@$DIGEST" --service web --json
+          # Igual que en staging: la fuente es :canal-produccion, recién apuntada a este digest.
+          railway redeploy --service web --from-source --yes
           for i in $(seq 1 90); do
             if curl -sf https://oeeafit.com/api/health -o /tmp/health.json; then
               served=$(python3 -c "import json; print(json.load(open('/tmp/health.json'))['commit'] or '')")
@@ -205,10 +229,15 @@ jobs:
             if [ "$i" = 90 ]; then echo "producción no sirvió $SHA a tiempo"; cat /tmp/health.json || true; exit 1; fi
             sleep 10
           done
+      - name: Avisar si el canal quedó listo pero el corte sigue apagado
+        if: vars.IMAGE_DEPLOY_PRODUCTION != 'true'
+        run: echo "canal-produccion quedó apuntando a este SHA; falta el corte de IaC y encender IMAGE_DEPLOY_PRODUCTION para redesplegar"
       - uses: actions/setup-node@v4
+        if: vars.IMAGE_DEPLOY_PRODUCTION == 'true'
         with:
           node-version: 24
       - name: Smoke de producción
+        if: vars.IMAGE_DEPLOY_PRODUCTION == 'true'
         env:
           SHA: ${{ inputs.sha }}
         run: |
