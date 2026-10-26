@@ -279,11 +279,9 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
                         : no
                       : "—"}
                   </td>
-                  <td className="py-2 pr-4">
+                  <td className="py-2 pr-4 tabular-nums">
                     {row.requirement.requiresRunoff
-                      ? row.compliance.runoffAttended
-                        ? si
-                        : no
+                      ? `${row.compliance.runoffAttendedCount ?? Number(row.compliance.runoffAttended)} / ${row.requirement.requiredRunoffs ?? 1}`
                       : "—"}
                   </td>
                   <td className="py-2 pr-4">

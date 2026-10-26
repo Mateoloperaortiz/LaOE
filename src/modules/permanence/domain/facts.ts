@@ -248,6 +248,7 @@ export async function loadPeopleFacts(
   return ids.map((personId) => {
     const rows = roster.get(personId) ?? [];
     const standing = personStanding(rows);
+    const adjustment = standing.status === "ACTIVE" ? adjustments.get(personId) : undefined;
     return {
       personId,
       ...standing,
@@ -274,8 +275,14 @@ export async function loadPeopleFacts(
         .map(({ personId: _p, ...rest }) => rest),
       // El ajuste es del miembro activo. Quien no lo está llega con el requisito del término aunque
       // tenga un ajuste: así lo entregaba la lectura de toda la OE, que solo traía activos.
-      assemblyRequirement:
-        (standing.status === "ACTIVE" ? adjustments.get(personId) : undefined) ?? fallback,
+      assemblyRequirement: adjustment
+        ? {
+            ...adjustment,
+            requiredRunoffs: adjustment.requiresRunoff
+              ? Math.max(1, fallback.requiredRunoffs ?? 0)
+              : 0,
+          }
+        : fallback,
     };
   });
 }

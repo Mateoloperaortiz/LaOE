@@ -13,12 +13,14 @@ export function mandatoryCounts(mandatory: MandatoryView): { attended: number; t
     requiredOrdinary: mandatory.required.ordinary,
     requiresBoardElection: mandatory.required.boardElection,
     requiresRunoff: mandatory.required.runoff,
+    requiredRunoffs: mandatory.required.runoffCount,
   };
   return {
     attended: attendedRequired(requirement, {
       ordinaryAttended: mandatory.attended.ordinary,
       boardElectionAttended: mandatory.attended.boardElection,
       runoffAttended: mandatory.attended.runoff,
+      runoffAttendedCount: mandatory.attended.runoffCount,
     }),
     total: requiredTotal(requirement),
   };

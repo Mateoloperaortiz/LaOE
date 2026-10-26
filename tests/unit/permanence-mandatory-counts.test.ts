@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { attendedRequired, requiredTotal } from "@/modules/participation/domain/assembly-pure";
 import { type MandatoryView, mandatoryCounts, type PersonPermanence } from "@/modules/permanence";
 import { Desglose } from "@/modules/permanence/components/Desglose";
+import { parseMandatory } from "@/modules/permanence/domain/snapshot-pure";
 import { t } from "@/shared/copy";
 import { copyPattern } from "../helpers/copy";
 
@@ -151,6 +152,38 @@ function differences(
 }
 
 describe("las asambleas obligatorias de un resultado de permanencia, contra las dos cuentas a mano que había", () => {
+  it("cuenta cada vuelta guardada y conserva sus cantidades al leer el snapshot y dibujar el Desglose", () => {
+    const mandatory: MandatoryView = {
+      required: { ordinary: 1, boardElection: true, runoff: true, runoffCount: 3 },
+      attended: { ordinary: 1, boardElection: true, runoff: false, runoffCount: 2 },
+      met: false,
+      missing: ["RUNOFF"],
+      lost: ["RUNOFF"],
+      excused: [],
+      upcoming: [],
+      induction: { required: false, attended: false, excused: false, pending: false },
+    };
+    expect(parseMandatory(JSON.parse(JSON.stringify(mandatory)))).toEqual(mandatory);
+    expect(mandatoryCounts(mandatory)).toEqual({ attended: 4, total: 5 });
+    expect(shownByDesglose(mandatory)).toBe(t("T-124", { n: 4, total: 5 }));
+  });
+
+  it("una foto anterior sin cantidades sigue mostrando una sola vuelta y no recibe campos nuevos", () => {
+    const old: MandatoryView = {
+      required: { ordinary: 1, boardElection: true, runoff: true },
+      attended: { ordinary: 1, boardElection: true, runoff: true },
+      met: true,
+      missing: [],
+      lost: [],
+      excused: [],
+      upcoming: [],
+      induction: { required: false, attended: false, excused: false, pending: false },
+    };
+    const read = parseMandatory(JSON.parse(JSON.stringify(old)));
+    expect(read).toEqual(old);
+    expect(mandatoryCounts(read)).toEqual({ attended: 3, total: 3 });
+  });
+
   it("recorre 896 combinaciones de lo exigido y lo firmado", () => {
     expect(everyMandatory()).toHaveLength(896);
   });

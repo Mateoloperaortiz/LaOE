@@ -8,24 +8,27 @@ export interface AssemblyRequirementView {
   requiredOrdinary: number;
   requiresBoardElection: boolean;
   requiresRunoff: boolean;
+  /** Número de vueltas exigidas; si falta, conserva el requisito histórico de una sola. */
+  requiredRunoffs?: number | undefined;
   /** Viene de un ajuste de ADMIN con motivo. */
   adjusted: boolean;
   reason: string | null;
 }
 
 /**
- * Una ordinaria por defecto; la elección de junta y la segunda vuelta se exigen cuando existen en el
+ * Una ordinaria por defecto; la elección de junta y cada vuelta adicional se exigen cuando existen en el
  * término, en cualquier semestre (Regl. art. 60 y 63; Est. art. 7.9; ADR-060 regla 13). Privada de
  * este archivo: el requisito «del término» se pide por `termAssemblyRequirement` (ADR-123 regla 13).
  */
 function defaultRequirement(
   term: { requiredOrdinaryAssemblies: number },
-  existing: { hasBoardElection: boolean; hasRunoff: boolean },
+  existing: { hasBoardElection: boolean; runoffs: number },
 ): AssemblyRequirementView {
   return {
     requiredOrdinary: term.requiredOrdinaryAssemblies,
     requiresBoardElection: existing.hasBoardElection,
-    requiresRunoff: existing.hasRunoff,
+    requiresRunoff: existing.runoffs > 0,
+    requiredRunoffs: existing.runoffs,
     adjusted: false,
     reason: null,
   };
@@ -45,7 +48,9 @@ export function termAssemblyRequirement(
     occasions.some((item) => item.assemblyKind === kind && item.status !== "CANCELLED");
   return defaultRequirement(term, {
     hasBoardElection: exists("BOARD_ELECTION"),
-    hasRunoff: exists("RUNOFF"),
+    runoffs: occasions.filter(
+      (item) => item.assemblyKind === "RUNOFF" && item.status !== "CANCELLED",
+    ).length,
   });
 }
 
@@ -59,6 +64,8 @@ export interface AssemblyCompliance {
   ordinaryAttended: number;
   boardElectionAttended: boolean;
   runoffAttended: boolean;
+  /** Asistencias completas a vueltas distintas; no incluye excusas. */
+  runoffAttendedCount?: number | undefined;
   compliant: boolean;
   /** Qué falta, en el orden de T-546: ORDINARY, BOARD_ELECTION, RUNOFF. */
   missing: AssemblyKind[];
@@ -74,7 +81,9 @@ export function assemblyCompliance(
   const excused = attended.filter((item) => item.status === "EXCUSED");
   const ordinaryAttended = approved.filter((item) => item.assemblyKind === "ORDINARY").length;
   const boardElectionAttended = approved.some((item) => item.assemblyKind === "BOARD_ELECTION");
-  const runoffAttended = approved.some((item) => item.assemblyKind === "RUNOFF");
+  const runoffAttendedCount = approved.filter((item) => item.assemblyKind === "RUNOFF").length;
+  const runoffs = requiredRunoffs(requirement);
+  const runoffAttended = runoffAttendedCount >= Math.max(1, runoffs);
   const missing: AssemblyKind[] = [];
   if (
     ordinaryAttended + excused.filter((item) => item.assemblyKind === "ORDINARY").length <
@@ -90,9 +99,8 @@ export function assemblyCompliance(
     missing.push("BOARD_ELECTION");
   }
   if (
-    requirement.requiresRunoff &&
-    !runoffAttended &&
-    !excused.some((item) => item.assemblyKind === "RUNOFF")
+    runoffAttendedCount + excused.filter((item) => item.assemblyKind === "RUNOFF").length <
+    runoffs
   ) {
     missing.push("RUNOFF");
   }
@@ -100,6 +108,7 @@ export function assemblyCompliance(
     ordinaryAttended,
     boardElectionAttended,
     runoffAttended,
+    runoffAttendedCount,
     compliant: missing.length === 0,
     missing,
     attendedTotal: approved.length,
@@ -113,19 +122,23 @@ export function assemblyCompliance(
  */
 type RequiredAssemblies = Pick<
   AssemblyRequirementView,
-  "requiredOrdinary" | "requiresBoardElection" | "requiresRunoff"
+  "requiredOrdinary" | "requiresBoardElection" | "requiresRunoff" | "requiredRunoffs"
 >;
 type AttendedAssemblies = Pick<
   AssemblyCompliance,
-  "ordinaryAttended" | "boardElectionAttended" | "runoffAttended"
+  "ordinaryAttended" | "boardElectionAttended" | "runoffAttended" | "runoffAttendedCount"
 >;
 
-/** Cuántas asambleas exige el requisito en total (ordinarias más elección y segunda vuelta si aplican). */
+function requiredRunoffs(requirement: RequiredAssemblies): number {
+  return requirement.requiresRunoff ? (requirement.requiredRunoffs ?? 1) : 0;
+}
+
+/** Cuántas asambleas exige el requisito en total (ordinarias, elección y todas las vueltas). */
 export function requiredTotal(requirement: RequiredAssemblies): number {
   return (
     requirement.requiredOrdinary +
     (requirement.requiresBoardElection ? 1 : 0) +
-    (requirement.requiresRunoff ? 1 : 0)
+    requiredRunoffs(requirement)
   );
 }
 
@@ -134,7 +147,7 @@ export function requiredTotal(requirement: RequiredAssemblies): number {
  * {total}», con `requiredTotal` como total. Es el único sitio que hace esta cuenta: la llaman GH
  * Points y el Resumen de la Persona 360 (ADR-128 regla 4), y `permanence`, por `mandatoryCounts`,
  * para el Desglose, la mesa de cumplimiento y su CSV (ADR-129 regla 4). Las ordinarias cuentan hasta
- * las que el requisito exige, y la elección de junta y la segunda vuelta solo si las exige: una
+ * las que el requisito exige, y la elección de junta y cada vuelta adicional solo si las exige: una
  * firmada de más, o una que el requisito ajustado no pide, no suma, así que nunca pasa del total.
  * Firmada es aprobada: una excusa cumple el requisito (`assemblyCompliance`) y no cuenta acá. No
  * valida lo que recibe: las ordinarias exigidas llegan de 0 o más porque así las dejan pasar el
@@ -147,6 +160,9 @@ export function attendedRequired(
   return (
     Math.min(compliance.ordinaryAttended, requirement.requiredOrdinary) +
     (requirement.requiresBoardElection && compliance.boardElectionAttended ? 1 : 0) +
-    (requirement.requiresRunoff && compliance.runoffAttended ? 1 : 0)
+    Math.min(
+      compliance.runoffAttendedCount ?? Number(compliance.runoffAttended),
+      requiredRunoffs(requirement),
+    )
   );
 }

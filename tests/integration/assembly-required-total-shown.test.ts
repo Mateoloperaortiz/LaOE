@@ -150,6 +150,28 @@ describe("las asambleas obligatorias que muestran GH Points y la Persona 360: cu
     await expectBoth(personId, 0, 6);
   });
 
+  it("cada vuelta adicional cuenta en el total y firmar una no oculta las que faltan", async () => {
+    const first = await seedAssembly("RUNOFF");
+    await seedAssembly("RUNOFF");
+    const third = await seedAssembly("RUNOFF");
+    await seedCheckIn(first.id, personId);
+    await expectBoth(personId, 1, 4);
+    await seedCheckIn(third.id, personId, "EXCUSED");
+    await expectBoth(personId, 1, 4);
+    await adjustRequirement({
+      requiredOrdinary: 0,
+      requiresBoardElection: false,
+      requiresRunoff: true,
+    });
+    await expectBoth(personId, 1, 3);
+    await adjustRequirement({
+      requiredOrdinary: 0,
+      requiresBoardElection: false,
+      requiresRunoff: false,
+    });
+    await expectBoth(personId, 0, 0);
+  });
+
   it("las ordinarias firmadas cuentan hasta las que exige el requisito: una firmada de más no suma", async () => {
     const ordinaries = [
       await seedAssembly("ORDINARY"),

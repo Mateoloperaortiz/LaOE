@@ -1,6 +1,6 @@
 # ADR-028: Permanencia: consecuencias, asambleas obligatorias y evaluación al cierre
 
-- Estado: Aceptada (enmendada por ADR-036)
+- Estado: Aceptada (enmendada por ADR-036 y ADR-147)
 - Fecha: 2026-09-02
 - Enmienda: ADR-024 (asambleas) y ADR-027 (puntos 4, 7 y 8)
 
@@ -26,3 +26,7 @@ Miguel Gaviria, GH principal, respondió el 2026-09-02 las siete preguntas que q
 ## Enmienda (2026-09-04, ADR-036)
 
 La ventana de evaluación se configura (`permanence.evaluationWindowDays = 14`) y rige a los evaluadores; ADMIN evalúa en cualquier momento. Las evaluaciones pendientes al aplicar el cierre cuentan como no logradas y la app lo advierte sin bloquear. Las consecuencias se ejecutan con comandos de `people` desde un job reanudable, con el actor que confirmó cada decisión. Ver [ADR-036](ADR-036-permanencia-fase-4.md).
+
+## Enmienda (2026-10-26, ADR-147)
+
+La regla 2 exige todas las vueltas adicionales que se convoquen hasta escoger la junta directiva completa, sin límite de cantidad por término. Cada vuelta se cumple con su propia asistencia completa o excusa aceptada; una vuelta posterior no sustituye una anterior. El criterio del 10 % conserva su mínimo de tres asistencias. Ver [ADR-147](ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md).

@@ -64,8 +64,8 @@ export const ghManifestSchema = z
     const sources = new Set(m.sources.map((s) => s.key));
     const records = new Set<string>();
     const assemblyDates = new Set<string>();
-    if (m.activities.filter((a) => a.assemblyKind === "RUNOFF").length > 1)
-      ctx.addIssue({ code: "custom", message: "El lote repite la segunda vuelta del término" });
+    if (m.activities.filter((a) => a.assemblyKind === "BOARD_ELECTION").length > 1)
+      ctx.addIssue({ code: "custom", message: "El lote repite la elección de junta del término" });
     if (sources.size !== m.sources.length)
       ctx.addIssue({ code: "custom", message: "Fuentes repetidas" });
     if (new Set(m.permanenceRules.map((r) => r.key)).size !== m.permanenceRules.length)
@@ -329,7 +329,7 @@ export function planGhImport(manifest: GhManifest, snapshot: GhSnapshot) {
           x.kind === "ASSEMBLY" &&
           x.status !== "CANCELLED" &&
           (dayInBogota(x.starts_at) === a.date ||
-            (a.assemblyKind === "RUNOFF" && x.assembly_kind === "RUNOFF")),
+            (a.assemblyKind === "BOARD_ELECTION" && x.assembly_kind === "BOARD_ELECTION")),
       )
     )
       reason = "EXISTING_ASSEMBLY_NEEDS_MAPPING";

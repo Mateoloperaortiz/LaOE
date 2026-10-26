@@ -350,7 +350,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-543 | GH Points: columnas del ranking de comités | Comité · Participación · Sin ajustar | MATEO | Propuesta |
 | T-544 | GH Points: título de las asambleas | Asambleas del semestre | GH | Propuesta |
 | T-545 | GH Points: asambleas obligatorias firmadas | Firmaste {n} de {total} asambleas obligatorias | GH | Propuesta; texto sensible |
-| T-546 | GH Points y admin: etiquetas de las asambleas obligatorias | Ordinaria · Elección de junta · Segunda vuelta | GH | Propuesta |
+| T-546 | GH Points y admin: etiquetas de las asambleas obligatorias | Ordinaria · Elección de junta · Vuelta adicional | GH | Propuesta |
 | T-547 | GH Points: estado de cada asamblea en tu lista | Firmada · Pendiente · No fuiste | GH | Propuesta |
 | T-548 | GH Points: sin semestre activo | No hay un semestre activo. Apenas GH lo abra, aquí ves tus puntos. | MATEO | Propuesta |
 | T-549 | GH Points: semestre con los puntos cerrados | Semestre cerrado el {fecha}: los puntos quedaron congelados. | MATEO | Propuesta |
@@ -733,7 +733,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-562 | Recurso ocasiones (plural · singular) | Ocasiones · Ocasión | MATEO | Propuesta |
 | T-563 | Ocasiones: campos | Título · Tipo · Tipo de asamblea · Categoría · Solo nuevos · Descripción (Markdown) · Lugar · Empieza · Termina · Abre el registro · Cierra el registro · GH Points · Aprobación · Código rotativo · Comité · Edición · Semestre | MATEO | Propuesta |
 | T-564 | Ocasiones: opciones de tipo | Actividad · Asamblea · Sesión de edición | MATEO | Propuesta |
-| T-565 | Ocasiones: opciones de tipo de asamblea | Ordinaria · Elección de junta · Segunda vuelta | GH | Propuesta |
+| T-565 | Ocasiones: opciones de tipo de asamblea | Ordinaria · Elección de junta · Vuelta adicional | GH | Propuesta |
 | T-566 | Ocasiones: opciones de categoría | Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Otra · Inducción | GH | Propuesta |
 | T-567 | Ocasiones: opciones de aprobación | Automática · Manual (GH revisa cada registro) | GH | Propuesta |
 | T-568 | Ocasiones: estados | Borrador · Abierta · Cerrada · Cancelada | MATEO | Propuesta |
@@ -744,7 +744,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-573 | Ocasiones: la asamblea necesita su tipo | Elige el tipo de asamblea. | MATEO | Propuesta |
 | T-574 | Ocasiones: la sesión necesita edición | Una sesión de edición necesita la edición. | MATEO | Propuesta |
 | T-575 | Ocasiones: ventana invertida | El registro debe cerrar después de abrir. | MATEO | Propuesta |
-| T-576 | Ocasiones: ya hay una elección de junta o una segunda vuelta en el semestre | Este semestre ya tiene una {tipo}. | MATEO | Propuesta |
+| T-576 | Ocasiones: ya hay una elección de junta en el semestre | Este semestre ya tiene una {tipo}. | MATEO | Propuesta |
 | T-577 | Ocasiones: fuera de borrador solo cambian algunos campos | Una ocasión abierta o cerrada solo cambia título, descripción y lugar. | MATEO | Propuesta |
 | T-578 | Ocasiones: transición inválida | Esa acción no aplica: la ocasión está {estado}. | MATEO | Propuesta |
 | T-579 | Ocasiones: no se abre con el semestre cerrado | El semestre ya cerró sus puntos: no se pueden abrir ocasiones. | MATEO | Propuesta |
@@ -806,9 +806,9 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-635 | Rankings admin: título | Rankings de {término} | GH | Propuesta |
 | T-636 | Rankings admin: columnas | Puesto · Persona · Semestre de ingreso · GH Points | MATEO | Propuesta |
 | T-637 | Asambleas admin: título | Asambleas de {término} | GH | Propuesta |
-| T-638 | Asambleas admin: columnas de cumplimiento | Persona · Requeridas · Firmadas · Elección · Segunda vuelta · Cumple | MATEO | Propuesta |
+| T-638 | Asambleas admin: columnas de cumplimiento | Persona · Requeridas · Firmadas · Elección · Vueltas adicionales · Cumple | MATEO | Propuesta |
 | T-639 | Asambleas admin: filtros de cumplimiento | Todos · Cumplen · No cumplen · Con ajuste | MATEO | Propuesta |
-| T-640 | Asambleas admin: ajustar requisito, título y campos | Ajustar requisito · Ordinarias requeridas · Debe firmar la elección · Debe firmar la segunda vuelta · Motivo | GH | Propuesta |
+| T-640 | Asambleas admin: ajustar requisito, título y campos | Ajustar requisito · Ordinarias requeridas · Debe firmar la elección · Debe firmar todas las vueltas adicionales · Motivo | GH | Propuesta |
 | T-641 | Asambleas admin: ajuste guardado | Requisito ajustado para {nombre}. | MATEO | Propuesta |
 | T-642 | Asambleas admin: valores | Sí · No · Cumple · No cumple · Ajustado | MATEO | Propuesta |
 | T-643 | Asambleas admin: sin asambleas en el semestre | Este semestre todavía no tiene asambleas. Crea una desde Ocasiones. | MATEO | Propuesta |

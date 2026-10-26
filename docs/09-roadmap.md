@@ -4,6 +4,18 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Vueltas adicionales de elección (ADR-147) · `lista en local`
+
+- [x] Registrar que todas las vueltas adicionales son obligatorias hasta escoger la junta completa, sin límite de cantidad ([ADR-147](adr/ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md)); actualizar glosario, modelo y textos.
+- [x] Permitir crear, editar e importar varias vueltas en un término, conservando la elección inicial única.
+- [x] Contar y comprobar cada vuelta por separado en participación, permanencia y exportes, con ajustes individuales y fotos anteriores conservados.
+- [x] Completar regresiones y verificaciones del proyecto.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-26 | Asambleas · regla y textos | ADR-147 enmienda la unicidad de `RUNOFF` de ADR-035 y ADR-063 y precisa la obligatoriedad de ADR-028: cada vuelta adicional exige su propia asistencia completa o excusa aceptada; asistir a otra no la reemplaza. El ajuste individual abarca todas las vueltas y las fotos cerradas conservan su significado. Glosario, modelo, permanencia y copy usan «Vuelta adicional». Previstas regresiones de varias vueltas, incumplimiento individual, excusas, parciales, cancelaciones, ajustes, conteos, importación y lectura histórica; resultados y publicación pendientes. |
+| 2026-10-26 | Asambleas · implementación y verificación local | Migración `0061` retira `occasion_runoff_unique`; creación, edición e importación admiten varias vueltas. Participación y permanencia exigen cada ocasión y conservan conteos numéricos, ajustes y fotos históricas; la mesa y el CSV de asambleas muestran cantidades. Las regresiones reprodujeron el bloqueo y el conteo de varias vueltas como una antes de corregirlos. `copy:sync` y `npm run check` completos: lint, tipos, dependencias, deadcode, 2.684 unitarias, 11 pruebas del extractor, 2.054 de integración y build aprobados. Publicación pendiente. |
+
 ## Correcciones de la revisión de seguridad · `lista en local`
 
 - [x] Verificar advisories y actualizar Next a 16.4.1 en ambos checkouts; actualizar Zod a 4.6.6 con el alcance del parche documentado (ADR-145).

@@ -416,6 +416,7 @@ describe("cargador de hechos: el requisito de asambleas de cada persona", () => 
     requiredOrdinary: 1,
     requiresBoardElection: true,
     requiresRunoff: false,
+    requiredRunoffs: 0,
     adjusted: false,
     reason: null,
   };
@@ -484,9 +485,37 @@ describe("cargador de hechos: el requisito de asambleas de cada persona", () => 
         requiredOrdinary: ADJUSTMENT.requiredOrdinary,
         requiresBoardElection: ADJUSTMENT.requiresBoardElection,
         requiresRunoff: ADJUSTMENT.requiresRunoff,
+        requiredRunoffs: 1,
         adjusted: true,
         reason: ADJUSTMENT.reason,
       },
+    });
+  });
+
+  it("deriva todas las vueltas no canceladas y aplica el ajuste a todas ellas", async () => {
+    const { termId, people } = await arrange();
+    for (const title of ["Segunda vuelta", "Tercera vuelta"]) {
+      await seedOccasion(termId, {
+        title,
+        kind: "ASSEMBLY",
+        assemblyKind: "RUNOFF",
+        points: 0,
+        status: "CLOSED",
+      });
+    }
+    for (const personId of [people.plain, people.adjusted]) {
+      expect((await requirementOf(termId, personId)).requirement).toMatchObject({
+        requiresRunoff: true,
+        requiredRunoffs: 2,
+      });
+    }
+    await adjustRequirementAs(
+      { personId: people.adjusted, ip: null },
+      { ...ADJUSTMENT, termId, personId: people.adjusted, requiresRunoff: false },
+    );
+    expect((await requirementOf(termId, people.adjusted)).requirement).toMatchObject({
+      requiresRunoff: false,
+      requiredRunoffs: 0,
     });
   });
 
