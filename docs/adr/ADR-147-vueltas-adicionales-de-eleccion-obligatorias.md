@@ -34,4 +34,10 @@ La interfaz usa «Vuelta adicional» en los tipos y «Vueltas adicionales» en e
 - Verificar cancelaciones, ajustes individuales y el total de obligatorias y firmadas en participación, permanencia y sus exportes.
 - Importar varias vueltas con conciliación e idempotencia, y conservar las fotos de términos cerrados y el significado de los snapshots anteriores.
 
-Las regresiones reprodujeron el error «Este semestre ya tiene una Segunda vuelta» al crear otra `RUNOFF` y el conteo de tres vueltas como una. Tras la corrección, `npm run check` pasó completo: lint, tipos, dependencias, deadcode, 2.684 pruebas unitarias, 11 del extractor, 2.054 de integración y compilación de producción. La migración `0061` se aplicó en las bases locales de integración y `copy:sync` regeneró los textos. La publicación sigue pendiente.
+Las regresiones reprodujeron el error «Este semestre ya tiene una Segunda vuelta» al crear otra `RUNOFF` y el conteo de tres vueltas como una. Tras la corrección, `npm run check` pasó completo: lint, tipos, dependencias, deadcode, 2.684 pruebas unitarias, 11 del extractor, 2.054 de integración y compilación de producción. La migración `0061` se aplicó en las bases locales de integración y `copy:sync` regeneró los textos.
+
+## Publicación
+
+[PR #388](https://github.com/Mateoloperaortiz/LaOE/pull/388) mezclado como `f4628b0bffdfc2ab370ae0f031910cc0725bf56c`, con [CI completo](https://github.com/Mateoloperaortiz/LaOE/actions/runs/40381973256) aprobado en el intento 2 (268 casos E2E) y [reutilización del mismo árbol en main](https://github.com/Mateoloperaortiz/LaOE/actions/runs/40386559751). Staging recibió ese SHA en el despliegue `f6c1eea2-abe6-430b-b8a7-ac05b94e60c4` SUCCESS, con [publicación y smoke](https://github.com/Mateoloperaortiz/LaOE/actions/runs/40386646506) aprobados; el release verificó 62 migraciones, 167 índices y `pg_trgm`.
+
+Producción recibió el mismo SHA en `aeb39cee-8d04-4054-be8c-48e436db7d86`, SUCCESS el 2026-10-26 a las 19:31:34 UTC. La [promoción y su smoke](https://github.com/Mateoloperaortiz/LaOE/actions/runs/40387376788) aprobaron las seis comprobaciones HTTP y la salud pública sirve el SHA exacto. El pre-deploy confirmó las 62 migraciones, 167 índices y `pg_trgm`; `0061` quedó aplicada sin modificar filas ni encolar trabajo.

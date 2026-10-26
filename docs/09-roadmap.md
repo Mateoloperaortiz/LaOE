@@ -4,17 +4,20 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## Vueltas adicionales de elección (ADR-147) · `lista en local`
+## Vueltas adicionales de elección (ADR-147) · `lista`
 
 - [x] Registrar que todas las vueltas adicionales son obligatorias hasta escoger la junta completa, sin límite de cantidad ([ADR-147](adr/ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md)); actualizar glosario, modelo y textos.
 - [x] Permitir crear, editar e importar varias vueltas en un término, conservando la elección inicial única.
 - [x] Contar y comprobar cada vuelta por separado en participación, permanencia y exportes, con ajustes individuales y fotos anteriores conservados.
 - [x] Completar regresiones y verificaciones del proyecto.
+- [x] Publicar el SHA validado en producción y verificar migración, salud y smoke.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-10-26 | Asambleas · regla y textos | ADR-147 enmienda la unicidad de `RUNOFF` de ADR-035 y ADR-063 y precisa la obligatoriedad de ADR-028: cada vuelta adicional exige su propia asistencia completa o excusa aceptada; asistir a otra no la reemplaza. El ajuste individual abarca todas las vueltas y las fotos cerradas conservan su significado. Glosario, modelo, permanencia y copy usan «Vuelta adicional». Previstas regresiones de varias vueltas, incumplimiento individual, excusas, parciales, cancelaciones, ajustes, conteos, importación y lectura histórica; resultados y publicación pendientes. |
 | 2026-10-26 | Asambleas · implementación y verificación local | Migración `0061` retira `occasion_runoff_unique`; creación, edición e importación admiten varias vueltas. Participación y permanencia exigen cada ocasión y conservan conteos numéricos, ajustes y fotos históricas; la mesa y el CSV de asambleas muestran cantidades. Las regresiones reprodujeron el bloqueo y el conteo de varias vueltas como una antes de corregirlos. `copy:sync` y `npm run check` completos: lint, tipos, dependencias, deadcode, 2.684 unitarias, 11 pruebas del extractor, 2.054 de integración y build aprobados. Publicación pendiente. |
+| 2026-10-26 | Asambleas · CI y staging | [PR #388](https://github.com/Mateoloperaortiz/LaOE/pull/388) mezclado como `f4628b0bffdfc2ab370ae0f031910cc0725bf56c`. [CI completo del PR](https://github.com/Mateoloperaortiz/LaOE/actions/runs/40381973256), intento 2, aprobado con 2.684 unitarias, 2.054 de integración y 268 casos E2E; E2E 6/6 pasó tras reintentar una descarga lenta que agotó el límite del runner. [CI de main](https://github.com/Mateoloperaortiz/LaOE/actions/runs/40386559751) reutiliza la evidencia del mismo árbol. [Publicación y smoke de staging](https://github.com/Mateoloperaortiz/LaOE/actions/runs/40386646506) aprobados; despliegue `f6c1eea2-abe6-430b-b8a7-ac05b94e60c4` SUCCESS, salud del SHA exacto y release con 62 migraciones, 167 índices y `pg_trgm`. |
+| 2026-10-26 | Asambleas · producción | [Promoción por imagen y smoke](https://github.com/Mateoloperaortiz/LaOE/actions/runs/40387376788) aprobados para el mismo SHA `f4628b0bffdfc2ab370ae0f031910cc0725bf56c` validado en staging. Despliegue `aeb39cee-8d04-4054-be8c-48e436db7d86` SUCCESS a las 19:31:34 UTC; `https://oeeafit.com/api/health` sirve el SHA exacto. El pre-deploy verificó 62 migraciones, 167 índices y `pg_trgm` tras aplicar `0061`; seis comprobaciones HTTP de smoke aprobadas. |
 
 ## Correcciones de la revisión de seguridad · `lista en local`
 
