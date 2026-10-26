@@ -421,6 +421,28 @@ describe("elegibles del score", () => {
 });
 
 describe("asambleas", () => {
+  it("exige cada vuelta adicional y una sola asistencia o excusa no cubre las demás", () => {
+    const requirement = termAssemblyRequirement({ requiredOrdinaryAssemblies: 0 }, [
+      { assemblyKind: "RUNOFF", status: "CLOSED" },
+      { assemblyKind: "RUNOFF", status: "OPEN" },
+      { assemblyKind: "RUNOFF", status: "DRAFT" },
+      { assemblyKind: "RUNOFF", status: "CANCELLED" },
+    ]);
+    expect(requiredTotal(requirement)).toBe(3);
+    const first = { assemblyKind: "RUNOFF" as const, status: "APPROVED" as const };
+    const excuse = { assemblyKind: "RUNOFF" as const, status: "EXCUSED" as const };
+    const partial = {
+      ...first,
+      attendanceExtent: "PARTIAL" as const,
+    };
+    const pending = assemblyCompliance(requirement, [first, excuse, partial]);
+    expect(pending).toMatchObject({ compliant: false, missing: ["RUNOFF"], attendedTotal: 1 });
+    expect(attendedRequired(requirement, pending)).toBe(1);
+    const complete = assemblyCompliance(requirement, [first, excuse, first]);
+    expect(complete).toMatchObject({ compliant: true, attendedTotal: 2 });
+    expect(attendedRequired(requirement, complete)).toBe(2);
+  });
+
   it("una presencia parcial confirmada no cumple la obligatoria ni suma una asistencia completa", () => {
     const requirement = termAssemblyRequirement({ requiredOrdinaryAssemblies: 1 }, []);
     const partial = {
@@ -705,6 +727,7 @@ describe("requisito de asambleas del término", () => {
       requiredOrdinary: 2,
       requiresBoardElection: false,
       requiresRunoff: false,
+      requiredRunoffs: 0,
       adjusted: false,
       reason: null,
     });

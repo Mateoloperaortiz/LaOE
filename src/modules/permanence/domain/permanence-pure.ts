@@ -97,6 +97,7 @@ export interface AssemblyRequirementFact {
   requiredOrdinary: number;
   requiresBoardElection: boolean;
   requiresRunoff: boolean;
+  requiredRunoffs?: number | undefined;
 }
 
 export interface PersonFacts {
@@ -206,11 +207,21 @@ export interface CommitteeResult {
 }
 
 export interface MandatoryView {
-  required: { ordinary: number; boardElection: boolean; runoff: boolean };
-  attended: { ordinary: number; boardElection: boolean; runoff: boolean };
+  required: {
+    ordinary: number;
+    boardElection: boolean;
+    runoff: boolean;
+    runoffCount?: number | undefined;
+  };
+  attended: {
+    ordinary: number;
+    boardElection: boolean;
+    runoff: boolean;
+    runoffCount?: number | undefined;
+  };
   met: boolean;
   missing: AssemblyKindName[];
-  /** Obligatorias que ya pasaron sin registro ni excusa y no tienen reemplazo programado. */
+  /** Obligatorias perdidas; cada vuelta exige su propia asistencia o excusa. */
   lost: AssemblyKindName[];
   /** Tipos de obligatoria con una excusa aceptada (ADR-060 regla 5). */
   excused: AssemblyKindName[];
@@ -811,15 +822,22 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
   const excused = (["ORDINARY", "BOARD_ELECTION", "RUNOFF"] as const).filter((kind) =>
     assemblies.some((item) => item.assemblyKind === kind && person.excused.has(item.id)),
   );
+  const runoffs = assemblies.filter((item) => item.assemblyKind === "RUNOFF");
+  const requiredRunoffs = person.assemblyRequirement.requiresRunoff
+    ? Math.max(1, runoffs.length, person.assemblyRequirement.requiredRunoffs ?? 0)
+    : 0;
+  const attendedRunoffs = attendedOf("RUNOFF");
   const required = {
     ordinary: person.assemblyRequirement.requiredOrdinary,
     boardElection: person.assemblyRequirement.requiresBoardElection,
     runoff: person.assemblyRequirement.requiresRunoff,
+    runoffCount: requiredRunoffs,
   };
   const attended = {
     ordinary: attendedOf("ORDINARY"),
     boardElection: attendedOf("BOARD_ELECTION") > 0,
-    runoff: attendedOf("RUNOFF") > 0,
+    runoff: requiredRunoffs > 0 ? attendedRunoffs >= requiredRunoffs : attendedRunoffs > 0,
+    runoffCount: attendedRunoffs,
   };
   const missing: AssemblyKindName[] = [];
   const lost: AssemblyKindName[] = [];
@@ -838,9 +856,18 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
       lost.push("BOARD_ELECTION");
     }
   }
-  if (required.runoff && !attended.runoff && excusedOf("RUNOFF") === 0) {
+  const satisfiedRunoffs = runoffs.filter(
+    (item) => person.attended.has(item.id) || person.excused.has(item.id),
+  ).length;
+  if (required.runoff && satisfiedRunoffs < requiredRunoffs) {
     missing.push("RUNOFF");
-    if (isLost("RUNOFF", 0, 1)) {
+    // Las vueltas son ocasiones independientes: otra futura o firmada no reemplaza esta falta.
+    if (
+      runoffs.some(
+        (item) =>
+          item.startsAt <= now && !person.attended.has(item.id) && !person.excused.has(item.id),
+      )
+    ) {
       lost.push("RUNOFF");
     }
   }

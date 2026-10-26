@@ -493,13 +493,10 @@ export const occasion = pgTable(
   (t) => [
     uniqueIndex("occasion_public_id_unique").on(t.publicId),
     uniqueIndex("occasion_legacy_id_unique").on(t.legacyId).where(sql`${t.legacyId} is not null`),
-    // Una elección de junta y una segunda vuelta por término (ADR-024).
+    // Una elección de junta; las vueltas adicionales no tienen máximo (ADR-147).
     uniqueIndex("occasion_board_election_unique")
       .on(t.termId)
       .where(sql`${t.assemblyKind} = 'BOARD_ELECTION' and ${t.status} <> 'CANCELLED'`),
-    uniqueIndex("occasion_runoff_unique")
-      .on(t.termId)
-      .where(sql`${t.assemblyKind} = 'RUNOFF' and ${t.status} <> 'CANCELLED'`),
     index("occasion_term_status_idx").on(t.termId, t.status),
     index("occasion_window_idx").on(t.status, t.checkInOpensAt, t.checkInClosesAt),
     check("occasion_public_id_format", sql`${t.publicId} ~ '^[0-9a-z]{10}$'`),

@@ -1904,7 +1904,7 @@ describe("segunda vuelta de la elección de junta (ADR-028, ADR-060 regla 3)", (
     expect(proposeDecisions(result).person.proposed).toBe("CONTINUES");
   });
 
-  it("con otra segunda vuelta programada falta, pero todavía no se pierde", () => {
+  it("una vuelta futura no reemplaza la vuelta a la que faltó", () => {
     const replacement = occ({
       id: "sv-2",
       kind: "ASSEMBLY",
@@ -1912,9 +1912,53 @@ describe("segunda vuelta de la elección de junta (ADR-028, ADR-060 regla 3)", (
       startsAt: future(7),
     });
     const result = mandatoryOf([ordinary, election, runoff, replacement], voter());
-    expect(result.mandatory).toMatchObject({ met: false, missing: ["RUNOFF"], lost: [] });
+    expect(result.mandatory).toMatchObject({ met: false, missing: ["RUNOFF"], lost: ["RUNOFF"] });
     expect(result.mandatory.upcoming.map((item) => item.occasionId)).toEqual(["sv-2"]);
-    expect(proposeDecisions(result).person.proposed).toBe("CONTINUES");
+    expect(proposeDecisions(result).person.proposed).toBe("EXIT_OE");
+  });
+
+  it("firmar una vuelta no satisface la asistencia a las otras vueltas", () => {
+    const later = { ...runoff, id: "sv-3", startsAt: past(2) };
+    const result = mandatoryOf(
+      [ordinary, election, runoff, later],
+      voter({ attended: new Set(["ord-sv", "elec-sv", "sv-3"]) }),
+    );
+    expect(result.mandatory).toMatchObject({
+      required: { runoff: true, runoffCount: 2 },
+      attended: { runoff: false, runoffCount: 1 },
+      met: false,
+      missing: ["RUNOFF"],
+      lost: ["RUNOFF"],
+    });
+    expect(proposeDecisions(result).person.proposed).toBe("EXIT_OE");
+  });
+
+  it("una excusa solo satisface su vuelta y no la vuelta posterior sin asistencia", () => {
+    const later = { ...runoff, id: "sv-3", startsAt: past(2) };
+    const absent = mandatoryOf(
+      [ordinary, election, runoff, later],
+      voter({ excused: new Set(["sv"]) }),
+    );
+    expect(absent.mandatory).toMatchObject({ met: false, missing: ["RUNOFF"], lost: ["RUNOFF"] });
+    const satisfied = mandatoryOf(
+      [ordinary, election, runoff, later],
+      voter({ attended: new Set(["ord-sv", "elec-sv", "sv-3"]), excused: new Set(["sv"]) }),
+    );
+    expect(satisfied.mandatory).toMatchObject({
+      attended: { runoff: false, runoffCount: 1 },
+      met: true,
+      missing: [],
+      lost: [],
+    });
+  });
+
+  it("la vuelta futura sigue pendiente tras justificar la anterior, sin marcarla perdida", () => {
+    const later = { ...runoff, id: "sv-3", startsAt: future(2) };
+    const result = mandatoryOf(
+      [ordinary, election, runoff, later],
+      voter({ excused: new Set(["sv"]) }),
+    );
+    expect(result.mandatory).toMatchObject({ met: false, missing: ["RUNOFF"], lost: [] });
   });
 
   it("una segunda vuelta que nunca se cargó falta, pero no expulsa a nadie", () => {

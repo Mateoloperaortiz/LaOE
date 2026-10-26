@@ -13462,7 +13462,7 @@ export const textos = {
   },
   "T-546": {
     where: "GH Points y admin: etiquetas de las asambleas obligatorias",
-    text: "Ordinaria · Elección de junta · Segunda vuelta",
+    text: "Ordinaria · Elección de junta · Vuelta adicional",
     owner: "GH",
     status: "Propuesta",
   },
@@ -13576,7 +13576,7 @@ export const textos = {
   },
   "T-565": {
     where: "Ocasiones: opciones de tipo de asamblea",
-    text: "Ordinaria · Elección de junta · Segunda vuelta",
+    text: "Ordinaria · Elección de junta · Vuelta adicional",
     owner: "GH",
     status: "Propuesta",
   },
@@ -13641,7 +13641,7 @@ export const textos = {
     status: "Propuesta",
   },
   "T-576": {
-    where: "Ocasiones: ya hay una elección de junta o una segunda vuelta en el semestre",
+    where: "Ocasiones: ya hay una elección de junta en el semestre",
     text: "Este semestre ya tiene una {tipo}.",
     owner: "MATEO",
     status: "Propuesta",
@@ -14014,7 +14014,7 @@ export const textos = {
   },
   "T-638": {
     where: "Asambleas admin: columnas de cumplimiento",
-    text: "Persona · Requeridas · Firmadas · Elección · Segunda vuelta · Cumple",
+    text: "Persona · Requeridas · Firmadas · Elección · Vueltas adicionales · Cumple",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -14026,7 +14026,7 @@ export const textos = {
   },
   "T-640": {
     where: "Asambleas admin: ajustar requisito, título y campos",
-    text: "Ajustar requisito · Ordinarias requeridas · Debe firmar la elección · Debe firmar la segunda vuelta · Motivo",
+    text: "Ajustar requisito · Ordinarias requeridas · Debe firmar la elección · Debe firmar todas las vueltas adicionales · Motivo",
     owner: "GH",
     status: "Propuesta",
   },

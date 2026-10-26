@@ -382,7 +382,7 @@ describe("preparación de GH Points", () => {
     first(s.terms).permanence_closed_at = "2025-12-31";
     expect(row(s, m)?.reason).toBe("PERMANENCE_CLOSED");
   });
-  it("solo permite una segunda vuelta no cancelada por término", () => {
+  it("admite varias vueltas adicionales en el lote aunque ya exista otra en el término", () => {
     const m = manifest(),
       a = first(m.activities),
       s = snapshot();
@@ -407,7 +407,7 @@ describe("preparación de GH Points", () => {
         ends_at: null,
       },
     ];
-    expect(row(s, m)?.reason).toBe("EXISTING_ASSEMBLY_NEEDS_MAPPING");
+    expect(row(s, m)).toMatchObject({ action: "ADD", points: 0 });
     m.activities.push({
       ...a,
       key: "SECOND",
@@ -415,7 +415,110 @@ describe("preparación de GH Points", () => {
       endDate: "2025-09-09",
       participants: [{ recordId: "SECOND-RECORD", email: "person@example.test", sourceRow: 2 }],
     });
-    expect(() => ghManifestSchema.parse(m)).toThrow();
+    const parsed = ghManifestSchema.parse(m);
+    const plan = planGhImport(parsed, s);
+    expect(plan.activities.map((activity) => activity.action)).toEqual(["CREATE", "CREATE"]);
+    expect(plan.summary).toMatchObject({ activitiesToCreate: 2, rowsToAdd: 2, pointsToAdd: 0 });
+  });
+  it("concilia cada vuelta adicional por su referencia y reintenta sin mezclar sus asistencias", () => {
+    const m = manifest();
+    const a = first(m.activities);
+    Object.assign(a, {
+      type: "ASAMBLEA",
+      assemblyKind: "RUNOFF",
+      newMembersOnly: false,
+      endDate: a.date,
+    });
+    m.activities.push({
+      ...a,
+      key: "NEXT-RUNOFF",
+      date: "2025-09-09",
+      endDate: "2025-09-09",
+      participants: [{ recordId: "NEXT-RECORD", email: "person@example.test", sourceRow: 2 }],
+    });
+    const parsed = ghManifestSchema.parse(m);
+    const s = snapshot();
+    s.occasions = parsed.activities.map((activity, index) => ({
+      id: `runoff-${index}`,
+      legacy_id: legacyKey(parsed, activity),
+      title: activity.title,
+      kind: "ASSEMBLY",
+      assembly_kind: "RUNOFF",
+      category: "OTHER",
+      new_members_only: false,
+      status: "CLOSED",
+      points: 0,
+      starts_at: `${activity.date}T05:00:00Z`,
+      ends_at: null,
+    }));
+    s.checkIns = [
+      {
+        id: "first-check",
+        occasion_id: "runoff-0",
+        person_id: "person-test",
+        status: "APPROVED",
+      },
+    ];
+    const plan = planGhImport(parsed, s);
+    expect(plan.activities.map((activity) => activity.occasionId)).toEqual([
+      "runoff-0",
+      "runoff-1",
+    ]);
+    expect(plan.activities.map((activity) => first(activity.rows).action)).toEqual([
+      "EXISTS",
+      "ADD",
+    ]);
+
+    // La referencia explícita identifica la misma ocasión que la clave estable del lote.
+    parsed.activities.forEach((activity, index) => {
+      activity.existingOccasionId = `runoff-${index}`;
+    });
+    s.checkIns.push({ ...first(s.checkIns), id: "next-check", occasion_id: "runoff-1" });
+    expect(planGhImport(parsed, s).summary).toMatchObject({
+      activitiesToReuse: 2,
+      rowsExisting: 2,
+      rowsToAdd: 0,
+      rowsBlocked: 0,
+    });
+    first(parsed.activities).existingOccasionId = "runoff-1";
+    expect(first(planGhImport(parsed, s).activities).reason).toBe("OCCASION_CONFLICT");
+  });
+  it("mantiene una sola elección de junta y exige conciliar la ya existente", () => {
+    const m = manifest();
+    const a = first(m.activities);
+    Object.assign(a, {
+      type: "ASAMBLEA",
+      assemblyKind: "BOARD_ELECTION",
+      newMembersOnly: false,
+      endDate: a.date,
+    });
+    const s = snapshot();
+    s.occasions = [
+      {
+        id: "existing-election",
+        legacy_id: null,
+        title: "Elección de junta",
+        kind: "ASSEMBLY",
+        assembly_kind: "BOARD_ELECTION",
+        category: "OTHER",
+        new_members_only: false,
+        status: "CLOSED",
+        points: 0,
+        starts_at: "2025-09-01T20:00:00Z",
+        ends_at: null,
+      },
+    ];
+    expect(row(s, m)?.reason).toBe("EXISTING_ASSEMBLY_NEEDS_MAPPING");
+    first(s.occasions).status = "CANCELLED";
+    expect(row(s, m)).toMatchObject({ action: "ADD" });
+    m.activities.push({
+      ...a,
+      key: "SECOND-ELECTION",
+      date: "2025-09-09",
+      endDate: "2025-09-09",
+      participants: [{ recordId: "SECOND-RECORD", email: "person@example.test", sourceRow: 2 }],
+    });
+    expect(() => ghManifestSchema.parse(m)).toThrow("elección de junta");
   });
   it("acepta licencia para los puntos solo con la política explícita y exige nuevos en decoración", () => {
     const s = snapshot();

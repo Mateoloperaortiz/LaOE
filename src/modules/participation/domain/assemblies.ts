@@ -40,11 +40,17 @@ export async function listTermAssemblies(termId: string): Promise<OccasionRow[]>
     .orderBy(occasion.startsAt);
 }
 
-function toView(row: AssemblyRequirementRow): AssemblyRequirementView {
+function toView(
+  row: AssemblyRequirementRow,
+  fallback?: AssemblyRequirementView,
+): AssemblyRequirementView {
   return {
     requiredOrdinary: row.requiredOrdinary,
     requiresBoardElection: row.requiresBoardElection,
     requiresRunoff: row.requiresRunoff,
+    ...(fallback
+      ? { requiredRunoffs: row.requiresRunoff ? Math.max(1, fallback.requiredRunoffs ?? 0) : 0 }
+      : {}),
     adjusted: true,
     reason: row.adjustedReason,
   };
@@ -72,7 +78,8 @@ export async function assemblyStatusFor(
     .from(assemblyRequirement)
     .where(and(eq(assemblyRequirement.termId, term.id), eq(assemblyRequirement.personId, personId)))
     .limit(1);
-  const requirement = adjustment ? toView(adjustment) : termAssemblyRequirement(term, assemblies);
+  const fallback = termAssemblyRequirement(term, assemblies);
+  const requirement = adjustment ? toView(adjustment, fallback) : fallback;
   const checkIns =
     assemblies.length === 0
       ? []
@@ -192,7 +199,7 @@ export async function assemblyOverview(term: TermLike): Promise<AssemblyOverview
   return members
     .map((member) => {
       const adjustment = adjustmentByPerson.get(member.personId);
-      const requirement = adjustment ? toView(adjustment) : fallback;
+      const requirement = adjustment ? toView(adjustment, fallback) : fallback;
       return {
         personId: member.personId,
         name: member.fullName.trim(),

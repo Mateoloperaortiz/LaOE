@@ -70,10 +70,10 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Nivel | `points.levels` | Tramo del saldo de GH Points del semestre: Recién llegado, Parchado, De planta, Pilar y Leyenda OE. Los mínimos son 0/25/75/150/250 en la clasificación separada y 0/100/250/500/1000 en el saldo mixto histórico |
 | Standing del término | `TermStanding` | Resultado conservado de las clasificaciones GH y gamer al cerrar los puntos del semestre, con la identidad visible que corresponda |
 | Asamblea | `Occasion.kind=ASSEMBLY` | Ocasión sin puntos que cuenta para el requisito del término |
-| Requisito de asambleas | `AssemblyRequirement` | Las asambleas obligatorias de una persona en un término: una ordinaria y, en segundo semestre, la elección de junta y su segunda vuelta |
+| Requisito de asambleas | `AssemblyRequirement` | Las asambleas obligatorias de una persona en un término: una ordinaria más la elección de junta y todas sus vueltas adicionales cuando existen |
 | Asamblea obligatoria | `AssemblyRequirement` | Faltar a una implica expulsión de la OE; la app avisa antes y propone la salida en el cierre. Distinta del criterio del 10 %, que exige tres asistencias |
-| Elección de junta | `assemblyKind=BOARD_ELECTION` | Asamblea especial del segundo semestre donde se vota la junta del año siguiente; obligatoria para toda la OE |
-| Segunda vuelta | `assemblyKind=RUNOFF` | Repetición de la votación cuando no hay ganador; también obligatoria |
+| Elección de junta | `assemblyKind=BOARD_ELECTION` | Asamblea donde se vota la junta directiva; obligatoria para toda la OE cuando se convoca, en cualquier semestre |
+| Vuelta adicional | `assemblyKind=RUNOFF` | Cada nueva asamblea de elección necesaria hasta escoger la junta directiva completa; todas son obligatorias |
 | Tasa suavizada | `CommitteeParticipation.smoothedRate` | Participación relativa corregida hacia la media de la ocasión para no premiar el azar de los comités pequeños |
 | Permanencia | `PermanenceSnapshot` | Resultado del término por cada comité: tabla general más tabla del comité frente al umbral de su condición (60, 80 o 70); se recalcula por outbox y el miembro lo ve en vivo |
 | Criterio de permanencia | `PermanenceRule` | Fila de una tabla: peso (el máximo que da), a quién aplica, cómo se calcula y sus parámetros |

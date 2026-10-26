@@ -20,7 +20,7 @@ import {
   closeTermPointsAs,
 } from "@/modules/participation/domain/commands";
 import { getOccasion } from "@/modules/participation/domain/occasions";
-import { occasion } from "@/modules/participation/schema";
+import { checkIn, occasion } from "@/modules/participation/schema";
 import { membership, person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { getTerm } from "@/modules/terms/domain/terms";
@@ -28,6 +28,7 @@ import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import {
   currentTermCode,
+  seedCheckIn,
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
@@ -181,6 +182,7 @@ describe("asambleas", () => {
       requiredOrdinary: 2,
       requiresBoardElection: true,
       requiresRunoff: false,
+      requiredRunoffs: 0,
       adjusted: false,
       reason: null,
     };
@@ -192,6 +194,7 @@ describe("asambleas", () => {
           requiredOrdinary: 0,
           requiresBoardElection: false,
           requiresRunoff: true,
+          requiredRunoffs: 1,
           adjusted: true,
           reason: "licencia",
         },
@@ -217,8 +220,8 @@ describe("asambleas", () => {
         ordinarias_firmadas: 0,
         eleccion_requerida: "si",
         eleccion_firmada: "no",
-        segunda_vuelta_requerida: "no",
-        segunda_vuelta_firmada: "no",
+        vueltas_requeridas: 0,
+        vueltas_firmadas: 0,
         cumple: "no",
         ajustado: "no",
       },
@@ -228,12 +231,92 @@ describe("asambleas", () => {
         ordinarias_firmadas: 0,
         eleccion_requerida: "no",
         eleccion_firmada: "no",
-        segunda_vuelta_requerida: "si",
-        segunda_vuelta_firmada: "no",
+        vueltas_requeridas: 1,
+        vueltas_firmadas: 0,
         cumple: "no",
         ajustado: "si",
       },
     ]);
+  });
+
+  it("cada vuelta exige su asistencia o excusa, cuenta por separado y el ajuste abarca todas", async () => {
+    const termId = await seedTerm(currentTermCode());
+    const current = await termRow(termId);
+    const personId = await seedMember("vueltas@test.dev");
+    const ordinary = await seedOccasion(termId, {
+      kind: "ASSEMBLY",
+      assemblyKind: "ORDINARY",
+      points: 0,
+    });
+    await seedCheckIn(ordinary.id, personId);
+    const runoffs = [];
+    for (const title of ["Segunda vuelta", "Tercera vuelta", "Cuarta vuelta"]) {
+      runoffs.push(
+        await seedOccasion(termId, { kind: "ASSEMBLY", assemblyKind: "RUNOFF", points: 0, title }),
+      );
+    }
+    const [second, third, fourth] = runoffs;
+    if (!second || !third || !fourth) throw new Error("faltan vueltas de prueba");
+    await seedCheckIn(second.id, personId);
+    await seedCheckIn(third.id, personId, "EXCUSED");
+    const partialId = await seedCheckIn(fourth.id, personId);
+    await db()
+      .update(checkIn)
+      .set({ attendanceExtent: "PARTIAL", attendanceList: "FIRST" })
+      .where(eq(checkIn.id, partialId));
+    const before = await assemblyStatusFor(personId, current);
+    expect(before.requirement.requiredRunoffs).toBe(3);
+    expect(before.compliance).toMatchObject({
+      compliant: false,
+      missing: ["RUNOFF"],
+      runoffAttendedCount: 1,
+    });
+    expect((await assemblyOverview(current))[0]?.compliance.compliant).toBe(false);
+    const listed = await assembliesResource.list({
+      q: "",
+      page: 1,
+      pageSize: 100,
+      filters: { termId },
+    });
+    const row = listed.rows[0];
+    if (!row) throw new Error("falta fila de exporte");
+    expect(assembliesResource.exportRow(row)).toMatchObject({
+      vueltas_requeridas: 3,
+      vueltas_firmadas: 1,
+      cumple: "no",
+    });
+    await adjustRequirementAs(
+      { personId, ip: null },
+      {
+        termId,
+        personId,
+        requiredOrdinary: 1,
+        requiresBoardElection: false,
+        requiresRunoff: true,
+        reason: "Ajuste sintético",
+      },
+    );
+    expect((await assemblyStatusFor(personId, current)).compliance.compliant).toBe(false);
+    await db().update(occasion).set({ status: "CANCELLED" }).where(eq(occasion.id, fourth.id));
+    const after = await assemblyStatusFor(personId, current);
+    expect(after.requirement.requiredRunoffs).toBe(2);
+    expect(after.compliance).toMatchObject({
+      compliant: true,
+      runoffAttendedCount: 1,
+      attendedTotal: 2,
+    });
+    await adjustRequirementAs(
+      { personId, ip: null },
+      {
+        termId,
+        personId,
+        requiredOrdinary: 1,
+        requiresBoardElection: false,
+        requiresRunoff: false,
+        reason: "Exención sintética",
+      },
+    );
+    expect((await assemblyStatusFor(personId, current)).requirement.requiredRunoffs).toBe(0);
   });
 
   it("cierra los puntos: bloquea con ocasiones abiertas, congela el standing y rechaza ajustes después", async () => {

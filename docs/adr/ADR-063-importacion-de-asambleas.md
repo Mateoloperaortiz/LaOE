@@ -1,6 +1,6 @@
 # ADR-063: Importación de asistencias a asambleas
 
-- Estado: Implementada y verificada en producción; 400 asistencias cargadas y diez reservadas por instrucción de GH; enmendada por ADR-137
+- Estado: Implementada y verificada en producción; 400 asistencias cargadas y diez reservadas por instrucción de GH; enmendada por ADR-137 y ADR-147
 - Fecha: 2026-09-14
 - Relacionadas: ADR-024, ADR-028, ADR-035, ADR-036, ADR-060, ADR-062
 - Enmienda: ADR-062 (asambleas sin crédito y procedencia por hoja)
@@ -30,3 +30,7 @@ No cambia el esquema de la base ni se crea una pantalla de importación. Las asa
 ## Enmienda (2026-10-22, ADR-137)
 
 La presencia completa o parcial y su toma se conservan por separado de la solicitud de excusa. Solo una completa aprobada acredita asistencia; una parcial puede justificarse sin perder su evidencia. La importación, las lecturas y los efectos aplican esa distinción. Ver [ADR-137](ADR-137-asistencia-parcial-y-excusa-separadas.md).
+
+## Enmienda (2026-10-26, ADR-147)
+
+La regla 3 permite importar varias vueltas adicionales `RUNOFF` en el mismo término y lote. Desaparece el rechazo por unicidad de la vuelta; se mantienen la conciliación de una ocasión existente en la misma fecha, los metadatos al reutilizar y la deduplicación por persona y ocasión. Ver [ADR-147](ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md).

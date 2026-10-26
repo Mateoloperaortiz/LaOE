@@ -119,8 +119,18 @@ export const committeeResultSchema: z.ZodType<CommitteeResult> = z.object({
 });
 
 export const mandatorySchema: z.ZodType<MandatoryView> = z.object({
-  required: z.object({ ordinary: z.number(), boardElection: z.boolean(), runoff: z.boolean() }),
-  attended: z.object({ ordinary: z.number(), boardElection: z.boolean(), runoff: z.boolean() }),
+  required: z.object({
+    ordinary: z.number(),
+    boardElection: z.boolean(),
+    runoff: z.boolean(),
+    runoffCount: z.number().int().nonnegative().optional(),
+  }),
+  attended: z.object({
+    ordinary: z.number(),
+    boardElection: z.boolean(),
+    runoff: z.boolean(),
+    runoffCount: z.number().int().nonnegative().optional(),
+  }),
   met: z.boolean(),
   missing: z.array(assemblyKind),
   lost: z.array(assemblyKind),

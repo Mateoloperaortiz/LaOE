@@ -162,9 +162,6 @@ function boardElectionError(error: unknown): DomainError | null {
   if (isUniqueViolation(error, "occasion_board_election_unique")) {
     return new DomainError(t("T-576", { tipo: tList("T-565")[1] ?? "" }), "assemblyKind");
   }
-  if (isUniqueViolation(error, "occasion_runoff_unique")) {
-    return new DomainError(t("T-576", { tipo: tList("T-565")[2] ?? "" }), "assemblyKind");
-  }
   return null;
 }
 

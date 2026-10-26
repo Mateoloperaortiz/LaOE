@@ -428,6 +428,13 @@
       "when": 1792870548976,
       "tag": "0060_reintentos_push",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1793039646562,
+      "tag": "0061_vueltas_adicionales_junta",
+      "breakpoints": true
     }
   ]
 }

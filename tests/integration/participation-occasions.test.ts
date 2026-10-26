@@ -98,7 +98,7 @@ describe("ocasiones", () => {
     expect(session.success).toBe(false);
   });
 
-  it("solo admite una elección de junta y una segunda vuelta no canceladas por término", async () => {
+  it("solo admite una elección de junta no cancelada por término", async () => {
     await seedTerm(currentTermCode());
     const election = () =>
       createOccasionAs(
@@ -114,6 +114,37 @@ describe("ocasiones", () => {
     await expect(election()).rejects.toBeInstanceOf(DomainError);
     await cancelOccasionAs(SYSTEM_ACTOR, first.id, "se reprograma");
     await expect(election()).resolves.toMatchObject({ id: expect.any(String) });
+  });
+
+  it("admite las vueltas necesarias para completar la junta en el mismo término", async () => {
+    const termId = await seedTerm(currentTermCode());
+    const created = [];
+    for (const title of ["Segunda vuelta", "Tercera vuelta", "Cuarta vuelta"]) {
+      created.push(
+        await createOccasionAs(
+          SYSTEM_ACTOR,
+          parse({ title, kind: "ASSEMBLY", assemblyKind: "RUNOFF", points: "0" }),
+        ),
+      );
+    }
+    const draft = await createOccasionAs(
+      SYSTEM_ACTOR,
+      parse({
+        title: "Asamblea en borrador",
+        kind: "ASSEMBLY",
+        assemblyKind: "ORDINARY",
+        points: "0",
+      }),
+    );
+    await updateOccasionAs(
+      SYSTEM_ACTOR,
+      draft.id,
+      parse({ title: "Quinta vuelta", kind: "ASSEMBLY", assemblyKind: "RUNOFF", points: "0" }),
+    );
+    created.push(draft);
+    const rows = await listOccasions({ q: "", kind: "ASSEMBLY", termId, page: 1, pageSize: 10 });
+    expect(rows.total).toBe(4);
+    expect(new Set(created.map((item) => item.id)).size).toBe(4);
   });
 
   it("abre, cierra y cancela con auditoría; el cierre emite el recompute y bloquea el término cerrado", async () => {
