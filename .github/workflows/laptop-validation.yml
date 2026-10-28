@@ -77,7 +77,7 @@ jobs:
       - run: npm run deps:check
       - run: npm run deadcode
       - name: All unit tests through the project's report gate
-        run: npm test -- --maxWorkers=2
+        run: npm test -- --maxWorkers=1 --fileParallelism=false
       - name: Python extractor tests with synthetic PDF fixtures
         run: npm run test:extractor
       - name: Real production build without production credentials
