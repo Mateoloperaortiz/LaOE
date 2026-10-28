@@ -1,0 +1,130 @@
+# Pilot only: tests/build with synthetic local services; no deployment or CI gate replacement.
+name: Casa Digital laptop Linux validation
+on:
+  push:
+    branches: [ci/laptop-runner-validation]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: casa-digital-laptop-linux-${{ github.ref }}
+  cancel-in-progress: true
+defaults:
+  run:
+    shell: bash
+env:
+  CI: "true"
+  NODE_OPTIONS: --max-old-space-size=2048
+  APP_URL: http://localhost:3000
+  APP_TIMEZONE: America/Bogota
+  TZ: UTC
+  SESSION_SECRET: ci-secreto-de-sesion-que-no-es-real-0000000000000000
+  INSTITUTIONAL_EMAIL_DOMAINS: eafit.edu.co
+  OTP_FIXED_CODE: "123456"
+  EMAIL_FROM: "OE EAFIT <noreply@localhost>"
+  MAILER: console
+  S3_ENDPOINT: http://127.0.0.1:3900
+  S3_REGION: garage
+  S3_BUCKET: media
+  S3_ACCESS_KEY_ID: GK0c1a5ad191ta1de5a2r0110000dev0
+  S3_SECRET_ACCESS_KEY: 9b3f0e6d2c1a4f8e7d6c5b4a3928170f6e5d4c3b2a190807f6e5d4c3b2a19080
+  S3_FORCE_PATH_STYLE: "true"
+  JOBS_ENABLED: "false"
+
+jobs:
+  validar:
+    name: Casa Digital tests and build (laptop pilot)
+    if: >-
+      github.repository == 'Mateoloperaortiz/LaOE' &&
+      github.event.repository.private == true &&
+      github.ref == 'refs/heads/ci/laptop-runner-validation'
+    runs-on: [self-hosted, Linux, X64, ci, build, local]
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: casa
+          POSTGRES_PASSWORD: casa
+          POSTGRES_DB: casa_digital
+        ports: [5432/tcp]
+        options: >-
+          --memory=512m --cpus=1
+          --health-cmd "pg_isready -U casa -d casa_digital"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Check unprivileged execution and provisioned tools
+        id: localdb
+        run: |
+          test "$(id -u)" -ne 0
+          command -v uv
+          command -v docker
+          uv --version
+          database_url="postgresql://casa:casa@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/casa_digital"
+          echo "url=$database_url" >> "$GITHUB_OUTPUT"
+          echo "DATABASE_URL=$database_url" >> "$GITHUB_ENV"
+          printf 'Runner: %s; user: %s; OS: %s\n' "$RUNNER_NAME" "$(id -un)" "$RUNNER_OS" >> "$GITHUB_STEP_SUMMARY"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run deps:check
+      - run: npm run deadcode
+      - name: All unit tests through the project's report gate
+        run: npm test -- --maxWorkers=2
+      - name: Python extractor tests with synthetic PDF fixtures
+        run: npm run test:extractor
+      - name: Real production build without production credentials
+        env:
+          NODE_ENV: production
+          OTP_FIXED_CODE: ""
+        run: |
+          npm run build
+          test -s .next/BUILD_ID
+      - name: Start an isolated Garage container on random loopback ports
+        id: garage
+        run: |
+          container="laptopci-laoe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "LAPTOPCI_GARAGE_CONTAINER=$container" >> "$GITHUB_ENV"
+          docker run -d --name "$container" --memory=256m --cpus=0.5 \
+            --label laptopci.repository=Mateoloperaortiz/LaOE \
+            --label "laptopci.run=$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            -p 127.0.0.1::3900 -p 127.0.0.1::3903 \
+            -v "$PWD/docker/garage/garage.toml:/etc/garage.toml:ro" \
+            -e GARAGE_DEFAULT_ACCESS_KEY="$S3_ACCESS_KEY_ID" \
+            -e GARAGE_DEFAULT_SECRET_KEY="$S3_SECRET_ACCESS_KEY" \
+            -e GARAGE_DEFAULT_BUCKET="$S3_BUCKET" \
+            dxflrs/garage:v2.3.0 /garage server --single-node --default-bucket
+          port="$(docker port "$container" 3900/tcp | sed -n 's/^127\.0\.0\.1://p')"
+          test -n "$port"
+          echo "endpoint=http://127.0.0.1:$port" >> "$GITHUB_OUTPUT"
+      - name: Initialize only the disposable local S3 bucket
+        timeout-minutes: 2
+        env:
+          S3_ENDPOINT: ${{ steps.garage.outputs.endpoint }}
+        run: npm run storage:init
+      - name: All integration tests through the project's report gate
+        env:
+          DATABASE_URL: ${{ steps.localdb.outputs.url }}
+          S3_ENDPOINT: ${{ steps.garage.outputs.endpoint }}
+        run: npm run test:integration -- --maxWorkers=2
+      - name: Remove only this run's Garage container
+        if: always()
+        run: |
+          if [ -n "${LAPTOPCI_GARAGE_CONTAINER:-}" ] && docker inspect "$LAPTOPCI_GARAGE_CONTAINER" >/dev/null 2>&1; then
+            repo="$(docker inspect --format '{{index .Config.Labels "laptopci.repository"}}' "$LAPTOPCI_GARAGE_CONTAINER")"
+            run="$(docker inspect --format '{{index .Config.Labels "laptopci.run"}}' "$LAPTOPCI_GARAGE_CONTAINER")"
+            test "$repo" = "Mateoloperaortiz/LaOE"
+            test "$run" = "$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+            docker rm -f "$LAPTOPCI_GARAGE_CONTAINER"
+          fi
+      - name: Record the exact scope without replacing the required CI check
+        run: |
+          printf '%s\n' "Casa Digital Linux pilot passed: $GITHUB_SHA on $RUNNER_NAME. Static checks, unit/extractor/integration tests and a real Next build ran. Full E2E, backup restore and deployment-image smoke remain in the original CI." >> "$GITHUB_STEP_SUMMARY"
+
