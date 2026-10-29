@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-149](ADR-149-staging-en-ejecutor-local-desechable.md) | Staging en un ejecutor local desechable | Propuesta |
 | [ADR-148](ADR-148-ci-en-runners-linux-locales.md) | CI completo en runners Linux locales del repositorio privado | Propuesta |
 | [ADR-147](ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md) | Vueltas adicionales de elección, todas obligatorias | Aceptada |
 | [ADR-146](ADR-146-limites-de-colecciones-en-la-entrada.md) | Límites explícitos de colecciones en la entrada no confiable | Aceptada |
