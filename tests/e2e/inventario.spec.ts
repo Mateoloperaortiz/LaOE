@@ -102,6 +102,8 @@ test("un miembro consulta el inventario y fechas inválidas sin recibir facultad
 }) => {
   await page.goto("/app/inventario");
   await expect(page.getByRole("heading", { level: 1, name: t("T-4300") })).toBeVisible();
+  await expect(page.getByText(t("T-4104"), { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: t("T-4105"), exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: t("T-4314") })).toHaveCount(0);
   await expect(page.getByRole("link", { name: t("T-4303") })).toHaveCount(0);
   await page.goto("/admin/inventario");

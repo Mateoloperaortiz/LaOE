@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { event } from "@/modules/events/schema";
 import { occasion } from "@/modules/participation/schema";
+import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { seedEdition, seedEvent, seedOccasion } from "../factories";
@@ -11,6 +12,7 @@ import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
+import { E2E_MEMBER_EMAIL } from "./global-setup";
 import { drenarOutbox } from "./outbox";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
@@ -108,6 +110,13 @@ for (const width of [360, 390, 768, 1440])
   for (const theme of ["light", "dark"] as const) {
     test(`Mi OE accesible ${width}px ${theme}`, async ({ page }, testInfo) => {
       test.setTimeout(90_000);
+      // La experiencia general mide un perfil completo; el aviso para cuentas anteriores se cubre aparte.
+      const updated = await getDb()
+        .update(person)
+        .set({ cardUid: "A0 B1 C2 D3" })
+        .where(eq(person.email, E2E_MEMBER_EMAIL))
+        .returning({ id: person.id });
+      expect(updated).toHaveLength(1);
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme: theme });
       await page.goto("/app");
