@@ -4,6 +4,18 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Alertas transitivas de esbuild y uuid (ADR-153) · `lista`
+
+- [x] Reproducir ambos fallos sobre las dependencias cargadas por sus consumidores reales.
+- [x] Registrar overrides acotados, versiones corregidas y su verificación de compatibilidad.
+- [x] Completar la auditoría sin vulnerabilidades y las pruebas locales; exigir CI completo aprobado antes de integrar.
+- [x] Corregir la caché de configuración del drenado E2E tras reproducir el fallo de la colección con una bandera desactualizada; cubrirlo contra PostgreSQL real.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-29 | Verificación · aislamiento E2E | El primer CI remoto detectó que la colección no recibía su insignia: el runner de Playwright conservaba `gamification.enabled=false` aunque una acción del servidor ya había activado la función. La reproducción aislada falló en el mismo aviso; una regresión contra PostgreSQL confirmó la lectura vieja. El envoltorio E2E invalida ahora su caché antes de drenar, con lo que los handlers leen los cambios del servidor. La misma reproducción pasa sin esperas ni reintentos añadidos. Es una corrección del aislamiento de ADR-052; no cambia la caché de producción. |
+| 2026-10-29 | Dependencias · corrección transitiva | ADR-153 fija esbuild 0.25.12 para el cargador de Drizzle Kit y uuid 11.1.1 para ExcelJS. Dos regresiones reproducen los avisos originales antes del parche; se verifica el árbol instalado, Excel y la generación de migraciones con datos/esquemas locales. `npm audit` sin vulnerabilidades; árbol instalado válido. ExcelJS y el cargador ESM comprobados; Drizzle Kit genera SQL idéntico antes/después. `npm run check` aprobó lint, tipos, fronteras, código muerto, 2.686 unitarias, 2.054 de integración, 11 del extractor y build. El CI remoto completo es requisito antes de integrar. |
+
 ## Colaboración pública en GitHub (ADR-151) · `lista`
 
 - [x] Registrar la decisión, preparar el CI en runners efímeros y documentar colaboración y reportes privados.
