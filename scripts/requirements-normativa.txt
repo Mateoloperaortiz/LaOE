@@ -1,4 +1,4 @@
-pdfplumber==0.11.9
+pdfplumber==0.11.10
 pypdf==6.21.2
 reportlab==4.4.9
 pillow==13.0.0
