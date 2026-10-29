@@ -76,6 +76,7 @@ export const person = pgTable(
     documentType: text(),
     documentNumber: text(),
     epikId: text(),
+    cardUid: text(),
     birthDate: date({ mode: "string" }),
     // Referencia a media_asset validada en el dominio: una clave foránea aquí haría un ciclo content ↔ people.
     photoAssetId: text(),
@@ -90,6 +91,11 @@ export const person = pgTable(
   },
   (t) => [
     uniqueIndex("person_email_unique").on(t.email),
+    uniqueIndex("person_card_uid_unique").on(t.cardUid).where(sql`${t.cardUid} is not null`),
+    check(
+      "person_card_uid_format",
+      sql`${t.cardUid} is null or ${t.cardUid} ~ '^[0-9A-F]{2}( [0-9A-F]{2}){3}$'`,
+    ),
     uniqueIndex("person_legacy_id_unique").on(t.legacyId).where(sql`${t.legacyId} is not null`),
     check("person_email_lowercase", sql`${t.email} = lower(${t.email})`),
     check("person_document_type_known", sql`${t.documentType} in ('CC', 'TI', 'CE', 'PPT')`),

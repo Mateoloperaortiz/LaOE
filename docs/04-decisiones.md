@@ -152,3 +152,6 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [044](adr/ADR-044-experiencia-del-portal-y-mi-oe.md) | Portal y Mi OE | Navegación compacta, identidad editorial preservada, Agenda de miembros, formularios por trámite y Ajustes por categorías | Aceptada |
 | [045](adr/ADR-045-alta-individual-de-integrante-existente.md) | Alta individual con historial | Excepción para un solo integrante existente y el historial de su manifiesto aprobado: persona, membresía activa, historial por semestre y cargos en una transacción auditada, sin consentimientos, sin `person.admitted` ni bienvenida; no habilita altas generales ni importaciones de roster | Aceptada; operación verificada |
 | [130](adr/ADR-130-fotos-privadas-en-mi-oe.md) | Fotos privadas de Mi OE | Colecciones y álbumes para integrantes; variantes saneadas con entrega por sesión, visor y carga idempotente de DÍAS 2026 | Aceptada |
+
+- [ADR-149](adr/ADR-149-inventario-reservas-y-operacion-logistica.md): inventario consultable, reservas de logísticos habilitados, operación CML y gestión humana de novedades; UID físico separado de EPIK.
+- [ADR-150](adr/ADR-150-revision-temporal-de-rama-en-staging.md): revisión del SHA de una rama con imagen fijada y base sintética temporal en staging, y restauración documentada.

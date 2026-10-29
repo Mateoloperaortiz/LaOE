@@ -14,6 +14,7 @@ const MODULE_DEPS = {
   finance: ["people", "terms"],
   forms: ["events", "people", "system"],
   identity: ["comms", "people"],
+  inventory: ["people", "permanence", "system", "terms"],
   participation: ["events", "forms", "people", "system", "terms"],
   people: ["content", "events", "system", "terms"],
   permanence: ["events", "participation", "people", "system", "terms"],

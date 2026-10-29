@@ -42,7 +42,11 @@ describe("datos propios desde Ajustes", () => {
   it("edita el celular y el correo personal, audita y deja huella en la línea de tiempo", async () => {
     const me = await seedMember("yo@eafit.edu.co", { firstName: "Yo", lastName: "Misma" });
     await runCommand({ personId: me, ip: null }, (ctx) =>
-      updateOwnContact(ctx, me, { phone: "300 123 4567", personalEmail: "Yo@Gmail.com" }),
+      updateOwnContact(ctx, me, {
+        phone: "300 123 4567",
+        personalEmail: "Yo@Gmail.com",
+        cardUid: "00 11 22 33",
+      }),
     );
     const [row] = await db().select().from(person).where(eq(person.id, me));
     expect(row).toMatchObject({ phone: "+573001234567", personalEmail: "yo@gmail.com" });
@@ -53,7 +57,7 @@ describe("datos propios desde Ajustes", () => {
     expect(timeline.length).toBeGreaterThanOrEqual(1);
     await expect(
       runCommand({ personId: me, ip: null }, (ctx) =>
-        updateOwnContact(ctx, me, { phone: "12", personalEmail: "" }),
+        updateOwnContact(ctx, me, { phone: "12", personalEmail: "", cardUid: "00 11 22 33" }),
       ),
     ).rejects.toThrow(DomainError);
   });

@@ -3,6 +3,7 @@ import "@/modules/comms/jobs";
 import "@/modules/crm/jobs";
 import "@/modules/forms/jobs";
 import "@/modules/identity/jobs";
+import "@/modules/inventory/jobs";
 import "@/modules/participation/jobs";
 import "@/modules/people/jobs";
 import "@/modules/permanence/jobs";

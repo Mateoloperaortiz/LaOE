@@ -1,6 +1,6 @@
 # ADR-031: Autogestión del miembro: solicitudes, convocatorias, datos propios, onboarding, reconocimientos, encuestas y panel de la junta
 
-- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038)
+- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038); enmendada por ADR-149
 - Fecha: 2026-09-03
 - Relacionadas: ADR-003, ADR-011, ADR-013, ADR-014, ADR-025, ADR-027, ADR-030
 
@@ -36,3 +36,7 @@ Las solicitudes son tres: licencia, retiro voluntario y cambio de comité; el ca
 ## Enmienda (2026-09-05, ADR-038)
 
 La encuesta tras la ocasión no usa `form_submission`: el formulario de miembros aporta las preguntas (`Occasion.surveyFormId`), pero al cerrar la ocasión `participation` crea una invitación con token por asistente aprobado (`occasion_survey_invite`) y la respuesta se guarda sin persona (`occasion_survey_response`, solo ocasión y comité); los textos libres se muestran solo con 3 o más respuestas. El push T-191 sale por el bus de notificaciones. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).
+
+## Enmienda (2026-10-29, ADR-149)
+
+Inventario y reservas dejan el backlog y se implementan con permisos propios, operación CML y novedades. Ver ADR-149.

@@ -22,6 +22,7 @@ export const TASK_KINDS = [
   "REQUEST",
   "COMMITTEE_REMOVAL",
   "LEAVE_EXPIRED",
+  "INVENTORY_INCIDENT",
 ] as const;
 
 export const taskInputSchema = z.object({
@@ -51,6 +52,7 @@ export interface TaskRow {
   cardId: string | null;
   createdAt: Date;
   completedAt: Date | null;
+  inventoryIncidentId: string | null;
 }
 
 export interface TaskListParams {
@@ -102,6 +104,9 @@ async function withNames(rows: Array<typeof task.$inferSelect>): Promise<TaskRow
     cardId: row.cardId,
     createdAt: row.createdAt,
     completedAt: row.completedAt,
+    inventoryIncidentId: row.reasonKey?.startsWith("INVENTORY_INCIDENT:incident:")
+      ? row.reasonKey.slice("INVENTORY_INCIDENT:incident:".length)
+      : null,
   }));
 }
 
@@ -179,7 +184,8 @@ export type TaskReason =
   | { type: "LEAVE_EXPIRED"; personId: string }
   | { type: "REQUEST"; requestId: string; personId: string }
   | { type: "SPONSORSHIP_WON"; cardId: string; organizationId: string }
-  | { type: "GROUP_ADMISSION_FAILED"; personId: string; callId: string };
+  | { type: "GROUP_ADMISSION_FAILED"; personId: string; callId: string }
+  | { type: "INVENTORY_INCIDENT"; personId: string; incidentId: string };
 
 /** Las claves de la configuración que traen un plazo en días hábiles: un conjunto cerrado. */
 const DUE_CONFIG_KEYS = ["privacy.deletionDays", "requests.taskDays"] as const;
@@ -300,6 +306,13 @@ function reasonSpec(reason: TaskReason, title: string): ReasonSpec {
         cardId: reason.cardId,
       };
     // Una inscripción aceptada que no entró a su grupo (ADR-116 regla 7): una por persona y convocatoria.
+    case "INVENTORY_INCIDENT":
+      return {
+        ...none,
+        key: `${reason.type}:incident:${requireId(reason.type, reason.incidentId)}`,
+        kind: "INVENTORY_INCIDENT",
+        personId: requireId(reason.type, reason.personId),
+      };
     case "GROUP_ADMISSION_FAILED": {
       const personId = requireId(reason.type, reason.personId);
       return {
@@ -369,7 +382,12 @@ export async function openTaskForReason(
     ctx.tx
       .select({ id: task.id })
       .from(task)
-      .where(and(eq(task.status, "OPEN"), where))
+      .where(
+        and(
+          input.reason.type === "INVENTORY_INCIDENT" ? undefined : eq(task.status, "OPEN"),
+          where,
+        ),
+      )
       .orderBy(asc(task.createdAt), asc(task.id))
       .limit(1);
   let [existing] = await findOpen(eq(task.reasonKey, spec.key));

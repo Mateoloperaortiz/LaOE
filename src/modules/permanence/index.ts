@@ -36,6 +36,7 @@ export {
   getGroup,
   getGroupDetail,
   groupJoinBlocker,
+  hasCmlMembershipInTerm,
   listGroupIdsOf,
   listGroupOptions,
   listGroupRefs,

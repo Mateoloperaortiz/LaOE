@@ -5,6 +5,7 @@ import {
   COMMITTEE_CAPABILITIES,
   type CommitteeCapability,
   type CommitteeRef,
+  hasVpAdminInTerm,
   listCommitteesByIds,
   listMyCommitteeCapabilities,
 } from "@/modules/people";
@@ -27,6 +28,10 @@ export interface AdminAreaRoles {
   actor: Actor;
   isAdmin: boolean;
   isBoard: boolean;
+  /** VP administrativa vigente: acceso limitado al inventario. */
+  managesInventory: boolean;
+  /** Semestre ya consultado para componer navegación sin repetir la lectura. */
+  currentTermId: string | null;
   /** Comités con permiso técnico `COMMITTEE_LEADER`. */
   ledCommittees: CommitteeRef[];
   /** Comités donde el actor tiene alguna capacidad, por permiso o por cargo, en el orden del nombre. */
@@ -48,6 +53,8 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
       actor,
       isAdmin: false,
       isBoard: false,
+      managesInventory: false,
+      currentTermId: null,
       ledCommittees: [],
       committees: [],
       ledGroups: [],
@@ -58,6 +65,9 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
   }
   const isAdmin = actor.isAdmin;
   const isBoard = hasPermission(actor, "BOARD");
+  const term = await getCurrentTerm();
+  const managesInventory =
+    !onLeave && term !== null && (await hasVpAdminInTerm(actor.personId, term.id));
   const ledCommittees = isAdmin
     ? []
     : await listCommitteesByIds(
@@ -65,13 +75,13 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
           .filter((item) => item.code === "COMMITTEE_LEADER" && item.committeeId)
           .map((item) => item.committeeId as string),
       );
-  const term = isAdmin ? null : await getCurrentTerm();
-  const [groups, directed] = term
-    ? await Promise.all([
-        onLeave ? { leads: [], evaluates: [] } : listMyGroupRoles(actor.personId, term.id),
-        listMyCommitteeCapabilities(actor.personId, term.id),
-      ])
-    : [{ leads: [], evaluates: [] }, []];
+  const [groups, directed] =
+    !isAdmin && term
+      ? await Promise.all([
+          onLeave ? { leads: [], evaluates: [] } : listMyGroupRoles(actor.personId, term.id),
+          listMyCommitteeCapabilities(actor.personId, term.id),
+        ])
+      : [{ leads: [], evaluates: [] }, []];
   // ADMIN ya ve todo; en licencia no se opera The Games (ADR-089 regla 10).
   const competitions = isAdmin || onLeave ? [] : await listMyCompetitionRoles(actor);
   const byId = new Map<string, CommitteeAccessRef>();
@@ -98,6 +108,8 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
     actor,
     isAdmin,
     isBoard,
+    managesInventory,
+    currentTermId: term?.id ?? null,
     ledCommittees,
     committees,
     ledGroups: groups.leads,
@@ -106,6 +118,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
     any:
       isAdmin ||
       isBoard ||
+      managesInventory ||
       committees.length > 0 ||
       groups.leads.length > 0 ||
       groups.evaluates.length > 0 ||

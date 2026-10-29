@@ -81,7 +81,11 @@ describe("consulta de Mi OE en licencia", () => {
     });
     expect(await db().select().from(permission)).toHaveLength(3);
     await runCommand({ personId: actor.personId, ip: null }, (ctx) =>
-      updateOwnContact(ctx, personId, { phone: "3001234567", personalEmail: "propia@example.com" }),
+      updateOwnContact(ctx, personId, {
+        phone: "3001234567",
+        personalEmail: "propia@example.com",
+        cardUid: "00 11 22 33",
+      }),
     );
     expect(await getPersonRecord(personId)).toMatchObject({
       phone: "+573001234567",

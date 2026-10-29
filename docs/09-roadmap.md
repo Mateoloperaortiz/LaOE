@@ -4,6 +4,22 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Inventario y reservas de la VP administrativa (ADR-149 y ADR-150) · `en curso`
+
+- [x] Acordar alcance, permisos, UID del carnet, delegación y revisión temporal en staging.
+- [x] Completar dominio transaccional, pantallas y remisión de novedades.
+- [x] Verificar permisos, concurrencia, privacidad, devoluciones y recorridos principales.
+- [x] Ejecutar check global, E2E y revisión visual del candidato.
+- [ ] Publicar rama y PR borrador.
+- [ ] Desplegar SHA validado con base sintética temporal y comprobar salud/smoke.
+- [ ] Recoger observaciones de la VP y restaurar staging al cerrar la revisión.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-29 | Inventario · alcance aprobado | Rama `feat/inventario-vp-administrativa` desde main actualizado. ADR-149 fija inventario por unidades/cantidades, concesiones a direcciones logísticas, operación CML, UID del carnet y remisión humana de novedades; ADR-150 define revisión de la rama con imagen fijada y base temporal sintética en staging. Implementación y verificación en curso. |
+| 2026-10-29 | Inventario · implementación y revisión local | Migración aditiva `0062`, UID privado y único, reservas por cargo y concesión, operación CML, devoluciones parciales, cuarentena/pérdidas y remisión idempotente a tareas ADMIN. Revisión independiente corrigió barreras de retiro de cargos/CML, fin exclusivo del calendario, selección de macroeventos futuros y conservación del formulario ante rechazo. `npm run check` completo aprobado con 2.700 unitarias, 2.077 integraciones, 11 pruebas del extractor y build; 22 E2E cubren inventario, ajustes y navegación, con axe y doce capturas de miembro/VP/CML en 390/1440 y claro/oscuro. Compatibilidad de barras verificada con generación y decodificación reales. Añadida señal de reservas afectadas por atrasos/daños con pruebas de cantidad y unidad; comprobación final del candidato en curso. Cámara y etiquetas impresas en teléfonos físicos pendientes de revisión humana. |
+| 2026-10-29 | Inventario · candidato final local | `npm run check` final exit 0: 2.702 unitarias, 2.077 integraciones, 11 del extractor, lint, tipos, dependencias, deadcode y build. Los recorridos E2E cubren 23 escenarios únicos de inventario, ajustes y navegación; última pasada 7/7 (cinco de inventario y dos de sesión), incluida la reserva futura que conserva su confirmación y muestra conflicto por atraso. Doce capturas finales y axe sin hallazgos en miembro, VP y CML, a 390/1440 px y claro/oscuro. Base temporal sintética de staging preparada con seis cuentas, tres materiales, tres reservas y una novedad. Publicación de rama, CI remoto e imagen pendientes. |
+
 ## Vueltas adicionales de elección (ADR-147) · `lista`
 
 - [x] Registrar que todas las vueltas adicionales son obligatorias hasta escoger la junta completa, sin límite de cantidad ([ADR-147](adr/ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md)); actualizar glosario, modelo y textos.

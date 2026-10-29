@@ -18,12 +18,14 @@ export function ContactForm({
   email,
   phone,
   personalEmail,
+  cardUid,
 }: {
   email: string;
   phone: string;
   personalEmail: string;
+  cardUid: string;
 }) {
-  const [values, setValues] = useState({ phone, personalEmail });
+  const [values, setValues] = useState({ phone, personalEmail, cardUid });
   const form = useRef<HTMLFormElement>(null);
   const busy = useRef(false);
   const [state, action, pending] = useActionState(
@@ -103,6 +105,28 @@ export function ContactForm({
               {state.errors.personalEmail}
             </p>
           ) : null}
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="cardUid">{t("T-4100")}</label>
+          <input
+            id="cardUid"
+            name="cardUid"
+            required
+            value={values.cardUid}
+            onChange={(event) => setValues({ ...values, cardUid: event.target.value })}
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            className={inputClass}
+            aria-invalid={!!state.errors.cardUid || undefined}
+            aria-describedby="card-uid-help card-uid-error"
+          />
+          <p id="card-uid-help" className="text-sm text-tinta-suave">
+            {t("T-4101")}
+          </p>
+          <p id="card-uid-error" className="text-sm">
+            {state.errors.cardUid ?? ""}
+          </p>
         </div>
         <button type="submit" className="boton-primario self-start">
           {pending ? t("T-1628") : t("T-253")}

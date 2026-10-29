@@ -1,6 +1,6 @@
 # ADR-141: Fase C de CD: reutilización del CI por árbol idéntico, imagen única promovida por digest y smoke sin dependencias
 
-- Estado: Aceptada
+- Estado: Aceptada; enmendada por ADR-150
 - Fecha: 2026-10-24
 - Relacionadas: ADR-039, ADR-053, ADR-054, ADR-055, ADR-139, ADR-140
 - Enmienda: ADR-054 (puntos 4 y 6: quién puede reutilizar evidencia) y el mecanismo de despliegue y promoción de ADR-053 (Railpack por entorno y avance de la rama `production`)
@@ -38,3 +38,7 @@ La reutilización por árbol quedó acreditada en cuatro pushes seguidos a `main
 La imagen se probó primero en local de punta a punta (migraciones contra una base desechable y salud con el SHA horneado) y después en el job `imagen` de cada CI completo. El primer despliegue a staging dejó dos aprendizajes que ya están en la decisión: la sola presencia del `Dockerfile` raíz hace que Railpack lo prefiera (el despliegue GitHub del merge de la Fase C falló en su builder y staging siguió sano en el despliegue anterior), y un token de proyecto no puede cambiar la fuente del servicio, así que el mecanismo final son los canales `canal-staging`/`canal-produccion` movidos solo a digest verificados y el redespliegue desde la fuente. Staging cortó primero a un digest fijo por IaC (despliegue `66090155`, smoke 6/6) y después a `canal-staging` (despliegue `5536392e`, smoke 6/6); la automatización completa — publicar, verificar canal, redesplegar y smoke — cerró en verde reejecutando el mismo SHA (job de 39 s con la caché tibia; la primera publicación, en frío, tardó 4 min 54 s). Los despliegues por imagen no emiten `deployment_status` en GitHub: el smoke que vale es el del workflow de despliegue.
 
 Producción promovió el SHA `050cc3a1`, el mismo que staging ya servía: el dispatch preparó `canal-produccion` sobre el índice exacto `sha256:cf0822…` (26 s), el plan de IaC quedó limitado a `web` (0 altas, 0 bajas; `backup` intacto), el apply creó el despliegue `61b55d02` en `SUCCESS` con la migración 0060 aditiva aplicada en el pre-deploy y el smoke independiente dio 6/6. Con `IMAGE_DEPLOY_PRODUCTION` encendido, el dispatch se repitió ya como promoción automática: job de 38 s, despliegue `eb8d1cbb` en `SUCCESS` con el mismo digest y smoke del workflow en verde. Al cierre, `sha-<SHA>`, `canal-staging` y `canal-produccion` resuelven al mismo índice y ambos entornos anuncian `050cc3a1` en su salud. La próxima mezcla con cambio de aplicación será la primera en recorrer el camino automático merge → staging con un SHA distinto; todos sus pasos ya quedaron ejercidos, pero esa cifra completa aún no se reclama como mediana.
+
+## Enmienda (2026-10-29, ADR-150)
+
+Se permite la revisión temporal de una rama en staging con imagen fijada y base separada dentro de su PostgreSQL. Ver ADR-150.

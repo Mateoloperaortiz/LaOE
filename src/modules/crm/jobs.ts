@@ -1,6 +1,7 @@
 import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { submissionReceived } from "@/domain-events/forms";
+import { inventoryIncidentReferred } from "@/domain-events/inventory";
 import { checkinApproved, termSuccessorMissing } from "@/domain-events/participation";
 import {
   committeeRemovalRequested,
@@ -63,6 +64,7 @@ function fieldLabels(): Readonly<Record<string, string>> {
     personalEmail,
     program,
     kind,
+    cardUid: t("T-4100"),
   });
 }
 
@@ -141,6 +143,18 @@ onEvent(personAnonymized, async ({ personId }, ctx) => {
 
 // Las tareas que abre el sistema pasan por `openTaskForReason` (ADR-115 regla 9): una sola abierta por
 // motivo y sujeto, auditada a nombre del sistema. El handler solo dice el motivo, el título y el plazo.
+
+// La solicitud de eliminación (ADR-030, ADR-034 regla 12): una tarea sin asignar que ven todos los
+onEvent(inventoryIncidentReferred, async ({ incidentId, personId, actorId }, ctx) => {
+  const opened = await openTaskForReasonAs(SYSTEM_ACTOR, {
+    reason: { type: "INVENTORY_INCIDENT", incidentId, personId },
+    title: t("T-4500"),
+    assigneeId: null,
+    due: null,
+    requestedById: actorId,
+  });
+  ctx.log.info({ incidentId, ...opened }, "revisión de novedad de inventario");
+});
 
 // La solicitud de eliminación (ADR-030, ADR-034 regla 12): una tarea sin asignar que ven todos los
 // ADMIN, con vencimiento a `privacy.deletionDays` días hábiles.

@@ -4,6 +4,12 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 
 | En la interfaz | En el código | Qué es |
 | --- | --- | --- |
+| Inventario | `InventoryItem` / `InventoryUnit` | Implementos retornables de la OE, por unidad identificada o cantidad, con ubicación y caja |
+| Reserva de inventario | `InventoryReservation` | Materiales apartados por un logístico habilitado para un intervalo y un comité o macroevento |
+| Concesión de reserva | `InventoryGrant` | Habilitación de la VP vinculada a una asignación concreta de Logística |
+| Préstamo de inventario | Reserva entregada y movimientos | Salida efectiva de materiales con responsable de recogida y cantidades pendientes de devolución |
+| Novedad de inventario | `InventoryIncident` | Registro restringido de faltantes, daños o notas, con gestión y posible remisión para revisión |
+| UID del carnet universitario | `Person.cardUid` | Cuatro pares hexadecimales normalizados; distinto de EPIK y del QR del carnet OE |
 | Persona | `Person` | Cualquier ser humano del que la OE guarda datos: estudiante o contacto externo. Eje del CRM |
 | Correo personal | `Person.personalEmail` | Contacto opcional de egresados y externos; nunca sirve para iniciar sesión |
 | Prospecto | `stage=PROSPECT` | Persona que llenó un formulario público o fue creada a mano sin membresía |

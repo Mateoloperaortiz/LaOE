@@ -118,3 +118,10 @@ Cuando una ocasión tiene `requireRotatingCode`, la consola muestra el QR con un
 | Cliente que calcula premios o lee respuestas de trivia | El premio se calcula y se reserva en servidor con las reglas vigentes; las proyecciones omiten `correctIndex` hasta que el reto cierra y solo devuelven estado, desglose y motivos |
 | Evidencias con metadatos o vistas por terceros | Clave propia `evidence/<personId>/…`, tabla propia fuera de `media_asset`, re-codificación con `sharp` sin metadatos antes de servir, autorización de autor o ADMIN en cada lectura y borrado al anonimizar |
 | Spam en formularios públicos | Honeypot, rate limit por IP contado en Postgres, una respuesta por correo, tope y ventana por formulario; Cloudflare delante solo si aparece spam real ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
+
+
+## Inventario (ADR-149)
+
+La lectura de inventario y calendario está en Mi OE. La VP administrativa vigente, derivada del nombramiento y no del permiso BOARD, administra materiales, cargos exclusivamente logísticos y concesiones de reserva. Cada concesión corresponde a un cargo concreto; la vigencia se relee en servidor bajo la barrera del ciclo de membresía. Una concesión retirada no reaparece al nombrar otra vez a la misma persona.
+
+El CML se deriva de la pertenencia viva al comité de trabajo del término actual y puede registrar salida, entrada y notas. El carnet universitario es obligatorio al retirar; no concede acceso por sí mismo. ADMIN revisa una incidencia remitida desde su tarea y Persona 360, con el sujeto explícito, sin adquirir por ello la gestión de inventario de la VP. Ni el CML ni la remisión registran sanciones.

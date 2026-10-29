@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  cardUidSchema,
   documentTypeSchema,
   formatBirthDate,
   hasInstitutionalDomain,
+  normalizeCardUid,
   parseBirthDate,
 } from "@/modules/people/domain/person-pure";
 import { personInputSchema } from "@/modules/people/domain/persons";
@@ -78,5 +80,33 @@ describe("identificación y fecha de nacimiento", () => {
   it("presenta el nacimiento sin convertirlo al día anterior", () => {
     expect(formatBirthDate("2004-03-21")).toBe("21 de marzo de 2004");
     expect(formatBirthDate("2000-01-01")).toBe("1 de enero de 2000");
+  });
+});
+
+describe("UID del carnet físico", () => {
+  it("normaliza cuatro bytes y conserva sus ceros sin confundirlos con EPIK", () => {
+    for (const raw of ["001122aa", "00 11 22 aa", "00:11:22:AA", "00-11-22-AA"]) {
+      expect(cardUidSchema.parse(raw)).toBe("00 11 22 AA");
+    }
+    expect(normalizeCardUid(" 00 11 22 aa ")).toBe("00 11 22 AA");
+    expect(
+      personInputSchema.parse({ ...person, cardUid: "001122aa", epikId: "000567" }),
+    ).toMatchObject({ cardUid: "00 11 22 AA", epikId: "000567" });
+    expect(personInputSchema.parse(person)).not.toHaveProperty("cardUid");
+    expect(personInputSchema.parse({ ...person, cardUid: "" }).cardUid).toBeNull();
+  });
+
+  it("rechaza longitudes y símbolos que no representen exactamente cuatro pares", () => {
+    for (const invalid of [
+      "",
+      "001122",
+      "0011223344",
+      "GG 11 22 33",
+      "00.11.22.33",
+      "00 11 22 3",
+      "00\n11 22 33",
+    ]) {
+      expect(cardUidSchema.safeParse(invalid).success).toBe(false);
+    }
   });
 });

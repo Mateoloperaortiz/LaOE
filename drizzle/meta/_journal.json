@@ -435,6 +435,13 @@
       "when": 1793039646562,
       "tag": "0061_vueltas_adicionales_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793295114900,
+      "tag": "0062_inventario_vp_administrativa",
+      "breakpoints": true
     }
   ]
 }

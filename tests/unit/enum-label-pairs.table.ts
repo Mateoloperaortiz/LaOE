@@ -145,6 +145,12 @@ export type LabelPair = {
  * recorrido por índice de una constante en mayúsculas, índice en constante y `zip`). */
 export const PAIRS: readonly LabelPair[] = [
   {
+    code: "T-4403",
+    order: "INVENTORY_INCIDENT_STATUSES",
+    positions: { OPEN: 0, RESOLVED: 1, REFERRED: 2 },
+    copies: ["src/app/admin/inventario/page.tsx"],
+  },
+  {
     code: "T-085",
     order: "POINT_ENTRY_KINDS",
     positions: {

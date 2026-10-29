@@ -160,6 +160,7 @@ test("un error de contacto conserva los dos campos, enfoca el inválido y permit
   await page.goto("/app/ajustes");
   const phone = page.getByLabel(t("T-404"), { exact: true });
   const personalEmail = page.getByLabel(t("T-405"), { exact: true });
+  await page.getByRole("textbox", { name: t("T-4100"), exact: true }).fill("00 11 22 33");
   await phone.fill("celular-no-valido");
   await personalEmail.fill("reintento-ux@example.invalid");
   await page.getByRole("button", { name: t("T-253"), exact: true }).click();

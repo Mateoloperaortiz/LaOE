@@ -7,12 +7,15 @@ import { eventOf } from "@/domain-events/define";
 import { permanenceRecompute, workGroupMembershipChanged } from "@/domain-events/permanence";
 import {
   findMembersByEmails,
+  getMembershipRef,
   getPeopleByIds,
   listAppointmentsForTerm,
   listCommitteesByIds,
   listMembershipStatuses,
   listTermRoster,
+  lockMembershipCycles,
 } from "@/modules/people";
+import { getCurrentTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { MAX_INPUT_COLLECTION_ITEMS } from "@/shared/lib/input-collections";
@@ -426,6 +429,11 @@ export async function removeMember(
   personId: string,
   now = new Date(),
 ): Promise<boolean> {
+  // Retirar del CML y confirmar movimientos comparten la barrera del operador. Se toma antes de filas.
+  await lockMembershipCycles(ctx.tx, [
+    personId,
+    ...(ctx.actor.personId ? [ctx.actor.personId] : []),
+  ]);
   const [group] = await ctx.tx.select().from(workGroup).where(eq(workGroup.id, groupId));
   if (!group) {
     throw new DomainError(t("T-032"));
@@ -810,4 +818,40 @@ export async function listWorkCommitteeTermIds(personId: string): Promise<string
     .innerJoin(workGroup, eq(workGroup.id, workGroupMembership.groupId))
     .where(and(eq(workGroupMembership.personId, personId), eq(workGroup.kind, "WORK_COMMITTEE")));
   return rows.map((row) => row.termId);
+}
+
+/** Pertenencia operativa al CML del término, sin conceder permisos del resto de permanencia. */
+export async function hasCurrentCmlMembership(
+  personId: string,
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<boolean> {
+  const current = await getCurrentTerm(new Date(), exec);
+  if (current?.id !== termId) return false;
+  return hasCmlMembershipInTerm(personId, termId, exec);
+}
+
+/** La composición ya resolvió el término: conserva la pertenencia viva y el estado operativo. */
+export async function hasCmlMembershipInTerm(
+  personId: string,
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<boolean> {
+  const member = await getMembershipRef(personId, exec);
+  if (!member || !["ACTIVE", "HONORARY"].includes(member.status)) return false;
+  const [row] = await exec
+    .select({ id: workGroupMembership.id })
+    .from(workGroupMembership)
+    .innerJoin(workGroup, eq(workGroup.id, workGroupMembership.groupId))
+    .where(
+      and(
+        eq(workGroupMembership.personId, personId),
+        eq(workGroup.termId, termId),
+        eq(workGroup.kind, "WORK_COMMITTEE"),
+        eq(workGroup.code, "CML"),
+        isNull(workGroupMembership.leftAt),
+      ),
+    )
+    .limit(1);
+  return row !== undefined;
 }

@@ -50,8 +50,8 @@ function back(section: string, extra: Record<string, string> = {}): never {
 export type ContactState = {
   status: "idle" | "done" | "error";
   message?: string;
-  errors: { phone?: string; personalEmail?: string };
-  values?: { phone: string; personalEmail: string };
+  errors: { phone?: string; personalEmail?: string; cardUid?: string };
+  values?: { phone: string; personalEmail: string; cardUid: string };
 };
 
 export async function updateContactAction(
@@ -60,6 +60,7 @@ export async function updateContactAction(
 ): Promise<ContactState> {
   const actor = await requireOwnActor();
   const parsed = ownContactSchema.safeParse({
+    cardUid: formRaw(formData, "cardUid"),
     phone: formRaw(formData, "phone"),
     personalEmail: formRaw(formData, "personalEmail"),
   });
@@ -68,7 +69,10 @@ export async function updateContactAction(
       status: "error",
       message: t("T-1632"),
       errors: Object.fromEntries(
-        parsed.error.issues.map((issue) => [String(issue.path[0]), t("T-1631")]),
+        parsed.error.issues.map((issue) => [
+          String(issue.path[0]),
+          t(issue.path[0] === "cardUid" ? "T-4102" : "T-1631"),
+        ]),
       ),
     };
   }
@@ -84,12 +88,17 @@ export async function updateContactAction(
     }
     throw error;
   }
+  revalidatePath("/app", "layout");
   revalidatePath("/app/ajustes");
   const who = await getPersonRecord(actor.personId);
   return {
     status: "done",
     errors: {},
-    values: { phone: who?.phone ?? "", personalEmail: who?.personalEmail ?? "" },
+    values: {
+      phone: who?.phone ?? "",
+      personalEmail: who?.personalEmail ?? "",
+      cardUid: who?.cardUid ?? "",
+    },
   };
 }
 
