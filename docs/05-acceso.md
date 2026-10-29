@@ -120,7 +120,7 @@ Cuando una ocasión tiene `requireRotatingCode`, la consola muestra el QR con un
 | Spam en formularios públicos | Honeypot, rate limit por IP contado en Postgres, una respuesta por correo, tope y ventana por formulario; Cloudflare delante solo si aparece spam real ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
 
 
-## Inventario (ADR-149)
+## Inventario (ADR-150)
 
 La lectura de inventario y calendario está en Mi OE. La VP administrativa vigente, derivada del nombramiento y no del permiso BOARD, administra materiales, cargos exclusivamente logísticos y concesiones de reserva. Cada concesión corresponde a un cargo concreto; la vigencia se relee en servidor bajo la barrera del ciclo de membresía. Una concesión retirada no reaparece al nombrar otra vez a la misma persona.
 

@@ -1,4 +1,4 @@
-# ADR-149: Inventario, reservas y operación logística de la OE
+# ADR-150: Inventario, reservas y operación logística de la OE
 
 - Estado: Aceptada; verificada localmente; revisión en staging en preparación
 - Fecha: 2026-10-29
@@ -22,4 +22,4 @@ La VP administrativa necesita un inventario consultable por toda la OE, reservas
 
 ## Consecuencias
 
-Las cajas son ubicaciones, no kits, y los materiales son retornables en esta versión. La aprobación de reservas es directa por disponibilidad; las cancelaciones conservan motivo y auditoría. Los datos de revisión son sintéticos. La publicación inicial es una revisión de la rama en staging según ADR-150; la publicación en producción y la observación en teléfonos físicos son hitos que deben registrarse con evidencia propia.
+Las cajas son ubicaciones, no kits, y los materiales son retornables en esta versión. La aprobación de reservas es directa por disponibilidad; las cancelaciones conservan motivo y auditoría. Los datos de revisión son sintéticos. La publicación inicial es una revisión de la rama en staging según ADR-151; la publicación en producción y la observación en teléfonos físicos son hitos que deben registrarse con evidencia propia.

@@ -1,6 +1,6 @@
 # ADR-058: La dirección del comité por áreas: capacidades por cargo, cargos múltiples y codirección
 
-- Estado: Aceptada (enmendada por ADR-060 y ADR-115); promovida a producción el 2026-09-12 (`7d7594f`), verificación con la dirección real de los comités pendiente; enmendada por ADR-149
+- Estado: Aceptada (enmendada por ADR-060 y ADR-115); promovida a producción el 2026-09-12 (`7d7594f`), verificación con la dirección real de los comités pendiente; enmendada por ADR-150
 - Fecha: 2026-09-12
 - Enmienda: ADR-011 (los cargos de dirección sí habilitan, por datos, lo de su área), ADR-029 (regla 1: catálogo con obligatorios y capacidades; regla 2: un solo General **titular**; un cargo por pertenencia pasa a varios), ADR-034 (regla 5: editor de comités de la Persona 360; regla 13: el líder es un cargo asignado), ADR-035 (regla 15: la vista de líder pasa a ser la vista del comité por áreas y las ocasiones se operan con la capacidad `OCCASIONS`), ADR-036 (regla 10: `acceso.ts` compone también los comités con capacidades; la permanencia del comité se opera con `PERMANENCE`), 01-arquitectura (`finance` en la lista de módulos, ADR-059), 02-crm (tarea `COMMITTEE_REMOVAL`, regla 5, pestaña Membresía), 03-modelo (`CommitteeRole`, `CommitteeRoleAssignment`, índices), 05-acceso (autorización), 06-mapa (vista del comité), 13-importacion (varios cargos por comité y prefijo "Codirección de"), glosario y 14-copy (bloque T-2144 a T-2186; T-165, T-452, T-461 y T-473 se enmiendan en el tramo que cambia su código)
 - Relacionadas: ADR-002, ADR-005, ADR-011, ADR-012, ADR-014, ADR-017, ADR-029, ADR-030, ADR-034, ADR-035, ADR-036, ADR-037, ADR-043, ADR-056, ADR-059
@@ -43,6 +43,6 @@ Regla 1: la mesa directiva de un CIC o CE tiene los seis cargos de los Estatutos
 
 Regla 4: la tarea `COMMITTEE_REMOVAL` se reconocía por su título (T-2170), que lleva el motivo escrito. Ahora la identifican la persona y el comité (`COMMITTEE_REMOVAL:person:<id>:committee:<id>`): mientras siga abierta, otro pedido sobre la misma persona y el mismo comité no abre otra aunque traiga otro motivo, y ese motivo queda en la línea de tiempo (T-2171). La tarea queda auditada a nombre del sistema y `createdById` sigue siendo quien la pidió. Ver [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) regla 9.
 
-## Enmienda (2026-10-29, ADR-149)
+## Enmienda (2026-10-29, ADR-150)
 
-La VP administrativa puede registrar exclusivamente los cargos de Logística, conservando restricciones y otros cargos. Ver ADR-149.
+La VP administrativa puede registrar exclusivamente los cargos de Logística, conservando restricciones y otros cargos. Ver ADR-150.

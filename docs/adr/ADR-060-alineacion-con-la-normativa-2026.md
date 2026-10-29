@@ -1,6 +1,6 @@
 # ADR-060: Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026
 
-- Estado: Aceptada (2026-09-13), enmendada por ADR-061, ADR-073, ADR-111, ADR-112, ADR-118 y ADR-129; implementación por tramos N26-T0 a N26-T11 en el [roadmap](../09-roadmap.md#normativa-2026-adr-060); enmendada por ADR-137; enmendada por ADR-149
+- Estado: Aceptada (2026-09-13), enmendada por ADR-061, ADR-073, ADR-111, ADR-112, ADR-118 y ADR-129; implementación por tramos N26-T0 a N26-T11 en el [roadmap](../09-roadmap.md#normativa-2026-adr-060); enmendada por ADR-137; enmendada por ADR-150
 - Fecha: 2026-09-13
 - Enmienda: ADR-024 (punto 2: la elección de junta obligatoria se deriva de que exista la ocasión, no del semestre), ADR-027 (banda de prueba por condición), ADR-028 (punto 1: consecuencias por condición y expulsión como causal propia), ADR-029 y ADR-058 (catálogo de cargos 2026, cargos retirados y `ROSTER` para Logística), ADR-030 (reactivar: el expulsado no vuelve), ADR-031 y ADR-037 (solicitud de excusa; tarea por vencimiento de licencia), ADR-036 (regla 9: la prueba se fija por comité), ADR-046 (licencia con vencimiento y capacidades de un cargo de mesa en licencia), ADR-056 (condición del semestre con comité opcional), ADR-057 (etiqueta "Comunicaciones y Mercadeo"), ADR-059 (presupuesto ordinario y extraordinario, aprobación, presolicitud y aval de evento), 02-crm, 03-modelo, 05-acceso, 12-permanencia, 13-importacion, glosario y 14-copy (bloque T-2206 en adelante)
 - Relacionadas: ADR-002, ADR-003, ADR-012, ADR-014, ADR-025, ADR-026, ADR-042, ADR-047
@@ -88,6 +88,6 @@ No cambia ninguna causal: es la conducta de antes, que no estaba escrita acá. L
 
 La presencia completa o parcial y su toma se conservan por separado de la solicitud de excusa. Solo una completa aprobada acredita asistencia; una parcial puede justificarse sin perder su evidencia. La importación, las lecturas y los efectos aplican esa distinción. Ver [ADR-137](ADR-137-asistencia-parcial-y-excusa-separadas.md).
 
-## Enmienda (2026-10-29, ADR-149)
+## Enmienda (2026-10-29, ADR-150)
 
-La VP administrativa registra Logística de comité y macroevento; la novedad de un préstamo se remite al flujo sancionatorio existente. Ver ADR-149.
+La VP administrativa registra Logística de comité y macroevento; la novedad de un préstamo se remite al flujo sancionatorio existente. Ver ADR-150.

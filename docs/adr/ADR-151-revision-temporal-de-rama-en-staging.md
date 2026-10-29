@@ -1,8 +1,8 @@
-# ADR-150: Revisión temporal de una rama funcional en staging
+# ADR-151: Revisión temporal de una rama funcional en staging
 
 - Estado: Aceptada; preparación en curso
 - Fecha: 2026-10-29
-- Relacionadas: ADR-117, ADR-141, ADR-149
+- Relacionadas: ADR-117, ADR-141, ADR-150
 - Enmienda: ADR-141 (excepción explícita de revisión temporal de una rama)
 
 ## Contexto

@@ -372,7 +372,7 @@ El bootstrap privado crea una persona real `STUDENT/MEMBER` con `source=BOOTSTRA
 Las migraciones 0026–0027 agregan `membership.leaveCondition` (condiciones por comité y general conservadas al salir a licencia), `membership_term.resumedNew` y `resumedTransfer` (condición retomada al regreso sin alterar `firstTermId`). El cambio de estado consume la copia dentro de la misma transacción; conserva las decisiones explícitas del término de regreso. Ver [ADR-061](adr/ADR-061-verificacion-y-correcciones-de-normativa-2026.md).
 
 
-## Inventario y carnet universitario (ADR-149)
+## Inventario y carnet universitario (ADR-150)
 
 `Person.cardUid` es nullable durante la transición, único cuando existe y canónico en cuatro pares hexadecimales mayúsculos separados por espacios. Ajustes lo exige al guardar el perfil de miembro; no forma parte de los DTO de directorio/calendario ni sustituye EPIK o los tokens del carnet OE.
 

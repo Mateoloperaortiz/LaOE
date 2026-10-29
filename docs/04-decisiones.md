@@ -4,7 +4,8 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
-| [148](adr/ADR-148-ci-en-runners-linux-locales.md) | CI local | Jobs Linux en el runner privado, mismas suites y puerta, servicios sintéticos con puertos dinámicos y despliegue conservado | Propuesta |
+| [152](adr/ADR-152-ci-hospedado-del-repositorio-publico.md) | CI hospedado | Tras publicar el repositorio, todos los jobs usan `ubuntu-latest`, integración corre en tres particiones y E2E en seis; el alcance de repo y PR propio, las suites, los inventarios, el outbox y la puerta `CI` se conservan | Aceptada; validación remota pendiente |
+| [148](adr/ADR-148-ci-en-runners-linux-locales.md) | CI local | Jobs Linux en el runner privado, mismas suites y puerta, servicios sintéticos con puertos dinámicos y despliegue conservado | Propuesta (enmendada por ADR-152) |
 | [147](adr/ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md) | Vueltas de elección | Varias vueltas adicionales por término, cada una obligatoria y con asistencia o excusa propia; elección inicial única, ajuste individual para todas las vueltas y fotos cerradas conservadas | Aceptada |
 | [146](adr/ADR-146-limites-de-colecciones-en-la-entrada.md) | Colecciones de entrada | Hasta 1.000 elementos por lista de referencias recibida del cliente antes de refinamientos y deduplicación; contratos internos conservan su alcance y no se trunca ningún envío | Aceptada |
 | [145](adr/ADR-145-actualizacion-de-dependencias-de-seguridad.md) | Actualización de dependencias de seguridad | Next 16.4.1 en casa y DÍAS; Zod 4.6.6 y límites explícitos en entradas, con alcance de los advisories verificado | Aceptada |
@@ -153,5 +154,5 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [045](adr/ADR-045-alta-individual-de-integrante-existente.md) | Alta individual con historial | Excepción para un solo integrante existente y el historial de su manifiesto aprobado: persona, membresía activa, historial por semestre y cargos en una transacción auditada, sin consentimientos, sin `person.admitted` ni bienvenida; no habilita altas generales ni importaciones de roster | Aceptada; operación verificada |
 | [130](adr/ADR-130-fotos-privadas-en-mi-oe.md) | Fotos privadas de Mi OE | Colecciones y álbumes para integrantes; variantes saneadas con entrega por sesión, visor y carga idempotente de DÍAS 2026 | Aceptada |
 
-- [ADR-149](adr/ADR-149-inventario-reservas-y-operacion-logistica.md): inventario consultable, reservas de logísticos habilitados, operación CML y gestión humana de novedades; UID físico separado de EPIK.
-- [ADR-150](adr/ADR-150-revision-temporal-de-rama-en-staging.md): revisión del SHA de una rama con imagen fijada y base sintética temporal en staging, y restauración documentada.
+- [ADR-150](adr/ADR-150-inventario-reservas-y-operacion-logistica.md): inventario consultable, reservas de logísticos habilitados, operación CML y gestión humana de novedades; UID físico separado de EPIK.
+- [ADR-151](adr/ADR-151-revision-temporal-de-rama-en-staging.md): revisión del SHA de una rama con imagen fijada y base sintética temporal en staging, y restauración documentada.

@@ -1,6 +1,6 @@
 # ADR-141: Fase C de CD: reutilización del CI por árbol idéntico, imagen única promovida por digest y smoke sin dependencias
 
-- Estado: Aceptada; enmendada por ADR-150
+- Estado: Aceptada; enmendada por ADR-151
 - Fecha: 2026-10-24
 - Relacionadas: ADR-039, ADR-053, ADR-054, ADR-055, ADR-139, ADR-140
 - Enmienda: ADR-054 (puntos 4 y 6: quién puede reutilizar evidencia) y el mecanismo de despliegue y promoción de ADR-053 (Railpack por entorno y avance de la rama `production`)
@@ -39,6 +39,6 @@ La imagen se probó primero en local de punta a punta (migraciones contra una ba
 
 Producción promovió el SHA `050cc3a1`, el mismo que staging ya servía: el dispatch preparó `canal-produccion` sobre el índice exacto `sha256:cf0822…` (26 s), el plan de IaC quedó limitado a `web` (0 altas, 0 bajas; `backup` intacto), el apply creó el despliegue `61b55d02` en `SUCCESS` con la migración 0060 aditiva aplicada en el pre-deploy y el smoke independiente dio 6/6. Con `IMAGE_DEPLOY_PRODUCTION` encendido, el dispatch se repitió ya como promoción automática: job de 38 s, despliegue `eb8d1cbb` en `SUCCESS` con el mismo digest y smoke del workflow en verde. Al cierre, `sha-<SHA>`, `canal-staging` y `canal-produccion` resuelven al mismo índice y ambos entornos anuncian `050cc3a1` en su salud. La próxima mezcla con cambio de aplicación será la primera en recorrer el camino automático merge → staging con un SHA distinto; todos sus pasos ya quedaron ejercidos, pero esa cifra completa aún no se reclama como mediana.
 
-## Enmienda (2026-10-29, ADR-150)
+## Enmienda (2026-10-29, ADR-151)
 
-Se permite la revisión temporal de una rama en staging con imagen fijada y base separada dentro de su PostgreSQL. Ver ADR-150.
+Se permite la revisión temporal de una rama en staging con imagen fijada y base separada dentro de su PostgreSQL. Ver ADR-151.

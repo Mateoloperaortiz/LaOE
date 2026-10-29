@@ -21,4 +21,4 @@ Las cuentas de demostración y sus contraseñas aleatorias se entregan en un arc
 - [ ] Interrumpir la conexión antes de confirmar y comprobar que se conservan las cantidades y notas para reintentar.
 - [ ] Revisar en celular el calendario, la agenda y las filas de códigos largos, en temas claro y oscuro.
 
-Registrar los ajustes de la VP en el PR borrador. Al terminar la ventana de revisión, se restaura la imagen y conexión habituales de staging y se retira la base temporal, según ADR-150.
+Registrar los ajustes de la VP en el PR borrador. Al terminar la ventana de revisión, se restaura la imagen y conexión habituales de staging y se retira la base temporal, según ADR-151.

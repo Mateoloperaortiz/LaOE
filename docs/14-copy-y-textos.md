@@ -3248,14 +3248,14 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-4408 | Fecha incompatible | Elige una fecha y hora final posterior a la inicial. | MATEO | Propuesta |
 
 
-### Inventario · revisión de novedades en CRM (ADR-149)
+### Inventario · revisión de novedades en CRM (ADR-150)
 
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
 | T-4500 | Tarea de revisión de inventario | Revisar la novedad de un préstamo de inventario | MATEO | Propuesta |
 | T-4501 | Tipo y vínculo de tarea de inventario | Novedad de inventario | MATEO | Propuesta |
 
-### Inventario · reglas de operación (ADR-149)
+### Inventario · reglas de operación (ADR-150)
 
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
