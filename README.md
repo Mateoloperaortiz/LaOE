@@ -79,3 +79,7 @@ GHPOINTS (repositorio hermano, `../GHPOINTS`) fue experimental y no se usó en p
 2. Toda regla nueva o cambiada es una ADR en [docs/adr/](docs/adr/README.md); una regla vieja no se edita, se reemplaza por otra que la referencia.
 3. Lo que no está decidido vive en [decisiones-abiertas.md](docs/decisiones-abiertas.md) hasta que se cierra con fecha y pasa a [00-vision.md](docs/00-vision.md) o a una ADR.
 4. Los avances quedan en el historial de git de este repositorio.
+
+## Colaborar y reportar seguridad
+
+Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para proponer cambios y [SECURITY.md](SECURITY.md) para reportar vulnerabilidades en privado. El código es público; los datos y accesos de la aplicación siguen siendo privados.

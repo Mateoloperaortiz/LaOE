@@ -39,10 +39,13 @@ env:
 jobs:
   publicar:
     name: Publicar imagen y desplegar staging
+    environment: casa-digital / staging
     if: >-
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push'
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -55,6 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          persist-credentials: false
           ref: ${{ github.event.workflow_run.head_sha }}
       - name: Leer el modo de la evidencia aprobada
         id: evidence
@@ -163,6 +167,7 @@ jobs:
   revision:
     name: Publicar imagen de revisión de inventario
     if: >-
+      github.repository == 'Mateoloperaortiz/LaOE' &&
       github.event_name == 'workflow_dispatch' && inputs.destino == 'revision' &&
       github.ref == 'refs/heads/feat/inventario-vp-administrativa'
     runs-on: ubuntu-latest
@@ -183,6 +188,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ inputs.sha }}
           HEAD_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
           RUN_ID: ${{ inputs.ci_run_id }}
         run: |
           [[ "$SHA" =~ ^[a-f0-9]{40}$ && "$RUN_ID" =~ ^[0-9]+$ && "$SHA" = "$HEAD_SHA" ]]
@@ -194,6 +201,9 @@ jobs:
           evidence = json.load(open(glob.glob('/tmp/revision-ci/**/ci-result.json', recursive=True)[0]))
           assert run['head_sha'] == os.environ['SHA'] and run['conclusion'] == 'success'
           assert run['path'] == '.github/workflows/ci.yml'
+          assert run['repository']['full_name'] == os.environ['REPOSITORY']
+          assert run['head_repository']['full_name'] == os.environ['REPOSITORY']
+          assert run['head_branch'] == os.environ['BRANCH']
           assert str(run['id']) == os.environ['RUN_ID']
           assert evidence['sha'] == os.environ['SHA']
           assert evidence['mode'] == 'full' and evidence['result'] == 'success'
@@ -232,7 +242,8 @@ jobs:
 
   promover:
     name: Promover el digest a producción
-    if: github.event_name == 'workflow_dispatch' && inputs.destino == 'production'
+    environment: casa-digital / production
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.destino == 'production'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -243,6 +254,8 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Exigir staging sirviendo ese SHA
         env:
           SHA: ${{ inputs.sha }}

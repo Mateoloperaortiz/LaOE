@@ -1,8 +1,8 @@
 # ADR-152: CI hospedado del repositorio público
 
-- Estado: Aceptada; validación remota pendiente
+- Estado: Reemplazada por ADR-151
 - Fecha: 2026-10-29
-- Relacionadas: ADR-054, ADR-139, ADR-140, ADR-141, ADR-148, ADR-151
+- Relacionadas: ADR-054, ADR-139, ADR-140, ADR-141, ADR-148, ADR-151, ADR-153
 - Enmienda: ADR-148 (destino, paralelismo y aprovisionamiento del CI tras publicar el repositorio)
 
 ## Contexto
@@ -24,3 +24,7 @@ El propietario convirtió `Mateoloperaortiz/LaOE` en un repositorio público y p
 La validación deja de depender de que el portátil esté encendido. Las matrices pueden ejecutarse en paralelo dentro de la disponibilidad y los límites de concurrencia de GitHub. Una primera corrida puede tardar más al llenar cachés; se informa el tiempo realmente observado cuando termine, sin considerar una ejecución en cola como una validación aprobada.
 
 El YAML se valida localmente con `actionlint` y las pruebas de política, reportes, particiones, promoción y compuerta de CI. La aceptación remota requiere la puerta `CI` aprobada y el artefacto `ci-result` del SHA exacto. `CI-RUNNER-SETUP.md` describe el ejecutor vigente; volver a un runner local requeriría otra decisión compatible con la visibilidad pública y no se hace como reversión automática.
+
+## Enmienda y reemplazo (2026-10-29, ADR-151)
+
+Esta decisión conserva el planteamiento inicial de la rama de inventario como antecedente. Al integrar `main` `73b23952` se adopta [ADR-151](ADR-151-repositorio-publico-y-colaboracion-protegida.md) como decisión vigente del repositorio público, colaboración y CI protegido. El workflow integrado conserva un worker para las unitarias y desactiva el paralelismo entre archivos (`--maxWorkers=1 --fileParallelism=false`), en lugar del paralelismo normal descrito en la regla 2 de esta ADR; no se elevan los límites de las pruebas ni se omiten casos. Los PR externos requieren aprobación, las actions conservan SHA completos y los tokens de despliegue pertenecen a environments restringidos a `main`. La revisión manual excepcional de staging se limita a [ADR-153](ADR-153-revision-temporal-de-rama-en-staging.md).

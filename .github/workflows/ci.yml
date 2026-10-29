@@ -19,6 +19,7 @@ defaults:
 
 env:
   CI: "true"
+  NODE_OPTIONS: --max-old-space-size=2048
   INTEGRATION_WORKERS: "2"
   DATABASE_URL: postgresql://casa:casa@127.0.0.1:5433/casa_digital
   APP_URL: http://localhost:3000
@@ -40,7 +41,6 @@ env:
 jobs:
   cambios:
     name: Clasificar cambios
-    if: github.repository == 'Mateoloperaortiz/LaOE' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # ADR-054: lista ejecuciones y descarga el ci-result de main para reutilizarlo al promover.
@@ -76,11 +76,11 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  # ADR-152: calidad en paralelo y runners hospedados tras publicar el repositorio.
+  # ADR-151: cada job corre en un runner efímero de GitHub; se conserva la puerta CI.
   estatica:
     name: Biome · tsc · dependency-cruiser · knip
     needs: cambios
-    if: github.repository == 'Mateoloperaortiz/LaOE' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -100,7 +100,7 @@ jobs:
   unitarias:
     name: unit · extractor
     needs: cambios
-    if: github.repository == 'Mateoloperaortiz/LaOE' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -113,11 +113,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: mkdir -p ci-results
-      - run: npm test -- --reporter=default --reporter=json --outputFile=ci-results/unit.json
+      - run: npm test -- --maxWorkers=1 --fileParallelism=false --reporter=default --reporter=json --outputFile=ci-results/unit.json
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
-      - name: uv para el extractor de normativa
+      - name: Instalar uv para el extractor
         run: python -m pip install uv
       - run: npm run test:extractor
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -131,7 +131,7 @@ jobs:
   build:
     name: build · inventario E2E
     needs: cambios
-    if: github.repository == 'Mateoloperaortiz/LaOE' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -171,7 +171,7 @@ jobs:
   respaldo:
     name: respaldo · retención · concurrencia · restauración
     needs: cambios
-    if: github.repository == 'Mateoloperaortiz/LaOE' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -193,11 +193,10 @@ jobs:
   integracion:
     name: integración ${{ matrix.shard }}/3
     needs: cambios
-    if: github.repository == 'Mateoloperaortiz/LaOE' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
-      max-parallel: 3
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
@@ -211,6 +210,7 @@ jobs:
         ports:
           - 127.0.0.1::5432
         options: >-
+          --memory 512m --cpus 1
           --health-cmd "pg_isready -U casa -d casa_digital"
           --health-interval 5s
           --health-timeout 5s
@@ -236,8 +236,8 @@ jobs:
         run: |
           garage="laoe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}-${SHARD}"
           echo "GARAGE_CONTAINER=$garage" >> "$GITHUB_ENV"
-          docker run -d --name "$garage" --label "laoe-ci.run=$GITHUB_RUN_ID" \
-            -p 127.0.0.1::3900 \
+          docker run -d --name "$garage" --label "laptop-ci.run=$GITHUB_RUN_ID" \
+            --memory 256m --cpus 0.5 -p 127.0.0.1::3900 \
             -v "$PWD/docker/garage/garage.toml:/etc/garage.toml:ro" \
             -e GARAGE_DEFAULT_ACCESS_KEY="$S3_ACCESS_KEY_ID" \
             -e GARAGE_DEFAULT_SECRET_KEY="$S3_SECRET_ACCESS_KEY" \
@@ -268,18 +268,17 @@ jobs:
       - name: Limpiar únicamente el Garage de esta partición
         if: always()
         run: |
-          if [[ -n "${GARAGE_CONTAINER:-}" ]] && [[ "$(docker inspect --format '{{ index .Config.Labels "laoe-ci.run" }}' "$GARAGE_CONTAINER" 2>/dev/null)" == "$GITHUB_RUN_ID" ]]; then
+          if [[ -n "${GARAGE_CONTAINER:-}" ]] && [[ "$(docker inspect --format '{{ index .Config.Labels "laptop-ci.run" }}' "$GARAGE_CONTAINER" 2>/dev/null)" == "$GITHUB_RUN_ID" ]]; then
             docker rm -fv "$GARAGE_CONTAINER"
           fi
 
   e2e:
     name: E2E ${{ matrix.shard }}/6
     needs: cambios
-    if: github.repository == 'Mateoloperaortiz/LaOE' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     strategy:
-      max-parallel: 6
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4, 5, 6]
@@ -293,6 +292,7 @@ jobs:
         ports:
           - 127.0.0.1::5432
         options: >-
+          --memory 512m --cpus 1
           --health-cmd "pg_isready -U casa -d casa_digital"
           --health-interval 5s
           --health-timeout 5s
@@ -324,8 +324,8 @@ jobs:
         run: |
           garage="laoe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}-${SHARD}"
           echo "GARAGE_CONTAINER=$garage" >> "$GITHUB_ENV"
-          docker run -d --name "$garage" --label "laoe-ci.run=$GITHUB_RUN_ID" \
-            -p 127.0.0.1::3900 \
+          docker run -d --name "$garage" --label "laptop-ci.run=$GITHUB_RUN_ID" \
+            --memory 256m --cpus 0.5 -p 127.0.0.1::3900 \
             -v "$PWD/docker/garage/garage.toml:/etc/garage.toml:ro" \
             -e GARAGE_DEFAULT_ACCESS_KEY="$S3_ACCESS_KEY_ID" \
             -e GARAGE_DEFAULT_SECRET_KEY="$S3_SECRET_ACCESS_KEY" \
@@ -383,7 +383,7 @@ jobs:
       - name: Limpiar únicamente el Garage de esta partición
         if: always()
         run: |
-          if [[ -n "${GARAGE_CONTAINER:-}" ]] && [[ "$(docker inspect --format '{{ index .Config.Labels "laoe-ci.run" }}' "$GARAGE_CONTAINER" 2>/dev/null)" == "$GITHUB_RUN_ID" ]]; then
+          if [[ -n "${GARAGE_CONTAINER:-}" ]] && [[ "$(docker inspect --format '{{ index .Config.Labels "laptop-ci.run" }}' "$GARAGE_CONTAINER" 2>/dev/null)" == "$GITHUB_RUN_ID" ]]; then
             docker rm -fv "$GARAGE_CONTAINER"
           fi
 
@@ -392,7 +392,7 @@ jobs:
   imagen:
     name: imagen · arranque
     needs: cambios
-    if: github.repository == 'Mateoloperaortiz/LaOE' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -405,6 +405,7 @@ jobs:
         ports:
           - 127.0.0.1::5432
         options: >-
+          --memory 512m --cpus 1
           --health-cmd "pg_isready -U casa -d casa_digital"
           --health-interval 5s
           --health-timeout 5s
@@ -425,6 +426,11 @@ jobs:
           # recupera modos 644/755; no se incluyen .git ni archivos sin versionar.
           git -c tar.umask=0022 archive --format=tar HEAD | tar --extract --same-permissions --no-same-owner --directory="$context"
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        with:
+          driver-opts: |
+            memory=3g
+            cpu-period=100000
+            cpu-quota=100000
       - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ env.CI_BUILD_CONTEXT }}
@@ -440,7 +446,7 @@ jobs:
           CI_NETWORK: ${{ job.services.postgres.network }}
         run: |
           probe() {
-            docker run --rm --network "$CI_NETWORK" \
+            docker run --rm --network "$CI_NETWORK" --memory 768m --cpus 1 \
               -e DATABASE_URL -e SESSION_SECRET -e INSTITUTIONAL_EMAIL_DOMAINS \
               -e APP_URL=http://127.0.0.1:8080 -e APP_TIMEZONE -e TZ -e EMAIL_FROM \
               -e MAILER -e JOBS_ENABLED -e S3_ENDPOINT -e S3_REGION -e S3_BUCKET \
@@ -448,7 +454,7 @@ jobs:
           }
           probe "$CI_IMAGE" node db-release.mjs
           docker run -d --name "$CI_WEB" --network "$CI_NETWORK" \
-            --label "laoe-ci.run=$GITHUB_RUN_ID" \
+            --label "laptop-ci.run=$GITHUB_RUN_ID" --memory 768m --cpus 1 \
             -p 127.0.0.1::8080 \
             -e DATABASE_URL -e SESSION_SECRET -e INSTITUTIONAL_EMAIL_DOMAINS \
             -e APP_URL=http://127.0.0.1:8080 -e APP_TIMEZONE -e TZ -e EMAIL_FROM \
@@ -459,7 +465,7 @@ jobs:
           [[ "$port" =~ ^[0-9]+$ ]]
           health="$RUNNER_TEMP/health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
           rm -f "$health"
-          for _attempt in $(seq 1 45); do
+          for _ in $(seq 1 45); do
             if curl -sf "http://127.0.0.1:$port/api/health" -o "$health"; then break; fi
             sleep 2
           done
@@ -475,7 +481,7 @@ jobs:
       - name: Registros y limpieza de los recursos de esta prueba
         if: always()
         run: |
-          if [[ -n "${CI_WEB:-}" ]] && [[ "$(docker inspect --format '{{ index .Config.Labels "laoe-ci.run" }}' "$CI_WEB" 2>/dev/null)" == "$GITHUB_RUN_ID" ]]; then
+          if [[ -n "${CI_WEB:-}" ]] && [[ "$(docker inspect --format '{{ index .Config.Labels "laptop-ci.run" }}' "$CI_WEB" 2>/dev/null)" == "$GITHUB_RUN_ID" ]]; then
             docker logs "$CI_WEB" 2>&1 | tail -50 || true
             docker rm -fv "$CI_WEB"
           fi
@@ -486,7 +492,7 @@ jobs:
 
   resultado:
     name: CI
-    if: always() && github.repository == 'Mateoloperaortiz/LaOE' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: always()
     needs: [cambios, estatica, unitarias, build, imagen, respaldo, integracion, e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 5

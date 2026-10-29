@@ -1,0 +1,20 @@
+# Cambios sensibles: requieren la revisión del propietario.
+/.github/ @Mateoloperaortiz
+/AGENTS.md @Mateoloperaortiz
+/SECURITY.md @Mateoloperaortiz
+/.gitignore @Mateoloperaortiz
+/.railway/ @Mateoloperaortiz
+/Dockerfile @Mateoloperaortiz
+/docker/ @Mateoloperaortiz
+/compose.yaml @Mateoloperaortiz
+/drizzle/ @Mateoloperaortiz
+/scripts/ @Mateoloperaortiz
+/package.json @Mateoloperaortiz
+/package-lock.json @Mateoloperaortiz
+/src/env.ts @Mateoloperaortiz
+/src/proxy.ts @Mateoloperaortiz
+/src/app/_authz/ @Mateoloperaortiz
+/src/app/_lib/ @Mateoloperaortiz
+/src/modules/identity/ @Mateoloperaortiz
+/src/db/ @Mateoloperaortiz
+/src/shared/adapters/ @Mateoloperaortiz

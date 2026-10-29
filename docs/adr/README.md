@@ -13,17 +13,18 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-152](ADR-152-ci-hospedado-del-repositorio-publico.md) | CI hospedado del repositorio público | Aceptada; validación remota pendiente |
-| [ADR-151](ADR-151-revision-temporal-de-rama-en-staging.md) | Revisión temporal de una rama funcional en staging | Aceptada; preparación en curso |
-| [ADR-150](ADR-150-inventario-reservas-y-operacion-logistica.md) | Inventario, reservas y operación logística de la OE | Aceptada; implementación en curso |
-| [ADR-148](ADR-148-ci-en-runners-linux-locales.md) | CI completo en runners Linux locales del repositorio privado | Propuesta (enmendada por ADR-152) |
+| [ADR-153](ADR-153-revision-temporal-de-rama-en-staging.md) | Revisión temporal de una rama funcional en staging | Aceptada; preparación en curso |
+| [ADR-152](ADR-152-ci-hospedado-del-repositorio-publico.md) | CI hospedado del repositorio público | Reemplazada por ADR-151 |
+| [ADR-151](ADR-151-repositorio-publico-y-colaboracion-protegida.md) | Repositorio público y colaboración protegida | Aceptada (enmendada por ADR-153) |
+| [ADR-150](ADR-150-inventario-reservas-y-operacion-logistica.md) | Inventario, reservas y operación logística de la OE | Aceptada; verificada localmente; revisión en staging en preparación |
+| [ADR-148](ADR-148-ci-en-runners-linux-locales.md) | CI completo en runners Linux locales del repositorio privado | Reemplazada por ADR-151 |
 | [ADR-147](ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md) | Vueltas adicionales de elección, todas obligatorias | Aceptada |
 | [ADR-146](ADR-146-limites-de-colecciones-en-la-entrada.md) | Límites explícitos de colecciones en la entrada no confiable | Aceptada |
 | [ADR-145](ADR-145-actualizacion-de-dependencias-de-seguridad.md) | Actualización de dependencias de seguridad | Aceptada |
 | [ADR-144](ADR-144-reintentos-de-avisos-push-fallidos.md) | Reintentos de avisos push fallidos | Aceptada |
 | [ADR-143](ADR-143-mis-datos-completo-y-con-paso-de-seguridad.md) | Mis datos completo y con paso de seguridad | Aceptada |
 | [ADR-142](ADR-142-ip-del-ingreso-publico-de-railway.md) | IP validada del ingreso HTTP público de Railway, sin respaldos de cabeceras del cliente | Aceptada |
-| [ADR-141](ADR-141-fase-c-de-cd.md) | Fase C de CD: reutilización del CI por árbol idéntico, imagen única promovida por digest y smoke sin dependencias | Aceptada; enmendada por ADR-151 |
+| [ADR-141](ADR-141-fase-c-de-cd.md) | Fase C de CD: reutilización del CI por árbol idéntico, imagen única promovida por digest y smoke sin dependencias | Aceptada; enmendada por ADR-153 |
 | [ADR-140](ADR-140-fase-b-de-tiempos-de-ci.md) | Fase B de tiempos de CI: integración en paralelo con base por worker, calidad en tres jobs y E2E adaptables partidos | Aceptada |
 | [ADR-139](ADR-139-fase-a-de-tiempos-de-ci.md) | Fase A de tiempos de CI: tres runners de integración, seis E2E y duraciones medianas | Aceptada (enmendada por ADR-140) |
 | [ADR-138](ADR-138-tu-paisa-sutil-sin-acentuacion-argentina.md) | Tú paisa sutil, sin acentuación argentina | Aceptada |
