@@ -1,6 +1,6 @@
 # ADR-148: CI en runners Linux locales del repositorio privado
 
-- Estado: Propuesta
+- Estado: Reemplazada por ADR-151
 - Fecha: 2026-10-28
 - Relacionadas: ADR-054, ADR-139, ADR-140, ADR-141
 
@@ -25,3 +25,7 @@ El CI completo tarda más por la cola. El portátil debe estar encendido y conec
 Los usuarios de CI de ambos proyectos comparten un daemon Docker en el Linux dedicado y pertenecen al mismo dominio de confianza. Docker concede control de ese entorno Linux. El aislamiento respecto de los archivos personales se apoya en la cuenta Windows limitada, su distribución separada y la ausencia de montajes e interoperabilidad de Windows; no en la separación entre los dos usuarios Linux.
 
 Una regresión se revierte restaurando el workflow anterior y sus `runs-on: ubuntu-latest`, sin cambiar la compuerta ni omitir suites. El procedimiento operativo está en `CI-RUNNER-SETUP.md`.
+
+## Reemplazo (2026-10-29, ADR-151)
+
+[ADR-151](ADR-151-repositorio-publico-y-colaboracion-protegida.md) cambia la visibilidad a pública, retira el runner del portátil y devuelve el CI a runners efímeros estándar de GitHub, conservando suites y puerta final.

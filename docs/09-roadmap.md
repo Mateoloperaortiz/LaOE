@@ -4,6 +4,16 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Colaboración pública en GitHub (ADR-151) · `lista`
+
+- [x] Registrar la decisión, preparar el CI en runners efímeros y documentar colaboración y reportes privados.
+- [x] Publicar y comprobar las protecciones alojadas en GitHub; retirar el runner local y limitar los secretos a sus environments.
+- [x] Validar localmente suites y build; mantener el CI remoto como requisito antes de integrar el PR.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-29 | GitHub · preparación | ADR-151 reemplaza el runner del repositorio privado por runners efímeros estándar. Workflows fijados por SHA y despliegues ligados a environments; guías de colaboración y seguridad. Repositorio público; ramas con PR, una aprobación, CI al día, CODEOWNERS y conversaciones resueltas. Environments solo desde main; producción con aprobación sin bypass. Tokens nuevos por entorno y secretos generales retirados. Escaneo de secretos, protección de pushes, reportes privados y CodeQL habilitados. `npm run check` inicial aprobó 2.684 unitarias, 2.054 de integración, 11 del extractor y build; actionlint sin hallazgos. Se actualizan también dependencias con corrección compatible o cubierta por regresión del extractor (ADR-145); el CI remoto acredita la versión definitiva antes de mezclar. |
+
 ## Vueltas adicionales de elección (ADR-147) · `lista`
 
 - [x] Registrar que todas las vueltas adicionales son obligatorias hasta escoger la junta completa, sin límite de cantidad ([ADR-147](adr/ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md)); actualizar glosario, modelo y textos.
