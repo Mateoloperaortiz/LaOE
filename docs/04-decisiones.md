@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [153](adr/ADR-153-parches-de-dependencias-transitivas.md) | Dependencias transitivas | Overrides acotados por consumidor a esbuild 0.25.12 y uuid 11.1.1, con regresiones funcionales y compatibilidad de Excel/Drizzle verificadas | Aceptada |
 | [151](adr/ADR-151-repositorio-publico-y-colaboracion-protegida.md) | Colaboración en GitHub | Repositorio público, CI en runners efímeros, PR con revisión y CI, secretos por environment y aprobación de producción | Aceptada |
 | [148](adr/ADR-148-ci-en-runners-linux-locales.md) | CI local | Jobs Linux en el runner privado, mismas suites y puerta, servicios sintéticos con puertos dinámicos y despliegue conservado | Reemplazada por ADR-151 |
 | [147](adr/ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md) | Vueltas de elección | Varias vueltas adicionales por término, cada una obligatoria y con asistencia o excusa propia; elección inicial única, ajuste individual para todas las vueltas y fotos cerradas conservadas | Aceptada |
