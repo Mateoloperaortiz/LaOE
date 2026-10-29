@@ -14,14 +14,14 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | --- | --- | --- |
 | 2026-10-29 | GitHub · preparación | ADR-151 reemplaza el runner del repositorio privado por runners efímeros estándar. Workflows fijados por SHA y despliegues ligados a environments; guías de colaboración y seguridad. Repositorio público; ramas con PR, una aprobación, CI al día, CODEOWNERS y conversaciones resueltas. Environments solo desde main; producción con aprobación sin bypass. Tokens nuevos por entorno y secretos generales retirados. Escaneo de secretos, protección de pushes, reportes privados y CodeQL habilitados. `npm run check` inicial aprobó 2.684 unitarias, 2.054 de integración, 11 del extractor y build; actionlint sin hallazgos. Se actualizan también dependencias con corrección compatible o cubierta por regresión del extractor (ADR-145); el CI remoto acredita la versión definitiva antes de mezclar. |
 
-## Inventario y reservas de la VP administrativa (ADR-150 y ADR-153) · `en curso`
+## Inventario y reservas de la VP administrativa (ADR-150 y ADR-153) · `en revisión`
 
 - [x] Acordar alcance, permisos, UID del carnet, delegación y revisión temporal en staging.
 - [x] Completar dominio transaccional, pantallas y remisión de novedades.
 - [x] Verificar permisos, concurrencia, privacidad, devoluciones y recorridos principales.
 - [x] Ejecutar check global, E2E y revisión visual del candidato.
 - [x] Publicar rama y PR borrador.
-- [ ] Desplegar SHA validado con base sintética temporal y comprobar salud/smoke.
+- [x] Desplegar SHA validado con base sintética temporal y comprobar salud/smoke.
 - [ ] Recoger observaciones de la VP y restaurar staging al cerrar la revisión.
 
 | Fecha | Tramo | Qué cambió |
@@ -32,6 +32,7 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | 2026-10-29 | Inventario · rama y CI público | Rama publicada y [PR borrador #392](https://github.com/Mateoloperaortiz/LaOE/pull/392). El repositorio pasó a público por gestión del propietario y GitHub devolvió cero runners locales registrados. ADR-152 conserva suites y compuerta y usa Ubuntu hospedado, con acciones fijadas a SHA completos según la política vigente. Las ADR de inventario/revisión quedan en 150/153 al conciliar la numeración con la ADR-151 pública de main; ADR-152 conserva el antecedente de CI hospedado de esta rama. CI remoto y despliegue de la demo pendientes. |
 | 2026-10-29 | Inventario · regresiones de perfiles en CI hospedado | La primera ejecución completa hospedada aprobó estática, unitarias/extractor, build, respaldo, tres particiones de integración y arranque de imagen. Diez E2E usaban perfiles sin el UID ahora obligatorio: ocho mediciones de altura con aviso visible y dos formularios detenidos por validación HTML. Se completó el dato solo en esos escenarios, conservando producto, umbrales y baseline compartida; el aviso legacy tiene comprobación explícita. Tanda local coordinada 47/47 E2E aprobados en 1,3 minutos. Nueva validación del SHA y publicación de imagen pendientes. |
 | 2026-10-29 | Inventario · integración de main protegido | Se integra `main` `73b23952` (PR #393), conservando su ADR-151 de colaboración pública, protecciones de ramas, environments y actualizaciones de seguridad. La revisión temporal pasa a ADR-153 y enmienda expresamente solo la operación manual de staging por el propietario; los tokens de environments siguen restringidos a main. ADR-152 queda histórica, reemplazada por ADR-151, y se conserva un worker unitario sin ampliar timeouts. Las fixtures de perfiles generales completan UID; el aviso legacy y los formularios conservan sus regresiones. El candidato integrado requiere nueva validación del SHA antes de publicar la imagen. |
+| 2026-10-29 | Inventario · demo en staging | SHA `5ebaabf782dca143c8b8a95b247f7a81ec5252eb` validado con 2.702 unitarias, 2.077 integraciones, 11 pruebas del extractor y build; [CI completo](https://github.com/Mateoloperaortiz/LaOE/actions/runs/40937508233) y [publicación de imagen](https://github.com/Mateoloperaortiz/LaOE/actions/runs/40938626199) aprobados, incluidas las seis particiones E2E. Despliegue `d30aae18-e0de-4acf-9429-7ed53cf1f472` SUCCESS, fijado al digest `sha256:4bf0a5b15a929eba739f2bb3d5191387ff119bc070bc24c650bb9f539db8d9af`, con base temporal y seis cuentas ficticias. Salud del SHA exacto, seis comprobaciones HTTP y acceso de las seis cuentas ficticias aprobados; nueve capturas de la demo guardadas privadamente. [Guía de revisión](revision-inventario-vp.md) disponible. Pendientes las observaciones de la VP, cámara y etiquetas en celulares físicos, y restaurar staging al cerrar la revisión según ADR-153. |
 
 ## Vueltas adicionales de elección (ADR-147) · `lista`
 
