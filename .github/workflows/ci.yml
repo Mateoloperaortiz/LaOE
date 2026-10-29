@@ -419,6 +419,13 @@ jobs:
         run: |
           echo "CI_IMAGE=laoe-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
           echo "CI_WEB=laoe-web-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
+      - name: Contexto de imagen con los permisos versionados en Git
+        run: |
+          context=$(mktemp -d "$RUNNER_TEMP/laoe-image-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.XXXXXX")
+          echo "CI_BUILD_CONTEXT=$context" >> "$GITHUB_ENV"
+          # El padre privado conserva la umask del runner. Solo el árbol de Git
+          # recupera modos 644/755; no se incluyen .git ni archivos sin versionar.
+          git -c tar.umask=0022 archive --format=tar HEAD | tar --extract --same-permissions --no-same-owner --directory="$context"
       - uses: docker/setup-buildx-action@v3
         with:
           driver-opts: |
@@ -427,7 +434,7 @@ jobs:
             cpu-quota=100000
       - uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ env.CI_BUILD_CONTEXT }}
           load: true
           tags: ${{ env.CI_IMAGE }}
           build-args: |
@@ -480,6 +487,9 @@ jobs:
             docker rm -fv "$CI_WEB"
           fi
           if [[ -n "${CI_IMAGE:-}" ]]; then docker image rm "$CI_IMAGE" || true; fi
+          if [[ "${CI_BUILD_CONTEXT:-}" == "$RUNNER_TEMP/laoe-image-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}."* ]] && [[ -d "$CI_BUILD_CONTEXT" && ! -L "$CI_BUILD_CONTEXT" ]]; then
+            rm -rf -- "$CI_BUILD_CONTEXT"
+          fi
 
   resultado:
     name: CI

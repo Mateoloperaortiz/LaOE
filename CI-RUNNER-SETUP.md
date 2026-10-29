@@ -9,7 +9,9 @@ El workflow `CI` usa el runner `laptop-ci-casa-digital`, registrado solo en este
 - Guest limitado a cuatro CPU, 8 GiB de RAM y 4 GiB de swap; servicio del runner con CPU 150 %, memoria máxima 3 GiB y heap Node 2 GiB. Los contenedores comparten un límite de 3 GiB y CPU 100 %; BuildKit tiene límite individual 3 GiB, compartiendo el presupuesto con sus servicios.
 - Cuenta Windows de CI sin administración, distribución WSL separada y sin discos Windows montados ni interoperabilidad. Los usuarios Docker controlan el Linux de CI y comparten confianza con NewLIS.
 
-Las herramientas y dependencias del sistema las mantiene el administrador fuera del workflow. Los jobs no usan `sudo` ni credenciales personales. Los datos y claves de PostgreSQL/Garage son sintéticos y desechables. Los contenedores usan nombres por ejecución y puertos dinámicos; la limpieza no ejecuta `docker system prune` ni borra recursos de otros jobs.
+Las herramientas y dependencias del sistema las mantiene el administrador fuera del workflow. Los jobs no usan `sudo` ni credenciales personales. Los datos y claves de PostgreSQL/Garage son sintéticos y desechables. El contexto de la imagen se extrae de `git archive` a un directorio temporal privado, conservando los modos versionados 644/755. Esto permite que `USER node` lea los archivos copiados sin relajar la umask del runner ni incluir archivos sin versionar.
+
+Los contenedores usan nombres por ejecución y puertos dinámicos; la limpieza no ejecuta `docker system prune` ni borra recursos de otros jobs.
 
 ## Operación y seguridad
 
