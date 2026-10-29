@@ -5,6 +5,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ drainOutbox: vi.fn(), close: vi.fn() }));
 vi.mock("../helpers/outbox", () => ({ drainOutbox: mocks.drainOutbox }));
 vi.mock("@/db/client", () => ({ closeDb: mocks.close }));
+vi.mock("@/modules/system", () => ({ clearConfigCache: vi.fn() }));
 
 import { drenarOutbox } from "../e2e/outbox";
 
