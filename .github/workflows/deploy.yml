@@ -31,10 +31,21 @@ jobs:
   publicar:
     name: Publicar imagen y desplegar staging
     if: >-
+      github.repository == 'Mateoloperaortiz/LaOE' &&
+      github.event.repository.private == true &&
       github.event_name == 'workflow_run' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.workflow_run.name == 'CI' &&
+      github.event.workflow_run.path == '.github/workflows/ci.yml' &&
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push'
-    runs-on: ubuntu-latest
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.repository.full_name == github.repository &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: [self-hosted, Linux, X64, staging-deploy, local, disposable]
+    environment: casa-digital / staging
+    env:
+      NODE_OPTIONS: --max-old-space-size=2048
     timeout-minutes: 30
     permissions:
       contents: read
@@ -44,8 +55,20 @@ jobs:
       group: deploy-staging
       cancel-in-progress: false
     steps:
+      - name: Verificar el ejecutor desechable de staging
+        run: |
+          [ "$(id -un)" = deploy ]
+          [ ! -d /mnt/c/Windows ]
+          python3 - <<'PYBASE'
+          import json
+          baseline = json.load(open('/etc/laptop-deploy/baseline.json'))
+          assert baseline['schema'] == 1 and baseline['disposable'] is True
+          PYBASE
+          node -e 'if (process.versions.node.split(".")[0] !== "24") process.exit(1)'
+          docker info --format '{{.ServerVersion}}'
       - uses: actions/checkout@v4
         with:
+          persist-credentials: false
           ref: ${{ github.event.workflow_run.head_sha }}
       - name: Leer el modo de la evidencia aprobada
         id: evidence
@@ -54,18 +77,49 @@ jobs:
           RUN_ID: ${{ github.event.workflow_run.id }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          gh run download "$RUN_ID" --name ci-result --dir /tmp/ci-result --repo "$GITHUB_REPOSITORY"
-          python3 - <<'PY'
-          import glob, json, os
-          result = json.load(open(glob.glob("/tmp/ci-result/**/ci-result.json", recursive=True)[0]))
-          assert result["sha"] == os.environ["HEAD_SHA"], result
-          assert result["result"] == "success", result
-          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
-              out.write(f"mode={result['mode']}\n")
-          print(f"evidencia: modo {result['mode']} del SHA {result['sha']}")
+          umask 077
+          evidence=$(mktemp -d "$RUNNER_TEMP/laoe-evidence-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.XXXXXX")
+          echo "CI_EVIDENCE_DIR=$evidence" >> "$GITHUB_ENV"
+          gh run download "$RUN_ID" --name ci-result --dir "$evidence" --repo "$GITHUB_REPOSITORY"
+          python3 - "$evidence/ci-result.json" <<'PY'
+          import json, os, re, subprocess, sys
+          result = json.load(open(sys.argv[1]))
+          head = os.environ['HEAD_SHA']
+          assert re.fullmatch(r'[a-f0-9]{40}', head)
+          assert result['schema'] == 1 and result['sha'] == head
+          assert str(result['runId']) == os.environ['RUN_ID']
+          assert result['result'] == 'success'
+          assert result['mode'] in ('full', 'reuse', 'documentation')
+          assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() == head
+          assert subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip() == result['tree']
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f"mode={result['mode']}\n")
+          print(f"evidencia: modo {result['mode']} del SHA {head}")
           PY
+      - name: Preparar contexto privado y autenticacion temporal
+        if: steps.evidence.outputs.mode != 'documentation'
+        run: |
+          umask 077
+          context=$(mktemp -d "$RUNNER_TEMP/laoe-publish-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.XXXXXX")
+          auth=$(mktemp -d "$RUNNER_TEMP/laoe-docker-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.XXXXXX")
+          echo "PUBLISH_CONTEXT=$context" >> "$GITHUB_ENV"
+          echo "DOCKER_CONFIG=$auth" >> "$GITHUB_ENV"
+          git -c tar.umask=0022 archive --format=tar HEAD | tar --extract --same-permissions --no-same-owner --directory="$context"
+      - name: Preparar CLI Railway sin credenciales de despliegue
+        if: steps.evidence.outputs.mode != 'documentation' && vars.IMAGE_DEPLOY_STAGING == 'true'
+        run: |
+          umask 077
+          cli=$(mktemp -d "$RUNNER_TEMP/laoe-railway-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.XXXXXX")
+          echo "RAILWAY_CLI_DIR=$cli" >> "$GITHUB_ENV"
+          npm install --prefix "$cli" --no-audit --no-fund "$RAILWAY_CLI"
+          echo "RAILWAY_BIN=$cli/node_modules/.bin/railway" >> "$GITHUB_ENV"
       - uses: docker/setup-buildx-action@v3
         if: steps.evidence.outputs.mode != 'documentation'
+        with:
+          driver-opts: |
+            memory=3g
+            cpu-period=100000
+            cpu-quota=150000
       - uses: docker/login-action@v3
         if: steps.evidence.outputs.mode != 'documentation'
         with:
@@ -76,20 +130,21 @@ jobs:
         if: steps.evidence.outputs.mode != 'documentation'
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ env.PUBLISH_CONTEXT }}
           push: true
           tags: |
             ${{ env.IMAGE }}:sha-${{ github.event.workflow_run.head_sha }}
             ${{ env.IMAGE }}:canal-staging
           build-args: |
             APP_COMMIT_SHA=${{ github.event.workflow_run.head_sha }}
-          cache-from: type=gha,scope=imagen
-          cache-to: type=gha,mode=max,scope=imagen
+          cache-from: type=gha,scope=laoe-staging-publisher
+          cache-to: type=gha,mode=max,scope=laoe-staging-publisher
       - name: Verificar que el canal de staging apunta al digest construido
         if: steps.evidence.outputs.mode != 'documentation'
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
+          [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
           canal=$(docker buildx imagetools inspect "$IMAGE:canal-staging" --format '{{.Manifest.Digest}}')
           [ "$canal" = "$DIGEST" ] || { echo "canal-staging es $canal, no $DIGEST"; exit 1; }
           echo "canal-staging -> $DIGEST"
@@ -102,31 +157,30 @@ jobs:
           SHA: ${{ github.event.workflow_run.head_sha }}
           PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
         run: |
-          npm install -g "$RAILWAY_CLI"
           # El token de proyecto ya trae su alcance; pasar --project/--environment lo invalida.
           # Primero se comprueba que el token sea del proyecto y el entorno esperados.
-          railway api 'query { projectToken { environment { name } project { id } } }' > /tmp/scope.json
+          "$RAILWAY_BIN" api 'query { projectToken { environment { name } project { id } } }' > "$RUNNER_TEMP/railway-scope.json"
           python3 - <<'PYEOF'
           import json, os
-          token = json.load(open('/tmp/scope.json'))['data']['projectToken']
+          token = json.load(open(os.path.join(os.environ['RUNNER_TEMP'], 'railway-scope.json')))['data']['projectToken']
           assert token['project']['id'] == os.environ['PROJECT_ID'], token
           assert token['environment']['name'] == 'staging', token
           print('token acotado a staging, como se espera')
           PYEOF
           # Un token de proyecto no puede cambiar la fuente; sí puede redesplegar desde ella.
           # La fuente de staging es :canal-staging, recién apuntada a este digest.
-          railway redeploy --service web --from-source --yes
+          "$RAILWAY_BIN" redeploy --service web --from-source --yes
           staging_base=$(python3 -c "
           import json
           envs = json.load(open('scripts/ci/smoke-environments.json'))
           print(envs['casa-digital / staging']['base'])
           ")
           for i in $(seq 1 90); do
-            if curl -sf "$staging_base/api/health" -o /tmp/health.json; then
-              served=$(python3 -c "import json; print(json.load(open('/tmp/health.json'))['commit'] or '')")
+            if curl -sf "$staging_base/api/health" -o "$RUNNER_TEMP/staging-health.json"; then
+              served=$(python3 -c "import json; print(json.load(open(__import__('os').path.join(__import__('os').environ['RUNNER_TEMP'], 'staging-health.json')))['commit'] or '')")
               if [ "$served" = "$SHA" ]; then echo "staging sirve $SHA"; break; fi
             fi
-            if [ "$i" = 90 ]; then echo "staging no sirvió $SHA a tiempo"; cat /tmp/health.json || true; exit 1; fi
+            if [ "$i" = 90 ]; then echo "staging no sirvió $SHA a tiempo"; cat "$RUNNER_TEMP/staging-health.json" || true; exit 1; fi
             sleep 10
           done
       - uses: actions/setup-node@v4
@@ -150,6 +204,18 @@ jobs:
           ")
           EOF
           npm run smoke -- --base "$base" --expected-sha "$SHA" --indexing "$indexing" --bucket-origin "$bucket"
+
+      - name: Limpiar archivos privados de esta ejecucion
+        if: always()
+        run: |
+          for key in PUBLISH_CONTEXT DOCKER_CONFIG RAILWAY_CLI_DIR CI_EVIDENCE_DIR; do
+            path=${!key:-}
+            case "$path" in
+              "$RUNNER_TEMP"/laoe-*"-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}."*)
+                if [[ -d "$path" && ! -L "$path" ]]; then rm -rf -- "$path"; fi ;;
+            esac
+          done
+          rm -f -- "$RUNNER_TEMP/railway-scope.json" "$RUNNER_TEMP/staging-health.json"
 
   promover:
     name: Promover el digest a producción
