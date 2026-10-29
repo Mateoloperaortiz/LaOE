@@ -101,6 +101,7 @@ export function adminNavGroups(): AdminNavGroup[] {
       label: groupLabels[5],
       items: [
         { href: "/admin/permanencia/reglas", label: reglas },
+        { href: "/admin/inventario", label: t("T-4300") },
         { href: "/admin/permanencia/grupos", label: grupos },
         { href: "/admin/permanencia/evaluaciones", label: evaluaciones },
         { href: "/admin/permanencia/cumplimiento", label: cumplimiento },

@@ -77,6 +77,7 @@ async function fields(): Promise<FieldDefinition[]> {
         { value: "REQUEST", label: solicitud },
         { value: "COMMITTEE_REMOVAL", label: retiroComite },
         { value: "LEAVE_EXPIRED", label: licenciaVencida },
+        { value: "INVENTORY_INCIDENT", label: t("T-4501") },
       ],
     },
   ];
@@ -118,20 +119,27 @@ export const tasksResource: ResourceDefinition<TaskRow, TaskInput> = {
       key: "kind",
       label: tipo,
       render: (row) =>
-        row.kind === "REQUEST"
-          ? { text: t("T-1013"), href: `/admin/solicitudes?tarea=${row.id}` }
-          : row.kind === "COMMITTEE_REMOVAL" || row.kind === "LEAVE_EXPIRED"
-            ? row.personId
-              ? {
-                  text: row.kind === "LEAVE_EXPIRED" ? licenciaVencida : retiroComite,
-                  href: `/admin/personas/${row.personId}?pestana=membresia`,
-                }
-              : row.kind === "LEAVE_EXPIRED"
-                ? licenciaVencida
-                : retiroComite
-            : row.kind === "DELETION_REQUEST"
-              ? eliminacion
-              : general,
+        row.kind === "INVENTORY_INCIDENT"
+          ? row.inventoryIncidentId
+            ? {
+                text: t("T-4501"),
+                href: `/admin/inventario?incidencia=${encodeURIComponent(row.inventoryIncidentId)}&persona=${encodeURIComponent(row.personId ?? "")}`,
+              }
+            : t("T-4501")
+          : row.kind === "REQUEST"
+            ? { text: t("T-1013"), href: `/admin/solicitudes?tarea=${row.id}` }
+            : row.kind === "COMMITTEE_REMOVAL" || row.kind === "LEAVE_EXPIRED"
+              ? row.personId
+                ? {
+                    text: row.kind === "LEAVE_EXPIRED" ? licenciaVencida : retiroComite,
+                    href: `/admin/personas/${row.personId}?pestana=membresia`,
+                  }
+                : row.kind === "LEAVE_EXPIRED"
+                  ? licenciaVencida
+                  : retiroComite
+              : row.kind === "DELETION_REQUEST"
+                ? eliminacion
+                : general,
     },
   ],
   filters: [

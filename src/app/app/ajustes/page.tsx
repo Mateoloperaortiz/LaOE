@@ -163,6 +163,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
             email={actor.email}
             phone={who?.phone ?? ""}
             personalEmail={who?.personalEmail ?? ""}
+            cardUid={who?.cardUid ?? ""}
           />
           <section aria-labelledby="datos-oe-titulo" className="flex max-w-xl flex-col gap-3">
             <h3 id="datos-oe-titulo" className="font-bold">

@@ -25,6 +25,7 @@ export const FALLBACKS_BY_FILE: Record<
   "src/app/admin/gamificacion/retos/[id]/page.tsx": [1, 0, 0, 0],
   "src/app/admin/gamificacion/retos/page.tsx": [4, 0, 0, 0],
   "src/app/admin/gamificacion/revision/page.tsx": [1, 0, 0, 0],
+  "src/app/admin/inventario/page.tsx": [0, 0, 0, 1],
   "src/app/admin/ledger/page.tsx": [2, 0, 0, 0],
   "src/app/admin/macroeventos/[slug]/_ui/Team.tsx": [1, 0, 0, 0],
   "src/app/admin/macroeventos/[slug]/page.tsx": [0, 1, 0, 0],

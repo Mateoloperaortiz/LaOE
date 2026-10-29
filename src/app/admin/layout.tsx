@@ -21,6 +21,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   // Destinos propios de quien no es ADMIN: sus comités, sus grupos, sus evaluaciones y la junta.
   const ownLinks = !actor.isAdmin
     ? [
+        ...(roles.managesInventory ? [{ href: "/admin/inventario", label: t("T-4300") }] : []),
         ...roles.committees.flatMap((item) => [
           { href: `/admin/comites/${item.committee.slug}`, label: item.committee.name },
           ...(item.capabilities.includes("PERMANENCE")
@@ -64,7 +65,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       id: `group-${index}`,
       label: group.label,
       items: actor.isAdmin
-        ? group.items
+        ? group.items.filter((item) => item.href !== "/admin/inventario" || roles.managesInventory)
         : ownLinks.filter((link) =>
             group.items.some(
               (item) => link.href === item.href || link.href.startsWith(`${item.href}/`),

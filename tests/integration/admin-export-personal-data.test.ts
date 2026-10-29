@@ -178,6 +178,7 @@ const LISTS_THINGS = new Set([
 const PERSON_FIELDS = new Set([
   "anonymizedAt",
   "birthDate",
+  "cardUid",
   "deletionRequestedAt",
   "documentNumber",
   "documentType",
@@ -791,6 +792,7 @@ describe("marca de datos personales en el registro del admin", () => {
     expect(personal.sort()).toEqual([
       "anonymizedAt",
       "birthDate",
+      "cardUid",
       "deletionRequestedAt",
       "documentNumber",
       "documentType",

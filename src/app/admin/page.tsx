@@ -97,19 +97,21 @@ export default async function AdminHome() {
     const group = roles.ledGroups[0];
     const competition = roles.competitions[0];
     redirect(
-      committee
-        ? `/admin/comites/${committee.slug}`
-        : group
-          ? `/admin/permanencia/grupos/${group.id}`
-          : roles.evaluatedGroups.length > 0
-            ? "/admin/permanencia/evaluaciones"
-            : roles.isBoard
-              ? "/admin/junta"
-              : competition
-                ? competition.operator
-                  ? `/admin/the-games/${competition.competitionId}`
-                  : `/admin/the-games/${competition.competitionId}/juez`
-                : "/app",
+      roles.managesInventory
+        ? "/admin/inventario"
+        : committee
+          ? `/admin/comites/${committee.slug}`
+          : group
+            ? `/admin/permanencia/grupos/${group.id}`
+            : roles.evaluatedGroups.length > 0
+              ? "/admin/permanencia/evaluaciones"
+              : roles.isBoard
+                ? "/admin/junta"
+                : competition
+                  ? competition.operator
+                    ? `/admin/the-games/${competition.competitionId}`
+                    : `/admin/the-games/${competition.competitionId}/juez`
+                  : "/app",
     );
   }
   const term = await getCurrentTerm();

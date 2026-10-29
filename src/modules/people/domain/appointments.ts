@@ -12,6 +12,7 @@ import { DomainError } from "@/shared/lib/errors";
 import { scopeId } from "@/shared/lib/scope-id";
 import { appointment, committee, macroeventRole, membership, person } from "../schema";
 import { assertNoInhabilities, BOARD_KINDS, type Override } from "./inhabilities";
+import { lockMembershipCycles } from "./wallet-member";
 
 // Cargos de junta y de GH (ADR-034, punto 13): visibles, con historia por término; no otorgan permisos.
 // Desde ADR-060 (regla 9) también los cargos de la mesa directiva de un macroevento: llevan la edición
@@ -251,10 +252,19 @@ export async function removeAppointment(
   id: string,
   owner: AppointmentOwner,
 ): Promise<void> {
-  const [row] = await ctx.tx.select().from(appointment).where(eq(appointment.id, id));
-  if (!row || !ownsAppointment(row, owner)) {
-    throw new DomainError(t("T-032"));
-  }
+  // La lectura preliminar solo identifica a la persona; no toma filas antes del ciclo de membresía.
+  const [reference] = await ctx.tx
+    .select({ personId: appointment.personId, editionId: appointment.editionId })
+    .from(appointment)
+    .where(eq(appointment.id, id));
+  if (!reference || !ownsAppointment(reference, owner)) throw new DomainError(t("T-032"));
+  await lockMembershipCycles(ctx.tx, [
+    reference.personId,
+    ...(ctx.actor.personId ? [ctx.actor.personId] : []),
+  ]);
+  // Quien reserva u opera bajo ese cargo termina primero; después se relee el dueño bajo la barrera.
+  const [row] = await ctx.tx.select().from(appointment).where(eq(appointment.id, id)).for("update");
+  if (!row || !ownsAppointment(row, owner)) throw new DomainError(t("T-032"));
   await ctx.tx.delete(appointment).where(eq(appointment.id, id));
   await ctx.audit({
     action: "appointment.removed",

@@ -1,6 +1,6 @@
 # ADR-151: Repositorio público y colaboración protegida
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-153)
 - Fecha: 2026-10-29
 - Relacionadas: ADR-054, ADR-139, ADR-140, ADR-141, ADR-145
 - Reemplaza: ADR-148
@@ -24,3 +24,7 @@ La OE quiere colaborar en GitHub y ejecutar el CI sin consumir la cuota de runne
 Cualquiera puede leer y bifurcar el código; escribir en las ramas protegidas sigue requiriendo revisión y CI. La publicación no puede deshacer copias que terceros ya hayan obtenido. Los runners estándar de GitHub son gratuitos para repositorios públicos; eso no implica gratuidad de runners grandes, Railway ni cualquier consumo de almacenamiento o paquetes.
 
 La colaboración documentada en `CONTRIBUTING.md` y los reportes privados de `SECURITY.md` forman parte del mantenimiento. Las protecciones alojadas se verifican en GitHub: el YAML y `CODEOWNERS` por sí solos no las activan. Los tokens de despliegue y los permisos de colaboradores deben revisarse al entrar o salir alguien del equipo.
+
+## Enmienda (2026-10-29, ADR-153)
+
+La regla 6 conserva los environments restringidos a `main`, sus tokens separados y la aprobación de producción. [ADR-153](ADR-153-revision-temporal-de-rama-en-staging.md) permite exclusivamente la revisión previamente autorizada de la rama funcional de inventario en el staging compartido: un workflow manual publica la imagen de su SHA con CI completo, sin environment, secretos de environment ni token de Railway; después el propietario aplica el patch de staging desde la CLI autenticada con su cuenta. No hay despliegues desde PR ni excepción para producción. La imagen y la base habituales se restauran al cerrar esa revisión.

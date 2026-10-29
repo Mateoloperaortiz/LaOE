@@ -1,6 +1,6 @@
 # ADR-034: Personas, CRM mínimo y Mi OE (fase 2)
 
-- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113, ADR-115); enmendada por ADR-143
+- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113, ADR-115); enmendada por ADR-143; enmendada por ADR-150
 - Fecha: 2026-09-03
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-022, ADR-029, ADR-030, ADR-031, ADR-032, ADR-033
 - Enmienda: ADR-010 (destrucción de sesiones), ADR-018 y 08-migracion (mapeo del líder de comité), ADR-022 (el archivo del roster sí pasa por la app)
@@ -98,3 +98,7 @@ Regla 12: la tarea `DELETION_REQUEST` la abría un handler que insertaba la fila
 ## Enmienda (2026-10-24, ADR-143)
 
 La regla 12 se amplía por [ADR-143](ADR-143-mis-datos-completo-y-con-paso-de-seguridad.md): Mis datos exige paso de seguridad antes de leer y auditar, incluye categorías antes omitidas mediante proyecciones propias por módulo y declara límites y omisiones. Las notas ajenas y campos libres administrativos requieren revisión por el canal de la política; las respuestas anónimas no se vuelven a asociar a su autor. Solicitar eliminación conserva su flujo.
+
+## Enmienda (2026-10-29, ADR-150)
+
+El perfil de miembro incorpora el UID del carnet universitario, único y normalizado, con transición para miembros existentes. Ver ADR-150.

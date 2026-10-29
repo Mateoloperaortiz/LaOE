@@ -13,7 +13,10 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-151](ADR-151-repositorio-publico-y-colaboracion-protegida.md) | Repositorio público y colaboración protegida | Aceptada |
+| [ADR-153](ADR-153-revision-temporal-de-rama-en-staging.md) | Revisión temporal de una rama funcional en staging | Aceptada; preparación en curso |
+| [ADR-152](ADR-152-ci-hospedado-del-repositorio-publico.md) | CI hospedado del repositorio público | Reemplazada por ADR-151 |
+| [ADR-151](ADR-151-repositorio-publico-y-colaboracion-protegida.md) | Repositorio público y colaboración protegida | Aceptada (enmendada por ADR-153) |
+| [ADR-150](ADR-150-inventario-reservas-y-operacion-logistica.md) | Inventario, reservas y operación logística de la OE | Aceptada; verificada localmente; revisión en staging en preparación |
 | [ADR-148](ADR-148-ci-en-runners-linux-locales.md) | CI completo en runners Linux locales del repositorio privado | Reemplazada por ADR-151 |
 | [ADR-147](ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md) | Vueltas adicionales de elección, todas obligatorias | Aceptada |
 | [ADR-146](ADR-146-limites-de-colecciones-en-la-entrada.md) | Límites explícitos de colecciones en la entrada no confiable | Aceptada |
@@ -21,7 +24,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-144](ADR-144-reintentos-de-avisos-push-fallidos.md) | Reintentos de avisos push fallidos | Aceptada |
 | [ADR-143](ADR-143-mis-datos-completo-y-con-paso-de-seguridad.md) | Mis datos completo y con paso de seguridad | Aceptada |
 | [ADR-142](ADR-142-ip-del-ingreso-publico-de-railway.md) | IP validada del ingreso HTTP público de Railway, sin respaldos de cabeceras del cliente | Aceptada |
-| [ADR-141](ADR-141-fase-c-de-cd.md) | Fase C de CD: reutilización del CI por árbol idéntico, imagen única promovida por digest y smoke sin dependencias | Aceptada |
+| [ADR-141](ADR-141-fase-c-de-cd.md) | Fase C de CD: reutilización del CI por árbol idéntico, imagen única promovida por digest y smoke sin dependencias | Aceptada; enmendada por ADR-153 |
 | [ADR-140](ADR-140-fase-b-de-tiempos-de-ci.md) | Fase B de tiempos de CI: integración en paralelo con base por worker, calidad en tres jobs y E2E adaptables partidos | Aceptada |
 | [ADR-139](ADR-139-fase-a-de-tiempos-de-ci.md) | Fase A de tiempos de CI: tres runners de integración, seis E2E y duraciones medianas | Aceptada (enmendada por ADR-140) |
 | [ADR-138](ADR-138-tu-paisa-sutil-sin-acentuacion-argentina.md) | Tú paisa sutil, sin acentuación argentina | Aceptada |
@@ -102,9 +105,9 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-064](ADR-064-gestion-de-macroeventos.md) | Gestión de macroeventos, cargos y GT por semestre | Implementación y verificación (enmendada por ADR-089) |
 | [ADR-066](ADR-066-cargos-vigentes-e-historial.md) | Cargos vigentes e historial por semestre y ámbito | Aceptada; verificada en producción |
 | [ADR-065](ADR-065-areas-y-participacion-gt-gap.md) | Áreas y participación en GT y GAP | Aceptada; enmendada por ADR-071 |
-| [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) | Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026 | Aceptada; enmendada por ADR-061, ADR-073, ADR-111, ADR-112, ADR-118 y ADR-129; en curso por tramos; enmendada por ADR-137 |
+| [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) | Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026 | Aceptada; enmendada por ADR-061, ADR-073, ADR-111, ADR-112, ADR-118 y ADR-129; en curso por tramos; enmendada por ADR-137; enmendada por ADR-150 |
 | [ADR-059](ADR-059-presupuesto-del-comite.md) | Presupuesto del comité por rubros, gastos y traslados | Propuesta; enmendada por ADR-060 |
-| [ADR-058](ADR-058-direccion-del-comite-por-areas.md) | La dirección del comité por áreas: capacidades por cargo, cargos múltiples y codirección | Aceptada (enmendada por ADR-060 y ADR-115); promovida a producción, verificación con la dirección real pendiente |
+| [ADR-058](ADR-058-direccion-del-comite-por-areas.md) | La dirección del comité por áreas: capacidades por cargo, cargos múltiples y codirección | Aceptada (enmendada por ADR-060 y ADR-115); promovida a producción, verificación con la dirección real pendiente; enmendada por ADR-150 |
 | [ADR-057](ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md) | Vicepresidencia de Comunicaciones y Publicidad como cargo de junta | Aceptada; en producción |
 | [ADR-056](ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md) | Alta y condición del semestre desde la Persona 360 | Aceptada; verificada en producción |
 | [ADR-055](ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) | Cuatro particiones E2E, integración en dos runners y lista documental ampliada | Aceptada (enmendada por ADR-139); validada en remoto |
@@ -147,10 +150,10 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-028](ADR-028-permanencia-consecuencias.md) | Permanencia: consecuencias, asambleas obligatorias y evaluación al cierre | Aceptada (enmendada por ADR-036 y ADR-147) |
 | [ADR-029](ADR-029-cargos-de-comite-y-roster.md) | Cargos dentro del comité y formato del roster | Aceptada (enmendada por ADR-030 y ADR-058) |
 | [ADR-030](ADR-030-perfil-de-egresado.md) | Perfil de egresado (memorial) en lugar de anonimización por plazo | Aceptada (enmendada por ADR-114, ADR-116 y ADR-118) |
-| [ADR-031](ADR-031-autogestion-del-miembro.md) | Autogestión del miembro: solicitudes, convocatorias, datos propios, onboarding, reconocimientos, encuestas y panel de la junta | Aceptada (enmendada por ADR-036, ADR-037 y ADR-038) |
+| [ADR-031](ADR-031-autogestion-del-miembro.md) | Autogestión del miembro: solicitudes, convocatorias, datos propios, onboarding, reconocimientos, encuestas y panel de la junta | Aceptada (enmendada por ADR-036, ADR-037 y ADR-038); enmendada por ADR-150 |
 | [ADR-032](ADR-032-drizzle-y-esquema-por-modulo.md) | Drizzle como capa de datos y esquema por módulo en TypeScript | Aceptada (enmendada por ADR-079) |
 | [ADR-033](ADR-033-contenido-y-medios-fase-1.md) | Contenido editable y medios del portal público (fase 1) | Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039, ADR-113, ADR-114, ADR-116) |
-| [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) | Personas, CRM mínimo y Mi OE (fase 2) | Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113, ADR-115); enmendada por ADR-143 |
+| [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) | Personas, CRM mínimo y Mi OE (fase 2) | Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113, ADR-115); enmendada por ADR-143; enmendada por ADR-150 |
 | [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) | Participación y GH Points (fase 3) | Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116, ADR-119 y ADR-122); enmendada por ADR-131; enmendada por ADR-136; enmendada por ADR-137 y ADR-147 |
 | [ADR-036](ADR-036-permanencia-fase-4.md) | Permanencia (fase 4) | Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058, ADR-116, ADR-118, ADR-121 y ADR-123) |
 | [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md) | Admisión, aliados y contactos (fase 5) | Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050, ADR-056, ADR-060, ADR-115, ADR-116 y ADR-118) |

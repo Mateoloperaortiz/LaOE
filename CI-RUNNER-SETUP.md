@@ -1,30 +1,27 @@
-# Runner local de CI de Casa Digital
+# Ejecutores de CI
 
-El workflow `CI` usa el runner `laptop-ci-casa-digital`, registrado solo en este repositorio privado. Los nueve jobs conservan sus nombres y dependencias; las matrices mantienen tres particiones de integración y seis de E2E, en cola sobre un runner. La puerta requerida sigue llamándose `CI` y exige los informes completos. [ADR-148](docs/adr/ADR-148-ci-en-runners-linux-locales.md) documenta la propuesta.
+El workflow `CI` usa runners hospedados `ubuntu-latest` para el repositorio público `Mateoloperaortiz/LaOE`, según [ADR-151](docs/adr/ADR-151-repositorio-publico-y-colaboracion-protegida.md). El portátil de [ADR-148](docs/adr/ADR-148-ci-en-runners-linux-locales.md) ya no es un requisito ni el destino de estos jobs.
 
-## Requisitos del entorno
+## Ejecución
 
-- Linux x64 con systemd y runner oficial como `ci-laoe`, separado del usuario personal; etiquetas `self-hosted`, `Linux`, `X64`, `ci`, `build`, `local`, `linux-ci`.
-- Node 24, npm, uv 0.12.19, Python 3.12 en `/opt/laptop-ci/python`, `gh`, Git, Docker con Buildx y bibliotecas nativas de Chromium para Ubuntu 24.04. El lockfile determina la versión de Playwright y el job verifica su navegador sin instalar paquetes del sistema.
-- Guest limitado a cuatro CPU, 8 GiB de RAM y 4 GiB de swap; servicio del runner con CPU 150 %, memoria máxima 3 GiB y heap Node 2 GiB. Los contenedores comparten un límite de 3 GiB y CPU 100 %; BuildKit tiene límite individual 3 GiB, compartiendo el presupuesto con sus servicios.
-- Cuenta Windows de CI sin administración, distribución WSL separada y sin discos Windows montados ni interoperabilidad. Los usuarios Docker controlan el Linux de CI y comparten confianza con NewLIS.
+- Los nueve jobs conservan sus nombres y dependencias. Integración mantiene tres particiones y E2E seis, ahora paralelas, con reparto por duración y comprobación del inventario completo.
+- Las unitarias usan un worker y un archivo a la vez (`--maxWorkers=1 --fileParallelism=false`), sin cambiar casos ni sus tiempos límite.
+- Node 24 se instala con `actions/setup-node`; las unitarias aprovisionan Python 3.12 con `actions/setup-python` y uv con pip para el extractor. E2E instala o verifica Chromium y sus dependencias con Playwright. Cada runner parte de su propio entorno desechable.
+- PostgreSQL y Garage contienen únicamente datos y claves sintéticas. Usan puertos dinámicos y nombres de recursos por ejecución. La limpieza solo retira recursos de su propio job.
+- La prueba de imagen conserva un contexto temporal de `git archive` con los permisos versionados. Ejecuta el release, arranca el servidor y comprueba salud y SHA horneado, sin publicar la imagen.
 
-Las herramientas y dependencias del sistema las mantiene el administrador fuera del workflow. Los jobs no usan `sudo` ni credenciales personales. Los datos y claves de PostgreSQL/Garage son sintéticos y desechables. El contexto de la imagen se extrae de `git archive` a un directorio temporal privado, conservando los modos versionados 644/755. Esto permite que `USER node` lea los archivos copiados sin relajar la umask del runner ni incluir archivos sin versionar.
+## Alcance y evidencia
 
-Los contenedores usan nombres por ejecución y puertos dinámicos; la limpieza no ejecuta `docker system prune` ni borra recursos de otros jobs.
+Los PR usan `pull_request`, token de lectura y datos sintéticos; los contribuidores externos requieren aprobación. Checkout no persiste credenciales y no se usa `pull_request_target`. Las ramas protegidas requieren revisión y CI al día según ADR-151.
 
-## Operación y seguridad
+La política de Actions exige SHA completos: los `uses` de CI, despliegue y smoke fijan commits oficiales de `actions/*` y `docker/*` y conservan el tag como comentario. Al actualizar una acción, resolver el SHA por la API del repositorio de su autor y revisar el cambio. No desactivar `sha_pinning_required` ni ampliar los proveedores permitidos para saltarse esta condición.
 
-En Settings → Actions → General, mantener deshabilitado **Run workflows from fork pull requests** para repositorios privados. Los guards del YAML además exigen repo privado y PR del mismo repo. No convertir el workflow a `pull_request_target` para ejecutar código de un fork. No registrar este runner para repositorios públicos.
+La puerta requerida sigue llamándose `CI`. Exige los mismos informes de unitarias, integración, E2E e inventario, el drenaje estricto del outbox y los jobs de calidad, respaldo e imagen aprobados. Los artefactos de evidencia se conservan 14 días; diagnósticos y capturas de fallos, siete. El resultado de un SHA anterior no acredita una ejecución nueva, salvo los modos de reutilización y promoción ya definidos por ADR-141 y comprobados por el gate.
 
-En Settings → Actions → Runners debe figurar `laptop-ci-casa-digital` con estado **Idle** u **Active**. Un PR del mismo repo dispara `CI`; sus jobs muestran ese nombre de runner. Los jobs esperan si el portátil está apagado, suspendido o sin conexión. Los logs y los artefactos del run son la evidencia de esa ejecución; una prueba piloto previa no acredita un commit nuevo.
+Los pushes a `main` y `production` y los PR conservan sus eventos. Para revisar una rama antes de mezclarla, se puede ejecutar manualmente `CI` sobre su referencia y comprobar el SHA, los jobs y el artefacto `ci-result`. Una cola o una ejecución incompleta no confirma la validación. La primera corrida puede necesitar llenar cachés; el tiempo de operación se documenta después de observar la ejecución completa.
 
-El arranque automático de Windows y la configuración energética están pendientes de completar presencialmente por el propietario. Mientras tanto el entorno se mantiene iniciado temporalmente; no se ha demostrado recuperación después de reiniciar Windows o cerrar sesión.
+## Operación
 
-Los workflows de despliegue y smoke siguen con sus runners, secretos, entornos y gates originales. El PR de esta configuración debe revisarse y fusionarse para que los PR posteriores hereden el enrutamiento local.
+Los jobs muestran un runner hospedado de GitHub y no esperan al listener del portátil. El runner local anterior no debe usarse para ejecutar código del repositorio público; su retirada o conservación para otro ámbito es una operación separada de este cambio del workflow.
 
-## Recuperación y reversión
-
-Systemd reinicia el listener ante un fallo y reintenta la conexión. Con el runner sin jobs, comprobar el servicio `actions.runner.Mateoloperaortiz-LaOE.laptop-ci-casa-digital.service` y su journal dentro del Linux de CI. No imprimir archivos de credenciales del runner.
-
-Para volver al entorno hospedado, revertir el commit de migración del workflow. Eso restaura las herramientas y `runs-on` anteriores conservando las mismas pruebas y el check requerido `CI`. Dejar que terminen los jobs antes de detener o retirar el runner. No se necesitan cambios de producción ni de protección de ramas para revertirlo.
+Los despliegues usan tokens separados en environments restringidos a `main`; producción exige la aprobación del propietario. No se despliega desde un PR. La revisión manual de una rama de inventario en staging sigue exclusivamente [ADR-153](docs/adr/ADR-153-revision-temporal-de-rama-en-staging.md): el workflow de revisión publica la imagen sin environment ni token de Railway, y el propietario aplica el patch de staging desde su CLI autenticada. Cualquier retorno a infraestructura local requiere decidir y verificar un alcance compatible con la visibilidad pública antes de cambiar `runs-on`.

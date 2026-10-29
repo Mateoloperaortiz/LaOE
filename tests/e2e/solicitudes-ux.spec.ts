@@ -330,6 +330,7 @@ test("Ajustes con sesión vencida vuelve al ingreso sin cambiar datos", async ({
     await page.goto("/app/ajustes#mis-datos");
     const form = page.locator("form").filter({ has: page.getByLabel(t("T-404"), { exact: true }) });
     await form.getByLabel(t("T-404"), { exact: true }).fill("+573001234567");
+    await form.getByRole("textbox", { name: t("T-4100"), exact: true }).fill("00 11 22 33");
     await context.clearCookies();
     if (!missingCookie) {
       const session = cookies.find((cookie) => cookie.name === "oe_sesion");

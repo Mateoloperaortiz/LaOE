@@ -3116,3 +3116,161 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3594 | Asistencia: cambio de presencia al aprobar un registro existente | La presencia de una asistencia existente no se cambia al aprobarla. | GH | Propuesta |
 | T-3596 | Excusa: motivo de una aprobación excepcional | Motivo de la aprobación fuera de plazo | GH | Propuesta |
 | T-3597 | Excusa: ayuda del motivo de aprobación excepcional | Si la excusa se presentó fuera de plazo, explica por qué apruebas la revisión excepcional. En los demás casos puedes dejarlo vacío. | GH | Propuesta |
+
+### Carnet físico y dirección logística
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-4100 | Ajustes: identificador del carnet físico | UID del carnet universitario | MATEO | Propuesta |
+| T-4101 | Ajustes: ayuda del UID | Escribe los cuatro pares hexadecimales de tu carnet, por ejemplo 0A 1B 2C 3D. Es distinto del ID EPIK. | MATEO | Propuesta |
+| T-4102 | Carnet físico: formato inválido o ausente | Escribe los cuatro pares hexadecimales del carnet, por ejemplo 0A 1B 2C 3D. | MATEO | Propuesta |
+| T-4103 | Carnet físico: UID repetido | Ese carnet ya está registrado. Revisa el número o pídele ayuda a la VP administrativa. | MATEO | Propuesta |
+| T-4104 | Mi OE: falta registrar el carnet físico | Completa el UID de tu carnet universitario en Ajustes para poder retirar materiales. Puedes seguir usando Mi OE. | MATEO | Propuesta |
+| T-4105 | Mi OE: acceso a registrar el carnet físico | Completar mi carnet | MATEO | Propuesta |
+| T-4106 | Dirección logística: acceso denegado | Solo la VP administrativa vigente puede gestionar la dirección logística. | MATEO | Propuesta |
+| T-4107 | Dirección logística: origen fuera de alcance | Ese cargo logístico no está disponible en este ámbito. | MATEO | Propuesta |
+| T-4108 | Dirección logística: ámbito fuera de vigencia | Elige un comité del semestre actual o una edición de un semestre actual o futuro. | MATEO | Propuesta |
+| T-4109 | Dirección logística: etiqueta de comité | Logística de {comité} · {semestre} | MATEO | Propuesta |
+| T-4110 | Dirección logística: etiqueta de macroevento | Logística de {evento} · {edición} · {semestre} | MATEO | Propuesta |
+
+### Inventario, reservas y operación del CML (primera versión administrativa)
+
+| Código | Contexto | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4300 | Navegación y título | Inventario | MATEO | Propuesta |
+| T-4301 | Sección CML | Entregas y devoluciones | MATEO | Propuesta |
+| T-4302 | Confirmación de operación | Los cambios quedaron guardados. | MATEO | Propuesta |
+| T-4303 | Acceso de la VP | Administrar inventario | MATEO | Propuesta |
+| T-4304 | Introducción del catálogo | Elige las fechas para consultar los materiales disponibles y quién los tiene reservados. | MATEO | Propuesta |
+| T-4305 | Campo de fecha inicial | Desde | MATEO | Propuesta |
+| T-4306 | Campo de fecha final | Hasta | MATEO | Propuesta |
+| T-4307 | Consultar disponibilidad | Consultar disponibilidad | MATEO | Propuesta |
+| T-4308 | Material y encabezado de tabla | Material | MATEO | Propuesta |
+| T-4309 | Disponibilidad por rango | Disponibles | MATEO | Propuesta |
+| T-4310 | Existencias totales | Existencias | MATEO | Propuesta |
+| T-4311 | Ubicación física | Ubicación | MATEO | Propuesta |
+| T-4312 | Ubicación de la caja | Caja | MATEO | Propuesta |
+| T-4313 | Cantidad solicitada | Cantidad | MATEO | Propuesta |
+| T-4314 | Confirmar reserva | Reservar materiales | MATEO | Propuesta |
+| T-4315 | Ámbito de la reserva | Comité o macroevento | MATEO | Propuesta |
+| T-4316 | Persona delegada | Quién recoge | MATEO | Propuesta |
+| T-4317 | Persona reservante recoge | Yo recojo los materiales | MATEO | Propuesta |
+| T-4318 | Aviso de visibilidad | La reserva muestra tu nombre y el comité o macroevento a los miembros de la OE. | MATEO | Propuesta |
+| T-4319 | Sin concesión para reservar | Para reservar necesitas un cargo de Logística vigente y el permiso de la VP administrativa. | MATEO | Propuesta |
+| T-4320 | Agenda de reservas | Calendario y reservas | MATEO | Propuesta |
+| T-4321 | Agenda vacía | No hay reservas para estas fechas. | MATEO | Propuesta |
+| T-4322 | Identificador de reserva | Reserva {código} | MATEO | Propuesta |
+| T-4323 | Autor de la reserva | Reservó | MATEO | Propuesta |
+| T-4324 | Responsable de recogida | Recoge | MATEO | Propuesta |
+| T-4325 | Cancelación | Cancelar reserva | MATEO | Propuesta |
+| T-4326 | Motivo de cambio | Motivo | MATEO | Propuesta |
+| T-4327 | Reserva confirmada | Confirmada | MATEO | Propuesta |
+| T-4328 | Préstamo entregado | En préstamo | MATEO | Propuesta |
+| T-4329 | Préstamo cerrado | Préstamo cerrado | MATEO | Propuesta |
+| T-4330 | Reserva anulada | Cancelada | MATEO | Propuesta |
+| T-4331 | Devolución retrasada | Devolución pendiente fuera de plazo | MATEO | Propuesta |
+| T-4332 | Gestión de catálogo | Materiales y existencias | MATEO | Propuesta |
+| T-4333 | Alta de material | Agregar material | MATEO | Propuesta |
+| T-4334 | Nombre del material | Nombre | MATEO | Propuesta |
+| T-4335 | Modelo de seguimiento | Seguimiento | MATEO | Propuesta |
+| T-4336 | Seguimiento individual | Por unidad identificada | MATEO | Propuesta |
+| T-4337 | Seguimiento agrupado | Por cantidades | MATEO | Propuesta |
+| T-4338 | Acción de creación | Crear material | MATEO | Propuesta |
+| T-4339 | Ajuste de existencias | Ajustar existencias | MATEO | Propuesta |
+| T-4340 | Variación de stock | Unidades que agregas o retiras | MATEO | Propuesta |
+| T-4341 | Liberación de cuarentena | Unidades reparadas que vuelven a estar disponibles | MATEO | Propuesta |
+| T-4342 | Acción de guardado | Guardar cambios | MATEO | Propuesta |
+| T-4343 | Gestión de permisos | Permisos para reservar | MATEO | Propuesta |
+| T-4344 | Conceder acceso | Habilitar reservas | MATEO | Propuesta |
+| T-4345 | Revocar acceso | Quitar permiso | MATEO | Propuesta |
+| T-4346 | Gestión de cargos | Directores logísticos | MATEO | Propuesta |
+| T-4347 | Selector de integrante | Persona | MATEO | Propuesta |
+| T-4348 | Selector de comité o edición | Frente | MATEO | Propuesta |
+| T-4349 | Marca de codirección | Codirección | MATEO | Propuesta |
+| T-4350 | Impresión | Imprimir etiquetas | MATEO | Propuesta |
+| T-4351 | Página de etiquetas | Etiquetas de los materiales | MATEO | Propuesta |
+| T-4352 | Novedades del préstamo | Novedades | MATEO | Propuesta |
+| T-4353 | Registro de la VP | Gestión con el responsable | MATEO | Propuesta |
+| T-4354 | Días del calendario | Lunes · Martes · Miércoles · Jueves · Viernes · Sábado · Domingo | MATEO | Propuesta |
+| T-4355 | Resolver una novedad | Marcar como resuelta | MATEO | Propuesta |
+| T-4356 | Remisión a sanciones | Remitir para revisión del llamado de atención | MATEO | Propuesta |
+| T-4357 | Error de formulario | Revisa los campos y vuelve a intentarlo. | MATEO | Propuesta |
+| T-4358 | Catálogo vacío | Todavía no hay materiales registrados. | MATEO | Propuesta |
+| T-4359 | Permiso vigente | Reservas habilitadas | MATEO | Propuesta |
+| T-4360 | Permiso no concedido | Reservas sin habilitar | MATEO | Propuesta |
+| T-4361 | Identificador de etiqueta | Código | MATEO | Propuesta |
+| T-4362 | Condición del implemento | Estado | MATEO | Propuesta |
+| T-4363 | Implemento apartado por daño | En revisión por daño | MATEO | Propuesta |
+| T-4364 | Implemento dado por perdido | Perdido | MATEO | Propuesta |
+| T-4365 | Restricción de delegado | Puedes delegar la recogida en un miembro activo de tu comité. En un macroevento recoge el director que reservó. | MATEO | Propuesta |
+| T-4366 | Iniciar cámara | Escanear código de barras | MATEO | Propuesta |
+| T-4367 | Cerrar cámara | Detener cámara | MATEO | Propuesta |
+| T-4368 | Cámara no disponible | No pudimos abrir la cámara. Revisa el permiso del navegador o escribe el código de la etiqueta. | MATEO | Propuesta |
+| T-4369 | Alternativa al escáner | Código de la etiqueta | MATEO | Propuesta |
+| T-4370 | Agregar lectura | Agregar código | MATEO | Propuesta |
+| T-4371 | Etiqueta fuera del préstamo | Ese código no corresponde a los materiales de esta reserva. | MATEO | Propuesta |
+| T-4372 | Lectura repetida | Ese código ya está en la lista. | MATEO | Propuesta |
+| T-4373 | Retirar lectura | Quitar código | MATEO | Propuesta |
+| T-4374 | Lista previa al movimiento | Materiales revisados | MATEO | Propuesta |
+| T-4375 | Confirmación de salida | Confirmar salida | MATEO | Propuesta |
+| T-4376 | Confirmación de entrada | Confirmar devolución | MATEO | Propuesta |
+| T-4377 | Cantidades fuera | Pendientes de devolver | MATEO | Propuesta |
+| T-4378 | Cantidad recibida | Cantidad que regresa | MATEO | Propuesta |
+| T-4379 | Cantidad con daño | De esas, con daño | MATEO | Propuesta |
+| T-4380 | Nota de novedad | Observación o novedad | MATEO | Propuesta |
+| T-4381 | Alta de novedad | Registrar novedad | MATEO | Propuesta |
+| T-4382 | Elección del préstamo | Elige una reserva para registrar su salida o devolución. | MATEO | Propuesta |
+| T-4383 | Alcance del escaneo | Escanear agrega materiales a la lista. El movimiento se guarda cuando lo confirmas. | MATEO | Propuesta |
+| T-4384 | Sin operación autorizada | Esta sección está disponible para el CML y la VP administrativa del semestre vigente. | MATEO | Propuesta |
+| T-4385 | Incorporar primer material | Agrega el primer material para que la OE pueda consultarlo y reservarlo. | MATEO | Propuesta |
+| T-4386 | Disponibilidad calculada | La disponibilidad se vuelve a comprobar al confirmar la reserva. | MATEO | Propuesta |
+| T-4387 | Zona horaria | Las fechas y horas corresponden a Colombia. | MATEO | Propuesta |
+| T-4388 | Mes previo | Mes anterior | MATEO | Propuesta |
+| T-4389 | Mes siguiente | Mes siguiente | MATEO | Propuesta |
+| T-4390 | Calendario de disponibilidad | Elige un día para consultar su disponibilidad | MATEO | Propuesta |
+| T-4391 | Material desactivado | Inactivo | MATEO | Propuesta |
+| T-4392 | Material habilitado | Activo | MATEO | Propuesta |
+| T-4393 | Error de comunicación | No pudimos guardar el movimiento. Revisa la conexión y vuelve a confirmarlo. | MATEO | Propuesta |
+| T-4394 | No hay cargos elegibles | No hay cargos logísticos vigentes para habilitar. | MATEO | Propuesta |
+| T-4395 | Nombramiento | Nombrar en Logística | MATEO | Propuesta |
+| T-4396 | Fin de cargo | Retirar de Logística | MATEO | Propuesta |
+| T-4397 | Material activo en editor | Disponible para nuevas reservas | MATEO | Propuesta |
+| T-4398 | Incidencias vacías | No hay novedades registradas. | MATEO | Propuesta |
+| T-4399 | Existencias apartadas | En revisión | MATEO | Propuesta |
+| T-4400 | Confirmación en curso | Guardando… | MATEO | Propuesta |
+| T-4401 | Baja de implemento | Registrar pérdida | MATEO | Propuesta |
+| T-4402 | Aviso de remisión | La remisión deja el caso pendiente de revisión. No registra automáticamente un llamado de atención. | MATEO | Propuesta |
+| T-4403 | Estado de novedad | Abierta · Resuelta · Remitida | MATEO | Propuesta |
+| T-4404 | Imprimir solo este material | Ver etiquetas | MATEO | Propuesta |
+| T-4405 | Reservas propias | Mis reservas | MATEO | Propuesta |
+| T-4406 | Reserva antes de consultar | Consulta un rango válido antes de elegir materiales. | MATEO | Propuesta |
+| T-4407 | Regresar al inventario | Volver al inventario | MATEO | Propuesta |
+| T-4408 | Fecha incompatible | Elige una fecha y hora final posterior a la inicial. | MATEO | Propuesta |
+
+
+### Inventario · revisión de novedades en CRM (ADR-150)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4500 | Tarea de revisión de inventario | Revisar la novedad de un préstamo de inventario | MATEO | Propuesta |
+| T-4501 | Tipo y vínculo de tarea de inventario | Novedad de inventario | MATEO | Propuesta |
+
+### Inventario · reglas de operación (ADR-150)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4200 | Permiso de inventario | No tienes permiso para realizar esta operación de inventario. | MATEO | Propuesta |
+| T-4201 | Intervalo de una reserva | Elige una fecha y hora de inicio futura y un final posterior al inicio. | MATEO | Propuesta |
+| T-4202 | Cantidades de inventario | Revisa las cantidades y las unidades seleccionadas. | MATEO | Propuesta |
+| T-4203 | Disponibilidad de inventario | No hay suficientes materiales disponibles para completar esta operación. | MATEO | Propuesta |
+| T-4204 | Persona que recoge | La persona que recoge debe estar activa y pertenecer al comité de la reserva. En un macroevento recoge su dirección logística. | MATEO | Propuesta |
+| T-4205 | Retiro sin UID | Antes de retirar los materiales, la persona que recoge debe registrar el UID de su carnet. | MATEO | Propuesta |
+| T-4206 | Concesión para reservar | Este cargo no tiene un permiso vigente para reservar materiales. | MATEO | Propuesta |
+| T-4207 | Estado de reserva | La reserva no permite esta operación en este momento. | MATEO | Propuesta |
+| T-4208 | Motivo de cancelación | Escribe el motivo de la cancelación. | MATEO | Propuesta |
+| T-4209 | Observación de devolución | Describe el daño o la novedad antes de confirmar la devolución. | MATEO | Propuesta |
+| T-4210 | Reintento distinto | Esta confirmación ya se usó con otros datos. Revisa la operación y vuelve a intentarlo. | MATEO | Propuesta |
+| T-4211 | Etiquetas de un préstamo | Escanea y selecciona las etiquetas que corresponden a este préstamo. | MATEO | Propuesta |
+| T-4212 | Gestión antes de remitir | Registra primero la gestión de la novedad y deja constancia de la respuesta o de que no hubo respuesta. | MATEO | Propuesta |
+| T-4213 | Historia de inventario anonimizada | Datos personales retirados | MATEO | Propuesta |
+| T-4502 | Reserva afectada por otro préstamo o material fuera de servicio | Esta reserva tiene materiales pendientes de otro préstamo o fuera de servicio. La VP administrativa debe revisar la disponibilidad. | MATEO | Propuesta |

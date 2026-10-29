@@ -370,3 +370,12 @@ El bootstrap privado crea una persona real `STUDENT/MEMBER` con `source=BOOTSTRA
 ## Enmienda de verificación normativa · ADR-061
 
 Las migraciones 0026–0027 agregan `membership.leaveCondition` (condiciones por comité y general conservadas al salir a licencia), `membership_term.resumedNew` y `resumedTransfer` (condición retomada al regreso sin alterar `firstTermId`). El cambio de estado consume la copia dentro de la misma transacción; conserva las decisiones explícitas del término de regreso. Ver [ADR-061](adr/ADR-061-verificacion-y-correcciones-de-normativa-2026.md).
+
+
+## Inventario y carnet universitario (ADR-150)
+
+`Person.cardUid` es nullable durante la transición, único cuando existe y canónico en cuatro pares hexadecimales mayúsculos separados por espacios. Ajustes lo exige al guardar el perfil de miembro; no forma parte de los DTO de directorio/calendario ni sustituye EPIK o los tokens del carnet OE.
+
+`inventory` conserva materiales `UNIT` o `QUANTITY`, unidades con etiqueta y estado, ubicación/caja y existencias en cuarentena. La concesión referencia el identificador exacto del cargo logístico sin FK hacia un nombramiento que el dominio puede retirar. La reserva conserva un solo comité/edición, reservante y recogedor, intervalo y líneas; las unidades asignadas mantienen devolución/pérdida individual. Los movimientos conservan clave idempotente y huella del contenido. Las incidencias guardan nota, gestión, estado y remisión. Sus notas no se copian al outbox ni a la auditoría.
+
+Una devolución parcial reduce solamente lo pendiente; daño y pérdida no producen existencias prestables. La anonimización redacta nombres conservados y notas asociadas sin alterar el saldo físico. Mis datos incluye proyecciones propias con límites declarados y remite notas y gestión a revisión por el canal de la política.

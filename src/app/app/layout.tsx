@@ -1,10 +1,12 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { listSubscriptionsFor } from "@/modules/comms";
 import { PwaRegistrar } from "@/modules/comms/components/PwaRegistrar";
 import { requireActor } from "@/modules/identity";
 import { SignOutForm } from "@/modules/identity/components/SignOutForm";
-import { hasLiveConsent } from "@/modules/people";
+import { getPersonRecord, hasLiveConsent } from "@/modules/people";
+import { hasCmlMembershipInTerm } from "@/modules/permanence";
 import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { CalendarEventFilledIcon } from "@/shared/ui/icons/CalendarEventFilledIcon";
@@ -46,10 +48,14 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   if (!(await hasLiveConsent(actor.personId, "MEMBERSHIP"))) {
     redirect("/autorizacion");
   }
-  const [devices, roles] = await Promise.all([
+  const [devices, roles, who] = await Promise.all([
     listSubscriptionsFor(actor.personId),
     adminAreaRoles(actor),
+    getPersonRecord(actor.personId),
   ]);
+  const cml =
+    roles.currentTermId !== null &&
+    (await hasCmlMembershipInTerm(actor.personId, roles.currentTermId));
   const [temaOscuro, temaClaro] = tList("T-034");
   const pestañas = tList("T-061").filter((nombre) => nombre in RUTAS);
   const groups = [
@@ -62,6 +68,10 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
       .filter((name) => pestañas.includes(name))
       .map((name) => ({ href: RUTAS[name] ?? "/app", label: name })),
   }));
+  groups[0]?.items.push({ href: "/app/inventario", label: t("T-4300") });
+  if (cml || roles.managesInventory) {
+    groups[1]?.items.push({ href: "/app/cml", label: t("T-4301") });
+  }
   return (
     <>
       <PwaRegistrar endpointsKey={devices.map((item) => item.endpoint).join("\n")} />
@@ -113,6 +123,17 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
           <output className="mb-6 block rounded-xl border border-borde bg-fondo-suave p-4">
             {t("T-2040")}
           </output>
+        ) : null}
+        {!who?.cardUid ? (
+          <aside
+            aria-label={t("T-4100")}
+            className="mb-6 flex flex-col gap-2 rounded-xl border border-borde bg-fondo-suave p-4"
+          >
+            <p>{t("T-4104")}</p>
+            <Link href="/app/ajustes#mis-datos" className="self-start font-semibold underline">
+              {t("T-4105")}
+            </Link>
+          </aside>
         ) : null}
         {children}
       </MemberShell>
