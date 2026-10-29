@@ -19,6 +19,10 @@ defaults:
 
 env:
   CI: "true"
+  NODE_OPTIONS: --max-old-space-size=2048
+  UV_PYTHON_INSTALL_DIR: /opt/laptop-ci/python
+  INTEGRATION_WORKERS: "2"
+  DATABASE_URL: postgresql://casa:casa@127.0.0.1:5433/casa_digital
   APP_URL: http://localhost:3000
   APP_TIMEZONE: America/Bogota
   TZ: UTC
@@ -38,8 +42,9 @@ env:
 jobs:
   cambios:
     name: Clasificar cambios
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
+    if: github.repository == 'Mateoloperaortiz/LaOE' && github.event.repository.private == true && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, Linux, X64, ci, build, local, linux-ci]
+    timeout-minutes: 5
     # ADR-054: lista ejecuciones y descarga el ci-result de main para reutilizarlo al promover.
     permissions:
       contents: read
@@ -49,6 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          persist-credentials: false
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -72,15 +78,17 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  # ADR-140: el antiguo job de calidad va en tres runners paralelos; la puerta final exige los tres.
+  # ADR-148: se conservan los tres checks de calidad; el runner local los ejecuta en cola.
   estatica:
     name: Biome · tsc · dependency-cruiser · knip
     needs: cambios
-    if: needs.cambios.outputs.mode == 'full'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    if: github.repository == 'Mateoloperaortiz/LaOE' && github.event.repository.private == true && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    runs-on: [self-hosted, Linux, X64, ci, build, local, linux-ci]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -94,23 +102,22 @@ jobs:
   unitarias:
     name: unit · extractor
     needs: cambios
-    if: needs.cambios.outputs.mode == 'full'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    if: github.repository == 'Mateoloperaortiz/LaOE' && github.event.repository.private == true && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    runs-on: [self-hosted, Linux, X64, ci, build, local, linux-ci]
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: mkdir -p ci-results
-      - run: npm test -- --reporter=default --reporter=json --outputFile=ci-results/unit.json
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: uv para el extractor de normativa
-        run: python -m pip install uv
+      - run: npm test -- --maxWorkers=1 --fileParallelism=false --reporter=default --reporter=json --outputFile=ci-results/unit.json
+      - name: Herramientas del extractor aprovisionadas en Linux
+        run: uv --version && uv run --python 3.12 python --version
       - run: npm run test:extractor
       - uses: actions/upload-artifact@v4
         if: always()
@@ -123,11 +130,13 @@ jobs:
   build:
     name: build · inventario E2E
     needs: cambios
-    if: needs.cambios.outputs.mode == 'full'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    if: github.repository == 'Mateoloperaortiz/LaOE' && github.event.repository.private == true && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    runs-on: [self-hosted, Linux, X64, ci, build, local, linux-ci]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -161,11 +170,13 @@ jobs:
   respaldo:
     name: respaldo · retención · concurrencia · restauración
     needs: cambios
-    if: needs.cambios.outputs.mode == 'full'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    if: github.repository == 'Mateoloperaortiz/LaOE' && github.event.repository.private == true && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    runs-on: [self-hosted, Linux, X64, ci, build, local, linux-ci]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Imagen y recuperación con datos sintéticos aislados
         shell: bash
         run: |
@@ -181,10 +192,11 @@ jobs:
   integracion:
     name: integración ${{ matrix.shard }}/3
     needs: cambios
-    if: needs.cambios.outputs.mode == 'full'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    if: github.repository == 'Mateoloperaortiz/LaOE' && github.event.repository.private == true && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    runs-on: [self-hosted, Linux, X64, ci, build, local, linux-ci]
+    timeout-minutes: 25
     strategy:
+      max-parallel: 1
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
@@ -196,36 +208,51 @@ jobs:
           POSTGRES_PASSWORD: casa
           POSTGRES_DB: casa_digital
         ports:
-          - 5433:5432
+          - 127.0.0.1::5432
         options: >-
+          --memory 512m --cpus 1
           --health-cmd "pg_isready -U casa -d casa_digital"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://casa:casa@127.0.0.1:5433/casa_digital
       CI: "true"
+      SHARD: ${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
+      - name: Conectar la base sintética de esta partición
+        env:
+          PGPORT: ${{ job.services.postgres.ports['5432'] }}
+        run: |
+          [[ "$PGPORT" =~ ^[0-9]+$ ]]
+          echo "DATABASE_URL=postgresql://casa:casa@127.0.0.1:$PGPORT/casa_digital" >> "$GITHUB_ENV"
       - name: Garage (bucket S3 local)
         run: |
-          docker run -d --name garage -p 3900:3900 -p 3903:3903 \
+          garage="laoe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}-${SHARD}"
+          echo "GARAGE_CONTAINER=$garage" >> "$GITHUB_ENV"
+          docker run -d --name "$garage" --label "laptop-ci.run=$GITHUB_RUN_ID" \
+            --memory 256m --cpus 0.5 -p 127.0.0.1::3900 \
             -v "$PWD/docker/garage/garage.toml:/etc/garage.toml:ro" \
             -e GARAGE_DEFAULT_ACCESS_KEY="$S3_ACCESS_KEY_ID" \
             -e GARAGE_DEFAULT_SECRET_KEY="$S3_SECRET_ACCESS_KEY" \
             -e GARAGE_DEFAULT_BUCKET="$S3_BUCKET" \
             dxflrs/garage:v2.3.0 /garage server --single-node --default-bucket
+          port=$(docker port "$garage" 3900/tcp | head -1 | awk -F: '{print $NF}')
+          [[ "$port" =~ ^[0-9]+$ ]]
+          echo "S3_ENDPOINT=http://127.0.0.1:$port" >> "$GITHUB_ENV"
       - run: npm ci
       - run: mkdir -p ci-results
       - run: npm run storage:init
         timeout-minutes: 1
       - name: Diagnóstico de Garage si la preparación falla
         if: failure()
-        run: docker logs --tail 100 garage
+        run: docker logs --tail 100 "$GARAGE_CONTAINER"
       - id: particion
         name: Reparto balanceado de archivos por duración
         run: node scripts/ci/run.mjs integration-shard ${{ matrix.shard }}/3
@@ -238,14 +265,21 @@ jobs:
           path: ci-results/integration-${{ matrix.shard }}.json
           if-no-files-found: error
           retention-days: 14
+      - name: Limpiar únicamente el Garage de esta partición
+        if: always()
+        run: |
+          if [[ -n "${GARAGE_CONTAINER:-}" ]] && [[ "$(docker inspect --format '{{ index .Config.Labels "laptop-ci.run" }}' "$GARAGE_CONTAINER" 2>/dev/null)" == "$GITHUB_RUN_ID" ]]; then
+            docker rm -fv "$GARAGE_CONTAINER"
+          fi
 
   e2e:
     name: E2E ${{ matrix.shard }}/6
     needs: cambios
-    if: needs.cambios.outputs.mode == 'full'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    if: github.repository == 'Mateoloperaortiz/LaOE' && github.event.repository.private == true && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    runs-on: [self-hosted, Linux, X64, ci, build, local, linux-ci]
+    timeout-minutes: 35
     strategy:
+      max-parallel: 1
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4, 5, 6]
@@ -257,36 +291,57 @@ jobs:
           POSTGRES_PASSWORD: casa
           POSTGRES_DB: casa_digital
         ports:
-          - 5433:5432
+          - 127.0.0.1::5432
         options: >-
+          --memory 512m --cpus 1
           --health-cmd "pg_isready -U casa -d casa_digital"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://casa:casa@127.0.0.1:5433/casa_digital
+      SHARD: ${{ matrix.shard }}
+      E2E_PORT: "3000"
       PLAYWRIGHT_JSON_OUTPUT_FILE: ci-results/e2e-${{ matrix.shard }}.json
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
+      - name: Conectar la base sintética de esta partición
+        env:
+          PGPORT: ${{ job.services.postgres.ports['5432'] }}
+        run: |
+          [[ "$PGPORT" =~ ^[0-9]+$ ]]
+          echo "DATABASE_URL=postgresql://casa:casa@127.0.0.1:$PGPORT/casa_digital" >> "$GITHUB_ENV"
+      - name: Puerto local libre para el servidor E2E
+        run: |
+          port=$(node -e 'const s=require("node:net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')
+          echo "E2E_PORT=$port" >> "$GITHUB_ENV"
+          echo "APP_URL=http://127.0.0.1:$port" >> "$GITHUB_ENV"
       - name: Garage (bucket S3 propio de la partición)
         run: |
-          docker run -d --name garage -p 3900:3900 -p 3903:3903 \
+          garage="laoe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}-${SHARD}"
+          echo "GARAGE_CONTAINER=$garage" >> "$GITHUB_ENV"
+          docker run -d --name "$garage" --label "laptop-ci.run=$GITHUB_RUN_ID" \
+            --memory 256m --cpus 0.5 -p 127.0.0.1::3900 \
             -v "$PWD/docker/garage/garage.toml:/etc/garage.toml:ro" \
             -e GARAGE_DEFAULT_ACCESS_KEY="$S3_ACCESS_KEY_ID" \
             -e GARAGE_DEFAULT_SECRET_KEY="$S3_SECRET_ACCESS_KEY" \
             -e GARAGE_DEFAULT_BUCKET="$S3_BUCKET" \
             dxflrs/garage:v2.3.0 /garage server --single-node --default-bucket
+          port=$(docker port "$garage" 3900/tcp | head -1 | awk -F: '{print $NF}')
+          [[ "$port" =~ ^[0-9]+$ ]]
+          echo "S3_ENDPOINT=http://127.0.0.1:$port" >> "$GITHUB_ENV"
       - run: npm ci
       - run: mkdir -p ci-results
       - run: npm run storage:init
         timeout-minutes: 1
       - name: Diagnóstico de Garage si la preparación falla
         if: failure()
-        run: docker logs --tail 100 garage
+        run: docker logs --tail 100 "$GARAGE_CONTAINER"
       - uses: actions/cache@v4
         with:
           path: .next/cache
@@ -304,7 +359,7 @@ jobs:
           key: ${{ runner.os }}-node24-playwright-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node24-playwright-
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - id: particion
         name: Reparto balanceado de escenarios por duración
         run: node scripts/ci/run.mjs e2e-shard ${{ matrix.shard }}/6
@@ -326,14 +381,20 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+      - name: Limpiar únicamente el Garage de esta partición
+        if: always()
+        run: |
+          if [[ -n "${GARAGE_CONTAINER:-}" ]] && [[ "$(docker inspect --format '{{ index .Config.Labels "laptop-ci.run" }}' "$GARAGE_CONTAINER" 2>/dev/null)" == "$GITHUB_RUN_ID" ]]; then
+            docker rm -fv "$GARAGE_CONTAINER"
+          fi
 
   # ADR-141: la imagen de despliegue se construye y se prueba que arranca en cada CI completo;
   # publicarla y desplegarla es del workflow de despliegue, tras la puerta.
   imagen:
     name: imagen · arranque
     needs: cambios
-    if: needs.cambios.outputs.mode == 'full'
-    runs-on: ubuntu-latest
+    if: github.repository == 'Mateoloperaortiz/LaOE' && github.event.repository.private == true && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.cambios.outputs.mode == 'full'
+    runs-on: [self-hosted, Linux, X64, ci, build, local, linux-ci]
     timeout-minutes: 20
     services:
       postgres:
@@ -343,68 +404,103 @@ jobs:
           POSTGRES_PASSWORD: casa
           POSTGRES_DB: casa_digital
         ports:
-          - 5433:5432
+          - 127.0.0.1::5432
         options: >-
+          --memory 512m --cpus 1
           --health-cmd "pg_isready -U casa -d casa_digital"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Identificar recursos de esta prueba de imagen
+        run: |
+          echo "CI_IMAGE=laoe-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
+          echo "CI_WEB=laoe-web-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
+      - name: Contexto de imagen con los permisos versionados en Git
+        run: |
+          context=$(mktemp -d "$RUNNER_TEMP/laoe-image-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.XXXXXX")
+          echo "CI_BUILD_CONTEXT=$context" >> "$GITHUB_ENV"
+          # El padre privado conserva la umask del runner. Solo el árbol de Git
+          # recupera modos 644/755; no se incluyen .git ni archivos sin versionar.
+          git -c tar.umask=0022 archive --format=tar HEAD | tar --extract --same-permissions --no-same-owner --directory="$context"
       - uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            memory=3g
+            cpu-period=100000
+            cpu-quota=100000
       - uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ env.CI_BUILD_CONTEXT }}
           load: true
-          tags: casa-digital:ci
+          tags: ${{ env.CI_IMAGE }}
           build-args: |
             APP_COMMIT_SHA=${{ github.sha }}
           cache-from: type=gha,scope=imagen
           cache-to: type=gha,mode=max,scope=imagen
       - name: Migrar con el release de la imagen y arrancar el servidor
         env:
-          DATABASE_URL: postgresql://casa:casa@127.0.0.1:5433/casa_digital
+          DATABASE_URL: postgresql://casa:casa@postgres:5432/casa_digital
+          CI_NETWORK: ${{ job.services.postgres.network }}
         run: |
           probe() {
-            docker run --rm --network host \
+            docker run --rm --network "$CI_NETWORK" --memory 768m --cpus 1 \
               -e DATABASE_URL -e SESSION_SECRET -e INSTITUTIONAL_EMAIL_DOMAINS \
               -e APP_URL=http://127.0.0.1:8080 -e APP_TIMEZONE -e TZ -e EMAIL_FROM \
               -e MAILER -e JOBS_ENABLED -e S3_ENDPOINT -e S3_REGION -e S3_BUCKET \
               -e S3_ACCESS_KEY_ID -e S3_SECRET_ACCESS_KEY -e S3_FORCE_PATH_STYLE "$@"
           }
-          probe casa-digital:ci node db-release.mjs
-          docker run -d --name web --network host \
+          probe "$CI_IMAGE" node db-release.mjs
+          docker run -d --name "$CI_WEB" --network "$CI_NETWORK" \
+            --label "laptop-ci.run=$GITHUB_RUN_ID" --memory 768m --cpus 1 \
+            -p 127.0.0.1::8080 \
             -e DATABASE_URL -e SESSION_SECRET -e INSTITUTIONAL_EMAIL_DOMAINS \
             -e APP_URL=http://127.0.0.1:8080 -e APP_TIMEZONE -e TZ -e EMAIL_FROM \
             -e MAILER -e JOBS_ENABLED -e S3_ENDPOINT -e S3_REGION -e S3_BUCKET \
             -e S3_ACCESS_KEY_ID -e S3_SECRET_ACCESS_KEY -e S3_FORCE_PATH_STYLE \
-            casa-digital:ci
+            "$CI_IMAGE"
+          port=$(docker port "$CI_WEB" 8080/tcp | head -1 | awk -F: '{print $NF}')
+          [[ "$port" =~ ^[0-9]+$ ]]
+          health="$RUNNER_TEMP/health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          rm -f "$health"
           for i in $(seq 1 45); do
-            if curl -sf http://127.0.0.1:8080/api/health -o /tmp/health.json; then break; fi
+            if curl -sf "http://127.0.0.1:$port/api/health" -o "$health"; then break; fi
             sleep 2
           done
-          cat /tmp/health.json
-          python3 -c "
-          import json
-          h = json.load(open('/tmp/health.json'))
+          cat "$health"
+          python3 - "$health" "$GITHUB_SHA" <<'CHECK'
+          import json, sys
+          with open(sys.argv[1]) as source:
+              h = json.load(source)
           assert h['status'] == 'ok', h
-          assert h['commit'] == '${{ github.sha }}', h
+          assert h['commit'] == sys.argv[2], h
           print('salud ok con el SHA horneado')
-          "
-      - name: Registros y limpieza del contenedor
+          CHECK
+      - name: Registros y limpieza de los recursos de esta prueba
         if: always()
         run: |
-          docker logs web 2>&1 | tail -50 || true
-          docker rm -f web || true
+          if [[ -n "${CI_WEB:-}" ]] && [[ "$(docker inspect --format '{{ index .Config.Labels "laptop-ci.run" }}' "$CI_WEB" 2>/dev/null)" == "$GITHUB_RUN_ID" ]]; then
+            docker logs "$CI_WEB" 2>&1 | tail -50 || true
+            docker rm -fv "$CI_WEB"
+          fi
+          if [[ -n "${CI_IMAGE:-}" ]]; then docker image rm "$CI_IMAGE" || true; fi
+          if [[ "${CI_BUILD_CONTEXT:-}" == "$RUNNER_TEMP/laoe-image-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}."* ]] && [[ -d "$CI_BUILD_CONTEXT" && ! -L "$CI_BUILD_CONTEXT" ]]; then
+            rm -rf -- "$CI_BUILD_CONTEXT"
+          fi
 
   resultado:
     name: CI
-    if: always()
+    if: always() && github.repository == 'Mateoloperaortiz/LaOE' && github.event.repository.private == true && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     needs: [cambios, estatica, unitarias, build, imagen, respaldo, integracion, e2e]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ci, build, local, linux-ci]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
