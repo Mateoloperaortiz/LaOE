@@ -13,7 +13,8 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-148](ADR-148-ci-en-runners-linux-locales.md) | CI completo en runners Linux locales del repositorio privado | Propuesta |
+| [ADR-151](ADR-151-repositorio-publico-y-colaboracion-protegida.md) | Repositorio público y colaboración protegida | Aceptada |
+| [ADR-148](ADR-148-ci-en-runners-linux-locales.md) | CI completo en runners Linux locales del repositorio privado | Reemplazada por ADR-151 |
 | [ADR-147](ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md) | Vueltas adicionales de elección, todas obligatorias | Aceptada |
 | [ADR-146](ADR-146-limites-de-colecciones-en-la-entrada.md) | Límites explícitos de colecciones en la entrada no confiable | Aceptada |
 | [ADR-145](ADR-145-actualizacion-de-dependencias-de-seguridad.md) | Actualización de dependencias de seguridad | Aceptada |

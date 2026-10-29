@@ -4,7 +4,8 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
-| [148](adr/ADR-148-ci-en-runners-linux-locales.md) | CI local | Jobs Linux en el runner privado, mismas suites y puerta, servicios sintéticos con puertos dinámicos y despliegue conservado | Propuesta |
+| [151](adr/ADR-151-repositorio-publico-y-colaboracion-protegida.md) | Colaboración en GitHub | Repositorio público, CI en runners efímeros, PR con revisión y CI, secretos por environment y aprobación de producción | Aceptada |
+| [148](adr/ADR-148-ci-en-runners-linux-locales.md) | CI local | Jobs Linux en el runner privado, mismas suites y puerta, servicios sintéticos con puertos dinámicos y despliegue conservado | Reemplazada por ADR-151 |
 | [147](adr/ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md) | Vueltas de elección | Varias vueltas adicionales por término, cada una obligatoria y con asistencia o excusa propia; elección inicial única, ajuste individual para todas las vueltas y fotos cerradas conservadas | Aceptada |
 | [146](adr/ADR-146-limites-de-colecciones-en-la-entrada.md) | Colecciones de entrada | Hasta 1.000 elementos por lista de referencias recibida del cliente antes de refinamientos y deduplicación; contratos internos conservan su alcance y no se trunca ningún envío | Aceptada |
 | [145](adr/ADR-145-actualizacion-de-dependencias-de-seguridad.md) | Actualización de dependencias de seguridad | Next 16.4.1 en casa y DÍAS; Zod 4.6.6 y límites explícitos en entradas, con alcance de los advisories verificado | Aceptada |
