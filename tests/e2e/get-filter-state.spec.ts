@@ -67,6 +67,78 @@ test.describe("filtro público", () => {
     await expect(input).toHaveValue("");
     await expectSameDocument(page, marker);
   });
+
+  test("una búsqueda pendiente bloquea sus controles y permite editar la siguiente al terminar", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 720 });
+    const first = { query: "ZafiroPendiente", name: "Comité sintético ZafiroPendiente" };
+    const second = { query: "CuarzoSiguiente", name: "Comité sintético CuarzoSiguiente" };
+    await seedCommittee("e2e-estado-pendiente", first.name);
+    await seedCommittee("e2e-estado-siguiente", second.name);
+    await closeDb();
+    await page.goto("/comites");
+    const search = page.getByRole("search", { name: t("T-1544"), exact: true });
+    const form = search.locator("form");
+    const input = search.getByRole("searchbox", { name: t("T-1544"), exact: true });
+    const submit = search.getByRole("button", { name: t("T-1545"), exact: true });
+    const firstResult = page.getByRole("heading", { name: first.name, exact: true });
+    const secondResult = page.getByRole("heading", { name: second.name, exact: true });
+    const marker = await markDocument(page);
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let markStarted = () => {};
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    await page.route("**/comites?*", async (route) => {
+      const request = route.request();
+      const url = new URL(request.url());
+      if (
+        request.method() === "GET" &&
+        request.headers().rsc === "1" &&
+        url.searchParams.get("q") === first.query
+      ) {
+        markStarted();
+        await held;
+      }
+      await route.continue();
+    });
+
+    await input.fill(first.query);
+    try {
+      await submit.click();
+      await started;
+      await expect(form).toHaveAttribute("aria-busy", "true");
+      await expect(input).toBeDisabled();
+      await expect(submit).toBeDisabled();
+      await expect(input).toHaveValue(first.query);
+    } finally {
+      release();
+    }
+    await expect.poll(() => new URL(page.url()).searchParams.get("q")).toBe(first.query);
+    await expect(firstResult).toBeAttached();
+    await expect(secondResult).toHaveCount(0);
+    await expect(input).toHaveValue(first.query);
+    await expect(input).toBeEnabled();
+    await expect(submit).toBeEnabled();
+    await expect(form).not.toHaveAttribute("aria-busy", "true");
+    await expectSameDocument(page, marker);
+
+    // Ya aplicado el primer resultado, el siguiente borrador pertenece a una transición nueva.
+    await input.fill(second.query);
+    await expect(input).toHaveValue(second.query);
+    await submit.click();
+    await expect.poll(() => new URL(page.url()).searchParams.get("q")).toBe(second.query);
+    await expect(secondResult).toBeAttached();
+    await expect(firstResult).toHaveCount(0);
+    await expect(input).toHaveValue(second.query);
+    await expect(input).toBeEnabled();
+    await expect(submit).toBeEnabled();
+    await expectSameDocument(page, marker);
+  });
 });
 
 test.describe("directorio de miembros", () => {

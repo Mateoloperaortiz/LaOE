@@ -5,9 +5,9 @@ import {
   type ComponentPropsWithRef,
   type SubmitEvent as ReactSubmitEvent,
   type RefObject,
-  startTransition,
   useLayoutEffect,
   useRef,
+  useTransition,
 } from "react";
 import { useFormStatus } from "react-dom";
 import { preservePageScroll } from "@/shared/lib/navigation-scroll";
@@ -92,10 +92,35 @@ export function ActionForm({
 }: ComponentPropsWithRef<"form">) {
   const router = useRouter();
   const position = useRef<Position | null>(null);
+  const navigatingForm = useRef<HTMLFormElement | null>(null);
+  const [navigating, startNavigation] = useTransition();
+
+  useLayoutEffect(() => {
+    const form = navigatingForm.current;
+    if (!navigating || !form) return;
+    // Sin añadir un fieldset que cambie la estructura o los selectores de los formularios.
+    const fields = Array.from(form.elements).filter(
+      (field) =>
+        field instanceof HTMLButtonElement ||
+        field instanceof HTMLInputElement ||
+        field instanceof HTMLSelectElement ||
+        field instanceof HTMLTextAreaElement ||
+        field instanceof HTMLFieldSetElement,
+    );
+    const previous = fields.map((field) => ({ field, disabled: field.disabled }));
+    for (const { field } of previous) field.disabled = true;
+    return () => {
+      for (const { field, disabled } of previous) field.disabled = disabled;
+    };
+  }, [navigating]);
 
   function submit(event: ReactSubmitEvent<HTMLFormElement>) {
     onSubmit?.(event);
     if (event.defaultPrevented || typeof action === "function") return;
+    if (navigating) {
+      event.preventDefault();
+      return;
+    }
     const form = event.currentTarget;
     const submitter = event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null;
     const method = (submitter?.getAttribute("formmethod") ?? form.method).toLowerCase();
@@ -112,7 +137,8 @@ export function ActionForm({
     // El GET nativo reemplaza la consulta de action con los controles del formulario.
     destination.search = search.toString();
     event.preventDefault();
-    startTransition(() => {
+    navigatingForm.current = form;
+    startNavigation(() => {
       router.push(`${destination.pathname}${destination.search}${destination.hash}`, {
         scroll: false,
       });
@@ -123,6 +149,7 @@ export function ActionForm({
     <form
       {...props}
       action={action}
+      aria-busy={navigating || props["aria-busy"]}
       onSubmit={submit}
       onSubmitCapture={(event) => {
         onSubmitCapture?.(event);
