@@ -16,6 +16,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { XIcon } from "@/shared/ui/icons/XIcon";
 import { resumeReconciliationAction, startReconciliationAction } from "./actions";
@@ -92,7 +93,11 @@ export default async function GamificacionPage({ searchParams }: PageProps<"/adm
             {term.code}
           </p>
         </div>
-        <form action="/admin/gamificacion" method="get" className="flex items-center gap-2 text-sm">
+        <ActionForm
+          action="/admin/gamificacion"
+          method="get"
+          className="flex items-center gap-2 text-sm"
+        >
           <label htmlFor="termId" className="eyebrow text-xs">
             {tList("T-2565")[0]}
           </label>
@@ -111,7 +116,7 @@ export default async function GamificacionPage({ searchParams }: PageProps<"/adm
           <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
       </header>
 
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -167,7 +172,7 @@ export default async function GamificacionPage({ searchParams }: PageProps<"/adm
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <form action={startReconciliationAction}>
+          <ActionForm action={startReconciliationAction}>
             <input type="hidden" name="mode" value="DRY_RUN" />
             <AdminSubmitButton
               type="submit"
@@ -176,7 +181,7 @@ export default async function GamificacionPage({ searchParams }: PageProps<"/adm
             >
               {actionLabels[0]}
             </AdminSubmitButton>
-          </form>
+          </ActionForm>
           {running ? (
             <span className="boton-calido pointer-events-none opacity-50" aria-disabled="true">
               {actionLabels[1]}
@@ -195,7 +200,7 @@ export default async function GamificacionPage({ searchParams }: PageProps<"/adm
             closeHref="/admin/gamificacion"
             closeLabel={t("T-291")}
           >
-            <form action={startReconciliationAction} className="flex flex-col gap-4">
+            <ActionForm action={startReconciliationAction} className="flex flex-col gap-4">
               <AdminFormBody>
                 <input type="hidden" name="mode" value="APPLY" />
                 <p>{t("T-2591")}</p>
@@ -208,7 +213,7 @@ export default async function GamificacionPage({ searchParams }: PageProps<"/adm
                   </Link>
                 </div>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           </ResourcePanel>
         ) : null}
 
@@ -267,7 +272,7 @@ export default async function GamificacionPage({ searchParams }: PageProps<"/adm
                       </td>
                       <td className="py-2 pr-4">
                         {run.status === "FAILED" ? (
-                          <form action={resumeReconciliationAction}>
+                          <ActionForm action={resumeReconciliationAction}>
                             <input type="hidden" name="runId" value={run.id} />
                             <AdminSubmitButton
                               type="submit"
@@ -275,7 +280,7 @@ export default async function GamificacionPage({ searchParams }: PageProps<"/adm
                             >
                               {t("T-2587")}
                             </AdminSubmitButton>
-                          </form>
+                          </ActionForm>
                         ) : null}
                       </td>
                     </tr>

@@ -16,6 +16,7 @@ import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { XIcon } from "@/shared/ui/icons/XIcon";
 import { createSpecialBadgeAction, grantBoosterAction, revokeBoosterAction } from "./actions";
@@ -80,7 +81,7 @@ export default async function InsigniasPage({
     <div className="flex flex-col gap-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-display-lg">{tList("T-2405")[4] ?? ""}</h1>
-        <form
+        <ActionForm
           action="/admin/gamificacion/insignias"
           method="get"
           className="flex items-center gap-2 text-sm"
@@ -103,7 +104,7 @@ export default async function InsigniasPage({
           <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
       </header>
       {guardado ? <output className="block font-semibold text-oe-blue">{results[0]}</output> : null}
 
@@ -150,7 +151,7 @@ export default async function InsigniasPage({
           {t("T-2542")}
         </h2>
         <p className="text-sm text-tinta-suave">{t("T-2544")}</p>
-        <form action={createSpecialBadgeAction} className="flex flex-col gap-3">
+        <ActionForm action={createSpecialBadgeAction} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm">
             <span className="eyebrow text-xs">{specialFields[0]}</span>
             <input name="name" required maxLength={80} className={inputClass} />
@@ -193,7 +194,7 @@ export default async function InsigniasPage({
           <AdminSubmitButton type="submit" className="boton-primario self-start">
             {t("T-2542")}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
       </section>
 
       <section className="flex max-w-3xl flex-col gap-4" aria-labelledby="otorgar-booster-titulo">
@@ -212,7 +213,7 @@ export default async function InsigniasPage({
           </p>
         ) : null}
 
-        <form
+        <ActionForm
           action="/admin/gamificacion/insignias"
           method="get"
           className="flex flex-wrap items-end gap-2"
@@ -230,7 +231,7 @@ export default async function InsigniasPage({
           <AdminSubmitButton type="submit" className="boton-secundario">
             {t("T-250")}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
 
         {q ? (
           found.length === 0 ? (
@@ -252,7 +253,7 @@ export default async function InsigniasPage({
         ) : null}
 
         {persona ? (
-          <form action={grantBoosterAction} className="flex flex-wrap items-end gap-3">
+          <ActionForm action={grantBoosterAction} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="personId" value={persona} />
             <input type="hidden" name="termId" value={term.id} />
             <p className="w-full text-sm">
@@ -278,7 +279,7 @@ export default async function InsigniasPage({
             <AdminSubmitButton type="submit" className="boton-primario">
               {t("T-2545")}
             </AdminSubmitButton>
-          </form>
+          </ActionForm>
         ) : null}
 
         {boosters.length > 0 ? (
@@ -316,7 +317,10 @@ export default async function InsigniasPage({
                     </td>
                     <td className="py-2">
                       {item.state === "AVAILABLE" ? (
-                        <form action={revokeBoosterAction} className="flex items-center gap-2">
+                        <ActionForm
+                          action={revokeBoosterAction}
+                          className="flex items-center gap-2"
+                        >
                           <input type="hidden" name="boosterId" value={item.id} />
                           <input type="hidden" name="termId" value={term.id} />
                           <input
@@ -333,7 +337,7 @@ export default async function InsigniasPage({
                           >
                             {revokeLabels[0]}
                           </AdminSubmitButton>
-                        </form>
+                        </ActionForm>
                       ) : null}
                     </td>
                   </tr>

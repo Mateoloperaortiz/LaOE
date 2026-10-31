@@ -3,6 +3,7 @@
 import { unstable_rethrow } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { t } from "@/shared/copy/client";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import {
   type ContactState,
   type PreferencesState,
@@ -50,7 +51,7 @@ export function ContactForm({
   }, [state]);
 
   return (
-    <form
+    <ActionForm
       ref={form}
       action={action}
       onReset={(event) => event.preventDefault()}
@@ -118,7 +119,7 @@ export function ContactForm({
           {t("T-259")}
         </output>
       ) : null}
-    </form>
+    </ActionForm>
   );
 }
 
@@ -150,7 +151,7 @@ export function PreferencesForm({
       form.current?.querySelector<HTMLElement>('[role="alert"]')?.focus();
   }, [state]);
   return (
-    <form
+    <ActionForm
       ref={form}
       action={action}
       onReset={(event) => event.preventDefault()}
@@ -194,6 +195,6 @@ export function PreferencesForm({
           {t("T-1082")}
         </output>
       ) : null}
-    </form>
+    </ActionForm>
   );
 }

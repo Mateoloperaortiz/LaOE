@@ -26,6 +26,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { reglaFormLabels, reglaFormValues } from "../../../permanencia/_ui/reglas";
 import {
   applyCommitteeTemplateAction,
@@ -190,7 +191,7 @@ export default async function PermanenciaComitePage({
                   <p className="break-words text-sm text-tinta-suave">{row.payload.evidence}</p>
                 ) : null}
                 <div className="flex flex-wrap items-end gap-3">
-                  <form action={decideExcuseAction}>
+                  <ActionForm action={decideExcuseAction}>
                     <AdminFormBody>
                       <input type="hidden" name="slug" value={slug} />
                       <input type="hidden" name="requestId" value={row.id} />
@@ -199,8 +200,11 @@ export default async function PermanenciaComitePage({
                         {aprobarExcusa}
                       </AdminSubmitButton>
                     </AdminFormBody>
-                  </form>
-                  <form action={decideExcuseAction} className="flex flex-wrap items-end gap-2">
+                  </ActionForm>
+                  <ActionForm
+                    action={decideExcuseAction}
+                    className="flex flex-wrap items-end gap-2"
+                  >
                     <AdminFormBody>
                       <input type="hidden" name="slug" value={slug} />
                       <input type="hidden" name="requestId" value={row.id} />
@@ -221,7 +225,7 @@ export default async function PermanenciaComitePage({
                         {rechazarExcusa}
                       </AdminSubmitButton>
                     </AdminFormBody>
-                  </form>
+                  </ActionForm>
                 </div>
               </li>
             ))}
@@ -234,7 +238,7 @@ export default async function PermanenciaComitePage({
           {t("T-2242")}
         </h2>
         <p className="max-w-prose text-sm text-tinta-suave">{t("T-2231")}</p>
-        <form action={recordCommitteeSanctionAction} className="flex flex-col gap-3">
+        <ActionForm action={recordCommitteeSanctionAction} className="flex flex-col gap-3">
           <AdminFormBody>
             <input type="hidden" name="slug" value={slug} />
             <div className="grid gap-3 md:grid-cols-2">
@@ -284,7 +288,7 @@ export default async function PermanenciaComitePage({
               {registrarSancion}
             </AdminSubmitButton>
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </section>
 
       {locked ? (
@@ -315,7 +319,7 @@ export default async function PermanenciaComitePage({
               </Link>
               {view.rules.length === 0 ? (
                 <>
-                  <form action={copyCommitteeRulesAction}>
+                  <ActionForm action={copyCommitteeRulesAction}>
                     <AdminFormBody>
                       <input type="hidden" name="slug" value={slug} />
                       <AdminSubmitButton
@@ -325,8 +329,8 @@ export default async function PermanenciaComitePage({
                         {copiar}
                       </AdminSubmitButton>
                     </AdminFormBody>
-                  </form>
-                  <form action={applyCommitteeTemplateAction}>
+                  </ActionForm>
+                  <ActionForm action={applyCommitteeTemplateAction}>
                     <AdminFormBody>
                       <input type="hidden" name="slug" value={slug} />
                       <AdminSubmitButton
@@ -336,7 +340,7 @@ export default async function PermanenciaComitePage({
                         {referenciaBtn}
                       </AdminSubmitButton>
                     </AdminFormBody>
-                  </form>
+                  </ActionForm>
                 </>
               ) : null}
             </>
@@ -486,7 +490,7 @@ export default async function PermanenciaComitePage({
 
       {scoring?.person && scoring.rule ? (
         <ResourcePanel title={scoring.rule.label} closeHref={base} closeLabel={t("T-291")}>
-          <form action={scoreAction} className="flex flex-col gap-4">
+          <ActionForm action={scoreAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="slug" value={slug} />
               <input type="hidden" name="personId" value={scoring.person.personId} />
@@ -531,13 +535,13 @@ export default async function PermanenciaComitePage({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 
       {accion === "destacado" && !closed ? (
         <ResourcePanel title={destacadoTitulo ?? ""} closeHref={base} closeLabel={t("T-291")}>
-          <form action={recognizeAction} className="flex flex-col gap-4">
+          <ActionForm action={recognizeAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="slug" value={slug} />
               <div className="flex flex-col gap-1">
@@ -578,7 +582,7 @@ export default async function PermanenciaComitePage({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 

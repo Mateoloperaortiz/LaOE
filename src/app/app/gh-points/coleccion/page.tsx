@@ -14,6 +14,7 @@ import { listAllTerms } from "@/modules/terms";
 import { Insignia, Progreso } from "@/shared/brand";
 import { type CopyCode, t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { Vacio } from "../../_ui/Vacio";
 import { markSeenAction, setFeaturedAction } from "./actions";
 
@@ -103,7 +104,7 @@ function LevelPiece({
             {level.achievement.historical ? (
               <p className="text-sm text-tinta-suave">{t("T-2487")}</p>
             ) : null}
-            <form action={setFeaturedAction}>
+            <ActionForm action={setFeaturedAction}>
               <input type="hidden" name="achievementId" value={level.achievement.id} />
               <input type="hidden" name="back" value={back} />
               <input
@@ -114,7 +115,7 @@ function LevelPiece({
               <button type="submit" className="boton-secundario text-sm">
                 {level.achievement.featuredPosition ? t("T-2492") : t("T-2491")}
               </button>
-            </form>
+            </ActionForm>
           </>
         ) : revoked ? (
           <p className="text-sm text-tinta-suave">
@@ -172,7 +173,7 @@ export default async function ColeccionPage({
         <p className="text-sm text-tinta-suave">{t("T-2494")}</p>
       </header>
       {collection.terms.length > 0 ? (
-        <form method="get" className="member-filter">
+        <ActionForm method="get" className="member-filter">
           <div className="flex flex-col gap-1">
             <label htmlFor="semestre" className="eyebrow text-xs">
               {t("T-2489")}
@@ -194,7 +195,7 @@ export default async function ColeccionPage({
           <button type="submit" className="boton-secundario">
             {t("T-250")}
           </button>
-        </form>
+        </ActionForm>
       ) : null}
       {error === "destacadas" ? (
         <p role="alert" className="text-sm text-oe-orange">

@@ -15,6 +15,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import {
   addMemberAction,
   requestRemovalAction,
@@ -173,7 +174,7 @@ export function Personas({
             </p>
           ) : null}
           {canRoster ? (
-            <form action={setRepresentativesAction} className="flex flex-col gap-3">
+            <ActionForm action={setRepresentativesAction} className="flex flex-col gap-3">
               <AdminFormBody>
                 {hidden}
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -209,7 +210,7 @@ export function Personas({
                   {t("T-2256")}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           ) : (
             <p className="text-sm">
               {titularLabel}: {titular?.fullName ?? sinRepresentante} · {suplenteLabel}:{" "}
@@ -291,7 +292,7 @@ export function Personas({
           closeHref={closeHref}
           closeLabel={t("T-291")}
         >
-          <form action={setRolesAction} className="flex flex-col gap-4">
+          <ActionForm action={setRolesAction} className="flex flex-col gap-4">
             <AdminFormBody>
               {hidden}
               <input type="hidden" name="personId" value={chosen.personId} />
@@ -312,7 +313,7 @@ export function Personas({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 
@@ -322,7 +323,7 @@ export function Personas({
           closeHref={closeHref}
           closeLabel={t("T-291")}
         >
-          <form action={requestRemovalAction} className="flex flex-col gap-4">
+          <ActionForm action={requestRemovalAction} className="flex flex-col gap-4">
             <AdminFormBody>
               {hidden}
               <input type="hidden" name="personId" value={chosen.personId} />
@@ -348,14 +349,14 @@ export function Personas({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 
       {accion === "agregar" ? (
         <ResourcePanel title={t("T-2147")} closeHref={closeHref} closeLabel={t("T-291")}>
           <div className="flex flex-col gap-4">
-            <form method="get" action={base} className="flex flex-col gap-3">
+            <ActionForm method="get" action={base} className="flex flex-col gap-3">
               <input type="hidden" name="area" value="personas" />
               <input type="hidden" name="accion" value="agregar" />
               <label className="flex flex-col gap-1">
@@ -367,7 +368,7 @@ export function Personas({
                   {t("T-2149")}
                 </button>
               </div>
-            </form>
+            </ActionForm>
             {alerta}
             {q.length >= 2 ? (
               candidates.length === 0 ? (
@@ -383,7 +384,7 @@ export function Personas({
                       {candidate.committeeCount >= max ? (
                         <span className="text-sm text-tinta-suave">{t("T-2151", { max })}</span>
                       ) : (
-                        <form action={addMemberAction} className="flex flex-col gap-3">
+                        <ActionForm action={addMemberAction} className="flex flex-col gap-3">
                           {hidden}
                           <input type="hidden" name="personId" value={candidate.id} />
                           <input type="hidden" name="q" value={q} />
@@ -400,7 +401,7 @@ export function Personas({
                               {t("T-2147")}
                             </AdminSubmitButton>
                           </div>
-                        </form>
+                        </ActionForm>
                       )}
                     </li>
                   ))}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { ActionForm } from "@/shared/ui/ActionForm";
 
 // Formulario de un criterio (ADR-036 regla 3): los campos de parámetros cambian con el cálculo.
 // Recibe todos los textos por props para no cargar el diccionario en el cliente.
@@ -156,7 +157,7 @@ export function ReglaForm({
   const current = labels.computations.find((item) => item.value === computation);
   const p = values.params;
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <ActionForm action={action} className="flex flex-col gap-4">
       <AdminFormBody>
         {Object.entries(hidden).map(([name, value]) => (
           <input key={name} type="hidden" name={name} value={value} />
@@ -451,6 +452,6 @@ export function ReglaForm({
           </Link>
         </div>
       </AdminFormBody>
-    </form>
+    </ActionForm>
   );
 }

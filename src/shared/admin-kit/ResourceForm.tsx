@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { t } from "@/shared/copy/client";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { ResourceMultiSelect } from "./AdminMultiSelect";
 import type { FieldDefinition, FormState } from "./types";
@@ -173,7 +174,7 @@ export function ResourceForm({
     (invalid ?? feedback.current)?.focus();
   }, [state]);
   return (
-    <form
+    <ActionForm
       ref={form}
       action={formAction}
       aria-busy={pending}
@@ -230,6 +231,6 @@ export function ResourceForm({
         </Link>
         <output className="sr-only">{pending ? t("T-1427") : ""}</output>
       </div>
-    </form>
+    </ActionForm>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { unsubscribeTokenExists } from "@/modules/comms";
 import { LogoOE } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { unsubscribeAction } from "./actions";
 
 // Dejar de recibir campañas (ADR-038 regla 8): página pública que llega desde el pie del correo. El
@@ -35,13 +36,13 @@ export default async function BajaPage({ params, searchParams }: PageProps<"/baj
             {t("T-1106")}
           </output>
         ) : (
-          <form action={unsubscribeAction} className="flex flex-col gap-4">
+          <ActionForm action={unsubscribeAction} className="flex flex-col gap-4">
             <input type="hidden" name="token" value={token} />
             <p className="max-w-prose">{t("T-1104")}</p>
             <button type="submit" className="boton-primario self-start">
               {t("T-1105")}
             </button>
-          </form>
+          </ActionForm>
         )}
       </div>
     </main>

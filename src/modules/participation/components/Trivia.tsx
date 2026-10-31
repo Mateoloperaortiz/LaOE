@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import type { ChallengeSubmitReply, SubmitDenial } from "../gamification-types";
 
 // Trivia de un reto en Mi OE (ADR-067 regla 4): un envío, radios accesibles por pregunta y
@@ -102,7 +103,7 @@ export function Trivia({
   }
 
   return (
-    <form
+    <ActionForm
       onSubmit={(event) => {
         event.preventDefault();
         submit();
@@ -157,6 +158,6 @@ export function Trivia({
       >
         {tList("T-2420")[1]}
       </button>
-    </form>
+    </ActionForm>
   );
 }

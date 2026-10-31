@@ -10,6 +10,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { utcToBogotaInput } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { saveChallengeAction } from "../actions";
 
 // Nuevo reto (ADR-067 regla 2): nace como borrador; la ocasión vinculada se elige entre las del
@@ -51,7 +52,7 @@ export default async function NuevoRetoPage({
           </p>
         ) : null}
       </header>
-      <form action={saveChallengeAction} className="flex flex-col gap-6">
+      <ActionForm action={saveChallengeAction} className="flex flex-col gap-6">
         <AdminFormBody>
           <input type="hidden" name="back" value={retry} />
           <ChallengeEditor
@@ -85,7 +86,7 @@ export default async function NuevoRetoPage({
             </Link>
           </div>
         </AdminFormBody>
-      </form>
+      </ActionForm>
     </div>
   );
 }

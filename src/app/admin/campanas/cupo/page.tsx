@@ -10,6 +10,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { liftCutAction, resetReserveAction, saveReserveAction } from "./actions";
 
 // El cupo de correo de las campañas (ADR-115 regla 5, ADR-116 reglas 19 y 20), solo ADMIN: por dónde
@@ -103,7 +104,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/campanas/
           <span id="cupo-margen">{tituloMargen}</span>
         </BarraTitulo>
         <p className="max-w-prose text-sm text-tinta-suave">{t("T-3233")}</p>
-        <form action={saveReserveAction} className="flex flex-wrap items-end gap-3">
+        <ActionForm action={saveReserveAction} className="flex flex-wrap items-end gap-3">
           <AdminFormBody>
             <div className="flex flex-col gap-1">
               <label htmlFor="reserve" className="eyebrow text-xs">
@@ -126,15 +127,15 @@ export default async function Page({ searchParams }: PageProps<"/admin/campanas/
               {botonMargen}
             </AdminSubmitButton>
           </AdminFormBody>
-        </form>
+        </ActionForm>
         {status.reserveSetting !== null ? (
-          <form action={resetReserveAction} className="self-start">
+          <ActionForm action={resetReserveAction} className="self-start">
             <AdminFormBody>
               <AdminSubmitButton type="submit" className="boton-secundario">
                 {t("T-3242")}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         ) : null}
       </section>
 
@@ -153,13 +154,13 @@ export default async function Page({ searchParams }: PageProps<"/admin/campanas/
               })}
             </p>
             <p className="max-w-prose text-sm text-tinta-suave">{t("T-3239")}</p>
-            <form action={liftCutAction} className="self-start">
+            <ActionForm action={liftCutAction} className="self-start">
               <AdminFormBody>
                 <AdminSubmitButton type="submit" className="boton-calido">
                   {t("T-3238")}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           </>
         ) : (
           <p className="text-tinta-suave">{t("T-3236")}</p>

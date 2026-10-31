@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionForm } from "@/shared/ui/ActionForm";
+
 import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { type CloseOthersState, closeOtherSessionsAction } from "../actions";
 
@@ -19,7 +21,7 @@ export function SessionsPanel({ buttonLabel, doneMessage, disabled }: Props) {
     ({ previous, message }) => ({ ...previous, done: false, failed: message }),
   );
   return (
-    <form action={action} className="flex flex-col items-start gap-3">
+    <ActionForm action={action} className="flex flex-col items-start gap-3">
       <button
         type="submit"
         disabled={disabled || pending}
@@ -35,6 +37,6 @@ export function SessionsPanel({ buttonLabel, doneMessage, disabled }: Props) {
           {state.failed}
         </p>
       ) : null}
-    </form>
+    </ActionForm>
   );
 }

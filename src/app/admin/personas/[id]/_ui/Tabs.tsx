@@ -19,6 +19,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { MinusIcon } from "@/shared/ui/icons/MinusIcon";
 import { TransferIcon } from "@/shared/ui/icons/TransferIcon";
@@ -428,7 +429,10 @@ export function TabComunicaciones({
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo">
               {t("T-1212")}
             </summary>
-            <form action={revokeCarnetAction} className="mt-4 flex flex-col items-start gap-4">
+            <ActionForm
+              action={revokeCarnetAction}
+              className="mt-4 flex flex-col items-start gap-4"
+            >
               <AdminFormBody>
                 <input type="hidden" name="personId" value={personId} />
                 <input type="hidden" name="confirm" value="1" />
@@ -437,7 +441,7 @@ export function TabComunicaciones({
                   {t("T-1212")}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           </details>
         ) : null}
       </section>
@@ -556,7 +560,7 @@ export function TabTareas({ personId, tasks }: { personId: string; tasks: TaskRo
                   </td>
                   <td data-label={t("T-462")} className="px-3 py-2 text-right">
                     {item.status === "OPEN" ? (
-                      <form action={completeTaskAction}>
+                      <ActionForm action={completeTaskAction}>
                         <AdminFormBody>
                           <input type="hidden" name="personId" value={personId} />
                           <input type="hidden" name="taskId" value={item.id} />
@@ -567,7 +571,7 @@ export function TabTareas({ personId, tasks }: { personId: string; tasks: TaskRo
                             {t("T-462")}
                           </AdminSubmitButton>
                         </AdminFormBody>
-                      </form>
+                      </ActionForm>
                     ) : null}
                   </td>
                 </tr>
@@ -651,7 +655,7 @@ export function TabDatos({
                     <Insignia fondo="paper">{t("T-412")}</Insignia>
                   )}
                   {person.anonymizedAt ? null : (
-                    <form action={consentAction}>
+                    <ActionForm action={consentAction}>
                       <AdminFormBody>
                         <input type="hidden" name="personId" value={person.id} />
                         <input type="hidden" name="purpose" value={item.purpose} />
@@ -664,7 +668,7 @@ export function TabDatos({
                           {item.live ? retirar : registrar}
                         </AdminSubmitButton>
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   )}
                 </div>
               </li>

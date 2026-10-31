@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionForm } from "@/shared/ui/ActionForm";
+
 import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 
 // Emisión de los códigos de equipo (ADR-089 regla 3): la acción los devuelve una sola vez y aquí se
@@ -42,7 +44,7 @@ export function TarjetasCodigo({ competitionId, action, labels }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <p className="max-w-prose text-sm text-tinta-suave">{labels.warning}</p>
-      <form action={submit} className="flex flex-wrap gap-3 print:hidden">
+      <ActionForm action={submit} className="flex flex-wrap gap-3 print:hidden">
         <input type="hidden" name="competitionId" value={competitionId} />
         <button
           type="submit"
@@ -62,7 +64,7 @@ export function TarjetasCodigo({ competitionId, action, labels }: Props) {
         >
           {labels.all}
         </button>
-      </form>
+      </ActionForm>
       {state.error ? (
         <p role="alert" className="text-sm font-semibold text-oe-orange">
           {state.error}

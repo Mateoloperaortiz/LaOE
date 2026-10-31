@@ -13,6 +13,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { grantCreditAction } from "../actions";
 
 // Pestaña Permanencia de la Persona 360 (ADR-036): el mismo desglose que ve la persona, en vivo
@@ -70,7 +71,7 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
   const closed = view.term.permanenceClosedAt !== null;
   return (
     <div className="flex flex-col gap-6">
-      <form
+      <ActionForm
         action={`/admin/personas/${personId}`}
         method="get"
         className="flex items-center gap-2 self-end text-sm"
@@ -94,7 +95,7 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
         <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
           {t("T-250")}
         </AdminSubmitButton>
-      </form>
+      </ActionForm>
       <Bloque titulo={resultado ?? ""}>
         <Desglose
           result={view.result}
@@ -155,7 +156,7 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
               {error}
             </p>
           ) : null}
-          <form action={grantCreditAction} className="flex flex-col gap-4">
+          <ActionForm action={grantCreditAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="personId" value={personId} />
               <Campo id="campo-ruleId" label={campoCriterio ?? ""}>
@@ -197,7 +198,7 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
     </div>

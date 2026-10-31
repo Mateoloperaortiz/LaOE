@@ -24,6 +24,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { Markdown } from "@/shared/ui/Markdown";
 import {
   addNoteAction,
@@ -201,7 +202,7 @@ export default async function Page({
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {contact.isPrimary ? null : (
-                      <form action={setPrimaryAction}>
+                      <ActionForm action={setPrimaryAction}>
                         <AdminFormBody>
                           <input type="hidden" name="organizationId" value={id} />
                           <input type="hidden" name="personId" value={contact.personId} />
@@ -212,9 +213,9 @@ export default async function Page({
                             {t("T-958")}
                           </AdminSubmitButton>
                         </AdminFormBody>
-                      </form>
+                      </ActionForm>
                     )}
-                    <form action={removeContactAction}>
+                    <ActionForm action={removeContactAction}>
                       <AdminFormBody>
                         <input type="hidden" name="organizationId" value={id} />
                         <input type="hidden" name="personId" value={contact.personId} />
@@ -225,7 +226,7 @@ export default async function Page({
                           {quitar}
                         </AdminSubmitButton>
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   </div>
                 </li>
               ))}
@@ -342,7 +343,7 @@ export default async function Page({
             </p>
           ) : null}
           {accion === "contacto" ? (
-            <form action={createContactAction} className="flex flex-col gap-4">
+            <ActionForm action={createContactAction} className="flex flex-col gap-4">
               <AdminFormBody>
                 <input type="hidden" name="organizationId" value={id} />
                 <Campo id="c-firstName" label={aNombre ?? ""}>
@@ -365,11 +366,11 @@ export default async function Page({
                   {t("T-253")}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           ) : null}
           {accion === "vincular" ? (
             <div className="flex flex-col gap-4">
-              <form action={base} method="get" className="flex flex-col gap-2">
+              <ActionForm action={base} method="get" className="flex flex-col gap-2">
                 <input type="hidden" name="accion" value="vincular" />
                 <Campo id="v-q" label={cPersona ?? ""}>
                   <input id="v-q" name="q" type="search" defaultValue={q} className={inputClass} />
@@ -377,14 +378,14 @@ export default async function Page({
                 <AdminSubmitButton type="submit" className="boton-secundario self-start">
                   {t("T-250")}
                 </AdminSubmitButton>
-              </form>
+              </ActionForm>
               {q && candidates.length === 0 ? (
                 <p className="text-tinta-suave">{t("T-256")}</p>
               ) : null}
               <ul className="flex list-none flex-col gap-3 p-0">
                 {candidates.map((candidate) => (
                   <li key={candidate.id}>
-                    <form
+                    <ActionForm
                       action={linkContactAction}
                       className="flex flex-col gap-2 rounded-xl border border-borde p-3"
                     >
@@ -405,14 +406,14 @@ export default async function Page({
                           {vincularPersona}
                         </AdminSubmitButton>
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   </li>
                 ))}
               </ul>
             </div>
           ) : null}
           {accion === "nota" ? (
-            <form action={addNoteAction} className="flex flex-col gap-4">
+            <ActionForm action={addNoteAction} className="flex flex-col gap-4">
               <AdminFormBody>
                 <input type="hidden" name="organizationId" value={id} />
                 <Campo id="n-body" label={tList("T-456")[0] ?? ""} help={t("T-455")}>
@@ -422,10 +423,10 @@ export default async function Page({
                   {tList("T-456")[0]}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           ) : null}
           {accion === "tarea" ? (
-            <form action={createTaskAction} className="flex flex-col gap-4">
+            <ActionForm action={createTaskAction} className="flex flex-col gap-4">
               <AdminFormBody>
                 <input type="hidden" name="organizationId" value={id} />
                 <Campo id="t-title" label={tTitulo ?? ""}>
@@ -448,10 +449,10 @@ export default async function Page({
                   {t("T-253")}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           ) : null}
           {accion === "etiquetas" ? (
-            <form action={setTagsAction} className="flex flex-col gap-4">
+            <ActionForm action={setTagsAction} className="flex flex-col gap-4">
               <AdminFormBody>
                 <input type="hidden" name="organizationId" value={id} />
                 <AdminMultiSelect
@@ -464,7 +465,7 @@ export default async function Page({
                   {t("T-253")}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           ) : null}
         </ResourcePanel>
       ) : null}

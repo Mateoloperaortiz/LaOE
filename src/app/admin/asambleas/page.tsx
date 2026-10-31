@@ -19,6 +19,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { adjustRequirementAction, recomputeRepresentationAction } from "./actions";
 
 // Asambleas del término para GH (ADR-024, ADR-028, ADR-035 regla 12): las asambleas, el cumplimiento
@@ -99,7 +100,11 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
             </p>
           ) : null}
         </div>
-        <form action="/admin/asambleas" method="get" className="flex items-center gap-2 text-sm">
+        <ActionForm
+          action="/admin/asambleas"
+          method="get"
+          className="flex items-center gap-2 text-sm"
+        >
           <label htmlFor="termId" className="eyebrow text-xs">
             {tList("T-570")[0]}
           </label>
@@ -118,7 +123,7 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
           <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
       </header>
 
       <section aria-label={tList("T-565")[0] ?? ""} className="flex flex-col gap-3">
@@ -144,7 +149,7 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
                   </Link>
                   <span className="text-sm text-tinta-suave">{formatDateTime(item.startsAt)}</span>
                   {item.status === "CLOSED" ? (
-                    <form
+                    <ActionForm
                       action={recomputeRepresentationAction}
                       className="flex flex-wrap items-center gap-2 text-sm"
                     >
@@ -162,7 +167,7 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
                       >
                         {t("T-2254")}
                       </AdminSubmitButton>
-                    </form>
+                    </ActionForm>
                   ) : null}
                 </li>
               );
@@ -306,7 +311,7 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
 
       {accion === "ajustar" && target ? (
         <ResourcePanel title={tituloAjuste ?? ""} closeHref={base} closeLabel={t("T-291")}>
-          <form action={adjustRequirementAction} className="flex flex-col gap-4">
+          <ActionForm action={adjustRequirementAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="termId" value={term.id} />
               <input type="hidden" name="personId" value={target.personId} />
@@ -365,7 +370,7 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
     </div>

@@ -11,6 +11,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Numeral } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { closeTermAction } from "./actions";
 
 // Cierre del término para GH (ADR-004, ADR-035 regla 13): resumen, bloqueo por ocasiones abiertas,
@@ -78,7 +79,7 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
             </p>
           ) : null}
         </div>
-        <form action="/admin/cierre" method="get" className="flex items-center gap-2 text-sm">
+        <ActionForm action="/admin/cierre" method="get" className="flex items-center gap-2 text-sm">
           <label htmlFor="termId" className="eyebrow text-xs">
             {tList("T-570")[0]}
           </label>
@@ -97,7 +98,7 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
           <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
       </header>
 
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -236,7 +237,7 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
       summary.pendingParticipations === 0 &&
       summary.reservedRewards === 0 ? (
         <ResourcePanel title={t("T-647")} closeHref={base} closeLabel={t("T-291")}>
-          <form action={closeTermAction} className="flex flex-col gap-4">
+          <ActionForm action={closeTermAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="termId" value={term.id} />
               <p>{t("T-163", { término: term.code })}</p>
@@ -249,7 +250,7 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
     </div>

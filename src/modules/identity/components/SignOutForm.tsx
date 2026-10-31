@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { signOutAction } from "@/modules/identity/actions";
 import { t } from "@/shared/copy/client";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { readPushEndpoint } from "@/shared/ui/push-endpoint";
 import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 
@@ -22,13 +23,13 @@ export function SignOutForm({ children }: { children: ReactNode }) {
     () => t("T-3263"),
   );
   return (
-    <form action={signOut}>
+    <ActionForm action={signOut}>
       {children}
       {failure ? (
         <p role="alert" className="mt-2 max-w-xs text-sm font-semibold">
           {failure}
         </p>
       ) : null}
-    </form>
+    </ActionForm>
   );
 }

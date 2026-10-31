@@ -4,6 +4,7 @@ import { useId } from "react";
 import type { FormField } from "@/modules/forms";
 import { answersFromFormData } from "@/modules/forms/components/answers";
 import { FormFields } from "@/modules/forms/components/FormFields";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { submitAction } from "./actions";
 import { initialSubmitState, type SubmitState } from "./state";
@@ -57,7 +58,7 @@ export function FormularioPublico(props: FormularioPublicoProps) {
     return typeof raw === "string" ? raw : "";
   };
   return (
-    <form action={action} className="flex max-w-2xl flex-col gap-6" noValidate>
+    <ActionForm action={action} className="flex max-w-2xl flex-col gap-6" noValidate>
       <input type="hidden" name="slug" value={props.slug} />
       {state.message ? (
         <p
@@ -177,6 +178,6 @@ export function FormularioPublico(props: FormularioPublicoProps) {
       <button type="submit" className="boton-calido self-start" disabled={pending}>
         {props.labels.submit}
       </button>
-    </form>
+    </ActionForm>
   );
 }

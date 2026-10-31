@@ -20,6 +20,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia, Numeral } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { applyAction, discardAction, remapAction } from "./actions";
 import { parseProposalIndexes, proposalSelectionVersion } from "./selection";
 
@@ -41,7 +42,7 @@ function columnLabel(column: string): string {
 
 function Mapeo({ preview }: { preview: RosterPreview }) {
   return (
-    <form action={remapAction} className="flex flex-col gap-4">
+    <ActionForm action={remapAction} className="flex flex-col gap-4">
       <AdminFormBody>
         <input type="hidden" name="jobId" value={preview.jobId} />
         <input type="hidden" name="columns" value={preview.headers.length} />
@@ -72,7 +73,7 @@ function Mapeo({ preview }: { preview: RosterPreview }) {
         </div>
         <AdminSubmitButton className="boton-primario self-start">{t("T-1475")}</AdminSubmitButton>
       </AdminFormBody>
-    </form>
+    </ActionForm>
   );
 }
 
@@ -239,12 +240,12 @@ function Revision({ preview }: { preview: RosterPreview }) {
         <Link href={jobHref(preview.jobId, "columnas")} className="boton-secundario">
           {t("T-1477")}
         </Link>
-        <form action={discardAction}>
+        <ActionForm action={discardAction}>
           <AdminFormBody>
             <input type="hidden" name="jobId" value={preview.jobId} />
             <AdminSubmitButton className="boton-secundario">{tList("T-479")[3]}</AdminSubmitButton>
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </div>
     </div>
   );
@@ -265,7 +266,7 @@ function Confirmacion({
     <div className="flex flex-col gap-5">
       <Resumen preview={preview} />
       <p className="max-w-prose text-sm text-tinta-suave">{t("T-1479")}</p>
-      <form action={applyAction} className="flex flex-col gap-4">
+      <ActionForm action={applyAction} className="flex flex-col gap-4">
         <AdminFormBody>
           <input
             type="hidden"
@@ -311,7 +312,7 @@ function Confirmacion({
             </AdminSubmitButton>
           </div>
         </AdminFormBody>
-      </form>
+      </ActionForm>
       <Link href={jobHref(preview.jobId, "revision")} className="self-start text-sm underline">
         {t("T-1478")}
       </Link>

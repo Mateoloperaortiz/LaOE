@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 import { labelsFromProps } from "@/shared/copy/client";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { uploadToBucket } from "@/shared/ui/bucket-upload";
 import { uploadErrorMessage } from "@/shared/ui/upload-error";
 
@@ -108,7 +109,7 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
   }
 
   return (
-    <form
+    <ActionForm
       onSubmit={(event) => {
         event.preventDefault();
         if (file) void upload(file);
@@ -243,6 +244,6 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
           </span>
         ) : null}
       </output>
-    </form>
+    </ActionForm>
   );
 }

@@ -3,6 +3,7 @@ import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { macroeventAction } from "../actions";
 import { Fields, type MacroContext, MemberSelect } from "./Fields";
 
@@ -77,7 +78,7 @@ export function Board({
                       )}
                     </div>
                     {row ? (
-                      <form action={macroeventAction}>
+                      <ActionForm action={macroeventAction}>
                         <AdminFormBody>
                           <Fields context={context} operation="remove-director" />
                           <input type="hidden" name="appointmentId" value={row.id} />
@@ -89,7 +90,7 @@ export function Board({
                             {quitar}
                           </AdminSubmitButton>
                         </AdminFormBody>
-                      </form>
+                      </ActionForm>
                     ) : null}
                   </div>
                 );
@@ -104,7 +105,7 @@ export function Board({
             {t("T-2374")}
           </h2>
           <p className="max-w-prose text-sm text-tinta-suave">{t("T-2267")}</p>
-          <form action={macroeventAction} className="flex max-w-xl flex-col gap-4">
+          <ActionForm action={macroeventAction} className="flex max-w-xl flex-col gap-4">
             <AdminFormBody>
               <Fields context={context} operation="add-director" />
               <Campo id="roleCode" label={cargo ?? ""}>
@@ -138,7 +139,7 @@ export function Board({
                 {t("T-2374")}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </section>
       ) : null}
     </div>

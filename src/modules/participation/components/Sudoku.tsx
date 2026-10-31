@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent, useEffect, useRef, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tLabels, tList } from "@/shared/copy/client";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import {
   looksSolved,
   SUDOKU_DIFFICULTIES,
@@ -372,7 +373,7 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
       ) : null}
 
       {!live && available ? (
-        <form
+        <ActionForm
           className="flex flex-col gap-4"
           onSubmit={(event) => {
             event.preventDefault();
@@ -439,7 +440,7 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
               {pending ? t("T-2688") : done ? t("T-2711") : t("T-2687")}
             </button>
           </div>
-        </form>
+        </ActionForm>
       ) : null}
 
       <output aria-live="polite" className="block min-h-6 text-sm font-semibold">

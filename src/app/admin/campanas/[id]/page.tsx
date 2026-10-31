@@ -20,6 +20,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo, Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { cancelAction, scheduleAction, sendNowAction, sendTestFromCampaignAction } from "./actions";
 
 // Detalle de una campaña (ADR-038 regla 8): destinatarios estimados y excluidos por motivo, programar
@@ -206,7 +207,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
             <p className="max-w-prose text-sm text-tinta-suave">{t("T-1138")}</p>
           ) : null}
           <div className="flex flex-wrap items-end gap-4 border-t border-borde pt-4">
-            <form action={scheduleAction} className="flex flex-wrap items-end gap-3">
+            <ActionForm action={scheduleAction} className="flex flex-wrap items-end gap-3">
               <AdminFormBody>
                 <input type="hidden" name="campaignId" value={campaign.id} />
                 <div className="flex flex-col gap-1">
@@ -230,9 +231,9 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
                   {botonProgramar}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
             {accion === "enviar" ? (
-              <form
+              <ActionForm
                 action={sendNowAction}
                 className="flex basis-full flex-col gap-3 rounded-lg border border-borde bg-fondo-suave p-4"
               >
@@ -254,13 +255,13 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
                     </Link>
                   </div>
                 </AdminFormBody>
-              </form>
+              </ActionForm>
             ) : (
               <Link href={`${base}?accion=enviar`} className="boton-calido">
                 {t("T-1130")}
               </Link>
             )}
-            <form action={sendTestFromCampaignAction}>
+            <ActionForm action={sendTestFromCampaignAction}>
               <AdminFormBody>
                 <input type="hidden" name="campaignId" value={campaign.id} />
                 <input type="hidden" name="templateId" value={campaign.templateId} />
@@ -268,20 +269,20 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
                   {t("T-1120")}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           </div>
         </section>
       ) : null}
 
       {campaign.status === "SCHEDULED" || campaign.status === "SENDING" ? (
-        <form action={cancelAction} className="self-start">
+        <ActionForm action={cancelAction} className="self-start">
           <AdminFormBody>
             <input type="hidden" name="campaignId" value={campaign.id} />
             <AdminSubmitButton type="submit" className="boton-secundario">
               {t("T-1132")}
             </AdminSubmitButton>
           </AdminFormBody>
-        </form>
+        </ActionForm>
       ) : null}
 
       {recipients ? (

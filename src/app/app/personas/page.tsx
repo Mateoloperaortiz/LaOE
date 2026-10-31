@@ -7,6 +7,7 @@ import { listFeaturedBadgesFor, loadGamificationSettings } from "@/modules/parti
 import { listDirectory, listInternalCommittees } from "@/modules/people";
 import { listTeamParticipations } from "@/modules/permanence";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { cargoEnComite, cargoEtiqueta, PersonaTarjeta } from "../_ui/PersonaTarjeta";
 import { Vacio } from "../_ui/Vacio";
 
@@ -73,7 +74,7 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-display-lg">{t("T-070")}</h1>
-      <form method="get" className="member-filter">
+      <ActionForm method="get" className="member-filter">
         <div className="flex flex-col gap-1">
           <label htmlFor="q" className="eyebrow text-xs">
             {t("T-071")}
@@ -108,7 +109,7 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
           {t("T-250")}
         </button>
         {q || comite ? <Link href="/app/personas">{t("T-1680")}</Link> : null}
-      </form>
+      </ActionForm>
       <output className="text-sm text-tinta-suave">{t("T-1678", { n: directory.total })}</output>
       {directory.rows.length === 0 ? (
         <Vacio

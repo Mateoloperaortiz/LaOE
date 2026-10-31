@@ -42,6 +42,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime, formatTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import {
   approveAllAction,
   cancelAction,
@@ -172,7 +173,7 @@ export default async function ConsolaPage({
 
       <div className="flex flex-wrap items-center gap-3">
         {canOpen ? (
-          <form action={lifecycleAction}>
+          <ActionForm action={lifecycleAction}>
             <AdminFormBody>
               <input type="hidden" name="occasionId" value={id} />
               <input type="hidden" name="op" value="open" />
@@ -180,13 +181,13 @@ export default async function ConsolaPage({
                 {abrir}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         ) : null}
         {occasion.status === "DRAFT" && !canOpen ? (
           <p className="text-sm text-tinta-suave">{t("T-653")}</p>
         ) : null}
         {occasion.status === "OPEN" ? (
-          <form action={lifecycleAction}>
+          <ActionForm action={lifecycleAction}>
             <AdminFormBody>
               <input type="hidden" name="occasionId" value={id} />
               <input type="hidden" name="op" value="close" />
@@ -194,10 +195,10 @@ export default async function ConsolaPage({
                 {cerrar}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         ) : null}
         {occasion.status !== "CANCELLED" ? (
-          <form action={rotatingAction} className="flex flex-wrap gap-2">
+          <ActionForm action={rotatingAction} className="flex flex-wrap gap-2">
             <AdminFormBody>
               <input type="hidden" name="occasionId" value={id} />
               {occasion.requireRotatingCode ? (
@@ -230,7 +231,7 @@ export default async function ConsolaPage({
                 </AdminSubmitButton>
               )}
             </AdminFormBody>
-          </form>
+          </ActionForm>
         ) : null}
         {occasion.status === "OPEN" || (actor.isAdmin && occasion.status === "CLOSED") ? (
           <Link href={`${base}/anfitrion`} className="boton-secundario">
@@ -248,14 +249,14 @@ export default async function ConsolaPage({
         <section aria-label={t("T-591")} className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-display-md">{t("T-591")}</h2>
-            <form action={approveAllAction}>
+            <ActionForm action={approveAllAction}>
               <AdminFormBody>
                 <input type="hidden" name="occasionId" value={id} />
                 <AdminSubmitButton type="submit" className="boton-primario">
                   {t("T-593")}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           </div>
           <ul className="flex list-none flex-col gap-2 p-0">
             {pending.map((item) => (
@@ -265,7 +266,7 @@ export default async function ConsolaPage({
               >
                 <span className="font-semibold">{people.get(item.personId)?.fullName?.trim()}</span>
                 <div className="flex gap-2">
-                  <form action={decideAction}>
+                  <ActionForm action={decideAction}>
                     <AdminFormBody>
                       <input type="hidden" name="occasionId" value={id} />
                       <input type="hidden" name="checkInId" value={item.id} />
@@ -278,8 +279,8 @@ export default async function ConsolaPage({
                         {aprobar}
                       </AdminSubmitButton>
                     </AdminFormBody>
-                  </form>
-                  <form action={decideAction}>
+                  </ActionForm>
+                  <ActionForm action={decideAction}>
                     <AdminFormBody>
                       <input type="hidden" name="occasionId" value={id} />
                       <input type="hidden" name="checkInId" value={item.id} />
@@ -292,7 +293,7 @@ export default async function ConsolaPage({
                         {rechazar}
                       </AdminSubmitButton>
                     </AdminFormBody>
-                  </form>
+                  </ActionForm>
                 </div>
               </li>
             ))}
@@ -320,7 +321,7 @@ export default async function ConsolaPage({
       {occasion.status === "OPEN" || (actor.isAdmin && occasion.status === "CLOSED") ? (
         <section aria-label={altaTitulo} className="flex flex-col gap-3">
           <h2 className="text-display-md">{altaTitulo}</h2>
-          <form action={base} method="get" className="flex flex-wrap items-end gap-3">
+          <ActionForm action={base} method="get" className="flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1">
               <span className="eyebrow text-xs">{t("T-599")}</span>
               <input name="q" defaultValue={q} className={inputClass} />
@@ -328,7 +329,7 @@ export default async function ConsolaPage({
             <AdminSubmitButton type="submit" className="boton-secundario">
               {t("T-250")}
             </AdminSubmitButton>
-          </form>
+          </ActionForm>
           {q ? (
             results.length === 0 ? (
               <p className="text-tinta-suave">{t("T-600")}</p>
@@ -340,7 +341,7 @@ export default async function ConsolaPage({
                     className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-borde bg-fondo px-4 py-2"
                   >
                     <span className="font-semibold">{item.fullName.trim()}</span>
-                    <form action={registerAction} className="flex flex-wrap items-end gap-3">
+                    <ActionForm action={registerAction} className="flex flex-wrap items-end gap-3">
                       <AdminFormBody>
                         <input type="hidden" name="occasionId" value={id} />
                         <input type="hidden" name="personId" value={item.id} />
@@ -370,7 +371,7 @@ export default async function ConsolaPage({
                           {altaBoton}
                         </AdminSubmitButton>
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   </li>
                 ))}
               </ul>
@@ -508,7 +509,7 @@ export default async function ConsolaPage({
                         <td data-label={t("T-1500")} className="py-2">
                           <div className="flex gap-2">
                             {item.status === "PENDING" || item.status === "REJECTED" ? (
-                              <form action={decideAction}>
+                              <ActionForm action={decideAction}>
                                 <AdminFormBody>
                                   <input type="hidden" name="occasionId" value={id} />
                                   <input type="hidden" name="checkInId" value={item.id} />
@@ -521,10 +522,10 @@ export default async function ConsolaPage({
                                     {aprobar}
                                   </AdminSubmitButton>
                                 </AdminFormBody>
-                              </form>
+                              </ActionForm>
                             ) : null}
                             {item.status === "PENDING" ? (
-                              <form action={decideAction}>
+                              <ActionForm action={decideAction}>
                                 <AdminFormBody>
                                   <input type="hidden" name="occasionId" value={id} />
                                   <input type="hidden" name="checkInId" value={item.id} />
@@ -537,7 +538,7 @@ export default async function ConsolaPage({
                                     {rechazar}
                                   </AdminSubmitButton>
                                 </AdminFormBody>
-                              </form>
+                              </ActionForm>
                             ) : null}
                             {item.status === "APPROVED" ? (
                               <Link
@@ -561,7 +562,7 @@ export default async function ConsolaPage({
 
       {accion === "cancelar" && actor.isAdmin ? (
         <ResourcePanel title={cancelar ?? ""} closeHref={base} closeLabel={t("T-291")}>
-          <form action={cancelAction} className="flex flex-col gap-4">
+          <ActionForm action={cancelAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="occasionId" value={id} />
               <p>{t("T-161", { actividad: occasion.title, n: occasion.approvedCount })}</p>
@@ -578,13 +579,13 @@ export default async function ConsolaPage({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 
       {accion === "anular" && actor.isAdmin && toCancel ? (
         <ResourcePanel title={anularLabel ?? ""} closeHref={base} closeLabel={t("T-291")}>
-          <form action={decideAction} className="flex flex-col gap-4">
+          <ActionForm action={decideAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="occasionId" value={id} />
               <input type="hidden" name="checkInId" value={toCancel.id} />
@@ -605,7 +606,7 @@ export default async function ConsolaPage({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
       {occasion.status === "CLOSED" ? (

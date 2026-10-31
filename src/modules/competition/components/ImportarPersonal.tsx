@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { inputClass } from "@/shared/admin-kit/AdminFields";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { Issues } from "./ImportarJornada";
 
@@ -140,7 +141,7 @@ function StaffForm({
   const [dirty, setDirty] = useState(false);
   const preview = dirty ? null : state.preview;
   return (
-    <form action={submit} className="mt-3 flex flex-col gap-3">
+    <ActionForm action={submit} className="mt-3 flex flex-col gap-3">
       <input type="hidden" name="competitionId" value={competitionId} />
       <input type="hidden" name="fingerprint" value={dirty ? "" : (state.fingerprint ?? "")} />
       <p id="personal-ayuda" className="max-w-prose text-sm text-tinta-suave">
@@ -211,7 +212,7 @@ function StaffForm({
           </button>
         ) : null}
       </div>
-    </form>
+    </ActionForm>
   );
 }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { PanelSolicitud } from "@/app/admin/solicitudes/_ui/PanelSolicitud";
 import type { RequestView } from "@/modules/crm";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { elements } from "../helpers/react-tree";
 
 vi.mock("next/font/local", () => ({ default: () => ({ className: "", variable: "" }) }));
@@ -41,7 +42,7 @@ describe("el formulario con el que GH aprueba una excusa", () => {
     });
     const approval = elements(tree).find(
       (item) =>
-        item.type === "form" &&
+        item.type === ActionForm &&
         elements(item).some(
           (field) =>
             field.type === "input" &&

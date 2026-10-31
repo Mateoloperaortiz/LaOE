@@ -5,6 +5,7 @@ import { unstable_rethrow, useRouter } from "next/navigation";
 import { type ReactNode, useActionState, useEffect, useRef, useState } from "react";
 import type { RequestKind } from "@/modules/crm";
 import { t, tList } from "@/shared/copy/client";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { createRequestAction, withdrawRequestAction } from "./actions";
 import type {
   CauseOption,
@@ -223,7 +224,7 @@ export function RequestForm({
           </a>
         </p>
       ) : null}
-      <form
+      <ActionForm
         ref={formRef}
         action={action}
         noValidate
@@ -475,7 +476,7 @@ export function RequestForm({
             <output className="sr-only">{blocked ? t("T-1583") : ""}</output>
           </footer>
         </fieldset>
-      </form>
+      </ActionForm>
     </section>
   );
 }
@@ -509,7 +510,7 @@ export function WithdrawRequest({
     if (state.error) alertRef.current?.focus();
   }, [state]);
   return (
-    <form
+    <ActionForm
       action={action}
       aria-busy={pending}
       onSubmit={(event) => {
@@ -532,7 +533,7 @@ export function WithdrawRequest({
           {state.error}
         </p>
       ) : null}
-    </form>
+    </ActionForm>
   );
 }
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionForm } from "@/shared/ui/ActionForm";
+
 import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { type LoginState, loginAction } from "../actions";
 
@@ -33,7 +35,7 @@ export function LoginForm({ initialState, labels }: Props) {
   );
 
   return (
-    <form action={action} className="flex flex-col gap-5" noValidate>
+    <ActionForm action={action} className="flex flex-col gap-5" noValidate>
       <input type="hidden" name="next" value={state.next} />
       <div className="flex flex-col gap-2">
         <label htmlFor="email" className="eyebrow">
@@ -84,6 +86,6 @@ export function LoginForm({ initialState, labels }: Props) {
       <button type="submit" disabled={pending} className="boton-calido disabled:opacity-60">
         {labels.submitButton}
       </button>
-    </form>
+    </ActionForm>
   );
 }

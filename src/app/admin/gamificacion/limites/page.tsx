@@ -6,6 +6,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { saveLimitsAction } from "./actions";
 
 // Límites y activación (ADR-067 regla 15): topes diario/semanal, premios por defecto y la
@@ -52,7 +53,7 @@ export default async function LimitesPage({
         ) : null}
       </header>
 
-      <form action={saveLimitsAction} className="flex flex-col gap-5">
+      <ActionForm action={saveLimitsAction} className="flex flex-col gap-5">
         <AdminFormBody>
           <label className="flex flex-col gap-1">
             <span className="eyebrow text-xs">{fields[0]}</span>
@@ -142,7 +143,7 @@ export default async function LimitesPage({
             </AdminSubmitButton>
           </div>
         </AdminFormBody>
-      </form>
+      </ActionForm>
     </div>
   );
 }

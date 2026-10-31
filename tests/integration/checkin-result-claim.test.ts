@@ -4,6 +4,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { checkIn, occasion } from "@/modules/participation/schema";
 import { t } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import {
   currentTermCode,
   seedCheckIn,
@@ -73,7 +74,7 @@ async function shown(publicId: string, result: string) {
   const all = elements(tree);
   const message = all.find((item) => item.props["data-resultado"] !== undefined);
   if (!message) {
-    return all.some((item) => item.type === "form")
+    return all.some((item) => item.type === ActionForm)
       ? FORM
       : { mark: "(nada)", text: "", seal: false };
   }

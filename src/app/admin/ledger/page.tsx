@@ -11,6 +11,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { adjustAction, reverseAction } from "./actions";
 
 // Ledger de GH Points para GH (ADR-007, ADR-035 regla 9): filtros, ajustes con motivo y reversiones.
@@ -92,7 +93,7 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
         ) : null}
       </header>
 
-      <form action={base} method="get" className="flex flex-wrap items-end gap-3">
+      <ActionForm action={base} method="get" className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
           <span className="eyebrow text-xs">{filtroPersona}</span>
           <input name="q" defaultValue={q} className={inputClass} placeholder={t("T-264")} />
@@ -123,7 +124,7 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
         <AdminSubmitButton type="submit" className="boton-secundario">
           {t("T-250")}
         </AdminSubmitButton>
-      </form>
+      </ActionForm>
 
       {q ? (
         found.length === 0 ? (
@@ -245,7 +246,7 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
 
       {accion === "ajustar" && personId ? (
         <ResourcePanel title={t("T-625")} closeHref={backHref} closeLabel={t("T-291")}>
-          <form action={adjustAction} className="flex flex-col gap-4">
+          <ActionForm action={adjustAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="personId" value={personId} />
               <input type="hidden" name="back" value={backHref} />
@@ -286,13 +287,13 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 
       {accion === "revertir" && toReverse ? (
         <ResourcePanel title={t("T-630")} closeHref={backHref} closeLabel={t("T-291")}>
-          <form action={reverseAction} className="flex flex-col gap-4">
+          <ActionForm action={reverseAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="entryId" value={toReverse.id} />
               <input type="hidden" name="back" value={backHref} />
@@ -316,7 +317,7 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
     </div>

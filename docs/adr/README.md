@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-154](ADR-154-conservar-la-posicion-al-guardar.md) | Conservar la posición de la página al guardar | Aceptada; verificada localmente; publicación pendiente |
 | [ADR-153](ADR-153-parches-de-dependencias-transitivas.md) | Parches acotados de esbuild y uuid transitivos | Aceptada |
 | [ADR-151](ADR-151-repositorio-publico-y-colaboracion-protegida.md) | Repositorio público y colaboración protegida | Aceptada |
 | [ADR-148](ADR-148-ci-en-runners-linux-locales.md) | CI completo en runners Linux locales del repositorio privado | Reemplazada por ADR-151 |

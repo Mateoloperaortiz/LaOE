@@ -18,6 +18,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { Markdown } from "@/shared/ui/Markdown";
 import { decideEntryAction, setStatusAction } from "./actions";
 
@@ -100,7 +101,7 @@ export default async function Page({
         <p className="text-sm">{call.selection === "FIRST_COME" ? porOrden : manual}</p>
         {call.description.trim() ? <Markdown source={call.description} /> : null}
         <div className="flex flex-wrap items-center gap-3">
-          <form action={setStatusAction}>
+          <ActionForm action={setStatusAction}>
             <AdminFormBody>
               <input type="hidden" name="callId" value={id} />
               <input
@@ -115,7 +116,7 @@ export default async function Page({
                 {call.status === "OPEN" ? cerrar : abrir}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
           {isAdmin ? (
             <Link href={`/admin/convocatorias?editar=${id}`} className="text-sm underline">
               {t("T-252")}
@@ -227,7 +228,10 @@ export default async function Page({
                         })}
                       </dl>
                     ) : null}
-                    <form action={decideEntryAction} className="flex flex-wrap items-end gap-2">
+                    <ActionForm
+                      action={decideEntryAction}
+                      className="flex flex-wrap items-end gap-2"
+                    >
                       <AdminFormBody>
                         <input type="hidden" name="callId" value={id} />
                         <input type="hidden" name="entryId" value={entry.id} />
@@ -261,7 +265,7 @@ export default async function Page({
                           </AdminSubmitButton>
                         ) : null}
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   </li>
                 ))}
               </ul>

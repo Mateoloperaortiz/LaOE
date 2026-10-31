@@ -12,6 +12,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { cancelCampaignAction, createCampaignAction } from "./actions";
 
 // Campañas de puntos (ADR-067 regla 9): GH crea una campaña por objetivo elegido sobre una ventana
@@ -73,7 +74,7 @@ export default async function CampanasPage({
             </p>
           ) : null}
         </div>
-        <form
+        <ActionForm
           action="/admin/gamificacion/campanas"
           method="get"
           className="flex items-center gap-2 text-sm"
@@ -96,7 +97,7 @@ export default async function CampanasPage({
           <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
       </header>
 
       {campaigns.length === 0 ? (
@@ -133,7 +134,7 @@ export default async function CampanasPage({
                   </td>
                   <td className="py-2">
                     {campaign.state === "ACTIVE" || campaign.state === "SCHEDULED" ? (
-                      <form action={cancelCampaignAction}>
+                      <ActionForm action={cancelCampaignAction}>
                         <input type="hidden" name="id" value={campaign.id} />
                         <input type="hidden" name="termId" value={term.id} />
                         <AdminSubmitButton
@@ -142,7 +143,7 @@ export default async function CampanasPage({
                         >
                           {actions[1]}
                         </AdminSubmitButton>
-                      </form>
+                      </ActionForm>
                     ) : null}
                   </td>
                 </tr>
@@ -157,7 +158,7 @@ export default async function CampanasPage({
           {actions[0]}
         </h2>
         <p className="text-sm text-tinta-suave">{t("T-2536")}</p>
-        <form action={createCampaignAction} className="flex flex-col gap-5">
+        <ActionForm action={createCampaignAction} className="flex flex-col gap-5">
           <AdminFormBody>
             <input type="hidden" name="termId" value={term.id} />
             <label className="flex flex-col gap-1">
@@ -240,7 +241,7 @@ export default async function CampanasPage({
               </AdminSubmitButton>
             </div>
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </section>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { inputClass } from "@/shared/admin-kit/AdminFields";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { Issues } from "./ImportarJornada";
 
@@ -47,7 +48,7 @@ export function ImportarJurado({ competitionId, extraId, action, labels }: Props
   );
   const id = `jurado-${extraId}`;
   return (
-    <form key={state.attempt} action={submit} className="flex flex-col gap-3">
+    <ActionForm key={state.attempt} action={submit} className="flex flex-col gap-3">
       <input type="hidden" name="competitionId" value={competitionId} />
       <input type="hidden" name="extraId" value={extraId} />
       <p id={`${id}-ayuda`} className="max-w-prose text-sm text-tinta-suave">
@@ -88,6 +89,6 @@ export function ImportarJurado({ competitionId, extraId, action, labels }: Props
       <button type="submit" className="boton-primario min-h-11 self-start" disabled={pending}>
         {pending ? labels.pending : labels.submit}
       </button>
-    </form>
+    </ActionForm>
   );
 }

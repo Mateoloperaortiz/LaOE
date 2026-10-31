@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [154](adr/ADR-154-conservar-la-posicion-al-guardar.md) | Posición al guardar | `ActionForm` conserva el desplazamiento tras una acción en la misma ruta y ancla, incluidos paneles y guardados repetidos; respeta el foco de errores y la navegación a otra página | Aceptada; verificada localmente; publicación pendiente |
 | [153](adr/ADR-153-parches-de-dependencias-transitivas.md) | Dependencias transitivas | Overrides acotados por consumidor a esbuild 0.25.12 y uuid 11.1.1, con regresiones funcionales y compatibilidad de Excel/Drizzle verificadas | Aceptada |
 | [151](adr/ADR-151-repositorio-publico-y-colaboracion-protegida.md) | Colaboración en GitHub | Repositorio público, CI en runners efímeros, PR con revisión y CI, secretos por environment y aprobación de producción | Aceptada |
 | [148](adr/ADR-148-ci-en-runners-linux-locales.md) | CI local | Jobs Linux en el runner privado, mismas suites y puerta, servicios sintéticos con puertos dinámicos y despliegue conservado | Reemplazada por ADR-151 |

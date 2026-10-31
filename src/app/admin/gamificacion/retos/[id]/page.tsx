@@ -20,6 +20,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { annulAction, reviewAction } from "../../revision/actions";
 import {
   cancelChallengeAction,
@@ -108,7 +109,7 @@ export default async function RetoPage({
       </header>
 
       <DownloadNotice searchParams={search} />
-      <form action={saveChallengeAction} className="flex flex-col gap-6">
+      <ActionForm action={saveChallengeAction} className="flex flex-col gap-6">
         <AdminFormBody>
           <input type="hidden" name="id" value={id} />
           <input type="hidden" name="back" value={back} />
@@ -147,31 +148,31 @@ export default async function RetoPage({
             </Link>
           </div>
         </AdminFormBody>
-      </form>
+      </ActionForm>
 
       <div className="flex flex-wrap gap-3">
         {challenge.status === "DRAFT" ? (
-          <form action={publishChallengeAction}>
+          <ActionForm action={publishChallengeAction}>
             <input type="hidden" name="id" value={id} />
             <input type="hidden" name="back" value={back} />
             <AdminSubmitButton type="submit" className="boton-calido">
               {actions[1]}
             </AdminSubmitButton>
             <p className="mt-1 max-w-md text-xs text-tinta-suave">{t("T-2512")}</p>
-          </form>
+          </ActionForm>
         ) : null}
         {challenge.status !== "CANCELLED" ? (
           <Link href={`${back}?accion=cancelar`} className="boton-secundario">
             {actions[2]}
           </Link>
         ) : null}
-        <form action={duplicateChallengeAction}>
+        <ActionForm action={duplicateChallengeAction}>
           <input type="hidden" name="id" value={id} />
           <input type="hidden" name="back" value={back} />
           <AdminSubmitButton type="submit" className="boton-secundario">
             {actions[3]}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
       </div>
 
       <section aria-label={t("T-2516")} className="flex flex-col gap-3">
@@ -265,7 +266,7 @@ export default async function RetoPage({
                       <div className="flex flex-wrap gap-2">
                         {row.participation.status === "PENDING" && challenge.kind === "EVIDENCE" ? (
                           <>
-                            <form action={reviewAction}>
+                            <ActionForm action={reviewAction}>
                               <input
                                 type="hidden"
                                 name="participationId"
@@ -276,7 +277,7 @@ export default async function RetoPage({
                               <AdminSubmitButton className="boton-primario min-h-8 px-3 py-1 text-xs">
                                 {reviewActions[0]}
                               </AdminSubmitButton>
-                            </form>
+                            </ActionForm>
                             <Link
                               href={`${back}?accion=rechazar&participationId=${row.participation.id}`}
                               className="boton-secundario min-h-8 px-3 py-1 text-xs"
@@ -327,7 +328,7 @@ export default async function RetoPage({
 
       {accion === "cancelar" && challenge.status !== "CANCELLED" ? (
         <ResourcePanel title={actions[2] ?? ""} closeHref={back} closeLabel={t("T-291")}>
-          <form action={cancelChallengeAction} className="flex flex-col gap-4">
+          <ActionForm action={cancelChallengeAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="id" value={id} />
               <input type="hidden" name="back" value={back} />
@@ -347,13 +348,13 @@ export default async function RetoPage({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 
       {accion === "rechazar" && participationId ? (
         <ResourcePanel title={t("T-2526")} closeHref={back} closeLabel={t("T-291")}>
-          <form action={reviewAction} className="flex flex-col gap-4">
+          <ActionForm action={reviewAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="participationId" value={participationId} />
               <input type="hidden" name="decision" value="REJECT" />
@@ -371,13 +372,13 @@ export default async function RetoPage({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 
       {accion === "anular" && participationId ? (
         <ResourcePanel title={tList("T-2530")[0] ?? ""} closeHref={back} closeLabel={t("T-291")}>
-          <form action={annulAction} className="flex flex-col gap-4">
+          <ActionForm action={annulAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="participationId" value={participationId} />
               <input type="hidden" name="back" value={back} />
@@ -395,7 +396,7 @@ export default async function RetoPage({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
     </div>

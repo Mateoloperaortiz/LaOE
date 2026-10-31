@@ -12,6 +12,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { addMemberAction, importAction, removeMemberAction, setEvaluatorsAction } from "./actions";
 import { altaNotice } from "./alta";
 
@@ -140,7 +141,7 @@ export default async function GrupoPage({
                     </td>
                     <td className="py-2 pr-3 text-tinta-suave">{member.note ?? ""}</td>
                     <td className="py-2 text-right">
-                      <form action={removeMemberAction}>
+                      <ActionForm action={removeMemberAction}>
                         <AdminFormBody>
                           <input type="hidden" name="groupId" value={id} />
                           <input type="hidden" name="personId" value={member.personId} />
@@ -148,7 +149,7 @@ export default async function GrupoPage({
                             {quitar}
                           </AdminSubmitButton>
                         </AdminFormBody>
-                      </form>
+                      </ActionForm>
                     </td>
                   </tr>
                 ))}
@@ -156,7 +157,7 @@ export default async function GrupoPage({
             </table>
           </AdminTableRegion>
         )}
-        <form action={base} method="get" className="flex flex-wrap items-end gap-2">
+        <ActionForm action={base} method="get" className="flex flex-wrap items-end gap-2">
           <div className="flex flex-col gap-1">
             <label htmlFor="q" className="eyebrow text-xs">
               {agregar}
@@ -172,7 +173,7 @@ export default async function GrupoPage({
           <AdminSubmitButton type="submit" className="boton-secundario min-h-10 px-4 py-2 text-sm">
             {t("T-250")}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
         {q ? (
           candidates.length === 0 ? (
             <p className="text-tinta-suave">{t("T-600")}</p>
@@ -189,7 +190,7 @@ export default async function GrupoPage({
                       {t("T-751", { nombre: candidate.fullName })}
                     </span>
                   ) : (
-                    <form action={addMemberAction}>
+                    <ActionForm action={addMemberAction}>
                       <AdminFormBody>
                         <input type="hidden" name="groupId" value={id} />
                         <input type="hidden" name="personId" value={candidate.id} />
@@ -200,7 +201,7 @@ export default async function GrupoPage({
                           {agregar}
                         </AdminSubmitButton>
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   )}
                 </li>
               ))}
@@ -225,7 +226,7 @@ export default async function GrupoPage({
           </ul>
         )}
         {isAdmin ? (
-          <form action={setEvaluatorsAction} className="flex flex-col gap-2">
+          <ActionForm action={setEvaluatorsAction} className="flex flex-col gap-2">
             <AdminFormBody>
               <input type="hidden" name="groupId" value={id} />
               <label htmlFor="emails" className="eyebrow text-xs">
@@ -236,7 +237,7 @@ export default async function GrupoPage({
                 {guardarEvaluadores}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         ) : null}
       </section>
 

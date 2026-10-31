@@ -7,6 +7,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { sendTestAction } from "./actions";
 
 // Vista previa de una plantilla con los datos del actor (ADR-038 regla 8) y "Enviarme una prueba".
@@ -55,14 +56,14 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
           >
             {t("T-252")}
           </Link>
-          <form action={sendTestAction}>
+          <ActionForm action={sendTestAction}>
             <AdminFormBody>
               <input type="hidden" name="templateId" value={template.id} />
               <AdminSubmitButton type="submit" className="boton-primario text-sm">
                 {t("T-1120")}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
           {prueba ? (
             <output className="text-sm font-semibold text-titulo">
               {t("T-1121", { correo: prueba })}

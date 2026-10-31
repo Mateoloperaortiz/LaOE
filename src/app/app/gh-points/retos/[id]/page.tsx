@@ -22,6 +22,7 @@ import { getCurrentTerm } from "@/modules/terms";
 import { Cartel, Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { CircleCheckIcon } from "@/shared/ui/icons/CircleCheckIcon";
 import { CircleDotIcon } from "@/shared/ui/icons/CircleDotIcon";
 import { Markdown } from "@/shared/ui/Markdown";
@@ -284,7 +285,7 @@ export default async function RetoDetallePage({
               })}
             </p>
           ) : null}
-          <form action={setBoosterTargetAction} className="flex flex-wrap items-end gap-3">
+          <ActionForm action={setBoosterTargetAction} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="target" value={`challenge:${challenge.id}`} />
             <input type="hidden" name="back" value={`/app/gh-points/retos/${challenge.id}`} />
             <input type="hidden" name="currentBoosterId" value={targeted?.id ?? ""} />
@@ -312,7 +313,7 @@ export default async function RetoDetallePage({
                 {tList("T-2420")[5]}
               </button>
             ) : null}
-          </form>
+          </ActionForm>
           {boosterSaved ? (
             <output className="block font-semibold text-titulo">{t("T-259")}</output>
           ) : null}

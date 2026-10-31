@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy/client";
+import { ActionForm } from "@/shared/ui/ActionForm";
 
 // Kanban de un pipeline (ADR-037 regla 7): columnas por etapa; cada tarjeta se mueve con "Mover a…"
 // (selector y botón, sin JS) o arrastrándola a otra columna con la API nativa del navegador. Las dos
@@ -139,7 +140,7 @@ export function Kanban({ columns, returnTo, moveAction }: KanbanProps) {
                   <summary className="cursor-pointer rounded-lg py-2 text-sm font-semibold text-titulo">
                     {moverA}
                   </summary>
-                  <form action={moveAction} className="flex items-center gap-2 pt-2">
+                  <ActionForm action={moveAction} className="flex items-center gap-2 pt-2">
                     <AdminFormBody>
                       <input type="hidden" name="cardId" value={card.id} />
                       <input type="hidden" name="returnTo" value={returnTo} />
@@ -165,7 +166,7 @@ export function Kanban({ columns, returnTo, moveAction }: KanbanProps) {
                         {mover}
                       </AdminSubmitButton>
                     </AdminFormBody>
-                  </form>
+                  </ActionForm>
                 </details>
               </li>
             ))}

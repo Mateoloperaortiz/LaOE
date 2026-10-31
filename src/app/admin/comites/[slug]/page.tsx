@@ -34,6 +34,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { Areas } from "./_ui/Areas";
 import { Comunicacion } from "./_ui/Comunicacion";
 import { Finanzas } from "./_ui/Finanzas";
@@ -484,7 +485,7 @@ async function Actividades({
 
       {canOperate && accion === "nueva" ? (
         <ResourcePanel title={nuevaOcasion ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
-          <form action={proposeOccasionAction} className="flex flex-col gap-4">
+          <ActionForm action={proposeOccasionAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="slug" value={slug} />
               {error ? (
@@ -548,13 +549,13 @@ async function Actividades({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 
       {canOperate && accion === "serie" ? (
         <ResourcePanel title={crearSerie ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
-          <form action={createSeriesAction} className="flex flex-col gap-4">
+          <ActionForm action={createSeriesAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="slug" value={slug} />
               {error ? (
@@ -604,7 +605,7 @@ async function Actividades({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
     </div>

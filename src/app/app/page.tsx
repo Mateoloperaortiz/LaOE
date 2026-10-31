@@ -19,6 +19,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo, Insignia, LogoComite, Progreso } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { noticeText } from "./_ui/avisos";
 import { agendaItems, MemberAgenda } from "./_ui/MemberAgenda";
 import { cargoEnComite } from "./_ui/PersonaTarjeta";
@@ -199,13 +200,13 @@ export default async function AppHome() {
                       {step.doneAt ? t("T-379") : t("T-378")}
                     </Insignia>
                     {step.doneAt ? null : (
-                      <form action={markStepAction}>
+                      <ActionForm action={markStepAction}>
                         <input type="hidden" name="termId" value={onboardingTermId} />
                         <input type="hidden" name="stepKey" value={step.key} />
                         <AdminSubmitButton type="submit" className="boton-secundario text-sm">
                           {t("T-377")}
                         </AdminSubmitButton>
-                      </form>
+                      </ActionForm>
                     )}
                   </span>
                 </li>

@@ -6,6 +6,7 @@ import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { ResourcePage } from "../../_kit/ResourcePage";
 import { seedWorkCommitteesAction } from "./actions";
 
@@ -33,7 +34,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/permanenc
               {t("T-756", { n: sembrados, término: termino })}
             </output>
           ) : null}
-          <form action={seedWorkCommitteesAction} className="flex items-center gap-2">
+          <ActionForm action={seedWorkCommitteesAction} className="flex items-center gap-2">
             <AdminFormBody>
               <input type="hidden" name="termId" value={term.id} />
               <AdminSubmitButton
@@ -43,7 +44,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/permanenc
                 {sembrar} · {term.code}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </section>
       ) : null}
     </div>

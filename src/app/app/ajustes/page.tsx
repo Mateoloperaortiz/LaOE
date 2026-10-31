@@ -29,6 +29,7 @@ import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNo
 import { BarraTitulo, Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import {
   consentAction,
   removeDeviceAction,
@@ -255,14 +256,14 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
                           {formatDateTime(device.lastSeenAt)}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <form action={removeDeviceAction}>
+                          <ActionForm action={removeDeviceAction}>
                             <SettingsFormBody>
                               <input type="hidden" name="id" value={device.id} />
                               <button type="submit" className="boton-secundario text-sm">
                                 {t("T-1077")}
                               </button>
                             </SettingsFormBody>
-                          </form>
+                          </ActionForm>
                         </td>
                       </tr>
                     );
@@ -298,7 +299,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
               }}
             />
             <p className="max-w-prose text-sm text-tinta-suave">{t("T-1091")}</p>
-            <form action={rotateCalendarAction} className="flex flex-col items-start gap-3">
+            <ActionForm action={rotateCalendarAction} className="flex flex-col items-start gap-3">
               <SettingsFormBody>
                 <button type="submit" className="boton-secundario text-sm">
                   {t("T-1089")}
@@ -307,7 +308,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
                   <output className="block text-sm font-semibold text-titulo">{t("T-1090")}</output>
                 ) : null}
               </SettingsFormBody>
-            </form>
+            </ActionForm>
           </section>
         ) : null}
 
@@ -410,7 +411,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
                     {state.purpose === "MEMBERSHIP" ? (
                       <p className="max-w-prose text-sm text-tinta-suave">{t("T-414")}</p>
                     ) : (
-                      <form action={consentAction}>
+                      <ActionForm action={consentAction}>
                         <SettingsFormBody>
                           <input type="hidden" name="purpose" value={state.purpose} />
                           <input
@@ -428,7 +429,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
                             {state.live ? retirar : autorizar}
                           </button>
                         </SettingsFormBody>
-                      </form>
+                      </ActionForm>
                     )}
                   </li>
                 );
@@ -456,7 +457,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
               {t("T-416", { fecha: formatDate(who.deletionRequestedAt), n: deletionDays })}
             </p>
           ) : confirmar ? (
-            <form action={requestDeletionAction} className="flex flex-col gap-4">
+            <ActionForm action={requestDeletionAction} className="flex flex-col gap-4">
               <SettingsFormBody>
                 <p className="max-w-prose">{t("T-415")}</p>
                 <div className="flex flex-wrap gap-3">
@@ -468,7 +469,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
                   </Link>
                 </div>
               </SettingsFormBody>
-            </form>
+            </ActionForm>
           ) : (
             <Link
               href="/app/ajustes?confirmar=1#privacidad"

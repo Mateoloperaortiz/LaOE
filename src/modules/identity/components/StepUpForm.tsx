@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionForm } from "@/shared/ui/ActionForm";
+
 import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { type StepUpState, stepUpAction } from "../actions";
 
@@ -33,7 +35,7 @@ export function StepUpForm({ initialState, labels }: Props) {
   if (state.mode === "password") {
     return (
       <div className="flex flex-col gap-6">
-        <form action={action} className="flex flex-col gap-5" noValidate>
+        <ActionForm action={action} className="flex flex-col gap-5" noValidate>
           <input type="hidden" name="intent" value="verify-password" />
           <input type="hidden" name="next" value={state.next} />
           <p className="text-lg">{labels.intro}</p>
@@ -60,21 +62,21 @@ export function StepUpForm({ initialState, labels }: Props) {
           <button type="submit" disabled={pending} className="boton-calido disabled:opacity-60">
             {labels.confirm}
           </button>
-        </form>
-        <form action={action}>
+        </ActionForm>
+        <ActionForm action={action}>
           <input type="hidden" name="intent" value="use-code" />
           <input type="hidden" name="next" value={state.next} />
           <button type="submit" className="text-enlace text-sm underline underline-offset-4">
             {labels.useCode}
           </button>
-        </form>
+        </ActionForm>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <form action={action} className="flex flex-col gap-5" noValidate>
+      <ActionForm action={action} className="flex flex-col gap-5" noValidate>
         <input type="hidden" name="intent" value="verify-code" />
         <input type="hidden" name="next" value={state.next} />
         <p className="text-lg">{labels.codeIntro}</p>
@@ -104,14 +106,14 @@ export function StepUpForm({ initialState, labels }: Props) {
         <button type="submit" disabled={pending} className="boton-calido disabled:opacity-60">
           {labels.verify}
         </button>
-      </form>
-      <form action={action}>
+      </ActionForm>
+      <ActionForm action={action}>
         <input type="hidden" name="intent" value="use-password" />
         <input type="hidden" name="next" value={state.next} />
         <button type="submit" className="text-enlace text-sm underline underline-offset-4">
           {labels.usePassword}
         </button>
-      </form>
+      </ActionForm>
     </div>
   );
 }

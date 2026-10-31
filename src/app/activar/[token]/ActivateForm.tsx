@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionForm } from "@/shared/ui/ActionForm";
+
 import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { activateAction } from "./actions";
 import { initialActivateState } from "./state";
@@ -27,7 +29,7 @@ export function ActivateForm({ token, labels }: Props) {
   );
 
   return (
-    <form action={action} className="flex flex-col gap-5" noValidate>
+    <ActionForm action={action} className="flex flex-col gap-5" noValidate>
       <input type="hidden" name="token" value={token} />
       <div className="flex flex-col gap-2">
         <label htmlFor="password" className="eyebrow">
@@ -74,6 +76,6 @@ export function ActivateForm({ token, labels }: Props) {
       <button type="submit" disabled={pending} className="boton-calido disabled:opacity-60">
         {labels.submit}
       </button>
-    </form>
+    </ActionForm>
   );
 }

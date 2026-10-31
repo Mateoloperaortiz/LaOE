@@ -19,6 +19,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import {
   approveAction,
   closeAction,
@@ -158,7 +159,7 @@ export default async function Page({
           </table>
         </AdminTableRegion>
         {editable ? (
-          <form action={setLinesAction} className="flex flex-col gap-3">
+          <ActionForm action={setLinesAction} className="flex flex-col gap-3">
             <AdminFormBody>
               <input type="hidden" name="budgetId" value={budget.id} />
               <div className="grid gap-2">
@@ -210,7 +211,7 @@ export default async function Page({
                 {guardarRubros}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         ) : null}
       </section>
 
@@ -226,7 +227,7 @@ export default async function Page({
         </p>
         {editable ? (
           <div className="flex flex-wrap items-end gap-4">
-            <form action={approveAction} className="flex flex-wrap items-end gap-3">
+            <ActionForm action={approveAction} className="flex flex-wrap items-end gap-3">
               <AdminFormBody>
                 <input type="hidden" name="budgetId" value={budget.id} />
                 <Campo id="aprobacion-approver" label={quienAprueba ?? ""}>
@@ -252,25 +253,25 @@ export default async function Page({
                   {registrarAprobacion}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
             {budget.status === "DRAFT" ? (
-              <form action={openAction}>
+              <ActionForm action={openAction}>
                 <AdminFormBody>
                   <input type="hidden" name="budgetId" value={budget.id} />
                   <AdminSubmitButton type="submit" className="boton-primario">
                     {abrir}
                   </AdminSubmitButton>
                 </AdminFormBody>
-              </form>
+              </ActionForm>
             ) : (
-              <form action={closeAction}>
+              <ActionForm action={closeAction}>
                 <AdminFormBody>
                   <input type="hidden" name="budgetId" value={budget.id} />
                   <AdminSubmitButton type="submit" className="boton-secundario">
                     {cerrar}
                   </AdminSubmitButton>
                 </AdminFormBody>
-              </form>
+              </ActionForm>
             )}
           </div>
         ) : null}
@@ -286,7 +287,7 @@ export default async function Page({
           {budget.sanctionReason ? ` · ${motivoSancion}: ${budget.sanctionReason}` : ""}
         </p>
         {editable ? (
-          <form action={sanctionAction} className="flex flex-wrap items-end gap-3">
+          <ActionForm action={sanctionAction} className="flex flex-wrap items-end gap-3">
             <AdminFormBody>
               <input type="hidden" name="budgetId" value={budget.id} />
               <Campo id="sancion-percent" label={porcentaje ?? ""}>
@@ -308,7 +309,7 @@ export default async function Page({
                 {aplicarSancion}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         ) : null}
       </section>
 
@@ -362,7 +363,10 @@ export default async function Page({
                 {item.description ? <p className="text-tinta-suave">{item.description}</p> : null}
                 {item.decisionNote ? <p>{item.decisionNote}</p> : null}
                 {item.status === "PENDING" ? (
-                  <form action={decideApprovalAction} className="flex flex-wrap items-end gap-2">
+                  <ActionForm
+                    action={decideApprovalAction}
+                    className="flex flex-wrap items-end gap-2"
+                  >
                     <AdminFormBody>
                       <input type="hidden" name="budgetId" value={budget.id} />
                       <input type="hidden" name="approvalId" value={item.id} />
@@ -386,7 +390,7 @@ export default async function Page({
                         {rechazar}
                       </AdminSubmitButton>
                     </AdminFormBody>
-                  </form>
+                  </ActionForm>
                 ) : null}
               </li>
             ))}

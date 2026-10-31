@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
 import { t } from "@/shared/copy/client";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import type { FilterDefinition } from "./types";
 
 type Props = {
@@ -43,7 +44,7 @@ export function ResourceToolbar({
   }, [activeFilters]);
   return (
     <div className="admin-resource-toolbar flex min-w-0 flex-col gap-4">
-      <form
+      <ActionForm
         key={`${q}:${JSON.stringify(filterValues)}`}
         action={basePath}
         method="get"
@@ -123,7 +124,7 @@ export function ResourceToolbar({
             {t("T-1422")}
           </Link>
         ) : null}
-      </form>
+      </ActionForm>
     </div>
   );
 }
