@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { resolveAccessGrant } from "@/modules/identity";
 import { LogoOE } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { ActivateForm } from "./ActivateForm";
 
 export const metadata: Metadata = { title: t("T-2101"), robots: { index: false } };

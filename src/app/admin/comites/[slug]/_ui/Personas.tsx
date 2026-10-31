@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { CommitteeRepresentationSummary } from "@/modules/participation";
 import {
   type CommitteeRoleRow,
@@ -16,6 +15,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import {
   addMemberAction,
   requestRemovalAction,
@@ -356,7 +356,7 @@ export function Personas({
       {accion === "agregar" ? (
         <ResourcePanel title={t("T-2147")} closeHref={closeHref} closeLabel={t("T-291")}>
           <div className="flex flex-col gap-4">
-            <ActionForm method="get" action={base} className="flex flex-col gap-3">
+            <ActionForm key={q} method="get" action={base} className="flex flex-col gap-3">
               <input type="hidden" name="area" value="personas" />
               <input type="hidden" name="accion" value="agregar" />
               <label className="flex flex-col gap-1">

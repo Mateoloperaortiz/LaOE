@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId } from "react";
+import { preservePageScroll } from "@/shared/lib/navigation-scroll";
 
 export function AdminSectionSelect({
   label,
@@ -22,7 +23,10 @@ export function AdminSectionSelect({
         value={value}
         onChange={(event) => {
           const href = options.find((option) => option.value === event.target.value)?.href;
-          if (href) router.push(href);
+          if (href)
+            router.push(href, {
+              scroll: !preservePageScroll(href, window.location.pathname, window.location.origin),
+            });
         }}
         className="min-h-11 w-full rounded-lg border border-borde bg-fondo px-3 py-2"
       >

@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ContentLink } from "@/shared/ui/AppLink";
 
 type Props = {
   /** Markdown escrito desde el admin. El HTML embebido se descarta (ADR-033). */
@@ -11,7 +12,13 @@ type Props = {
 export function Markdown({ source, className = "" }: Props) {
   return (
     <div className={`prosa ${className}`.trim()}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        skipHtml
+        components={{
+          a: ({ node: _node, ...props }) => <ContentLink {...props} />,
+        }}
+      >
         {source}
       </ReactMarkdown>
     </div>

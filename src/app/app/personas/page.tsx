@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listRecognitionsByPeople, monthName, type RecognitionView } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
@@ -8,6 +7,7 @@ import { listDirectory, listInternalCommittees } from "@/modules/people";
 import { listTeamParticipations } from "@/modules/permanence";
 import { t, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { cargoEnComite, cargoEtiqueta, PersonaTarjeta } from "../_ui/PersonaTarjeta";
 import { Vacio } from "../_ui/Vacio";
 
@@ -74,7 +74,7 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-display-lg">{t("T-070")}</h1>
-      <ActionForm method="get" className="member-filter">
+      <ActionForm key={JSON.stringify([q, comite])} method="get" className="member-filter">
         <div className="flex flex-col gap-1">
           <label htmlFor="q" className="eyebrow text-xs">
             {t("T-071")}

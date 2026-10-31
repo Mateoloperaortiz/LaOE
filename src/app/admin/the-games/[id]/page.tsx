@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireCompetitionOperator } from "@/app/_authz/competition";
 import { single } from "@/app/_lib/search";
 import {
@@ -31,6 +30,7 @@ import { listPeopleWithPassword } from "@/modules/identity";
 import { isMacroeventDirector, listActiveMemberRefs } from "@/modules/people";
 import { AdminSectionSelect } from "@/shared/admin-kit/AdminSectionSelect";
 import { t, tLabels } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Anuncios, Apuestas } from "./_ui/Community";
 import { Extras, Posiciones, Resultados, Rotaciones } from "./_ui/Play";
 import { Poderes } from "./_ui/Powers";

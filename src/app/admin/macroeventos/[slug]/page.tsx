@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listEditions, listMacroevents } from "@/modules/events";
 import { requireAdminActor } from "@/modules/identity";
@@ -10,6 +9,7 @@ import { AdminSectionSelect } from "@/shared/admin-kit/AdminSectionSelect";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Board } from "./_ui/Board";
 import { Team } from "./_ui/Team";
 
@@ -77,7 +77,12 @@ export default async function MacroeventPage({
         <h1 className="text-display-lg">{event.name}</h1>
         <p className="max-w-prose text-tinta-suave">{t("T-2345")}</p>
       </header>
-      <ActionForm action={base} className="flex flex-wrap items-end gap-3" method="get">
+      <ActionForm
+        key={JSON.stringify([term.id, edition?.id])}
+        action={base}
+        className="flex flex-wrap items-end gap-3"
+        method="get"
+      >
         <input type="hidden" name="area" value={area} />
         <div className="flex flex-col gap-1">
           <label htmlFor="termId" className="text-sm font-semibold">

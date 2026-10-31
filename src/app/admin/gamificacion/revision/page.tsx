@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { downloadHref } from "@/app/_lib/download";
 import { single } from "@/app/_lib/search";
@@ -13,6 +12,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { annulAction, reviewAction } from "./actions";
 
 // Bandeja de revisión de evidencias (ADR-067 regla 5): pendientes del término con texto, imágenes
@@ -73,6 +73,7 @@ export default async function RevisionPage({
 
       <DownloadNotice searchParams={search} />
       <ActionForm
+        key={JSON.stringify([term?.id ?? "", all])}
         action="/admin/gamificacion/revision"
         method="get"
         className="flex flex-wrap items-end gap-3"

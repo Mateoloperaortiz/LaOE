@@ -1,8 +1,8 @@
-import Link from "next/link";
 import type { BaseState, RecordingTracker, TrackerBase } from "@/modules/competition";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { t, tList } from "@/shared/copy";
 import { formatTime } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Section } from "./shared";
 
 // El seguimiento del registro (ADR-105): qué bases ya registraron la rotación en curso, qué resultados

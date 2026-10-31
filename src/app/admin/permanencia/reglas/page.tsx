@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { listCommitteesForSelection } from "@/modules/people";
@@ -18,6 +17,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { reglaFormLabels, reglaFormValues } from "../_ui/reglas";
 import {
   applyTemplateAction,
@@ -203,6 +203,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
           ) : null}
         </div>
         <ActionForm
+          key={term.id}
           action="/admin/permanencia/reglas"
           method="get"
           className="flex items-center gap-2 text-sm"

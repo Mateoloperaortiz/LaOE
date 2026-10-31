@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireCommitteeAccess } from "@/app/_authz/committee";
 import { single } from "@/app/_lib/search";
 import { listCommitteeAnnouncements } from "@/modules/content";
@@ -35,6 +34,7 @@ import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Areas } from "./_ui/Areas";
 import { Comunicacion } from "./_ui/Comunicacion";
 import { Finanzas } from "./_ui/Finanzas";

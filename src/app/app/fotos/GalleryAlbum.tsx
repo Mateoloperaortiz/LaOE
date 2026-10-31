@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { GalleryAlbumPage } from "@/modules/content";
 import { t } from "@/shared/copy/client";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { ArrowLeftIcon } from "@/shared/ui/icons/ArrowLeftIcon";
 import { LockIcon } from "@/shared/ui/icons/LockIcon";
 import { PhotoGrid } from "./PhotoGrid";

@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { AdminFormDrafts } from "@/shared/admin-kit/AdminFormDrafts";
 import { type AdminNavGroup, activeAdminHref } from "@/shared/admin-kit/navigation";
 import { LogoOE } from "@/shared/brand";
 import { t } from "@/shared/copy/client";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { AreaSwitch } from "@/shared/ui/AreaSwitch";
 import { ChevronDownIcon } from "@/shared/ui/icons/ChevronDownIcon";
 import { Menu2Icon } from "@/shared/ui/icons/Menu2Icon";

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   type BaseRow,
@@ -17,6 +16,7 @@ import { TarjetasCodigo } from "@/modules/competition/components/TarjetasCodigo"
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { importCaptainsAction, importStaffAction, issueCodesAction } from "../actions";
 import { OperationForm, type PanelContext, Section, Submit, TeamChip } from "./shared";
 

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import { getCall } from "@/modules/crm";
@@ -13,6 +12,7 @@ import { BarraTitulo } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Markdown } from "@/shared/ui/Markdown";
 import { applyAction } from "../actions";
 

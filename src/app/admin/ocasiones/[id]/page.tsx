@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireOperator } from "@/app/_authz/occasion";
 import { single } from "@/app/_lib/search";
@@ -43,6 +42,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime, formatTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import {
   approveAllAction,
   cancelAction,
@@ -321,7 +321,7 @@ export default async function ConsolaPage({
       {occasion.status === "OPEN" || (actor.isAdmin && occasion.status === "CLOSED") ? (
         <section aria-label={altaTitulo} className="flex flex-col gap-3">
           <h2 className="text-display-md">{altaTitulo}</h2>
-          <ActionForm action={base} method="get" className="flex flex-wrap items-end gap-3">
+          <ActionForm key={q} action={base} method="get" className="flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1">
               <span className="eyebrow text-xs">{t("T-599")}</span>
               <input name="q" defaultValue={q} className={inputClass} />

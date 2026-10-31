@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireActor } from "@/modules/identity";
 import { getTodayWordle } from "@/modules/participation";
 import { Wordle } from "@/modules/participation/components/Wordle";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { startWordleAction, submitWordleAction } from "./actions";
 
 // Wordle diario (ADR-041), mudado aquí desde el resumen de GH Points por ADR-075 regla 1. Ninguna

@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { COMMITTEE_AREA_KEYS, type CommitteeArea } from "@/modules/people";
 import { AdminSectionSelect } from "@/shared/admin-kit/AdminSectionSelect";
 import { t, tLabels } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 // Áreas de la vista del comité (ADR-058): una pestaña por área donde el actor tiene alguna capacidad,
 // en el orden de T-2174; en pantallas angostas, el mismo selector que usan las pestañas de la Persona 360.

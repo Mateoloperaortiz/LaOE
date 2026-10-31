@@ -71,6 +71,7 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ActionForm
+            key={term.id}
             action="/admin/junta"
             method="get"
             className="flex items-center gap-2 text-sm"

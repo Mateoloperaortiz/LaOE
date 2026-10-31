@@ -1,8 +1,8 @@
-import Link from "next/link";
 import type { SubmissionListRow } from "@/modules/forms";
 import { Bloque } from "@/shared/admin-kit/AdminFields";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 // Pestaña Formularios de la Persona 360 (02-crm.md, ADR-037): respuestas enviadas, inscripciones a
 // ediciones y tarjetas de pipeline (las tarjetas llegan en el tramo 4).

@@ -1,7 +1,16 @@
 "use client";
 
-import { type ComponentPropsWithRef, type RefObject, useLayoutEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import {
+  type ComponentPropsWithRef,
+  type SubmitEvent as ReactSubmitEvent,
+  type RefObject,
+  useLayoutEffect,
+  useRef,
+  useTransition,
+} from "react";
 import { useFormStatus } from "react-dom";
+import { preservePageScroll } from "@/shared/lib/navigation-scroll";
 
 type Position = {
   pathname: string;
@@ -77,14 +86,71 @@ function ActionScroll({ position }: { position: RefObject<Position | null> }) {
 export function ActionForm({
   action,
   children,
+  onSubmit,
   onSubmitCapture,
   ...props
 }: ComponentPropsWithRef<"form">) {
+  const router = useRouter();
   const position = useRef<Position | null>(null);
+  const navigatingForm = useRef<HTMLFormElement | null>(null);
+  const [navigating, startNavigation] = useTransition();
+
+  useLayoutEffect(() => {
+    const form = navigatingForm.current;
+    if (!navigating || !form) return;
+    // Sin añadir un fieldset que cambie la estructura o los selectores de los formularios.
+    const fields = Array.from(form.elements).filter(
+      (field) =>
+        field instanceof HTMLButtonElement ||
+        field instanceof HTMLInputElement ||
+        field instanceof HTMLSelectElement ||
+        field instanceof HTMLTextAreaElement ||
+        field instanceof HTMLFieldSetElement,
+    );
+    const previous = fields.map((field) => ({ field, disabled: field.disabled }));
+    for (const { field } of previous) field.disabled = true;
+    return () => {
+      for (const { field, disabled } of previous) field.disabled = disabled;
+    };
+  }, [navigating]);
+
+  function submit(event: ReactSubmitEvent<HTMLFormElement>) {
+    onSubmit?.(event);
+    if (event.defaultPrevented || typeof action === "function") return;
+    if (navigating) {
+      event.preventDefault();
+      return;
+    }
+    const form = event.currentTarget;
+    const submitter = event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null;
+    const method = (submitter?.getAttribute("formmethod") ?? form.method).toLowerCase();
+    const target = (submitter?.getAttribute("formtarget") ?? form.target).toLowerCase();
+    if (method !== "get" || (target && target !== "_self")) return;
+    const href = submitter?.getAttribute("formaction") ?? form.getAttribute("action") ?? "";
+    if (!preservePageScroll(href, location.pathname, location.origin)) return;
+    const destination = new URL(href, location.href);
+    const search = new URLSearchParams();
+    // FormData conserva campos repetidos, controles habilitados y el botón que envió el GET.
+    for (const [name, value] of new FormData(form, submitter)) {
+      search.append(name, typeof value === "string" ? value : value.name);
+    }
+    // El GET nativo reemplaza la consulta de action con los controles del formulario.
+    destination.search = search.toString();
+    event.preventDefault();
+    navigatingForm.current = form;
+    startNavigation(() => {
+      router.push(`${destination.pathname}${destination.search}${destination.hash}`, {
+        scroll: false,
+      });
+    });
+  }
+
   return (
     <form
       {...props}
       action={action}
+      aria-busy={navigating || props["aria-busy"]}
+      onSubmit={submit}
       onSubmitCapture={(event) => {
         onSubmitCapture?.(event);
         if (event.defaultPrevented || typeof action !== "function") return;

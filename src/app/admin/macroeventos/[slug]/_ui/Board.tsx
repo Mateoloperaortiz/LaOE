@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { macroeventAction } from "../actions";
 import { Fields, type MacroContext, MemberSelect } from "./Fields";
 

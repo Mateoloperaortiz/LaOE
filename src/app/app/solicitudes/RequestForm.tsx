@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { type ReactNode, useActionState, useEffect, useRef, useState } from "react";
 import type { RequestKind } from "@/modules/crm";
 import { t, tList } from "@/shared/copy/client";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { createRequestAction, withdrawRequestAction } from "./actions";
 import type {
   CauseOption,

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { campaignsResource } from "@/modules/comms/admin";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { ResourcePage } from "../_kit/ResourcePage";
 
 // Campañas (ADR-038 regla 8): una plantilla a un segmento; el detalle programa, envía y sigue el avance.

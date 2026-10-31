@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { excerpt } from "@/modules/content";
 import { listPublishedCommittees } from "@/modules/people";
 import { BarraTitulo, Cartel, feedVariant } from "@/shared/brand";
@@ -7,6 +6,7 @@ import { t } from "@/shared/copy";
 import { stripAccents } from "@/shared/lib/accents";
 import { paginaMetadata } from "@/shared/lib/seo";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 export const metadata: Metadata = paginaMetadata({
   title: t("T-309"),
@@ -32,7 +32,7 @@ export default async function ComitesPage({ searchParams }: PageProps<"/comites"
       </div>
       <div className="flex flex-col gap-4">
         <search aria-label={t("T-1544")}>
-          <ActionForm action="/comites" method="get" className="portal-committee-search">
+          <ActionForm key={q} action="/comites" method="get" className="portal-committee-search">
             <label>
               {t("T-1544")}
               <input

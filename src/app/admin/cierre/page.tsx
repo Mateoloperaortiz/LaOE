@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
@@ -12,6 +11,7 @@ import { Numeral } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { closeTermAction } from "./actions";
 
 // Cierre del término para GH (ADR-004, ADR-035 regla 13): resumen, bloqueo por ocasiones abiertas,
@@ -79,7 +79,12 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
             </p>
           ) : null}
         </div>
-        <ActionForm action="/admin/cierre" method="get" className="flex items-center gap-2 text-sm">
+        <ActionForm
+          key={term.id}
+          action="/admin/cierre"
+          method="get"
+          className="flex items-center gap-2 text-sm"
+        >
           <label htmlFor="termId" className="eyebrow text-xs">
             {tList("T-570")[0]}
           </label>

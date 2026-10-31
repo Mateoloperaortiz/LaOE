@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { type getGroupDetail, teamAreaLabel } from "@/modules/permanence";
 import { Campo, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
@@ -7,6 +6,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { macroeventAction } from "../actions";
 import { Areas } from "./Areas";
 import { Fields, type MacroContext, MemberSelect } from "./Fields";

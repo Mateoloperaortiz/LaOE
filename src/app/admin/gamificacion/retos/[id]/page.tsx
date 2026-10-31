@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { downloadHref } from "@/app/_lib/download";
 import { single } from "@/app/_lib/search";
@@ -21,6 +20,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { annulAction, reviewAction } from "../../revision/actions";
 import {
   cancelChallengeAction,

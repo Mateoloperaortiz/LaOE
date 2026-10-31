@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import QRCode from "qrcode";
 import { isDownloadPending } from "@/app/_lib/download";
 import { getCarnetMetadata, issueCarnet, requireActor } from "@/modules/identity";
@@ -11,6 +10,7 @@ import { Cartel } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { cargoEnComite } from "../_ui/PersonaTarjeta";
 import { revokeCarnetAction } from "./actions";
 

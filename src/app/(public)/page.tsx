@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getPublicMediaRef, Imagen, listPublicAnnouncements } from "@/modules/content";
 import { listAdmissionPipelineIds } from "@/modules/crm";
 import {
@@ -19,6 +18,7 @@ import {
 import { t, tList } from "@/shared/copy";
 import { formatDateRange } from "@/shared/lib/dates";
 import { paginaMetadata } from "@/shared/lib/seo";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { AnuncioCartel } from "./_ui/AnuncioCartel";
 import { EventoTarjeta } from "./_ui/EventoTarjeta";
 

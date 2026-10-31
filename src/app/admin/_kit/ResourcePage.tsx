@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DOWNLOAD_SCREEN_PARAM } from "@/app/_lib/download";
 import { single } from "@/app/_lib/search";
@@ -16,6 +15,7 @@ import {
 } from "@/shared/admin-kit";
 import { t, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { rowActionAction, saveResourceAction } from "./actions";
 import { DownloadNotice } from "./DownloadNotice";
 

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import {
@@ -20,6 +19,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { adjustRequirementAction, recomputeRepresentationAction } from "./actions";
 
 // Asambleas del término para GH (ADR-024, ADR-028, ADR-035 regla 12): las asambleas, el cumplimiento
@@ -101,6 +101,7 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
           ) : null}
         </div>
         <ActionForm
+          key={term.id}
           action="/admin/asambleas"
           method="get"
           className="flex items-center gap-2 text-sm"

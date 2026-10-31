@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { excerpt, type PublicAnnouncement } from "@/modules/content";
 import { Cartel, type CartelVariante } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 type Props = {
   anuncio: PublicAnnouncement;

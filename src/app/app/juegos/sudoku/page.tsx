@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireActor } from "@/modules/identity";
 import { getTodaySudoku } from "@/modules/participation";
 import { Sudoku } from "@/modules/participation/components/Sudoku";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { abandonSudokuAction, finishSudokuAction, startSudokuAction } from "./actions";
 
 // Sudoku de la biblioteca de juegos (ADR-078). El servidor genera el tablero y guarda la solución;

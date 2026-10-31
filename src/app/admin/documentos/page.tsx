@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   DOCUMENT_KINDS,
@@ -14,6 +13,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 const [plural] = tList("T-425");
 const PAGE_SIZE = 20;
@@ -54,6 +54,7 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
         </Link>
       </div>
       <ActionForm
+        key={q}
         action={BASE}
         method="get"
         className="admin-toolbar flex flex-wrap items-end gap-3"

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Fragment } from "react";
 import { requireCompetitionStaff } from "@/app/_authz/competition";
 import { single } from "@/app/_lib/search";
@@ -6,6 +5,7 @@ import { judgeView } from "@/modules/competition";
 import { Actualizador } from "@/modules/competition/components/Actualizador";
 import { Cronometro } from "@/modules/competition/components/Cronometro";
 import { t, tList } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { JudgeMatchup } from "../_ui/Judge";
 
 // Pantalla del juez (ADR-089 regla 10): primero celular. Su base, el enfrentamiento de la rotación en

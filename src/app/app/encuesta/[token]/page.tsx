@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireActor } from "@/modules/identity";
 import { getSurveyInviteForActor } from "@/modules/participation";
 import { t, tList } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { FormularioEncuesta } from "./FormularioEncuesta";
 
 // Encuesta anónima de una ocasión cerrada (ADR-038 regla 13): la URL del push T-191. Solo el asistente

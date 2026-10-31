@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { MessageView, PreferencesView } from "@/modules/comms";
 import { channelLabel, kindLabel, statusLabel as messageStatusLabel } from "@/modules/comms/admin";
 import type { InteractionView, RecognitionView, TaskRow } from "@/modules/crm";
@@ -20,6 +19,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { MinusIcon } from "@/shared/ui/icons/MinusIcon";
 import { TransferIcon } from "@/shared/ui/icons/TransferIcon";

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { Insignia } from "@/shared/brand";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { ResourceActionMenu } from "./ResourceActionMenu";
 import type { CellValue, Column, RowAction, RowLink } from "./types";
 

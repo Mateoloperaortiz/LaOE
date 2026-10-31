@@ -75,6 +75,7 @@ export default async function CampanasPage({
           ) : null}
         </div>
         <ActionForm
+          key={term.id}
           action="/admin/gamificacion/campanas"
           method="get"
           className="flex items-center gap-2 text-sm"

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEnv } from "@/env";
 import { excerpt, getPublicMediaRef, Imagen } from "@/modules/content";
@@ -13,6 +12,7 @@ import { t } from "@/shared/copy";
 import { formatDateRange } from "@/shared/lib/dates";
 import { mediaUrl } from "@/shared/lib/media";
 import { paginaMetadata } from "@/shared/lib/seo";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Markdown } from "@/shared/ui/Markdown";
 import { edicionPasada } from "../../../_ui/EdicionTarjeta";
 

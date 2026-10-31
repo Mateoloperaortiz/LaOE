@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy/client";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink } from "@/shared/ui/AppLink";
 
 // Kanban de un pipeline (ADR-037 regla 7): columnas por etapa; cada tarjeta se mueve con "Mover a…"
 // (selector y botón, sin JS) o arrastrándola a otra columna con la API nativa del navegador. Las dos
@@ -38,6 +39,7 @@ export interface KanbanProps {
 }
 
 export function Kanban({ columns, returnTo, moveAction }: KanbanProps) {
+  const forms = useRef(new Map<string, HTMLFormElement>());
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -48,18 +50,20 @@ export function Kanban({ columns, returnTo, moveAction }: KanbanProps) {
     const cardId = dragging;
     setDragging(null);
     setOver(null);
-    if (!cardId) {
+    if (!cardId || pending) {
       return;
     }
     const current = columns.find((column) => column.cards.some((card) => card.id === cardId));
     if (current?.id === stageId) {
       return;
     }
-    const formData = new FormData();
-    formData.set("cardId", cardId);
-    formData.set("stageId", stageId);
-    formData.set("returnTo", returnTo);
-    startTransition(() => moveAction(formData));
+    const form = forms.current.get(cardId);
+    const stage = form?.elements.namedItem("stageId");
+    if (!form || !(stage instanceof HTMLSelectElement)) {
+      return;
+    }
+    stage.value = stageId;
+    startTransition(() => form.requestSubmit());
   }
 
   return (
@@ -117,12 +121,12 @@ export function Kanban({ columns, returnTo, moveAction }: KanbanProps) {
                   dragging === card.id ? "opacity-50" : ""
                 }`}
               >
-                <a
+                <AppLink
                   href={card.href}
                   className="font-semibold text-titulo no-underline hover:underline"
                 >
                   {card.title}
-                </a>
+                </AppLink>
                 {card.subject !== card.title || card.edition || card.amount ? (
                   <p className="text-sm text-tinta-suave">
                     {[card.subject !== card.title ? card.subject : null, card.edition, card.amount]
@@ -140,7 +144,14 @@ export function Kanban({ columns, returnTo, moveAction }: KanbanProps) {
                   <summary className="cursor-pointer rounded-lg py-2 text-sm font-semibold text-titulo">
                     {moverA}
                   </summary>
-                  <ActionForm action={moveAction} className="flex items-center gap-2 pt-2">
+                  <ActionForm
+                    ref={(form) => {
+                      if (form) forms.current.set(card.id, form);
+                      else forms.current.delete(card.id);
+                    }}
+                    action={moveAction}
+                    className="flex items-center gap-2 pt-2"
+                  >
                     <AdminFormBody>
                       <input type="hidden" name="cardId" value={card.id} />
                       <input type="hidden" name="returnTo" value={returnTo} />

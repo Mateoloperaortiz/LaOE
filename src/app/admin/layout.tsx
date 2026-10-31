@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { SignOutForm } from "@/modules/identity/components/SignOutForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import "./admin.css";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { CommandPalette } from "@/shared/admin-kit";

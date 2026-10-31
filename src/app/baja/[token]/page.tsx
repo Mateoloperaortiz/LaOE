@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { unsubscribeTokenExists } from "@/modules/comms";
 import { LogoOE } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { unsubscribeAction } from "./actions";
 
 // Dejar de recibir campañas (ADR-038 regla 8): página pública que llega desde el pie del correo. El

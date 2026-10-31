@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listMedia, MEDIA_LIMITS, type MediaRow } from "@/modules/content";
 import { MediaUploader } from "@/modules/content/components/MediaUploader";
@@ -10,6 +9,7 @@ import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { mediaUrl } from "@/shared/lib/media";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 // Medios: UI a medida (ADR-017): subidor directo al bucket y listado con el estado de cada medio.
 
@@ -90,6 +90,7 @@ export default async function MediosPage({ searchParams }: PageProps<"/admin/med
         <output className="admin-notice text-sm font-semibold">{t("T-360")}</output>
       ) : null}
       <ActionForm
+        key={q}
         action={BASE}
         method="get"
         className="admin-toolbar flex flex-wrap items-end gap-3"

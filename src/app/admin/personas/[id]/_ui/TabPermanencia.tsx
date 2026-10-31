@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getPeopleByIds, listCommitteesByIds } from "@/modules/people";
 import {
   getPersonPermanence,
@@ -14,6 +13,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { grantCreditAction } from "../actions";
 
 // Pestaña Permanencia de la Persona 360 (ADR-036): el mismo desglose que ve la persona, en vivo
@@ -72,6 +72,7 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
   return (
     <div className="flex flex-col gap-6">
       <ActionForm
+        key={termId}
         action={`/admin/personas/${personId}`}
         method="get"
         className="flex items-center gap-2 self-end text-sm"

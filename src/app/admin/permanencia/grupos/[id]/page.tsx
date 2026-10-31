@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireGroupOperator } from "@/app/_authz/group";
 import { single } from "@/app/_lib/search";
@@ -13,6 +12,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { addMemberAction, importAction, removeMemberAction, setEvaluatorsAction } from "./actions";
 import { altaNotice } from "./alta";
 
@@ -157,7 +157,7 @@ export default async function GrupoPage({
             </table>
           </AdminTableRegion>
         )}
-        <ActionForm action={base} method="get" className="flex flex-wrap items-end gap-2">
+        <ActionForm key={q} action={base} method="get" className="flex flex-wrap items-end gap-2">
           <div className="flex flex-col gap-1">
             <label htmlFor="q" className="eyebrow text-xs">
               {agregar}

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import { listPipelineOptions } from "@/modules/crm";
@@ -15,6 +14,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { deleteFieldAction, moveFieldAction, saveActionsAction, saveFieldAction } from "./actions";
 
 // Constructor de un formulario (ADR-037 regla 3): campos tipados con orden y panel por URL, acciones

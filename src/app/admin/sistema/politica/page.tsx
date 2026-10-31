@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { ResourceForm } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { savePrivacyPolicyVersionAction } from "./actions";
 
 const PATH = "/admin/sistema/politica";

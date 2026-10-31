@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ActorPermission } from "@/modules/identity";
 import {
   committeeRolesLabel,
@@ -13,6 +12,7 @@ import { AdminActionsMenu } from "@/shared/admin-kit/AdminActionsMenu";
 import { Dato } from "@/shared/admin-kit/AdminFields";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 type Props = {
   data: Person360;

@@ -1,8 +1,8 @@
-import Link from "next/link";
 import type { PublicEdition } from "@/modules/events";
 import { Insignia } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { formatDateRange } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 type Props = {
   edicion: PublicEdition;

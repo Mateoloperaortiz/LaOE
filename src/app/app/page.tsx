@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { countSubscriptionsFor } from "@/modules/comms";
 import { InstallBanner } from "@/modules/comms/components/InstallBanner";
 import { excerpt, listMemberAnnouncements } from "@/modules/content";
@@ -20,6 +19,7 @@ import { BarraTitulo, Insignia, LogoComite, Progreso } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { noticeText } from "./_ui/avisos";
 import { agendaItems, MemberAgenda } from "./_ui/MemberAgenda";
 import { cargoEnComite } from "./_ui/PersonaTarjeta";

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import { requireActor } from "@/modules/identity";
@@ -11,6 +10,7 @@ import {
 import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
 import { getCurrentTerm } from "@/modules/terms";
 import { t, tLabels } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Vacio } from "../../_ui/Vacio";
 
 // Retos del miembro (ADR-067 regla 3): los del semestre actual filtrados por su público y por

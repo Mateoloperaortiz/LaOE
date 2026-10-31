@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { AdminSectionSelect } from "@/shared/admin-kit/AdminSectionSelect";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { TABS, type Tab, tabLabels } from "./etiquetas";
 
 type Props = { personId: string; active: Tab };

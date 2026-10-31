@@ -1,9 +1,9 @@
-import Link from "next/link";
 import type { SanctionView } from "@/modules/people";
 import { Bloque } from "@/shared/admin-kit/AdminFields";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 /**
  * Faltas y sanciones de la pestaña Membresía (ADR-060 regla 6): cada sanción con su estado y, si la

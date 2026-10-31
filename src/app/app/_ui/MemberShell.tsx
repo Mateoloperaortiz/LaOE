@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { LogoOE } from "@/shared/brand";
 import { t } from "@/shared/copy/client";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { AreaSwitch } from "@/shared/ui/AreaSwitch";
 import { ArrowUpRightIcon } from "@/shared/ui/icons/ArrowUpRightIcon";
 import { Menu2Icon } from "@/shared/ui/icons/Menu2Icon";

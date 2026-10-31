@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { listMacroevents, macroeventRoleCodes } from "@/modules/events";
 import { requireAdminActor } from "@/modules/identity";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 export const metadata: Metadata = { title: t("T-2344") };
 

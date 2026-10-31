@@ -81,6 +81,7 @@ export default async function EvaluacionesPage({
         </div>
         {isAdmin ? (
           <ActionForm
+            key={term.id}
             action="/admin/permanencia/evaluaciones"
             method="get"
             className="flex items-center gap-2 text-sm"

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import {
@@ -25,6 +24,7 @@ import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Markdown } from "@/shared/ui/Markdown";
 import {
   addNoteAction,
@@ -370,7 +370,7 @@ export default async function Page({
           ) : null}
           {accion === "vincular" ? (
             <div className="flex flex-col gap-4">
-              <ActionForm action={base} method="get" className="flex flex-col gap-2">
+              <ActionForm key={q} action={base} method="get" className="flex flex-col gap-2">
                 <input type="hidden" name="accion" value="vincular" />
                 <Campo id="v-q" label={cPersona ?? ""}>
                   <input id="v-q" name="q" type="search" defaultValue={q} className={inputClass} />

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireActor } from "@/modules/identity";
 import { getTodayGame2048 } from "@/modules/participation";
 import { Game2048 } from "@/modules/participation/components/Game2048";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { finishGame2048Action, startGame2048Action } from "./actions";
 
 // 2048 de la biblioteca de juegos (ADR-075). El tablero corre en el navegador; el servidor reparte

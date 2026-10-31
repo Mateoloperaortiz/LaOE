@@ -18,6 +18,12 @@ const state = vi.hoisted(() => ({
   available: vi.fn(),
 }));
 
+// El HTML se renderiza sin el router de Next; las transiciones se prueban en navegador.
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 vi.mock("@/modules/identity", () => ({
   requireActor: state.actor,
   getCarnetMetadata: state.credential,

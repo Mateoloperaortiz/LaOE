@@ -173,7 +173,7 @@ export default async function ColeccionPage({
         <p className="text-sm text-tinta-suave">{t("T-2494")}</p>
       </header>
       {collection.terms.length > 0 ? (
-        <ActionForm method="get" className="member-filter">
+        <ActionForm key={semester} method="get" className="member-filter">
           <div className="flex flex-col gap-1">
             <label htmlFor="semestre" className="eyebrow text-xs">
               {t("T-2489")}
