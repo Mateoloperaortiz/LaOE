@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import sharp from "sharp";
 import { closeDb, getDb } from "@/db/client";
@@ -16,55 +16,9 @@ import {
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
 import { E2E_EMAIL } from "./global-setup";
+import { expectNoPageJump, holdPost, trackScroll } from "./scroll-observer";
 
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
-
-/** Registra también un salto que se corrija antes de comprobar la posición final. */
-async function trackScroll(page: Page): Promise<() => Promise<number[]>> {
-  const capture = await page.evaluateHandle(() => {
-    const positions = [window.scrollY];
-    const record = () => positions.push(window.scrollY);
-    window.addEventListener("scroll", record);
-    return { positions, record };
-  });
-  return async () => {
-    const positions = await capture.evaluate(async ({ positions, record }) => {
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      });
-      window.removeEventListener("scroll", record);
-      return [...positions, window.scrollY];
-    });
-    await capture.dispose();
-    return positions;
-  };
-}
-
-async function holdPost(page: Page, pattern: string) {
-  let release = () => {};
-  const held = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  let markStarted = () => {};
-  const started = new Promise<void>((resolve) => {
-    markStarted = resolve;
-  });
-  await page.route(pattern, async (route) => {
-    if (route.request().method() === "POST") {
-      markStarted();
-      await held;
-    }
-    await route.continue();
-  });
-  return { started, release };
-}
-
-function expectNoPageJump(positions: number[], before: number): void {
-  expect(Math.min(...positions), `Posiciones observadas: ${positions.join(", ")}`).toBeGreaterThan(
-    before - 80,
-  );
-  expect(positions.at(-1)).toBeLessThan(before + 80);
-}
 
 async function seedLongOccasionList(prefix: string): Promise<void> {
   const [current] = await getDb().select().from(term).where(eq(term.code, E2E_TERM.code));

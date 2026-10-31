@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { excerpt, findPublicPage } from "@/modules/content";
 import { listAdmissionPipelineIds } from "@/modules/crm";
@@ -7,6 +6,7 @@ import { findOpenProspectForm, findOpenPublicFormForPipelines } from "@/modules/
 import { BarraTitulo, Elemento } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { paginaMetadata } from "@/shared/lib/seo";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { PaginaEditable } from "../_ui/PaginaEditable";
 
 // Páginas fijas y editables del portal (La OE, Unirse, Privacidad y las que el admin cree después).

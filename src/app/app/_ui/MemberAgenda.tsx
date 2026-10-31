@@ -1,10 +1,10 @@
-import Link from "next/link";
 import type { MemberEdition } from "@/modules/events";
 import { findOpenRegistrationForm, isRegistered } from "@/modules/forms";
 import { OCCASION_CATEGORIES, type OccasionRow, windowState } from "@/modules/participation";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { ArrowUpRightIcon } from "@/shared/ui/icons/ArrowUpRightIcon";
 import { PlusIcon } from "@/shared/ui/icons/PlusIcon";
 import { Markdown } from "@/shared/ui/Markdown";

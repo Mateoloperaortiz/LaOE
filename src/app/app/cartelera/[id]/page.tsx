@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMemberAnnouncement } from "@/modules/content";
 import { requireActor } from "@/modules/identity";
@@ -7,6 +6,7 @@ import { listCommitteesByIds } from "@/modules/people";
 import { BarraTitulo, Insignia } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Markdown } from "@/shared/ui/Markdown";
 
 // Un anuncio de miembros o de comité dentro de Mi OE (ADR-038 regla 6): la URL que abre su push.

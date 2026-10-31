@@ -1,7 +1,16 @@
 "use client";
 
-import { type ComponentPropsWithRef, type RefObject, useLayoutEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import {
+  type ComponentPropsWithRef,
+  type SubmitEvent as ReactSubmitEvent,
+  type RefObject,
+  startTransition,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import { useFormStatus } from "react-dom";
+import { preservePageScroll } from "@/shared/lib/navigation-scroll";
 
 type Position = {
   pathname: string;
@@ -77,14 +86,44 @@ function ActionScroll({ position }: { position: RefObject<Position | null> }) {
 export function ActionForm({
   action,
   children,
+  onSubmit,
   onSubmitCapture,
   ...props
 }: ComponentPropsWithRef<"form">) {
+  const router = useRouter();
   const position = useRef<Position | null>(null);
+
+  function submit(event: ReactSubmitEvent<HTMLFormElement>) {
+    onSubmit?.(event);
+    if (event.defaultPrevented || typeof action === "function") return;
+    const form = event.currentTarget;
+    const submitter = event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null;
+    const method = (submitter?.getAttribute("formmethod") ?? form.method).toLowerCase();
+    const target = (submitter?.getAttribute("formtarget") ?? form.target).toLowerCase();
+    if (method !== "get" || (target && target !== "_self")) return;
+    const href = submitter?.getAttribute("formaction") ?? form.getAttribute("action") ?? "";
+    if (!preservePageScroll(href, location.pathname, location.origin)) return;
+    const destination = new URL(href, location.href);
+    const search = new URLSearchParams();
+    // FormData conserva campos repetidos, controles habilitados y el botón que envió el GET.
+    for (const [name, value] of new FormData(form, submitter)) {
+      search.append(name, typeof value === "string" ? value : value.name);
+    }
+    // El GET nativo reemplaza la consulta de action con los controles del formulario.
+    destination.search = search.toString();
+    event.preventDefault();
+    startTransition(() => {
+      router.push(`${destination.pathname}${destination.search}${destination.hash}`, {
+        scroll: false,
+      });
+    });
+  }
+
   return (
     <form
       {...props}
       action={action}
+      onSubmit={submit}
       onSubmitCapture={(event) => {
         onSubmitCapture?.(event);
         if (event.defaultPrevented || typeof action !== "function") return;

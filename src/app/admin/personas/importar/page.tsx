@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
@@ -21,6 +20,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia, Numeral } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { applyAction, discardAction, remapAction } from "./actions";
 import { parseProposalIndexes, proposalSelectionVersion } from "./selection";
 

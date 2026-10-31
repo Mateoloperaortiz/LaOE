@@ -4,6 +4,24 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Posición al cambiar pestañas y filtros (ADR-155) · `en curso`
+
+- [x] Reproducir el salto en GH Points, filtros GET y paginación; comprobar la sonda de pestañas.
+- [x] Auditar enlaces y controles de toda la aplicación y registrar la política común y sus excepciones.
+- [x] Comprobar las regresiones iniciales integradas en desarrollo, incluido el arrastre del Kanban.
+- [x] Completar las regresiones de navegador y las comprobaciones del proyecto sobre el cambio integrado.
+- [ ] Aprobar revisión y CI del candidato antes de integrar.
+- [ ] Publicar el mismo SHA verificado y comprobar staging y producción.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-30 | Navegación · reproducción y auditoría | ADR-155 amplía ADR-154 a pestañas, filtros y paginación. GH Points pasó de 2.367 y 1.899 píxeles a cero; la sonda de pestañas con `scroll={false}` aprobó 4/4. Las seis comprobaciones iniciales de filtros fallaron, incluidas paginación de 9.257 y 3.070 píxeles a cero y recarga del documento en GET. Auditoría AST: 327 NextLink en 122 archivos, 33 GET, ocho `router.push/replace` y un `location.assign`, además de enlaces nativos de Kanban, paleta y Markdown. La implementación común conserva URL, API de los enlaces y controles GET; respeta otras rutas, anclas y destinos. Verificación integrada en curso; sin nueva publicación. |
+| 2026-10-30 | Navegación · callbacks y regresiones en desarrollo | Auditoría adicional de once familias de callbacks directos: el arrastre del Kanban era el único guardado con redirección local fuera del formulario y reprodujo 2.178→0. Ahora reutiliza `ActionForm`, el selector de etapa y `requestSubmit`; un POST retenido comprueba el estado de envío. Tanda integrada de desarrollo 19/19 aprobada (17 casos y dos accesos): pestañas e historial, GET, limpieza, CSV, anclas, otra ruta, paleta con clic y Enter, arrastre y los seis guardados anteriores. Check global, comprobación contra build y revisiones en curso; CI y publicación pendientes. |
+| 2026-10-30 | Navegación · valores aplicados de los GET | Dos casos en rojo confirmaron que Limpiar dejaba la URL y `defaultValue` vacíos mientras el campo visible conservaba `ZafiroEstado`, tanto en el portal a 390 px como en Personas a 1440 px. Los 33 GET declaran identidad por sus valores aplicados: 32 keys nuevas en 31 archivos RSC, más la completa existente de `ResourceToolbar`. La renovación se limita al formulario y conserva el documento. La retanda de esos casos aprobó 4/4. Check global repetido y tanda contra build en curso; CI y publicación pendientes. |
+| 2026-10-30 | Navegación · enlaces del contenido | `ContentLink` limita la navegación cliente del Markdown a consultas locales del mismo origen y ruta, sin fragmento explícito, mediante `AppLink` con prefetch apagado. API, descargas, anclas, externos y otras rutas siguen como enlaces nativos y conservan su transporte anterior. Saneamiento de ReactMarkdown y `skipHtml` intactos. Fuente congelada para el check global y las 21 comprobaciones previstas contra build; resultados de esas tandas aún pendientes. |
+| 2026-10-30 | Navegación · candidato final local | Check global final aprobado: lint, tipos, dependencias, código muerto, 2.703 unitarias, 2.055 de integración, 11 del extractor y build. La tanda contra build aprobó 21/21 en 22,4 s (19 casos y dos accesos), incluidos los filtros GET al limpiar y recorrer el historial. Las dos revisiones independientes quedaron sin hallazgos pendientes; el P2 de valores visibles de GET se reprodujo en rojo y se cerró con las keys aplicadas. Sin cambios de dependencias, permisos, datos ni migraciones; CI y publicación pendientes. |
+
+
 ## Alertas transitivas de esbuild y uuid (ADR-153) · `lista`
 
 - [x] Reproducir ambos fallos sobre las dependencias cargadas por sus consumidores reales.

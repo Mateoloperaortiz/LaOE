@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import {
@@ -21,6 +20,7 @@ import { BarraTitulo, Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { cancelAction, scheduleAction, sendNowAction, sendTestFromCampaignAction } from "./actions";
 
 // Detalle de una campaña (ADR-038 regla 8): destinatarios estimados y excluidos por motivo, programar

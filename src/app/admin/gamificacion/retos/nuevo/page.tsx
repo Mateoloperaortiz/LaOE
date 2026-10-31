@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { listOccasionsForTerm, loadGamificationSettings } from "@/modules/participation";
@@ -11,6 +10,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { utcToBogotaInput } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { saveChallengeAction } from "../actions";
 
 // Nuevo reto (ADR-067 regla 2): nace como borrador; la ocasión vinculada se elige entre las del

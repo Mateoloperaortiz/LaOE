@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { APPLIES_TO, COMPUTATIONS } from "@/modules/permanence";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
@@ -7,6 +6,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 // Una tabla de permanencia (general o de un comité) con sus sumas frente al nominal, su estado y sus
 // criterios; los enlaces de edición los arma la página según el rol.

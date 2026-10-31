@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { CHALLENGE_KINDS, type ChallengeState, listChallengesAdmin } from "@/modules/participation";
@@ -10,6 +9,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 // Lista de retos del admin (ADR-067 regla 16): filtros por semestre, estado y formato.
 
@@ -88,6 +88,7 @@ export default async function RetosPage({ searchParams }: PageProps<"/admin/gami
       </header>
 
       <ActionForm
+        key={JSON.stringify([term?.id ?? "", state, kind])}
         action="/admin/gamificacion/retos"
         method="get"
         className="flex flex-wrap items-end gap-3"

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import {
@@ -36,6 +35,7 @@ import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import {
   addCardNoteAction,
   admitFromCardAction,
@@ -463,7 +463,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
               {error}
             </p>
           ) : null}
-          <ActionForm action={base} method="get" className="flex flex-col gap-2">
+          <ActionForm key={q} action={base} method="get" className="flex flex-col gap-2">
             <input type="hidden" name="nueva" value="1" />
             <Campo id="n-q" label={nPersona ?? ""} help={t("T-1054")}>
               <input id="n-q" name="q" type="search" defaultValue={q} className={inputClass} />

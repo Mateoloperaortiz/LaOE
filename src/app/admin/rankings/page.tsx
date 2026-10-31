@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { peopleBoards, rankCommittees } from "@/modules/participation";
@@ -10,6 +9,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Numeral } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 // Rankings del término para GH (ADR-008, ADR-024): tableros completos de nuevos, veteranos y comités.
 
@@ -64,6 +64,7 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
       <header className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-display-lg">{t("T-635", { término: term.code })}</h1>
         <ActionForm
+          key={term.id}
           action="/admin/rankings"
           method="get"
           className="flex items-center gap-2 text-sm"

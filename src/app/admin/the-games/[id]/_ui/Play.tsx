@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type {
   BaseRow,
   ExtraView,
@@ -23,6 +22,7 @@ import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { importDayAction, importJuryAction } from "../actions";
 import { OperationForm, type PanelContext, Section, Submit, TeamChip } from "./shared";
 

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireCommitteeCapability } from "@/app/_authz/committee";
 import { single } from "@/app/_lib/search";
 import {
@@ -27,6 +26,7 @@ import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { reglaFormLabels, reglaFormValues } from "../../../permanencia/_ui/reglas";
 import {
   applyCommitteeTemplateAction,

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ExcuseState } from "@/modules/crm";
 import {
   type AchievementRow,
@@ -17,6 +16,7 @@ import { attendanceCell, excuseCell } from "@/modules/participation/admin";
 import { Bloque } from "@/shared/admin-kit/AdminFields";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 // Pestaña Participación de la Persona 360 (02-crm.md, ADR-035): check-ins con ocasión, fuente y
 // estado; ledger con ajustes y reversiones; ajustar puntos abre el panel del ledger del admin.

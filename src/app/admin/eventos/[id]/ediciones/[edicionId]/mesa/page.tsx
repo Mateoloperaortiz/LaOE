@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import { getEdition } from "@/modules/events";
@@ -13,6 +12,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { addDirectorAction, removeDirectorAction } from "./actions";
 
 // Mesa directiva de una edición de macroevento (ADR-060 regla 9): la elige la Asamblea; ADMIN registra

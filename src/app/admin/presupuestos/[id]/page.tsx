@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import {
@@ -20,6 +19,7 @@ import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import {
   approveAction,
   closeAction,

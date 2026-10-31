@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireActor } from "@/modules/identity";
 import {
@@ -23,6 +22,7 @@ import { Cartel, Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { CircleCheckIcon } from "@/shared/ui/icons/CircleCheckIcon";
 import { CircleDotIcon } from "@/shared/ui/icons/CircleDotIcon";
 import { Markdown } from "@/shared/ui/Markdown";

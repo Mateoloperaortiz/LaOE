@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
+import { preservePageScroll } from "@/shared/lib/navigation-scroll";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
 
@@ -60,7 +61,10 @@ export function RosterUploader({ endpoint, terms, defaultTermId, labels }: Props
       if (!response.ok || !body.jobId) {
         throw new UploadError(body.error ?? labels.error);
       }
-      router.push(`/admin/personas/importar?job=${body.jobId}&paso=columnas`);
+      const href = `/admin/personas/importar?job=${body.jobId}&paso=columnas`;
+      router.push(href, {
+        scroll: !preservePageScroll(href, window.location.pathname, window.location.origin),
+      });
     } catch (error) {
       setState({ kind: "error", message: uploadErrorMessage(error, labels.error) });
     } finally {

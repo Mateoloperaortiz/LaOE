@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 const KEY = "oe-aviso-notificaciones";
 

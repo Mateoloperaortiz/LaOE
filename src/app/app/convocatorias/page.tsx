@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { CALL_ENTRY_STATUSES, getCall, listMyEntries, listOpenCalls } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
@@ -8,6 +7,7 @@ import { getCurrentTerm } from "@/modules/terms";
 import { BarraTitulo, Cartel, Insignia, SelloOE } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Vacio } from "../_ui/Vacio";
 
 // Convocatorias en Mi OE (06-mapa-del-sitio.md, ADR-037 regla 10): las abiertas del semestre con cupo

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { findPublicPage } from "@/modules/content";
 import { getActor } from "@/modules/identity";
@@ -9,6 +8,7 @@ import { getPrivacyPolicyState } from "@/modules/system";
 import { LogoOE } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Markdown } from "@/shared/ui/Markdown";
 import { autorizarAction } from "./actions";
 

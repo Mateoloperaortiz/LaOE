@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import type { GalleryAlbum } from "@/modules/content";
 import { t } from "@/shared/copy/client";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { ArrowUpRightIcon } from "@/shared/ui/icons/ArrowUpRightIcon";
 import { PhotoImage } from "./PhotoImage";
 import styles from "./photos.module.css";

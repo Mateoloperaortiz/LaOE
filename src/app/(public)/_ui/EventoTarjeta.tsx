@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { Imagen, type MediaRef } from "@/modules/content";
 import type { PublicEdition, PublicEvent } from "@/modules/events";
 import { Cartel, type CartelVariante } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 type Props = {
   evento: PublicEvent;

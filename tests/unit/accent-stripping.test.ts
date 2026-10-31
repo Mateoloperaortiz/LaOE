@@ -43,6 +43,12 @@ const search = vi.hoisted(() => ({
 
 // Los dos buscadores de cliente guardan lo escrito en su estado y la suite unitaria no tiene DOM: el
 // estado que nace vacío devuelve lo que la prueba «escribió», y el filtro que corre es el del componente.
+// El HTML se renderiza sin el router de Next; las transiciones se prueban en navegador.
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
   return {

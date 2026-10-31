@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
@@ -19,6 +18,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { applyAction, confirmAction, confirmAllAction } from "./actions";
 
 // Cierre de permanencia para GH (ADR-027, ADR-036 regla 9): propuestas derivadas del snapshot,
@@ -112,6 +112,7 @@ export default async function CierrePermanenciaPage({
           ) : null}
         </div>
         <ActionForm
+          key={term.id}
           action="/admin/permanencia/cierre"
           method="get"
           className="flex items-center gap-2 text-sm"

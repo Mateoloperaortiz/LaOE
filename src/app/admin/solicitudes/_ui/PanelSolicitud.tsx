@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { RequestView } from "@/modules/crm";
 import { ResourcePanel } from "@/shared/admin-kit";
 import { Campo, Dato, inputClass } from "@/shared/admin-kit/AdminFields";
@@ -8,6 +7,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { decideRequestAction } from "../actions";
 
 // Panel de una solicitud (bandeja y Persona 360): detalle, texto de lo que pasa al aprobar y los dos

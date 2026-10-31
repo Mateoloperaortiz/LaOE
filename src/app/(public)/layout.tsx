@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { LogoOE } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { PublicHeader } from "./_ui/PublicHeader";
 import "./portal.css";
 

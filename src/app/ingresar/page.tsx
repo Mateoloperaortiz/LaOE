@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getActor, safeNextPath } from "@/modules/identity";
 import { initialLoginState } from "@/modules/identity/actions";
 import { LoginForm } from "@/modules/identity/components/LoginForm";
 import { LogoOE } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 export const metadata: Metadata = { title: t("T-040"), robots: { index: false } };
 

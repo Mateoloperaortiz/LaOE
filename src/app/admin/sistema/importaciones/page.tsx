@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireAdminActor } from "@/modules/identity";
 import { getPeopleByIds } from "@/modules/people";
 import { type ImportJobRow, listImportJobs } from "@/modules/system";
@@ -7,6 +6,7 @@ import { listAllTerms } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 // Importaciones del roster y ensayos de migración (06-mapa-del-sitio.md): estado y resumen de cada una.
 

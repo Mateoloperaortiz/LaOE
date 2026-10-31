@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { Elemento } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 export default function NotFound() {
   const [inicio] = tList("T-038");

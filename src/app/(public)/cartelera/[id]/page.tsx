@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { excerpt, getPublicAnnouncement } from "@/modules/content";
 import { BarraTitulo } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { paginaMetadata } from "@/shared/lib/seo";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Markdown } from "@/shared/ui/Markdown";
 
 // Un anuncio de la cartelera: la URL que se comparte (y que usará el push de la fase 6).

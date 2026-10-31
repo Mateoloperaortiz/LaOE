@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 type Props = {
   page: number;

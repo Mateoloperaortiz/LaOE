@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 /** Aviso compartido por los flujos que capturan una autorización (ADR-039). */
 export function PrivacyPolicyNotice({ admin = false }: { admin?: boolean }) {

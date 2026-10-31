@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { isDownloadPending } from "@/app/_lib/download";
 import { getEnv } from "@/env";
 import { getPreferences, listSubscriptionsFor } from "@/modules/comms";
@@ -30,6 +29,7 @@ import { BarraTitulo, Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import {
   consentAction,
   removeDeviceAction,

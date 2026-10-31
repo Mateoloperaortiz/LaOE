@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { MemberAnnouncement } from "@/modules/content";
 import type { InternalCommittee } from "@/modules/people";
 import { ResourcePanel } from "@/shared/admin-kit";
@@ -8,6 +7,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { createCommitteeAnnouncementAction, updateProfileAction } from "../actions";
 
 // Área Comunicación de la vista del comité (ADR-058, decisión 5): la cartelera interna del comité

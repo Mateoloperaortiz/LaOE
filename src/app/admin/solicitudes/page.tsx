@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import {
@@ -15,6 +14,7 @@ import { Pagination } from "@/shared/admin-kit";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { PanelSolicitud } from "./_ui/PanelSolicitud";
 
 // Bandeja de solicitudes (06-mapa-del-sitio.md, ADR-037 regla 9): filtros por estado y tipo y el panel

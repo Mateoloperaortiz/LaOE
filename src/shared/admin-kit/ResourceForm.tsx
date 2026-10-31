@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { t } from "@/shared/copy/client";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { ResourceMultiSelect } from "./AdminMultiSelect";
 import type { FieldDefinition, FormState } from "./types";

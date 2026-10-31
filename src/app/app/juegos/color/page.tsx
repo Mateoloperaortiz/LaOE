@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireActor } from "@/modules/identity";
 import { getTodayColor } from "@/modules/participation";
 import { ColorGame } from "@/modules/participation/components/ColorGame";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { ArrowLeftIcon } from "@/shared/ui/icons/ArrowLeftIcon";
 import { nextColorRoundAction, startColorAction, submitColorRoundAction } from "./actions";
 

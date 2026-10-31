@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import {
@@ -17,6 +16,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { XIcon } from "@/shared/ui/icons/XIcon";
 import { createSpecialBadgeAction, grantBoosterAction, revokeBoosterAction } from "./actions";
@@ -82,6 +82,7 @@ export default async function InsigniasPage({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-display-lg">{tList("T-2405")[4] ?? ""}</h1>
         <ActionForm
+          key={term.id}
           action="/admin/gamificacion/insignias"
           method="get"
           className="flex items-center gap-2 text-sm"
@@ -214,6 +215,7 @@ export default async function InsigniasPage({
         ) : null}
 
         <ActionForm
+          key={q}
           action="/admin/gamificacion/insignias"
           method="get"
           className="flex flex-wrap items-end gap-2"

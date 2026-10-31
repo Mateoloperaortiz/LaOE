@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { getCampaignQuotaStatus } from "@/modules/comms";
 import { quotaProviderLabel, quotaReasonLabel } from "@/modules/comms/admin";
@@ -11,6 +10,7 @@ import { BarraTitulo } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { liftCutAction, resetReserveAction, saveReserveAction } from "./actions";
 
 // El cupo de correo de las campañas (ADR-115 regla 5, ADR-116 reglas 19 y 20), solo ADMIN: por dónde

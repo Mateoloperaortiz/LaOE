@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
@@ -12,6 +11,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { adjustAction, reverseAction } from "./actions";
 
 // Ledger de GH Points para GH (ADR-007, ADR-035 regla 9): filtros, ajustes con motivo y reversiones.
@@ -93,7 +93,12 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
         ) : null}
       </header>
 
-      <ActionForm action={base} method="get" className="flex flex-wrap items-end gap-3">
+      <ActionForm
+        key={JSON.stringify([q, termId, kind])}
+        action={base}
+        method="get"
+        className="flex flex-wrap items-end gap-3"
+      >
         <label className="flex flex-col gap-1">
           <span className="eyebrow text-xs">{filtroPersona}</span>
           <input name="q" defaultValue={q} className={inputClass} placeholder={t("T-264")} />

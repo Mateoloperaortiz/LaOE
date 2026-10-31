@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import { listExcuseStates } from "@/modules/crm";
@@ -32,6 +31,7 @@ import { Cartel, Elemento, LogoOE, SelloOE } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateRange, formatTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { type CheckInResultCode, checkInAction } from "./actions";
 
 // Check-in por QR (ADR-006, ADR-035 regla 5): con sesión (el proxy redirige sin cookie), un solo botón

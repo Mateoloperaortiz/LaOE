@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { EXCUSE_CAUSES, excuseDeadline, listRequestsByPerson } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
@@ -15,6 +14,7 @@ import { getCurrentTerm } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { ArrowUpRightIcon } from "@/shared/ui/icons/ArrowUpRightIcon";
 import { Vacio } from "../_ui/Vacio";
 import { requestTypes } from "./form-state";

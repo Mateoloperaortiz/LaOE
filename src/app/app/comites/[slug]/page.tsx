@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listCommitteeAnnouncements } from "@/modules/content";
 import { listRecognitionsByPeople, monthName, type RecognitionView } from "@/modules/crm";
@@ -8,6 +7,7 @@ import { listInternalRoster } from "@/modules/people";
 import { BarraTitulo, Cartel } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Markdown } from "@/shared/ui/Markdown";
 import { cargoEnComite, PersonaTarjeta } from "../../_ui/PersonaTarjeta";
 import { Vacio } from "../../_ui/Vacio";

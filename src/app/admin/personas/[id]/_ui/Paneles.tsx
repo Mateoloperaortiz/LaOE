@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { type InteractionView, OE_AWARDS } from "@/modules/crm";
 import {
   APPOINTMENT_KINDS,
@@ -21,6 +20,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import {
   addAppointmentAction,
   addNoteAction,

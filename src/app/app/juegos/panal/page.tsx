@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireActor } from "@/modules/identity";
 import { getTodayPanal } from "@/modules/participation";
 import { Panal } from "@/modules/participation/components/Panal";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { startPanalAction, submitPanalAction } from "./actions";
 
 export const metadata: Metadata = { title: t("T-2722") };

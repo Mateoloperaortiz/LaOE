@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
 import { t } from "@/shared/copy/client";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import type { FilterDefinition } from "./types";
 
 type Props = {

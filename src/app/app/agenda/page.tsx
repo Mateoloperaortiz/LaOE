@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { findUpcomingEditionsForMembers } from "@/modules/events";
 import { requireActor } from "@/modules/identity";
 import { listMemberAgenda } from "@/modules/participation";
 import { canParticipate } from "@/modules/people";
 import { getCurrentTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { agendaItems, MemberAgenda } from "../_ui/MemberAgenda";
 
 export const metadata: Metadata = { title: t("T-1661") };

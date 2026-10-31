@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { getOnboarding, listInteractions } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
@@ -16,6 +15,7 @@ import { Cartel, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { noticeText } from "../_ui/avisos";
 import { Vacio } from "../_ui/Vacio";
 
@@ -90,6 +90,7 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
         elemento={null}
       >
         <ActionForm
+          key={term.id}
           action="/app/permanencia"
           method="get"
           className="mt-6 flex items-center gap-2 text-sm"

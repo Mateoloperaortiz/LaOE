@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   type MyMembershipView,
   type Person360,
@@ -11,6 +10,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { removeAppointmentAction } from "../actions";
 
 export function Cargos({ data, my }: { data: Person360; my: MyMembershipView }) {

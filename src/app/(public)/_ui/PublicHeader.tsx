@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { LogoOE, ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy/client";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Menu2Icon } from "@/shared/ui/icons/Menu2Icon";
 
 type Destination = { name: string; href: string };

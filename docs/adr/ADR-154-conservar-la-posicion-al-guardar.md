@@ -1,6 +1,6 @@
 # ADR-154: Conservar la posición de la página al guardar
 
-- Estado: Aceptada; publicada
+- Estado: Aceptada (enmendada por ADR-155); publicada
 - Fecha: 2026-10-30
 - Relacionadas: ADR-022, ADR-043, ADR-044, ADR-080, ADR-082
 
@@ -24,3 +24,7 @@ Next 16.4.1 permite desactivar el desplazamiento en una navegación del cliente,
 La misma corrección cubre el admin kit y los formularios particulares de Administración y Mi OE, incluidos los guardados repetidos cuya URL ya contiene la confirmación. No requiere dependencias, migraciones, cambios de permisos ni textos nuevos.
 
 Las regresiones de navegador deben comprobar guardado con y sin panel, repetición, celular y escritorio, errores de validación, desplazamiento durante el envío y navegación a otra página. Los resultados efectivos y la publicación se registran en el roadmap.
+
+## Enmienda (2026-10-30, ADR-155)
+
+La regla 4 dejaba los formularios GET con su comportamiento nativo. [ADR-155](ADR-155-conservar-la-posicion-al-cambiar-la-vista.md) amplía la conservación del desplazamiento a los GET hacia la misma página, sin ancla explícita y en el destino actual: actualizan la consulta sin recargar el documento. Otro origen o ruta, una ancla explícita o un `target` diferente conservan la navegación nativa. La restauración de las Server Actions y el foco de validación de esta ADR no cambian.

@@ -1,7 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { t } from "@/shared/copy/client";
+import { preservePageScroll } from "@/shared/lib/navigation-scroll";
+import { AppLink } from "@/shared/ui/AppLink";
 
 export interface PaletteResult {
   type: string;
@@ -24,6 +27,7 @@ type Props = {
 
 // Paleta ⌘K (ADR-017): busca en el servidor con pg_trgm y navega con el teclado.
 export function CommandPalette({ endpoint, labels }: Props) {
+  const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const base = useId();
   const [failed, setFailed] = useState(false);
@@ -93,7 +97,13 @@ export function CommandPalette({ endpoint, labels }: Props) {
       if (target) {
         event.preventDefault();
         dialog.current?.close();
-        window.location.assign(target.href);
+        router.push(target.href, {
+          scroll: !preservePageScroll(
+            target.href,
+            window.location.pathname,
+            window.location.origin,
+          ),
+        });
       }
     }
   }
@@ -157,9 +167,10 @@ export function CommandPalette({ endpoint, labels }: Props) {
           >
             {results.map((result, index) => (
               <li key={`${result.type}-${result.id}`}>
-                <a
+                <AppLink
                   href={result.href}
                   className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2 no-underline ${index === active ? "bg-fondo-suave" : ""}`}
+                  onNavigate={() => dialog.current?.close()}
                   onMouseEnter={() => setActive(index)}
                   aria-current={index === active ? "true" : undefined}
                 >
@@ -172,7 +183,7 @@ export function CommandPalette({ endpoint, labels }: Props) {
                   <span className="eyebrow text-xs text-tinta-suave">
                     {labels.types[result.type] ?? result.type}
                   </span>
-                </a>
+                </AppLink>
               </li>
             ))}
           </ul>

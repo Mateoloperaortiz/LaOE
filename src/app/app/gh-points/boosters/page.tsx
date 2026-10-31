@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import { requireActor } from "@/modules/identity";
@@ -18,6 +17,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Vacio } from "../../_ui/Vacio";
 import { setBoosterTargetAction } from "./actions";
 

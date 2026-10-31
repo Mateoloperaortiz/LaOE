@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: El corpus es inmutable durante la lectura; filas, celdas y párrafos no tienen estado y conservan su posición. */
-import Link from "next/link";
+
 import {
   type ArticleRow,
   chaptersOf,
@@ -11,6 +11,7 @@ import {
 } from "@/modules/content";
 import { BarraTitulo, Cartel } from "@/shared/brand";
 import { t, tLabels } from "@/shared/copy";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 
 type Props = {
   detail: {

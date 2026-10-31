@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { downloadHref, isDownloadPending } from "@/app/_lib/download";
 import { DOCUMENT_KINDS, getDocumentWithArticles } from "@/modules/content";
@@ -10,6 +9,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { loadArticlesAction, publicationAction } from "../actions";
 
 const ID = /^[a-z0-9]{10,40}$/;

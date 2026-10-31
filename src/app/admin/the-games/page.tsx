@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { single } from "@/app/_lib/search";
@@ -8,6 +7,7 @@ import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { createCompetitionAction } from "./actions";
 
 // The Games en el admin (ADR-089): ADMIN ve todas las competencias y crea la de cada edición; la

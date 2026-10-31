@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import { exportLimitNotice } from "@/app/admin/_kit/export-limit-notice";
@@ -20,6 +19,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { recomputeAction } from "./actions";
 
 // Cumplimiento de permanencia para GH (12-permanencia): una fila por persona y comité desde los
@@ -76,6 +76,7 @@ export default async function CumplimientoPage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ActionForm
+            key={term.id}
             action="/admin/permanencia/cumplimiento"
             method="get"
             className="flex items-center gap-2 text-sm"
