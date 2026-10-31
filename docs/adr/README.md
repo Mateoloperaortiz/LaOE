@@ -13,7 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-155](ADR-155-conservar-la-posicion-al-cambiar-la-vista.md) | Conservar la posición al cambiar la vista | Aceptada; verificada localmente; publicación pendiente |
+| [ADR-155](ADR-155-conservar-la-posicion-al-cambiar-la-vista.md) | Conservar la posición al cambiar la vista | Aceptada; publicada |
 | [ADR-154](ADR-154-conservar-la-posicion-al-guardar.md) | Conservar la posición de la página al guardar | Aceptada (enmendada por ADR-155); publicada |
 | [ADR-153](ADR-153-parches-de-dependencias-transitivas.md) | Parches acotados de esbuild y uuid transitivos | Aceptada |
 | [ADR-151](ADR-151-repositorio-publico-y-colaboracion-protegida.md) | Repositorio público y colaboración protegida | Aceptada |

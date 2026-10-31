@@ -1,6 +1,6 @@
 # ADR-155: Conservar la posición al cambiar la vista
 
-- Estado: Aceptada; verificada localmente; publicación pendiente
+- Estado: Aceptada; publicada
 - Fecha: 2026-10-30
 - Relacionadas: ADR-043, ADR-044, ADR-154
 - Enmienda: ADR-154, regla 4 (navegación GET dentro de la misma página)
