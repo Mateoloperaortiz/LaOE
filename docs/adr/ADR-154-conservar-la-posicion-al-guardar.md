@@ -1,6 +1,6 @@
 # ADR-154: Conservar la posición de la página al guardar
 
-- Estado: Aceptada; verificada localmente; publicación pendiente
+- Estado: Aceptada; publicada
 - Fecha: 2026-10-30
 - Relacionadas: ADR-022, ADR-043, ADR-044, ADR-080, ADR-082
 
