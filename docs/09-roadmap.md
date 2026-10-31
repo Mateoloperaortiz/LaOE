@@ -4,14 +4,15 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## Posición al cambiar pestañas y filtros (ADR-155) · `en curso`
+## Posición al cambiar pestañas y filtros (ADR-155) · `lista en producción`
 
 - [x] Reproducir el salto en GH Points, filtros GET y paginación; comprobar la sonda de pestañas.
 - [x] Auditar enlaces y controles de toda la aplicación y registrar la política común y sus excepciones.
 - [x] Comprobar las regresiones iniciales integradas en desarrollo, incluido el arrastre del Kanban.
 - [x] Completar las regresiones de navegador y las comprobaciones del proyecto sobre el cambio integrado.
-- [ ] Aprobar revisión y CI del candidato antes de integrar.
-- [ ] Publicar el mismo SHA verificado y comprobar staging y producción.
+- [x] Aprobar revisión y CI del candidato antes de integrar.
+- [x] Publicar el mismo SHA verificado y comprobar staging y producción.
+- [x] Restaurar la demo previa de staging y cotejar configuración, variables y credenciales con el recibo original.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
@@ -23,6 +24,8 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | 2026-10-30 | Navegación · envío GET pendiente | El primer intento de CI del [PR #405](https://github.com/Mateoloperaortiz/LaOE/pull/405) detectó en `portal-ux` dos GET consecutivos antes del commit: la segunda edición se perdía al remontar el formulario. `useTransition`, `aria-busy`, guard contra duplicados y controles deshabilitados mantienen el envío pendiente y restauran sus estados previos, sin agregar DOM ni cambiar CSS. La regresión con respuesta RSC retenida se observó en rojo y pasó con la corrección; `get-filter-state` y `portal-ux` aprobaron 17/17 sin cambiar sus aserciones originales. Check global repetido y 34 comprobaciones contra build pendientes; segundo intento de CI y publicación aún sin acreditar. |
 | 2026-10-30 | Verificación · sincronización del correo | El mismo intento de CI expuso una espera periódica demasiado breve y limpieza incompleta en una prueba existente de correo. La fixture espera ahora la señal del transporte, y su `finally` espera todas las promesas antes del siguiente vaciado de tablas; se conservan timeouts y aserciones. Tanda focalizada 5/5 aprobada. Contraste con demora temporal de 1.200 ms: espera anterior en rojo, nueva sincronización 5/5; demora retirada después de comprobarlo. Ajuste exclusivo de pruebas, sin cambios en comunicaciones de producción. Validación final del candidato en curso. |
 | 2026-10-30 | Navegación · verificación tras CI inicial | Check global repetido aprobado con 2.703 unitarias, 2.055 de integración, 11 del extractor y build. Retanda compilada 34/34 aprobada en 32,6 s, incluyendo el portal original y la nueva espera GET retenida; no se relajaron sus aserciones. La reparación de coordinación del proveedor pasó 5/5 y conserva límites y pruebas de privacidad. Revisiones de los ajustes sin hallazgos pendientes. Nuevo SHA y CI remoto pendientes antes de publicar. |
+| 2026-10-30 | Navegación · publicación | [PR #405](https://github.com/Mateoloperaortiz/LaOE/pull/405) integrado como `0c8abdb78105674ff7d63d06be7f9abe38854dcc`, con revisiones Standards y Spec sin hallazgos pendientes. [CI del PR 41158862405](https://github.com/Mateoloperaortiz/LaOE/actions/runs/41158862405) aprobado con 288 casos de navegador, 2.703 unitarias y 2.055 de integración; [CI de main 41159383109](https://github.com/Mateoloperaortiz/LaOE/actions/runs/41159383109) reutilizó la evidencia del árbol exacto. [Imagen 41159415814](https://github.com/Mateoloperaortiz/LaOE/actions/runs/41159415814) `SUCCESS`, digest `sha256:b210bbb39ebdebbfc7ae77da88ff09726efa53d814652c2b87284ad5b6be9774`. [Promoción 41159843019](https://github.com/Mateoloperaortiz/LaOE/actions/runs/41159843019) `SUCCESS`; producción desplegó `4f7f08f7-49e6-490d-a796-9e14383e3075` con `SUCCESS`, salud HTTP 200/ok del SHA exacto y smoke 6/6. |
+| 2026-10-30 | Navegación · demo de staging restaurada | Despliegue `5bb46bf5-a2db-4975-9a69-db7a2446b272` `SUCCESS`, salud HTTP 200/ok con la demo original `5ebaabf782dca143c8b8a95b247f7a81ec5252eb`. Verificación independiente posterior: configuración y variables completas y credenciales de registro de ambos ambientes coinciden con el recibo original. Las banderas de despliegue permanecen staging=false y production=true. Producción conserva el release `0c8abdb78105674ff7d63d06be7f9abe38854dcc`. |
 
 
 ## Alertas transitivas de esbuild y uuid (ADR-153) · `lista`
