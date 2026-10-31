@@ -44,6 +44,7 @@ const held: MailMessage[] = [];
 /** Qué correos retiene el proveedor hasta que la prueba suelte `gate`, por orden de llegada. */
 let holds: (call: number) => boolean = () => false;
 let gate = deferred<void>();
+let heldStarted = deferred<void>();
 let calls = 0;
 
 const sentTo = () => mails.map((mail) => mail.to).sort();
@@ -90,12 +91,23 @@ async function anonymizeAndClean(personId: string): Promise<void> {
   await drainOutbox();
 }
 
+/** Espera al correo retenido, o falla si el envío termina sin llegar al proveedor. */
+async function waitForHeldMail(sending: Promise<unknown>): Promise<void> {
+  await Promise.race([
+    heldStarted.promise,
+    sending.then(() => {
+      throw new Error("El envío terminó sin retener un correo en el proveedor de prueba");
+    }),
+  ]);
+  expect(held).toHaveLength(1);
+}
+
 /** Anonimiza y limpia mientras `sending` tiene su correo retenido en el proveedor, y después lo suelta. */
 async function anonymizeWhileInFlight(personId: string, sending: Promise<unknown>): Promise<void> {
   let cleaned = false;
   let cleaning: Promise<unknown> = Promise.resolve();
   try {
-    await expect.poll(() => held.length).toBe(1);
+    await waitForHeldMail(sending);
     cleaning = anonymizeAndClean(personId).then(() => {
       cleaned = true;
     });
@@ -103,8 +115,10 @@ async function anonymizeWhileInFlight(personId: string, sending: Promise<unknown
     await expect.poll(async () => cleaned || (await waitingForLock()) > 0).toBe(true);
   } finally {
     gate.resolve();
+    // Espera a las dos incluso si una falla; después propaga el rechazo, si lo hubo.
+    await Promise.allSettled([sending, cleaning]);
+    await Promise.all([sending, cleaning]);
   }
-  await Promise.all([sending, cleaning]);
   await drainOutbox();
 }
 
@@ -117,6 +131,7 @@ describe("el correo de una campaña y el del código de ingreso mientras la pers
     held.length = 0;
     holds = () => false;
     gate = deferred<void>();
+    heldStarted = deferred<void>();
     calls = 0;
     setMailTransportsForTests({
       primary: {
@@ -125,6 +140,7 @@ describe("el correo de una campaña y el del código de ingreso mientras la pers
           calls += 1;
           if (holds(calls)) {
             held.push(mail);
+            heldStarted.resolve();
             await gate.promise;
           }
           mails.push(mail);
@@ -168,7 +184,7 @@ describe("el correo de una campaña y el del código de ingreso mientras la pers
     });
     let anonymizing: Held | null = null;
     try {
-      await expect.poll(() => held.length).toBe(1);
+      await waitForHeldMail(sending);
       await requestDeletionAs({ personId: nora.id, ip: null });
       // La anonimización queda escrita y sin confirmar: tiene tomada la fila de la persona.
       const pending = await holdCommand(admin, (ctx) => anonymizePerson(ctx, nora.id));
@@ -179,8 +195,9 @@ describe("el correo de una campaña y el del código de ingreso mientras la pers
     } finally {
       gate.resolve();
       anonymizing?.release();
+      await Promise.allSettled([sending, anonymizing?.done]);
+      await Promise.all([sending, anonymizing?.done]);
     }
-    await Promise.all([sending, anonymizing?.done]);
 
     // Todavía no corrió la limpieza de `person.anonymized`, y no tiene nada que llevarse.
     expect(await listMessagesFor(nora.id)).toEqual([]);
@@ -207,7 +224,7 @@ describe("el correo de una campaña y el del código de ingreso mientras la pers
     const sending = runCampaignTick(DUE);
     let free: string[] = [];
     try {
-      await expect.poll(() => held.length).toBe(1);
+      await waitForHeldMail(sending);
       // Las filas que otra transacción puede tomar ahora mismo: las retenidas no aparecen.
       free = await getDb().transaction(async (tx) => {
         const rows = await tx
@@ -224,8 +241,8 @@ describe("el correo de una campaña y el del código de ingreso mientras la pers
       });
     } finally {
       gate.resolve();
+      await sending;
     }
-    await sending;
 
     expect(free.sort()).toEqual(members.map((member) => member.id).sort());
     expect(sentTo()).toEqual(members.map((member) => member.email).sort());
@@ -267,6 +284,7 @@ describe("el correo de una campaña y el del código de ingreso mientras la pers
       expect(answered.rows).toEqual([{ ok: 1 }]);
     } finally {
       gate.resolve();
+      await asking;
     }
 
     expect((await asking).map((result) => result.status)).toEqual(members.map(() => "fulfilled"));
