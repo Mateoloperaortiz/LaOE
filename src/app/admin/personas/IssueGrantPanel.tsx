@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { APP_TIME_ZONE } from "@/shared/lib/dates-pure";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { issueGrantAction } from "./acceso-actions";
 import { type IssueGrantState, initialIssueGrantState, issueGrantRejected } from "./acceso-state";
@@ -75,7 +76,7 @@ export function IssueGrantPanel({ personId, returnTo, labels, onIssued }: Props)
 
   return (
     <div className="flex flex-col gap-4">
-      <form
+      <ActionForm
         action={(formData) => {
           action(formData);
           onIssued?.();
@@ -104,7 +105,7 @@ export function IssueGrantPanel({ personId, returnTo, labels, onIssued }: Props)
         <button type="submit" disabled={pending} className="boton-secundario disabled:opacity-60">
           {labels.submit}
         </button>
-      </form>
+      </ActionForm>
       {state.error ? (
         <p
           role="alert"

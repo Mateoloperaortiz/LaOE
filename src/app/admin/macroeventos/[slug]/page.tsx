@@ -9,6 +9,7 @@ import { inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminSectionSelect } from "@/shared/admin-kit/AdminSectionSelect";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { Board } from "./_ui/Board";
 import { Team } from "./_ui/Team";
 
@@ -76,7 +77,7 @@ export default async function MacroeventPage({
         <h1 className="text-display-lg">{event.name}</h1>
         <p className="max-w-prose text-tinta-suave">{t("T-2345")}</p>
       </header>
-      <form action={base} className="flex flex-wrap items-end gap-3" method="get">
+      <ActionForm action={base} className="flex flex-wrap items-end gap-3" method="get">
         <input type="hidden" name="area" value={area} />
         <div className="flex flex-col gap-1">
           <label htmlFor="termId" className="text-sm font-semibold">
@@ -112,7 +113,7 @@ export default async function MacroeventPage({
         <button className="boton-secundario" type="submit">
           {t("T-250")}
         </button>
-      </form>
+      </ActionForm>
       {single(search.guardado) === "1" ? (
         <output className="rounded-xl border border-borde px-4 py-3">{t("T-259")}</output>
       ) : null}

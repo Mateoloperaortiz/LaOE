@@ -15,6 +15,7 @@ import {
   resolveFilters,
 } from "@/shared/admin-kit";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { rowActionAction, saveResourceAction } from "./actions";
 import { DownloadNotice } from "./DownloadNotice";
 
@@ -189,13 +190,13 @@ export async function ResourcePage({
         rowActions={resource.rowActions ?? []}
         rowLinks={resource.rowLinks ?? []}
         rowActionForm={(row, action) => (
-          <form action={rowActionAction}>
+          <ActionForm action={rowActionAction}>
             <input type="hidden" name="__resource" value={resource.key} />
             <input type="hidden" name="__action" value={action.key} />
             <input type="hidden" name="__id" value={row.id} />
             <input type="hidden" name="__returnTo" value={listHref} />
             <ResourceSubmitButton label={action.label} />
-          </form>
+          </ActionForm>
         )}
       />
       <Pagination

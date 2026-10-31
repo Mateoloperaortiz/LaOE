@@ -17,6 +17,7 @@ import { getCurrentTerm } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { Vacio } from "../../_ui/Vacio";
 import { setBoosterTargetAction } from "./actions";
 
@@ -81,14 +82,14 @@ function BoosterCard({
               </Link>
             </dd>
             {booster.state === "AVAILABLE" ? (
-              <form action={setBoosterTargetAction}>
+              <ActionForm action={setBoosterTargetAction}>
                 <input type="hidden" name="boosterId" value={booster.id} />
                 <input type="hidden" name="op" value="quitar" />
                 <input type="hidden" name="back" value="/app/gh-points/boosters" />
                 <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
                   {t("T-2460", { objetivo: booster.target.title })}
                 </button>
-              </form>
+              </ActionForm>
             ) : null}
           </div>
         ) : null}
@@ -106,7 +107,7 @@ function BoosterCard({
       {booster.state === "AVAILABLE" ? (
         <details className="rounded-xl border border-borde bg-fondo-suave p-4">
           <summary className="cursor-pointer font-semibold">{t("T-2457")}</summary>
-          <form action={setBoosterTargetAction} className="mt-4 flex flex-col gap-4">
+          <ActionForm action={setBoosterTargetAction} className="mt-4 flex flex-col gap-4">
             <input type="hidden" name="boosterId" value={booster.id} />
             <input type="hidden" name="back" value="/app/gh-points/boosters" />
             <fieldset className="flex flex-col gap-2">
@@ -153,7 +154,7 @@ function BoosterCard({
             <button type="submit" className="boton-secundario self-start">
               {t("T-253")}
             </button>
-          </form>
+          </ActionForm>
         </details>
       ) : null}
     </article>

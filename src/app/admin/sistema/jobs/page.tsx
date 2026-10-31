@@ -6,6 +6,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { retryOutboxAction } from "./actions";
 
 export const metadata: Metadata = { title: t("T-241") };
@@ -65,7 +66,7 @@ function Tabla({ rows, retry }: { rows: OutboxRow[]; retry: boolean }) {
               </td>
               {retry ? (
                 <td data-label={t("T-245")} className="px-3 py-2 text-right">
-                  <form action={retryOutboxAction}>
+                  <ActionForm action={retryOutboxAction}>
                     <AdminFormBody>
                       <input type="hidden" name="id" value={row.id} />
                       <AdminSubmitButton
@@ -75,7 +76,7 @@ function Tabla({ rows, retry }: { rows: OutboxRow[]; retry: boolean }) {
                         {t("T-245")}
                       </AdminSubmitButton>
                     </AdminFormBody>
-                  </form>
+                  </ActionForm>
                 </td>
               ) : null}
             </tr>

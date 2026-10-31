@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionForm } from "@/shared/ui/ActionForm";
+
 import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { type CodeLoginState, codeLoginAction } from "../actions";
 
@@ -35,7 +37,7 @@ export function CodeLoginForm({ initialState, labels }: Props) {
 
   if (state.step === "email") {
     return (
-      <form action={action} className="flex flex-col gap-5" noValidate>
+      <ActionForm action={action} className="flex flex-col gap-5" noValidate>
         <input type="hidden" name="intent" value="request" />
         <input type="hidden" name="next" value={state.next} />
         <div className="flex flex-col gap-2">
@@ -63,7 +65,7 @@ export function CodeLoginForm({ initialState, labels }: Props) {
         <button type="submit" disabled={pending} className="boton-calido disabled:opacity-60">
           {labels.requestButton}
         </button>
-      </form>
+      </ActionForm>
     );
   }
 
@@ -74,7 +76,7 @@ export function CodeLoginForm({ initialState, labels }: Props) {
           {state.message}
         </output>
       ) : null}
-      <form action={action} className="flex flex-col gap-5" noValidate>
+      <ActionForm action={action} className="flex flex-col gap-5" noValidate>
         <input type="hidden" name="intent" value="verify" />
         <input type="hidden" name="next" value={state.next} />
         <input type="hidden" name="email" value={state.email} />
@@ -109,14 +111,14 @@ export function CodeLoginForm({ initialState, labels }: Props) {
         <button type="submit" disabled={pending} className="boton-calido disabled:opacity-60">
           {labels.verifyButton}
         </button>
-      </form>
-      <form action={action}>
+      </ActionForm>
+      <ActionForm action={action}>
         <input type="hidden" name="intent" value="restart" />
         <input type="hidden" name="next" value={state.next} />
         <button type="submit" className="text-enlace underline underline-offset-4">
           {labels.restartButton}
         </button>
-      </form>
+      </ActionForm>
     </div>
   );
 }

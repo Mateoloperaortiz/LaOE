@@ -1,6 +1,7 @@
 "use client";
 
 import { inputClass } from "@/shared/admin-kit/AdminFields";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { Issues } from "./ImportarJornada";
 
@@ -46,7 +47,7 @@ export function ImportarPoderes({ competitionId, action, labels, open = false }:
   return (
     <details className="rounded-xl border border-borde p-4" open={open || state.attempt > 0}>
       <summary className="cursor-pointer font-semibold">{labels.title}</summary>
-      <form key={state.attempt} action={submit} className="mt-3 flex flex-col gap-3">
+      <ActionForm key={state.attempt} action={submit} className="mt-3 flex flex-col gap-3">
         <input type="hidden" name="competitionId" value={competitionId} />
         <p id="poderes-ayuda" className="max-w-prose text-sm text-tinta-suave">
           {labels.help}
@@ -74,7 +75,7 @@ export function ImportarPoderes({ competitionId, action, labels, open = false }:
         <button type="submit" className="boton-primario min-h-11 self-start" disabled={pending}>
           {pending ? labels.pending : labels.submit}
         </button>
-      </form>
+      </ActionForm>
     </details>
   );
 }

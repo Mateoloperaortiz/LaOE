@@ -15,6 +15,7 @@ import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { Cartel, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { noticeText } from "../_ui/avisos";
 import { Vacio } from "../_ui/Vacio";
 
@@ -88,7 +89,7 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
         subtitulo={closed ? undefined : t("T-111", { umbral: threshold })}
         elemento={null}
       >
-        <form
+        <ActionForm
           action="/app/permanencia"
           method="get"
           className="mt-6 flex items-center gap-2 text-sm"
@@ -111,7 +112,7 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
           <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
           </button>
-        </form>
+        </ActionForm>
       </Cartel>
 
       {notices.some((notice) => notice.kind !== "TERM_CLOSED") ? (

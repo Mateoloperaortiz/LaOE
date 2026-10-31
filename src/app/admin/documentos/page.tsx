@@ -13,6 +13,7 @@ import { Pagination, ResourcePanel } from "@/shared/admin-kit";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 
 const [plural] = tList("T-425");
 const PAGE_SIZE = 20;
@@ -52,7 +53,11 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
           {t("T-1460")}
         </Link>
       </div>
-      <form action={BASE} method="get" className="admin-toolbar flex flex-wrap items-end gap-3">
+      <ActionForm
+        action={BASE}
+        method="get"
+        className="admin-toolbar flex flex-wrap items-end gap-3"
+      >
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <label htmlFor="document-search" className="text-sm font-semibold">
             {t("T-1463")}
@@ -73,7 +78,7 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
             {t("T-1474")}
           </Link>
         ) : null}
-      </form>
+      </ActionForm>
       <p className="text-sm text-tinta-suave">{t("T-1423", { n: total })}</p>
       <div className="admin-table-wrap overflow-x-auto rounded-xl border border-borde">
         <table className="admin-data-table w-full text-left text-sm">

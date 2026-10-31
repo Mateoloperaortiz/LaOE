@@ -15,6 +15,7 @@ import { CuentaRival } from "@/modules/competition/components/CuentaRival";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tLabels } from "@/shared/copy";
 import { formatTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { judgePowerAction, judgeResultAction } from "../actions";
 
 // Un enfrentamiento en la pantalla del líder de base (ADR-089 regla 10, ADR-098 y ADR-106). La base
@@ -142,12 +143,12 @@ export function JudgeMatchup({
                           <span className="text-sm">{effectLabel(own.state)}</span>
                         ) : null}
                       </div>
-                      <form action={judgePowerAction} className="ml-auto">
+                      <ActionForm action={judgePowerAction} className="ml-auto">
                         <Hidden values={{ ...base, operation: "withdraw", useId: own.id }} />
                         <AdminSubmitButton className="boton-secundario min-h-11">
                           {t("T-3103")}
                         </AdminSubmitButton>
-                      </form>
+                      </ActionForm>
                     </div>
                   ) : available.length === 0 ? (
                     <p className="text-sm text-tinta-suave">{t("T-3097")}</p>
@@ -165,7 +166,7 @@ export function JudgeMatchup({
                                 {t("T-3099", { poder: powerLabel(item.power), equipo: team.name })}
                               </p>
                               <p className="text-sm text-tinta-suave">{t("T-3100")}</p>
-                              <form action={judgePowerAction}>
+                              <ActionForm action={judgePowerAction}>
                                 <Hidden
                                   values={{
                                     ...base,
@@ -178,7 +179,7 @@ export function JudgeMatchup({
                                 <AdminSubmitButton className="boton-primario min-h-11 w-full">
                                   {t("T-3101")}
                                 </AdminSubmitButton>
-                              </form>
+                              </ActionForm>
                             </div>
                           </details>
                         </li>
@@ -195,12 +196,12 @@ export function JudgeMatchup({
             </summary>
             <div className="mt-3 flex flex-col gap-3">
               <p className="font-semibold">{t("T-3105")}</p>
-              <form action={judgePowerAction}>
+              <ActionForm action={judgePowerAction}>
                 <Hidden values={{ ...base, operation: "start" }} />
                 <AdminSubmitButton className="boton-primario min-h-11 w-full">
                   {t("T-3106")}
                 </AdminSubmitButton>
-              </form>
+              </ActionForm>
             </div>
           </details>
         </>
@@ -283,12 +284,12 @@ export function JudgeMatchup({
                     </p>
                   ) : null}
                   {stage.powers ? <p className="text-sm">{t("T-3197")}</p> : null}
-                  <form action={judgeResultAction}>
+                  <ActionForm action={judgeResultAction}>
                     <Hidden values={{ ...base, outcome: option.outcome, label: option.label }} />
                     <AdminSubmitButton className="boton-primario min-h-14 w-full text-lg">
                       {t("T-3198")}
                     </AdminSubmitButton>
-                  </form>
+                  </ActionForm>
                 </div>
               </details>
             );

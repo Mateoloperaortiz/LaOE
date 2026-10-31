@@ -12,6 +12,7 @@ import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNo
 import { BarraTitulo } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { Markdown } from "@/shared/ui/Markdown";
 import { applyAction } from "../actions";
 
@@ -75,7 +76,7 @@ export default async function ConvocatoriaPage({
       ) : policyBlocked ? (
         <PrivacyPolicyNotice />
       ) : (
-        <form action={applyAction} className="flex max-w-2xl flex-col gap-6">
+        <ActionForm action={applyAction} className="flex max-w-2xl flex-col gap-6">
           <input type="hidden" name="callId" value={call.id} />
           {form ? (
             <FormFields
@@ -91,7 +92,7 @@ export default async function ConvocatoriaPage({
               {t("T-254")}
             </Link>
           </div>
-        </form>
+        </ActionForm>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { inputClass } from "@/shared/admin-kit/AdminFields";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 
 // Importar una jornada pegando la hoja de rotaciones de la OE (ADR-094). Si la casa encuentra
@@ -75,7 +76,7 @@ export function ImportarJornada({ competitionId, day, action, labels }: Props) {
   return (
     <details className="rounded-xl border border-borde p-4" open={state.attempt > 0}>
       <summary className="cursor-pointer font-semibold">{labels.title}</summary>
-      <form key={state.attempt} action={submit} className="mt-3 flex flex-col gap-3">
+      <ActionForm key={state.attempt} action={submit} className="mt-3 flex flex-col gap-3">
         <input type="hidden" name="competitionId" value={competitionId} />
         <input type="hidden" name="day" value={String(day)} />
         <p id={`${id}-ayuda`} className="max-w-prose text-sm text-tinta-suave">
@@ -126,7 +127,7 @@ export function ImportarJornada({ competitionId, day, action, labels }: Props) {
         <button type="submit" className="boton-primario min-h-11 self-start" disabled={pending}>
           {pending ? labels.pending : labels.submit}
         </button>
-      </form>
+      </ActionForm>
     </details>
   );
 }

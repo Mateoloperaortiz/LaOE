@@ -9,6 +9,7 @@ import {
 import { requireActor } from "@/modules/identity";
 import { BarraTitulo, Cartel, feedVariant } from "@/shared/brand";
 import { t, tLabels } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { Vacio } from "../_ui/Vacio";
 
 // Normativa (ADR-034 regla 9): los documentos publicados y un buscador sobre sus artículos.
@@ -54,7 +55,7 @@ export default async function NormativaPage({ searchParams }: PageProps<"/app/no
         <h1 className="text-display-lg">{t("T-389")}</h1>
         <p className="max-w-prose text-lg">{t("T-130")}</p>
       </header>
-      <form method="get" className="flex flex-wrap items-end gap-4">
+      <ActionForm method="get" className="flex flex-wrap items-end gap-4">
         <div className="flex min-w-0 basis-72 flex-col gap-1 sm:grow-0">
           <label htmlFor="q" className="eyebrow text-xs">
             {t("T-390")}
@@ -70,7 +71,7 @@ export default async function NormativaPage({ searchParams }: PageProps<"/app/no
         <button type="submit" className="boton-secundario">
           {t("T-250")}
         </button>
-      </form>
+      </ActionForm>
       {q ? (
         <section aria-labelledby="resultados" className="flex flex-col gap-6">
           <BarraTitulo color="amarillo" className="self-start">

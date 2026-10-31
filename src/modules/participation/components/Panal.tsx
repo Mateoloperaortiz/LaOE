@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
 import { APP_TIME_ZONE, atHourIn } from "@/shared/lib/dates-pure";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import {
   isPanalPangram,
   normalizePanalWord,
@@ -212,7 +213,7 @@ export function Panal({ initial, onStart, onWord }: Props) {
           </div>
           <div className={styles.columns}>
             <div className="flex min-w-0 flex-col gap-4">
-              <form
+              <ActionForm
                 onSubmit={(event) => {
                   event.preventDefault();
                   submit();
@@ -295,7 +296,7 @@ export function Panal({ initial, onStart, onWord }: Props) {
                     {t("T-2725")}
                   </button>
                 ) : null}
-              </form>
+              </ActionForm>
               {initial.checkpointsEnabled ? (
                 <Link
                   href="/app/juegos"

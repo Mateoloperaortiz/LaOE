@@ -7,6 +7,7 @@ import { listEditionOptions } from "@/modules/events";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { createCompetitionAction } from "./actions";
 
 // The Games en el admin (ADR-089): ADMIN ve todas las competencias y crea la de cada edición; la
@@ -66,7 +67,7 @@ export default async function CompetitionsPage({ searchParams }: PageProps<"/adm
       {roles.isAdmin ? (
         <section className="flex max-w-2xl flex-col gap-4">
           <h2 className="text-display-md">{t("T-2801")}</h2>
-          <form action={createCompetitionAction} className="flex flex-col gap-4">
+          <ActionForm action={createCompetitionAction} className="flex flex-col gap-4">
             <Campo id="editionId" label={edicion ?? ""}>
               <select id="editionId" name="editionId" required className={inputClass}>
                 {editions.map((item) => (
@@ -94,7 +95,7 @@ export default async function CompetitionsPage({ searchParams }: PageProps<"/adm
                 {t("T-2803")}
               </AdminSubmitButton>
             </div>
-          </form>
+          </ActionForm>
         </section>
       ) : null}
     </div>

@@ -28,6 +28,7 @@ import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { Cartel, Insignia, Numeral, SelloOE } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { Vacio } from "../_ui/Vacio";
 import { CommitteePodium, type CommitteePodiumEntry } from "./CommitteePodium";
 import { markSeenAction } from "./coleccion/actions";
@@ -187,7 +188,11 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
       <header className="flex flex-col gap-3">
         <h1 className="text-display-lg">{t("T-080")}</h1>
         {terms.length > 1 ? (
-          <form action="/app/gh-points" method="get" className="flex items-center gap-2 text-sm">
+          <ActionForm
+            action="/app/gh-points"
+            method="get"
+            className="flex items-center gap-2 text-sm"
+          >
             <input type="hidden" name="tablero" value={tablero} />
             <label htmlFor="semestre" className="eyebrow text-xs">
               {t("T-550")}
@@ -207,7 +212,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
             <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
               {t("T-250")}
             </button>
-          </form>
+          </ActionForm>
         ) : null}
       </header>
 

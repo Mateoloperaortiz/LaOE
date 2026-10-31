@@ -16,6 +16,18 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | 2026-10-29 | Verificación · aislamiento E2E | El primer CI remoto detectó que la colección no recibía su insignia: el runner de Playwright conservaba `gamification.enabled=false` aunque una acción del servidor ya había activado la función. La reproducción aislada falló en el mismo aviso; una regresión contra PostgreSQL confirmó la lectura vieja. El envoltorio E2E invalida ahora su caché antes de drenar, con lo que los handlers leen los cambios del servidor. La misma reproducción pasa sin esperas ni reintentos añadidos. Es una corrección del aislamiento de ADR-052; no cambia la caché de producción. |
 | 2026-10-29 | Dependencias · corrección transitiva | ADR-153 fija esbuild 0.25.12 para el cargador de Drizzle Kit y uuid 11.1.1 para ExcelJS. Dos regresiones reproducen los avisos originales antes del parche; se verifica el árbol instalado, Excel y la generación de migraciones con datos/esquemas locales. `npm audit` sin vulnerabilidades; árbol instalado válido. ExcelJS y el cargador ESM comprobados; Drizzle Kit genera SQL idéntico antes/después. `npm run check` aprobó lint, tipos, fronteras, código muerto, 2.686 unitarias, 2.054 de integración, 11 del extractor y build. El CI remoto completo es requisito antes de integrar. |
 
+## Posición de la página al guardar (ADR-154) · `en publicación`
+
+- [x] Reproducir el salto y completar la corrección compartida para los formularios.
+- [x] Separar la entrega sobre `main`, conservando fuera la funcionalidad de inventario.
+- [x] Verificar el candidato independiente con check global, regresiones y revisión.
+- [ ] Publicar el mismo SHA validado en staging y producción, y comprobar salud y smoke.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-30 | Formularios · preparación de publicación | `ActionForm` conserva la posición tras guardar en la misma ruta y ancla, respeta los errores de validación y el desplazamiento voluntario durante el envío. La reproducción original mostró saltos de más de 1.900 píxeles a cero. Se prepara una entrega independiente sobre `main`, sin inventario, con regresiones de navegador para formularios con panel y sin él. Publicación pendiente. |
+| 2026-10-30 | Formularios · candidato independiente | Integrados 241 formularios en 102 archivos de `main`, sin inventario. `npm run check` aprobó lint, tipos, dependencias, código muerto, 2.686 unitarias, 2.055 de integración, 11 del extractor y build. Ocho comprobaciones E2E contra build aprobadas (seis casos y dos accesos): fila, panel, formulario nativo, repetición, validación, navegación, gestos durante el envío y subida real. Dos casos adicionales se observaron en rojo: subida de medios 771→0 y desplazamiento sin rueda durante el envío devuelto a la posición anterior; ambos corregidos. Medios conserva la fila visible ante las inserciones normales del listado. Revisión Standards y Spec sin hallazgos pendientes. CI remoto y publicación pendientes. |
+
 ## Colaboración pública en GitHub (ADR-151) · `lista`
 
 - [x] Registrar la decisión, preparar el CI en runners efímeros y documentar colaboración y reportes privados.

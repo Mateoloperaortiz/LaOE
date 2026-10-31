@@ -18,6 +18,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { applyAction, confirmAction, confirmAllAction } from "./actions";
 
 // Cierre de permanencia para GH (ADR-027, ADR-036 regla 9): propuestas derivadas del snapshot,
@@ -110,7 +111,7 @@ export default async function CierrePermanenciaPage({
             </p>
           ) : null}
         </div>
-        <form
+        <ActionForm
           action="/admin/permanencia/cierre"
           method="get"
           className="flex items-center gap-2 text-sm"
@@ -133,7 +134,7 @@ export default async function CierrePermanenciaPage({
           <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
       </header>
 
       {term.permanenceClosedAt ? (
@@ -279,7 +280,7 @@ export default async function CierrePermanenciaPage({
               {closable ? (
                 <div className="flex flex-wrap items-center gap-2">
                   {!row.decided ? (
-                    <form action={confirmAction}>
+                    <ActionForm action={confirmAction}>
                       <AdminFormBody>
                         <input type="hidden" name="termId" value={term.id} />
                         <input type="hidden" name="filtro" value={filter === "ALL" ? "" : filter} />
@@ -292,7 +293,7 @@ export default async function CierrePermanenciaPage({
                           {confirmar}
                         </AdminSubmitButton>
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   ) : null}
                   <Link
                     href={`${withFilter}&persona=${row.personId}`}
@@ -325,7 +326,7 @@ export default async function CierrePermanenciaPage({
 
       {accion === "bloque" && closable ? (
         <ResourcePanel title={confirmarTodas ?? ""} closeHref={base} closeLabel={t("T-291")}>
-          <form action={confirmAllAction} className="flex flex-col gap-4">
+          <ActionForm action={confirmAllAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="termId" value={term.id} />
               <p>{t("T-807", { n: summary.undecided })}</p>
@@ -338,13 +339,13 @@ export default async function CierrePermanenciaPage({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 
       {accion === "aplicar" && closable ? (
         <ResourcePanel title={aplicar ?? ""} closeHref={base} closeLabel={t("T-291")}>
-          <form action={applyAction} className="flex flex-col gap-4">
+          <ActionForm action={applyAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="termId" value={term.id} />
               <p>
@@ -376,7 +377,7 @@ export default async function CierrePermanenciaPage({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
     </div>
@@ -404,7 +405,7 @@ function PanelCambio({
 }) {
   return (
     <ResourcePanel title={labels.title} closeHref={closeHref} closeLabel={t("T-291")}>
-      <form action={confirmAction} className="flex flex-col gap-4">
+      <ActionForm action={confirmAction} className="flex flex-col gap-4">
         <AdminFormBody>
           <input type="hidden" name="termId" value={termId} />
           <input type="hidden" name="filtro" value={filter === "ALL" ? "" : filter} />
@@ -471,7 +472,7 @@ function PanelCambio({
             </Link>
           </div>
         </AdminFormBody>
-      </form>
+      </ActionForm>
     </ResourcePanel>
   );
 }

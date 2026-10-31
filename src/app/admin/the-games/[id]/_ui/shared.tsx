@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { competitionAction } from "../actions";
 
 // Piezas comunes del panel de The Games: cada formulario lleva la competencia, la pestaña de vuelta y
@@ -24,7 +25,7 @@ export function OperationForm({
   hidden?: Record<string, string>;
 }) {
   return (
-    <form action={competitionAction} className={className}>
+    <ActionForm action={competitionAction} className={className}>
       <input type="hidden" name="competitionId" value={context.competitionId} />
       <input type="hidden" name="area" value={context.area} />
       <input type="hidden" name="operation" value={operation} />
@@ -32,7 +33,7 @@ export function OperationForm({
         <input key={name} type="hidden" name={name} value={value} />
       ))}
       {children}
-    </form>
+    </ActionForm>
   );
 }
 

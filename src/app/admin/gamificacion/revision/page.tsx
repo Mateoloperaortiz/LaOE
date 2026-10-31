@@ -12,6 +12,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { annulAction, reviewAction } from "./actions";
 
 // Bandeja de revisión de evidencias (ADR-067 regla 5): pendientes del término con texto, imágenes
@@ -71,7 +72,7 @@ export default async function RevisionPage({
       </header>
 
       <DownloadNotice searchParams={search} />
-      <form
+      <ActionForm
         action="/admin/gamificacion/revision"
         method="get"
         className="flex flex-wrap items-end gap-3"
@@ -97,7 +98,7 @@ export default async function RevisionPage({
         <AdminSubmitButton type="submit" className="boton-secundario">
           {filters[0]}
         </AdminSubmitButton>
-      </form>
+      </ActionForm>
 
       {rows.length === 0 ? (
         <p className="text-tinta-suave">{t("T-2524")}</p>
@@ -165,15 +166,15 @@ export default async function RevisionPage({
 
               {row.participation.status === "PENDING" ? (
                 <div className="flex flex-wrap items-start gap-4">
-                  <form action={reviewAction}>
+                  <ActionForm action={reviewAction}>
                     <input type="hidden" name="participationId" value={row.participation.id} />
                     <input type="hidden" name="decision" value="APPROVE" />
                     <input type="hidden" name="back" value={base} />
                     <AdminSubmitButton className="boton-primario min-h-9 px-4 py-1 text-sm">
                       {actions[0]}
                     </AdminSubmitButton>
-                  </form>
-                  <form action={reviewAction} className="flex flex-wrap items-end gap-2">
+                  </ActionForm>
+                  <ActionForm action={reviewAction} className="flex flex-wrap items-end gap-2">
                     <input type="hidden" name="participationId" value={row.participation.id} />
                     <input type="hidden" name="decision" value="REJECT" />
                     <input type="hidden" name="back" value={base} />
@@ -184,7 +185,7 @@ export default async function RevisionPage({
                     <AdminSubmitButton className="boton-secundario min-h-9 px-4 py-1 text-sm">
                       {actions[1]}
                     </AdminSubmitButton>
-                  </form>
+                  </ActionForm>
                 </div>
               ) : null}
 
@@ -208,7 +209,7 @@ export default async function RevisionPage({
 
       {accion === "anular" && participationId ? (
         <ResourcePanel title={tList("T-2530")[0] ?? ""} closeHref={base} closeLabel={t("T-291")}>
-          <form action={annulAction} className="flex flex-col gap-4">
+          <ActionForm action={annulAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="participationId" value={participationId} />
               <input type="hidden" name="back" value={base} />
@@ -226,7 +227,7 @@ export default async function RevisionPage({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
     </div>

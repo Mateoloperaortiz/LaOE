@@ -14,6 +14,7 @@ import { AdminMultiSelect } from "@/shared/admin-kit/AdminMultiSelect";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { deleteFieldAction, moveFieldAction, saveActionsAction, saveFieldAction } from "./actions";
 
 // Constructor de un formulario (ADR-037 regla 3): campos tipados con orden y panel por URL, acciones
@@ -163,7 +164,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
                     <td data-label={t("T-1500")} className="py-2 pr-4">
                       <div className="flex flex-wrap gap-2">
                         {index > 0 ? (
-                          <form action={moveFieldAction}>
+                          <ActionForm action={moveFieldAction}>
                             <AdminFormBody>
                               <input type="hidden" name="formId" value={view.id} />
                               <input type="hidden" name="key" value={field.key} />
@@ -175,10 +176,10 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
                                 {subir}
                               </AdminSubmitButton>
                             </AdminFormBody>
-                          </form>
+                          </ActionForm>
                         ) : null}
                         {index < view.parsedFields.length - 1 ? (
-                          <form action={moveFieldAction}>
+                          <ActionForm action={moveFieldAction}>
                             <AdminFormBody>
                               <input type="hidden" name="formId" value={view.id} />
                               <input type="hidden" name="key" value={field.key} />
@@ -190,9 +191,9 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
                                 {bajar}
                               </AdminSubmitButton>
                             </AdminFormBody>
-                          </form>
+                          </ActionForm>
                         ) : null}
-                        <form action={deleteFieldAction}>
+                        <ActionForm action={deleteFieldAction}>
                           <AdminFormBody>
                             <input type="hidden" name="formId" value={view.id} />
                             <input type="hidden" name="key" value={field.key} />
@@ -203,7 +204,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
                               {borrar}
                             </AdminSubmitButton>
                           </AdminFormBody>
-                        </form>
+                        </ActionForm>
                       </div>
                     </td>
                   </tr>
@@ -220,7 +221,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
           {t("T-919")}
         </h2>
         <Bloque titulo={t("T-919")}>
-          <form action={saveActionsAction} className="flex flex-col gap-4">
+          <ActionForm action={saveActionsAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="formId" value={view.id} />
               <Casilla
@@ -270,7 +271,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
                 {t("T-253")}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </Bloque>
       </section>
 
@@ -288,7 +289,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
               {error}
             </p>
           ) : null}
-          <form action={saveFieldAction} className="flex flex-col gap-4">
+          <ActionForm action={saveFieldAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="formId" value={view.id} />
               <input type="hidden" name="originalKey" value={editing?.key ?? ""} />
@@ -359,7 +360,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
     </div>

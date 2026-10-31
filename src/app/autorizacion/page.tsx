@@ -8,6 +8,7 @@ import { hasLiveConsent } from "@/modules/people";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { LogoOE } from "@/shared/brand";
 import { t } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { Markdown } from "@/shared/ui/Markdown";
 import { autorizarAction } from "./actions";
 
@@ -45,11 +46,11 @@ export default async function AutorizacionPage() {
           </section>
           <div className="flex flex-col gap-4 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5">
             <p className="max-w-prose text-sm">{t("T-150", { v: policy.version ?? "—" })}</p>
-            <form action={autorizarAction}>
+            <ActionForm action={autorizarAction}>
               <button type="submit" className="boton-primario">
                 {t("T-2087")}
               </button>
-            </form>
+            </ActionForm>
           </div>
         </>
       ) : null}

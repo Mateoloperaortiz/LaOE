@@ -7,6 +7,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { createCommitteeAnnouncementAction, updateProfileAction } from "../actions";
 
 // Área Comunicación de la vista del comité (ADR-058, decisión 5): la cartelera interna del comité
@@ -76,7 +77,7 @@ export function Comunicacion({
         <section aria-label={fichaTitulo} className="flex flex-col gap-3">
           <h2 className="text-display-md">{fichaTitulo}</h2>
           <p className="max-w-prose text-sm text-tinta-suave">{t("T-2184")}</p>
-          <form action={updateProfileAction} className="flex max-w-prose flex-col gap-4">
+          <ActionForm action={updateProfileAction} className="flex max-w-prose flex-col gap-4">
             <input type="hidden" name="slug" value={slug} />
             {accion === "" ? alerta : null}
             <label className="flex flex-col gap-1">
@@ -102,13 +103,13 @@ export function Comunicacion({
                 {t("T-253")}
               </AdminSubmitButton>
             </div>
-          </form>
+          </ActionForm>
         </section>
       ) : null}
 
       {canBoard && accion === "anuncio" ? (
         <ResourcePanel title={nuevoAnuncio ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
-          <form action={createCommitteeAnnouncementAction} className="flex flex-col gap-4">
+          <ActionForm action={createCommitteeAnnouncementAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="slug" value={slug} />
               {alerta}
@@ -134,7 +135,7 @@ export function Comunicacion({
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
     </div>

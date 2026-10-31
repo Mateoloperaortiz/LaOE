@@ -35,6 +35,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import {
   addCardNoteAction,
   admitFromCardAction,
@@ -238,7 +239,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
             !policy.ready ? (
               <PrivacyPolicyNotice admin />
             ) : alta === "1" ? (
-              <form
+              <ActionForm
                 action={admitFromCardAction}
                 className="flex flex-col gap-4 rounded-xl border border-borde p-4"
               >
@@ -266,7 +267,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                     </Link>
                   </div>
                 </AdminFormBody>
-              </form>
+              </ActionForm>
             ) : (
               <Link href={`${base}?tarjeta=${card.id}&alta=1`} className="boton-calido self-start">
                 {t("T-983")}
@@ -299,7 +300,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
           ) : null}
           <section className="flex flex-col gap-3">
             <h3 className="eyebrow text-xs">{datosTitulo}</h3>
-            <form action={updateCardAction} className="flex flex-col gap-3">
+            <ActionForm action={updateCardAction} className="flex flex-col gap-3">
               <AdminFormBody>
                 <input type="hidden" name="pipelineId" value={id} />
                 <input type="hidden" name="cardId" value={card.id} />
@@ -366,11 +367,11 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                   {t("T-253")}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           </section>
           <section className="flex flex-col gap-3">
             <h3 className="eyebrow text-xs">{notasTitulo}</h3>
-            <form action={addCardNoteAction} className="flex flex-col gap-2">
+            <ActionForm action={addCardNoteAction} className="flex flex-col gap-2">
               <AdminFormBody>
                 <input type="hidden" name="pipelineId" value={id} />
                 <input type="hidden" name="cardId" value={card.id} />
@@ -389,7 +390,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                   {tList("T-456")[0]}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
             {subjectTimeline.length === 0 ? (
               <p className="text-sm text-tinta-suave">{t("T-457")}</p>
             ) : (
@@ -423,7 +424,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                 ))}
               </ul>
             )}
-            <form action={createCardTaskAction} className="flex flex-col gap-2">
+            <ActionForm action={createCardTaskAction} className="flex flex-col gap-2">
               <AdminFormBody>
                 <input type="hidden" name="pipelineId" value={id} />
                 <input type="hidden" name="cardId" value={card.id} />
@@ -447,7 +448,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                   {t("T-251")}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           </section>
         </ResourcePanel>
       ) : null}
@@ -462,7 +463,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
               {error}
             </p>
           ) : null}
-          <form action={base} method="get" className="flex flex-col gap-2">
+          <ActionForm action={base} method="get" className="flex flex-col gap-2">
             <input type="hidden" name="nueva" value="1" />
             <Campo id="n-q" label={nPersona ?? ""} help={t("T-1054")}>
               <input id="n-q" name="q" type="search" defaultValue={q} className={inputClass} />
@@ -470,8 +471,8 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
             <AdminSubmitButton type="submit" className="boton-secundario self-start">
               {t("T-250")}
             </AdminSubmitButton>
-          </form>
-          <form action={createCardAction} className="flex flex-col gap-4">
+          </ActionForm>
+          <ActionForm action={createCardAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="pipelineId" value={id} />
               <fieldset className="flex flex-col gap-2">
@@ -539,7 +540,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                 {t("T-253")}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 
@@ -556,7 +557,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
           <ol className="flex list-none flex-col gap-4 p-0">
             {board.map((stage, index) => (
               <li key={stage.id} className="flex flex-col gap-2 rounded-xl border border-borde p-3">
-                <form action={saveStageAction} className="flex flex-col gap-2">
+                <ActionForm action={saveStageAction} className="flex flex-col gap-2">
                   <AdminFormBody>
                     <input type="hidden" name="pipelineId" value={id} />
                     <input type="hidden" name="stageId" value={stage.id} />
@@ -587,10 +588,10 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                       {t("T-253")}
                     </AdminSubmitButton>
                   </AdminFormBody>
-                </form>
+                </ActionForm>
                 <div className="flex flex-wrap gap-2">
                   {index > 0 ? (
-                    <form action={moveStageAction}>
+                    <ActionForm action={moveStageAction}>
                       <AdminFormBody>
                         <input type="hidden" name="pipelineId" value={id} />
                         <input type="hidden" name="stageId" value={stage.id} />
@@ -602,10 +603,10 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                           {subir}
                         </AdminSubmitButton>
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   ) : null}
                   {index < board.length - 1 ? (
-                    <form action={moveStageAction}>
+                    <ActionForm action={moveStageAction}>
                       <AdminFormBody>
                         <input type="hidden" name="pipelineId" value={id} />
                         <input type="hidden" name="stageId" value={stage.id} />
@@ -617,9 +618,9 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                           {bajar}
                         </AdminSubmitButton>
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   ) : null}
-                  <form action={deleteStageAction}>
+                  <ActionForm action={deleteStageAction}>
                     <AdminFormBody>
                       <input type="hidden" name="pipelineId" value={id} />
                       <input type="hidden" name="stageId" value={stage.id} />
@@ -630,12 +631,12 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                         {borrar}
                       </AdminSubmitButton>
                     </AdminFormBody>
-                  </form>
+                  </ActionForm>
                 </div>
               </li>
             ))}
           </ol>
-          <form
+          <ActionForm
             action={saveStageAction}
             className="flex flex-col gap-2 rounded-xl border border-borde border-dashed p-3"
           >
@@ -652,7 +653,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                 {t("T-251")}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
       <span className="sr-only">{moverA}</span>

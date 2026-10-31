@@ -9,6 +9,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 
 // Lista de retos del admin (ADR-067 regla 16): filtros por semestre, estado y formato.
 
@@ -86,7 +87,7 @@ export default async function RetosPage({ searchParams }: PageProps<"/admin/gami
         </Link>
       </header>
 
-      <form
+      <ActionForm
         action="/admin/gamificacion/retos"
         method="get"
         className="flex flex-wrap items-end gap-3"
@@ -126,7 +127,7 @@ export default async function RetosPage({ searchParams }: PageProps<"/admin/gami
         <AdminSubmitButton type="submit" className="boton-secundario">
           {t("T-250")}
         </AdminSubmitButton>
-      </form>
+      </ActionForm>
 
       {result.rows.length === 0 ? (
         <p className="text-tinta-suave">{empty}</p>

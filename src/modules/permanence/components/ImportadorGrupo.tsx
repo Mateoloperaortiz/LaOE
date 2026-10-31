@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionForm } from "@/shared/ui/ActionForm";
+
 import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 
 // Importación de miembros a un grupo desde un CSV de correos (ADR-036 regla 6): dos pasos en el
@@ -66,7 +68,7 @@ export function ImportadorGrupo({ groupId, action, labels }: Props) {
           {fill(labels.applied, { n: state.applied })}
         </output>
       ) : null}
-      <form action={formAction} className="flex flex-col gap-3">
+      <ActionForm action={formAction} className="flex flex-col gap-3">
         <input type="hidden" name="groupId" value={groupId} />
         <input type="hidden" name="step" value="preview" />
         <label htmlFor="archivo" className="eyebrow text-xs">
@@ -82,9 +84,9 @@ export function ImportadorGrupo({ groupId, action, labels }: Props) {
         <button type="submit" disabled={pending} className="boton-secundario self-start">
           {labels.load}
         </button>
-      </form>
+      </ActionForm>
       {state.summary ? (
-        <form action={formAction} className="flex flex-col gap-3">
+        <ActionForm action={formAction} className="flex flex-col gap-3">
           <input type="hidden" name="groupId" value={groupId} />
           <input type="hidden" name="step" value="apply" />
           <input type="hidden" name="csv" value={state.csv} />
@@ -109,7 +111,7 @@ export function ImportadorGrupo({ groupId, action, labels }: Props) {
               {labels.confirm}
             </button>
           ) : null}
-        </form>
+        </ActionForm>
       ) : null}
     </div>
   );

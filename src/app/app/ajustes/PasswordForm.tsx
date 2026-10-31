@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionForm } from "@/shared/ui/ActionForm";
+
 import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { changePasswordAction, type PasswordState } from "./actions";
 
@@ -31,7 +33,7 @@ export function PasswordForm({ hasPassword, labels }: Props) {
   );
 
   return (
-    <form action={action} className="flex max-w-md flex-col gap-4" noValidate>
+    <ActionForm action={action} className="flex max-w-md flex-col gap-4" noValidate>
       <h3 className="text-titulo-lg">{labels.title}</h3>
       {hasPassword ? (
         <div className="flex flex-col gap-2">
@@ -99,6 +101,6 @@ export function PasswordForm({ hasPassword, labels }: Props) {
       >
         {labels.submit}
       </button>
-    </form>
+    </ActionForm>
   );
 }

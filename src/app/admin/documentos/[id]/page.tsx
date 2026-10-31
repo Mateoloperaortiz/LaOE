@@ -9,6 +9,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { loadArticlesAction, publicationAction } from "../actions";
 
 const ID = /^[a-z0-9]{10,40}$/;
@@ -84,7 +85,7 @@ export default async function DocumentPreviewPage({
         aria-labelledby="document-management"
         className="admin-surface flex min-w-0 flex-col gap-4 rounded-xl border border-borde bg-fondo p-5"
       >
-        <form action={loadArticlesAction} className="flex min-w-0 flex-col gap-4">
+        <ActionForm action={loadArticlesAction} className="flex min-w-0 flex-col gap-4">
           <AdminFormBody>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -138,7 +139,7 @@ export default async function DocumentPreviewPage({
               </div>
             </div>
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </section>
       <DocumentReader
         detail={detail}

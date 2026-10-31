@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { uploadToBucket } from "@/shared/ui/bucket-upload";
 import { uploadErrorMessage } from "@/shared/ui/upload-error";
 
@@ -77,7 +78,12 @@ export function MediaUploader({ allowedTypes, minBytes, maxBytes, labels, succes
       setState({ kind: "done" });
       if (input.current) input.current.value = "";
       setFile(null);
-      router.push(successHref);
+      const destination = new URL(successHref, window.location.href);
+      const samePage =
+        destination.origin === window.location.origin &&
+        destination.pathname === window.location.pathname &&
+        destination.hash === window.location.hash;
+      router.push(successHref, { scroll: !samePage });
       router.refresh();
       // Las variantes las genera el outbox en segundos: se vuelve a leer el listado.
       setTimeout(() => router.refresh(), 4_000);
@@ -92,7 +98,7 @@ export function MediaUploader({ allowedTypes, minBytes, maxBytes, labels, succes
   }
 
   return (
-    <form
+    <ActionForm
       onSubmit={(event) => {
         event.preventDefault();
         if (file) void upload(file);
@@ -183,6 +189,6 @@ export function MediaUploader({ allowedTypes, minBytes, maxBytes, labels, succes
           </span>
         ) : null}
       </output>
-    </form>
+    </ActionForm>
   );
 }

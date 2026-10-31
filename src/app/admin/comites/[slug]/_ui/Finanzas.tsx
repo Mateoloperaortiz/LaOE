@@ -8,6 +8,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import {
   recordExpenseAction,
   recordTransferAction,
@@ -113,7 +114,7 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
           </AdminTableRegion>
           {budget.status === "OPEN" ? (
             <div className="grid gap-6 lg:grid-cols-3">
-              <form action={submitPrerequestAction} className="flex flex-col gap-3">
+              <ActionForm action={submitPrerequestAction} className="flex flex-col gap-3">
                 <AdminFormBody>
                   {hidden}
                   <input type="hidden" name="budgetId" value={budget.id} />
@@ -138,8 +139,8 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
                     {registrarPresol}
                   </AdminSubmitButton>
                 </AdminFormBody>
-              </form>
-              <form action={recordExpenseAction} className="flex flex-col gap-3">
+              </ActionForm>
+              <ActionForm action={recordExpenseAction} className="flex flex-col gap-3">
                 <AdminFormBody>
                   {hidden}
                   <input type="hidden" name="budgetId" value={budget.id} />
@@ -218,8 +219,8 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
                     {t("T-2192")}
                   </AdminSubmitButton>
                 </AdminFormBody>
-              </form>
-              <form action={recordTransferAction} className="flex flex-col gap-3">
+              </ActionForm>
+              <ActionForm action={recordTransferAction} className="flex flex-col gap-3">
                 <AdminFormBody>
                   {hidden}
                   <input type="hidden" name="budgetId" value={budget.id} />
@@ -290,7 +291,7 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
                     {t("T-2193")}
                   </AdminSubmitButton>
                 </AdminFormBody>
-              </form>
+              </ActionForm>
             </div>
           ) : null}
         </section>
@@ -326,7 +327,7 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
             ))}
           </ul>
         )}
-        <form action={requestApprovalAction} className="flex max-w-xl flex-col gap-3">
+        <ActionForm action={requestApprovalAction} className="flex max-w-xl flex-col gap-3">
           <AdminFormBody>
             {hidden}
             <input type="hidden" name="budgetId" value={budgets[0]?.budget.id ?? ""} />
@@ -353,7 +354,7 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
               {pedirAval}
             </AdminSubmitButton>
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </section>
     </section>
   );

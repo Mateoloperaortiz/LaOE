@@ -20,6 +20,7 @@ import { AdminMultiSelect } from "@/shared/admin-kit/AdminMultiSelect";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import {
   addAppointmentAction,
   addNoteAction,
@@ -125,7 +126,7 @@ export function Paneles({
     return (
       <ResourcePanel title={acciones[0] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
-        <form action={updatePersonAction} className="flex flex-col gap-4">
+        <ActionForm action={updatePersonAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <Campo id="campo-firstName" label={campos[0] ?? ""}>
@@ -244,7 +245,7 @@ export function Paneles({
             </fieldset>
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -253,7 +254,7 @@ export function Paneles({
     return (
       <ResourcePanel title={acciones[1] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
-        <form action={changeStatusAction} className="flex flex-col gap-4">
+        <ActionForm action={changeStatusAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <Campo id="campo-to" label={t("T-435")} help={t("T-510")}>
@@ -276,7 +277,7 @@ export function Paneles({
             </Campo>
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -288,7 +289,7 @@ export function Paneles({
       <ResourcePanel title={acciones[2] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
         <p className="text-sm">{t("T-162", { nombre: person.fullName?.trim() ?? "" })}</p>
-        <form action={endMembershipAction} className="flex flex-col gap-4">
+        <ActionForm action={endMembershipAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <Campo id="campo-endReason" label={t("T-434")}>
@@ -331,7 +332,7 @@ export function Paneles({
             </Campo>
             <Botones enviar={t("T-438")} cancelHref={closeHref} calido />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -341,7 +342,7 @@ export function Paneles({
       <ResourcePanel title={acciones[3] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
         <p className="text-sm">{t("T-439", { nombre: person.fullName?.trim() ?? "" })}</p>
-        <form action={reactivateAction} className="flex flex-col gap-4">
+        <ActionForm action={reactivateAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <Campo id="campo-email-reactivar" label={campos[2] ?? ""}>
@@ -358,7 +359,7 @@ export function Paneles({
             </Campo>
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -373,12 +374,12 @@ export function Paneles({
             fecha: formatDate(person.deletionRequestedAt),
           })}
         </p>
-        <form action={anonymizeAction} className="flex flex-col gap-4">
+        <ActionForm action={anonymizeAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <Botones enviar={t("T-441")} cancelHref={closeHref} calido />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -390,7 +391,7 @@ export function Paneles({
       <ResourcePanel title={t("T-983")} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
         {!policyReady ? <PrivacyPolicyNotice admin /> : null}
-        <form action={admitAction} className="flex flex-col gap-4">
+        <ActionForm action={admitAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <input type="hidden" name="termId" value={term?.id ?? ""} />
@@ -412,7 +413,7 @@ export function Paneles({
             />
             <Botones enviar={t("T-983")} cancelHref={closeHref} calido disabled={!policyReady} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -428,7 +429,7 @@ export function Paneles({
         closeLabel={t("T-291")}
       >
         {alerta}
-        <form action={setCommitteesAction} className="flex flex-col gap-4">
+        <ActionForm action={setCommitteesAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <input type="hidden" name="termId" value={my.term.id} />
@@ -502,7 +503,7 @@ export function Paneles({
             </Campo>
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -544,7 +545,7 @@ export function Paneles({
       <ResourcePanel title={condicion} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
         <p className="text-sm">{t("T-2143")}</p>
-        <form action={setProbationAction} className="flex flex-col gap-4">
+        <ActionForm action={setProbationAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <Campo id="campo-termId-condicion" label={término}>
@@ -606,7 +607,7 @@ export function Paneles({
             </Campo>
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -630,7 +631,7 @@ export function Paneles({
       <ResourcePanel title={sancionesTitulo} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
         <p className="text-sm">{t("T-2231")}</p>
-        <form action={recordSanctionAction} className="flex flex-col gap-4">
+        <ActionForm action={recordSanctionAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <input type="hidden" name="termId" value={selectedTerm?.id ?? ""} />
@@ -695,7 +696,7 @@ export function Paneles({
             </Campo>
             <Botones enviar={registrar} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -705,7 +706,7 @@ export function Paneles({
     return (
       <ResourcePanel title={revocar} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
-        <form action={revokeSanctionAction} className="flex flex-col gap-4">
+        <ActionForm action={revokeSanctionAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <input type="hidden" name="sanctionId" value={sancionId} />
@@ -720,7 +721,7 @@ export function Paneles({
             </Campo>
             <Botones enviar={revocar} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -733,7 +734,7 @@ export function Paneles({
     return (
       <ResourcePanel title={agregar} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
-        <form action={addAppointmentAction} className="flex flex-col gap-4">
+        <ActionForm action={addAppointmentAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <Campo id="campo-kind-cargo" label={cargosTitulo}>
@@ -792,7 +793,7 @@ export function Paneles({
             </Campo>
             <Botones enviar={agregar} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -804,7 +805,7 @@ export function Paneles({
     return (
       <ResourcePanel title={titulo ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
-        <form action={grantAwardAction} className="flex flex-col gap-4">
+        <ActionForm action={grantAwardAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <Campo id="campo-award" label={categoria ?? ""}>
@@ -834,7 +835,7 @@ export function Paneles({
             </Campo>
             <Botones enviar={otorgar ?? ""} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -844,7 +845,7 @@ export function Paneles({
     return (
       <ResourcePanel title={acciones[5] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
-        <form action={note ? editNoteAction : addNoteAction} className="flex flex-col gap-4">
+        <ActionForm action={note ? editNoteAction : addNoteAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             {note ? <input type="hidden" name="noteId" value={note.id} /> : null}
@@ -860,7 +861,7 @@ export function Paneles({
             </Campo>
             <Botones enviar={guardarNota} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -871,7 +872,7 @@ export function Paneles({
     return (
       <ResourcePanel title={acciones[6] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
-        <form action={createTaskAction} className="flex flex-col gap-4">
+        <ActionForm action={createTaskAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <Campo id="campo-title" label={titulo}>
@@ -908,7 +909,7 @@ export function Paneles({
             </Campo>
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }
@@ -917,7 +918,7 @@ export function Paneles({
     return (
       <ResourcePanel title={acciones[7] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
-        <form action={setTagsAction} className="flex flex-col gap-4">
+        <ActionForm action={setTagsAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}
             <AdminMultiSelect
@@ -928,7 +929,7 @@ export function Paneles({
             />
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
           </AdminFormBody>
-        </form>
+        </ActionForm>
       </ResourcePanel>
     );
   }

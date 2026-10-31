@@ -10,6 +10,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { registerAction, scanAction } from "../actions";
 
 // Modo anfitrión (ADR-035 regla 8): móvil primero, buscar por nombre o escanear el carnet; el token
@@ -88,7 +89,7 @@ export default async function AnfitrionPage({
             />
           </section>
           <section aria-label={altaBoton} className="flex flex-col gap-3">
-            <form action={base} method="get" className="flex items-end gap-3">
+            <ActionForm action={base} method="get" className="flex items-end gap-3">
               <label className="flex flex-1 flex-col gap-1">
                 <span className="eyebrow text-xs">{t("T-599")}</span>
                 <input
@@ -100,7 +101,7 @@ export default async function AnfitrionPage({
               <AdminSubmitButton type="submit" className="boton-secundario min-h-12">
                 {t("T-250")}
               </AdminSubmitButton>
-            </form>
+            </ActionForm>
             {q ? (
               results.length === 0 ? (
                 <p className="text-tinta-suave">{t("T-600")}</p>
@@ -112,7 +113,7 @@ export default async function AnfitrionPage({
                       className="flex items-center justify-between gap-3 rounded-xl border border-borde bg-fondo px-4 py-3"
                     >
                       <span className="text-lg font-semibold">{item.fullName.trim()}</span>
-                      <form action={registerAction}>
+                      <ActionForm action={registerAction}>
                         <AdminFormBody>
                           <input type="hidden" name="occasionId" value={id} />
                           <input type="hidden" name="personId" value={item.id} />
@@ -121,7 +122,7 @@ export default async function AnfitrionPage({
                             {altaBoton}
                           </AdminSubmitButton>
                         </AdminFormBody>
-                      </form>
+                      </ActionForm>
                     </li>
                   ))}
                 </ul>

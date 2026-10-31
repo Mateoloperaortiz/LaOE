@@ -9,6 +9,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Numeral } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 
 // Rankings del término para GH (ADR-008, ADR-024): tableros completos de nuevos, veteranos y comités.
 
@@ -62,7 +63,11 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
     <div className="flex flex-col gap-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-display-lg">{t("T-635", { término: term.code })}</h1>
-        <form action="/admin/rankings" method="get" className="flex items-center gap-2 text-sm">
+        <ActionForm
+          action="/admin/rankings"
+          method="get"
+          className="flex items-center gap-2 text-sm"
+        >
           <label htmlFor="termId" className="eyebrow text-xs">
             {tList("T-570")[0]}
           </label>
@@ -81,7 +86,7 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
           <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
       </header>
 
       {boards.map(([title, rows]) => (

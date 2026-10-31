@@ -10,6 +10,7 @@ import { AppleWalletLink } from "@/modules/wallet/components/AppleWalletLink";
 import { Cartel } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { cargoEnComite } from "../_ui/PersonaTarjeta";
 import { revokeCarnetAction } from "./actions";
 
@@ -162,13 +163,16 @@ export default async function CarnetPage({ searchParams }: PageProps<"/app/carne
               <summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo">
                 {t("T-1193")}
               </summary>
-              <form action={revokeCarnetAction} className="mt-4 flex flex-col items-start gap-4">
+              <ActionForm
+                action={revokeCarnetAction}
+                className="mt-4 flex flex-col items-start gap-4"
+              >
                 <input type="hidden" name="confirm" value="1" />
                 <p className="max-w-prose text-sm">{t("T-1194")}</p>
                 <button type="submit" className="boton-secundario text-sm">
                   {t("T-1193")}
                 </button>
-              </form>
+              </ActionForm>
             </details>
           ) : null}
         </section>

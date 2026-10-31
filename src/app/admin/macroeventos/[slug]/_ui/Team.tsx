@@ -6,6 +6,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { macroeventAction } from "../actions";
 import { Areas } from "./Areas";
 import { Fields, type MacroContext, MemberSelect } from "./Fields";
@@ -32,14 +33,14 @@ export function Team({
       <div className="flex flex-col items-start gap-4">
         <p className="max-w-prose text-tinta-suave">{t(gap ? "T-2386" : "T-2348")}</p>
         {!closed ? (
-          <form action={macroeventAction}>
+          <ActionForm action={macroeventAction}>
             <AdminFormBody>
               <Fields context={context} operation="prepare" />
               <AdminSubmitButton className="boton-primario" type="submit">
                 {t(gap ? "T-2385" : "T-2349")}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         ) : null}
       </div>
     );
@@ -102,7 +103,7 @@ export function Team({
                     <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold underline">
                       {t("T-2379")} · {member.name}
                     </summary>
-                    <form action={macroeventAction} className="mt-3 flex flex-col gap-3">
+                    <ActionForm action={macroeventAction} className="mt-3 flex flex-col gap-3">
                       <AdminFormBody>
                         <Fields context={context} operation="set-areas" />
                         <input type="hidden" name="personId" value={member.personId} />
@@ -111,13 +112,13 @@ export function Team({
                           {t("T-2380")}
                         </AdminSubmitButton>
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   </details>
                   <details className="w-full max-w-xl">
                     <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold underline">
                       {t("T-2360")} · {member.name}
                     </summary>
-                    <form action={macroeventAction} className="mt-4 flex flex-col gap-3">
+                    <ActionForm action={macroeventAction} className="mt-4 flex flex-col gap-3">
                       <AdminFormBody>
                         <Fields context={context} operation="evaluate" />
                         <input type="hidden" name="personId" value={member.personId} />
@@ -148,9 +149,9 @@ export function Team({
                           {t("T-2362")}
                         </AdminSubmitButton>
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   </details>
-                  <form action={macroeventAction}>
+                  <ActionForm action={macroeventAction}>
                     <AdminFormBody>
                       <Fields context={context} operation="remove-member" />
                       <input type="hidden" name="personId" value={member.personId} />
@@ -162,7 +163,7 @@ export function Team({
                         {quitar}
                       </AdminSubmitButton>
                     </AdminFormBody>
-                  </form>
+                  </ActionForm>
                 </div>
               ) : null}
             </li>
@@ -172,7 +173,7 @@ export function Team({
         <p className="text-tinta-suave">{t("T-844")}</p>
       )}
       {!closed ? (
-        <form action={macroeventAction} className="flex max-w-xl flex-col gap-3">
+        <ActionForm action={macroeventAction} className="flex max-w-xl flex-col gap-3">
           <AdminFormBody>
             <Fields context={context} operation="add-member" />
             <MemberSelect
@@ -193,7 +194,7 @@ export function Team({
               {agregar}
             </AdminSubmitButton>
           </AdminFormBody>
-        </form>
+        </ActionForm>
       ) : null}
       <section aria-labelledby="responsables" className="flex flex-col gap-4">
         <h2 id="responsables" className="text-display-md">
@@ -209,7 +210,7 @@ export function Team({
             </p>
           </>
         ) : (
-          <form action={macroeventAction} className="flex max-w-xl flex-col gap-4">
+          <ActionForm action={macroeventAction} className="flex max-w-xl flex-col gap-4">
             <AdminFormBody>
               <Fields context={context} operation="configure" />
               <MemberSelect
@@ -254,7 +255,7 @@ export function Team({
                 {t("T-2363")}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         )}
         <Link
           href={`/admin/permanencia/grupos/${detail.group.id}`}

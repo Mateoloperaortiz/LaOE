@@ -20,6 +20,7 @@ import {
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
 import styles from "./Juegos.module.css";
 
@@ -142,7 +143,7 @@ export default async function JuegosPage({ searchParams }: PageProps<"/app/juego
 
       <div id="mas-gamer" className={styles.gamer}>
         {terms.length > 1 ? (
-          <form action="/app/juegos#mas-gamer" method="get" className={styles.semester}>
+          <ActionForm action="/app/juegos#mas-gamer" method="get" className={styles.semester}>
             <label htmlFor="gamer-semestre">{t("T-550")}</label>
             <select
               id="gamer-semestre"
@@ -159,7 +160,7 @@ export default async function JuegosPage({ searchParams }: PageProps<"/app/juego
             <button type="submit" className="boton-secundario px-3 py-2 text-sm">
               {t("T-250")}
             </button>
-          </form>
+          </ActionForm>
         ) : null}
         {term && profile ? (
           <>

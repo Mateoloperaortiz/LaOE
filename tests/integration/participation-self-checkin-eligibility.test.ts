@@ -7,6 +7,7 @@ import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { formatDate, formatTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { currentTermCode, seedMembership, seedOccasion, seedPerson, seedTerm } from "../factories";
 import { elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
@@ -66,7 +67,7 @@ async function shown(publicId: string, search: Record<string, string> = {}): Pro
     searchParams: Promise.resolve(search),
   });
   const all = elements(tree);
-  if (all.some((item) => item.type === "form")) {
+  if (all.some((item) => item.type === ActionForm)) {
     return FORM;
   }
   const text = all.find((item) => item.type === "p")?.props.children;

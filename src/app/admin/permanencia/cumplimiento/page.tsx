@@ -19,6 +19,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { recomputeAction } from "./actions";
 
 // Cumplimiento de permanencia para GH (12-permanencia): una fila por persona y comité desde los
@@ -74,7 +75,7 @@ export default async function CumplimientoPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <form
+          <ActionForm
             action="/admin/permanencia/cumplimiento"
             method="get"
             className="flex items-center gap-2 text-sm"
@@ -97,8 +98,8 @@ export default async function CumplimientoPage({
             <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
               {t("T-250")}
             </AdminSubmitButton>
-          </form>
-          <form action={recomputeAction}>
+          </ActionForm>
+          <ActionForm action={recomputeAction}>
             <AdminFormBody>
               <input type="hidden" name="termId" value={term.id} />
               <AdminSubmitButton
@@ -108,7 +109,7 @@ export default async function CumplimientoPage({
                 {t("T-794")}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
           <a
             href={`/api/export/permanencia?termId=${term.id}&filtro=${filter}`}
             className="boton-secundario min-h-8 px-3 py-1 text-sm"

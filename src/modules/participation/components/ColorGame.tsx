@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useEffect, useRef, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
 import { COLOR_POINT_THRESHOLDS, COLOR_ROUNDS, COLOR_WATCH_MS } from "../color-engine";
 import type {
@@ -271,7 +272,7 @@ export function ColorGame({ initial, onStart, onNextRound, onSubmit }: Props) {
       ) : null}
 
       {phase === "MATCH" && run ? (
-        <form
+        <ActionForm
           className={`${styles.panel} ${styles.mix}`}
           onSubmit={(event) => {
             event.preventDefault();
@@ -369,7 +370,7 @@ export function ColorGame({ initial, onStart, onNextRound, onSubmit }: Props) {
               </button>
             </div>
           </div>
-        </form>
+        </ActionForm>
       ) : null}
 
       {phase === "RESULT" && run && last ? (

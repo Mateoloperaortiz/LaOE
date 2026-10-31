@@ -6,6 +6,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 
 // Una tabla de permanencia (general o de un comité) con sus sumas frente al nominal, su estado y sus
 // criterios; los enlaces de edición los arma la página según el rol.
@@ -127,7 +128,7 @@ export function TablaReglas({
                         {t("T-252")}
                       </Link>
                       {deleteAction ? (
-                        <form action={deleteAction} className="ml-3 inline">
+                        <ActionForm action={deleteAction} className="ml-3 inline">
                           <AdminFormBody>
                             <input type="hidden" name="id" value={rule.id} />
                             {Object.entries(deleteHidden).map(([name, value]) => (
@@ -137,7 +138,7 @@ export function TablaReglas({
                               {t("T-843")}
                             </AdminSubmitButton>
                           </AdminFormBody>
-                        </form>
+                        </ActionForm>
                       ) : null}
                     </td>
                   ) : null}

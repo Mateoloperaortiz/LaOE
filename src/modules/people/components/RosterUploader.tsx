@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
 
 // Paso 1 del asistente del roster (ADR-034): el archivo va al servidor, que lo guarda en el bucket y
@@ -68,7 +69,7 @@ export function RosterUploader({ endpoint, terms, defaultTermId, labels }: Props
   }
 
   return (
-    <form
+    <ActionForm
       onSubmit={submit}
       className="admin-upload flex min-w-0 flex-col gap-4 rounded-xl border border-borde bg-fondo p-5"
       aria-busy={state.kind === "uploading"}
@@ -149,6 +150,6 @@ export function RosterUploader({ endpoint, terms, defaultTermId, labels }: Props
           </span>
         ) : null}
       </output>
-    </form>
+    </ActionForm>
   );
 }

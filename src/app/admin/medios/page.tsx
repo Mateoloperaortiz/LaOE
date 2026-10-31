@@ -9,6 +9,7 @@ import type { Column } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { mediaUrl } from "@/shared/lib/media";
+import { ActionForm } from "@/shared/ui/ActionForm";
 
 // Medios: UI a medida (ADR-017): subidor directo al bucket y listado con el estado de cada medio.
 
@@ -88,7 +89,11 @@ export default async function MediosPage({ searchParams }: PageProps<"/admin/med
       {params.subido === "1" ? (
         <output className="admin-notice text-sm font-semibold">{t("T-360")}</output>
       ) : null}
-      <form action={BASE} method="get" className="admin-toolbar flex flex-wrap items-end gap-3">
+      <ActionForm
+        action={BASE}
+        method="get"
+        className="admin-toolbar flex flex-wrap items-end gap-3"
+      >
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <label htmlFor="media-search" className="text-sm font-semibold">
             {t("T-1472")}
@@ -109,7 +114,7 @@ export default async function MediosPage({ searchParams }: PageProps<"/admin/med
             {t("T-1474")}
           </Link>
         ) : null}
-      </form>
+      </ActionForm>
       <p className="text-sm text-tinta-suave">{t("T-1423", { n: total })}</p>
       <ResourceTable
         columns={columns()}

@@ -7,6 +7,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { decideRequestAction } from "../actions";
 
 // Panel de una solicitud (bandeja y Persona 360): detalle, texto de lo que pasa al aprobar y los dos
@@ -93,7 +94,7 @@ export function PanelSolicitud({
           {request.kind === "TRANSFER" && nextTermCode ? (
             <p className="text-sm text-tinta-suave">{t("T-1014", { término: nextTermCode })}</p>
           ) : null}
-          <form action={decideRequestAction} className="flex flex-col gap-3">
+          <ActionForm action={decideRequestAction} className="flex flex-col gap-3">
             <AdminFormBody>
               <input type="hidden" name="requestId" value={request.id} />
               <input type="hidden" name="returnTo" value={returnTo} />
@@ -116,8 +117,8 @@ export function PanelSolicitud({
                 {aprobar}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
-          <form action={decideRequestAction} className="flex flex-col gap-3">
+          </ActionForm>
+          <ActionForm action={decideRequestAction} className="flex flex-col gap-3">
             <AdminFormBody>
               <input type="hidden" name="requestId" value={request.id} />
               <input type="hidden" name="returnTo" value={returnTo} />
@@ -134,7 +135,7 @@ export function PanelSolicitud({
                 {rechazar}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </div>
       ) : (
         <p className="text-sm text-tinta-suave">{t("T-1007")}</p>

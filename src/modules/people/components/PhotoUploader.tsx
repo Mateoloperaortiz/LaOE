@@ -3,6 +3,7 @@
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { mediaUrl } from "@/shared/lib/media";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { uploadToBucket } from "@/shared/ui/bucket-upload";
 import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
 
@@ -147,7 +148,7 @@ export function PhotoUploader({
 
   const image = preview ?? (currentAssetId ? mediaUrl(currentAssetId, 480) : null);
   return (
-    <form
+    <ActionForm
       aria-label={labels.field}
       aria-busy={busy}
       onSubmit={(event) => {
@@ -254,6 +255,6 @@ export function PhotoUploader({
           </p>
         ) : null}
       </div>
-    </form>
+    </ActionForm>
   );
 }

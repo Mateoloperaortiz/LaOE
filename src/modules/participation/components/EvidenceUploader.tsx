@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { uploadToBucket } from "@/shared/ui/bucket-upload";
 import { XIcon } from "@/shared/ui/icons/XIcon";
 import type { ChallengeSubmitReply, SubmitDenial } from "../gamification-types";
@@ -185,7 +186,7 @@ export function EvidenceUploader({
   }
 
   return (
-    <form
+    <ActionForm
       onSubmit={(event) => {
         event.preventDefault();
         submit();
@@ -269,6 +270,6 @@ export function EvidenceUploader({
       >
         {tList("T-2420")[2]}
       </button>
-    </form>
+    </ActionForm>
   );
 }

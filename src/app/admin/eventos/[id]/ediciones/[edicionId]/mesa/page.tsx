@@ -12,6 +12,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { addDirectorAction, removeDirectorAction } from "./actions";
 
 // Mesa directiva de una edición de macroevento (ADR-060 regla 9): la elige la Asamblea; ADMIN registra
@@ -116,7 +117,7 @@ export default async function Page({
                     </Link>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <form action={removeDirectorAction}>
+                    <ActionForm action={removeDirectorAction}>
                       <AdminFormBody>
                         <input type="hidden" name="eventId" value={id} />
                         <input type="hidden" name="editionId" value={edicion.id} />
@@ -128,7 +129,7 @@ export default async function Page({
                           {quitar}
                         </AdminSubmitButton>
                       </AdminFormBody>
-                    </form>
+                    </ActionForm>
                   </td>
                 </tr>
               ))}
@@ -136,7 +137,7 @@ export default async function Page({
           </table>
         </AdminTableRegion>
       )}
-      <form action={addDirectorAction} className="flex max-w-xl flex-col gap-4">
+      <ActionForm action={addDirectorAction} className="flex max-w-xl flex-col gap-4">
         <AdminFormBody>
           <input type="hidden" name="eventId" value={id} />
           <input type="hidden" name="editionId" value={edicion.id} />
@@ -180,7 +181,7 @@ export default async function Page({
             {agregar}
           </AdminSubmitButton>
         </AdminFormBody>
-      </form>
+      </ActionForm>
     </div>
   );
 }

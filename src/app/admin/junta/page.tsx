@@ -9,6 +9,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 
 // Panel de la junta (ADR-036 regla 12): ADMIN o BOARD ven agregados del término sin nombres ni
 // correos; el CSV sale por `/api/export/junta` sin step-up porque no lleva datos personales.
@@ -69,7 +70,11 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <form action="/admin/junta" method="get" className="flex items-center gap-2 text-sm">
+          <ActionForm
+            action="/admin/junta"
+            method="get"
+            className="flex items-center gap-2 text-sm"
+          >
             <label htmlFor="termId" className="eyebrow text-xs">
               {tList("T-570")[0]}
             </label>
@@ -88,7 +93,7 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
             <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
               {t("T-250")}
             </AdminSubmitButton>
-          </form>
+          </ActionForm>
           <a
             href={`/api/export/junta?termId=${term.id}`}
             className="boton-secundario min-h-8 px-3 py-1 text-sm"

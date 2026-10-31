@@ -17,6 +17,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { reglaFormLabels, reglaFormValues } from "../_ui/reglas";
 import {
   applyTemplateAction,
@@ -118,7 +119,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
       </Link>
       {view.rules.length === 0 ? (
         <>
-          <form action={copyPreviousAction}>
+          <ActionForm action={copyPreviousAction}>
             <AdminFormBody>
               {Object.entries(hidden).map(([name, value]) => (
                 <input key={name} type="hidden" name={name} value={value} />
@@ -130,8 +131,8 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
                 {copiar}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
-          <form action={applyTemplateAction}>
+          </ActionForm>
+          <ActionForm action={applyTemplateAction}>
             <AdminFormBody>
               {Object.entries(hidden).map(([name, value]) => (
                 <input key={name} type="hidden" name={name} value={value} />
@@ -143,7 +144,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
                 {referencia}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </>
       ) : (
         <Link
@@ -155,7 +156,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
       )}
       {view.committeeId ? (
         <>
-          <form action={lockTableAction}>
+          <ActionForm action={lockTableAction}>
             <AdminFormBody>
               {Object.entries(hidden).map(([name, value]) => (
                 <input key={name} type="hidden" name={name} value={value} />
@@ -168,7 +169,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
                 {view.lockedAt ? desbloquear : bloquear}
               </AdminSubmitButton>
             </AdminFormBody>
-          </form>
+          </ActionForm>
           <Link
             href={`${base}&accion=comentar`}
             className="boton-secundario min-h-9 px-3 py-1 text-sm"
@@ -201,7 +202,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
             </p>
           ) : null}
         </div>
-        <form
+        <ActionForm
           action="/admin/permanencia/reglas"
           method="get"
           className="flex items-center gap-2 text-sm"
@@ -224,7 +225,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
           <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
           </AdminSubmitButton>
-        </form>
+        </ActionForm>
       </header>
 
       {selected && committee ? (
@@ -274,7 +275,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
                 {tablaGeneral}
               </Link>
             ) : null}
-            <form action={lockAllAction}>
+            <ActionForm action={lockAllAction}>
               <AdminFormBody>
                 <input type="hidden" name="termId" value={term.id} />
                 <AdminSubmitButton
@@ -284,7 +285,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
                   {bloquearTodas}
                 </AdminSubmitButton>
               </AdminFormBody>
-            </form>
+            </ActionForm>
           </div>
         </div>
         <ul className="grid list-none gap-2 p-0 sm:grid-cols-2 lg:grid-cols-3">
@@ -342,7 +343,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
 
       {accion === "comentar" && committee ? (
         <ResourcePanel title={comentar ?? ""} closeHref={base} closeLabel={t("T-291")}>
-          <form action={commentTableAction} className="flex flex-col gap-4">
+          <ActionForm action={commentTableAction} className="flex flex-col gap-4">
             <AdminFormBody>
               {Object.entries(hidden).map(([name, value]) => (
                 <input key={name} type="hidden" name={name} value={value} />
@@ -366,7 +367,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
                 </Link>
               </div>
             </AdminFormBody>
-          </form>
+          </ActionForm>
         </ResourcePanel>
       ) : null}
 

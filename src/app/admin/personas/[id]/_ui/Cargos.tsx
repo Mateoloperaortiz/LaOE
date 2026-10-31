@@ -10,6 +10,7 @@ import { Bloque } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { removeAppointmentAction } from "../actions";
 
 export function Cargos({ data, my }: { data: Person360; my: MyMembershipView }) {
@@ -21,7 +22,7 @@ export function Cargos({ data, my }: { data: Person360; my: MyMembershipView }) 
   const [add, remove] = tList("T-447");
   const actions = (entry: RoleHistoryEntry) =>
     entry.appointmentId ? (
-      <form action={removeAppointmentAction}>
+      <ActionForm action={removeAppointmentAction}>
         <AdminFormBody>
           <input type="hidden" name="personId" value={data.person.id} />
           <input type="hidden" name="appointmentId" value={entry.appointmentId} />
@@ -33,7 +34,7 @@ export function Cargos({ data, my }: { data: Person360; my: MyMembershipView }) 
             {remove}
           </AdminSubmitButton>
         </AdminFormBody>
-      </form>
+      </ActionForm>
     ) : null;
   return (
     <>

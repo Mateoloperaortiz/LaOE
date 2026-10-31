@@ -6,6 +6,7 @@ import { BarraTitulo, Cartel, feedVariant } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { stripAccents } from "@/shared/lib/accents";
 import { paginaMetadata } from "@/shared/lib/seo";
+import { ActionForm } from "@/shared/ui/ActionForm";
 
 export const metadata: Metadata = paginaMetadata({
   title: t("T-309"),
@@ -31,7 +32,7 @@ export default async function ComitesPage({ searchParams }: PageProps<"/comites"
       </div>
       <div className="flex flex-col gap-4">
         <search aria-label={t("T-1544")}>
-          <form action="/comites" method="get" className="portal-committee-search">
+          <ActionForm action="/comites" method="get" className="portal-committee-search">
             <label>
               {t("T-1544")}
               <input
@@ -50,7 +51,7 @@ export default async function ComitesPage({ searchParams }: PageProps<"/comites"
                 {t("T-1474")}
               </Link>
             ) : null}
-          </form>
+          </ActionForm>
         </search>
         <p id="comites-search-help" className="text-sm text-tinta-suave">
           {t("T-1546")}

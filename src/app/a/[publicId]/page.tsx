@@ -31,6 +31,7 @@ import { getTerm } from "@/modules/terms";
 import { Cartel, Elemento, LogoOE, SelloOE } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateRange, formatTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { type CheckInResultCode, checkInAction } from "./actions";
 
 // Check-in por QR (ADR-006, ADR-035 regla 5): con sesión (el proxy redirige sin cookie), un solo botón
@@ -343,7 +344,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
               )}
             </>
           ) : (
-            <form action={checkInAction} className="flex w-full max-w-sm flex-col gap-4">
+            <ActionForm action={checkInAction} className="flex w-full max-w-sm flex-col gap-4">
               <input type="hidden" name="publicId" value={row.publicId} />
               {view.needsCode ? (
                 <label className="flex flex-col gap-1 text-base font-semibold">
@@ -400,7 +401,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
               <button type="submit" className="boton-calido self-start">
                 {t("T-091")}
               </button>
-            </form>
+            </ActionForm>
           )}
         </div>
       </Cartel>

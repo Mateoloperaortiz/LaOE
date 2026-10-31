@@ -13,6 +13,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { ActionForm } from "@/shared/ui/ActionForm";
 import { evaluateAction } from "./actions";
 
 // Bandeja de evaluaciones (12-permanencia, "Lo que ve el director de GH"): los grupos que evalúa el
@@ -79,7 +80,7 @@ export default async function EvaluacionesPage({
           ) : null}
         </div>
         {isAdmin ? (
-          <form
+          <ActionForm
             action="/admin/permanencia/evaluaciones"
             method="get"
             className="flex items-center gap-2 text-sm"
@@ -102,7 +103,7 @@ export default async function EvaluacionesPage({
             <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
               {t("T-250")}
             </AdminSubmitButton>
-          </form>
+          </ActionForm>
         ) : null}
       </header>
 
@@ -153,7 +154,10 @@ export default async function EvaluacionesPage({
                       </p>
                     ) : null}
                     {canEvaluate ? (
-                      <form action={evaluateAction} className="flex flex-wrap items-end gap-2">
+                      <ActionForm
+                        action={evaluateAction}
+                        className="flex flex-wrap items-end gap-2"
+                      >
                         <AdminFormBody>
                           <input type="hidden" name="groupId" value={group.id} />
                           <input type="hidden" name="termId" value={term.id} />
@@ -189,7 +193,7 @@ export default async function EvaluacionesPage({
                             {insuficiente}
                           </AdminSubmitButton>
                         </AdminFormBody>
-                      </form>
+                      </ActionForm>
                     ) : null}
                   </li>
                 ))}
