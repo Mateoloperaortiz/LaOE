@@ -1,5 +1,6 @@
 import { actorContext } from "@/app/_lib/actor";
 import { redirectFromDownload } from "@/app/_lib/download";
+import { exportOwnAvailabilityData } from "@/modules/availability";
 import { collectOwnCommsData, getPreferences, listSubscriptionsFor } from "@/modules/comms";
 import { listStaffFor } from "@/modules/competition";
 import { collectOwnMediaData } from "@/modules/content";
@@ -61,6 +62,7 @@ export async function GET() {
     permanence,
     identity,
     media,
+    availability,
     sessions,
     permissions,
     preferences,
@@ -88,6 +90,7 @@ export async function GET() {
     collectOwnPermanenceData(actor.personId),
     collectOwnIdentityData(actor.personId),
     collectOwnMediaData(actor.personId),
+    exportOwnAvailabilityData(actor.personId),
     listSessionsFor(actor.personId),
     listPermissionsFor(actor.personId),
     getPreferences(actor.personId),
@@ -112,6 +115,9 @@ export async function GET() {
   const audit = await collectOwnAuditData({
     ...identitySubjects,
     ...participation.auditSubjects,
+    weekly_availability: [actor.personId],
+    meeting_availability: [actor.personId],
+    meeting_poll: availability.data.meetingPolls.map((row) => row.id),
     person: [actor.personId],
     notification_preference: [actor.personId],
     calendar_token: [actor.personId],
@@ -166,6 +172,7 @@ export async function GET() {
     ...permanence.data,
     ...identityData,
     ...media.data,
+    ...availability.data,
     ...audit.data,
     sessions: sessions.map((session) => ({
       id: session.id,
@@ -394,6 +401,7 @@ export async function GET() {
     ...permanence.limits,
     ...audit.limits,
     ...media.limits,
+    ...availability.limits,
     "consents.history": {
       limit: null,
       returned: data.consents.reduce((n, state) => n + state.history.length, 0),

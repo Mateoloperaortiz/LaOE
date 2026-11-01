@@ -66,6 +66,12 @@ const CHECKED: Record<string, Record<string, string>> = {
   gallery_collection: { slug: "'coleccion-sintetica'" },
   gallery_photo: { source_hash: `'${"a".repeat(64)}'` },
   interaction: { person_id: "'x'" },
+  meeting_poll: {
+    committee_id: "'x'",
+    dates: "'{2026-01-01}'",
+    start_minute: "0",
+    end_minute: "30",
+  },
   occasion: { public_id: "'0123456789'" },
   presence_bonus: { streak_weeks: "2", points: "2" },
   panal_word: { word: "'PANAL'" },

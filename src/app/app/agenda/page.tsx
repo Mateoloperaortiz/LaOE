@@ -38,6 +38,9 @@ export default async function AgendaPage({
           </Link>
         ) : null}
       </header>
+      <Link href="/app/disponibilidad" className="self-start font-semibold underline">
+        {t("T-4600")}
+      </Link>
       {selected && !items.some((item) => item.key === selected) ? (
         <output>{t("T-1687")}</output>
       ) : null}

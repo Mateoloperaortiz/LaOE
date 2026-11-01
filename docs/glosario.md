@@ -209,3 +209,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Colección de fotos | `GalleryCollection` | Archivo de recuerdos de una edición o encuentro, con portada, destacadas y álbumes; se publica para integrantes |
 | Álbum de fotos | `GalleryAlbum` | Selección de fotos de una actividad o del parche dentro de una colección |
 | Foto | `GalleryPhoto` | Imagen de una colección que puede pertenecer a varios álbumes sin repetirse |
+
+| Disponibilidad semanal | `WeeklyAvailability` | Bloques de la semana habitual en los que un miembro puede reunirse durante un semestre |
+| Propuesta de reunión | `MeetingPoll` | Consulta privada de fechas y horas a los miembros actuales de un comité o grupo |
+| Respuesta de disponibilidad | `AvailabilityResponse` | Horas que un miembro declara disponibles; no responder es distinto de declarar que no puede en ninguna |

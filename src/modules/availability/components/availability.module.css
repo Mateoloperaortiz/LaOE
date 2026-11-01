@@ -1,0 +1,246 @@
+.page {
+  display: grid;
+  gap: 2.5rem;
+}
+.intro {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 70ch;
+}
+.privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  color: var(--tinta-suave);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.privacy svg {
+  flex: 0 0 auto;
+  margin-top: 0.2rem;
+}
+.section {
+  display: grid;
+  gap: 1rem;
+  scroll-margin-top: 2rem;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+}
+.toolbar label,
+.field {
+  display: grid;
+  gap: 0.4rem;
+}
+.field {
+  flex: 1 1 12rem;
+}
+.toolbar select,
+.toolbar input,
+.field input,
+.field select {
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--fondo);
+  color: var(--tinta);
+}
+.meta {
+  color: var(--tinta-suave);
+  font-size: 0.875rem;
+}
+.gridRoot {
+  min-width: 0;
+}
+.gridScroll {
+  overflow: auto;
+  max-height: 29rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.75rem;
+  scrollbar-color: var(--borde) var(--fondo);
+}
+.grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+.grid th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.6rem 0.3rem;
+  text-align: center;
+  background: var(--fondo);
+  color: var(--tinta);
+  overflow-wrap: anywhere;
+}
+.grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid var(--borde);
+}
+.grid th:first-child {
+  width: 4rem;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+.grid thead th:first-child {
+  z-index: 3;
+}
+.grid td {
+  padding: 1px;
+  border-bottom: 1px solid var(--borde);
+}
+.grid button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 1.75rem;
+  padding: 0.2rem;
+  border: 1px solid transparent;
+  border-radius: 0.2rem;
+  cursor: pointer;
+  background: var(--fondo);
+  color: var(--tinta);
+  user-select: none;
+  touch-action: pan-y;
+  font-size: 0.75rem;
+}
+.grid button[data-intensity="1"] {
+  background: color-mix(in oklab, var(--color-oe-blue) 22%, var(--fondo));
+}
+.grid button[data-intensity="2"] {
+  background: color-mix(in oklab, var(--color-oe-blue) 48%, var(--fondo));
+}
+.grid button[data-intensity="3"] {
+  background: var(--color-oe-blue);
+  color: var(--color-oe-navy);
+}
+.grid button:hover {
+  border-color: var(--titulo);
+}
+.grid button:focus-visible {
+  outline: 2px solid var(--titulo);
+  outline-offset: -2px;
+}
+.grid button:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.emptySlot {
+  height: 0.25rem;
+  width: 0.25rem;
+  border-radius: 50%;
+  background: var(--borde);
+}
+.dayPicker {
+  display: none;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.dayPicker select {
+  padding: 0.5rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+  background: var(--fondo);
+  color: var(--tinta);
+}
+.range {
+  padding-block: 0.5rem;
+}
+.range summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.range .toolbar {
+  margin-block: 0.75rem;
+}
+.status {
+  min-height: 1.5rem;
+  font-size: 0.875rem;
+}
+.error {
+  color: var(--tinta);
+  padding: 0.75rem;
+  border: 1px solid var(--titulo);
+  border-radius: 0.5rem;
+}
+.compare {
+  display: grid;
+  gap: 1rem;
+}
+.people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  list-style: none;
+  padding: 0;
+  font-size: 0.875rem;
+}
+.detail {
+  min-height: 5rem;
+  padding-block: 1rem;
+  border-top: 1px solid var(--borde);
+}
+.proposals {
+  list-style: none;
+  padding: 0;
+}
+.proposals li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--borde);
+}
+.proposals a {
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+}
+.dates button {
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+}
+.divider {
+  border-top: 1px solid var(--borde);
+  padding-top: 2rem;
+}
+@media (max-width: 639px) {
+  .grid [data-visible="false"] {
+    display: none;
+  }
+  .grid button {
+    min-height: 44px;
+  }
+  .dayPicker {
+    display: grid;
+  }
+  .toolbar > .field {
+    flex-basis: 100%;
+  }
+  .gridScroll {
+    max-height: 25rem;
+  }
+  .page {
+    gap: 2rem;
+  }
+}

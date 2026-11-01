@@ -3116,3 +3116,90 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3594 | Asistencia: cambio de presencia al aprobar un registro existente | La presencia de una asistencia existente no se cambia al aprobarla. | GH | Propuesta |
 | T-3596 | Excusa: motivo de una aprobación excepcional | Motivo de la aprobación fuera de plazo | GH | Propuesta |
 | T-3597 | Excusa: ayuda del motivo de aprobación excepcional | Si la excusa se presentó fuera de plazo, explica por qué apruebas la revisión excepcional. En los demás casos puedes dejarlo vacío. | GH | Propuesta |
+
+
+### Disponibilidad privada · semana y propuestas (ADR-156)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4600 | Disponibilidad | Disponibilidad | MATEO | Propuesta |
+| T-4601 | Disponibilidad | Mi semana habitual | MATEO | Propuesta |
+| T-4602 | Disponibilidad | Fechas concretas | MATEO | Propuesta |
+| T-4603 | Disponibilidad | Marca cuándo puedes reunirte y encuentra coincidencias con tus grupos. | MATEO | Propuesta |
+| T-4604 | Disponibilidad | Privado: solo los miembros actuales de tus grupos pueden comparar tu disponibilidad. No hay acceso público. | MATEO | Propuesta |
+| T-4605 | Disponibilidad | Hora de Colombia · bloques de 30 minutos | MATEO | Propuesta |
+| T-4606 | Disponibilidad | Guardar disponibilidad | MATEO | Propuesta |
+| T-4607 | Disponibilidad | Disponibilidad guardada. | MATEO | Propuesta |
+| T-4608 | Disponibilidad | Revisa los bloques seleccionados e intenta de nuevo. | MATEO | Propuesta |
+| T-4609 | Disponibilidad | No tienes acceso a esta disponibilidad. Revisa tu sesión y tu pertenencia al grupo. | MATEO | Propuesta |
+| T-4610 | Disponibilidad | Todavía no hay un semestre vigente. Vuelve cuando esté configurado. | MATEO | Propuesta |
+| T-4611 | Disponibilidad | Tu disponibilidad cambió en otra pestaña. Recarga la página antes de guardar. | MATEO | Propuesta |
+| T-4612 | Disponibilidad | Compara con tu grupo | MATEO | Propuesta |
+| T-4613 | Disponibilidad | Elige un grupo | MATEO | Propuesta |
+| T-4614 | Disponibilidad | No tienes grupos registrados en este semestre. Puedes guardar tu semana habitual mientras GH revisa tus pertenencias. | MATEO | Propuesta |
+| T-4615 | Disponibilidad | {n} de {total} miembros respondieron | MATEO | Propuesta |
+| T-4616 | Disponibilidad | Sin horario registrado | MATEO | Propuesta |
+| T-4617 | Disponibilidad | Sin bloques disponibles | MATEO | Propuesta |
+| T-4618 | Disponibilidad | {n} de {total} disponibles | MATEO | Propuesta |
+| T-4619 | Disponibilidad | Lunes · Martes · Miércoles · Jueves · Viernes · Sábado · Domingo | MATEO | Propuesta |
+| T-4620 | Disponibilidad | Disponible | MATEO | Propuesta |
+| T-4621 | Disponibilidad | Sin marcar | MATEO | Propuesta |
+| T-4622 | Disponibilidad | {día}, {inicio} a {fin}: {estado} | MATEO | Propuesta |
+| T-4623 | Disponibilidad | Toca un bloque o usa el teclado para marcarlo. Con ratón también puedes arrastrar. Los bloques sin marcar no cuentan como disponibles. | MATEO | Propuesta |
+| T-4624 | Disponibilidad | Cambios sin guardar | MATEO | Propuesta |
+| T-4625 | Disponibilidad | Guardando… | MATEO | Propuesta |
+| T-4626 | Disponibilidad | Nueva propuesta | MATEO | Propuesta |
+| T-4627 | Disponibilidad | Nombre de la reunión | MATEO | Propuesta |
+| T-4628 | Disponibilidad | Fechas de la propuesta | MATEO | Propuesta |
+| T-4629 | Disponibilidad | Agrega hasta 14 fechas de este semestre. | MATEO | Propuesta |
+| T-4630 | Disponibilidad | Agregar fecha | MATEO | Propuesta |
+| T-4631 | Disponibilidad | Quitar {fecha} | MATEO | Propuesta |
+| T-4632 | Disponibilidad | Desde | MATEO | Propuesta |
+| T-4633 | Disponibilidad | Hasta | MATEO | Propuesta |
+| T-4634 | Disponibilidad | Crear propuesta | MATEO | Propuesta |
+| T-4635 | Disponibilidad | Todavía no hay propuestas con fechas concretas para este grupo. | MATEO | Propuesta |
+| T-4636 | Disponibilidad | Elige una propuesta para responder y comparar. | MATEO | Propuesta |
+| T-4637 | Disponibilidad | Propuesta cerrada | MATEO | Propuesta |
+| T-4638 | Disponibilidad | Cerrar propuesta | MATEO | Propuesta |
+| T-4639 | Disponibilidad | La propuesta ya está cerrada o terminó su última fecha. | MATEO | Propuesta |
+| T-4640 | Disponibilidad | Revisa el nombre, las fechas y las horas de la propuesta. | MATEO | Propuesta |
+| T-4641 | Disponibilidad | Semana del semestre {semestre} | MATEO | Propuesta |
+| T-4642 | Disponibilidad | Retirar mi respuesta | MATEO | Propuesta |
+| T-4643 | Disponibilidad | Tu respuesta fue retirada. | MATEO | Propuesta |
+| T-4644 | Disponibilidad | Mi respuesta | MATEO | Propuesta |
+| T-4645 | Disponibilidad | Coincidencias del grupo | MATEO | Propuesta |
+| T-4646 | Disponibilidad | Selecciona un bloque para ver quiénes pueden. | MATEO | Propuesta |
+| T-4647 | Disponibilidad | Nadie ha marcado disponibilidad en este bloque. | MATEO | Propuesta |
+| T-4648 | Disponibilidad | Aún no respondieron | MATEO | Propuesta |
+| T-4649 | Disponibilidad | Ver coincidencias | MATEO | Propuesta |
+| T-4650 | Disponibilidad | Comité | MATEO | Propuesta |
+| T-4651 | Disponibilidad | Grupo de trabajo o apoyo | MATEO | Propuesta |
+| T-4652 | Disponibilidad | Ver propuesta | MATEO | Propuesta |
+| T-4653 | Disponibilidad | Tus grupos | MATEO | Propuesta |
+| T-4654 | Disponibilidad | Semestre {semestre} | MATEO | Propuesta |
+| T-4655 | Disponibilidad | Agregar un rango | MATEO | Propuesta |
+| T-4656 | Disponibilidad | Día | MATEO | Propuesta |
+| T-4657 | Disponibilidad | Marcar rango | MATEO | Propuesta |
+| T-4658 | Disponibilidad | Desmarcar rango | MATEO | Propuesta |
+| T-4659 | Disponibilidad | Volver a mi semana | MATEO | Propuesta |
+| T-4660 | Disponibilidad | Puedes consultar y responder durante tu licencia. Para crear o cerrar propuestas debes estar activo u honorario. | MATEO | Propuesta |
+| T-4661 | Disponibilidad | Crear propuesta para {grupo} | MATEO | Propuesta |
+| T-4662 | Disponibilidad | Respuesta registrada | MATEO | Propuesta |
+| T-4663 | Disponibilidad | Todos los miembros disponibles | MATEO | Propuesta |
+| T-4664 | Disponibilidad | No hay coincidencias de todos los miembros. Revisa los bloques para encontrar la mejor opción. | MATEO | Propuesta |
+| T-4665 | Disponibilidad | Retirar la respuesta borra tus bloques guardados. ¿Quieres continuar? | MATEO | Propuesta |
+| T-4666 | Disponibilidad | Cerrar impide nuevas respuestas. ¿Quieres continuar? | MATEO | Propuesta |
+| T-4667 | Disponibilidad | La propuesta fue creada. | MATEO | Propuesta |
+| T-4668 | Disponibilidad | Ver el día anterior | MATEO | Propuesta |
+| T-4669 | Disponibilidad | Ver el día siguiente | MATEO | Propuesta |
+| T-4670 | Disponibilidad | Propuestas del grupo | MATEO | Propuesta |
+| T-4671 | Disponibilidad | Responde cada propuesta por separado; tu semana habitual no se envía automáticamente. | MATEO | Propuesta |
+| T-4672 | Disponibilidad | Selecciona al menos una fecha válida y una hora final posterior a la inicial. | MATEO | Propuesta |
+| T-4673 | Disponibilidad | Recargar página | MATEO | Propuesta |
+| T-4674 | Disponibilidad | Hora | MATEO | Propuesta |
+| T-4675 | Disponibilidad | {n} bloques seleccionados | MATEO | Propuesta |
+| T-4676 | Disponibilidad | Ver semana completa | MATEO | Propuesta |
+| T-4677 | Disponibilidad | Ver un día | MATEO | Propuesta |
+| T-4678 | Disponibilidad | La propuesta pertenece a otro grupo. Abre de nuevo la propuesta desde tus grupos. | MATEO | Propuesta |
+| T-4679 | Disponibilidad | Para guardar tu disponibilidad, autoriza primero el tratamiento de datos en Mi OE. | MATEO | Propuesta |
+| T-4680 | Propuesta sin atribución tras anonimizar | Propuesta de reunión | MATEO | Propuesta |

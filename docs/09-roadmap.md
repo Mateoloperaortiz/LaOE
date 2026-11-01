@@ -4,6 +4,19 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Disponibilidad privada de grupos (ADR-156) · `lista localmente`
+
+- [x] Guardar la semana habitual y comparar dentro de comités y grupos vigentes.
+- [x] Crear propuestas con fechas concretas, responderlas y cerrarlas con acceso privado.
+- [x] Integrar autogestión, retiro de respuestas, exporte propio y anonimización.
+- [x] Completar revisión y verificaciones del cambio antes del commit.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-11-01 | Disponibilidad privada | Semana habitual por semestre y propuestas con hasta catorce fechas, en bloques de treinta minutos y hora de Colombia. Comparación solo entre miembros actuales del mismo comité o grupo; ADMIN y evaluadores sin pertenencia no obtienen acceso. Migración aditiva 0062; interfaz con teclado, ratón y selección de rangos en celular. `npm run check` sobre una copia aislada del índice aprobado: 2.702 unitarias, 2.094 integraciones, 11 del extractor y build; E2E 4/4 (dos flujos y dos sesiones), axe en 390/1440 px claro/oscuro. Revisiones Standards y Spec con hallazgos corregidos; revisión visual `ship`. Sin despliegue. |
+| 2026-11-01 | Disponibilidad · integración independiente | Cambio separado de inventario sobre `main`; ADR-156 y migración aditiva `0062` regenerada desde el esquema vigente. Formularios y enlaces adoptan `ActionForm` y `AppLink`, con identidad del selector por grupo. `npm run check` aprobado: 2.703 unitarias, 2.072 integraciones, 11 del extractor y build. E2E contra build 4/4, incluida conservación de posición al guardar y rechazo anónimo. Publicación y CI remoto pendientes. |
+
+
 ## Posición al cambiar pestañas y filtros (ADR-155) · `lista en producción`
 
 - [x] Reproducir el salto en GH Points, filtros GET y paginación; comprobar la sonda de pestañas.
