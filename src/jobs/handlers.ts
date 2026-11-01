@@ -1,4 +1,5 @@
 // Cada módulo registra sus handlers al importarse. Agregar aquí los jobs.ts de los módulos nuevos.
+import "@/modules/availability/jobs";
 import "@/modules/comms/jobs";
 import "@/modules/crm/jobs";
 import "@/modules/forms/jobs";

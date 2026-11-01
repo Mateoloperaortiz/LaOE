@@ -156,3 +156,5 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [044](adr/ADR-044-experiencia-del-portal-y-mi-oe.md) | Portal y Mi OE | Navegación compacta, identidad editorial preservada, Agenda de miembros, formularios por trámite y Ajustes por categorías | Aceptada |
 | [045](adr/ADR-045-alta-individual-de-integrante-existente.md) | Alta individual con historial | Excepción para un solo integrante existente y el historial de su manifiesto aprobado: persona, membresía activa, historial por semestre y cargos en una transacción auditada, sin consentimientos, sin `person.admitted` ni bienvenida; no habilita altas generales ni importaciones de roster | Aceptada; operación verificada |
 | [130](adr/ADR-130-fotos-privadas-en-mi-oe.md) | Fotos privadas de Mi OE | Colecciones y álbumes para integrantes; variantes saneadas con entrega por sesión, visor y carga idempotente de DÍAS 2026 | Aceptada |
+
+- [ADR-156](adr/ADR-156-disponibilidad-privada-de-grupos.md): disponibilidad semanal y propuestas de reunión, privadas por pertenencia vigente al grupo.

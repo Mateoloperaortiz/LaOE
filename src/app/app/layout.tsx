@@ -62,6 +62,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
       .filter((name) => pestañas.includes(name))
       .map((name) => ({ href: RUTAS[name] ?? "/app", label: name })),
   }));
+  groups[0]?.items.push({ href: "/app/disponibilidad", label: t("T-4600") });
   return (
     <>
       <PwaRegistrar endpointsKey={devices.map((item) => item.endpoint).join("\n")} />

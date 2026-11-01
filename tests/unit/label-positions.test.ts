@@ -66,6 +66,12 @@ const NOT_TEXTS =
 // nombra la lista que lee, y esa lista tiene su fila en `computed-index-lists.test.ts` (ADR-128 regla 8).
 const OTHER_FORMS: (Exception & { form: Exclude<PositionalForm, "computedIndex"> })[] = [
   {
+    path: "src/modules/availability/components/SlotGrid.tsx",
+    form: "paramTraversal",
+    read: "counts?.[slot]",
+    reason: `${NOT_TEXTS} lee cantidades de personas disponibles por bloque de media hora; son números calculados por el dominio, no etiquetas.`,
+  },
+  {
     path: "src/app/app/gh-points/page.tsx",
     form: "traversal",
     read: "levelLabels[index]",

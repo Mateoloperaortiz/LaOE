@@ -71,6 +71,10 @@ export function proxy(request: NextRequest) {
   requestHeaders.set("content-security-policy", csp);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
+  if (/^\/app\/disponibilidad(\/|$)/.test(pathname)) {
+    response.headers.set("cache-control", "private, no-store, max-age=0");
+    response.headers.set("x-robots-tag", "noindex, nofollow");
+  }
   response.headers.set("content-security-policy", csp);
   response.headers.set("x-content-type-options", "nosniff");
   response.headers.set("x-frame-options", "DENY");

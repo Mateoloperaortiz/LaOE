@@ -6,6 +6,7 @@ const { findModuleCycle } = require("./scripts/ci/module-cycle.mjs");
 // agregándola a esta tabla; sin eso, `npm run deps:check` falla. Las claves foráneas entre schema.ts
 // quedan fuera (regla schema-solo-importa-schema).
 const MODULE_DEPS = {
+  availability: ["people", "permanence", "terms"],
   comms: ["content", "participation", "people", "system", "terms"],
   competition: ["events", "forms", "people"],
   content: [],
