@@ -4,17 +4,22 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## Disponibilidad privada de grupos (ADR-156) · `lista localmente`
+## Disponibilidad privada de grupos (ADR-156) · `lista en producción`
 
 - [x] Guardar la semana habitual y comparar dentro de comités y grupos vigentes.
 - [x] Crear propuestas con fechas concretas, responderlas y cerrarlas con acceso privado.
 - [x] Integrar autogestión, retiro de respuestas, exporte propio y anonimización.
 - [x] Completar revisión y verificaciones del cambio antes del commit.
+- [x] Publicar la imagen verificada en producción y comprobar salud, migración y acceso privado.
+- [x] Restaurar la demo de staging y cotejar su configuración completa con el recibo previo.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-11-01 | Disponibilidad privada | Semana habitual por semestre y propuestas con hasta catorce fechas, en bloques de treinta minutos y hora de Colombia. Comparación solo entre miembros actuales del mismo comité o grupo; ADMIN y evaluadores sin pertenencia no obtienen acceso. Migración aditiva 0062; interfaz con teclado, ratón y selección de rangos en celular. `npm run check` sobre una copia aislada del índice aprobado: 2.702 unitarias, 2.094 integraciones, 11 del extractor y build; E2E 4/4 (dos flujos y dos sesiones), axe en 390/1440 px claro/oscuro. Revisiones Standards y Spec con hallazgos corregidos; revisión visual `ship`. Sin despliegue. |
 | 2026-11-01 | Disponibilidad · integración independiente | Cambio separado de inventario sobre `main`; ADR-156 y migración aditiva `0062` regenerada desde el esquema vigente. Formularios y enlaces adoptan `ActionForm` y `AppLink`, con identidad del selector por grupo. `npm run check` aprobado: 2.703 unitarias, 2.072 integraciones, 11 del extractor y build. E2E contra build 4/4, incluida conservación de posición al guardar y rechazo anónimo. Publicación y CI remoto pendientes. |
+| 2026-11-01 | Disponibilidad · CI y staging | [PR #407](https://github.com/Mateoloperaortiz/LaOE/pull/407) integrado como `16091bd02f11d50fa1b6cff69bd135700d88b9e8`. [CI completo 41328197890](https://github.com/Mateoloperaortiz/LaOE/actions/runs/41328197890) aprobado: 2.703 unitarias, 2.072 integraciones y 290 casos únicos de navegador (288 escenarios y dos accesos). [CI de main 41328936004](https://github.com/Mateoloperaortiz/LaOE/actions/runs/41328936004) reutilizó la evidencia del árbol exacto. [Imagen 41328975387](https://github.com/Mateoloperaortiz/LaOE/actions/runs/41328975387) publicada con digest `sha256:477e72b1a04edaf942d07c697385ff48c5ebd9660cb03a4ca0c98fc97b0a2c0d`. Staging `06bdb7c8-98f7-4465-8c05-4240779a5221` `SUCCESS` sobre su base habitual: 63 migraciones, 167 índices y smoke 6/6. Tres rutas sin sesión redirigen al ingreso sin contenido privado; una cookie inválida también se rechaza y conserva `private, no-store` y `noindex`. |
+| 2026-11-01 | Disponibilidad · producción | [Promoción 41329558073](https://github.com/Mateoloperaortiz/LaOE/actions/runs/41329558073) `SUCCESS` con el mismo digest aprobado en staging. Despliegue de producción `5379b654-993d-4727-b779-03ea5331860e` `SUCCESS`, salud HTTP 200/ok con SHA `16091bd02f11d50fa1b6cff69bd135700d88b9e8`, 63 migraciones, 167 índices y smoke 6/6. Comprobación HTTP de privacidad: tres rutas sin sesión devuelven únicamente la redirección al ingreso; una cookie inválida también se rechaza y mantiene `private, no-store` y `noindex`. Sin escrituras de prueba en producción. Check local de cierre repetido y aprobado: 2.703 unitarias, 2.072 integraciones, 11 del extractor, lint, tipos, dependencias, código muerto y build. |
+| 2026-11-01 | Disponibilidad · demo restaurada | Staging `4db41a56-5829-4670-bfd0-d9401d0ff50b` `SUCCESS`, salud HTTP 200/ok con la demo original `5ebaabf782dca143c8b8a95b247f7a81ec5252eb`. Imagen y conexión a la base restauradas juntas; configuración y variables completas y credenciales de registro de ambos entornos iguales al recibo previo. Las banderas permanecen staging=false y production=true. Producción conserva el release de disponibilidad `16091bd0`. |
 
 
 ## Posición al cambiar pestañas y filtros (ADR-155) · `lista en producción`
