@@ -1085,6 +1085,26 @@ La primera ejecución enumera semestres abiertos desde 2026-2. La segunda recalc
 
 En `/admin/macroeventos/<slug>/normativa`, registrar constancias reales, comprobar el año y confirmar el corte después de las elecciones de la segunda asamblea. Nunca completar actas o fechas de ejemplo en producción. Las propuestas de reactivación requieren misión, plan, mesa completa y presentación en el semestre anterior; Junta decide y comunica. Los cortes conservan historia y no retiran permisos ni publicaciones automáticamente.
 
+### Publicación verificada, 2026-11-06
+
+[PR #410](https://github.com/Mateoloperaortiz/LaOE/pull/410), SHA `46b3ac98ee6698950c34b5a6465f4d85a225f824`. El [CI de main](https://github.com/Mateoloperaortiz/LaOE/actions/runs/42310926353) aprobó el árbol; la [publicación de imagen](https://github.com/Mateoloperaortiz/LaOE/actions/runs/42310983706) produjo el digest `sha256:cd998c651748bb3bf9c90c7233485296d96ef989f43486f0a3a195124bce8f3d`. Esa ejecución solo publicó la imagen: el despliegue y el smoke automáticos de staging estaban omitidos por la reserva de la demo de inventario (`IMAGE_DEPLOY_STAGING=false`). No se tomó ese SUCCESS como prueba de despliegue.
+
+Mateo autorizó interrumpir temporalmente la demo, validar/publicar normativa y restaurarla conservando su base. Se respaldaron privadamente la configuración, las variables y sus huellas; el parche de staging cambió solo la imagen y `DATABASE_URL`. El candidato usó la base habitual, separada de la base temporal de inventario. Las credenciales de registro, las demás variables y los flags de GitHub se conservaron.
+
+| Comprobación | Evidencia | Resultado |
+| --- | --- | --- |
+| Staging del candidato | Deployment `9282e484-2b92-4443-bd30-2b496bf10947` | SUCCESS; salud del SHA exacto y smoke 6/6 |
+| Esquema | Pre-deploy de staging y producción | 64 migraciones, 168 índices exigidos y `pg_trgm` verificados |
+| Producción | [Promoción 42311908671](https://github.com/Mateoloperaortiz/LaOE/actions/runs/42311908671); deployment `0f6c1547-910f-4245-8535-07544fffe629` | SUCCESS; aprobación normal del environment con la autorización de Mateo, mismo SHA y smoke 6/6; una réplica nueva activa y escritor anterior retirado |
+| Recálculo | `normativa:recompute`, simulación y luego `--apply` | Solo 2026-2; 475 snapshots; una auditoría `permanence.normative_recomputed` a las 23:29:40 UTC |
+| Historia | Lecturas `REPEATABLE READ / READ ONLY` antes y después | Huellas idénticas de 11 snapshots anteriores, 475 membresías, decisiones y términos; sin bajas ni decisiones aplicadas |
+| Política | Relectura de `app_config` | Clave histórica activo 20 intacta; clave 2026 activo 10; umbrales 60/80/80/70 conservados |
+| Restauración de demo | Deployment `d6437267-f86f-4f43-8dda-9bbc3e667ade` | SUCCESS; volvió a `5ebaabf782dca143c8b8a95b247f7a81ec5252eb`, smoke 6/6, conexión/imagen/configuración/variables idénticas a las anteriores |
+
+Las 44 evaluaciones de comité de activos entre 40 y menos de 50 pasaron de propuesta de prueba a `NO_CUMPLE`; no son 44 bajas ejecutadas ni necesariamente 44 personas distintas. Los conteos de las demás condiciones se conservaron. Outbox sin pendientes ni dead letters al verificar. Las tres tablas institucionales nuevas permanecen vacías: las actas, las fechas y el origen de los nombramientos requieren registros reales de ADMIN.
+
+La demo conserva su base temporal y su digest fijado; `IMAGE_DEPLOY_STAGING=false` e `IMAGE_DEPLOY_PRODUCTION=true` no cambiaron. No se borró ninguna base. Los respaldos de configuración, recibos de los dos parches, lecturas anterior/posterior, huellas, logs de smoke, recibo del recálculo y verificación independiente están en el paquete privado `informes/normativa-2026-11-06/release-*`, fuera del repositorio. El SHA de código servido sigue siendo el de este registro aunque se mezclen commits documentales posteriores.
+
 ## Actualización de normativa del 2026-11-06
 
 Mateo entregó dos PDF actualizados y pidió reemplazar los documentos de la app. Operación de contenido terminada el **2026-11-06, 21:26 UTC**, en `production` de `casa-digital`, con el release existente `16091bd02f11d50fa1b6cff69bd135700d88b9e8` (deployment `5379b654-993d-4727-b779-03ea5331860e`). No requirió despliegue ni cambios de reglas de negocio. La versión visible es `2026-05-08 (actualizado 2026-11-06)`: el PDF conserva como última reforma el 8 de mayo y el sufijo identifica esta entrega.

@@ -4,17 +4,17 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## Normativa actualizada (ADR-157) · `lista para revisión`
+## Normativa actualizada (ADR-157) · `lista en producción`
 
 - [x] Seleccionar permanencia desde 2026-2 conservando términos y cierres anteriores.
 - [x] Actualizar citas y guía de revisión electoral.
 - [x] Incorporar constancias, mínimos anuales y propuesta/decisión de reactivación de macroeventos.
 - [x] Completar pruebas y verificación de entrega.
-- [ ] Publicar por el procedimiento de CI, staging y producción; recalcular solo términos abiertos desde 2026-2.
+- [x] Publicar por el procedimiento de CI, staging y producción; recalcular solo términos abiertos desde 2026-2.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
-| 2026-11-06 | Normativa actualizada | Implementación de la corrección de Estatutos art. 7.5 y cambios de Reglamento arts. 1, 3, 8, 13, 27–28 y 41–46. Migración aditiva 0063, constancias auditadas y corte anual. Vigencia y conteo confirmados por Mateo. `npm run check` aprobado: 2.718 unitarias, 2.077 de integración, 11 del extractor y build. E2E focalizado 6/6 (dos preparaciones y cuatro flujos), con permisos, constancias conservadas, corte anual, axe y anchos 390/1440 px. Pendiente CI remoto y publicación. |
+| 2026-11-06 | Normativa actualizada | Implementación de la corrección de Estatutos art. 7.5 y cambios de Reglamento arts. 1, 3, 8, 13, 27–28 y 41–46. Migración aditiva 0063, constancias auditadas y corte anual. Vigencia y conteo confirmados por Mateo. `npm run check` aprobado: 2.718 unitarias, 2.077 de integración, 11 del extractor y build. E2E focalizado 6/6 (dos preparaciones y cuatro flujos), con permisos, constancias conservadas, corte anual, axe y anchos 390/1440 px. Publicada por [PR #410](https://github.com/Mateoloperaortiz/LaOE/pull/410), SHA `46b3ac98ee6698950c34b5a6465f4d85a225f824`: CI de main y promoción aprobados, staging y producción SUCCESS, smoke 6/6 en ambos. Recálculo auditado de 475 snapshots de 2026-2; 11 snapshots anteriores, membresías, decisiones y términos idénticos. Demo de inventario restaurada al SHA `5ebaabf7`, con configuración y conexión originales comprobadas. Evidencia en el runbook. |
 
 ## Disponibilidad privada de grupos (ADR-156) · `lista en producción`
 
