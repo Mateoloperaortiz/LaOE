@@ -46,7 +46,7 @@ import { lockMembershipCycle } from "./wallet-member";
 // desde `src/app` con todas las capacidades.
 
 const OPERATING_STATUSES = ["ACTIVE", "HONORARY"] as const;
-/** Quien está en licencia conserva las capacidades de su cargo de mesa (Regl. art. 27 par. 6; ADR-060 regla 10). */
+/** Quien está en licencia conserva las capacidades de su cargo de mesa (Regl. art. 27 par. 9; ADR-060 regla 10). */
 const DIRECTION_STATUSES = ["ACTIVE", "HONORARY", "ON_LEAVE"] as const;
 
 export interface DirectedRole {

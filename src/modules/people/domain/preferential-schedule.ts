@@ -13,11 +13,11 @@ import { APPOINTMENT_KINDS, editionLabelsFor } from "./appointments";
 import { blockedBenefits } from "./benefits";
 import { BOARD_KINDS } from "./inhabilities";
 
-// Horario preferencial (Regl. art. 72; ADR-060 regla 13): junta, mesas directivas (máximo seis por
+// Horario preferencial (Regl. art. 73; ADR-060 regla 13): junta, mesas directivas (máximo seis por
 // comité, titulares antes que codirecciones) y directores de macroevento del término. Es un exporte
 // con datos personales: correo institucional para acreditarlo ante la Universidad.
 
-/** Máximo de personas con horario preferencial por CIC o CE (Regl. art. 72). */
+/** Máximo de personas con horario preferencial por CIC o CE (Regl. art. 73). */
 export const MAX_PREFERENTIAL_PER_COMMITTEE = 6;
 
 export interface PreferentialRow {

@@ -3,7 +3,7 @@ import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
@@ -185,20 +185,25 @@ export async function listEditionOptions(limit = 200): Promise<EditionOption[]> 
 
 export interface EditionRef {
   id: string;
+  eventId: string;
   name: string;
   eventName: string;
   startsAt: Date;
 }
 
 /** Nombre y evento de varias ediciones por id (para etiquetar cargos de macroevento, ADR-060 regla 9). */
-export async function listEditionRefs(ids: readonly string[]): Promise<Map<string, EditionRef>> {
+export async function listEditionRefs(
+  ids: readonly string[],
+  exec: Executor = getDb(),
+): Promise<Map<string, EditionRef>> {
   const map = new Map<string, EditionRef>();
   if (ids.length === 0) {
     return map;
   }
-  const rows = await getDb()
+  const rows = await exec
     .select({
       id: eventEdition.id,
+      eventId: event.id,
       name: eventEdition.name,
       eventName: event.name,
       startsAt: eventEdition.startsAt,

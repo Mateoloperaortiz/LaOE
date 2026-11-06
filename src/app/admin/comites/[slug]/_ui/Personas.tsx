@@ -7,6 +7,7 @@ import {
   type RoleView,
   type RosterMember,
 } from "@/modules/people";
+import { ElectionGuidance } from "@/modules/people/components/ElectionGuidance";
 import { ResourcePanel } from "@/shared/admin-kit";
 import { Casilla } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
@@ -137,6 +138,7 @@ export function Personas({
 
   return (
     <section aria-label={t("T-2145")} className="flex flex-col gap-4">
+      <ElectionGuidance />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h2 className="text-display-md">{t("T-2145")}</h2>

@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-157](ADR-157-normativa-actualizada-2026.md) | Normativa actualizada desde 2026-2 | Aceptada; en verificación |
 | [ADR-156](ADR-156-disponibilidad-privada-de-grupos.md) | Disponibilidad privada de grupos | Aceptada; implementada y verificada localmente |
 | [ADR-155](ADR-155-conservar-la-posicion-al-cambiar-la-vista.md) | Conservar la posición al cambiar la vista | Aceptada; publicada |
 | [ADR-154](ADR-154-conservar-la-posicion-al-guardar.md) | Conservar la posición de la página al guardar | Aceptada (enmendada por ADR-155); publicada |

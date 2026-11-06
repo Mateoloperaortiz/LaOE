@@ -400,7 +400,7 @@ export async function reactivateMembership(
   if (current.status !== "INACTIVE") {
     throw new Error("Solo se reactiva una membresía terminada");
   }
-  // Quien fue expulsado no vuelve a ingresar (Regl. art. 61.3; ADR-060 regla 3).
+  // Quien fue expulsado no vuelve a ingresar (Regl. art. 62.3; ADR-060 regla 3).
   if (current.endReason === "EXPULSION") {
     throw new DomainError(t("T-2206"));
   }

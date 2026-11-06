@@ -190,7 +190,6 @@ const EXCEPTIONS: Exceptions = {
       loadPeopleFacts
       loadTermFacts
       parseResults
-      recomputeSnapshots
       runNotices
     `,
   },

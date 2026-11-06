@@ -614,7 +614,7 @@ export const segmentsResource: ResourceDefinition<SegmentRow, SegmentInput> = {
   }),
 };
 
-// Horario preferencial (Regl. art. 72; ADR-060 regla 13): exporte de solo lectura con datos personales.
+// Horario preferencial (Regl. art. 73; ADR-060 regla 13): exporte de solo lectura con datos personales.
 const [preferencialPlural, preferencialSingular, nombreCol, ambitoCol, cargoCol] = tList("T-2323");
 const preferencialEmpty = z.object({});
 

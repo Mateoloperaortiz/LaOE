@@ -9,7 +9,7 @@ export const APPROVAL_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
 
 export const APPROVERS = ["STUDENT_DEVELOPMENT", "VP_FINANCE"] as const;
 
-/** No presentar el presupuesto a tiempo sin aplazamiento descuenta el 10 % (Regl. art. 66). */
+/** No presentar el presupuesto a tiempo sin aplazamiento descuenta el 10 % (Regl. art. 67). */
 export const LATE_BUDGET_SANCTION_PERCENT = 10;
 
 export interface LineLike {
@@ -51,7 +51,7 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-/** Lo asignado tras la sanción por presentación tardía (Regl. art. 66), a dos decimales. */
+/** Lo asignado tras la sanción por presentación tardía (Regl. art. 67), a dos decimales. */
 export function sanctioned(assigned: number, percent: number): number {
   return round2(assigned * (1 - Math.min(Math.max(percent, 0), 100) / 100));
 }
@@ -116,7 +116,7 @@ export function monthKey(dateKey: string): string {
   return dateKey.slice(0, 7);
 }
 
-/** Un presupuesto se abre con las dos aprobaciones y al menos un rubro (Regl. art. 50 par. 1). */
+/** Un presupuesto se abre con las dos aprobaciones y al menos un rubro (Regl. art. 51 par. 1). */
 export function canOpen(budget: {
   studentDevelopmentApprovedOn: string | null;
   vpFinanceApprovedOn: string | null;

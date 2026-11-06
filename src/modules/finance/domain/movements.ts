@@ -84,7 +84,7 @@ async function openBudgetOf(ctx: CommandContext, budgetId: string, scope: Moveme
   return budget;
 }
 
-/** El aval debe estar aprobado y ser del comité del presupuesto (Regl. art. 35 par. 1). */
+/** El aval debe estar aprobado y ser del comité del presupuesto (Regl. art. 36 par. 1). */
 async function approvedApproval(
   ctx: CommandContext,
   approvalId: string,

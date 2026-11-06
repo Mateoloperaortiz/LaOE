@@ -114,6 +114,19 @@ export {
 } from "./domain/honorary-pure";
 export { leaveUntilError, leaveWindow } from "./domain/leave-pure";
 export {
+  decideMacroeventReactivationAs,
+  getMacroeventGovernance,
+  proposeMacroeventReactivationAs,
+  recordMacroeventElectionAs,
+  reviewMacroeventAs,
+} from "./domain/macroevent-governance";
+export {
+  electionRecordSchema,
+  MACROEVENT_ORIGINS,
+  MACROEVENT_STATUSES,
+  REACTIVATION_STATUSES,
+} from "./domain/macroevent-governance-pure";
+export {
   changeMembershipStatus,
   changeStatusSchema,
   endMembership,

@@ -46,7 +46,7 @@ import { tList } from "@/shared/copy";
 
 const CONFIG: PermanenceConfig = {
   thresholds: { active: 60, new: 80, probation: 80, transfer: 70 },
-  probationMargins: { active: 20, new: 0, probation: 0, transfer: 0 },
+  probationMargins: { active: 10, new: 0, probation: 0, transfer: 0 },
   evaluationWindowDays: 14,
   warningDays: 21,
 };
@@ -553,15 +553,15 @@ describe("estados y margen de prueba (ADR-027, ADR-028)", () => {
     expect(stateFor(75, 100, 80, 10, true)).toBe("PRUEBA");
   });
 
-  it("la banda de prueba depende de la condición (ADR-060 regla 1): 20 para activos, cero para el resto", () => {
+  it("la banda de prueba depende de la condición (ADR-060 regla 1): 10 para activos desde 2026-2, cero para el resto", () => {
     const margins = CONFIG.probationMargins;
-    expect(marginFor("ACTIVE", margins)).toBe(20);
+    expect(marginFor("ACTIVE", margins)).toBe(10);
     expect(marginFor("NEW", margins)).toBe(0);
     expect(marginFor("PROBATION", margins)).toBe(0);
     expect(marginFor("TRANSFER", margins)).toBe(0);
-    // Est. art. 7.5: entre 40 y 59 queda en prueba; bajo 40 sale.
-    expect(finalStateFor(45, 60, marginFor("ACTIVE", margins))).toBe("PRUEBA");
-    expect(finalStateFor(40, 60, marginFor("ACTIVE", margins))).toBe("PRUEBA");
+    // Est. art. 7.5: desde 50 y por debajo de 60 queda en prueba; bajo 50 sale.
+    expect(finalStateFor(45, 60, marginFor("ACTIVE", margins))).toBe("NO_CUMPLE");
+    expect(finalStateFor(40, 60, marginFor("ACTIVE", margins))).toBe("NO_CUMPLE");
     expect(finalStateFor(39.99, 60, marginFor("ACTIVE", margins))).toBe("NO_CUMPLE");
     // Est. art. 11.4 y 11.5: sin banda para nuevos y en prueba.
     expect(finalStateFor(79.99, 80, marginFor("NEW", margins))).toBe("NO_CUMPLE");
@@ -572,7 +572,7 @@ describe("estados y margen de prueba (ADR-027, ADR-028)", () => {
     expect(stateFor(72, 18, 80, 0, false)).toBe("EN_CAMINO");
   });
 
-  it("un activo con 45 queda en prueba y con 38 sale; un nuevo con 72 sale (Est. art. 7.5 y 11.4)", () => {
+  it("un activo con 45 o 38 sale; un nuevo con 72 sale (Est. art. 7.5 y 11.4)", () => {
     const eventos = rule(
       { key: "eventos", label: "Eventos", weight: 60, computation: "MANUAL", params: {} },
       "COMMITTEE",
@@ -592,7 +592,7 @@ describe("estados y margen de prueba (ADR-027, ADR-028)", () => {
         }),
         NOW,
       ).results[0];
-    expect(at(45)).toMatchObject({ condition: "ACTIVE", threshold: 60, finalState: "PRUEBA" });
+    expect(at(45)).toMatchObject({ condition: "ACTIVE", threshold: 60, finalState: "NO_CUMPLE" });
     expect(at(38)).toMatchObject({ condition: "ACTIVE", threshold: 60, finalState: "NO_CUMPLE" });
     expect(at(60)).toMatchObject({ condition: "ACTIVE", finalState: "CUMPLE" });
     expect(at(72, { isNew: true })).toMatchObject({
@@ -2108,7 +2108,7 @@ describe("lo que queda al congelar (ADR-116 regla 6)", () => {
       total: 45,
       remaining: 65,
       state: "EN_CAMINO",
-      finalState: "PRUEBA",
+      finalState: "NO_CUMPLE",
     });
 
     const frozen = closedResults(open);
@@ -2118,8 +2118,8 @@ describe("lo que queda al congelar (ADR-116 regla 6)", () => {
       threshold: 60,
       remaining: 0,
       margin: -15,
-      state: "PRUEBA",
-      finalState: "PRUEBA",
+      state: "NO_CUMPLE",
+      finalState: "NO_CUMPLE",
     });
     expect(frozen.results[0]?.criteria[0]).toMatchObject({ achieved: 45, remaining: 0 });
     // Lo abierto no se toca: congelar devuelve un resultado nuevo.

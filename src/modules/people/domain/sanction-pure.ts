@@ -14,8 +14,8 @@ export const SANCTION_KINDS = [
 ] as const satisfies readonly SanctionKind[];
 
 /**
- * Lo que registra la dirección de un comité (Regl. art. 69 par. 2; ADR-060 regla 6): la suspensión y
- * la inhabilidad las decide GH (Regl. art. 58, 62 y 63).
+ * Lo que registra la dirección de un comité (Regl. art. 70 par. 2; ADR-060 regla 6): la suspensión y
+ * la inhabilidad las decide GH (Regl. art. 59, 63 y 64).
  */
 export const COMMITTEE_SANCTION_KINDS: readonly SanctionKind[] = ["WARNING", "MINOR", "MAJOR"];
 
@@ -28,13 +28,13 @@ export type SanctionScope =
   | { by: "ADMIN" }
   | { by: "COMMITTEE"; committeeId: string; termId: string };
 
-/** Días calendario de suspensión de derechos y beneficios (Regl. art. 69.1 y 69.2). */
+/** Días calendario de suspensión de derechos y beneficios (Regl. art. 70.1 y 70.2). */
 export const SUSPENSION_DAYS: Partial<Record<SanctionKind, number>> = { WARNING: 7, MINOR: 20 };
 
-/** Una suspensión explícita no supera un mes calendario (Regl. art. 58). */
+/** Una suspensión explícita no supera un mes calendario (Regl. art. 59). */
 export const MAX_SUSPENSION_MONTHS = 1;
 
-/** Toda falta vence al año de asignada (Regl. art. 69 par. 3); la inhabilidad dura un año (art. 62 y 63). */
+/** Toda falta vence al año de asignada (Regl. art. 70 par. 3); la inhabilidad dura un año (art. 63 y 64). */
 export const VALIDITY_YEARS = 1;
 
 export interface SanctionLike {
@@ -122,12 +122,12 @@ export function suspendedUntil(items: ReadonlyArray<SanctionLike>, onKey: string
   return ends.at(-1) ?? null;
 }
 
-/** Inhabilitado para cargos directivos ese día (Regl. art. 62 y 63). */
+/** Inhabilitado para cargos directivos ese día (Regl. art. 63 y 64). */
 export function hasOfficeBan(items: ReadonlyArray<SanctionLike>, onKey: string): boolean {
   return items.some((item) => item.kind === "OFFICE_BAN" && isLive(item, onKey));
 }
 
-/** Una falta grave viva más cualquier otra sanción viva: expulsión (Regl. art. 69.3). */
+/** Una falta grave viva más cualquier otra sanción viva: expulsión (Regl. art. 70.3). */
 export function expulsionWarning(items: ReadonlyArray<SanctionLike>, onKey: string): boolean {
   const live = items.filter((item) => isLive(item, onKey));
   return live.some((item) => item.kind === "MAJOR") && live.length >= 2;

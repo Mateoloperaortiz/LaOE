@@ -47,6 +47,9 @@ const CAMPAIGNS_UNSEEDED = {
 // suma acá.
 const DIGITS = "123456789".repeat(9);
 const CHECKED: Record<string, Record<string, string>> = {
+  appointment_election_record: { origin: "'ELECTED'" },
+  macroevent_review: { year: "2026", status: "'ENABLED'" },
+  macroevent_reactivation: { year: "2027" },
   boost_campaign: { percent: "25", challenge_id: "'x'" },
   budget_prerequest: { month: "'2026-01'" },
   card: { person_id: "'x'" },
