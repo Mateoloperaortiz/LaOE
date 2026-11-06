@@ -17,7 +17,7 @@ import { approvedCompleteAttendanceCondition } from "./attendance-query";
 
 export type RepresentationLadder = 0 | 1 | 2 | 3;
 
-/** Faltas sin excusa en el término → consecuencia del Regl. art. 64, en el orden de T-2250. */
+/** Faltas sin excusa en el término → consecuencia del Regl. art. 65, en el orden de T-2250. */
 export function representationLadder(unexcused: number): RepresentationLadder {
   if (unexcused <= 0) return 0;
   if (unexcused === 1) return 1;
@@ -25,7 +25,7 @@ export function representationLadder(unexcused: number): RepresentationLadder {
   return 3;
 }
 
-/** Máximo de faltas con excusa válida por semestre (Regl. art. 64). */
+/** Máximo de faltas con excusa válida por semestre (Regl. art. 65). */
 export const MAX_EXCUSED_ABSENCES = 2;
 
 export interface CommitteeAssemblyRow {
@@ -172,7 +172,7 @@ export interface CommitteeRepresentationSummary {
   unexcused: number;
   excused: number;
   ladder: RepresentationLadder;
-  /** Más de dos faltas con excusa en el semestre (Regl. art. 64). */
+  /** Más de dos faltas con excusa en el semestre (Regl. art. 65). */
   excusedOverflow: boolean;
 }
 

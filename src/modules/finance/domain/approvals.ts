@@ -11,7 +11,7 @@ import { scopeId } from "@/shared/lib/scope-id";
 import { committeeBudget, eventApproval } from "../schema";
 import { APPROVAL_STATUSES } from "./budget-pure";
 
-// Aval de evento (Regl. art. 35 par. 1; Est. art. 23.11 y 36.3; ADR-060 regla 12): el comité lo pide
+// Aval de evento (Regl. art. 36 par. 1; Est. art. 23.11 y 36.3; ADR-060 regla 12): el comité lo pide
 // con la fecha del evento y la Presidencia (ADMIN) lo aprueba o rechaza antes de ejecutar, difundir o
 // comprar. Los gastos y traslados del evento se ligan al aval aprobado.
 

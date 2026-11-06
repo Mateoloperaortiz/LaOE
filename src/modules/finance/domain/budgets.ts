@@ -333,7 +333,7 @@ export async function setBudgetLines(
   });
 }
 
-/** Aprobación de Desarrollo Estudiantil o de la Vicepresidencia Financiera (Regl. art. 50 par. 1). */
+/** Aprobación de Desarrollo Estudiantil o de la Vicepresidencia Financiera (Regl. art. 51 par. 1). */
 export async function approveBudget(
   ctx: CommandContext,
   id: string,
@@ -391,7 +391,7 @@ export async function closeBudget(ctx: CommandContext, id: string): Promise<void
   });
 }
 
-/** Sanción por presentación tardía (Regl. art. 66): ajuste porcentual sobre lo asignado, con motivo. */
+/** Sanción por presentación tardía (Regl. art. 67): ajuste porcentual sobre lo asignado, con motivo. */
 export async function sanctionBudget(
   ctx: CommandContext,
   id: string,

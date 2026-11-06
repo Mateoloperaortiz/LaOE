@@ -158,3 +158,5 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [130](adr/ADR-130-fotos-privadas-en-mi-oe.md) | Fotos privadas de Mi OE | Colecciones y álbumes para integrantes; variantes saneadas con entrega por sesión, visor y carga idempotente de DÍAS 2026 | Aceptada |
 
 - [ADR-156](adr/ADR-156-disponibilidad-privada-de-grupos.md): disponibilidad semanal y propuestas de reunión, privadas por pertenencia vigente al grupo.
+
+- [ADR-157](adr/ADR-157-normativa-actualizada-2026.md): permanencia desde 2026-2, constancias electorales, corte anual y reactivación de macroeventos.

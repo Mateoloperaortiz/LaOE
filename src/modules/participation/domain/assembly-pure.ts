@@ -17,7 +17,7 @@ export interface AssemblyRequirementView {
 
 /**
  * Una ordinaria por defecto; la elección de junta y cada vuelta adicional se exigen cuando existen en el
- * término, en cualquier semestre (Regl. art. 60 y 63; Est. art. 7.9; ADR-060 regla 13). Privada de
+ * término, en cualquier semestre (Regl. art. 61 y 64; Est. art. 7.9; ADR-060 regla 13). Privada de
  * este archivo: el requisito «del término» se pide por `termAssemblyRequirement` (ADR-123 regla 13).
  */
 function defaultRequirement(

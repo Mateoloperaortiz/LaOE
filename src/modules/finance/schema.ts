@@ -16,7 +16,7 @@ import { committee, person } from "@/modules/people/schema";
 
 // Presupuesto del comité (ADR-059 con las enmiendas de ADR-060 regla 12): presupuesto ordinario anual
 // o extraordinario, aprobado por Desarrollo Estudiantil y la Vicepresidencia Financiera antes de
-// abrirse (Regl. art. 50), rubros, presolicitud mensual (Est. art. 38.3), aval de evento (Regl. art.
+// abrirse (Regl. art. 51), rubros, presolicitud mensual (Est. art. 38.3), aval de evento (Regl. art.
 // 35 par. 1), gastos y traslados ligados al aval. Montos en pesos con dos decimales.
 
 export const budgetKind = pgEnum("budget_kind", ["ORDINARY", "EXTRAORDINARY"]);
@@ -38,15 +38,15 @@ export const committeeBudget = pgTable(
       .references(() => committee.id),
     year: integer().notNull(),
     kind: budgetKind().notNull().default("ORDINARY"),
-    /** Actividad no prevista que cubre un extraordinario (Regl. art. 50.2); vacío en el ordinario. */
+    /** Actividad no prevista que cubre un extraordinario (Regl. art. 51.2); vacío en el ordinario. */
     title: text().notNull().default(""),
     status: budgetStatus().notNull().default("DRAFT"),
     notes: text().notNull().default(""),
-    /** Cuándo lo presentó el comité (Regl. art. 50.1 y 66). */
+    /** Cuándo lo presentó el comité (Regl. art. 51.1 y 66). */
     submittedOn: date({ mode: "string" }),
     studentDevelopmentApprovedOn: date({ mode: "string" }),
     vpFinanceApprovedOn: date({ mode: "string" }),
-    /** Sanción por presentación tardía (Regl. art. 66): descuento sobre lo asignado, con motivo. */
+    /** Sanción por presentación tardía (Regl. art. 67): descuento sobre lo asignado, con motivo. */
     sanctionPercent: numeric({ precision: 5, scale: 2, mode: "number" }).notNull().default(0),
     sanctionReason: text().notNull().default(""),
     createdAt: createdAt(),
@@ -88,7 +88,7 @@ export const budgetLine = pgTable(
   ],
 );
 
-// Aval de evento (Regl. art. 35 par. 1; Est. art. 23.11 y 36.3): lo pide el comité y lo decide la
+// Aval de evento (Regl. art. 36 par. 1; Est. art. 23.11 y 36.3): lo pide el comité y lo decide la
 // Presidencia antes de ejecutar, difundir o comprar; los gastos y traslados del evento se ligan aquí.
 export const eventApproval = pgTable(
   "event_approval",
@@ -152,7 +152,7 @@ export const budgetExpense = pgTable(
     spentOn: date({ mode: "string" }).notNull(),
     amount: money().notNull(),
     description: text().notNull(),
-    /** Proveedor de la lista de la Universidad (Regl. art. 51): dato, no validación. */
+    /** Proveedor de la lista de la Universidad (Regl. art. 52): dato, no validación. */
     supplier: text().notNull().default(""),
     registeredById: text().references(() => person.id, { onDelete: "set null" }),
     createdAt: createdAt(),

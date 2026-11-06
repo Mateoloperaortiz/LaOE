@@ -20,6 +20,7 @@ import {
   workGroupEvaluator,
   workGroupMembership,
 } from "../schema";
+import { probationMarginsForTerm } from "./normative-policy-pure";
 import { toRule } from "./params";
 import {
   type AssemblyRequirementFact,
@@ -36,7 +37,7 @@ import {
 // que se decide con lo leído vive en `permanence-pure.ts`: con qué estado, condición de nuevo y prueba
 // llega la persona lo dice `personStanding`. Quién es nuevo ya viene decidido en el roster de `people`.
 
-export async function loadPermanenceConfig(): Promise<PermanenceConfig> {
+export async function loadPermanenceConfig(termCode?: string): Promise<PermanenceConfig> {
   return {
     thresholds: {
       active: await requireConfig("permanence.threshold.active"),
@@ -44,7 +45,11 @@ export async function loadPermanenceConfig(): Promise<PermanenceConfig> {
       probation: await requireConfig("permanence.threshold.probation"),
       transfer: await requireConfig("permanence.threshold.transfer"),
     },
-    probationMargins: await requireConfig("permanence.probationMargins"),
+    probationMargins: probationMarginsForTerm(
+      termCode,
+      await requireConfig("permanence.probationMargins"),
+      await requireConfig("permanence.probationMargins2026"),
+    ),
     evaluationWindowDays: await requireConfig("permanence.evaluationWindowDays"),
     warningDays: await requireConfig("permanence.warningDays"),
   };
@@ -105,7 +110,7 @@ export async function loadTermFacts(termOrId: string | TermRow): Promise<TermFac
     return null;
   }
   const termId = term.id;
-  const config = await loadPermanenceConfig();
+  const config = await loadPermanenceConfig(term.code);
   const rules = await loadRules(termId);
   const occasions: OccasionFact[] = (await listOccasionsForTerm(termId)).map((row) => ({
     id: row.id,

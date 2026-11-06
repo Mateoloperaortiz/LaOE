@@ -12,6 +12,7 @@ import { DomainError } from "@/shared/lib/errors";
 import { scopeId } from "@/shared/lib/scope-id";
 import { appointment, committee, macroeventRole, membership, person } from "../schema";
 import { assertNoInhabilities, BOARD_KINDS, type Override } from "./inhabilities";
+import { lockMacroeventGovernance } from "./macroevent-lock";
 
 // Cargos de junta y de GH (ADR-034, punto 13): visibles, con historia por término; no otorgan permisos.
 // Desde ADR-060 (regla 9) también los cargos de la mesa directiva de un macroevento: llevan la edición
@@ -62,7 +63,7 @@ export const appointmentInputSchema = z
 
 export type AppointmentInput = z.infer<typeof appointmentInputSchema>;
 
-/** Cargos de la mesa directiva de un macroevento (Regl. art. 41 a 43), en el orden del catálogo. */
+/** Cargos de la mesa directiva de un macroevento (Regl. art. 42 a 44), en el orden del catálogo. */
 export const MACROEVENT_ROLE_CODES = [
   "GENERAL",
   "LOGISTICA",
@@ -251,10 +252,14 @@ export async function removeAppointment(
   id: string,
   owner: AppointmentOwner,
 ): Promise<void> {
-  const [row] = await ctx.tx.select().from(appointment).where(eq(appointment.id, id));
-  if (!row || !ownsAppointment(row, owner)) {
-    throw new DomainError(t("T-032"));
+  const [reference] = await ctx.tx.select().from(appointment).where(eq(appointment.id, id));
+  if (!reference || !ownsAppointment(reference, owner)) throw new DomainError(t("T-032"));
+  if (reference.editionId) {
+    const edition = await getMacroeventEdition(reference.editionId, ctx.tx);
+    if (edition) await lockMacroeventGovernance(ctx.tx, edition.eventId);
   }
+  const [row] = await ctx.tx.select().from(appointment).where(eq(appointment.id, id)).for("update");
+  if (!row || !ownsAppointment(row, owner)) throw new DomainError(t("T-032"));
   await ctx.tx.delete(appointment).where(eq(appointment.id, id));
   await ctx.audit({
     action: "appointment.removed",
@@ -385,6 +390,7 @@ export async function addMacroeventDirector(
   if (!edition || !macroeventRoleCodes(edition.eventSlug).includes(input.roleCode)) {
     throw new DomainError(t("T-2351"), "roleCode");
   }
+  await lockMacroeventGovernance(ctx.tx, edition.eventId);
   const [titularTomado, codireccionTomada, soloActivos, yaEnLaMesa] = tList("T-2271");
   const [member] = await ctx.tx
     .select({ status: membership.status })

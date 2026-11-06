@@ -75,6 +75,9 @@ export default async function MacroeventPage({
           {t("T-2344")}
         </Link>
         <h1 className="text-display-lg">{event.name}</h1>
+        <Link href={`/admin/macroeventos/${slug}/normativa`} className="self-start underline">
+          {t("T-4800")}
+        </Link>
         <p className="max-w-prose text-tinta-suave">{t("T-2345")}</p>
       </header>
       <ActionForm

@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { closeDb } from "@/db/client";
+import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import {
   activatePresenceNotice24hAs,
@@ -10,6 +10,7 @@ import {
 } from "@/modules/participation";
 import { occasion } from "@/modules/participation/schema";
 import { setConfigAs } from "@/modules/system";
+import { auditLog } from "@/modules/system/schema";
 import { closeTermPoints } from "@/modules/terms";
 import {
   seedAuditFact,
@@ -114,6 +115,12 @@ describe("activación única del aviso presencial de 24 horas", () => {
       status: "DRAFT",
     });
     await openOccasionAs(SYSTEM_ACTOR, row.id, { isAdmin: true });
+    // La auditoría usa el reloj de PostgreSQL, que no sigue el Date simulado.
+    // La evidencia de esta apertura sintética debe ocurrir en el mismo instante que el comando.
+    await getDb()
+      .update(auditLog)
+      .set({ at: NOW })
+      .where(and(eq(auditLog.entityId, row.id), eq(auditLog.action, "occasion.opened")));
     vi.setSystemTime(new Date("2026-11-05T16:00:00Z"));
     expect(await getPresenceStreak(personId, termId)).toMatchObject({
       weekStatus: "PAUSED",

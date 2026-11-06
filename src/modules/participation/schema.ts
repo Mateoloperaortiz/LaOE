@@ -41,7 +41,7 @@ export const occasionCategory = pgEnum("occasion_category", [
   "WORKSHOP",
   "SOCIAL",
   "OTHER",
-  // Inducción de nuevos (Regl. art. 47; ADR-060 regla 13): obligatoria para nuevos como las asambleas.
+  // Inducción de nuevos (Regl. art. 48; ADR-060 regla 13): obligatoria para nuevos como las asambleas.
   "INDUCTION",
 ]);
 export const occasionApproval = pgEnum("occasion_approval", ["AUTO", "MANUAL"]);
@@ -812,7 +812,7 @@ export const occasionSurveyResponse = pgTable(
   (t) => [index("occasion_survey_response_occasion_idx").on(t.occasionId)],
 );
 
-// Asistencia de cada comité a una asamblea cerrada (Regl. art. 14 y 64; ADR-060 regla 7): representado
+// Asistencia de cada comité a una asamblea cerrada (Regl. art. 14 y 65; ADR-060 regla 7): representado
 // si su titular, su suplente o cualquier cargo de dirección registró asistencia; con excusa si alguno
 // de ellos tiene la excusa aceptada. Derivada por outbox al cerrar la asamblea y al cambiar un check-in.
 export const committeeAssemblyAttendance = pgTable(

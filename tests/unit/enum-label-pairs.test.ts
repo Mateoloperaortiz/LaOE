@@ -143,7 +143,7 @@ describe("la tabla de los pares", () => {
     // Dieciocho uno a uno y el de largo distinto de T-566, también deshecho; el de T-2174 entró
     // con DT-370.
     // Los tres nuevos fijan cobertura, lista acreditada y estado de excusa por separado.
-    expect(UNSEEN_PAIRS).toHaveLength(21);
+    expect(UNSEEN_PAIRS).toHaveLength(24);
     expect(UNEVEN_PAIRS.filter((pair) => !pair.seen)).toHaveLength(0);
     expect(UNDONE_UNEVEN_PAIRS.filter((pair) => !pair.seen)).toHaveLength(1);
   });

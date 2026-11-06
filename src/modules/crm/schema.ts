@@ -393,7 +393,7 @@ export const recognition = pgTable(
       .references(() => term.id),
     month: integer(),
     title: text().notNull(),
-    /** Categoría de Premios OE (Regl. art. 71; ADR-060 regla 13); solo en `OE_AWARD`. */
+    /** Categoría de Premios OE (Regl. art. 72; ADR-060 regla 13); solo en `OE_AWARD`. */
     award: text(),
     announcementId: text().references(() => announcement.id, { onDelete: "set null" }),
     grantedById: text().references(() => person.id, { onDelete: "set null" }),

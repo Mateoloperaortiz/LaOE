@@ -33,6 +33,13 @@ export const CONFIG = {
     probation: z.number().min(0),
     transfer: z.number().min(0),
   }),
+  // ADR-157: política desde 2026-2; la clave anterior conserva los términos previos.
+  "permanence.probationMargins2026": z.object({
+    active: z.literal(10),
+    new: z.literal(0),
+    probation: z.literal(0),
+    transfer: z.literal(0),
+  }),
   // Fase 4 (ADR-036): ventana de evaluación antes del fin del término y días del aviso de cierre.
   "permanence.evaluationWindowDays": z.number().int().min(0),
   "permanence.warningDays": z.number().int().min(0),

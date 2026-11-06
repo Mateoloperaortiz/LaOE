@@ -1,3 +1,4 @@
+import { ElectionGuidance } from "@/modules/people/components/ElectionGuidance";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
@@ -43,6 +44,7 @@ export function Board({
   ];
   return (
     <div className="flex flex-col gap-8">
+      <ElectionGuidance />
       {!hasEdition ? (
         <div className="flex flex-col items-start gap-3">
           <p className="max-w-prose text-tinta-suave">{t("T-2354")}</p>

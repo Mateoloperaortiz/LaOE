@@ -226,7 +226,7 @@ export interface MandatoryView {
   /** Tipos de obligatoria con una excusa aceptada (ADR-060 regla 5). */
   excused: AssemblyKindName[];
   upcoming: Array<UpcomingOccasion & { assemblyKind: AssemblyKindName }>;
-  /** Inducción de nuevos (Regl. art. 47; ADR-060 regla 13): informa, no expulsa. */
+  /** Inducción de nuevos (Regl. art. 48; ADR-060 regla 13): informa, no expulsa. */
   induction: { required: boolean; attended: boolean; excused: boolean; pending: boolean };
 }
 
@@ -1029,7 +1029,7 @@ export interface Proposal {
  * La causa que obliga a salir de la OE, de la que más pesa a la que menos; nulo si ninguna obliga. Faltar
  * es no tener registro en una obligatoria que sí se celebró y no tiene reemplazo programado; una
  * obligatoria que nunca se registró en el sistema no expulsa a nadie. Una falta grave viva más cualquier
- * otra sanción viva expulsa (Regl. art. 69.3; ADR-060 regla 6). Es la única regla de «por qué sale»
+ * otra sanción viva expulsa (Regl. art. 70.3; ADR-060 regla 6). Es la única regla de «por qué sale»
  * (ADR-129 regla 1): de ella saca el cierre el motivo de su propuesta y la baja su causal.
  */
 function forcedExitReason(

@@ -947,7 +947,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-798 | Cierre de permanencia: título | Cierre de permanencia | GH | Propuesta |
 | T-799 | Cierre: puntos sin cerrar | Primero cierra los puntos de {término}. Las propuestas se ven, pero no se confirman hasta entonces. | MATEO | Propuesta |
 | T-800 | Cierre: resumen | Personas · Continúan · En prueba · Salen de un comité · Salen de la OE · Sin decisión · Evaluaciones pendientes | MATEO | Propuesta |
-| T-801 | Cierre: motivos automáticos (cumple, prueba, no cumple, sin comité, obligatoria, sanciones) | Cumplió el umbral · Por debajo del umbral, dentro de la banda de prueba de su condición · Por debajo del umbral, fuera de la banda de prueba de su condición · No le queda un comité donde cumpla o esté en prueba · Faltó a una asamblea obligatoria · Falta grave vigente más otra sanción (Reglamento, art. 69) | GH | Propuesta |
+| T-801 | Cierre: motivos automáticos (cumple, prueba, no cumple, sin comité, obligatoria, sanciones) | Cumplió el umbral · Por debajo del umbral, dentro de la banda de prueba de su condición · Por debajo del umbral, fuera de la banda de prueba de su condición · No le queda un comité donde cumpla o esté en prueba · Faltó a una asamblea obligatoria · Falta grave vigente más otra sanción (Reglamento, art. 70) | GH | Propuesta |
 | T-802 | Cierre y Persona 360: decisiones (en el orden del modelo) | Continúa · Periodo de prueba · Sale del comité · Sale de la OE | GH | Propuesta |
 | T-803 | Cierre: botones | Confirmar propuesta · Cambiar · Confirmar todas las propuestas · Aplicar cierre | MATEO | Propuesta |
 | T-804 | Cierre: campos al cambiar | Decisión · Motivo | MATEO | Propuesta |
@@ -1810,9 +1810,9 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 
 ## Normativa 2026 (ADR-060)
 
-| T-2206 | Persona 360: reactivar a una persona expulsada | No se puede reactivar: fue expulsada de la OE y el Reglamento no admite el reingreso (art. 61). | GH | Propuesta; texto sensible |
+| T-2206 | Persona 360: reactivar a una persona expulsada | No se puede reactivar: fue expulsada de la OE y el Reglamento no admite el reingreso (art. 62). | GH | Propuesta; texto sensible |
 | T-2207 | Condición del semestre: opción del comité que aplica a todos | Todos sus comités | MATEO | Propuesta |
-| T-2208 | Importación del roster: aviso por persona expulsada | {nombre} fue expulsada de la OE y el roster no la reactiva (Reglamento, art. 61); su fila conserva el estado actual. | GH | Propuesta |
+| T-2208 | Importación del roster: aviso por persona expulsada | {nombre} fue expulsada de la OE y el roster no la reactiva (Reglamento, art. 62); su fila conserva el estado actual. | GH | Propuesta |
 | T-2209 | Catálogo de cargos: casilla de retirado · campo del reemplazo | Retirado del catálogo · Lo reemplaza (código) | MATEO | Propuesta |
 | T-2210 | Catálogo de cargos: ayuda de retirado | Un cargo retirado no se ofrece al nombrar; quien ya lo tiene lo conserva hasta cerrarlo y el roster lo traduce al reemplazo. | MATEO | Propuesta |
 | T-2211 | Catálogo de cargos: reemplazo inválido | El cargo de reemplazo no existe en el catálogo o es el mismo cargo. | MATEO | Propuesta |
@@ -1837,15 +1837,15 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2230 | Sanciones: campos del formulario | Tipo · Causal: los hechos y los descargos · Referencia del Reglamento (opcional) · Fecha de la falta · Suspendida hasta (solo suspensión) · Comité que la impone (opcional) · Miembro | GH | Propuesta |
 | T-2231 | Sanciones: ayuda del formulario | Un llamado de atención suspende derechos y beneficios 7 días y una falta leve 20; una suspensión dura hasta un mes; una falta grave no suspende pero advierte de expulsión y, con otra sanción vigente, el cierre propone la salida; la inhabilidad para cargos dura un año. Toda falta vence al año. Anota los descargos en la causal. | GH | Propuesta; texto sensible |
 | T-2232 | Sanciones: botones | Registrar sanción · Revocar sanción | MATEO | Propuesta |
-| T-2233 | Guarda: reconocimiento o aval a una persona suspendida | {nombre} tiene derechos y beneficios suspendidos hasta el {fecha}: no puede recibir reconocimientos ni avales (Reglamento, art. 69 y 73). | GH | Propuesta; texto sensible |
+| T-2233 | Guarda: reconocimiento o aval a una persona suspendida | {nombre} tiene derechos y beneficios suspendidos hasta el {fecha}: no puede recibir reconocimientos ni avales (Reglamento, art. 70 y 74). | GH | Propuesta; texto sensible |
 | T-2234 | Línea de tiempo: sanción registrada · sanción revocada | Sanción registrada: {tipo} ({causal}) · Sanción revocada: {tipo} ({motivo}) | MATEO | Propuesta |
 | T-2235 | Mi OE, permanencia: bloque de sanciones, título | Faltas y sanciones | GH | Propuesta |
 | T-2236 | Mi OE, permanencia: línea de una sanción | {tipo} del {fecha}: {causal}. Vence el {vence}. | GH | Propuesta; texto sensible |
 | T-2237 | Mi OE, permanencia: derechos suspendidos | Tus derechos y beneficios en la OE están suspendidos hasta el {fecha}. Sigues con tus deberes y tus reuniones. | GH | Propuesta; texto sensible |
-| T-2238 | Mi OE, permanencia: advertencia de expulsión | Tienes una falta grave vigente más otra sanción: el cierre del semestre propone tu salida de la OE (Reglamento, art. 69). Habla con GH. | GH | Propuesta; texto sensible |
+| T-2238 | Mi OE, permanencia: advertencia de expulsión | Tienes una falta grave vigente más otra sanción: el cierre del semestre propone tu salida de la OE (Reglamento, art. 70). Habla con GH. | GH | Propuesta; texto sensible |
 | T-2239 | Persona 360, Membresía: bloque de sanciones (título · vacío) | Faltas y sanciones · Sin sanciones registradas | MATEO | Propuesta |
 | T-2240 | Sanciones: motivo de la revocación | Motivo de la revocación (descargos o revisión de la junta) | GH | Propuesta |
-| T-2241 | Sanciones: fecha de fin de la suspensión inválida | La suspensión necesita una fecha de fin entre la falta y un mes después (Reglamento, art. 58). | MATEO | Propuesta |
+| T-2241 | Sanciones: fecha de fin de la suspensión inválida | La suspensión necesita una fecha de fin entre la falta y un mes después (Reglamento, art. 59). | MATEO | Propuesta |
 | T-2242 | Permanencia del comité: registrar una falta, título | Registrar una falta a un miembro del comité | GH | Propuesta |
 | T-2243 | Sanciones: estados (vigente · vencida · revocada) | Vigente · Vencida · Revocada | MATEO | Propuesta |
 | T-2244 | Sanciones: membresía terminada | Solo se sanciona a un miembro con membresía viva; una persona retirada se da de baja con motivo expulsión. | MATEO | Propuesta |
@@ -1854,8 +1854,8 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2247 | Comité, área Personas: bloque de representación, título | Representación ante la Asamblea Directiva | GH | Propuesta |
 | T-2248 | Comité, área Personas: ayuda de representación | Un titular y un suplente de la mesa directiva, miembros activos del comité (Reglamento, art. 14). El comité cuenta como representado cuando su titular, su suplente o cualquier cargo de dirección registra asistencia en la asamblea; con excusa aceptada, la falta cuenta con excusa. | GH | Propuesta |
 | T-2249 | Asambleas (admin): columnas de la representación por comité | Comité · Titular · Suplente · Representado en · Faltas sin excusa · Faltas con excusa · Consecuencia | MATEO | Propuesta |
-| T-2250 | Representación: escalera de consecuencias del término (en el orden del modelo) | Al día · Primera falta: sin voto en la siguiente asamblea y llamado de atención a la mesa · Segunda falta: sin voto en las dos siguientes y falta leve a la mesa · Tercera falta: causal de desactivación y falta grave a la mesa | GH | Propuesta; Reglamento art. 64; texto sensible |
-| T-2251 | Representación: más de dos faltas con excusa | Más de dos faltas con excusa en el semestre (Reglamento, art. 64). | GH | Propuesta |
+| T-2250 | Representación: escalera de consecuencias del término (en el orden del modelo) | Al día · Primera falta: sin voto en la siguiente asamblea y llamado de atención a la mesa · Segunda falta: sin voto en las dos siguientes y falta leve a la mesa · Tercera falta: causal de desactivación y falta grave a la mesa | GH | Propuesta; Reglamento art. 65; texto sensible |
+| T-2251 | Representación: más de dos faltas con excusa | Más de dos faltas con excusa en el semestre (Reglamento, art. 65). | GH | Propuesta |
 | T-2252 | Asambleas (admin): comités representados en una asamblea | {n} de {m} comités representados | MATEO | Propuesta |
 | T-2253 | Asambleas (admin): sección de representación, título | Representación de los comités | GH | Propuesta |
 | T-2254 | Asambleas (admin): botón de recalcular la representación | Recalcular | MATEO | Propuesta |
@@ -1864,14 +1864,14 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2257 | Representación: sin representante · sin asambleas cerradas | Sin representante · Sin asambleas cerradas todavía | MATEO | Propuesta |
 | T-2258 | Comité, área Personas: resumen de la representación del semestre | Representado en {n} de {m} asambleas · {faltas} sin excusa · {excusadas} con excusa | MATEO | Propuesta |
 | T-2259 | Comité: campos del periodo de prueba y la desactivación | Prueba desde · Prueba hasta · Desactivado el | MATEO | Propuesta |
-| T-2260 | Comité: ayuda del periodo de prueba | Un comité creado o reactivado queda en prueba seis meses, ampliables a un año por la junta con motivo; en ese lapso debe hacer al menos un evento propio, representar al comité en el 90 % de las asambleas y cerrar con diez miembros fuera de la mesa (Reglamento, art. 25). Reactivar uno desactivado solo tras dos meses (art. 64). | JUNTA | Propuesta |
+| T-2260 | Comité: ayuda del periodo de prueba | Un comité creado o reactivado queda en prueba seis meses, ampliables a un año por la junta con motivo; en ese lapso debe hacer al menos un evento propio, representar al comité en el 90 % de las asambleas y cerrar con diez miembros fuera de la mesa (Reglamento, art. 25). Reactivar uno desactivado solo tras dos meses (art. 65). | JUNTA | Propuesta |
 | T-2261 | Tablero y cabecera del comité: aviso de viabilidad | {comité}: {alerta} | MATEO | Propuesta |
 | T-2262 | Condición del semestre: casilla de mesa de comité nuevo | Se reporta como activo aunque sea nuevo (mesa de comité nuevo o reactivado, Estatutos art. 5) | GH | Propuesta |
 | T-2263 | Tablero de ADMIN: viabilidad de los comités, título | Viabilidad de los comités | MATEO | Propuesta |
 | T-2264 | Viabilidad: avisos (en el orden del modelo) | Menos de tres direcciones vivas · Sin General o Financiero titular · Menos de seis miembros fuera de la mesa · Tres o más faltas sin excusa a la Asamblea · Sin evento propio en el semestre · En prueba con menos de diez miembros fuera de la mesa · En prueba con menos del 90 % de asambleas representadas · La prueba termina en menos de 30 días | GH | Propuesta; Reglamento art. 25 y 26; texto sensible |
 | T-2265 | Comité en prueba: insignia de la cabecera | En prueba hasta el {fecha} | MATEO | Propuesta |
 | T-2266 | Ediciones: columna, enlace y título de la mesa directiva | Mesa directiva | MATEO | Propuesta |
-| T-2267 | Mesa directiva de la edición: ayuda | Los cargos de la mesa directiva de un macroevento los elige la Asamblea Directiva (Reglamento, art. 41 a 43); aquí queda el resultado, con un titular y, si la hay, una codirección por cargo. Solo miembros activos. | JUNTA | Propuesta |
+| T-2267 | Mesa directiva de la edición: ayuda | Los cargos de la mesa directiva de un macroevento los elige la Asamblea Directiva (Reglamento, art. 42 a 44); aquí queda el resultado, con un titular y, si la hay, una codirección por cargo. Solo miembros activos. | JUNTA | Propuesta |
 | T-2268 | Cargo de macroevento: etiqueta del titular (Persona 360, directorio, egresados) | {cargo} · {edición} | MATEO | Propuesta |
 | T-2269 | Cargo de macroevento: etiqueta de la codirección | {cargo} (codirección) · {edición} | MATEO | Propuesta |
 | T-2270 | Mesa directiva: campos y botones | Cargo · Persona · Agregar a la mesa · Quitar | MATEO | Propuesta |
@@ -1894,7 +1894,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2287 | Presupuesto: guarda de ordinario repetido | Ese comité ya tiene presupuesto ordinario para {año}. | MATEO | Propuesta |
 | T-2288 | Presupuesto: campos de ADR-060 | Tipo · Actividad (solo extraordinario) · Presentado el · Aprobación de Desarrollo Estudiantil · Aprobación de la Vicepresidencia Financiera · Sanción (%) · Motivo de la sanción | MATEO | Propuesta |
 | T-2289 | Rubros: guarda al borrar uno con movimientos | El rubro {rubro} tiene movimientos: no se borra; traslada lo que queda. | MATEO | Propuesta |
-| T-2290 | Presupuesto: guarda al abrir sin aprobaciones | Para abrirlo faltan las aprobaciones de Desarrollo Estudiantil y de la Vicepresidencia Financiera (Reglamento, art. 50 par. 1). | MATEO | Propuesta |
+| T-2290 | Presupuesto: guarda al abrir sin aprobaciones | Para abrirlo faltan las aprobaciones de Desarrollo Estudiantil y de la Vicepresidencia Financiera (Reglamento, art. 51 par. 1). | MATEO | Propuesta |
 | T-2291 | Presupuesto: guarda al abrir sin rubros | Para abrirlo necesita al menos un rubro. | MATEO | Propuesta |
 | T-2292 | Gasto: guarda sin presolicitud del mes | Sin presolicitud de {mes} el comité no tiene acceso a los recursos ese mes (Estatutos, art. 38): regístrala primero. | MATEO | Propuesta |
 | T-2293 | Traslado: guarda de rubros iguales | Elige dos rubros distintos. | MATEO | Propuesta |
@@ -1905,13 +1905,13 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2298 | Presolicitud: título, campos, botón y confirmación | Presolicitud mensual · Mes · Notas · Registrar presolicitud · Presolicitud registrada. | MATEO | Propuesta |
 | T-2299 | Aval de evento: título, campos, botón y confirmación | Avales de evento · Evento · Fecha del evento · Edición (opcional) · Descripción · Pedir aval · Aval pedido: lo decide la Presidencia. | MATEO | Propuesta |
 | T-2300 | Aval de evento: estados (en el orden del modelo) | Pendiente · Aprobado · Rechazado | MATEO | Propuesta |
-| T-2301 | Aval de evento: ayuda | Antes de ejecutar, difundir o comprar para un evento, la Presidencia lo avala (Reglamento, art. 35 par. 1). Los gastos y los traslados de ese evento se ligan a su aval. | JUNTA | Propuesta |
+| T-2301 | Aval de evento: ayuda | Antes de ejecutar, difundir o comprar para un evento, la Presidencia lo avala (Reglamento, art. 36 par. 1). Los gastos y los traslados de ese evento se ligan a su aval. | JUNTA | Propuesta |
 | T-2302 | Presupuesto (detalle): títulos | Aprobaciones · Sanción por presentación tardía · Presolicitudes · Avales · Movimientos · Detalle | MATEO | Propuesta |
 | T-2303 | Presupuesto (detalle): botones | Registrar aprobación · Abrir · Cerrar · Aplicar sanción · Guardar rubros · Aprobar · Rechazar | MATEO | Propuesta |
 | T-2304 | Presupuesto (detalle): aprobador (en el orden del modelo) | Desarrollo Estudiantil · Vicepresidencia Financiera | MATEO | Propuesta |
-| T-2305 | Presupuesto: ayuda del tipo | El ordinario es anual y se presenta al final del año anterior; los extraordinarios cubren actividades no previstas durante el año (Reglamento, art. 50). Los dos los aprueban Desarrollo Estudiantil y la Vicepresidencia Financiera antes de abrirse. | JUNTA | Propuesta |
-| T-2306 | Presupuesto: ayuda de la sanción | No presentar el presupuesto a tiempo sin aplazamiento descuenta el 10 % del siguiente presupuesto aprobado (Reglamento, art. 66): queda como ajuste con motivo. | JUNTA | Propuesta |
-| T-2307 | Gasto y traslado: campos del aval y del proveedor | Aval del evento (opcional) · Proveedor (de la lista de la Universidad, Reglamento art. 51) · Sin aval | MATEO | Propuesta |
+| T-2305 | Presupuesto: ayuda del tipo | El ordinario es anual y se presenta al final del año anterior; los extraordinarios cubren actividades no previstas durante el año (Reglamento, art. 51). Los dos los aprueban Desarrollo Estudiantil y la Vicepresidencia Financiera antes de abrirse. | JUNTA | Propuesta |
+| T-2306 | Presupuesto: ayuda de la sanción | No presentar el presupuesto a tiempo sin aplazamiento descuenta el 10 % del siguiente presupuesto aprobado (Reglamento, art. 67): queda como ajuste con motivo. | JUNTA | Propuesta |
+| T-2307 | Gasto y traslado: campos del aval y del proveedor | Aval del evento (opcional) · Proveedor (de la lista de la Universidad, Reglamento art. 52) · Sin aval | MATEO | Propuesta |
 | T-2308 | Presupuesto (detalle): confirmación | Presupuesto actualizado. | MATEO | Propuesta |
 | T-2309 | Presupuesto extraordinario: etiqueta | Extraordinario: {actividad} | MATEO | Propuesta |
 | T-2310 | Presupuesto: totales | Asignado {asignado} · Gastado {gastado} · Disponible {disponible} | MATEO | Propuesta |
@@ -1919,16 +1919,16 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2312 | Presupuesto (detalle): campos de la aprobación y de la sanción | Quién aprueba · Fecha · Porcentaje · Motivo · Nota de la decisión | MATEO | Propuesta |
 | T-2313 | Condición del semestre: casilla de verificación académica | Requisitos académicos verificados este semestre (Estatutos, art. 6 y 7; sin guardar promedio ni materias) | GH | Propuesta |
 | T-2314 | Condición del semestre: insignia de la verificación académica | Verificación académica: {fecha} | MATEO | Propuesta |
-| T-2315 | Membresía: elegibilidad a honorario (título y ayuda) | Elegibilidad a honorario · Cuatro de cinco requisitos (Reglamento, art. 23): la junta decide y la asamblea resuelve las apelaciones. En periodo de prueba no se piden avales (art. 73). Los cargos "completos" se aproximan como vivos hasta el fin del semestre; la junta, como los dos semestres del mismo año. | JUNTA | Propuesta |
+| T-2315 | Membresía: elegibilidad a honorario (título y ayuda) | Elegibilidad a honorario · Cuatro de cinco requisitos (Reglamento, art. 23): la junta decide y la asamblea resuelve las apelaciones. En periodo de prueba no se piden avales (art. 74). Los cargos "completos" se aproximan como vivos hasta el fin del semestre; la junta, como los dos semestres del mismo año. | JUNTA | Propuesta |
 | T-2316 | Elegibilidad a honorario: requisitos (en el orden del modelo) | Cargo directivo de comité completo · Cargo directivo de macroevento completo · Seis semestres como miembro activo · Junta Directiva completa (año) · Un año en un comité de trabajo | JUNTA | Propuesta |
 | T-2317 | Elegibilidad a honorario: resumen e insignias | Cumple {n} de {m} requisitos · Elegible · Todavía no elegible | MATEO | Propuesta |
-| T-2318 | Permanencia: inducción de nuevos (título y estados) | Inducción · Obligatoria para nuevos (Reglamento, art. 47) · Asististe · Pendiente · Sin registro | GH | Propuesta |
+| T-2318 | Permanencia: inducción de nuevos (título y estados) | Inducción · Obligatoria para nuevos (Reglamento, art. 48) · Asististe · Pendiente · Sin registro | GH | Propuesta |
 | T-2319 | Ocasiones: asamblea citada con menos de tres días hábiles | Citada con menos de tres días hábiles (Reglamento, art. 15 par. 1) | MATEO | Propuesta |
-| T-2320 | Premios OE: categorías (en el orden del Reglamento, art. 71) | Mejor Dirección General · Mejor Dirección Financiera · Mejor Dirección de Gestión Humana · Mejor Dirección de Logística · Mejor Dirección de Relaciones Públicas · Mejor Dirección de Mercadeo · Mejor Mesa Directiva · Mejor Miembro Nuevo · Mejor Evento Académico · Mejor Evento Cultural · Mejor Evento Social · Mejor Evento Deportivo · Mejor Evento Recreativo · Mejor Comité · Mejor Semana de Carrera · Comité Revelación | JUNTA | Propuesta |
+| T-2320 | Premios OE: categorías (en el orden del Reglamento, art. 72) | Mejor Dirección General · Mejor Dirección Financiera · Mejor Dirección de Gestión Humana · Mejor Dirección de Logística · Mejor Dirección de Relaciones Públicas · Mejor Dirección de Mercadeo · Mejor Mesa Directiva · Mejor Miembro Nuevo · Mejor Evento Académico · Mejor Evento Cultural · Mejor Evento Social · Mejor Evento Deportivo · Mejor Evento Recreativo · Mejor Comité · Mejor Semana de Carrera · Comité Revelación | JUNTA | Propuesta |
 | T-2321 | Premio OE: panel (título, campo, botón, confirmación y enlace) | Premio OE · Categoría · Otorgar · Premio registrado. · Otorgar Premio OE | MATEO | Propuesta |
 | T-2322 | Membresía: reconocimientos (título, vacío y tipos) | Reconocimientos · Sin reconocimientos. · Destacado del mes · Otro · Premio OE | MATEO | Propuesta |
 | T-2323 | Horario preferencial: recurso (plural · singular), columnas y tipos | Horario preferencial · Horario preferencial · Nombre · Ámbito · Cargo · Junta Directiva · Mesa directiva · Macroevento | MATEO | Propuesta |
-| T-2324 | Horario preferencial: ayuda | Junta Directiva, mesas directivas de los comités (máximo seis por CIC o CE, titulares antes que codirecciones) y directores de macroevento del término (Reglamento, art. 72). La Universidad exige acreditar la asistencia a la Asamblea de Carrera; el CSV lleva el correo. | JUNTA | Propuesta |
+| T-2324 | Horario preferencial: ayuda | Junta Directiva, mesas directivas de los comités (máximo seis por CIC o CE, titulares antes que codirecciones) y directores de macroevento del término (Reglamento, art. 73). La Universidad exige acreditar la asistencia a la Asamblea de Carrera; el CSV lleva el correo. | JUNTA | Propuesta |
 
 | T-2325 | Comité: fecha de desactivación | Registra la fecha de desactivación, sin usar una fecha futura. | JUNTA | Propuesta |
 | T-2326 | Comité: reactivación | Un comité desactivado vuelve en periodo de prueba, después de al menos dos meses desde su desactivación. | JUNTA | Propuesta |
@@ -1936,7 +1936,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2328 | Comité: motivo de ampliación | Para ampliar la prueba más allá de seis meses, registra el motivo de la decisión de la junta. | JUNTA | Propuesta |
 | T-2329 | Finanzas: año del presupuesto | La fecha debe corresponder al año {año} de este presupuesto. | MATEO | Propuesta |
 | T-2330 | Aval: aprobación previa | El aval debe aprobarse antes del evento y antes de los gastos que se registren con él. | JUNTA | Propuesta |
-| T-2331 | Beneficios y avales: prueba o suspensión | En periodo de prueba o con derechos suspendidos no se reciben beneficios ni se piden avales (Reglamento, art. 73). | JUNTA | Propuesta |
+| T-2331 | Beneficios y avales: prueba o suspensión | En periodo de prueba o con derechos suspendidos no se reciben beneficios ni se piden avales (Reglamento, art. 74). | JUNTA | Propuesta |
 | T-2332 | Comité: motivo del cambio | Motivo de la decisión sobre el periodo de prueba | JUNTA | Propuesta |
 | T-2333 | Condición retomada en licencia | Nuevo al regresar de licencia | GH | Propuesta |
 | T-2334 | Traslado: aval obligatorio | Aval aprobado del evento | MATEO | Propuesta |
@@ -2006,7 +2006,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-3246 | Comités de la persona: está de baja o no tiene membresía (ADR-118) | No se pueden cambiar los comités de quien está de baja o no tiene membresía. | MATEO | Propuesta |
 | T-3247 | Importación del roster: aviso por persona de baja con comités en un archivo sin ESTADO (ADR-118) | {nombre} está de baja y este archivo no trae la columna ESTADO: el roster no la reactiva ni le cambia los comités. | GH | Propuesta |
 | T-3258 | Membresía: se pide cambiar el estado de quien ya está de baja (ADR-120) | Esa persona ya está de baja: no se cambió nada. Para que vuelva, reactívala. | MATEO | Propuesta |
-| T-3265 | Importación del roster: error de la fila que pasa a honorario a quien está en prueba o con los derechos suspendidos (ADR-123) | {nombre} está en periodo de prueba o con derechos suspendidos y no puede pasar a honorario (Reglamento, art. 73). Esta fila no se importa: corrige su estado. | MATEO | Propuesta |
+| T-3265 | Importación del roster: error de la fila que pasa a honorario a quien está en prueba o con los derechos suspendidos (ADR-123) | {nombre} está en periodo de prueba o con derechos suspendidos y no puede pasar a honorario (Reglamento, art. 74). Esta fila no se importa: corrige su estado. | MATEO | Propuesta |
 
 ### Cargos vigentes e historial (14/09/2026)
 
@@ -3118,7 +3118,7 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3597 | Excusa: ayuda del motivo de aprobación excepcional | Si la excusa se presentó fuera de plazo, explica por qué apruebas la revisión excepcional. En los demás casos puedes dejarlo vacío. | GH | Propuesta |
 
 
-### Disponibilidad privada · semana y propuestas (ADR-156)
+### Disponibilidad privada · semana y propuestas (ADR-157)
 
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
@@ -3203,3 +3203,66 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-4678 | Disponibilidad | La propuesta pertenece a otro grupo. Abre de nuevo la propuesta desde tus grupos. | MATEO | Propuesta |
 | T-4679 | Disponibilidad | Para guardar tu disponibilidad, autoriza primero el tratamiento de datos en Mi OE. | MATEO | Propuesta |
 | T-4680 | Propuesta sin atribución tras anonimizar | Propuesta de reunión | MATEO | Propuesta |
+
+## Normativa actualizada (ADR-157)
+
+| Código | Uso | Texto | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-4800 | Macroeventos: registro institucional | Normativa y continuidad | MATEO | Aprobado |
+| T-4801 | Macroeventos: alcance | Registra las constancias de elección y el corte después de las elecciones de la segunda asamblea. El estado institucional se conserva por año; las ediciones y su historia siguen disponibles. | MATEO | Aprobado |
+| T-4802 | Constancia incompleta | Revisa los requisitos del cargo: permiso de postulación tardía, experiencia, composición y plan de trabajo cuando correspondan. | MATEO | Aprobado |
+| T-4803 | Fecha de corte inválida | La fecha debe pertenecer al año evaluado y no puede estar en el futuro. | MATEO | Aprobado |
+| T-4804 | Mesa sin verificar | Verifica el origen de todos los nombramientos antes de registrar el corte. | MATEO | Aprobado |
+| T-4805 | Corte conservado | Este año ya tiene un corte registrado. Su resultado se conserva como historia. | MATEO | Aprobado |
+| T-4806 | Reactivación inválida | La propuesta debe presentarse en las jornadas de elección del segundo semestre del año anterior al evento, con misión, plan de trabajo y una persona distinta para cada cargo de la mesa. | MATEO | Aprobado |
+| T-4807 | Sin deshabilitación | La reactivación requiere un corte anterior de deshabilitación, registrado antes de presentar la propuesta. | MATEO | Aprobado |
+| T-4808 | Propuesta ya tramitada | Ya existe una propuesta pendiente o aprobada para ese año, o esta propuesta ya fue decidida. | MATEO | Aprobado |
+| T-4809 | Mesa de reactivación | Todas las personas propuestas deben ser miembros activos de la OE. | MATEO | Aprobado |
+| T-4810 | Año | Año del macroevento | MATEO | Aprobado |
+| T-4811 | Origen: ELECTED, BOARD_SUBSTITUTE | Electo por la Asamblea · Suplencia de Junta | MATEO | Aprobado |
+| T-4812 | Estados: ENABLED, DISABLED | Habilitado · Deshabilitado | MATEO | Aprobado |
+| T-4813 | Propuestas: PENDING, APPROVED, REJECTED | Pendiente · Aprobada · Rechazada | MATEO | Aprobado |
+| T-4814 | Sin corte | Pendiente del corte de la segunda asamblea | MATEO | Aprobado |
+| T-4815 | Conteo | {n} de {mínimo} direcciones electas requeridas | MATEO | Aprobado |
+| T-4816 | Criterio de conteo | Una codirección cuenta como un cargo. Las suplencias de Junta no suman. El conteo reúne las ediciones del año. DÍAS necesita al menos The Games o Carnival entre sus cuatro direcciones. | MATEO | Aprobado |
+| T-4817 | Constancias pendientes | {n} nombramientos por verificar | MATEO | Aprobado |
+| T-4818 | Acta | Acta o constancia de la elección o suplencia | MATEO | Aprobado |
+| T-4819 | Revisión humana | Revisé los requisitos del cargo y de la candidatura conjunta en el Reglamento vigente. | MATEO | Aprobado |
+| T-4820 | Postulación tardía | La postulación fue extemporánea. | MATEO | Aprobado |
+| T-4821 | Permiso tardío | Constancia del permiso de Asamblea por mayoría calificada | MATEO | Aprobado |
+| T-4822 | Experiencia verificada | La candidatura acredita experiencia en GT, GAP o mesa del macroevento; basta una persona de la codirección. | MATEO | Aprobado |
+| T-4823 | Tercera vuelta | Se agotaron las dos primeras vueltas sin candidaturas y aplica la excepción de experiencia. | MATEO | Aprobado |
+| T-4824 | Suplencia: experiencia | No corresponde: es una suplencia de Junta. | MATEO | Aprobado |
+| T-4825 | Inventiva | Para General de Inventiva, al menos una persona cumple el requisito de la Escuela de Ciencias Aplicadas e Ingeniería. Ya no se exige para Logística. | MATEO | Aprobado |
+| T-4826 | EnFemenino | Verifiqué la composición exigida por el art. 44: al menos una mujer en General, Mercadeo y Agenda Académica. La constancia se refiere a la candidatura completa. | MATEO | Aprobado |
+| T-4827 | Nombramiento extraordinario | Es una elección de vacante o codirección extemporánea (arts. 45–46). | MATEO | Aprobado |
+| T-4828 | Plan de trabajo | Plan de trabajo presentado o referencia al documento | MATEO | Aprobado |
+| T-4829 | Guardar constancia | Guardar constancia | MATEO | Aprobado |
+| T-4830 | Corte | Registrar corte de la segunda asamblea | MATEO | Aprobado |
+| T-4831 | Fecha de asamblea | Fecha de la segunda asamblea | MATEO | Aprobado |
+| T-4832 | Confirmación del corte | Confirmo que las elecciones de la segunda asamblea terminaron y que la mesa registrada refleja los cargos electos en ese corte. | MATEO | Aprobado |
+| T-4833 | Acta del corte | Acta que respalda el corte | MATEO | Aprobado |
+| T-4834 | Nueva propuesta | Proponer reactivación | MATEO | Aprobado |
+| T-4835 | Fecha de presentación | Fecha de presentación en jornadas de elección | MATEO | Aprobado |
+| T-4836 | Jornadas de elección | Constancia de las jornadas de elección | MATEO | Aprobado |
+| T-4837 | Misión | Misión del macroevento | MATEO | Aprobado |
+| T-4838 | Mesa propuesta | Mesa completa propuesta | MATEO | Aprobado |
+| T-4839 | Decisión | Registrar decisión de Junta | MATEO | Aprobado |
+| T-4840 | Decisión favorable | Junta aprobó la reactivación. | MATEO | Aprobado |
+| T-4841 | Acta de Junta | Constancia de la decisión de Junta | MATEO | Aprobado |
+| T-4842 | Aviso a Asamblea | Constancia de comunicación de la decisión a Asamblea | MATEO | Aprobado |
+| T-4843 | Historia | Cortes y propuestas anteriores | MATEO | Aprobado |
+| T-4844 | Guía electoral | Revisión de postulaciones | MATEO | Aprobado |
+| T-4845 | Guía: Junta | Una postulación tardía necesita permiso de Asamblea por mayoría calificada (art. 1). Para la excepción de VP de GH, debe acreditarse al menos un semestre en CGH como comité principal y el permiso de Asamblea del art. 3; ese artículo no fija una mayoría específica. Una renuncia válida del último año ya no exige el permiso adicional eliminado del art. 8. Las inhabilidades por renuncia inválida, remoción o falta de entrega continúan. | MATEO | Aprobado |
+| T-4846 | Guía: mesas | Las postulaciones tardías a las mesas requieren permiso de Asamblea por mayoría calificada (art. 27). La incompatibilidad con Representantes Estudiantiles se retiró para CIC, CE y macroeventos; la restricción sobre otros grupos estudiantiles externos sigue vigente. Para Junta siguen aplicando sus requisitos propios, incluida la representación estudiantil. | MATEO | Aprobado |
+| T-4847 | Guía: proceso | La Asamblea puede objetar al moderador y decidir por mayoría simple antes de la elección (art. 13). Conserva actas, permisos y planes de trabajo; la app registra las constancias, mientras la votación y el quórum se verifican en Asamblea. | MATEO | Aprobado |
+| T-4848 | Guía: vacantes | La suplencia de Junta se revisa en la segunda asamblea (art. 41). El art. 45 conserva el 15 de febrero para su procedimiento de vacantes: registra la decisión y su fundamento, sin sustituir una fecha por la otra. | MATEO | Aprobado |
+| T-4849 | Referencia normativa | Consultar el Reglamento y los Estatutos | MATEO | Aprobado |
+| T-4850 | Experiencia | Fundamento de experiencia | MATEO | Aprobado |
+| T-4851 | Reactivación aprobada | Reactivación aprobada para este año; falta registrar el corte de continuidad. | MATEO | Aprobado |
+| T-4852 | Confirmación sin género | Esta revisión guarda una constancia del requisito, sin deducir ni registrar el género de cada integrante. | MATEO | Aprobado |
+| T-4853 | Sin constancia | Sin constancia vigente | MATEO | Aprobado |
+| T-4854 | Origen | Origen del nombramiento | MATEO | Aprobado |
+| T-4855 | Reactivación antes del corte | El macroevento sigue deshabilitado. Registra primero la aprobación de reactivación de Junta para este año. | MATEO | Aprobado |
+| T-4856 | Decisión negativa | Junta rechazó la reactivación. | MATEO | Aprobado |
+| T-4857 | Persona no disponible en lista activa | Ver persona | MATEO | Aprobado |

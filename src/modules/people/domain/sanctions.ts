@@ -33,7 +33,7 @@ export type SanctionRecord = typeof sanction.$inferSelect;
 export const sanctionInputSchema = z.object({
   termId: z.string().trim().min(1),
   kind: z.enum(SANCTION_KINDS),
-  /** Los hechos y los descargos (Regl. art. 55 y 56): mínimo una frase. */
+  /** Los hechos y los descargos (Regl. art. 56 y 57): mínimo una frase. */
   cause: z.string().trim().min(5).max(1000),
   reference: z
     .string()
@@ -43,7 +43,7 @@ export const sanctionInputSchema = z.object({
     .default(null)
     .transform((value) => value || null),
   occurredOn: z.iso.date(),
-  /** Solo para SUSPENSION: hasta cuándo, dentro del mes siguiente (Regl. art. 58). */
+  /** Solo para SUSPENSION: hasta cuándo, dentro del mes siguiente (Regl. art. 59). */
   suspendedUntil: z.iso
     .date()
     .nullable()
@@ -197,7 +197,7 @@ export async function recordSanction(
 }
 
 /**
- * Revoca una sanción de una persona (descargos o revisión de la junta, Regl. art. 56 par. 1);
+ * Revoca una sanción de una persona (descargos o revisión de la junta, Regl. art. 57 par. 1);
  * idempotente. La persona es obligatoria (ADR-114 regla 3): es la de la ficha desde la que se revoca,
  * y una sanción que no es suya se trata como inexistente, también si ya estaba revocada. El alcance
  * también es obligatorio (ADR-116 regla 11): revoca solo el de ADMIN, desde la Persona 360.

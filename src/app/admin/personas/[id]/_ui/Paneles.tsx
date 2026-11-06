@@ -10,6 +10,7 @@ import {
   type TagRow,
 } from "@/modules/people";
 import { STATUS_CODES, statusLabel } from "@/modules/people/admin";
+import { ElectionGuidance } from "@/modules/people/components/ElectionGuidance";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import type { TermRow } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
@@ -734,6 +735,7 @@ export function Paneles({
     return (
       <ResourcePanel title={agregar} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
+        <ElectionGuidance board />
         <ActionForm action={addAppointmentAction} className="flex flex-col gap-4">
           <AdminFormBody>
             {hidden}

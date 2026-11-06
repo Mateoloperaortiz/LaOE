@@ -879,7 +879,7 @@ async function applyRow(
           contactConsent: false,
         });
       } else if (current.status === "INACTIVE") {
-        // Quien fue expulsado no vuelve por el roster (Regl. art. 61.3; ADR-060 regla 3): la fila
+        // Quien fue expulsado no vuelve por el roster (Regl. art. 62.3; ADR-060 regla 3): la fila
         // conserva sus datos y su estado; la vista previa ya lo avisó.
         if (current.endReason !== "EXPULSION") {
           await reactivateMembership(ctx, personId, { reason });

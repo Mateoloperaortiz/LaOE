@@ -10,7 +10,7 @@ import { suspendedUntil } from "./sanction-pure";
 import { lockMembershipCycle } from "./wallet-member";
 
 /**
- * Prueba en cualquier comité o suspensión vigente: sin beneficios ni avales (Regl. art. 73). También
+ * Prueba en cualquier comité o suspensión vigente: sin beneficios ni avales (Regl. art. 74). También
  * quien está en licencia con la prueba guardada al salir: no tiene fila en el término y sigue en
  * prueba mientras no vuelva a activo (ADR-120 regla 4; ADR-123 regla 7). La licencia sola no bloquea:
  * si debería es la decisión abierta 71.

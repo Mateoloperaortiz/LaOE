@@ -1067,3 +1067,37 @@ El importador estándar agregó **269 asistencias** (188 completas y 81 parciale
 Las fuentes originales, normalizados, mapa de identidades, plan revisado, resultados, prueba de idempotencia e informe independiente permanecen en el paquete privado `asamblea-2026-10-16`, fuera del repositorio. No publicar datos personales ni reejecutar la preparación como si el lote siguiera pendiente. Los commits documentales posteriores conservan el SHA de código desplegado según el flujo documental de este runbook.
 
 **Historia y rollback.** Las fotos nuevas guardan criterio, población, pesos, máximos y componentes del combinado. Desde la primera foto combinada se necesita un lector compatible: una versión anterior puede interpretar su puntaje como si fuera el porcentaje de participación que decidía el puesto histórico. Antes de esa foto, volver a la proyección anterior no borra entradas porque este cambio no las crea; conservar de todos modos los requisitos de compatibilidad ya vigentes para COLOR y métricas gamer. No borrar o recalcular fotos para permitir rollback, ni fabricar media GH cero en una foto anterior o un cierre sin foto.
+
+## Publicación de las reglas de normativa actualizada (ADR-157)
+
+Verificación local del 2026-11-06: `npm run check` completo aprobado (2.718 unitarias, 2.077 de integración, 11 del extractor y build); `npm run test:e2e -- normativa-reglas.spec.ts macroeventos.spec.ts`, 6/6 (dos preparaciones y cuatro flujos). Comprueba acceso ADMIN y denegación anónima de la acción, conservación de permisos y planes al editar, corte anual, axe y anchos 390/1440 px. Esta evidencia no sustituye CI ni los smoke del SHA publicado.
+
+Los PDF actualizados ya se publicaron el 2026-11-06; este cambio de código es una entrega distinta. Completar `npm run check`, verificar los flujos administrativos y publicar el SHA validado por CI → staging → producción. La migración 0063 es aditiva: no reescribe PDF, cargos anteriores, cierres ni la configuración histórica. La clave nueva `permanence.probationMargins2026` fija activo 10 desde 2026-2; el servicio anterior no lee esa clave durante el relevo.
+
+Después de confirmar el SHA nuevo en `/api/health` y el retiro de las instancias y pollers anteriores, ejecutar con las variables del entorno confirmado:
+
+```sh
+node --conditions=react-server --import tsx scripts/recompute-normativa-2026.ts
+node --conditions=react-server --import tsx scripts/recompute-normativa-2026.ts --apply
+```
+
+La primera ejecución enumera semestres abiertos desde 2026-2. La segunda recalcula y audita conteos; no imprime personas, no aplica decisiones y respeta los bloqueos de cierre y las filas congeladas. Un reintento vuelve a calcular las fotos abiertas sin duplicar bajas. GH debe revisar la mesa de cierre: los activos de 40 a menos de 50 pasan de propuesta de prueba a salida del comité; decisiones ya confirmadas siguen bajo control de GH.
+
+En `/admin/macroeventos/<slug>/normativa`, registrar constancias reales, comprobar el año y confirmar el corte después de las elecciones de la segunda asamblea. Nunca completar actas o fechas de ejemplo en producción. Las propuestas de reactivación requieren misión, plan, mesa completa y presentación en el semestre anterior; Junta decide y comunica. Los cortes conservan historia y no retiran permisos ni publicaciones automáticamente.
+
+## Actualización de normativa del 2026-11-06
+
+Mateo entregó dos PDF actualizados y pidió reemplazar los documentos de la app. Operación de contenido terminada el **2026-11-06, 21:26 UTC**, en `production` de `casa-digital`, con el release existente `16091bd02f11d50fa1b6cff69bd135700d88b9e8` (deployment `5379b654-993d-4727-b779-03ea5331860e`). No requirió despliegue ni cambios de reglas de negocio. La versión visible es `2026-05-08 (actualizado 2026-11-06)`: el PDF conserva como última reforma el 8 de mayo y el sufijo identifica esta entrega.
+
+| Documento | ID publicado | PDF SHA-256 | Contenido SHA-256 | Corpus |
+| --- | --- | --- | --- | --- |
+| Estatutos | `wvkvtnt3b7c3oh40bym1asw7` | `d9b579ddfbf522d624ba05fb84fd61459e56a22e70cc8085b9ce89e9dccebb3d` | `4b0c7698720176f9c0482f022af916e0e74b00eea3ef36ce1dc4410d24a05797` | 28 páginas; 60 artículos, cinco capítulos y tres secciones |
+| Reglamento | `to30fkhojaymw8kcaovqgdhr` | `30e6fc92685896eb290e31f83f1aa46b24287e7ac010b18164ac5304f4144acf` | `3e8be74f3dc3897c8e05bfeeeb77d59df9e3251c681dc1e286620dfef1d48fc1` | 44 páginas; 75 artículos, doce capítulos y cuatro secciones |
+
+Ambos están `PUBLISHED/MEMBERS`. Los documentos anteriores `jyutd29w45bmg8kq6hat513d` y `ztibrokdv74r86kelyql9hbt` se conservaron como `DRAFT`, con sus PDF, artículos y huellas intactos; no aparecen en la lista ni en las búsquedas de miembros. Los enlaces de lectura actuales usan los nuevos IDs. Para volver a los originales anteriores, publicar esos borradores y despublicar los actuales mediante los comandos administrativos auditados, tras verificar las huellas de cada versión.
+
+Se usó el importador de ADR-042 desde una copia del código desplegado y un túnel privado, con el ADMIN vigente y sin cargar variables locales. La simulación precedió a la carga; los borradores se cotejaron antes de publicar. El cotejo contra una extracción independiente del PDF no encontró palabras ni cifras omitidas o agregadas (excluye portada, índice, números de página y los rótulos digitales de introducción/cierre). Se comprobó la numeración consecutiva de los 135 artículos, el cierre en columnas, el organigrama original reutilizado (`td2afi3742omqc0wzse45vrv`, misma huella de septiembre), la tabla de alimentación del artículo 37 y el Anexo 1 completo en pp. 40–44. Se inspeccionaron visualmente el organigrama, la tabla y los cierres.
+
+Verificación posterior mediante las lecturas que usa la app: exactamente dos documentos de normativa publicados, contenido portable idéntico al revisado, descargas HTTP 200 con SHA-256 idéntico a los adjuntos, imagen PRIVATE/READY y objetos sin firma HTTP 403. La lectura de borradores para miembros quedó denegada; el acceso HTTP anónimo a Normativa y PDF sigue protegido. Cinco búsquedas positivas: organigrama (estatutos art. 4), almuerzo (reglamento art. 37), reactivación (art. 28), judiciales/notariales y psicológica/terapéutica (Anexo 1); ninguna devuelve las versiones retiradas. Repetir la publicación respondió `unchanged` para ambos. Auditoría: seis eventos de carga/contenido/publicación y dos de despublicación, sin duplicados.
+
+Originales, perfiles, imagen, JSON, manifiesto, respaldo previo, helpers y evidencias `verification-draft.json`, `verification-published.json`, `verification-final.json` y `audit.json` están en el paquete privado `informes/normativa-2026-11-06/`, fuera del checkout. La verificación fue de contenido, descarga, búsqueda y permisos; no se creó una sesión de miembro ni se registró onboarding para comprobar la interfaz.

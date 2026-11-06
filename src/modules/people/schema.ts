@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { publicationStatus } from "@/db/enums";
-import { eventEdition } from "@/modules/events/schema";
+import { event, eventEdition } from "@/modules/events/schema";
 import { term } from "@/modules/terms/schema";
 
 // La persona es el eje del CRM (ADR-002); la membresía es su ciclo de vida (ADR-003).
@@ -118,7 +118,7 @@ export const consent = pgTable(
   ],
 );
 
-// Catálogo de cargos de la mesa directiva de un macroevento (Regl. art. 41 a 43; Est. art. 52 a 56;
+// Catálogo de cargos de la mesa directiva de un macroevento (Regl. art. 42 a 44; Est. art. 52 a 56;
 // ADR-060 regla 9), sembrado por la migración 0022.
 export const macroeventRole = pgTable("macroevent_role", {
   code: text().primaryKey(),
@@ -503,5 +503,89 @@ export const committeeRepresentative = pgTable(
   (t) => [
     uniqueIndex("committee_representative_role_unique").on(t.committeeId, t.termId, t.role),
     uniqueIndex("committee_representative_person_unique").on(t.committeeId, t.termId, t.personId),
+  ],
+);
+
+// ADR-157: constancias humanas, corte anual y propuestas; no sustituyen la votación.
+export const appointmentElectionRecord = pgTable(
+  "appointment_election_record",
+  {
+    appointmentId: text()
+      .primaryKey()
+      .references(() => appointment.id, { onDelete: "cascade" }),
+    origin: text({ enum: ["ELECTED", "BOARD_SUBSTITUTE"] }).notNull(),
+    evidence: jsonb().notNull().$type<{
+      origin: "ELECTED" | "BOARD_SUBSTITUTE";
+      appointmentIds: string[];
+      minutes: string;
+      requirementsChecked: true;
+      lateCandidacy: boolean;
+      qualifiedPermission: string;
+      experience: "VERIFIED" | "THIRD_ROUND" | "NOT_APPLICABLE";
+      generalFacultyChecked: boolean;
+      compositionChecked: boolean;
+      extraordinary: boolean;
+      workPlan: string;
+    }>(),
+    reviewedBy: text().references(() => person.id, { onDelete: "set null" }),
+    reviewedAt: timestampTz().notNull().defaultNow(),
+  },
+  (t) => [
+    check("appointment_election_origin", sql`${t.origin} in ('ELECTED', 'BOARD_SUBSTITUTE')`),
+  ],
+);
+
+export const macroeventReview = pgTable(
+  "macroevent_review",
+  {
+    id: id(),
+    eventId: text()
+      .notNull()
+      .references(() => event.id),
+    year: integer().notNull(),
+    assemblyOn: date({ mode: "string" }).notNull(),
+    minutes: text().notNull(),
+    electedRoles: jsonb().notNull().$type<string[]>(),
+    status: text({ enum: ["ENABLED", "DISABLED"] }).notNull(),
+    reviewedBy: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("macroevent_review_year_unique").on(t.eventId, t.year),
+    check("macroevent_review_status", sql`${t.status} in ('ENABLED', 'DISABLED')`),
+    check("macroevent_review_year", sql`${t.year} between 2026 and 2100`),
+  ],
+);
+
+export const macroeventReactivation = pgTable(
+  "macroevent_reactivation",
+  {
+    id: id(),
+    eventId: text()
+      .notNull()
+      .references(() => event.id),
+    year: integer().notNull(),
+    submittedOn: date({ mode: "string" }).notNull(),
+    electionSession: text().notNull(),
+    mission: text().notNull(),
+    workPlan: text().notNull(),
+    roster: jsonb().notNull().$type<Array<{ roleCode: string; personId: string }>>(),
+    status: text({ enum: ["PENDING", "APPROVED", "REJECTED"] })
+      .notNull()
+      .default("PENDING"),
+    decisionMinutes: text(),
+    assemblyNotice: text(),
+    decidedAt: timestampTz(),
+    recordedBy: text().references(() => person.id, { onDelete: "set null" }),
+    decidedBy: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("macroevent_reactivation_event_year_idx").on(t.eventId, t.year),
+    check(
+      "macroevent_reactivation_status",
+      sql`${t.status} in ('PENDING', 'APPROVED', 'REJECTED')`,
+    ),
+    check("macroevent_reactivation_year", sql`${t.year} between 2026 and 2100`),
   ],
 );

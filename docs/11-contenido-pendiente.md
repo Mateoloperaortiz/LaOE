@@ -151,3 +151,10 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 - [x] Los campos del formulario de inscripción, quién ve los contactos de los capitanes y cuánto tiempo se guardan las respuestas. Resuelto el 2026-09-28 por [ADR-095](adr/ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md): en 2026 no hay formulario. Los capitanes salen de la hoja de inscripción de la OE, solo con nombre y celular. Los ve la operación de la competencia, y se borran al archivarla, a más tardar el 2026-10-16. «Equipo N» es el equipo N de la hoja de rotaciones; en el Equipo 11, Mateo confirmó el segundo capitán, y la inscripción autorizó publicar los nombres
 - [ ] Que la próxima versión de la política de datos mencione a los capitanes de The Games: nombre y celular tomados de la inscripción de Días EAFIT, el celular visible para la operación, el nombre en la vitrina y el borrado al archivar la competencia (ADR-095)
 - [ ] Crear en producción la edición de Días EAFIT 2026 y registrar la Dirección de The Games en su mesa
+
+## Normativa actualizada del 2026-11-06
+
+- [ ] Actas y constancias de los cargos electos y suplencias de cada macroevento. No se deduce el origen de los nombramientos anteriores.
+- [ ] Fecha y acta de la segunda asamblea de cada año, con la mesa al terminar sus elecciones, para registrar el corte de continuidad.
+- [ ] Propuestas reales de reactivación, si existen: misión, plan, mesa completa, decisión de Junta y comunicación a Asamblea.
+- [ ] Confirmación institucional de la convivencia de los hitos de suplencia (art. 41) y vacante (art. 45), la aplicación de la composición de EnFemenino a cada candidatura y las remisiones defectuosas de los originales. La app conserva los documentos y registra la revisión humana, sin modificar su texto.

@@ -81,6 +81,11 @@ import { APPOINTMENT_KINDS, appointmentLabel } from "@/modules/people/domain/app
 import { COMMITTEE_AREA_KEYS, COMMITTEE_CAPABILITIES } from "@/modules/people/domain/capabilities";
 import { CONSENT_PURPOSES } from "@/modules/people/domain/consents";
 import { INHABILITY_CODES, inhabilityLabels } from "@/modules/people/domain/inhabilities-pure";
+import {
+  MACROEVENT_ORIGINS,
+  MACROEVENT_STATUSES,
+  REACTIVATION_STATUSES,
+} from "@/modules/people/domain/macroevent-governance-pure";
 import { SANCTION_KINDS } from "@/modules/people/domain/sanction-pure";
 import { sanctionKindLabel } from "@/modules/people/domain/sanctions";
 import { CLOSING_FILTERS } from "@/modules/permanence/domain/closing";
@@ -993,6 +998,24 @@ export const UNSEEN_PAIRS: readonly LabelPair[] = [
     order: "REQUEST_KINDS",
     positions: { LEAVE: 0, RESIGNATION: 1, TRANSFER: 2, EXCUSE: 3 },
     canonical: REQUEST_KINDS,
+  },
+  {
+    code: "T-4811",
+    order: "MACROEVENT_ORIGINS",
+    positions: { ELECTED: 0, BOARD_SUBSTITUTE: 1 },
+    canonical: MACROEVENT_ORIGINS,
+  },
+  {
+    code: "T-4812",
+    order: "MACROEVENT_STATUSES",
+    positions: { ENABLED: 0, DISABLED: 1 },
+    canonical: MACROEVENT_STATUSES,
+  },
+  {
+    code: "T-4813",
+    order: "REACTIVATION_STATUSES",
+    positions: { PENDING: 0, APPROVED: 1, REJECTED: 2 },
+    canonical: REACTIVATION_STATUSES,
   },
   {
     code: "T-2375",
