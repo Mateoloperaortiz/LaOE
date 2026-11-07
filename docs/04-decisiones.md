@@ -4,6 +4,9 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [160](adr/ADR-160-la-navegacion-de-mi-oe.md) | Navegación de Mi OE | Barra Hoy · Agenda · Asistencia · Juegos · Yo; «Hoy» por urgencia con «Te toca» de todos los módulos; asistencia en el botón central; centro de avisos con ADR propia | Propuesta |
+| [159](adr/ADR-159-la-operacion-es-de-escritorio.md) | Operación de escritorio | Administración pasa a «Operación», con 1280 px de referencia: Mesa, Panorama, Calendario, espacios por trabajo, tabla con vistas y lote, vista dividida, atajos y modo de campo en el celular | Propuesta |
+| [158](adr/ADR-158-la-marca-en-dos-capas.md) | Marca en dos capas | Capa funcional en Plus Jakarta Sans y tipo oración, con neutros y estados nuevos; la condensada, los carteles y el grano quedan para los momentos de marca | Propuesta |
 | [155](adr/ADR-155-conservar-la-posicion-al-cambiar-la-vista.md) | Posición al cambiar la vista | `AppLink`, navegación programática y GET comparten la regla de conservar el lugar en el mismo origen y ruta sin ancla explícita; filtros, pestañas y paginación actualizan la URL sin recargar el documento | Aceptada; publicada |
 | [154](adr/ADR-154-conservar-la-posicion-al-guardar.md) | Posición al guardar | `ActionForm` conserva el desplazamiento tras una acción en la misma ruta y ancla, incluidos paneles y guardados repetidos; respeta el foco de errores y la navegación a otra página | Aceptada (enmendada por ADR-155); publicada |
 | [153](adr/ADR-153-parches-de-dependencias-transitivas.md) | Dependencias transitivas | Overrides acotados por consumidor a esbuild 0.25.12 y uuid 11.1.1, con regresiones funcionales y compatibilidad de Excel/Drizzle verificadas | Aceptada |
