@@ -1,6 +1,6 @@
 # ADR-157: Normativa actualizada desde 2026-2
 
-- Estado: Aceptada; implementada y verificada localmente, pendiente de publicación
+- Estado: Aceptada; publicada y verificada en producción el 2026-11-06 (SHA `46b3ac98`)
 - Fecha: 2026-11-06
 - Enmienda: ADR-060 reglas 1 y 9; ADR-064
 - Relacionadas: ADR-031, ADR-042, ADR-118
