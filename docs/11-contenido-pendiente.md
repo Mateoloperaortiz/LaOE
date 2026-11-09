@@ -161,7 +161,8 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 
 ## Rediseño · 2026-11-06 ([ADR-158](adr/ADR-158-la-marca-en-dos-capas.md) a [ADR-160](adr/ADR-160-la-navegacion-de-mi-oe.md))
 
-- [ ] Fecha de cierre de 2026-2, que marca el final de la ola 0.
-- [ ] Fechas del inicio y de la inducción de 2027-1: Mi OE nuevo sale antes de la inducción.
-- [ ] Revisión de Comunicaciones de la extensión de marca de ADR-158.
-- [ ] Cinco miembros y cinco operadores (GH, junta o dirección de comité) para la medición de base en staging.
+- [x] Fecha de cierre de 2026-2, que marca el final de la ola 0: el 31 de diciembre de 2026 (Mateo, 2026-11-08).
+- [x] Fecha de inicio de 2027-1: el 1 de enero de 2027 (Mateo, 2026-11-08).
+- [ ] Fecha de la inducción de 2027-1: Mi OE nuevo sale antes de ella.
+- [ ] Revisión de Comunicaciones de la extensión de marca de ADR-158, que Mateo aceptó el 2026-11-08.
+- [x] Personas para la medición de base: el comité GEMIS para Mi OE, la junta para la Operación y cinco personas que nombró Mateo (2026-11-08). La lista con nombres queda fuera del repositorio, que es público ([23-medicion-de-base](23-medicion-de-base.md)).

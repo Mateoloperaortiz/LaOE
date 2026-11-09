@@ -1,8 +1,8 @@
 # ADR-158: La marca en dos capas
 
-- Estado: Propuesta
+- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1
 - Fecha: 2026-11-06
-- Enmienda, al aceptarse: [07-marca](../07-marca.md) §3 y §4; [ADR-043](ADR-043-experiencia-administrativa.md) regla 2; [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) regla 1
+- Enmienda: [07-marca](../07-marca.md) §3, §4 y §9; [ADR-043](ADR-043-experiencia-administrativa.md) regla 2; [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) regla 1
 - Relacionadas: ADR-043, ADR-044, ADR-076, ADR-081, ADR-085, ADR-086, ADR-138, ADR-159, ADR-160
 
 ## Contexto
@@ -90,7 +90,7 @@ El 2026-11-06 Mateo pidió que la casa sea una app usable, aunque eso cambie un 
 - **Alcance.** Cambia la presentación, no el dominio ni los permisos, y no hay migraciones.
 - **Transición.** Las pantallas pasan a la capa funcional a medida que se rediseñan, por olas del roadmap y no de una vez. Mientras tanto conviven las dos tipografías en los títulos. Para que la mezcla no dure, la regla global de `h1` y `h2` cambia en el mismo tramo que entrega los componentes base.
 - **Pruebas.** Las visuales se limitan a capturas de los componentes base, para no alargar el CI (ADR-139 a ADR-141). Los contrastes de esta ADR se comprueban con una prueba automatizada.
-- **Revisión.** Comunicaciones, que cuida el manual, revisa esta extensión antes de aceptarla.
-- **Al aceptarse:**
-  - 07-marca suma una sección «Dos capas» con estas reglas.
-  - ADR-043 y ADR-044 cambian su estado a enmendadas por esta ADR y cierran con su sección «Enmienda».
+- **Revisión.** Comunicaciones, que cuida el manual, revisa esta extensión. Mateo la aceptó el 2026-11-08, y la revisión sigue anotada en [11-contenido-pendiente](../11-contenido-pendiente.md).
+- **Enmiendas aplicadas el 2026-11-08:**
+  - 07-marca suma la sección «Dos capas» con estas reglas.
+  - ADR-043 y ADR-044 quedan enmendadas por esta ADR y cierran con su sección «Enmienda».

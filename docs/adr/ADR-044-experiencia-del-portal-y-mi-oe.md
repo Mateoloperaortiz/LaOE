@@ -1,6 +1,6 @@
 # ADR-044: Experiencia del portal y Mi OE
 
-- Estado: Aceptada; implementación local verificada (enmendada por ADR-049)
+- Estado: Aceptada; implementación local verificada (enmendada por ADR-049, ADR-158 y ADR-160)
 - Fecha: 2026-09-08
 - Relacionadas: ADR-011, ADR-022, ADR-031, ADR-033, ADR-034, ADR-035, ADR-036, ADR-037, ADR-038, ADR-040, ADR-043; 07-marca
 
@@ -40,3 +40,11 @@ La navegación entre áreas se amplía en [ADR-049](ADR-049-navegacion-entre-mi-
 La compilación final pasó `npm run check` (312 unitarias, 257 de integración, 11 del extractor y build) y la suite completa E2E (174/174, sin reintentos ni omisiones). La revisión cubre capturas a 360/390/768/1440 px en ambos temas, teclado, texto al 200 %, foco de menús y axe WCAG A/AA sin violaciones. Se probaron los estados de admisión, búsqueda y limpieza, páginas fuera de rango, selección de foto sin transferencia, reintento con archivo y borrador conservados, bloqueo de doble envío, navegación por anclas y privacidad de Agenda.
 
 `portal-ux.spec.ts`, `member-experience.spec.ts`, `solicitudes-ux.spec.ts` y `ajustes-ux.spec.ts` incorporan casos específicos; las suites de Mi OE y de negocio aportan sus regresiones. Las pruebas adicionales del proxy y las E2E de sesión vencida comprueban el retorno al ingreso sin escrituras. Los comandos efectivos y el cierre de las casillas están registrados en 09-roadmap. La entrega es local; no acredita despliegue ni pruebas en dispositivos físicos.
+
+## Enmienda (2026-11-08, ADR-158 y ADR-160)
+
+Estas reglas rigen cuando se publique el Mi OE nuevo, detrás de la bandera por persona, en la ola 1 del roadmap. Hasta entonces sigue rigiendo lo de arriba.
+
+- **Regla 1** ([ADR-158](ADR-158-la-marca-en-dos-capas.md)). Las pantallas de trabajo de Mi OE pasan a la capa funcional de [07-marca](../07-marca.md#dos-capas-2026-11-08-adr-158): títulos en Plus Jakarta Sans y en tipo oración, en lugar de Sofia Sans Extra Condensed a 36 y 32 px, con los neutros y los estados nuevos. La condensada, los carteles y el grano quedan para los momentos de marca: numerales, celebraciones y carteles de la cartelera y de los eventos sin foto. El portal es capa de marca y conserva sus carteles y titulares. Las zonas táctiles siguen midiendo al menos 44 px.
+- **Regla 5** ([ADR-160](ADR-160-la-navegacion-de-mi-oe.md) regla 1). La barra pasa a ser Hoy · Agenda · Asistencia · Juegos · Yo. «Yo» reemplaza al menú «Más» y recoge sus enlaces, GH Points y el carnet, que también vive en Asistencia. Se mantienen la cabecera compacta, el salto al contenido, el área segura y las reglas de foco y Escape.
+- **Regla 6** ([ADR-160](ADR-160-la-navegacion-de-mi-oe.md) regla 2). El inicio pasa a ser «Hoy», con los bloques ordenados por urgencia: lo que sigue, «Te toca», tu permanencia, la cartelera, los juegos y tus comités. Un bloque sin contenido no aparece. `/app/agenda` no cambia.

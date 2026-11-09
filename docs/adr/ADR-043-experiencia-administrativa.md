@@ -1,6 +1,6 @@
 # ADR-043: Experiencia administrativa adaptable
 
-- Estado: Aceptada (enmendada por ADR-049)
+- Estado: Aceptada (enmendada por ADR-049, ADR-158 y ADR-159)
 - Fecha: 2026-09-08
 - Relacionadas: ADR-017, ADR-034, ADR-035, ADR-036, ADR-042; 07-marca
 
@@ -33,3 +33,12 @@ El usuario aprobó un panel sobrio con identidad OE, igual prioridad de computad
 La navegación entre áreas se amplía en [ADR-049](ADR-049-navegacion-entre-mi-oe-y-administracion.md) con un enlace visible a Mi OE en la cabecera.
 
 `admin-responsive.spec.ts` cubre navegación, foco, los 38 destinos, texto al 200 % y capturas a 360/390/768/1440 px. `admin-details-responsive.spec.ts` completa las 16 rutas de detalle con datos sintéticos y axe en los cuatro tamaños, claro/oscuro. Las suites por familia conservan la cobertura de permisos, validación y efectos de negocio. El registro de cierre y resultados efectivos vive en 09-roadmap; no se considera suficiente un cambio de estilos sin comprobar los flujos.
+
+## Enmienda (2026-11-08, ADR-158 y ADR-159)
+
+La Administración pasa a ser la Operación, pensada para el escritorio. Cada regla nueva rige en un espacio de trabajo cuando ese espacio migra, detrás de la bandera por persona; hasta entonces sigue rigiendo lo de arriba.
+
+- **Igual prioridad de computador y celular** ([ADR-159](ADR-159-la-operacion-es-de-escritorio.md) regla 1). Deja de regir: el ancho de referencia es 1280 px. Por debajo de 1024 px todo sigue funcionando, pero sin diseño propio, salvo el modo de campo (ADR-159 regla 6). El área conserva la ruta `/admin` y su nombre visible pasa a ser «Operación».
+- **Regla 1** ([ADR-159](ADR-159-la-operacion-es-de-escritorio.md) regla 2). La barra lateral mide 240 px, se recoge a 64 y se ordena por espacios de trabajo en vez de por grupos. De 1024 a 1279 px se compacta a iconos. El filtrado de enlaces en el servidor, el destino activo y los guards no cambian.
+- **Regla 2** ([ADR-158](ADR-158-la-marca-en-dos-capas.md)). La extensión de marca pasa a ser la capa funcional de [07-marca](../07-marca.md#dos-capas-2026-11-08-adr-158): el título principal va en Plus Jakarta Sans, a 28/34 y peso 800, en tipo oración, en lugar de Sofia Sans Extra Condensed a 32/28 px, con los neutros y los estados nuevos. La condensada solo entra en los numerales del Panorama y en las pantallas de presentación (ADR-159 regla 7). Las superficies siguen sin textura.
+- **Regla 4** ([ADR-159](ADR-159-la-operacion-es-de-escritorio.md) regla 5). Desde 1280 px, el `ResourcePanel` deja de ser un diálogo y pasa a ser un panel junto a la lista, sin taparla, con el registro abierto en la URL. Por debajo de 1280 px sigue siendo el diálogo de esta regla, con su foco, Escape y retorno al disparador.
