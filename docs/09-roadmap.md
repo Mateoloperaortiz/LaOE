@@ -1079,6 +1079,25 @@ Mateo pidió el 2026-09-22 que todo el copy suene más paisa y parchado: toque s
 | 2026-09-22 | CP-2 a CP-7 · Reescritura | 86 textos de `docs/14` con toque paisa sutil: 17 de portal, acceso y notificaciones; 33 de Mi OE; 20 de juegos y retos; 18 del admin. Los sensibles, confirmados, aprobados y transcripciones de normativa quedan intactos. El 404 pasa a su propio código T-2721 porque T-032 es también el error genérico del dominio. Invariantes en cero (variables, piezas « · », negritas, límites). Los errores escritos en el código (billetera, API) no llegan a la pantalla y no se movieron. Por el nivel sutil, los seis tramos van en un solo commit. |
 | 2026-09-22 | Copy paisa, publicado | [PR 80](https://github.com/Mateoloperaortiz/LaOE/pull/80) mezclado como `cd9d1e4` con CI completo en verde; staging sirvió el SHA con smoke correcto y la promoción a `production` salió a las 19:30 UTC. `oeeafit.com/api/health` responde `ok` con `cd9d1e42e32099e195b1757e5b29167cce0510dd` y el smoke de producción pasó ([run 35774562246](https://github.com/Mateoloperaortiz/LaOE/actions/runs/35774562246)). El 404 y el hero ya muestran el copy nuevo. La promoción arrastró también lo mezclado desde `4ac5920` y que seguía sin promover: la serie R de la auditoría (PR 67 a 79) y ADR-085. |
 
+## Rediseño de la OE · ADR-158 a ADR-160
+
+Propuesto el 2026-11-06, a pedido de Mateo: una app usable aunque cambie el lenguaje visual, con Mi OE pensada para el celular y la Operación pensada para el escritorio, sobre la misma casa. [ADR-158](adr/ADR-158-la-marca-en-dos-capas.md) divide la marca en dos capas, [ADR-159](adr/ADR-159-la-operacion-es-de-escritorio.md) vuelve la Operación de escritorio y [ADR-160](adr/ADR-160-la-navegacion-de-mi-oe.md) cambia la navegación de Mi OE. Las tres están propuestas. Los plazos van por semestre porque las fechas de la OE son datos pendientes ([11-contenido-pendiente](11-contenido-pendiente.md)). R6 es a la vez la base de la ola 1 y el P0 de ADR-085; el monorepo (P1) va después de la ola 1.
+
+- [ ] Ola 0 · Decidir y medir, hasta el cierre de 2026-2.
+  - [ ] Aceptar ADR-158, ADR-159 y ADR-160; Comunicaciones revisa ADR-158 antes.
+  - [x] Maquetas con datos ficticios: «Hoy», asistencia registrada y la hoja de las dos capas en Mi OE; Mesa, Personas, Persona 360 y modo de campo en la Operación.
+  - [ ] Medición de base: cinco miembros y cinco operadores, cinco tareas cada uno, en staging con datos ficticios. Se miden tiempo, errores y si terminan, más el cuestionario SUS.
+  - [ ] Inventario de las páginas de Mi OE, la Operación y el portal, cada una con su espacio, su patrón y su prioridad.
+- [ ] Ola 1 · Cimientos, en el intersemestral: R6 con la capa funcional; la estructura de la Operación con la Mesa; la barra de Mi OE, «Hoy» y el centro de avisos, detrás de una bandera por persona. Mi OE nuevo sale antes de la inducción de 2027-1.
+- [ ] Ola 2 · Primera mitad de 2027-1: vistas guardadas, lote, Persona 360, Calendario y Panorama; ruta de permanencia, «Yo» con insignias y trayectoria verificable; empalme entre semestres; «Tu semestre en la OE» al cierre de 2027-1.
+- [ ] Ola 3 · Capa social, con la política de datos primero: reconocimientos, muro del comité, metas colectivas, ligas y recompensas por umbral.
+- [ ] Ola 4 · En vivo: tiempo real, modo asamblea, The Games en vivo y registro sin señal.
+- [ ] Ola 5 · Hacia afuera: egresados con acceso, padrinos, oportunidades de los aliados y eventos para externos con P2 y P3 de ADR-085.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-11-06 | Ola 0 · Propuesta | ADR-158, ADR-159 y ADR-160 propuestas, con maquetas de Mi OE y de la Operación hechas con datos ficticios. |
+
 ## Registro de avances
 
 | Fecha | Fase | Qué cambió |

@@ -158,3 +158,10 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 - [ ] Fecha y acta de la segunda asamblea de cada año, con la mesa al terminar sus elecciones, para registrar el corte de continuidad.
 - [ ] Propuestas reales de reactivación, si existen: misión, plan, mesa completa, decisión de Junta y comunicación a Asamblea.
 - [ ] Confirmación institucional de la convivencia de los hitos de suplencia (art. 41) y vacante (art. 45), la aplicación de la composición de EnFemenino a cada candidatura y las remisiones defectuosas de los originales. La app conserva los documentos y registra la revisión humana, sin modificar su texto.
+
+## Rediseño · 2026-11-06 ([ADR-158](adr/ADR-158-la-marca-en-dos-capas.md) a [ADR-160](adr/ADR-160-la-navegacion-de-mi-oe.md))
+
+- [ ] Fecha de cierre de 2026-2, que marca el final de la ola 0.
+- [ ] Fechas del inicio y de la inducción de 2027-1: Mi OE nuevo sale antes de la inducción.
+- [ ] Revisión de Comunicaciones de la extensión de marca de ADR-158.
+- [ ] Cinco miembros y cinco operadores (GH, junta o dirección de comité) para la medición de base en staging.
