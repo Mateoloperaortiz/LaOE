@@ -76,6 +76,8 @@ Prohibido: paper sobre yellow; yellow sobre paper; texto de párrafo en paper so
 
 **Rotación de carteles.** Portadas sin foto y tarjetas de la cartelera rotan **azul, amarillo, naranja y navy** siguiendo el orden del feed (sección 8); dos tarjetas vecinas nunca comparten color.
 
+> **Enmienda ([ADR-158](adr/ADR-158-la-marca-en-dos-capas.md)).** La capa funcional suma neutros y colores de estado: ver [Dos capas](#dos-capas-2026-11-08-adr-158).
+
 ## 4. Tipografía
 
 | Rol | Familia del manual | Pesos del manual | Sustituto libre si no hay licencia |
@@ -93,6 +95,8 @@ Cómo las usa el manual y cómo se traslada:
 - La OE no tiene licencia de TT Bluescreens ni de NouvelR (confirmado el 2026-09-02), así que la web usa los sustitutos. Se eligieron comparando ocho candidatas libres por rol contra los especímenes del manual: [fuentes-titulos.png](assets/fuentes-titulos.png) y [fuentes-contenido.png](assets/fuentes-contenido.png). Sofia Sans Extra Condensed es la única tan estrecha como TT Bluescreens que además trae minúsculas y toda la gama de pesos (Antonio se queda corto en peso, Oswald y Barlow son más anchas, Bebas Neue y Anton tienen un solo peso). Plus Jakarta Sans reproduce el ancho generoso y las formas redondas de NouvelR mejor que Manrope, Figtree o Sora.
 - Las fuentes se sirven desde el mismo origen (`next/font` con archivos locales), nunca desde un CDN de terceros.
 - Las imágenes para compartir (`opengraph-image`, [ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)) se generan con `next/og`, que solo acepta TTF, OTF o WOFF estáticos y no interpreta ejes variables. Por eso `src/shared/brand/fonts/og/` guarda dos instancias estáticas subseteadas a latín, Sofia Sans Extra Condensed 900 y Plus Jakarta Sans 600 (misma licencia OFL), generadas desde los WOFF2 del repositorio con `uv run --with fonttools --with brotli scripts/og-fonts.py`. Ese cartel replica el `Cartel` de la web con estilos en línea: fondo de la paleta con textura, título condensado en mayúsculas, eyebrow y el isotipo decorativo a baja opacidad.
+
+> **Enmienda ([ADR-158](adr/ADR-158-la-marca-en-dos-capas.md)).** En la capa funcional, los títulos van en Plus Jakarta Sans y en tipo oración; la familia de títulos en mayúsculas queda para la capa de marca. Ver [Dos capas](#dos-capas-2026-11-08-adr-158).
 
 ## 5. Elementos gráficos
 
@@ -177,6 +181,8 @@ Componentes de marca en `src/shared/brand/`:
 | `SelloOE` | Cierre "¡OE OE OE!" en amarillo suave con volumen |
 | `Insignia` | Etiqueta pequeña con fondo de la paleta y texto legible |
 | `Recorte` | Foto en blanco y negro con contorno de color, solo con consentimiento |
+
+> **Enmienda ([ADR-158](adr/ADR-158-la-marca-en-dos-capas.md)).** En la capa funcional, los fondos y las acciones siguen [Dos capas](#dos-capas-2026-11-08-adr-158).
 
 ## 10. Accesibilidad y movimiento
 
@@ -267,3 +273,55 @@ Una flecha dentro de un rango o de una oración (`apertura → cierre`) y el ata
 | Mover el tablero (2048) | `ArrowUpIcon` · `ArrowDownIcon` · `ArrowLeftIcon` · `ArrowRightIcon` |
 
 Para sumar un icono: buscarlo en [tabler.io/icons](https://tabler.io/icons), crear su archivo en `src/shared/ui/icons/` como los demás, con el nombre de su forma y sufijo `Icon`, y agregar su fila acá. knip avisa cuando un archivo deja de usarse.
+
+## Dos capas (2026-11-08, ADR-158)
+
+[ADR-158](adr/ADR-158-la-marca-en-dos-capas.md) divide la aplicación de la marca en dos capas. Es una **extensión**, porque el manual no cubre pantallas de trabajo, y enmienda §3, §4 y §9 solo para la capa funcional. No cambian el logo y sus reglas, los once colores, las dos familias, la voz, el «¡OE OE OE!» (solo en éxitos) ni la tabla de combinaciones permitidas de §3.
+
+| Capa | Dónde | Cómo se ve |
+| --- | --- | --- |
+| Funcional | Formularios, listas, tablas, fichas, ajustes y toda la Operación | Plus Jakarta Sans en tipo oración, superficies limpias, neutros y colores de estado |
+| Marca | Numerales (puntos, puestos, rachas y cifras de un panorama), celebraciones y pantallas de éxito, carteles de la cartelera y de los eventos sin foto, «Tu semestre en la OE», pantallas en vivo o de presentación, el portal y los sitios de macroeventos | Lo de §3 a §8: la familia de títulos en mayúsculas, carteles de color y grano |
+
+**Tipografía de la capa funcional**, toda en Plus Jakarta Sans. La regla global que pone `h1` y `h2` en la familia de títulos pasa a una clase o a un componente de marca.
+
+| Uso | Tamaño | Peso |
+| --- | --- | --- |
+| Título de pantalla | 28/34 | 800 |
+| Sección | 20/26 | 800 |
+| Cuerpo | 16/24 | 400 |
+| Secundario | 14/20 | 500 |
+| Etiqueta corta | 12/16 | 700, en mayúsculas espaciadas 0,12 em |
+
+**Neutros nuevos**, derivados del navy. El fondo (`--oe-paper`), el texto (`--oe-ink`) y los títulos (`--oe-navy`) siguen siendo los del manual.
+
+| Token | Valor | Contraste |
+| --- | --- | --- |
+| Superficie | `#FFFFFF` | — |
+| Borde | `#E4E8EE` | — |
+| Borde fuerte | `#CDD4DE` | — |
+| Texto secundario | `#5A6473` | 6:1 sobre blanco y 5,6:1 sobre `--oe-paper` |
+
+**Estados.** Un estado nunca se indica solo con color: lleva icono y texto.
+
+| Estado | Colores | Contraste | Origen |
+| --- | --- | --- | --- |
+| Error | `#B42318` sobre `#FDECEA` | 5,7:1 | Nuevo |
+| Éxito | `#1E6B45` sobre `#E7F4EC` | 5,7:1 | Nuevo |
+| Aviso | Navy sobre `--oe-yellow-soft` | 13:1 | Manual |
+| Información | Navy sobre `--oe-sky` | 12:1 | Manual |
+
+**Acciones.** Reemplazan los botones de §9 en la capa funcional. Cada pantalla tiene un solo botón principal.
+
+| Acción | Cómo se ve | Contraste |
+| --- | --- | --- |
+| Principal en Mi OE | Naranja con texto navy | 6,9:1 |
+| Principal en la Operación | Navy con texto `--oe-paper` | 15:1 |
+| Secundaria | Superficie con borde fuerte y texto navy | — |
+| Enlace | Navy subrayado | — |
+
+**Carteles y grano.** Los carteles de color quedan para el contenido (cartelera, eventos sin foto y logros) y no se usan de fondo en tarjetas de trabajo. El grano va solo en las superficies de marca, nunca detrás de texto de trabajo.
+
+**Contraste y tamaño.** Todo texto cumple AA: 4,5:1, o 3:1 desde 24 px. En Mi OE las zonas táctiles miden al menos 44 px.
+
+**Transición.** Una pantalla pasa a la capa funcional cuando se rediseña, por olas del roadmap, y hasta entonces sigue las reglas anteriores, incluidas la extensión administrativa y la enmienda del portal y Mi OE. Los tokens nuevos entran a `src/shared/brand/tokens.css` con los componentes base del tramo R6, y la página `/marca` documenta las dos capas. La revisión de Comunicaciones sigue anotada en [11-contenido-pendiente](11-contenido-pendiente.md).

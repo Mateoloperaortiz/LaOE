@@ -23,6 +23,8 @@
 
 ## Mi OE (sesión de miembro)
 
+**Navegación nueva** ([ADR-160](adr/ADR-160-la-navegacion-de-mi-oe.md), aceptada el 2026-11-08). La barra pasa a ser Hoy · Agenda · Asistencia · Juegos · Yo, con «Yo» en lugar del menú «Más», y `/app` pasa a ser «Hoy», con sus bloques ordenados por urgencia. Sale en la ola 1, detrás de la bandera por persona; hasta entonces sigue la barra de hoy (Inicio, Agenda, Carnet, GH Points y Juegos). Las rutas de esta tabla no cambian. Las nuevas, como Asistencia, Yo y el centro de avisos, se suman aquí en el tramo que las construye.
+
 | Ruta | Contenido |
 | --- | --- |
 | `/app` | Saludo, agenda del término, mis comités, saldo del término, barra de permanencia, anuncios para miembros; lista de onboarding mientras la persona sea nueva; aviso de instalar Mi OE y activar las notificaciones para quien no tiene ningún dispositivo suscrito ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |

@@ -1081,14 +1081,14 @@ Mateo pidió el 2026-09-22 que todo el copy suene más paisa y parchado: toque s
 
 ## Rediseño de la OE · ADR-158 a ADR-160
 
-Propuesto el 2026-11-06, a pedido de Mateo: una app usable aunque cambie el lenguaje visual, con Mi OE pensada para el celular y la Operación pensada para el escritorio, sobre la misma casa. [ADR-158](adr/ADR-158-la-marca-en-dos-capas.md) divide la marca en dos capas, [ADR-159](adr/ADR-159-la-operacion-es-de-escritorio.md) vuelve la Operación de escritorio y [ADR-160](adr/ADR-160-la-navegacion-de-mi-oe.md) cambia la navegación de Mi OE. Las tres están propuestas. Los plazos van por semestre porque las fechas de la OE son datos pendientes ([11-contenido-pendiente](11-contenido-pendiente.md)). R6 es a la vez la base de la ola 1 y el P0 de ADR-085; el monorepo (P1) va después de la ola 1.
+Propuesto el 2026-11-06, a pedido de Mateo: una app usable aunque cambie el lenguaje visual, con Mi OE pensada para el celular y la Operación pensada para el escritorio, sobre la misma casa. [ADR-158](adr/ADR-158-la-marca-en-dos-capas.md) divide la marca en dos capas, [ADR-159](adr/ADR-159-la-operacion-es-de-escritorio.md) vuelve la Operación de escritorio y [ADR-160](adr/ADR-160-la-navegacion-de-mi-oe.md) cambia la navegación de Mi OE. Mateo las aceptó el 2026-11-08. 2026-2 cierra el 31 de diciembre de 2026 y 2027-1 empieza el 1 de enero de 2027; la fecha de la inducción sigue pendiente ([11-contenido-pendiente](11-contenido-pendiente.md)). R6 es a la vez la base de la ola 1 y el P0 de ADR-085; el monorepo (P1) va después de la ola 1.
 
-- [ ] Ola 0 · Decidir y medir, hasta el cierre de 2026-2.
-  - [ ] Aceptar ADR-158, ADR-159 y ADR-160; Comunicaciones revisa ADR-158 antes.
+- [ ] Ola 0 · Decidir y medir, hasta el cierre de 2026-2, el 31 de diciembre de 2026.
+  - [x] Aceptar ADR-158, ADR-159 y ADR-160: aceptadas el 2026-11-08, con sus enmiendas a ADR-043, ADR-044, 07-marca y 06-mapa-del-sitio. La revisión de Comunicaciones de ADR-158 sigue en 11-contenido-pendiente.
   - [x] Maquetas con datos ficticios: «Hoy», asistencia registrada y la hoja de las dos capas en Mi OE; Mesa, Personas, Persona 360 y modo de campo en la Operación.
-  - [ ] Medición de base: cinco miembros y cinco operadores, cinco tareas cada uno, en staging con datos ficticios. Se miden tiempo, errores y si terminan, más el cuestionario SUS.
+  - [ ] Medición de base: cinco tareas por grupo, en staging con datos ficticios, midiendo el tiempo, los errores, si se terminan y el cuestionario SUS. El protocolo está en [23-medicion-de-base](23-medicion-de-base.md): el comité GEMIS recorre Mi OE, la junta recorre la Operación y se suman cinco personas que nombró Mateo. Faltan las cuentas de demostración en staging y las sesiones.
   - [x] Inventario de las páginas de Mi OE, la Operación y el portal, cada una con su espacio, su patrón y su ola: [22-inventario-de-pantallas](22-inventario-de-pantallas.md).
-- [ ] Ola 1 · Cimientos, en el intersemestral: R6 con la capa funcional; la estructura de la Operación con la Mesa; la barra de Mi OE, «Hoy» y el centro de avisos, detrás de una bandera por persona. Mi OE nuevo sale antes de la inducción de 2027-1.
+- [ ] Ola 1 · Cimientos, entre el 1 de enero de 2027 y la inducción de 2027-1: R6 con la capa funcional; la estructura de la Operación con la Mesa; la barra de Mi OE, «Hoy» y el centro de avisos, detrás de una bandera por persona. Mi OE nuevo sale antes de la inducción de 2027-1.
 - [ ] Ola 2 · Primera mitad de 2027-1: vistas guardadas, lote, Persona 360, Calendario y Panorama; ruta de permanencia, «Yo» con insignias y trayectoria verificable; empalme entre semestres; «Tu semestre en la OE» al cierre de 2027-1.
 - [ ] Ola 3 · Capa social, con la política de datos primero: reconocimientos, muro del comité, metas colectivas, ligas y recompensas por umbral.
 - [ ] Ola 4 · En vivo: tiempo real, modo asamblea, The Games en vivo y registro sin señal.
@@ -1097,6 +1097,7 @@ Propuesto el 2026-11-06, a pedido de Mateo: una app usable aunque cambie el leng
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-11-06 | Ola 0 · Propuesta | ADR-158, ADR-159 y ADR-160 propuestas, con maquetas de Mi OE y de la Operación hechas con datos ficticios. |
+| 2026-11-08 | Ola 0 · ADR aceptadas | Mateo aceptó ADR-158, ADR-159 y ADR-160. ADR-043 y ADR-044 cierran con su enmienda, 07-marca suma la sección «Dos capas» y 06-mapa-del-sitio anuncia la barra nueva de Mi OE. Cada regla rige cuando su pantalla migra, detrás de la bandera por persona. Fechas de la OE: 2026-2 cierra el 31 de diciembre de 2026 y 2027-1 empieza el 1 de enero de 2027. Protocolo de la medición de base en [23-medicion-de-base](23-medicion-de-base.md), con el comité GEMIS y la junta como grupos. |
 | 2026-11-08 | Ola 0 · Inventario | [22-inventario-de-pantallas](22-inventario-de-pantallas.md): las 124 páginas de `main` (74 de la Operación, 31 de Mi OE, 11 del portal y 8 de acceso) con su espacio, su patrón, su ola y su uso estimado. 26 de la Operación son el kit (`ResourcePage`) y cambian juntas en la ola 2; la Mesa sale de tres bandejas que ya existen; las pantallas de cierre, admisión, roster y activación quedan fuera de la ola 1 porque se usan en el intersemestral. |
 
 ## Registro de avances

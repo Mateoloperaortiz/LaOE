@@ -1,8 +1,8 @@
 # ADR-160: La navegación de Mi OE: Hoy, Agenda, Asistencia, Juegos y Yo
 
-- Estado: Propuesta
+- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1
 - Fecha: 2026-11-06
-- Enmienda, al aceptarse: [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) reglas 5 y 6; [06-mapa-del-sitio](../06-mapa-del-sitio.md), sección Mi OE
+- Enmienda: [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) reglas 5 y 6; [06-mapa-del-sitio](../06-mapa-del-sitio.md), sección Mi OE
 - Relacionadas: ADR-040, ADR-044, ADR-047, ADR-049, ADR-067, ADR-074, ADR-075, ADR-158, ADR-159
 
 ## Contexto
@@ -44,7 +44,7 @@ El 2026-11-06 Mateo pidió una app usable, pensada como las grandes apps de comu
 - **Lecturas nuevas.** «Te toca» necesita que cada módulo exponga, por su API pública, los pendientes de una persona. Cada módulo se suma con su propia lectura.
 - **Textos.** Los nombres de las pestañas, los bloques y la bienvenida entran a 14-copy con su código `T-…`.
 - **Pruebas.** Las E2E que navegan por la barra de Mi OE cambian de destino y se ajustan en el mismo tramo.
-- **Publicación.** Sale con la ola 1 del roadmap, antes de la inducción de 2027-1, cuya fecha es un dato pendiente de la OE.
-- **Al aceptarse:**
-  - ADR-044 suma esta ADR a las que la enmiendan en su estado y cierra con su sección «Enmienda».
-  - 06-mapa-del-sitio cambia su sección de Mi OE.
+- **Publicación.** Sale con la ola 1 del roadmap, antes de la inducción de 2027-1. Ese semestre empieza el 1 de enero de 2027; la fecha de la inducción es un dato pendiente de la OE.
+- **Enmiendas aplicadas el 2026-11-08:**
+  - ADR-044 suma esta ADR a las que la enmiendan y cierra con su sección «Enmienda».
+  - 06-mapa-del-sitio anuncia la barra nueva al comienzo de su sección de Mi OE.
