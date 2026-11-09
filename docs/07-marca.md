@@ -271,6 +271,7 @@ Una flecha dentro de un rango o de una oración (`apertura → cierre`) y el ata
 | Llegó por transferencia | `TransferIcon` |
 | Tu respuesta · Respuesta correcta (trivia) | `CircleDotIcon` · `CircleCheckIcon` |
 | Mover el tablero (2048) | `ArrowUpIcon` · `ArrowDownIcon` · `ArrowLeftIcon` · `ArrowRightIcon` |
+| Estado: error · éxito · aviso · información (capa funcional) | `AlertCircleIcon` · `CircleCheckIcon` · `AlertTriangleIcon` · `InfoCircleIcon` |
 
 Para sumar un icono: buscarlo en [tabler.io/icons](https://tabler.io/icons), crear su archivo en `src/shared/ui/icons/` como los demás, con el nombre de su forma y sufijo `Icon`, y agregar su fila acá. knip avisa cuando un archivo deja de usarse.
 
@@ -323,5 +324,30 @@ Para sumar un icono: buscarlo en [tabler.io/icons](https://tabler.io/icons), cre
 **Carteles y grano.** Los carteles de color quedan para el contenido (cartelera, eventos sin foto y logros) y no se usan de fondo en tarjetas de trabajo. El grano va solo en las superficies de marca, nunca detrás de texto de trabajo.
 
 **Contraste y tamaño.** Todo texto cumple AA: 4,5:1, o 3:1 desde 24 px. En Mi OE las zonas táctiles miden al menos 44 px.
+
+**Densidades** ([ADR-161](adr/ADR-161-densidad-de-escritorio-en-la-operacion.md)). La escala de arriba es la de Mi OE. La Operación es de escritorio y usa una más compacta, que su marco activa con `data-densidad="escritorio"`; adentro, las mismas utilidades toman estas medidas.
+
+| Uso | Mi OE | La Operación |
+| --- | --- | --- |
+| Título de pantalla | 28/34 | 24/30 |
+| Nombre en una ficha (`titulo-ficha`) | 28/34 | 28/34 |
+| Sección | 20/26 | 18/24 |
+| Cuerpo | 16/24 | 14/20 |
+| Secundario y celdas de tabla | 14/20 | 13/18 |
+| Etiqueta corta | 12/16 | 11/16 |
+| Botón · botón compacto | 44 px, redondo | 40 px · 32 px, esquinas de 10 px |
+
+**Tema oscuro.** ADR-158 fijó los valores del claro. Los del oscuro se derivan del navy y cumplen AA sobre la superficie oscura. Aviso, información y la acción de Mi OE no cambian: sus fondos son claros en los dos temas, así que su texto sigue siendo navy.
+
+| Token | Claro | Oscuro |
+| --- | --- | --- |
+| Superficie | `#FFFFFF` | `#0A2A4C` |
+| Borde · borde fuerte | `#E4E8EE` · `#CDD4DE` | `#24456A` · `#3B5E86` |
+| Texto secundario | `#5A6473` | `#B4C1D2` |
+| Error | `#B42318` sobre `#FDECEA` | `#FFB4AB` sobre `#4A1A1F` |
+| Éxito | `#1E6B45` sobre `#E7F4EC` | `#9FE0BA` sobre `#0F3A2C` |
+| Principal en la Operación | Navy con texto `--oe-paper` | `--oe-blue` con texto navy |
+
+**Dónde vive.** Los tokens están en `src/shared/brand/tokens.css` (`bg-superficie`, `border-linea`, `text-tinta-secundaria`, `bg-error-fondo`…), con las utilidades `titulo-pantalla`, `titulo-seccion`, `titulo-ficha` y `etiqueta-corta`. Los componentes base están en `src/shared/ui`: `Button` (y `buttonClass` para un enlace), `Banner`, `Badge`, `Surface` y `ScreenHeader`. `tests/unit/functional-layer-contrast.test.ts` lee los tokens y comprueba AA en los dos temas. El muestrario de `/marca`, que solo existe en desarrollo, los muestra vivos.
 
 **Transición.** Una pantalla pasa a la capa funcional cuando se rediseña, por olas del roadmap, y hasta entonces sigue las reglas anteriores, incluidas la extensión administrativa y la enmienda del portal y Mi OE. Los tokens nuevos entran a `src/shared/brand/tokens.css` con los componentes base del tramo R6, y la página `/marca` documenta las dos capas. La revisión de Comunicaciones sigue anotada en [11-contenido-pendiente](11-contenido-pendiente.md).

@@ -17,6 +17,11 @@ import {
 } from "@/shared/brand";
 import { copyStatus, t } from "@/shared/copy";
 import { textos } from "@/shared/copy/textos.generated";
+import { Badge } from "@/shared/ui/Badge";
+import { Banner } from "@/shared/ui/Banner";
+import { Button } from "@/shared/ui/Button";
+import { ScreenHeader } from "@/shared/ui/ScreenHeader";
+import { Surface } from "@/shared/ui/Surface";
 
 export const metadata: Metadata = { title: "Muestrario de marca", robots: { index: false } };
 
@@ -46,6 +51,26 @@ const COLORES = [
   ["oe-ink", "bg-oe-ink"],
 ] as const;
 const COMITES = ["a3", "pixel", "cigma", "gemis", "eco", "vision"];
+// Capa funcional (ADR-158): neutros nuevos y estados, cada uno con su texto encima.
+const NEUTROS = [
+  ["superficie", "bg-superficie"],
+  ["linea", "bg-linea"],
+  ["linea-fuerte", "bg-linea-fuerte"],
+  ["tinta-secundaria", "bg-tinta-secundaria"],
+] as const;
+// Filas ficticias de una tabla de la Operación en densidad de escritorio (ADR-161).
+const PERSONAS_DEMO = [
+  ["Valeria Ochoa Restrepo", "GEMIS", "Activa", "exito"],
+  ["Santiago Restrepo Zapata", "A3 · GEMIS", "En prueba", "aviso"],
+  ["Juliana Zapata Arango", "GEMIS", "En licencia", "info"],
+] as const;
+const ESCALA = [
+  ["Título de pantalla · 28/34 · 800", "titulo-pantalla"],
+  ["Sección · 20/26 · 800", "titulo-seccion"],
+  ["Cuerpo · 16/24 · 400", "text-cuerpo"],
+  ["Secundario · 14/20 · 500", "text-secundario font-medium text-tinta-secundaria"],
+  ["Etiqueta corta · 12/16 · 700", "etiqueta-corta"],
+] as const;
 
 // Muestrario de la línea gráfica para revisar cada pieza contra docs/07-marca.md. Solo en desarrollo.
 export default function MarcaPage() {
@@ -174,6 +199,106 @@ export default function MarcaPage() {
           <Insignia fondo="paper">Retirado</Insignia>
         </div>
         <SelloOE tamano="lg" />
+      </section>
+
+      <section className="flex flex-col gap-6">
+        <BarraTitulo color="naranja" className="self-start">
+          Dos capas · funcional
+        </BarraTitulo>
+        <p className="max-w-prose">
+          ADR-158: las pantallas de trabajo van en la capa funcional, en Plus Jakarta Sans y tipo
+          oración, sin grano. La condensada, los carteles y el grano quedan para los momentos de
+          marca, como los de arriba.
+        </p>
+        <div className="flex flex-col gap-3">
+          {ESCALA.map(([texto, clase]) => (
+            <p key={clase} className={clase}>
+              {texto}
+            </p>
+          ))}
+        </div>
+        <ul className="grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4">
+          {NEUTROS.map(([nombre, clase]) => (
+            <li key={nombre} className="flex flex-col gap-2">
+              <span className={`block h-12 rounded-lg border border-linea ${clase}`} />
+              <code className="text-xs">{nombre}</code>
+            </li>
+          ))}
+        </ul>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Banner tone="error" title="No se pudo guardar">
+            Revisa la fecha de regreso: va desde mañana.
+          </Banner>
+          <Banner tone="exito" title="Asistencia registrada">
+            Quedó en tu permanencia de GEMIS.
+          </Banner>
+          <Banner tone="aviso" title="Te faltan dos reuniones">
+            Para alcanzar el 70 % antes del cierre.
+          </Banner>
+          <Banner tone="info">La convocatoria cierra el viernes.</Banner>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge>Borrador</Badge>
+          <Badge tone="exito">Activo</Badge>
+          <Badge tone="aviso">En prueba</Badge>
+          <Badge tone="info">En licencia</Badge>
+          <Badge tone="error">Rechazada</Badge>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Surface as="section" className="flex flex-col gap-4 p-5">
+            <p className="etiqueta-corta text-tinta-secundaria">Mi OE</p>
+            <ScreenHeader
+              title="Tu permanencia"
+              description="2026-2 · GEMIS"
+              actions={<Button>Registrar asistencia</Button>}
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secundaria">Ver detalle</Button>
+              <Button variant="enlace">Cómo se calcula</Button>
+            </div>
+          </Surface>
+          <div data-densidad="escritorio">
+            <Surface as="section" className="flex flex-col gap-4 p-5">
+              <p className="etiqueta-corta text-tinta-secundaria">Operación · escritorio</p>
+              <ScreenHeader
+                title="Personas"
+                description="124 activas en 2026-2"
+                actions={
+                  <>
+                    <Button area="operacion" variant="secundaria">
+                      Exportar
+                    </Button>
+                    <Button area="operacion">Importar roster</Button>
+                  </>
+                }
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button area="operacion" variant="secundaria" size="compacto">
+                  Comité: GEMIS
+                </Button>
+                <Button area="operacion" variant="secundaria" size="compacto">
+                  Estado: activas
+                </Button>
+                <Button area="operacion" size="compacto" disabled>
+                  Activar seleccionadas
+                </Button>
+              </div>
+              <ul className="list-none divide-y divide-linea rounded-superficie border border-linea p-0">
+                {PERSONAS_DEMO.map(([nombre, comite, estado, tono]) => (
+                  <li key={nombre} className="flex h-10 items-center gap-3 px-3">
+                    <span className="flex-1 truncate font-semibold">{nombre}</span>
+                    <span className="text-secundario text-tinta-secundaria">{comite}</span>
+                    <Badge tone={tono}>{estado}</Badge>
+                  </li>
+                ))}
+              </ul>
+              <p className="titulo-ficha">Valeria Ochoa Restrepo</p>
+              <p className="text-secundario text-tinta-secundaria">
+                Nombre en una ficha · 28/34 en las dos densidades
+              </p>
+            </Surface>
+          </div>
+        </div>
       </section>
 
       <section className="flex flex-col gap-4">

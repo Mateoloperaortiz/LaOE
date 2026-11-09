@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-161](ADR-161-densidad-de-escritorio-en-la-operacion.md) | Densidad de escritorio en la Operación | Aceptada |
 | [ADR-160](ADR-160-la-navegacion-de-mi-oe.md) | La navegación de Mi OE: Hoy, Agenda, Asistencia, Juegos y Yo | Aceptada |
 | [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) | La Operación es de escritorio | Aceptada |
 | [ADR-158](ADR-158-la-marca-en-dos-capas.md) | La marca en dos capas | Aceptada |
