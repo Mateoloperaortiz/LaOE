@@ -1,6 +1,6 @@
 # ADR-158: La marca en dos capas
 
-- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1
+- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1 (enmendada por ADR-161)
 - Fecha: 2026-11-06
 - Enmienda: [07-marca](../07-marca.md) §3, §4 y §9; [ADR-043](ADR-043-experiencia-administrativa.md) regla 2; [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) regla 1
 - Relacionadas: ADR-043, ADR-044, ADR-076, ADR-081, ADR-085, ADR-086, ADR-138, ADR-159, ADR-160
@@ -94,3 +94,7 @@ El 2026-11-06 Mateo pidió que la casa sea una app usable, aunque eso cambie un 
 - **Enmiendas aplicadas el 2026-11-08:**
   - 07-marca suma la sección «Dos capas» con estas reglas.
   - ADR-043 y ADR-044 quedan enmendadas por esta ADR y cierran con su sección «Enmienda».
+
+## Enmienda (2026-11-09, ADR-161)
+
+La regla 2 queda como la escala de Mi OE. La Operación tiene su propia densidad de escritorio, más compacta: título de pantalla 24/30, sección 18/24, cuerpo 14/20, secundario y celdas 13/18 y etiqueta corta 11/16, con botones de 40 y 32 px y esquinas de 10 px ([ADR-161](ADR-161-densidad-de-escritorio-en-la-operacion.md)).

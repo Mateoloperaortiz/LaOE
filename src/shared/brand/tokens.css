@@ -30,8 +30,22 @@
   --text-titulo-sm: 1.25rem;
   --text-titulo-sm--line-height: 1.25;
 
+  /* Capa funcional (ADR-158 regla 2): pantalla 28/34, sección 20/26, cuerpo 16/24, secundario 14/20 y
+     etiqueta corta 12/16. Todo en la familia de contenido y en tipo oración. */
+  --text-pantalla: 1.75rem;
+  --text-pantalla--line-height: 2.125rem;
+  --text-seccion: 1.25rem;
+  --text-seccion--line-height: 1.625rem;
+  --text-cuerpo: 1rem;
+  --text-cuerpo--line-height: 1.5rem;
+  --text-secundario: 0.875rem;
+  --text-secundario--line-height: 1.25rem;
+  --text-etiqueta: 0.75rem;
+  --text-etiqueta--line-height: 1rem;
+
   --tracking-eyebrow: 0.12em;
   --radius-cartel: 1.25rem;
+  --radius-superficie: 0.625rem;
 }
 
 /* Tokens semánticos: cambian con el tema; los carteles no. */
@@ -44,6 +58,23 @@
   --color-titulo: var(--titulo);
   --color-enlace: var(--enlace);
   --color-borde: var(--borde);
+
+  /* Capa funcional (ADR-158 reglas 3 a 5): neutros, estados y acciones. */
+  --color-superficie: var(--superficie);
+  --color-linea: var(--linea);
+  --color-linea-fuerte: var(--linea-fuerte);
+  --color-tinta-secundaria: var(--tinta-secundaria);
+  --color-error: var(--error);
+  --color-error-fondo: var(--error-fondo);
+  --color-exito: var(--exito);
+  --color-exito-fondo: var(--exito-fondo);
+  --color-aviso-fondo: var(--aviso-fondo);
+  --color-info-fondo: var(--info-fondo);
+  --color-estado-tinta: var(--estado-tinta);
+  --color-accion-mi-oe: var(--accion-mi-oe);
+  --color-accion-mi-oe-tinta: var(--accion-mi-oe-tinta);
+  --color-accion-operacion: var(--accion-operacion);
+  --color-accion-operacion-tinta: var(--accion-operacion-tinta);
 }
 
 :root {
@@ -57,6 +88,22 @@
   --enlace: var(--color-oe-navy);
   --borde: var(--color-oe-blue-soft);
   --grano: var(--grano-oscuro);
+  /* Capa funcional, tema claro: los valores de ADR-158. */
+  --superficie: #ffffff;
+  --linea: #e4e8ee;
+  --linea-fuerte: #cdd4de;
+  --tinta-secundaria: #5a6473;
+  --error: #b42318;
+  --error-fondo: #fdecea;
+  --exito: #1e6b45;
+  --exito-fondo: #e7f4ec;
+  --aviso-fondo: #ffe279;
+  --info-fondo: #d4dff0;
+  --estado-tinta: #001f3e;
+  --accion-mi-oe: #ff881b;
+  --accion-mi-oe-tinta: #001f3e;
+  --accion-operacion: #001f3e;
+  --accion-operacion-tinta: #f6f6f6;
   /* Granito: ruido SVG, sin imágenes. Dos versiones: grano oscuro para fondos claros y claro para navy. */
   --grano-oscuro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.09'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   --grano-claro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.08'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='white' filter='url(%23g)'/%3E%3C/svg%3E");
@@ -74,6 +121,22 @@
     --enlace: var(--color-oe-blue);
     --borde: color-mix(in oklab, var(--color-oe-blue-soft) 35%, var(--color-oe-navy));
     --grano: var(--grano-claro);
+    /* Capa funcional, tema oscuro: derivados del navy, AA comprobado en tests/unit/functional-layer-contrast.test.ts. */
+    --superficie: #0a2a4c;
+    --linea: #24456a;
+    --linea-fuerte: #3b5e86;
+    --tinta-secundaria: #b4c1d2;
+    --error: #ffb4ab;
+    --error-fondo: #4a1a1f;
+    --exito: #9fe0ba;
+    --exito-fondo: #0f3a2c;
+    --aviso-fondo: #ffe279;
+    --info-fondo: #d4dff0;
+    --estado-tinta: #001f3e;
+    --accion-mi-oe: #ff881b;
+    --accion-mi-oe-tinta: #001f3e;
+    --accion-operacion: #94b6f0;
+    --accion-operacion-tinta: #001f3e;
   }
 }
 
@@ -88,6 +151,22 @@
   --enlace: var(--color-oe-blue);
   --borde: color-mix(in oklab, var(--color-oe-blue-soft) 35%, var(--color-oe-navy));
   --grano: var(--grano-claro);
+  /* Capa funcional, tema oscuro: derivados del navy, AA comprobado en tests/unit/functional-layer-contrast.test.ts. */
+  --superficie: #0a2a4c;
+  --linea: #24456a;
+  --linea-fuerte: #3b5e86;
+  --tinta-secundaria: #b4c1d2;
+  --error: #ffb4ab;
+  --error-fondo: #4a1a1f;
+  --exito: #9fe0ba;
+  --exito-fondo: #0f3a2c;
+  --aviso-fondo: #ffe279;
+  --info-fondo: #d4dff0;
+  --estado-tinta: #001f3e;
+  --accion-mi-oe: #ff881b;
+  --accion-mi-oe-tinta: #001f3e;
+  --accion-operacion: #94b6f0;
+  --accion-operacion-tinta: #001f3e;
 }
 
 @layer base {
@@ -155,6 +234,66 @@
   font-weight: 600;
   letter-spacing: var(--tracking-eyebrow);
   text-transform: uppercase;
+}
+
+/* Títulos de la capa funcional (ADR-158 regla 2). Le ganan a la regla de base de h1 y h2, que sigue igual
+   hasta que el marco nuevo salga detrás de la bandera; así ninguna pantalla vieja cambia antes de tiempo. */
+@utility titulo-pantalla {
+  font-family: var(--font-sans);
+  font-size: var(--text-pantalla);
+  line-height: var(--text-pantalla--line-height);
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--titulo);
+}
+
+@utility titulo-seccion {
+  font-family: var(--font-sans);
+  font-size: var(--text-seccion);
+  line-height: var(--text-seccion--line-height);
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--titulo);
+}
+
+/* Nombre de una ficha (la Persona 360): 28/34 en las dos densidades (ADR-161). */
+@utility titulo-ficha {
+  font-family: var(--font-sans);
+  font-size: 1.75rem;
+  line-height: 2.125rem;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--titulo);
+}
+
+/* Etiqueta corta de la capa funcional: 12/16, peso 700, mayúsculas espaciadas. */
+@utility etiqueta-corta {
+  font-family: var(--font-sans);
+  font-size: var(--text-etiqueta);
+  line-height: var(--text-etiqueta--line-height);
+  font-weight: 700;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+/* Densidad de escritorio de la Operación (ADR-161). Su marco lleva data-densidad="escritorio" y adentro
+   las mismas utilidades toman la escala compacta; Mi OE y el modo de campo se quedan con la de ADR-158. */
+[data-densidad="escritorio"] {
+  --text-pantalla: 1.5rem;
+  --text-pantalla--line-height: 1.875rem;
+  --text-seccion: 1.125rem;
+  --text-seccion--line-height: 1.5rem;
+  --text-cuerpo: 0.875rem;
+  --text-cuerpo--line-height: 1.25rem;
+  --text-secundario: 0.8125rem;
+  --text-secundario--line-height: 1.125rem;
+  --text-etiqueta: 0.6875rem;
+  --text-etiqueta--line-height: 1rem;
+  font-size: var(--text-cuerpo);
+  line-height: var(--text-cuerpo--line-height);
 }
 
 /* Textura de granito sobre cualquier superficie grande. */
