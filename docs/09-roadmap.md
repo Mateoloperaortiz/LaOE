@@ -1087,7 +1087,7 @@ Propuesto el 2026-11-06, a pedido de Mateo: una app usable aunque cambie el leng
   - [ ] Aceptar ADR-158, ADR-159 y ADR-160; Comunicaciones revisa ADR-158 antes.
   - [x] Maquetas con datos ficticios: «Hoy», asistencia registrada y la hoja de las dos capas en Mi OE; Mesa, Personas, Persona 360 y modo de campo en la Operación.
   - [ ] Medición de base: cinco miembros y cinco operadores, cinco tareas cada uno, en staging con datos ficticios. Se miden tiempo, errores y si terminan, más el cuestionario SUS.
-  - [ ] Inventario de las páginas de Mi OE, la Operación y el portal, cada una con su espacio, su patrón y su prioridad.
+  - [x] Inventario de las páginas de Mi OE, la Operación y el portal, cada una con su espacio, su patrón y su ola: [22-inventario-de-pantallas](22-inventario-de-pantallas.md).
 - [ ] Ola 1 · Cimientos, en el intersemestral: R6 con la capa funcional; la estructura de la Operación con la Mesa; la barra de Mi OE, «Hoy» y el centro de avisos, detrás de una bandera por persona. Mi OE nuevo sale antes de la inducción de 2027-1.
 - [ ] Ola 2 · Primera mitad de 2027-1: vistas guardadas, lote, Persona 360, Calendario y Panorama; ruta de permanencia, «Yo» con insignias y trayectoria verificable; empalme entre semestres; «Tu semestre en la OE» al cierre de 2027-1.
 - [ ] Ola 3 · Capa social, con la política de datos primero: reconocimientos, muro del comité, metas colectivas, ligas y recompensas por umbral.
@@ -1097,6 +1097,7 @@ Propuesto el 2026-11-06, a pedido de Mateo: una app usable aunque cambie el leng
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-11-06 | Ola 0 · Propuesta | ADR-158, ADR-159 y ADR-160 propuestas, con maquetas de Mi OE y de la Operación hechas con datos ficticios. |
+| 2026-11-08 | Ola 0 · Inventario | [22-inventario-de-pantallas](22-inventario-de-pantallas.md): las 124 páginas de `main` (74 de la Operación, 31 de Mi OE, 11 del portal y 8 de acceso) con su espacio, su patrón, su ola y su uso estimado. 26 de la Operación son el kit (`ResourcePage`) y cambian juntas en la ola 2; la Mesa sale de tres bandejas que ya existen; las pantallas de cierre, admisión, roster y activación quedan fuera de la ola 1 porque se usan en el intersemestral. |
 
 ## Registro de avances
 
