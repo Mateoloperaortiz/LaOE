@@ -6,7 +6,15 @@ import { committee, person } from "@/modules/people/schema";
 import { evaluateAs, grantManualCreditAs } from "@/modules/permanence";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
-import { seedPermission, seedRule, seedWorkGroup, seedWorkGroupMembership } from "../factories";
+import {
+  seedCommitteeMembership,
+  seedMembership,
+  seedPermission,
+  seedPerson,
+  seedRule,
+  seedWorkGroup,
+  seedWorkGroupMembership,
+} from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -164,9 +172,22 @@ test.describe("líder", () => {
   });
 
   test("pone un puntaje con observación y nombra al destacado del mes", async ({ page }) => {
+    const { current, home } = await ids();
+    const director = await seedPerson("e2e-puntajes-direccion@example.test", {
+      firstName: "Óscar",
+      lastName: "E2E",
+    });
+    await seedMembership(director, current.id);
+    await seedCommitteeMembership(director, home.id, current.id, "GESTION_HUMANA");
+    await closeDb();
+
     await page.goto(`/admin/comites/${slug}/permanencia`);
-    await expect(page.getByRole("heading", { name: tList("T-819")[1] })).toBeVisible();
-    const row = page.getByRole("row").filter({ hasText: "Miembro E2E" }).first();
+    const scores = page.getByRole("region", { name: tList("T-819")[1], exact: true });
+    await expect(scores.getByRole("cell", { name: /^(Miembro|Óscar) E2E$/ })).toHaveText([
+      "Miembro E2E",
+      "Óscar E2E",
+    ]);
+    const row = scores.getByRole("row").filter({ hasText: "Miembro E2E" });
     await row
       .getByRole("link", { name: t("T-252") })
       .first()
@@ -176,9 +197,7 @@ test.describe("líder", () => {
     await panel.getByLabel(tList("T-773")[1]).fill("e2e-Faltó a dos reuniones");
     await panel.getByRole("button", { name: t("T-253") }).click();
     await expect(page.getByText(t("T-259"))).toBeVisible();
-    await expect(page.getByRole("row").filter({ hasText: "Miembro E2E" }).first()).toContainText(
-      "3 /",
-    );
+    await expect(row).toContainText("3 /");
 
     await page.getByRole("link", { name: tList("T-778")[1] }).click();
     const destacado = page.getByRole("dialog");
