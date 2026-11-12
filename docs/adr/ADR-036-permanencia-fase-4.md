@@ -83,4 +83,4 @@ Regla 4: su enmienda de ADR-121 dice que el requisito sale de `participation.ass
 
 ## Enmienda (2026-11-12, ADR-162)
 
-El buen desempeño completa el paso de Decoración en Mi OE solo si el grupo de la evaluación tiene el código de Decoración de oficina en ese semestre. Ver [ADR-162](ADR-162-grupo-de-decoracion-en-mi-oe.md).
+El buen desempeño completa el paso de Decoración en Mi OE solo si el grupo de la evaluación tiene el código de Decoración de oficina en ese semestre. Las reglas compuestas pueden acreditar su peso con cualquiera de sus evidencias cuando GH activa esa opción. Ver [ADR-162](ADR-162-grupo-de-decoracion-en-mi-oe.md).

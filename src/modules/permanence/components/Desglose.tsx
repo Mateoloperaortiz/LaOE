@@ -110,6 +110,7 @@ function Detalle({
       if (d.type === "COMPOSITE") {
         return (
           <div className="flex flex-col gap-1">
+            {d.eitherEvidence ? <p>{t("T-4859")}</p> : null}
             <p>{t("T-686", { n: d.attended, minimo: d.minCount })}</p>
             {groups.length === 0 ? <p>{t("T-688")}</p> : null}
             {groups.map((group) => (

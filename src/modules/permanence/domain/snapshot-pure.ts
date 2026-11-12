@@ -62,6 +62,7 @@ const detail = z.discriminatedUnion("type", [
     type: z.literal("COMPOSITE"),
     attended: z.number(),
     minCount: z.number(),
+    eitherEvidence: z.boolean().optional(),
     upcoming: z.array(upcoming),
     group: groupRef.nullable(),
   }),

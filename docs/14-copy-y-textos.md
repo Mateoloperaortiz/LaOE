@@ -865,7 +865,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-716 | Reglas: campos del criterio | Clave · Nombre · Descripción · Peso · Aplica a · Cómo se calcula · Orden | MATEO | Propuesta |
 | T-717 | Reglas: opciones de "aplica a" (en el orden del modelo) | Todos · Solo nuevos · Solo veteranos | GH | Propuesta |
 | T-718 | Reglas: nombres de los cálculos (en el orden del modelo) | Conteo de asistencias · Mínimo de asistencias · Tasa de asistencia · Grupo evaluado · Asistencias más grupo · Puntaje del líder · Manual | MATEO | Propuesta |
-| T-719 | Reglas: qué hace cada cálculo (mismo orden) | Suma un porcentaje por cada asistencia hasta el peso · Da el peso completo al llegar al mínimo · Reparte el peso según la tasa de asistencia a las reuniones del comité · Da el peso si el grupo evalúa buen desempeño · Exige el mínimo de asistencias y un grupo con buen desempeño · Lo asigna el líder del comité, con observación si baja · Lo reconoce GH a mano con motivo | MATEO | Propuesta |
+| T-719 | Reglas: qué hace cada cálculo (mismo orden) | Suma un porcentaje por cada asistencia hasta el peso · Da el peso completo al llegar al mínimo · Reparte el peso según la tasa de asistencia a las reuniones del comité · Da el peso si el grupo evalúa buen desempeño · Combina el mínimo de asistencias y el buen desempeño según la opción elegida · Lo asigna el líder del comité, con observación si baja · Lo reconoce GH a mano con motivo | MATEO | Propuesta |
 | T-720 | Reglas: parámetros de asistencia | Categoría · Tipo · Comité · Solo nuevos · Ocasiones · Por asistencia · Mínimo · Esperadas en el semestre | MATEO | Propuesta |
 | T-721 | Reglas: opciones del filtro de solo nuevos (en el orden del modelo) | Todas · Solo las de nuevos · Sin las de nuevos | MATEO | Propuesta |
 | T-722 | Reglas: opciones del filtro de comité (en el orden del modelo) | Cualquier comité · Solo este comité | MATEO | Propuesta |
@@ -3266,3 +3266,5 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-4855 | Reactivación antes del corte | El macroevento sigue deshabilitado. Registra primero la aprobación de reactivación de Junta para este año. | MATEO | Aprobado |
 | T-4856 | Decisión negativa | Junta rechazó la reactivación. | MATEO | Aprobado |
 | T-4857 | Persona no disponible en lista activa | Ver persona | MATEO | Aprobado |
+| T-4858 | Regla de asistencias más grupo: opción de aceptar una evidencia | Aceptar asistencia o buen desempeño | GH | Propuesta |
+| T-4859 | Permanencia: regla que acepta cualquiera de las dos evidencias | Este criterio cuenta con la asistencia requerida o con buen desempeño en el grupo. | GH | Propuesta |

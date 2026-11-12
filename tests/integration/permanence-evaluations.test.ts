@@ -1,5 +1,6 @@
 import { and, count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { ruleInputFromForm } from "@/app/admin/permanencia/_ui/reglas";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { listCommitteeAnnouncements, listMemberAnnouncements } from "@/modules/content";
@@ -19,7 +20,9 @@ import {
   listEvaluationTray,
   listLeaderScores,
   listManualCredits,
+  ruleInputSchema,
   scoreCriterionAs,
+  updateRuleAs,
 } from "@/modules/permanence";
 import { leaderScore } from "@/modules/permanence/schema";
 import { auditLog } from "@/modules/system/schema";
@@ -28,10 +31,12 @@ import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import {
+  seedCheckIn,
   seedCommittee,
   seedCommitteeMembership,
   seedConsent,
   seedMember,
+  seedOccasion,
   seedRule,
   seedTerm,
   seedWorkGroup,
@@ -149,11 +154,19 @@ describe("evaluaciones", () => {
     ).toEqual([{ actorId: newcomer, ip: null }]);
   });
 
-  it("acredita 5 en el grupo de integración existente y reserva el paso para el grupo de decoración", async () => {
+  it("acredita 5 por asistencia o por evaluar el grupo de integración y reserva el paso para decoración", async () => {
     const termId = await seedTerm();
     const newcomer = await seedMember("n@eafit.edu.co");
+    const attendee = await seedMember("asistencia@example.test");
     const committeeId = await seedCommittee("a3");
     await seedCommitteeMembership(newcomer, committeeId, termId);
+    await seedCommitteeMembership(attendee, committeeId, termId);
+    const occasion = await seedOccasion(termId, {
+      category: "INTEGRATION",
+      newMembersOnly: true,
+      status: "CLOSED",
+    });
+    await seedCheckIn(occasion.id, attendee);
     const integration = await seedWorkGroup(termId, "Integración de nuevos", {
       kind: "NEW_MEMBER_TASK",
       code: "INT-NUEVOS",
@@ -164,11 +177,11 @@ describe("evaluaciones", () => {
     });
     await seedWorkGroupMembership(integration, newcomer);
     await seedWorkGroupMembership(decoration, newcomer);
-    await seedRule(termId, "integracion-de-nuevos", {
+    const integrationRuleId = await seedRule(termId, "integracion-de-nuevos", {
       appliesTo: "NEW",
       weight: 5,
-      computation: "GROUP_EVALUATED",
-      params: { groupKind: "NEW_MEMBER_TASK", code: "INT-NUEVOS", mode: "FIXED" },
+      computation: "CHECKIN_COUNT",
+      params: { category: "INTEGRATION", newMembersOnly: "ONLY", perUnit: 5 },
     });
     await seedRule(termId, "decoracion-de-oficina", {
       appliesTo: "NEW",
@@ -176,6 +189,34 @@ describe("evaluaciones", () => {
       computation: "GROUP_EVALUATED",
       params: { groupKind: "NEW_MEMBER_TASK", code: "OFICINA", mode: "FIXED" },
     });
+    const form = new FormData();
+    for (const [name, value] of Object.entries({
+      key: "integracion-de-nuevos",
+      label: "Integración de nuevos",
+      appliesTo: "NEW",
+      weight: "5",
+      computation: "COMPOSITE",
+      category: "INTEGRATION",
+      newMembersOnly: "ONLY",
+      minCount: "1",
+      groupKind: "NEW_MEMBER_TASK",
+      code: "INT-NUEVOS",
+      eitherEvidence: "on",
+    })) {
+      form.set(name, value);
+    }
+    await updateRuleAs(
+      SYSTEM_ACTOR,
+      { termId, scope: "GENERAL", committeeId: null },
+      integrationRuleId,
+      ruleInputSchema.parse(ruleInputFromForm(form, false)),
+      { bypassLock: true },
+    );
+
+    const attendanceView = await getPersonPermanence(attendee, termId);
+    expect(attendanceView?.result.general).toContainEqual(
+      expect.objectContaining({ key: "integracion-de-nuevos", achieved: 5 }),
+    );
 
     await evaluateAs(
       SYSTEM_ACTOR,
@@ -192,6 +233,12 @@ describe("evaluaciones", () => {
     );
     expect(await getOnboarding(newcomer, termId)).toContainEqual(
       expect.objectContaining({ key: "decoracion", doneAt: null }),
+    );
+
+    await seedCheckIn(occasion.id, newcomer);
+    const bothView = await getPersonPermanence(newcomer, termId);
+    expect(bothView?.result.general).toContainEqual(
+      expect.objectContaining({ key: "integracion-de-nuevos", achieved: 5 }),
     );
 
     await evaluateAs(
