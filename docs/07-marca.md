@@ -337,6 +337,37 @@ Para sumar un icono: buscarlo en [tabler.io/icons](https://tabler.io/icons), cre
 | Etiqueta corta | 12/16 | 11/16 |
 | Botón · botón compacto | 44 px, redondo | 40 px · 32 px, esquinas de 10 px |
 
+**Aspecto sobrio** ([ADR-163](adr/ADR-163-aspecto-sobrio-de-la-capa-funcional.md)). La capa funcional baja de volumen en la Operación, en Mi OE y en el modo de campo. La capa de marca y el portal no cambian.
+
+| Qué | Antes (ADR-158 y ADR-161) | Ahora (ADR-163) |
+| --- | --- | --- |
+| Fondo | `--oe-paper` | Degradado suave del azul claro al papel, con cierre crema: de `#DCE6F4` a `#F5F2EA` |
+| Superficies | Con borde | Blancas y sin borde; con sombra suave las que flotan |
+| Pesos | 800 en los títulos y 700 en las etiquetas | 600 como máximo |
+| Etiqueta corta | En mayúsculas espaciadas | 12/16, en tipo oración |
+| Cifras en pantallas de trabajo | La familia de títulos, condensada | Plus Jakarta Sans |
+| Acción principal | Naranja en Mi OE y navy en la Operación | Navy en las dos; el naranja queda en el botón de Asistencia de la barra de Mi OE |
+| Botón secundario | Superficie con borde fuerte | Relleno `#F2F4F7`, sin borde |
+| Pestañas y filtros | — | Pastillas; la elegida va en navy |
+| Título de pantalla en la Operación | 24/30 | 26/32 |
+| Esquinas | 10 px; botones de Mi OE redondos | Controles de 10 px en la Operación y de 14 px en Mi OE; tarjetas de 16 y 20 px |
+| Barra inferior de Mi OE | Pegada al borde | Flota, con una pastilla en el destino activo |
+
+Los neutros que suma son el relleno de control `#F2F4F7`, la línea tenue `#EEF0F3`, el fondo de panel `#FAFBFC` y el texto secundario `#4F5968` sobre el degradado. Los degradados no van en botones ni en texto. En los momentos de marca, como la pantalla de asistencia registrada, el naranja, el amarillo y la condensada siguen sonando fuerte. Estas reglas todavía no están en `tokens.css`: entran en su propio tramo, y hasta entonces las tablas de arriba describen el código.
+
+El tema oscuro del aspecto sobrio se deriva del navy y no usa sombras: una superficie se separa del fondo con la línea `#24456A`. Todo par de texto y fondo cumple AA.
+
+| Qué | Claro | Oscuro |
+| --- | --- | --- |
+| Fondo | Degradado de `#DCE6F4` a `#F5F2EA` | Degradado de `#03203E` a `#00152B`, pasando por `#001A35` |
+| Relleno de control | `#F2F4F7` | `#16365A` |
+| Línea tenue | `#EEF0F3` | `#1A3A5E` |
+| Fondo de panel | `#FAFBFC` | `#07264A` |
+| Texto secundario sobre el degradado | `#4F5968` | `#B4C1D2` |
+| Acción principal y lo elegido | Navy con texto `--oe-paper` | `--oe-blue` con texto navy |
+| Destino activo | Superficie blanca o pastilla `#E6EDF8` | Relleno de control con texto `--oe-blue` |
+| Superficies navy que flotan | De `#0B3158` a `#001F3E` | De `#1D4270` a `#16365A`, con la línea fuerte `#3B5E86` |
+
 **Tema oscuro.** ADR-158 fijó los valores del claro. Los del oscuro se derivan del navy y cumplen AA sobre la superficie oscura. Aviso, información y la acción de Mi OE no cambian: sus fondos son claros en los dos temas, así que su texto sigue siendo navy.
 
 | Token | Claro | Oscuro |
