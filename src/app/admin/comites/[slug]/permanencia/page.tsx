@@ -109,6 +109,7 @@ export default async function PermanenciaComitePage({
   const scoreOf = (ruleId: string, personId: string) =>
     scores.find((item) => item.ruleId === ruleId && item.personId === personId) ?? null;
   const members = roster.members.filter((member) => member.status === "ACTIVE");
+  const membersByName = members.toSorted((a, b) => a.fullName.localeCompare(b.fullName, "es"));
   const scoring =
     accion === "puntaje"
       ? {
@@ -371,7 +372,7 @@ export default async function PermanenciaComitePage({
                 </tr>
               </thead>
               <tbody>
-                {members.map((member) => (
+                {membersByName.map((member) => (
                   <tr key={member.personId} className="border-borde border-t">
                     <td className="py-2 pr-3 font-semibold">{member.fullName}</td>
                     {scoreRules.map((rule) => {
