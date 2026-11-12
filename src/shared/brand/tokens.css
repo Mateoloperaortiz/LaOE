@@ -42,10 +42,20 @@
   --text-secundario--line-height: 1.25rem;
   --text-etiqueta: 0.75rem;
   --text-etiqueta--line-height: 1rem;
+  /* Aspecto sobrio (ADR-163 regla 3): título de tarjeta 16/22 y cifra de un resumen 30/36. */
+  --text-tarjeta: 1rem;
+  --text-tarjeta--line-height: 1.375rem;
+  --text-cifra: 1.875rem;
+  --text-cifra--line-height: 2.25rem;
 
   --tracking-eyebrow: 0.12em;
   --radius-cartel: 1.25rem;
-  --radius-superficie: 0.625rem;
+  /* Esquinas del aspecto sobrio (ADR-163 regla 6). Los controles miden 14 px en Mi OE y 10 px en la
+     Operación; las tarjetas, 20 y 16 px. La densidad de escritorio cambia los dos valores. */
+  --radius-control: 0.875rem;
+  --radius-tarjeta: 1.25rem;
+  --radius-marco: 1.25rem;
+  --radius-barra: 1.5rem;
 }
 
 /* Tokens semánticos: cambian con el tema; los carteles no. */
@@ -71,10 +81,19 @@
   --color-aviso-fondo: var(--aviso-fondo);
   --color-info-fondo: var(--info-fondo);
   --color-estado-tinta: var(--estado-tinta);
-  --color-accion-mi-oe: var(--accion-mi-oe);
-  --color-accion-mi-oe-tinta: var(--accion-mi-oe-tinta);
-  --color-accion-operacion: var(--accion-operacion);
-  --color-accion-operacion-tinta: var(--accion-operacion-tinta);
+  /* Aspecto sobrio (ADR-163 reglas 4, 5 y 11): neutros nuevos, la acción, lo elegido y lo que flota. */
+  --color-relleno: var(--relleno);
+  --color-linea-tenue: var(--linea-tenue);
+  --color-linea-campo: var(--linea-campo);
+  --color-panel: var(--panel);
+  --color-tinta-sobre-fondo: var(--tinta-sobre-fondo);
+  --color-superficie-borde: var(--superficie-borde);
+  --color-accion: var(--accion);
+  --color-accion-tinta: var(--accion-tinta);
+  --color-accion-asistencia: var(--accion-asistencia);
+  --color-accion-asistencia-tinta: var(--accion-asistencia-tinta);
+  --color-activo: var(--activo);
+  --color-activo-tinta: var(--activo-tinta);
 }
 
 :root {
@@ -100,10 +119,36 @@
   --aviso-fondo: #ffe279;
   --info-fondo: #d4dff0;
   --estado-tinta: #001f3e;
-  --accion-mi-oe: #ff881b;
-  --accion-mi-oe-tinta: #001f3e;
-  --accion-operacion: #001f3e;
-  --accion-operacion-tinta: #f6f6f6;
+  /* Aspecto sobrio, tema claro: los valores de ADR-163. El navy es la acción de las dos áreas; el naranja
+     queda para el botón de Asistencia. Las superficies no llevan borde: flotan con sombra. */
+  --relleno: #f2f4f7;
+  --linea-tenue: #eef0f3;
+  --linea-campo: #e1e5ea;
+  --panel: #fafbfc;
+  --tinta-sobre-fondo: #4f5968;
+  --superficie-borde: transparent;
+  --accion: #001f3e;
+  --accion-tinta: #f6f6f6;
+  --accion-asistencia: #ff881b;
+  --accion-asistencia-tinta: #001f3e;
+  --activo: #e6edf8;
+  --activo-tinta: #001f3e;
+  --flota-desde: #0b3158;
+  --flota-hasta: #001f3e;
+  --flota-linea: transparent;
+  --flota-tinta: #f6f6f6;
+  --sombra-flota: 0 1px 2px rgb(0 31 62 / 0.04), 0 12px 32px rgb(0 31 62 / 0.07);
+  --sombra-control: 0 1px 2px rgb(0 31 62 / 0.05), 0 6px 16px rgb(0 31 62 / 0.06);
+  /* Fondo: del azul claro al papel, con cierre crema. La Operación cambia los tonos del medio. */
+  --sobrio-desde: #dce6f4;
+  --sobrio-medio-1: #edf1f6;
+  --sobrio-medio-2: #f6f6f6;
+  --sobrio-hasta: #f5f2ea;
+  --sobrio-medio-1-escritorio: #e9eef5;
+  --sobrio-medio-2-escritorio: #f4f4f3;
+  --sobrio-angulo: 170deg;
+  --sobrio-pos-1: 30%;
+  --sobrio-pos-2: 62%;
   /* Granito: ruido SVG, sin imágenes. Dos versiones: grano oscuro para fondos claros y claro para navy. */
   --grano-oscuro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.09'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   --grano-claro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.08'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='white' filter='url(%23g)'/%3E%3C/svg%3E");
@@ -133,10 +178,31 @@
     --aviso-fondo: #ffe279;
     --info-fondo: #d4dff0;
     --estado-tinta: #001f3e;
-    --accion-mi-oe: #ff881b;
-    --accion-mi-oe-tinta: #001f3e;
-    --accion-operacion: #94b6f0;
-    --accion-operacion-tinta: #001f3e;
+    /* Aspecto sobrio, tema oscuro (ADR-163 regla 11): sin sombras; la superficie lleva una línea. */
+    --relleno: #16365a;
+    --linea-tenue: #1a3a5e;
+    --linea-campo: #24456a;
+    --panel: #07264a;
+    --tinta-sobre-fondo: #b4c1d2;
+    --superficie-borde: #24456a;
+    --accion: #94b6f0;
+    --accion-tinta: #001f3e;
+    --accion-asistencia: #ff881b;
+    --accion-asistencia-tinta: #001f3e;
+    --activo: #16365a;
+    --activo-tinta: #94b6f0;
+    --flota-desde: #1d4270;
+    --flota-hasta: #16365a;
+    --flota-linea: #3b5e86;
+    --flota-tinta: #f6f6f6;
+    --sombra-flota: none;
+    --sombra-control: none;
+    --sobrio-desde: #03203e;
+    --sobrio-medio-1: #001a35;
+    --sobrio-medio-2: #001a35;
+    --sobrio-hasta: #00152b;
+    --sobrio-medio-1-escritorio: #001a35;
+    --sobrio-medio-2-escritorio: #001a35;
   }
 }
 
@@ -163,10 +229,31 @@
   --aviso-fondo: #ffe279;
   --info-fondo: #d4dff0;
   --estado-tinta: #001f3e;
-  --accion-mi-oe: #ff881b;
-  --accion-mi-oe-tinta: #001f3e;
-  --accion-operacion: #94b6f0;
-  --accion-operacion-tinta: #001f3e;
+  /* Aspecto sobrio, tema oscuro (ADR-163 regla 11): sin sombras; la superficie lleva una línea. */
+  --relleno: #16365a;
+  --linea-tenue: #1a3a5e;
+  --linea-campo: #24456a;
+  --panel: #07264a;
+  --tinta-sobre-fondo: #b4c1d2;
+  --superficie-borde: #24456a;
+  --accion: #94b6f0;
+  --accion-tinta: #001f3e;
+  --accion-asistencia: #ff881b;
+  --accion-asistencia-tinta: #001f3e;
+  --activo: #16365a;
+  --activo-tinta: #94b6f0;
+  --flota-desde: #1d4270;
+  --flota-hasta: #16365a;
+  --flota-linea: #3b5e86;
+  --flota-tinta: #f6f6f6;
+  --sombra-flota: none;
+  --sombra-control: none;
+  --sobrio-desde: #03203e;
+  --sobrio-medio-1: #001a35;
+  --sobrio-medio-2: #001a35;
+  --sobrio-hasta: #00152b;
+  --sobrio-medio-1-escritorio: #001a35;
+  --sobrio-medio-2-escritorio: #001a35;
 }
 
 @layer base {
@@ -236,15 +323,16 @@
   text-transform: uppercase;
 }
 
-/* Títulos de la capa funcional (ADR-158 regla 2). Le ganan a la regla de base de h1 y h2, que sigue igual
-   hasta que el marco nuevo salga detrás de la bandera; así ninguna pantalla vieja cambia antes de tiempo. */
+/* Títulos de la capa funcional (ADR-158 regla 2), con los pesos del aspecto sobrio: ninguno pasa de 600
+   (ADR-163 regla 3). Le ganan a la regla de base de h1 y h2, que sigue igual hasta que el marco nuevo
+   salga detrás de la bandera; así ninguna pantalla vieja cambia antes de tiempo. */
 @utility titulo-pantalla {
   font-family: var(--font-sans);
   font-size: var(--text-pantalla);
   line-height: var(--text-pantalla--line-height);
-  font-weight: 800;
+  font-weight: 600;
   text-transform: none;
-  letter-spacing: normal;
+  letter-spacing: -0.01em;
   color: var(--titulo);
 }
 
@@ -252,7 +340,7 @@
   font-family: var(--font-sans);
   font-size: var(--text-seccion);
   line-height: var(--text-seccion--line-height);
-  font-weight: 800;
+  font-weight: 600;
   text-transform: none;
   letter-spacing: normal;
   color: var(--titulo);
@@ -263,35 +351,92 @@
   font-family: var(--font-sans);
   font-size: 1.75rem;
   line-height: 2.125rem;
-  font-weight: 800;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--titulo);
+}
+
+/* Título de una tarjeta: 16/22. */
+@utility titulo-tarjeta {
+  font-family: var(--font-sans);
+  font-size: var(--text-tarjeta);
+  line-height: var(--text-tarjeta--line-height);
+  font-weight: 600;
   text-transform: none;
   letter-spacing: normal;
   color: var(--titulo);
 }
 
-/* Etiqueta corta de la capa funcional: 12/16, peso 700, mayúsculas espaciadas. */
+/* Cifra dentro de una pantalla de trabajo: 30/36 en la familia de contenido. El numeral condensado queda
+   para los momentos de marca (ADR-163 regla 3). */
+@utility cifra-resumen {
+  font-family: var(--font-sans);
+  font-size: var(--text-cifra);
+  line-height: var(--text-cifra--line-height);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--titulo);
+}
+
+/* Etiqueta corta de la capa funcional: 12/16, peso 500, en tipo oración (ADR-163 regla 3). */
 @utility etiqueta-corta {
   font-family: var(--font-sans);
   font-size: var(--text-etiqueta);
   line-height: var(--text-etiqueta--line-height);
-  font-weight: 700;
-  letter-spacing: var(--tracking-eyebrow);
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
-/* Densidad de escritorio de la Operación (ADR-161). Su marco lleva data-densidad="escritorio" y adentro
-   las mismas utilidades toman la escala compacta; Mi OE y el modo de campo se quedan con la de ADR-158. */
+/* Fondo del aspecto sobrio (ADR-163 regla 2): un degradado suave que va detrás de las superficies. */
+@utility fondo-sobrio {
+  background-image: linear-gradient(
+    var(--sobrio-angulo),
+    var(--sobrio-desde) 0%,
+    var(--sobrio-medio-1) var(--sobrio-pos-1),
+    var(--sobrio-medio-2) var(--sobrio-pos-2),
+    var(--sobrio-hasta) 100%
+  );
+}
+
+/* Sombras suaves, solo en lo que flota sobre el fondo (ADR-163 regla 7). En oscuro valen none. */
+@utility sombra-flota {
+  box-shadow: var(--sombra-flota);
+}
+
+@utility sombra-control {
+  box-shadow: var(--sombra-control);
+}
+
+/* Superficie navy que flota: barras de acción y avisos (ADR-163 reglas 8 y 11). */
+@utility superficie-flotante {
+  border: 1px solid var(--flota-linea);
+  background-image: linear-gradient(180deg, var(--flota-desde), var(--flota-hasta));
+  color: var(--flota-tinta);
+  box-shadow: var(--sombra-flota);
+}
+
+/* Densidad de escritorio de la Operación (ADR-161, con el título y las esquinas de ADR-163). Su marco
+   lleva data-densidad="escritorio" y adentro las mismas utilidades toman la escala compacta; Mi OE y el
+   modo de campo se quedan con la de ADR-158. La etiqueta corta mide 12/16 en las dos áreas. */
 [data-densidad="escritorio"] {
-  --text-pantalla: 1.5rem;
-  --text-pantalla--line-height: 1.875rem;
+  --text-pantalla: 1.625rem;
+  --text-pantalla--line-height: 2rem;
   --text-seccion: 1.125rem;
   --text-seccion--line-height: 1.5rem;
   --text-cuerpo: 0.875rem;
   --text-cuerpo--line-height: 1.25rem;
   --text-secundario: 0.8125rem;
   --text-secundario--line-height: 1.125rem;
-  --text-etiqueta: 0.6875rem;
-  --text-etiqueta--line-height: 1rem;
+  --radius-control: 0.625rem;
+  --radius-tarjeta: 1rem;
+  --sobrio-medio-1: var(--sobrio-medio-1-escritorio);
+  --sobrio-medio-2: var(--sobrio-medio-2-escritorio);
+  --sobrio-angulo: 155deg;
+  --sobrio-pos-1: 34%;
+  --sobrio-pos-2: 68%;
   font-size: var(--text-cuerpo);
   line-height: var(--text-cuerpo--line-height);
 }

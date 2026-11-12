@@ -257,6 +257,7 @@ Una flecha dentro de un rango o de una oración (`apertura → cierre`) y el ata
 | Inicio · Agenda · Carnet · GH Points · Juegos | `HomeIcon` · `CalendarEventIcon` · `IdIcon` · `StarIcon` · `DeviceGamepad2Icon`, cada uno con su par relleno para la pestaña activa |
 | Abrir el menú | `Menu2Icon` |
 | Desplegar un menú de cuenta | `ChevronDownIcon` |
+| Separar los pasos de la ruta en la cabecera de una pantalla | `ChevronRightIcon` |
 | Abrir o cerrar un grupo de navegación; desplegar una actividad | `PlusIcon` · `MinusIcon` |
 | Lleva a otra pantalla | `ArrowUpRightIcon` |
 | Ver el detalle | `ArrowRightIcon` |
@@ -325,17 +326,20 @@ Para sumar un icono: buscarlo en [tabler.io/icons](https://tabler.io/icons), cre
 
 **Contraste y tamaño.** Todo texto cumple AA: 4,5:1, o 3:1 desde 24 px. En Mi OE las zonas táctiles miden al menos 44 px.
 
-**Densidades** ([ADR-161](adr/ADR-161-densidad-de-escritorio-en-la-operacion.md)). La escala de arriba es la de Mi OE. La Operación es de escritorio y usa una más compacta, que su marco activa con `data-densidad="escritorio"`; adentro, las mismas utilidades toman estas medidas.
+**Densidades** ([ADR-161](adr/ADR-161-densidad-de-escritorio-en-la-operacion.md)). La escala de arriba es la de Mi OE. La Operación es de escritorio y usa una más compacta, que su marco activa con `data-densidad="escritorio"`; adentro, las mismas utilidades toman estas medidas. La tabla lleva ya el título, la etiqueta y las esquinas de ADR-163.
 
 | Uso | Mi OE | La Operación |
 | --- | --- | --- |
-| Título de pantalla | 28/34 | 24/30 |
+| Título de pantalla | 28/34 | 26/32 |
 | Nombre en una ficha (`titulo-ficha`) | 28/34 | 28/34 |
 | Sección | 20/26 | 18/24 |
+| Título de tarjeta (`titulo-tarjeta`) | 16/22 | 16/22 |
+| Cifra de un resumen (`cifra-resumen`) | 30/36 | 30/36 |
 | Cuerpo | 16/24 | 14/20 |
 | Secundario y celdas de tabla | 14/20 | 13/18 |
-| Etiqueta corta | 12/16 | 11/16 |
-| Botón · botón compacto | 44 px, redondo | 40 px · 32 px, esquinas de 10 px |
+| Etiqueta corta | 12/16 | 12/16 |
+| Botón · botón compacto | 44 px, esquinas de 14 px | 40 px · 32 px, esquinas de 10 px |
+| Tarjeta | Esquinas de 20 px | Esquinas de 16 px |
 
 **Aspecto sobrio** ([ADR-163](adr/ADR-163-aspecto-sobrio-de-la-capa-funcional.md)). La capa funcional baja de volumen en la Operación, en Mi OE y en el modo de campo. La capa de marca y el portal no cambian.
 
@@ -353,7 +357,7 @@ Para sumar un icono: buscarlo en [tabler.io/icons](https://tabler.io/icons), cre
 | Esquinas | 10 px; botones de Mi OE redondos | Controles de 10 px en la Operación y de 14 px en Mi OE; tarjetas de 16 y 20 px |
 | Barra inferior de Mi OE | Pegada al borde | Flota, con una pastilla en el destino activo |
 
-Los neutros que suma son el relleno de control `#F2F4F7`, la línea tenue `#EEF0F3`, el fondo de panel `#FAFBFC` y el texto secundario `#4F5968` sobre el degradado. Los degradados no van en botones ni en texto. En los momentos de marca, como la pantalla de asistencia registrada, el naranja, el amarillo y la condensada siguen sonando fuerte. Estas reglas todavía no están en `tokens.css`: entran en su propio tramo, y hasta entonces las tablas de arriba describen el código.
+Los neutros que suma son el relleno de control `#F2F4F7`, la línea tenue `#EEF0F3`, el fondo de panel `#FAFBFC` y el texto secundario `#4F5968` sobre el degradado. Los degradados no van en botones ni en texto. En los momentos de marca, como la pantalla de asistencia registrada, el naranja, el amarillo y la condensada siguen sonando fuerte. Estas reglas ya están en `tokens.css` y en los componentes base, desde el tramo R6-A2.
 
 El tema oscuro del aspecto sobrio se deriva del navy y no usa sombras: una superficie se separa del fondo con la línea `#24456A`. Todo par de texto y fondo cumple AA.
 
@@ -379,6 +383,13 @@ El tema oscuro del aspecto sobrio se deriva del navy y no usa sombras: una super
 | Éxito | `#1E6B45` sobre `#E7F4EC` | `#9FE0BA` sobre `#0F3A2C` |
 | Principal en la Operación | Navy con texto `--oe-paper` | `--oe-blue` con texto navy |
 
-**Dónde vive.** Los tokens están en `src/shared/brand/tokens.css` (`bg-superficie`, `border-linea`, `text-tinta-secundaria`, `bg-error-fondo`…), con las utilidades `titulo-pantalla`, `titulo-seccion`, `titulo-ficha` y `etiqueta-corta`. Los componentes base están en `src/shared/ui`: `Button` (y `buttonClass` para un enlace), `Banner`, `Badge`, `Surface` y `ScreenHeader`. `tests/unit/functional-layer-contrast.test.ts` lee los tokens y comprueba AA en los dos temas. El muestrario de `/marca`, que solo existe en desarrollo, los muestra vivos.
+**Dónde vive.**
+- **Tokens:** en `src/shared/brand/tokens.css`. Los de ADR-158 son `bg-superficie`, `border-linea`, `text-tinta-secundaria`, `bg-error-fondo` y los demás estados. Los de ADR-163 son `bg-relleno`, `border-linea-tenue`, `bg-panel`, `text-tinta-sobre-fondo`, `bg-accion`, `bg-accion-asistencia` y `bg-activo`.
+- **Utilidades de texto:** `titulo-pantalla`, `titulo-seccion`, `titulo-ficha`, `titulo-tarjeta`, `cifra-resumen` y `etiqueta-corta`.
+- **Utilidades de superficie:** `fondo-sobrio` para el degradado, `sombra-flota` y `sombra-control` para lo que flota, y `superficie-flotante` para las barras de acción y los avisos.
+- **Esquinas:** `rounded-control`, `rounded-tarjeta`, `rounded-marco` y `rounded-barra`. Las dos primeras cambian dentro de `data-densidad="escritorio"`.
+- **Componentes base:** en `src/shared/ui`. Son `Button` (y `buttonClass` para un enlace), `Chip` (y `chipClass`) para los filtros, `Banner`, `Badge`, `Surface`, con sus variantes `flota` y `plana`, y `ScreenHeader`, que en la Operación abre con la ruta.
+- **Pruebas:** `tests/unit/functional-layer-contrast.test.ts` lee los tokens y comprueba AA en los dos temas, las dos densidades, las esquinas y los pesos.
+- **Muestrario:** `/marca`, que solo existe en desarrollo, los muestra vivos en las dos áreas.
 
 **Transición.** Una pantalla pasa a la capa funcional cuando se rediseña, por olas del roadmap, y hasta entonces sigue las reglas anteriores, incluidas la extensión administrativa y la enmienda del portal y Mi OE. Los tokens nuevos entran a `src/shared/brand/tokens.css` con los componentes base del tramo R6, y la página `/marca` documenta las dos capas. La revisión de Comunicaciones sigue anotada en [11-contenido-pendiente](11-contenido-pendiente.md).

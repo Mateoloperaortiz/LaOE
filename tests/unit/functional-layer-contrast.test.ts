@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-// ADR-158, consecuencias: los contrastes de la capa funcional se comprueban con una prueba. Lee los
-// valores de tokens.css, no una copia, así que un color que cambie y baje de AA pone esto en rojo.
+// ADR-158 y ADR-163, consecuencias: los contrastes de la capa funcional se comprueban con una prueba.
+// Lee los valores de tokens.css, no una copia, así que un color que cambie y baje de AA pone esto en rojo.
 
 const css = readFileSync("src/shared/brand/tokens.css", "utf8");
 
@@ -25,6 +25,10 @@ function declarations(body: string): Map<string, string> {
     out.set(match[1] as string, (match[2] as string).trim());
   }
   return out;
+}
+
+function property(body: string, name: string): string | undefined {
+  return new RegExp(`(?:^|[\\s;{])${name}:\\s*([^;]+);`).exec(body)?.[1]?.trim();
 }
 
 const palette = declarations(block("@theme {"));
@@ -54,7 +58,17 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-// Cada texto de la capa funcional con el fondo sobre el que va (Banner, Badge, Button, Surface).
+// Los tonos del degradado del fondo: los dos extremos y los del medio, en las dos áreas (ADR-163 regla 2).
+const GRADIENT = [
+  "sobrio-desde",
+  "sobrio-medio-1",
+  "sobrio-medio-2",
+  "sobrio-hasta",
+  "sobrio-medio-1-escritorio",
+  "sobrio-medio-2-escritorio",
+];
+
+// Cada texto de la capa funcional con el fondo sobre el que va (Banner, Badge, Button, Chip, Surface).
 const PAIRS: Array<[texto: string, fondo: string]> = [
   ["tinta", "superficie"],
   ["titulo", "superficie"],
@@ -67,11 +81,30 @@ const PAIRS: Array<[texto: string, fondo: string]> = [
   ["exito", "exito-fondo"],
   ["estado-tinta", "aviso-fondo"],
   ["estado-tinta", "info-fondo"],
-  ["accion-mi-oe-tinta", "accion-mi-oe"],
-  ["accion-operacion-tinta", "accion-operacion"],
+  // Aspecto sobrio (ADR-163): relleno de control, fondo de panel, acción, lo elegido y lo que flota.
+  ["tinta", "relleno"],
+  ["titulo", "relleno"],
+  ["tinta-secundaria", "relleno"],
+  ["tinta", "panel"],
+  ["titulo", "panel"],
+  ["tinta-secundaria", "panel"],
+  ["accion-tinta", "accion"],
+  ["accion-asistencia-tinta", "accion-asistencia"],
+  ["activo-tinta", "activo"],
+  ["flota-tinta", "flota-desde"],
+  ["flota-tinta", "flota-hasta"],
+  // El texto sobre el degradado cumple AA en cada uno de sus tonos (regla 8).
+  ...GRADIENT.flatMap(
+    (stop): Array<[string, string]> => [
+      ["tinta-sobre-fondo", stop],
+      ["titulo", stop],
+      ["tinta", stop],
+      ["enlace", stop],
+    ],
+  ),
 ];
 
-describe("contraste de la capa funcional (ADR-158 regla 8)", () => {
+describe("contraste de la capa funcional (ADR-158 regla 8 y ADR-163 regla 11)", () => {
   it.each([
     ["claro", light],
     ["oscuro", darkChosen],
@@ -99,6 +132,60 @@ describe("contraste de la capa funcional (ADR-158 regla 8)", () => {
     ]);
   });
 
+  it("los neutros, la acción y el fondo llevan los valores de ADR-163 en los dos temas", () => {
+    const names = [
+      "relleno",
+      "linea-tenue",
+      "panel",
+      "tinta-sobre-fondo",
+      "accion",
+      "accion-tinta",
+      "accion-asistencia",
+      "activo",
+      "flota-desde",
+      "flota-hasta",
+      "sobrio-desde",
+      "sobrio-hasta",
+    ];
+    expect(names.map((name) => resolve(light, name))).toEqual([
+      "#f2f4f7",
+      "#eef0f3",
+      "#fafbfc",
+      "#4f5968",
+      "#001f3e",
+      "#f6f6f6",
+      "#ff881b",
+      "#e6edf8",
+      "#0b3158",
+      "#001f3e",
+      "#dce6f4",
+      "#f5f2ea",
+    ]);
+    expect(names.map((name) => resolve(darkChosen, name))).toEqual([
+      "#16365a",
+      "#1a3a5e",
+      "#07264a",
+      "#b4c1d2",
+      "#94b6f0",
+      "#001f3e",
+      "#ff881b",
+      "#16365a",
+      "#1d4270",
+      "#16365a",
+      "#03203e",
+      "#00152b",
+    ]);
+  });
+
+  it("en claro las superficies flotan con sombra y en oscuro llevan una línea", () => {
+    expect(light.get("superficie-borde")).toBe("transparent");
+    expect(light.get("sombra-flota")).toContain("rgb(0 31 62");
+    expect(darkChosen.get("superficie-borde")).toBe("#24456a");
+    expect(darkChosen.get("sombra-flota")).toBe("none");
+    expect(darkChosen.get("sombra-control")).toBe("none");
+    expect(darkChosen.get("flota-linea")).toBe("#3b5e86");
+  });
+
   it("la preferencia del sistema y el tema elegido dan el mismo oscuro", () => {
     const names = [...darkChosen.keys()].filter((name) => name !== "grano");
     for (const name of names) {
@@ -107,14 +194,15 @@ describe("contraste de la capa funcional (ADR-158 regla 8)", () => {
   });
 });
 
-describe("densidad de escritorio de la Operación (ADR-161)", () => {
+describe("densidad de escritorio de la Operación (ADR-161 y ADR-163)", () => {
   const desk = declarations(block('[data-densidad="escritorio"] {'));
   const base = declarations(block("@theme {"));
   const px = (rem: string | undefined) => Number.parseFloat(rem ?? "0") * 16;
+  const SCALE = ["pantalla", "seccion", "cuerpo", "secundario", "etiqueta"];
 
   it("Mi OE conserva la escala de ADR-158", () => {
     expect(
-      ["pantalla", "seccion", "cuerpo", "secundario", "etiqueta"].map((name) => [
+      SCALE.map((name) => [
         px(base.get(`text-${name}`)),
         px(base.get(`text-${name}--line-height`)),
       ]),
@@ -127,22 +215,84 @@ describe("densidad de escritorio de la Operación (ADR-161)", () => {
     ]);
   });
 
-  it("la Operación usa 24/30, 18/24, 14/20, 13/18 y 11/16", () => {
+  it("la Operación usa 26/32, 18/24, 14/20 y 13/18, y la etiqueta mide 12/16 en las dos áreas", () => {
     expect(
-      ["pantalla", "seccion", "cuerpo", "secundario", "etiqueta"].map((name) => [
-        px(desk.get(`text-${name}`)),
-        px(desk.get(`text-${name}--line-height`)),
+      SCALE.map((name) => [
+        px(desk.get(`text-${name}`) ?? base.get(`text-${name}`)),
+        px(desk.get(`text-${name}--line-height`) ?? base.get(`text-${name}--line-height`)),
       ]),
     ).toEqual([
-      [24, 30],
+      [26, 32],
       [18, 24],
       [14, 20],
       [13, 18],
-      [11, 16],
+      [12, 16],
     ]);
   });
 
-  it("las superficies tienen esquinas de 10 px", () => {
-    expect(px(base.get("radius-superficie"))).toBe(10);
+  it("el título de tarjeta mide 16/22 y la cifra 30/36", () => {
+    expect([px(base.get("text-tarjeta")), px(base.get("text-tarjeta--line-height"))]).toEqual([
+      16, 22,
+    ]);
+    expect([px(base.get("text-cifra")), px(base.get("text-cifra--line-height"))]).toEqual([30, 36]);
+  });
+
+  it("las esquinas miden 14 y 20 px en Mi OE, y 10 y 16 px en la Operación", () => {
+    expect([px(base.get("radius-control")), px(base.get("radius-tarjeta"))]).toEqual([14, 20]);
+    expect([px(desk.get("radius-control")), px(desk.get("radius-tarjeta"))]).toEqual([10, 16]);
+    expect([px(base.get("radius-marco")), px(base.get("radius-barra"))]).toEqual([20, 24]);
+  });
+
+  it("el fondo va a 170° en Mi OE y a 155° en la Operación, con sus tonos del medio", () => {
+    expect([
+      light.get("sobrio-angulo"),
+      light.get("sobrio-pos-1"),
+      light.get("sobrio-pos-2"),
+    ]).toEqual(["170deg", "30%", "62%"]);
+    expect([desk.get("sobrio-angulo"), desk.get("sobrio-pos-1"), desk.get("sobrio-pos-2")]).toEqual(
+      ["155deg", "34%", "68%"],
+    );
+    expect([desk.get("sobrio-medio-1"), desk.get("sobrio-medio-2")]).toEqual([
+      "var(--sobrio-medio-1-escritorio)",
+      "var(--sobrio-medio-2-escritorio)",
+    ]);
+    expect(
+      [
+        "sobrio-medio-1",
+        "sobrio-medio-2",
+        "sobrio-medio-1-escritorio",
+        "sobrio-medio-2-escritorio",
+      ].map((name) => resolve(light, name)),
+    ).toEqual(["#edf1f6", "#f6f6f6", "#e9eef5", "#f4f4f3"]);
+  });
+});
+
+describe("tipografía del aspecto sobrio (ADR-163 regla 3)", () => {
+  const utility = (name: string) => block(`@utility ${name} {`);
+
+  it("ningún título ni cifra pasa de peso 600", () => {
+    const names = [
+      "titulo-pantalla",
+      "titulo-seccion",
+      "titulo-ficha",
+      "titulo-tarjeta",
+      "cifra-resumen",
+    ];
+    expect(names.map((name) => property(utility(name), "font-weight"))).toEqual(
+      names.map(() => "600"),
+    );
+  });
+
+  it("la etiqueta corta va en peso 500, en tipo oración y sin espaciado", () => {
+    const body = utility("etiqueta-corta");
+    expect(property(body, "font-weight")).toBe("500");
+    expect(property(body, "text-transform")).toBe("none");
+    expect(property(body, "letter-spacing")).toBe("normal");
+  });
+
+  it("los títulos y las cifras van en la familia de contenido, no en la condensada", () => {
+    for (const name of ["titulo-pantalla", "titulo-ficha", "cifra-resumen"]) {
+      expect(property(utility(name), "font-family")).toBe("var(--font-sans)");
+    }
   });
 });
