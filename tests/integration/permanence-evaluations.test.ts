@@ -4,7 +4,12 @@ import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { listCommitteeAnnouncements, listMemberAnnouncements } from "@/modules/content";
 import { announcement } from "@/modules/content/schema";
-import { grantRecognitionAs, listInteractions, listRecognitionsByPeople } from "@/modules/crm";
+import {
+  getOnboarding,
+  grantRecognitionAs,
+  listInteractions,
+  listRecognitionsByPeople,
+} from "@/modules/crm";
 import { onboardingProgress } from "@/modules/crm/schema";
 import {
   countPendingFor,
@@ -110,10 +115,13 @@ describe("evaluaciones", () => {
     expect(summaries[0]).toMatch(itemPattern(fillCopy(tList("T-832")[0], { grupo: "GAP Días" })));
   });
 
-  it("una tarea de nuevos con buen desempeño marca el paso de decoración del onboarding", async () => {
+  it("el grupo con el código histórico DECORACION marca el paso de decoración", async () => {
     const termId = await seedTerm();
     const newcomer = await seedMember("n@eafit.edu.co");
-    const groupId = await seedWorkGroup(termId, "Decoración", { kind: "NEW_MEMBER_TASK" });
+    const groupId = await seedWorkGroup(termId, "Decoración", {
+      kind: "NEW_MEMBER_TASK",
+      code: "DECORACION",
+    });
     await seedWorkGroupMembership(groupId, newcomer);
     await evaluateAs(
       { personId: null, ip: null },
@@ -139,6 +147,62 @@ describe("evaluaciones", () => {
         .from(auditLog)
         .where(eq(auditLog.action, "onboarding.step-done")),
     ).toEqual([{ actorId: newcomer, ip: null }]);
+  });
+
+  it("acredita 5 en el grupo de integración existente y reserva el paso para el grupo de decoración", async () => {
+    const termId = await seedTerm();
+    const newcomer = await seedMember("n@eafit.edu.co");
+    const committeeId = await seedCommittee("a3");
+    await seedCommitteeMembership(newcomer, committeeId, termId);
+    const integration = await seedWorkGroup(termId, "Integración de nuevos", {
+      kind: "NEW_MEMBER_TASK",
+      code: "INT-NUEVOS",
+    });
+    const decoration = await seedWorkGroup(termId, "Decoración de oficina", {
+      kind: "NEW_MEMBER_TASK",
+      code: "OFICINA",
+    });
+    await seedWorkGroupMembership(integration, newcomer);
+    await seedWorkGroupMembership(decoration, newcomer);
+    await seedRule(termId, "integracion-de-nuevos", {
+      appliesTo: "NEW",
+      weight: 5,
+      computation: "GROUP_EVALUATED",
+      params: { groupKind: "NEW_MEMBER_TASK", code: "INT-NUEVOS", mode: "FIXED" },
+    });
+    await seedRule(termId, "decoracion-de-oficina", {
+      appliesTo: "NEW",
+      weight: 10,
+      computation: "GROUP_EVALUATED",
+      params: { groupKind: "NEW_MEMBER_TASK", code: "OFICINA", mode: "FIXED" },
+    });
+
+    await evaluateAs(
+      SYSTEM_ACTOR,
+      { groupId: integration, personId: newcomer, evaluation: "GOOD", note: "" },
+      { isAdmin: true },
+    );
+    await drainOutbox();
+    const view = await getPersonPermanence(newcomer, termId);
+    expect(view?.result.general).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: "integracion-de-nuevos", achieved: 5 }),
+        expect.objectContaining({ key: "decoracion-de-oficina", achieved: 0 }),
+      ]),
+    );
+    expect(await getOnboarding(newcomer, termId)).toContainEqual(
+      expect.objectContaining({ key: "decoracion", doneAt: null }),
+    );
+
+    await evaluateAs(
+      SYSTEM_ACTOR,
+      { groupId: decoration, personId: newcomer, evaluation: "GOOD", note: "" },
+      { isAdmin: true },
+    );
+    await drainOutbox();
+    expect(await getOnboarding(newcomer, termId)).toContainEqual(
+      expect.objectContaining({ key: "decoracion", doneAt: expect.any(Date) }),
+    );
   });
 });
 

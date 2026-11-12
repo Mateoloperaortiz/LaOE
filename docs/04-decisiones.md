@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [162](adr/ADR-162-grupo-de-decoracion-en-mi-oe.md) | Grupo de decoración en Mi OE | El buen desempeño completa el paso de Decoración solo para el grupo con el código de su criterio general o el código histórico `DECORACION` cuando la regla carece de código | Aceptada |
 | [161](adr/ADR-161-densidad-de-escritorio-en-la-operacion.md) | Densidad de escritorio | La Operación usa una escala más compacta que Mi OE: título 24/30, cuerpo 14/20, celdas 13/18, etiqueta 11/16, botones de 40 y 32 px y esquinas de 10 px; se aplica con `data-densidad="escritorio"` en su marco | Aceptada |
 | [160](adr/ADR-160-la-navegacion-de-mi-oe.md) | Navegación de Mi OE | Barra Hoy · Agenda · Asistencia · Juegos · Yo; «Hoy» por urgencia con «Te toca» de todos los módulos; asistencia en el botón central; centro de avisos con ADR propia | Aceptada |
 | [159](adr/ADR-159-la-operacion-es-de-escritorio.md) | Operación de escritorio | Administración pasa a «Operación», con 1280 px de referencia: Mesa, Panorama, Calendario, espacios por trabajo, tabla con vistas y lote, vista dividida, atajos y modo de campo en el celular | Aceptada |
