@@ -13,11 +13,12 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-163](ADR-163-aspecto-sobrio-de-la-capa-funcional.md) | Aspecto sobrio de la capa funcional | Aceptada |
 | [ADR-162](ADR-162-grupo-de-decoracion-en-mi-oe.md) | Grupo de decoración en Mi OE | Aceptada |
-| [ADR-161](ADR-161-densidad-de-escritorio-en-la-operacion.md) | Densidad de escritorio en la Operación | Aceptada |
+| [ADR-161](ADR-161-densidad-de-escritorio-en-la-operacion.md) | Densidad de escritorio en la Operación | Aceptada (enmendada por ADR-163) |
 | [ADR-160](ADR-160-la-navegacion-de-mi-oe.md) | La navegación de Mi OE: Hoy, Agenda, Asistencia, Juegos y Yo | Aceptada |
 | [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) | La Operación es de escritorio | Aceptada |
-| [ADR-158](ADR-158-la-marca-en-dos-capas.md) | La marca en dos capas | Aceptada |
+| [ADR-158](ADR-158-la-marca-en-dos-capas.md) | La marca en dos capas | Aceptada (enmendada por ADR-161 y ADR-163) |
 | [ADR-157](ADR-157-normativa-actualizada-2026.md) | Normativa actualizada desde 2026-2 | Aceptada; en verificación |
 | [ADR-156](ADR-156-disponibilidad-privada-de-grupos.md) | Disponibilidad privada de grupos | Aceptada; implementada y verificada localmente |
 | [ADR-155](ADR-155-conservar-la-posicion-al-cambiar-la-vista.md) | Conservar la posición al cambiar la vista | Aceptada; publicada |

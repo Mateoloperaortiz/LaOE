@@ -1,6 +1,6 @@
 # ADR-161: Densidad de escritorio en la Operación
 
-- Estado: Aceptada el 2026-11-09
+- Estado: Aceptada el 2026-11-09 (enmendada por ADR-163)
 - Fecha: 2026-11-09
 - Enmienda: [ADR-158](ADR-158-la-marca-en-dos-capas.md) regla 2 (la escala de la capa funcional), solo en la Operación
 - Relacionadas: ADR-043, ADR-158, ADR-159, ADR-160
@@ -44,3 +44,11 @@ El primer tramo de código (R6-A) aplicó la escala de ADR-158 en todas partes, 
 - **Contraste.** Los colores no cambian, así que la prueba de contraste de la capa funcional sigue valiendo. A 11 y 13 px no rige la excepción de 3:1, y todos los pares ya pasan 4,5:1.
 - **Pruebas.** Una prueba lee `tokens.css` y comprueba los valores de las dos densidades.
 - **07-marca** suma la tabla de densidades a su sección «Dos capas», y ADR-158 cierra con su sección «Enmienda».
+
+## Enmienda (2026-11-12, ADR-163)
+
+Dos reglas cambian ([ADR-163](ADR-163-aspecto-sobrio-de-la-capa-funcional.md)):
+- **Regla 1:** el título de pantalla de la Operación pasa a 26/32, la etiqueta corta pasa a 12/16 en tipo oración en las dos áreas, y ningún peso supera 600.
+- **Regla 4:** las esquinas miden 10 px en los controles de la Operación y 14 px en los botones de Mi OE, que dejan de ser redondos. Las tarjetas miden 16 px en la Operación y 20 px en Mi OE.
+
+Las demás medidas siguen: sección 18/24, cuerpo 14/20, secundario y celdas 13/18, y botones y filas de 40 y 32 px en la Operación.

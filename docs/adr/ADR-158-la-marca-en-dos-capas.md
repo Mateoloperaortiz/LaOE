@@ -1,6 +1,6 @@
 # ADR-158: La marca en dos capas
 
-- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1 (enmendada por ADR-161)
+- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1 (enmendada por ADR-161 y ADR-163)
 - Fecha: 2026-11-06
 - Enmienda: [07-marca](../07-marca.md) §3, §4 y §9; [ADR-043](ADR-043-experiencia-administrativa.md) regla 2; [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) regla 1
 - Relacionadas: ADR-043, ADR-044, ADR-076, ADR-081, ADR-085, ADR-086, ADR-138, ADR-159, ADR-160
@@ -98,3 +98,11 @@ El 2026-11-06 Mateo pidió que la casa sea una app usable, aunque eso cambie un 
 ## Enmienda (2026-11-09, ADR-161)
 
 La regla 2 queda como la escala de Mi OE. La Operación tiene su propia densidad de escritorio, más compacta: título de pantalla 24/30, sección 18/24, cuerpo 14/20, secundario y celdas 13/18 y etiqueta corta 11/16, con botones de 40 y 32 px y esquinas de 10 px ([ADR-161](ADR-161-densidad-de-escritorio-en-la-operacion.md)).
+
+## Enmienda (2026-11-12, ADR-163)
+
+En toda la capa funcional; la capa de marca y el portal no cambian ([ADR-163](ADR-163-aspecto-sobrio-de-la-capa-funcional.md)):
+- **Regla 1:** las cifras que van dentro de una pantalla de trabajo usan Plus Jakarta Sans. El numeral condensado queda para los momentos de marca.
+- **Regla 2:** el peso máximo es 600, y la etiqueta corta va en tipo oración, sin mayúsculas ni espaciado.
+- **Regla 3:** se suman tres neutros (relleno de control `#F2F4F7`, línea tenue `#EEF0F3` y fondo de panel `#FAFBFC`) y el texto secundario `#4F5968` sobre el degradado del fondo.
+- **Regla 5:** la acción principal es navy en las dos áreas, y el naranja queda para el botón de Asistencia de la barra de Mi OE. El botón secundario lleva relleno de control y no lleva borde.
