@@ -20,6 +20,8 @@ import { textos } from "@/shared/copy/textos.generated";
 import { Badge } from "@/shared/ui/Badge";
 import { Banner } from "@/shared/ui/Banner";
 import { Button } from "@/shared/ui/Button";
+import { Chip } from "@/shared/ui/Chip";
+import { IdIcon } from "@/shared/ui/icons/IdIcon";
 import { ScreenHeader } from "@/shared/ui/ScreenHeader";
 import { Surface } from "@/shared/ui/Surface";
 
@@ -51,12 +53,16 @@ const COLORES = [
   ["oe-ink", "bg-oe-ink"],
 ] as const;
 const COMITES = ["a3", "pixel", "cigma", "gemis", "eco", "vision"];
-// Capa funcional (ADR-158): neutros nuevos y estados, cada uno con su texto encima.
+// Capa funcional (ADR-158 y ADR-163): los neutros de las dos, cada uno con su nombre debajo.
 const NEUTROS = [
   ["superficie", "bg-superficie"],
+  ["relleno", "bg-relleno"],
+  ["panel", "bg-panel"],
+  ["linea-tenue", "bg-linea-tenue"],
   ["linea", "bg-linea"],
   ["linea-fuerte", "bg-linea-fuerte"],
   ["tinta-secundaria", "bg-tinta-secundaria"],
+  ["tinta-sobre-fondo", "bg-tinta-sobre-fondo"],
 ] as const;
 // Filas ficticias de una tabla de la Operación en densidad de escritorio (ADR-161).
 const PERSONAS_DEMO = [
@@ -65,11 +71,12 @@ const PERSONAS_DEMO = [
   ["Juliana Zapata Arango", "GEMIS", "En licencia", "info"],
 ] as const;
 const ESCALA = [
-  ["Título de pantalla · 28/34 · 800", "titulo-pantalla"],
-  ["Sección · 20/26 · 800", "titulo-seccion"],
+  ["Título de pantalla · 28/34 · 600", "titulo-pantalla"],
+  ["Sección · 20/26 · 600", "titulo-seccion"],
+  ["Título de tarjeta · 16/22 · 600", "titulo-tarjeta"],
   ["Cuerpo · 16/24 · 400", "text-cuerpo"],
   ["Secundario · 14/20 · 500", "text-secundario font-medium text-tinta-secundaria"],
-  ["Etiqueta corta · 12/16 · 700", "etiqueta-corta"],
+  ["Etiqueta corta · 12/16 · 500 · tipo oración", "etiqueta-corta text-tinta-secundaria"],
 ] as const;
 
 // Muestrario de la línea gráfica para revisar cada pieza contra docs/07-marca.md. Solo en desarrollo.
@@ -206,9 +213,10 @@ export default function MarcaPage() {
           Dos capas · funcional
         </BarraTitulo>
         <p className="max-w-prose">
-          ADR-158: las pantallas de trabajo van en la capa funcional, en Plus Jakarta Sans y tipo
-          oración, sin grano. La condensada, los carteles y el grano quedan para los momentos de
-          marca, como los de arriba.
+          ADR-158 y ADR-163: las pantallas de trabajo van en la capa funcional, que es sobria. El
+          fondo lleva un degradado suave, las superficies no llevan borde y todo va en Plus Jakarta
+          Sans, en tipo oración y con peso 600 como máximo. La condensada, los carteles y el grano
+          quedan para los momentos de marca, como los de arriba.
         </p>
         <div className="flex flex-col gap-3">
           {ESCALA.map(([texto, clase]) => (
@@ -216,6 +224,12 @@ export default function MarcaPage() {
               {texto}
             </p>
           ))}
+          <p className="flex items-baseline gap-3">
+            <span className="cifra-resumen">128</span>
+            <span className="text-secundario text-tinta-secundaria">
+              Cifra de un resumen · 30/36 · 600
+            </span>
+          </p>
         </div>
         <ul className="grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4">
           {NEUTROS.map(([nombre, clase]) => (
@@ -245,58 +259,103 @@ export default function MarcaPage() {
           <Badge tone="error">Rechazada</Badge>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
-          <Surface as="section" className="flex flex-col gap-4 p-5">
-            <p className="etiqueta-corta text-tinta-secundaria">Mi OE</p>
-            <ScreenHeader
-              title="Tu permanencia"
-              description="2026-2 · GEMIS"
-              actions={<Button>Registrar asistencia</Button>}
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secundaria">Ver detalle</Button>
-              <Button variant="enlace">Cómo se calcula</Button>
-            </div>
-          </Surface>
-          <div data-densidad="escritorio">
+          <div className="fondo-sobrio flex flex-col gap-4 rounded-marco p-4">
+            <p className="etiqueta-corta text-tinta-sobre-fondo">Mi OE · sobre el fondo</p>
             <Surface as="section" className="flex flex-col gap-4 p-5">
-              <p className="etiqueta-corta text-tinta-secundaria">Operación · escritorio</p>
               <ScreenHeader
-                title="Personas"
-                description="124 activas en 2026-2"
+                title="Tu permanencia"
+                description="2026-2 · GEMIS"
+                actions={<Button>Registrar asistencia</Button>}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secundaria">Ver detalle</Button>
+                <Button variant="enlace">Cómo se calcula</Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Chip selected>Todo</Chip>
+                <Chip>Reuniones</Chip>
+                <Chip>Retos</Chip>
+              </div>
+            </Surface>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accion-asistencia text-accion-asistencia-tinta sombra-control">
+                <IdIcon size={24} />
+              </span>
+              <span className="text-secundario text-tinta-sobre-fondo">
+                Botón de Asistencia: el único naranja de los controles
+              </span>
+              <span className="rounded-full bg-activo px-4 py-1 text-secundario font-semibold text-activo-tinta">
+                Destino activo
+              </span>
+            </div>
+          </div>
+          <div
+            data-densidad="escritorio"
+            className="fondo-sobrio flex flex-col gap-3 rounded-marco p-3"
+          >
+            <p className="etiqueta-corta px-2 text-tinta-sobre-fondo">Operación · escritorio</p>
+            <section className="flex flex-col gap-4 rounded-marco border border-superficie-borde bg-superficie p-5 text-tinta sombra-flota">
+              <ScreenHeader
+                trail={[{ label: "Operación" }, { label: "Personas" }]}
+                trailLabel="Ruta"
+                title="Miembros · 2026-2"
+                description="124 personas en esta vista"
                 actions={
                   <>
-                    <Button area="operacion" variant="secundaria">
+                    <Button area="operacion" variant="secundaria" size="compacto">
                       Exportar
                     </Button>
-                    <Button area="operacion">Importar roster</Button>
+                    <Button area="operacion" size="compacto">
+                      Importar roster
+                    </Button>
                   </>
                 }
               />
               <div className="flex flex-wrap gap-2">
-                <Button area="operacion" variant="secundaria" size="compacto">
-                  Comité: GEMIS
+                <Chip area="operacion" selected>
+                  Todas
+                </Chip>
+                <Chip area="operacion">Nuevos sin activar</Chip>
+                <Chip area="operacion">En riesgo</Chip>
+                <Button area="operacion" variant="secundaria">
+                  Columnas
                 </Button>
-                <Button area="operacion" variant="secundaria" size="compacto">
-                  Estado: activas
-                </Button>
-                <Button area="operacion" size="compacto" disabled>
+                <Button area="operacion" disabled>
                   Activar seleccionadas
                 </Button>
               </div>
-              <ul className="list-none divide-y divide-linea rounded-superficie border border-linea p-0">
-                {PERSONAS_DEMO.map(([nombre, comite, estado, tono]) => (
-                  <li key={nombre} className="flex h-10 items-center gap-3 px-3">
-                    <span className="flex-1 truncate font-semibold">{nombre}</span>
-                    <span className="text-secundario text-tinta-secundaria">{comite}</span>
-                    <Badge tone={tono}>{estado}</Badge>
-                  </li>
-                ))}
-              </ul>
+              <Surface variant="plana" className="overflow-hidden">
+                <ul className="list-none divide-y divide-linea-tenue p-0">
+                  {PERSONAS_DEMO.map(([nombre, comite, estado, tono]) => (
+                    <li key={nombre} className="flex h-10 items-center gap-3 px-3">
+                      <span className="flex-1 truncate font-semibold">{nombre}</span>
+                      <span className="text-secundario text-tinta-secundaria">{comite}</span>
+                      <Badge tone={tono}>{estado}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              </Surface>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Surface variant="plana" className="flex flex-col gap-1 p-4">
+                  <span className="cifra-resumen">128</span>
+                  <span className="text-secundario text-tinta-secundaria">GH Points en 2026-2</span>
+                </Surface>
+                <Surface variant="plana" className="flex flex-col gap-1 bg-panel p-4">
+                  <p className="titulo-tarjeta">Línea de tiempo</p>
+                  <p className="text-secundario text-tinta-secundaria">
+                    Título de tarjeta · 16/22, sobre el fondo de panel
+                  </p>
+                </Surface>
+              </div>
               <p className="titulo-ficha">Valeria Ochoa Restrepo</p>
               <p className="text-secundario text-tinta-secundaria">
                 Nombre en una ficha · 28/34 en las dos densidades
               </p>
-            </Surface>
+            </section>
+            <div className="superficie-flotante flex flex-wrap items-center gap-2 rounded-tarjeta px-4 py-3">
+              <span className="font-semibold">2 seleccionadas</span>
+              <span className="text-secundario">· superficie que flota, para barras de acción</span>
+            </div>
           </div>
         </div>
       </section>
