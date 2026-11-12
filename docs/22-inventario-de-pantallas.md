@@ -5,7 +5,7 @@ Tramo de la ola 0 del rediseño ([ADR-158](adr/ADR-158-la-marca-en-dos-capas.md)
 ## Cómo leerlo
 
 - **Cuántas son.** Hay 124 páginas: 74 de la Operación (`/admin`), 31 de Mi OE (`/app`), 11 del portal y 8 de acceso.
-- **Marco y contenido.** Todas cambian de marco en la ola 1: la barra lateral o la barra inferior y la capa funcional, detrás de la bandera por persona. La columna **Ola** dice cuándo se rediseña el **contenido** de cada página.
+- **Marco y contenido.** El marco nuevo de todas se construye en la ola 1: la barra lateral o la barra inferior y la capa funcional. Les llega a todos junto con el resto del rediseño, de una vez ([ADR-164](adr/ADR-164-el-rediseno-sale-de-una-vez.md)). La columna **Ola** dice en qué ola se rediseña el **contenido** de cada página.
 - **Ola L.** Sin rediseño propio: la página recibe el marco en la ola 1 y los componentes nuevos cuando se usen, sin un tramo aparte.
 - **Patrones.**
 
@@ -47,7 +47,7 @@ Tramo de la ola 0 del rediseño ([ADR-158](adr/ADR-158-la-marca-en-dos-capas.md)
 3. **El modo de campo ya existe en parte.** El modo anfitrión (`/admin/ocasiones/[id]/anfitrion`), la pantalla del juez de The Games y la jornada de activación ya son pantallas de celular. Pasan al modo de campo con la capa funcional, sin rehacer su flujo.
 4. **El Calendario reúne cuatro páginas sueltas**: ocasiones, eventos, asambleas y horario preferencial. Mi OE ya junta ocasiones y ediciones en su agenda (`agendaItems`), y esa lectura sirve de base.
 5. **«Te toca» ya tiene sus fuentes en Mi OE**: encuestas, excusas (`/app/solicitudes`), convocatorias, propuestas de reunión, retos con evidencia y los pasos de onboarding. Cada una necesita su lectura de pendientes por persona (ADR-160).
-6. **El intersemestral no es tranquilo para todo.** Ahí caen el cierre de puntos y el de permanencia del final de 2026-2, y la admisión, el roster y la activación del inicio de 2027-1. Esas pantallas quedan en L, para no rediseñarlas cerca de su fecha. El marco nuevo les llega detrás de la bandera, así que GH puede quedarse con el anterior durante un cierre.
+6. **El intersemestral no es tranquilo para todo.** Ahí caen el cierre de puntos y el de permanencia del final de 2026-2, y la admisión, el roster y la activación del inicio de 2027-1. Esas pantallas quedan en L, para no rediseñarlas cerca de su fecha. El marco nuevo les llega con la salida del rediseño, para todos de una vez ([ADR-164](adr/ADR-164-el-rediseno-sale-de-una-vez.md)), así que esa salida no puede caer en un cierre ni en los días de activación.
 
 ## Operación (74)
 

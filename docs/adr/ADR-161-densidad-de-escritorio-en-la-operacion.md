@@ -1,6 +1,6 @@
 # ADR-161: Densidad de escritorio en la Operación
 
-- Estado: Aceptada el 2026-11-09 (enmendada por ADR-163)
+- Estado: Aceptada el 2026-11-09 (enmendada por ADR-163 y ADR-164)
 - Fecha: 2026-11-09
 - Enmienda: [ADR-158](ADR-158-la-marca-en-dos-capas.md) regla 2 (la escala de la capa funcional), solo en la Operación
 - Relacionadas: ADR-043, ADR-158, ADR-159, ADR-160
@@ -52,3 +52,7 @@ Dos reglas cambian ([ADR-163](ADR-163-aspecto-sobrio-de-la-capa-funcional.md)):
 - **Regla 4:** las esquinas miden 10 px en los controles de la Operación y 14 px en los botones de Mi OE, que dejan de ser redondos. Las tarjetas miden 16 px en la Operación y 20 px en Mi OE.
 
 Las demás medidas siguen: sección 18/24, cuerpo 14/20, secundario y celdas 13/18, y botones y filas de 40 y 32 px en la Operación.
+
+## Enmienda (2026-11-12, ADR-164)
+
+La consecuencia «Alcance» cambia ([ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md)). La densidad no entra detrás de una bandera por persona: llega con el marco nuevo de la Operación en la rama `feat/rediseno`, que sale para todos de una vez.

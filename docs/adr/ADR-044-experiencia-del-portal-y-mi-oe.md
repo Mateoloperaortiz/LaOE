@@ -1,6 +1,6 @@
 # ADR-044: Experiencia del portal y Mi OE
 
-- Estado: Aceptada; implementación local verificada (enmendada por ADR-049, ADR-158 y ADR-160)
+- Estado: Aceptada; implementación local verificada (enmendada por ADR-049, ADR-158, ADR-160 y ADR-164)
 - Fecha: 2026-09-08
 - Relacionadas: ADR-011, ADR-022, ADR-031, ADR-033, ADR-034, ADR-035, ADR-036, ADR-037, ADR-038, ADR-040, ADR-043; 07-marca
 
@@ -48,3 +48,7 @@ Estas reglas rigen cuando se publique el Mi OE nuevo, detrás de la bandera por 
 - **Regla 1** ([ADR-158](ADR-158-la-marca-en-dos-capas.md)). Las pantallas de trabajo de Mi OE pasan a la capa funcional de [07-marca](../07-marca.md#dos-capas-2026-11-08-adr-158): títulos en Plus Jakarta Sans y en tipo oración, en lugar de Sofia Sans Extra Condensed a 36 y 32 px, con los neutros y los estados nuevos. La condensada, los carteles y el grano quedan para los momentos de marca: numerales, celebraciones y carteles de la cartelera y de los eventos sin foto. El portal es capa de marca y conserva sus carteles y titulares. Las zonas táctiles siguen midiendo al menos 44 px.
 - **Regla 5** ([ADR-160](ADR-160-la-navegacion-de-mi-oe.md) regla 1). La barra pasa a ser Hoy · Agenda · Asistencia · Juegos · Yo. «Yo» reemplaza al menú «Más» y recoge sus enlaces, GH Points y el carnet, que también vive en Asistencia. Se mantienen la cabecera compacta, el salto al contenido, el área segura y las reglas de foco y Escape.
 - **Regla 6** ([ADR-160](ADR-160-la-navegacion-de-mi-oe.md) regla 2). El inicio pasa a ser «Hoy», con los bloques ordenados por urgencia: lo que sigue, «Te toca», tu permanencia, la cartelera, los juegos y tus comités. Un bloque sin contenido no aparece. `/app/agenda` no cambia.
+
+## Enmienda (2026-11-12, ADR-164)
+
+Ya no hay bandera por persona ([ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md)). El Mi OE nuevo sale para todos de una vez desde la rama `feat/rediseno`, y desde esa salida rigen las reglas de la enmienda anterior. Hasta entonces sigue rigiendo lo de arriba.

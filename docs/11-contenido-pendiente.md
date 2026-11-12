@@ -163,6 +163,6 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 
 - [x] Fecha de cierre de 2026-2, que marca el final de la ola 0: el 31 de diciembre de 2026 (Mateo, 2026-11-08).
 - [x] Fecha de inicio de 2027-1: el 1 de enero de 2027 (Mateo, 2026-11-08).
-- [ ] Fecha de la inducción de 2027-1: Mi OE nuevo sale antes de ella.
+- [ ] Fecha de la inducción de 2027-1. Ya no marca la salida del rediseño, que sale completo ([ADR-164](adr/ADR-164-el-rediseno-sale-de-una-vez.md)), pero la salida tiene que evitar los días de admisión, roster y activación.
 - [ ] Revisión de Comunicaciones de la extensión de marca de ADR-158, que Mateo aceptó el 2026-11-08, y del aspecto sobrio de la capa funcional ([ADR-163](adr/ADR-163-aspecto-sobrio-de-la-capa-funcional.md)), del 2026-11-12.
 - [x] Personas para la medición de base: el comité GEMIS para Mi OE, la junta para la Operación y cinco personas que nombró Mateo (2026-11-08). La lista con nombres queda fuera del repositorio, que es público ([23-medicion-de-base](23-medicion-de-base.md)).
