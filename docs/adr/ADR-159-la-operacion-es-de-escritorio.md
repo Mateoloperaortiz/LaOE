@@ -1,6 +1,6 @@
 # ADR-159: La Operación es de escritorio
 
-- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1
+- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1 (enmendada por ADR-164)
 - Fecha: 2026-11-06
 - Enmienda: [ADR-043](ADR-043-experiencia-administrativa.md) («igual prioridad de computador y celular», reglas 1 y 4)
 - Relacionadas: ADR-035, ADR-036, ADR-043, ADR-049, ADR-058, ADR-072, ADR-083, ADR-158, ADR-160
@@ -94,3 +94,7 @@ El 2026-11-06 Mateo pidió pensar la parte operativa de la OE como una experienc
 - **Pruebas.** Las E2E de la Operación se corren a 1280 px y las del modo de campo, en celular. Se conservan las de teclado y texto al 200 % (ADR-049).
 - **Transición.** Se migra por espacios, detrás de una bandera por persona: primero la junta y GH, y después todos. Un espacio migrado retira su pantalla anterior en el mismo semestre.
 - **Enmienda aplicada el 2026-11-08:** ADR-043 suma esta ADR a las que la enmiendan y cierra con su sección «Enmienda».
+
+## Enmienda (2026-11-12, ADR-164)
+
+La consecuencia «Transición» cambia ([ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md)). No hay bandera por persona: el rediseño se construye en la rama `feat/rediseno` y sale para todos de una vez, y las pantallas anteriores se retiran en esa misma salida.

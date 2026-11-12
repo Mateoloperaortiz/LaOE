@@ -1,6 +1,6 @@
 # ADR-163: Aspecto sobrio de la capa funcional
 
-- Estado: Aceptada el 2026-11-12
+- Estado: Aceptada el 2026-11-12 (enmendada por ADR-164)
 - Fecha: 2026-11-12
 - Enmienda: [ADR-158](ADR-158-la-marca-en-dos-capas.md) reglas 1, 2, 3 y 5; [ADR-161](ADR-161-densidad-de-escritorio-en-la-operacion.md) reglas 1 y 4
 - Relacionadas: ADR-043, ADR-044, ADR-158, ADR-159, ADR-160, ADR-161
@@ -95,3 +95,7 @@ Las maquetas se rehicieron con ese aspecto y con datos ficticios. Primero fueron
 - **Pruebas.** La prueba de contraste suma los pares nuevos de los dos temas cuando entren a `tokens.css`, y la de densidad pasa a comprobar 26/32 en la Operación y 12/16 en la etiqueta.
 - **Revisión.** Esta extensión se suma a la que Comunicaciones tiene pendiente de ADR-158 ([11-contenido-pendiente](../11-contenido-pendiente.md)).
 - **Enmiendas aplicadas el 2026-11-12:** ADR-158 y ADR-161 cierran con su sección «Enmienda», y 07-marca suma el aspecto sobrio a su sección «Dos capas».
+
+## Enmienda (2026-11-12, ADR-164)
+
+La consecuencia «Alcance» cambia ([ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md)). El aspecto no entra detrás de una bandera por persona: cada pantalla rediseñada lo lleva en la rama `feat/rediseno`, que sale para todos de una vez.

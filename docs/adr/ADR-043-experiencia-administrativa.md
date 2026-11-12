@@ -1,6 +1,6 @@
 # ADR-043: Experiencia administrativa adaptable
 
-- Estado: Aceptada (enmendada por ADR-049, ADR-158 y ADR-159)
+- Estado: Aceptada (enmendada por ADR-049, ADR-158, ADR-159 y ADR-164)
 - Fecha: 2026-09-08
 - Relacionadas: ADR-017, ADR-034, ADR-035, ADR-036, ADR-042; 07-marca
 
@@ -42,3 +42,7 @@ La Administración pasa a ser la Operación, pensada para el escritorio. Cada re
 - **Regla 1** ([ADR-159](ADR-159-la-operacion-es-de-escritorio.md) regla 2). La barra lateral mide 240 px, se recoge a 64 y se ordena por espacios de trabajo en vez de por grupos. De 1024 a 1279 px se compacta a iconos. El filtrado de enlaces en el servidor, el destino activo y los guards no cambian.
 - **Regla 2** ([ADR-158](ADR-158-la-marca-en-dos-capas.md)). La extensión de marca pasa a ser la capa funcional de [07-marca](../07-marca.md#dos-capas-2026-11-08-adr-158): el título principal va en Plus Jakarta Sans, a 28/34 y peso 800, en tipo oración, en lugar de Sofia Sans Extra Condensed a 32/28 px, con los neutros y los estados nuevos. La condensada solo entra en los numerales del Panorama y en las pantallas de presentación (ADR-159 regla 7). Las superficies siguen sin textura.
 - **Regla 4** ([ADR-159](ADR-159-la-operacion-es-de-escritorio.md) regla 5). Desde 1280 px, el `ResourcePanel` deja de ser un diálogo y pasa a ser un panel junto a la lista, sin taparla, con el registro abierto en la URL. Por debajo de 1280 px sigue siendo el diálogo de esta regla, con su foco, Escape y retorno al disparador.
+
+## Enmienda (2026-11-12, ADR-164)
+
+Ya no hay bandera por persona ([ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md)). La Operación sale para todos de una vez desde la rama `feat/rediseno`, y desde esa salida rigen las reglas de la enmienda anterior. Hasta entonces sigue rigiendo lo de arriba.

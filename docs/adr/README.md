@@ -13,12 +13,13 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-163](ADR-163-aspecto-sobrio-de-la-capa-funcional.md) | Aspecto sobrio de la capa funcional | Aceptada |
+| [ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md) | El rediseño sale de una vez, sin bandera | Aceptada |
+| [ADR-163](ADR-163-aspecto-sobrio-de-la-capa-funcional.md) | Aspecto sobrio de la capa funcional | Aceptada (enmendada por ADR-164) |
 | [ADR-162](ADR-162-grupo-de-decoracion-en-mi-oe.md) | Grupo de decoración en Mi OE | Aceptada |
-| [ADR-161](ADR-161-densidad-de-escritorio-en-la-operacion.md) | Densidad de escritorio en la Operación | Aceptada (enmendada por ADR-163) |
-| [ADR-160](ADR-160-la-navegacion-de-mi-oe.md) | La navegación de Mi OE: Hoy, Agenda, Asistencia, Juegos y Yo | Aceptada |
-| [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) | La Operación es de escritorio | Aceptada |
-| [ADR-158](ADR-158-la-marca-en-dos-capas.md) | La marca en dos capas | Aceptada (enmendada por ADR-161 y ADR-163) |
+| [ADR-161](ADR-161-densidad-de-escritorio-en-la-operacion.md) | Densidad de escritorio en la Operación | Aceptada (enmendada por ADR-163 y ADR-164) |
+| [ADR-160](ADR-160-la-navegacion-de-mi-oe.md) | La navegación de Mi OE: Hoy, Agenda, Asistencia, Juegos y Yo | Aceptada (enmendada por ADR-164) |
+| [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) | La Operación es de escritorio | Aceptada (enmendada por ADR-164) |
+| [ADR-158](ADR-158-la-marca-en-dos-capas.md) | La marca en dos capas | Aceptada (enmendada por ADR-161, ADR-163 y ADR-164) |
 | [ADR-157](ADR-157-normativa-actualizada-2026.md) | Normativa actualizada desde 2026-2 | Aceptada; en verificación |
 | [ADR-156](ADR-156-disponibilidad-privada-de-grupos.md) | Disponibilidad privada de grupos | Aceptada; implementada y verificada localmente |
 | [ADR-155](ADR-155-conservar-la-posicion-al-cambiar-la-vista.md) | Conservar la posición al cambiar la vista | Aceptada; publicada |
@@ -170,8 +171,8 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-040](ADR-040-carnet-en-billeteras-fase-8.md) | Carnet en Apple Wallet y Google Wallet (fase 8) | Aceptada; implementación y activación pendientes de verificación |
 | [ADR-041](ADR-041-wordle-diario-y-cierre-de-puntos.md) | Wordle diario y cierre transaccional de puntos | Aceptada (enmendada por ADR-074, ADR-075 y ADR-119); enmendada por ADR-131 |
 | [ADR-042](ADR-042-normativa-completa.md) | Normativa completa y carga verificada de los originales | Aceptada |
-| [ADR-043](ADR-043-experiencia-administrativa.md) | Experiencia administrativa adaptable | Aceptada (enmendada por ADR-049) |
-| [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) | Experiencia del portal y Mi OE | Aceptada; implementación verificada (enmendada por ADR-049) |
+| [ADR-043](ADR-043-experiencia-administrativa.md) | Experiencia administrativa adaptable | Aceptada (enmendada por ADR-049, ADR-158, ADR-159 y ADR-164) |
+| [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) | Experiencia del portal y Mi OE | Aceptada; implementación verificada (enmendada por ADR-049, ADR-158, ADR-160 y ADR-164) |
 
 | [ADR-045](ADR-045-alta-individual-de-integrante-existente.md) | Alta individual de un integrante existente con historial | Aceptada; operación verificada |
 

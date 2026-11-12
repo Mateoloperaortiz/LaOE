@@ -23,7 +23,7 @@
 
 ## Mi OE (sesión de miembro)
 
-**Navegación nueva** ([ADR-160](adr/ADR-160-la-navegacion-de-mi-oe.md), aceptada el 2026-11-08). La barra pasa a ser Hoy · Agenda · Asistencia · Juegos · Yo, con «Yo» en lugar del menú «Más», y `/app` pasa a ser «Hoy», con sus bloques ordenados por urgencia. Sale en la ola 1, detrás de la bandera por persona; hasta entonces sigue la barra de hoy (Inicio, Agenda, Carnet, GH Points y Juegos). Las rutas de esta tabla no cambian. Las nuevas, como Asistencia, Yo y el centro de avisos, se suman aquí en el tramo que las construye.
+**Navegación nueva** ([ADR-160](adr/ADR-160-la-navegacion-de-mi-oe.md), aceptada el 2026-11-08). La barra pasa a ser Hoy · Agenda · Asistencia · Juegos · Yo, con «Yo» en lugar del menú «Más», y `/app` pasa a ser «Hoy», con sus bloques ordenados por urgencia. Sale con todo el rediseño, para todos de una vez ([ADR-164](adr/ADR-164-el-rediseno-sale-de-una-vez.md)); hasta entonces sigue la barra de hoy (Inicio, Agenda, Carnet, GH Points y Juegos). Las rutas de esta tabla no cambian. Las nuevas, como Asistencia, Yo y el centro de avisos, se suman aquí en el tramo que las construye.
 
 | Ruta | Contenido |
 | --- | --- |

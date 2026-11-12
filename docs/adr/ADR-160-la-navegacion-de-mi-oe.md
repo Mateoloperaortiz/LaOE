@@ -1,6 +1,6 @@
 # ADR-160: La navegación de Mi OE: Hoy, Agenda, Asistencia, Juegos y Yo
 
-- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1
+- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1 (enmendada por ADR-164)
 - Fecha: 2026-11-06
 - Enmienda: [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) reglas 5 y 6; [06-mapa-del-sitio](../06-mapa-del-sitio.md), sección Mi OE
 - Relacionadas: ADR-040, ADR-044, ADR-047, ADR-049, ADR-067, ADR-074, ADR-075, ADR-158, ADR-159
@@ -48,3 +48,7 @@ El 2026-11-06 Mateo pidió una app usable, pensada como las grandes apps de comu
 - **Enmiendas aplicadas el 2026-11-08:**
   - ADR-044 suma esta ADR a las que la enmiendan y cierra con su sección «Enmienda».
   - 06-mapa-del-sitio anuncia la barra nueva al comienzo de su sección de Mi OE.
+
+## Enmienda (2026-11-12, ADR-164)
+
+La consecuencia «Publicación» cambia ([ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md)). La barra nueva no sale con la ola 1 ni antes de la inducción de 2027-1: se construye en la rama `feat/rediseno` y sale con todo el rediseño, para todos de una vez.

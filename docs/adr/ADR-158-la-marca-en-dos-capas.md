@@ -1,6 +1,6 @@
 # ADR-158: La marca en dos capas
 
-- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1 (enmendada por ADR-161 y ADR-163)
+- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1 (enmendada por ADR-161, ADR-163 y ADR-164)
 - Fecha: 2026-11-06
 - Enmienda: [07-marca](../07-marca.md) §3, §4 y §9; [ADR-043](ADR-043-experiencia-administrativa.md) regla 2; [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) regla 1
 - Relacionadas: ADR-043, ADR-044, ADR-076, ADR-081, ADR-085, ADR-086, ADR-138, ADR-159, ADR-160
@@ -106,3 +106,7 @@ En toda la capa funcional; la capa de marca y el portal no cambian ([ADR-163](AD
 - **Regla 2:** el peso máximo es 600, y la etiqueta corta va en tipo oración, sin mayúsculas ni espaciado.
 - **Regla 3:** se suman tres neutros (relleno de control `#F2F4F7`, línea tenue `#EEF0F3` y fondo de panel `#FAFBFC`) y el texto secundario `#4F5968` sobre el degradado del fondo.
 - **Regla 5:** la acción principal es navy en las dos áreas, y el naranja queda para el botón de Asistencia de la barra de Mi OE. El botón secundario lleva relleno de control y no lleva borde.
+
+## Enmienda (2026-11-12, ADR-164)
+
+La consecuencia «Transición» cambia ([ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md)). Las pantallas se rediseñan por olas, pero en la rama `feat/rediseno`: en producción no pasan a la capa funcional de a poco, sino todas juntas en una sola salida. Por eso en producción no conviven las dos tipografías.
