@@ -38,6 +38,7 @@ export {
   getGroup,
   getGroupDetail,
   groupJoinBlocker,
+  isOfficeDecorationGroup,
   listGroupIdsOf,
   listGroupOptions,
   listGroupRefs,

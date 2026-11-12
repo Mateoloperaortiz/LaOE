@@ -13933,6 +13933,18 @@ export const textos = {
     owner: "MATEO",
     status: "Aprobado",
   },
+  "T-4858": {
+    where: "Regla de asistencias más grupo: opción de aceptar una evidencia",
+    text: "Aceptar asistencia o buen desempeño",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-4859": {
+    where: "Permanencia: regla que acepta cualquiera de las dos evidencias",
+    text: "Este criterio cuenta con la asistencia requerida o con buen desempeño en el grupo.",
+    owner: "GH",
+    status: "Propuesta",
+  },
   "T-486": {
     where: "Importación: cargos por crear",
     text: "Cargos nuevos que se agregan al catálogo: {lista}",
@@ -15334,7 +15346,7 @@ export const textos = {
   },
   "T-719": {
     where: "Reglas: qué hace cada cálculo (mismo orden)",
-    text: "Suma un porcentaje por cada asistencia hasta el peso · Da el peso completo al llegar al mínimo · Reparte el peso según la tasa de asistencia a las reuniones del comité · Da el peso si el grupo evalúa buen desempeño · Exige el mínimo de asistencias y un grupo con buen desempeño · Lo asigna el líder del comité, con observación si baja · Lo reconoce GH a mano con motivo",
+    text: "Suma un porcentaje por cada asistencia hasta el peso · Da el peso completo al llegar al mínimo · Reparte el peso según la tasa de asistencia a las reuniones del comité · Da el peso si el grupo evalúa buen desempeño · Combina el mínimo de asistencias y el buen desempeño según la opción elegida · Lo asigna el líder del comité, con observación si baja · Lo reconoce GH a mano con motivo",
     owner: "MATEO",
     status: "Propuesta",
   },

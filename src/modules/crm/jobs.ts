@@ -22,6 +22,7 @@ import {
   purgeIfMembershipEnded,
   SANCTION_KINDS,
 } from "@/modules/people";
+import { isOfficeDecorationGroup } from "@/modules/permanence";
 import { listAllTerms } from "@/modules/terms";
 import { t, tLabels, tList } from "@/shared/copy";
 import { atHourIn, bogotaHourToUtc, formatDate, todayKey } from "@/shared/lib/dates";
@@ -208,13 +209,17 @@ onEvent(groupAdmissionFailed, async (event, ctx) => {
 // evidencias de este archivo las marca un trabajo del poller, que no tiene request: van sin IP (ADR-123
 // regla 3).
 
-// Una tarea de nuevos con buen desempeño marca el paso de decoración del onboarding (ADR-036).
-onEvent(evaluationRecorded, async ({ personId, kind, evaluation }, ctx) => {
-  if (kind !== "NEW_MEMBER_TASK" || evaluation !== "GOOD") {
+// Una evaluación buena del grupo de decoración marca su paso del onboarding.
+onEvent(evaluationRecorded, async ({ personId, termId, groupId, kind, evaluation }, ctx) => {
+  if (
+    kind !== "NEW_MEMBER_TASK" ||
+    evaluation !== "GOOD" ||
+    !(await isOfficeDecorationGroup(termId, groupId))
+  ) {
     return;
   }
   const changed = await recordOnboardingEvidence(personId, "NEW_MEMBER_TASK", null);
-  ctx.log.debug({ personId, changed }, "evidencia de la tarea de nuevos");
+  ctx.log.debug({ personId, changed }, "evidencia de decoración de oficina");
 });
 
 onEvent(checkinApproved, async ({ personId, category }, ctx) => {

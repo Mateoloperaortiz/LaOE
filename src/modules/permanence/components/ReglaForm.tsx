@@ -43,6 +43,7 @@ export interface ReglaFormLabels {
   groupParams: string[]; // T-723
   groupModes: Array<{ value: string; label: string }>;
   groupKinds: Array<{ value: string; label: string }>;
+  eitherEvidence: string;
   alsoCounts: string; // T-2615
   alsoCountsHelp: string; // T-2616
   mandatory: string;
@@ -243,6 +244,17 @@ export function ReglaForm({
             ))}
           </select>
         </Campo>
+
+        {computation === "COMPOSITE" ? (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="eitherEvidence"
+              defaultChecked={p.eitherEvidence === "true"}
+            />
+            {labels.eitherEvidence}
+          </label>
+        ) : null}
 
         {usesOccasions(computation) || computation === "CHECKIN_RATE" ? (
           <fieldset

@@ -16,10 +16,10 @@ import {
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { MAX_INPUT_COLLECTION_ITEMS } from "@/shared/lib/input-collections";
-import { workGroup, workGroupEvaluator, workGroupMembership } from "../schema";
+import { permanenceRule, workGroup, workGroupEvaluator, workGroupMembership } from "../schema";
 import { resolveGroupEvent } from "./group-links";
 import { parseGroupCsv } from "./groups-pure";
-import { GROUP_CODE, WORK_GROUP_KINDS } from "./params";
+import { GROUP_CODE, groupParamsSchema, WORK_GROUP_KINDS } from "./params";
 
 // Grupos de trabajo (ADR-036 regla 6): comandos, siembra de los comités de trabajo, lecturas del
 // admin, importación desde CSV y los roles derivados de los datos.
@@ -583,6 +583,36 @@ export async function listGroups(
 export async function getGroup(id: string): Promise<WorkGroupRow | null> {
   const [row] = await getDb().select().from(workGroup).where(eq(workGroup.id, id)).limit(1);
   return row ?? null;
+}
+
+/** Identifica la actividad de decoración para el onboarding por su código en el término. */
+export async function isOfficeDecorationGroup(termId: string, groupId: string): Promise<boolean> {
+  const [group] = await getDb()
+    .select({ code: workGroup.code, params: permanenceRule.params })
+    .from(workGroup)
+    .leftJoin(
+      permanenceRule,
+      and(
+        eq(permanenceRule.termId, workGroup.termId),
+        eq(permanenceRule.scope, "GENERAL"),
+        eq(permanenceRule.key, "decoracion-de-oficina"),
+        eq(permanenceRule.computation, "GROUP_EVALUATED"),
+      ),
+    )
+    .where(
+      and(
+        eq(workGroup.id, groupId),
+        eq(workGroup.termId, termId),
+        eq(workGroup.kind, "NEW_MEMBER_TASK"),
+      ),
+    );
+  if (!group?.code) return false;
+
+  const rule = groupParamsSchema.safeParse(group.params);
+  const configuredCode =
+    rule.success && rule.data.groupKind === "NEW_MEMBER_TASK" ? rule.data.code : undefined;
+  // ADR-062: la evidencia importada ya identifica la decoración con este código.
+  return group.code === (configuredCode ?? "DECORACION");
 }
 
 export async function getGroupDetail(id: string): Promise<GroupDetail | null> {

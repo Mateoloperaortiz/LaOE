@@ -60,6 +60,7 @@ export function reglaFormLabels(): ReglaFormLabels {
     groupParams: tList("T-723"),
     groupModes: labeled(GROUP_MODES, tLabels("T-724", GROUP_MODES)),
     groupKinds: labeled(WORK_GROUP_KINDS, tLabels("T-725", WORK_GROUP_KINDS)),
+    eitherEvidence: t("T-4858"),
     alsoCounts: t("T-2615"),
     alsoCountsHelp: t("T-2616"),
     mandatory: t("T-726"),
@@ -96,6 +97,7 @@ export function reglaFormValues(rule: Rule | null): ReglaFormValues {
     const group = raw.group as Record<string, unknown>;
     for (const [key, value] of Object.entries(checkIns)) params[key] = str(value);
     for (const [key, value] of Object.entries(group)) params[key] = str(value);
+    params.eitherEvidence = str(rule.params.eitherEvidence);
   } else {
     for (const [key, value] of Object.entries(raw)) {
       params[key] =
@@ -194,6 +196,7 @@ export function ruleInputFromForm(formData: FormData, committeeScoped: boolean):
     }
     case "COMPOSITE":
       params = {
+        eitherEvidence: formData.get("eitherEvidence") === "on" ? true : undefined,
         checkIns: {
           ...occasionFilter(formData, committeeScoped),
           minCount: optionalNumber(formData, "minCount"),

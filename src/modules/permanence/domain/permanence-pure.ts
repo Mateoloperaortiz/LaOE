@@ -162,6 +162,7 @@ export type CriterionDetail =
       type: "COMPOSITE";
       attended: number;
       minCount: number;
+      eitherEvidence?: boolean | undefined;
       upcoming: UpcomingOccasion[];
       group: {
         groupId: string;
@@ -689,13 +690,18 @@ export function computeCriterion(
         null;
       const reached = counts.attended >= rule.params.checkIns.minCount;
       const good = standing.goodCount >= 1;
-      const achieved = reached && good ? weight : 0;
+      const eitherEvidence = rule.params.eitherEvidence === true;
+      const fulfilled = eitherEvidence ? reached || good : reached && good;
+      const achieved = fulfilled ? weight : 0;
       const checkInsPossible =
         reached ||
         counts.opportunities === null ||
         counts.attended + counts.opportunities >= rule.params.checkIns.minCount;
       const groupPossible = good || !windowOpen || standing.pendingCount > 0;
-      const remaining = closed || achieved > 0 ? 0 : checkInsPossible && groupPossible ? weight : 0;
+      const possible = eitherEvidence
+        ? checkInsPossible || groupPossible
+        : checkInsPossible && groupPossible;
+      const remaining = closed || fulfilled || !possible ? 0 : weight;
       return {
         ...base,
         achieved,
@@ -704,6 +710,7 @@ export function computeCriterion(
           type: "COMPOSITE",
           attended: counts.attended,
           minCount: rule.params.checkIns.minCount,
+          ...(eitherEvidence ? { eitherEvidence } : {}),
           upcoming: toUpcoming(counts.upcoming),
           group,
         },

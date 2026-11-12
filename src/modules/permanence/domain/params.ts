@@ -112,6 +112,7 @@ export const PARAMS_SCHEMAS = {
       groupKind: z.enum(WORK_GROUP_KINDS),
       code: z.string().regex(GROUP_CODE).optional(),
     }),
+    eitherEvidence: z.boolean().optional(),
   }),
   LEADER_SCORE: z.object({ mandatory: z.boolean().default(false) }),
   MANUAL: z.object({}),
