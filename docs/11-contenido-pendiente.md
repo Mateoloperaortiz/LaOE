@@ -180,4 +180,4 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 - [ ] Fotos de la OE para el titular de la portada, con autorización de uso público de quienes aparecen. Hasta tenerlas, el lado gráfico del afiche es un elemento de la marca.
 - [ ] Dónde sube Comunicaciones la foto del titular. Hoy la casa solo tiene imagen publicada en la portada de un evento o de una edición.
 - [ ] Que Comunicaciones confirme los rótulos de las cifras de la portada (T-5037): «el año en que empezamos», «comités» y «macroeventos».
-- [ ] Que Mateo confirme el umbral de «semana de evento» (siete días) y que la convocatoria mande cuando coincide con un evento.
+- [x] Umbral de «semana de evento»: siete días, y la convocatoria manda cuando coincide con un evento (Mateo, 2026-11-13).

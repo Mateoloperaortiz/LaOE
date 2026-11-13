@@ -1,6 +1,6 @@
 # ADR-158: La marca en dos capas
 
-- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1 (enmendada por ADR-161, ADR-163, ADR-164 y ADR-188)
+- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1 (enmendada por ADR-161, ADR-163, ADR-164, ADR-188 y ADR-189)
 - Fecha: 2026-11-06
 - Enmienda: [07-marca](../07-marca.md) §3, §4 y §9; [ADR-043](ADR-043-experiencia-administrativa.md) regla 2; [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) regla 1
 - Relacionadas: ADR-043, ADR-044, ADR-076, ADR-081, ADR-085, ADR-086, ADR-138, ADR-159, ADR-160
@@ -114,3 +114,7 @@ La consecuencia «Transición» cambia ([ADR-164](ADR-164-el-rediseno-sale-de-un
 ## Enmienda (2026-11-13, ADR-188)
 
 La consecuencia «Transición» cambia otra vez ([ADR-188](ADR-188-el-rediseno-llega-a-todas-las-pantallas.md)). Una pantalla de trabajo que todavía no se reescribió no conserva el aspecto anterior: el marco de la Operación, el de Mi OE y el de acceso revisten sus piezas de siempre con los valores de la capa funcional, y cada pantalla declara su capa con `data-capa`. Las pantallas de acceso entran a la capa funcional con un marco propio. El portal no cambia.
+
+## Enmienda (2026-11-13, ADR-189)
+
+Regla 1: el portal sigue en la capa de marca, pero cambia de composición ([ADR-189](ADR-189-el-portal-como-afiche-vivo.md)). Cada página pública abre con un afiche de borde a borde, con los colores y el grano de un cartel, que no cambia con el tema; la cabecera y el pie son navy en los dos temas. El titular de la portada cambia solo: la convocatoria abierta, una edición pública que empiece en siete días o menos, o el lema. Las pantallas de presentación y el muestrario no cambian.

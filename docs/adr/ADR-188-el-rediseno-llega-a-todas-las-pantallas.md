@@ -1,6 +1,6 @@
 # ADR-188: El rediseño llega a todas las pantallas
 
-- Estado: Aceptada (2026-11-13)
+- Estado: Aceptada (2026-11-13); enmendada por ADR-189
 - Fecha: 2026-11-13
 - Enmienda: [ADR-158](ADR-158-la-marca-en-dos-capas.md) (la transición por pantallas) y [ADR-163](ADR-163-aspecto-sobrio-de-la-capa-funcional.md) regla 1 (el alcance suma las pantallas de acceso)
 - Relacionadas: ADR-044, ADR-159, ADR-160, ADR-161, ADR-164, [22-inventario-de-pantallas](../22-inventario-de-pantallas.md)
@@ -59,3 +59,7 @@ La causa es una sola. ADR-158 dejó la transición «pantalla por pantalla, por 
 - **El inventario cambia de sentido.** La columna «Ola» decía cuándo se rehacía el contenido de cada pantalla. Con esta ADR ninguna pantalla espera su ola para verse con el rediseño; rehacer su estructura sigue siendo opcional y se hace cuando la pantalla lo pida.
 - **Riesgo.** Una regla común puede vestir mal una pieza rara. Por eso la medición recorre todas las rutas, y la suite E2E completa, con su revisión de accesibilidad, corre antes del commit.
 - **Pendiente.** Las piezas base de R6 (`Button`, `Surface`, `Field`) siguen siendo el camino para el código nuevo. Las clases de antes quedan revestidas, no reemplazadas.
+
+## Enmienda (2026-11-13, ADR-189)
+
+Regla 5: «El portal no cambia» deja de valer. El portal cambia de composición, sin salir de la capa de marca: abre cada página con un afiche y la portada elige su titular sola ([ADR-189](ADR-189-el-portal-como-afiche-vivo.md)).

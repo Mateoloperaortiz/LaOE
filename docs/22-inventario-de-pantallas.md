@@ -4,7 +4,7 @@ Tramo de la ola 0 del rediseño ([ADR-158](adr/ADR-158-la-marca-en-dos-capas.md)
 
 > **Nota del 2026-11-13.** Desde [ADR-188](adr/ADR-188-el-rediseno-llega-a-todas-las-pantallas.md) ninguna pantalla espera su ola para verse con el rediseño: los marcos revisten las piezas de siempre, y las pantallas de acceso tienen su propio marco. La columna **Ola** queda como registro de cuándo se pensaba rehacer la estructura de cada una. Este inventario es del 2026-11-08 y cuenta 124 páginas; hoy son 150.
 >
-> **Portal.** Desde [ADR-189](adr/ADR-189-el-portal-como-afiche-vivo.md) (propuesta) el portal sigue en la capa de marca, pero cada página abre con un afiche de borde a borde y la portada cambia su titular sola: convocatoria abierta, semana de evento o resto del semestre.
+> **Portal.** Desde [ADR-189](adr/ADR-189-el-portal-como-afiche-vivo.md) (aceptada el 2026-11-13) el portal sigue en la capa de marca, pero cada página abre con un afiche de borde a borde y la portada cambia su titular sola: convocatoria abierta, semana de evento o resto del semestre.
 
 ## Cómo leerlo
 

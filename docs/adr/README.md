@@ -13,7 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-189](ADR-189-el-portal-como-afiche-vivo.md) | El portal como afiche vivo | Propuesta |
+| [ADR-189](ADR-189-el-portal-como-afiche-vivo.md) | El portal como afiche vivo | Aceptada |
 | [ADR-188](ADR-188-el-rediseno-llega-a-todas-las-pantallas.md) | El rediseño llega a todas las pantallas | Aceptada |
 | [ADR-187](ADR-187-la-entrada-externa-y-la-inscripcion-por-la-api.md) | La entrada externa y la inscripción por la API | Aceptada |
 | [ADR-186](ADR-186-oportunidades-de-los-aliados.md) | Oportunidades de los aliados | Aceptada |

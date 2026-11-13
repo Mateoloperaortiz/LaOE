@@ -1,6 +1,6 @@
 # ADR-189: El portal como afiche vivo
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Enmienda: [ADR-158](ADR-158-la-marca-en-dos-capas.md) (regla 1: la capa de marca del portal cambia de composición) y [ADR-188](ADR-188-el-rediseno-llega-a-todas-las-pantallas.md) (regla 5: «El portal no cambia»)
 - Relacionadas: ADR-037, ADR-085 (P2), ADR-163, ADR-164, `07-marca.md`
@@ -43,6 +43,5 @@ Las referencias que se revisaron están en `informes/referencias-portal-2026-11-
 
 ## Pendiente
 
-- Que Mateo revise el umbral de siete días y el orden cuando coinciden convocatoria y evento.
 - Fotos de la OE con autorización de uso público, y dónde las sube Comunicaciones.
 - Que Comunicaciones confirme los rótulos de las cifras.
