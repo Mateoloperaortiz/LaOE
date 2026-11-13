@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -12,6 +13,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
+import { publicationStatus } from "@/db/enums";
 import { announcement } from "@/modules/content/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
@@ -442,5 +444,40 @@ export const trajectoryCredential = pgTable(
   (t) => [
     uniqueIndex("trajectory_credential_public_id_unique").on(t.publicId),
     uniqueIndex("trajectory_credential_source_unique").on(t.personId, t.kind, t.sourceId),
+  ],
+);
+
+// Oportunidades de los aliados (ADR-186): una organización le ofrece a la OE una práctica, un empleo, un
+// voluntariado o un evento, para miembros, egresados o los dos. Sin datos personales.
+export const opportunityKind = pgEnum("opportunity_kind", [
+  "INTERNSHIP",
+  "JOB",
+  "VOLUNTEER",
+  "EVENT",
+  "OTHER",
+]);
+export const opportunityAudience = pgEnum("opportunity_audience", ["MEMBERS", "ALUMNI", "BOTH"]);
+
+export const opportunity = pgTable(
+  "opportunity",
+  {
+    id: id(),
+    organizationId: text()
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    kind: opportunityKind().notNull().default("OTHER"),
+    audience: opportunityAudience().notNull().default("BOTH"),
+    title: text().notNull(),
+    description: text().notNull().default(""), // Markdown
+    url: text(),
+    closesOn: date(),
+    status: publicationStatus().notNull().default("DRAFT"),
+    createdById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("opportunity_status_closes_idx").on(t.status, t.closesOn),
+    index("opportunity_organization_idx").on(t.organizationId),
   ],
 );

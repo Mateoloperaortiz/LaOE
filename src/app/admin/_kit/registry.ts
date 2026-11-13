@@ -2,6 +2,7 @@ import { campaignsResource, messagesResource, templatesResource } from "@/module
 import { announcementsResource, pagesResource } from "@/modules/content/admin";
 import {
   callsResource,
+  opportunitiesResource,
   organizationsResource,
   pipelinesResource,
   tasksResource,
@@ -213,6 +214,7 @@ const registered: AnyResource[] = [
   erased(thresholdRewardsResource),
   erased(rewardClaimsResource),
   erased(mentorshipsResource),
+  erased(opportunitiesResource),
 ];
 
 const resources = indexResources(registered);

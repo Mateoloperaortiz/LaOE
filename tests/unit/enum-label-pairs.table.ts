@@ -35,6 +35,7 @@ import {
   CALL_SELECTIONS,
   CALL_STATUSES,
 } from "@/modules/crm/domain/calls-pure";
+import { OPPORTUNITY_AUDIENCES, OPPORTUNITY_KINDS } from "@/modules/crm/domain/opportunities";
 import { ORGANIZATION_KINDS } from "@/modules/crm/domain/organizations";
 import { PIPELINE_KINDS } from "@/modules/crm/domain/pipelines-pure";
 import { awardLabel, OE_AWARDS } from "@/modules/crm/domain/recognitions";
@@ -966,6 +967,18 @@ export const PAIRS: readonly LabelPair[] = [
     order: "CALENDAR_LAYERS",
     positions: { ACTIVITY: 0, ASSEMBLY: 1, EDITION_SESSION: 2, EDITION: 3 },
     canonical: CALENDAR_LAYERS,
+  },
+  {
+    code: "T-5018",
+    order: "OPPORTUNITY_KINDS",
+    positions: { INTERNSHIP: 0, JOB: 1, VOLUNTEER: 2, EVENT: 3, OTHER: 4 },
+    canonical: OPPORTUNITY_KINDS,
+  },
+  {
+    code: "T-5022",
+    order: "OPPORTUNITY_AUDIENCES",
+    positions: { MEMBERS: 0, ALUMNI: 1, BOTH: 2 },
+    canonical: OPPORTUNITY_AUDIENCES,
   },
 ];
 

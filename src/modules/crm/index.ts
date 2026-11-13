@@ -57,6 +57,7 @@ export {
   getOnboarding,
   recordOnboardingEvidence,
 } from "./domain/onboarding";
+export { listOpenOpportunitiesFor, OPPORTUNITY_KINDS } from "./domain/opportunities";
 export {
   addContactAs,
   createExternalContactAs,

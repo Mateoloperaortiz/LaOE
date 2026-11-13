@@ -3510,3 +3510,9 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | T-5015 | Aviso al padrino cuando le asignan un nuevo (título · cuerpo) | Tienes un ahijado · {nombre} entró este semestre y tú lo acompañas. | MATEO | Propuesta |
 | T-5016 | Mi OE, padrinos: título · explicación · tu padrino · tus ahijados · egresado · vacío | Padrinos · Cada nuevo tiene quien lo acompañe en su primer semestre: pregúntale lo que sea, de una. · Tu padrino · Tus ahijados · Egresado · Este semestre no tienes padrino ni ahijados. | MATEO | Propuesta |
 | T-5017 | Admin: padrinos (plural · singular · ahijado · padrino · semestre · quitar) | Padrinos · Padrino · Ahijado · Padrino · Semestre · Quitar | MATEO | Propuesta |
+| T-5018 | Oportunidad: tipo, en el orden de OPPORTUNITY_KINDS | Práctica · Empleo · Voluntariado · Evento · Otra | MATEO | Propuesta |
+| T-5019 | Oportunidad: la organización no existe | Elige una organización aliada que exista. | MATEO | Propuesta |
+| T-5020 | Mi OE, oportunidades: título · explicación · vacío · ver | Oportunidades · Prácticas, empleos, voluntariados y eventos que los aliados le ofrecen a la OE. La postulación es directamente con ellos. · Por ahora no hay oportunidades abiertas: vuelve pronto. · Ver la oportunidad en el sitio del aliado | MATEO | Propuesta |
+| T-5021 | Oportunidad: fecha de cierre | Cierra el {fecha} | MATEO | Propuesta |
+| T-5022 | Oportunidad: para quién, en el orden de OPPORTUNITY_AUDIENCES | Miembros · Egresados · Miembros y egresados | MATEO | Propuesta |
+| T-5023 | Admin: oportunidades (plural · singular · organización · tipo · para quién · título · descripción · enlace · cierra · estado) | Oportunidades · Oportunidad · Organización · Tipo · Para quién · Título · Descripción · Enlace · Cierra · Estado | MATEO | Propuesta |

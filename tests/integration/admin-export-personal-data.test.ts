@@ -472,6 +472,8 @@ const REVIEWED_PATHS: Record<string, readonly string[]> = {
   // semestre; ninguna dice quién.
   "metas-colectivas": ["committeeId", "endsOn", "metric", "startsOn", "target", "title"],
   recompensas: ["points", "termId", "title"],
+  // Oportunidades de los aliados (ADR-186): de una organización, nunca de una persona.
+  oportunidades: ["audience", "closesOn", "kind", "organizationName", "status", "title"],
   campanas: [
     "campaignStatusLabel()",
     "failedCount",

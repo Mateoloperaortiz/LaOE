@@ -17,8 +17,20 @@ import {
 } from "./domain/calls";
 import { CALL_SELECTIONS, CALL_STATUSES } from "./domain/calls-pure";
 import {
+  createOpportunity,
+  getOpportunity,
+  listOpportunities,
+  OPPORTUNITY_AUDIENCES,
+  OPPORTUNITY_KINDS,
+  type OpportunityInput,
+  type OpportunityRow,
+  opportunityInputSchema,
+  updateOpportunity,
+} from "./domain/opportunities";
+import {
   createOrganization,
   getOrganization,
+  listOrganizationOptions,
   listOrganizations,
   ORGANIZATION_KINDS,
   type OrganizationInput,
@@ -533,5 +545,127 @@ export const callsResource: ResourceDefinition<CallListRow, CallInput> = {
     estado: row.status,
     inscritos: row.entries,
     aceptados: row.accepted,
+  }),
+};
+
+// Oportunidades de los aliados (ADR-186): ADMIN las publica para miembros, egresados o los dos.
+
+const [
+  oportunidadesPlural,
+  oportunidadSingular,
+  oportunidadOrganizacion,
+  oportunidadTipo,
+  oportunidadPublico,
+  oportunidadTitulo,
+  oportunidadDescripcion,
+  oportunidadEnlace,
+  oportunidadCierra,
+  oportunidadEstado,
+] = tList("T-5023");
+const [oportunidadBorrador, oportunidadPublicada] = tList("T-288");
+const opportunityKindLabels = tLabels("T-5018", OPPORTUNITY_KINDS);
+const opportunityAudienceLabels = tLabels("T-5022", OPPORTUNITY_AUDIENCES);
+
+export const opportunitiesResource: ResourceDefinition<OpportunityRow, OpportunityInput> = {
+  key: "oportunidades",
+  names: { plural: oportunidadesPlural ?? "", singular: oportunidadSingular ?? "" },
+  basePath: "/admin/oportunidades",
+  columns: [
+    { key: "title", label: oportunidadTitulo ?? "", render: (row) => row.title },
+    {
+      key: "organization",
+      label: oportunidadOrganizacion ?? "",
+      render: (row) => row.organizationName,
+    },
+    { key: "kind", label: oportunidadTipo ?? "", render: (row) => opportunityKindLabels[row.kind] },
+    {
+      key: "audience",
+      label: oportunidadPublico ?? "",
+      render: (row) => opportunityAudienceLabels[row.audience],
+    },
+    { key: "closesOn", label: oportunidadCierra ?? "", render: (row) => row.closesOn },
+    {
+      key: "status",
+      label: oportunidadEstado ?? "",
+      render: (row) =>
+        row.status === "PUBLISHED"
+          ? { text: oportunidadPublicada ?? "", badge: "sky" }
+          : { text: oportunidadBorrador ?? "", badge: "paper" },
+    },
+  ],
+  schema: opportunityInputSchema,
+  fields: async () => {
+    const organizations = await listOrganizationOptions();
+    return [
+      {
+        name: "organizationId",
+        label: oportunidadOrganizacion ?? "",
+        type: "select",
+        required: true,
+        options: organizations.map((item) => ({ value: item.id, label: item.name })),
+      },
+      {
+        name: "kind",
+        label: oportunidadTipo ?? "",
+        type: "select",
+        required: true,
+        options: OPPORTUNITY_KINDS.map((value) => ({ value, label: opportunityKindLabels[value] })),
+      },
+      {
+        name: "audience",
+        label: oportunidadPublico ?? "",
+        type: "select",
+        required: true,
+        options: OPPORTUNITY_AUDIENCES.map((value) => ({
+          value,
+          label: opportunityAudienceLabels[value],
+        })),
+      },
+      { name: "title", label: oportunidadTitulo ?? "", type: "text", required: true },
+      {
+        name: "description",
+        label: oportunidadDescripcion ?? "",
+        type: "textarea",
+        textVariant: "code",
+        rows: 8,
+        help: t("T-337"),
+      },
+      { name: "url", label: oportunidadEnlace ?? "", type: "url" },
+      { name: "closesOn", label: oportunidadCierra ?? "", type: "date" },
+      {
+        name: "status",
+        label: oportunidadEstado ?? "",
+        type: "select",
+        required: true,
+        options: [
+          { value: "DRAFT", label: oportunidadBorrador ?? "" },
+          { value: "PUBLISHED", label: oportunidadPublicada ?? "" },
+        ],
+      },
+    ];
+  },
+  list: (params) => listOpportunities({ page: params.page, pageSize: params.pageSize }),
+  get: getOpportunity,
+  toFormValues: (row) => ({
+    organizationId: row.organizationId,
+    kind: row.kind,
+    audience: row.audience,
+    title: row.title,
+    description: row.description,
+    url: row.url ?? "",
+    closesOn: row.closesOn ?? "",
+    status: row.status,
+  }),
+  create: (actor, input) => runCommand(actor, (ctx) => createOpportunity(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateOpportunity(ctx, id, input)),
+  inlineEdit: { title: "title" },
+  personalData: false,
+  exportRow: (row) => ({
+    titulo: row.title,
+    organizacion: row.organizationName,
+    tipo: row.kind,
+    publico: row.audience,
+    cierra: row.closesOn,
+    estado: row.status,
   }),
 };

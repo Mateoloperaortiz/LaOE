@@ -75,6 +75,8 @@ export function adminNavGroups(): AdminNavGroup[] {
         { href: "/admin/pipelines", label: pipelines },
         { href: "/admin/convocatorias", label: convocatorias },
         { href: "/admin/organizaciones", label: organizaciones },
+        // Oportunidades de los aliados (ADR-186).
+        { href: "/admin/oportunidades", label: tList("T-5023")[0] ?? "" },
       ],
     },
     {

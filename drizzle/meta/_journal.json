@@ -498,6 +498,13 @@
       "when": 1794568710927,
       "tag": "0070_padrinos",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1794569160542,
+      "tag": "0071_oportunidades",
+      "breakpoints": true
     }
   ]
 }

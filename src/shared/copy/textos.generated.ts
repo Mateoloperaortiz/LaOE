@@ -15002,9 +15002,46 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-5018": {
+    where: "Oportunidad: tipo, en el orden de OPPORTUNITY_KINDS",
+    text: "Práctica · Empleo · Voluntariado · Evento · Otra",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5019": {
+    where: "Oportunidad: la organización no existe",
+    text: "Elige una organización aliada que exista.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-502": {
     where: "Datos y consentimiento: títulos",
     text: "Datos personales · Consentimientos · Eliminación · Exportar",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5020": {
+    where: "Mi OE, oportunidades: título · explicación · vacío · ver",
+    text: "Oportunidades · Prácticas, empleos, voluntariados y eventos que los aliados le ofrecen a la OE. La postulación es directamente con ellos. · Por ahora no hay oportunidades abiertas: vuelve pronto. · Ver la oportunidad en el sitio del aliado",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5021": {
+    where: "Oportunidad: fecha de cierre",
+    text: "Cierra el {fecha}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5022": {
+    where: "Oportunidad: para quién, en el orden de OPPORTUNITY_AUDIENCES",
+    text: "Miembros · Egresados · Miembros y egresados",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5023": {
+    where:
+      "Admin: oportunidades (plural · singular · organización · tipo · para quién · título · descripción · enlace · cierra · estado)",
+    text: "Oportunidades · Oportunidad · Organización · Tipo · Para quién · Título · Descripción · Enlace · Cierra · Estado",
     owner: "MATEO",
     status: "Propuesta",
   },
