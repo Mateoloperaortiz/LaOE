@@ -70,11 +70,14 @@ test("Gestión Humana ve solo Personas, agrega un miembro y pide un retiro a GH"
   page,
 }) => {
   await direct("GESTION_HUMANA");
+  // La dirección entra al Panorama, con el bloque de su comité, y de ahí a su comité (ADR-169).
   await page.goto("/admin");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-4929"));
+  await page.locator(`.panorama a[href="/admin/comites/${slug}"]`).first().click();
   await expect(page).toHaveURL(new RegExp(`/admin/comites/${slug}$`));
   await expect(page.getByText(tList("T-651")[0])).toBeVisible();
   const nav = page.locator(".admin-sidebar nav");
-  await expect(nav.getByRole("link")).toHaveCount(3);
+  await expect(nav.locator("a:not(.admin-pinned a)")).toHaveCount(5);
   // La paleta es de todos los roles, con su alcance (ADR-165): la dirección no ve correos.
   await expect(page.getByRole("button", { name: t("T-299") })).toHaveCount(1);
   const busqueda = await page.request.get("/api/admin/buscar?q=Licencia");
@@ -128,10 +131,13 @@ test("Gestión Humana ve solo Personas, agrega un miembro y pide un retiro a GH"
 
 test("Logística ve Personas y Actividades, sin las otras áreas", async ({ page }) => {
   await direct("LOGISTICA");
+  // La dirección entra al Panorama, con el bloque de su comité, y de ahí a su comité (ADR-169).
   await page.goto("/admin");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-4929"));
+  await page.locator(`.panorama a[href="/admin/comites/${slug}"]`).first().click();
   await expect(page).toHaveURL(new RegExp(`/admin/comites/${slug}$`));
   const nav = page.locator(".admin-sidebar nav");
-  await expect(nav.getByRole("link")).toHaveCount(2);
+  await expect(nav.locator("a:not(.admin-pinned a)")).toHaveCount(4);
   const tabs = page.getByRole("navigation", { name: t("T-1502") });
   await expect(tabs.getByRole("link", { name: actividades })).toBeVisible();
   await expect(tabs.getByRole("link", { name: personas })).toBeVisible();
@@ -149,7 +155,10 @@ test("la codirección del General ve las cinco áreas y no deja un cargo obligat
   page,
 }) => {
   await direct("GENERAL", true);
+  // La dirección entra al Panorama, con el bloque de su comité, y de ahí a su comité (ADR-169).
   await page.goto("/admin");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-4929"));
+  await page.locator(`.panorama a[href="/admin/comites/${slug}"]`).first().click();
   await expect(page).toHaveURL(new RegExp(`/admin/comites/${slug}$`));
   const tabs = page.getByRole("navigation", { name: t("T-1502") });
   for (const name of tList("T-2174")) {

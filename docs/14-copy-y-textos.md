@@ -3379,3 +3379,21 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | T-4915 | Modo de campo: barra fija con una sola ocasión abierta | Escanear un carnet | MATEO | Propuesta |
 | T-4916 | Mesa y menú del celular: abrir el modo de campo | Abrir el modo de campo | MATEO | Propuesta |
 
+### Ola 2: Calendario, panoramas por rol y la ficha de la persona (ADR-169)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4917 | Persona 360, ficha: actividad reciente · propiedades · enlace a la línea completa | Actividad reciente · Propiedades · Ver toda la línea de tiempo | MATEO | Propuesta |
+| T-4918 | Calendario: título · semana · mes · hoy · anterior · siguiente · capas · aplicar | Calendario · Semana · Mes · Hoy · Anterior · Siguiente · Capas · Aplicar | MATEO | Propuesta |
+| T-4919 | Calendario: capas, en el orden de CALENDAR_LAYERS | Actividades · Asambleas · Sesiones de macroeventos · Ediciones de macroeventos | MATEO | Propuesta |
+| T-4920 | Calendario: días de la semana, de lunes a domingo | Lun · Mar · Mié · Jue · Vie · Sáb · Dom | MATEO | Propuesta |
+| T-4921 | Calendario, vista de mes: lo que no cabe en el día | +{n} más | MATEO | Propuesta |
+| T-4922 | Panorama: títulos de los bloques por rol | Junta · Gestión humana · Dirección de comité · Comunicaciones | MATEO | Propuesta |
+| T-4923 | Panorama de la junta: cifras | Miembros activos · Nuevos este semestre · En riesgo · Asistencia a reuniones | MATEO | Propuesta |
+| T-4924 | Panorama de gestión humana: cifras | En riesgo de permanencia · Evaluaciones pendientes · Evidencias por revisar | MATEO | Propuesta |
+| T-4925 | Panorama de la dirección de un comité: cifras · próximas · sin próximas | Miembros · Asistencia a reuniones · En riesgo · Próximas dos semanas · Sin actividades en las próximas dos semanas | MATEO | Propuesta |
+| T-4926 | Panorama de comunicaciones: campañas · cupo · sin cupo propio · sin campañas | Campañas activas · Correos de campaña que caben hoy · Cupo de hoy sin cuenta propia · Sin campañas activas | MATEO | Propuesta |
+| T-4927 | Panorama de la junta: tabla de salud y asambleas | Salud de los comités · Comité · Miembros · Asistencia · En riesgo · Cargos sin llenar · Asambleas de los próximos 30 días | MATEO | Propuesta |
+| T-4928 | Panorama: título del bloque de un comité | {rol}: {comité} | MATEO | Propuesta |
+| T-4929 | Operación: el Panorama en la barra lateral y su título | Panorama | MATEO | Propuesta |
+

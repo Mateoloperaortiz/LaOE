@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, lt, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
@@ -524,6 +524,40 @@ export async function listOccasionsForTerm(
     .from(occasion)
     .where(and(eq(occasion.termId, termId), inArray(occasion.status, [...statuses])))
     .orderBy(desc(occasion.startsAt));
+}
+
+export interface CalendarOccasion {
+  id: string;
+  title: string;
+  kind: OccasionRow["kind"];
+  status: OccasionStatus;
+  startsAt: Date;
+  committeeId: string | null;
+}
+
+/**
+ * Las ocasiones que empiezan en un rango, sin las canceladas, para el Calendario y el Panorama de la
+ * Operación (ADR-169). Quien la llama recorta por alcance.
+ */
+export async function listOccasionsBetween(from: Date, to: Date): Promise<CalendarOccasion[]> {
+  return getDb()
+    .select({
+      id: occasion.id,
+      title: occasion.title,
+      kind: occasion.kind,
+      status: occasion.status,
+      startsAt: occasion.startsAt,
+      committeeId: occasion.committeeId,
+    })
+    .from(occasion)
+    .where(
+      and(
+        gte(occasion.startsAt, from),
+        lt(occasion.startsAt, to),
+        ne(occasion.status, "CANCELLED"),
+      ),
+    )
+    .orderBy(asc(occasion.startsAt));
 }
 
 export async function countOpenOccasions(

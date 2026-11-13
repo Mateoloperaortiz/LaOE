@@ -15,6 +15,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { AppLink as Link } from "@/shared/ui/AppLink";
+import { hasPanorama, Panorama } from "./_components/Panorama";
 
 // Inicio del admin (ADR-037 regla 11): las secciones de T-160 y el tablero de pendientes de ADMIN
 // (tareas propias, vencidas del equipo, solicitudes, respuestas de la semana, pipelines, convocatorias,
@@ -79,8 +80,22 @@ function Tareas({ rows, conResponsable }: { rows: TaskRow[]; conResponsable: boo
 
 export default async function AdminHome() {
   const roles = await requireAdminAreaRoles("/admin");
+  if (!roles.isAdmin && hasPanorama(roles)) {
+    // El Panorama por rol (ADR-169 regla 2): quien no es ADMIN ve los bloques de sus roles.
+    const current = await getCurrentTerm();
+    return (
+      <div className="admin-dashboard flex flex-col gap-6">
+        <header className="admin-page-header">
+          <div>
+            <h1>{t("T-4929")}</h1>
+          </div>
+        </header>
+        <Panorama roles={roles} term={current} />
+      </div>
+    );
+  }
   if (!roles.isAdmin) {
-    // Quien no es ADMIN entra derecho a lo suyo (ADR-035 regla 15, ADR-036 regla 10).
+    // Sin bloque en el Panorama, entra derecho a lo suyo (ADR-035 regla 15, ADR-036 regla 10).
     const committee = roles.committees[0]?.committee;
     const group = roles.ledGroups[0];
     const competition = roles.competitions[0];
@@ -132,9 +147,10 @@ export default async function AdminHome() {
       <header className="admin-page-header">
         <div>
           <p className="text-sm text-tinta-suave">{t("T-1410")}</p>
-          <h1>{t("T-236")}</h1>
+          <h1>{t("T-4929")}</h1>
         </div>
       </header>
+      <Panorama roles={roles} term={term} />
       <div className="grid gap-6 lg:grid-cols-2">
         <Bloque id="pendientes" titulo={bPendientes} href="/admin/tareas?status=OPEN&assignee=mine">
           {tablero.myTasks.rows.length === 0 ? (

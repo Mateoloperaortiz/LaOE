@@ -12,10 +12,11 @@ test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
 test("el inicio del admin muestra el tablero con sus bloques y enlaces", async ({ page }) => {
   await page.goto("/admin");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-236"));
+  // El inicio es el Panorama (ADR-169 regla 2); los bloques de la operación general siguen debajo.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-4929"));
 
   const navigation = page.locator(".admin-sidebar").getByRole("navigation");
-  await expect(navigation.getByRole("link", { name: t("T-1401"), exact: true })).toHaveAttribute(
+  await expect(navigation.getByRole("link", { name: t("T-4929"), exact: true })).toHaveAttribute(
     "aria-current",
     "page",
   );

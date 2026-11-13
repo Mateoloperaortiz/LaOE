@@ -56,7 +56,6 @@ export const textosCliente = {
   "T-1266": "Ya cambió el día en Colombia. Actualiza para jugar tu nueva palabra.",
   "T-1267": "Tu partida ya terminó.",
   "T-1268": "Reintentar jugada",
-  "T-1401": "Inicio",
   "T-1402": "Menú",
   "T-1403": "Tu cuenta",
   "T-1404": "Saltar al contenido",
@@ -525,6 +524,8 @@ export const textosCliente = {
   "T-4908": "Imprimir",
   "T-4909":
     "Modo de campo · Lo que se hace de pie: registrar asistencia, aprobar excusas y mirar la tabla de The Games.",
+  "T-4918": "Calendario · Semana · Mes · Hoy · Anterior · Siguiente · Capas · Aplicar",
+  "T-4929": "Panorama",
   "T-585": "Registrados · Pendientes · Rechazados · Anulados",
   "T-878": "Retirar solicitud",
   "T-880": "Cuéntanos por qué",

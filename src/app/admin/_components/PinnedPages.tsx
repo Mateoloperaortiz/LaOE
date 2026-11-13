@@ -111,8 +111,12 @@ export function FavoriteToggle() {
 /** Las dos listas de la barra lateral; una lista vacía no se muestra. */
 export function PinnedLists({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const favorites = useStored(FAVORITES_KEY);
+  const pathname = usePathname();
+  // Recientes no repite lo fijado ni la pantalla en la que ya se está.
   const recents = useStored(RECENTS_KEY).filter(
-    (item) => !favorites.some((favorite) => favorite.href === item.href),
+    (item) =>
+      !favorites.some((favorite) => favorite.href === item.href) &&
+      item.href.split("?")[0] !== pathname,
   );
   const [, , favoritosTitulo, recientesTitulo] = tList("T-4898");
   return (

@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, ilike, inArray, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, lt, or, sql } from "drizzle-orm";
 import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -126,6 +126,40 @@ export async function listEditions(
     rows: rows.map((row) => ({ ...row, committeeIds: organizers.get(row.id) ?? [] })),
     total: total?.n ?? 0,
   };
+}
+
+export interface CalendarEdition {
+  id: string;
+  eventId: string;
+  name: string;
+  eventName: string;
+  startsAt: Date;
+  endsAt: Date | null;
+}
+
+/**
+ * Las ediciones que tocan un rango (empiezan antes de que termine y terminan después de que empieza),
+ * para el Calendario de la Operación (ADR-169). Una edición sin fin cuenta solo el día que empieza.
+ */
+export async function listEditionsBetween(from: Date, to: Date): Promise<CalendarEdition[]> {
+  return getDb()
+    .select({
+      id: eventEdition.id,
+      eventId: eventEdition.eventId,
+      name: eventEdition.name,
+      eventName: event.name,
+      startsAt: eventEdition.startsAt,
+      endsAt: eventEdition.endsAt,
+    })
+    .from(eventEdition)
+    .innerJoin(event, eq(event.id, eventEdition.eventId))
+    .where(
+      and(
+        lt(eventEdition.startsAt, to),
+        gte(sql`coalesce(${eventEdition.endsAt}, ${eventEdition.startsAt})`, from),
+      ),
+    )
+    .orderBy(asc(eventEdition.startsAt));
 }
 
 export interface CommitteeEditionRow {

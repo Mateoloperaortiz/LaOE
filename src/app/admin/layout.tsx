@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { AdminShell } from "./_components/AdminShell";
 import { DeskCounter, DeskLink } from "./_components/DeskCounter";
+import { hasPanorama } from "./_components/Panorama";
 import { createItemsFor } from "./_kit/create-items";
 import { adminNavGroups } from "./_kit/nav";
 
@@ -78,8 +79,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     .filter((group) => group.items.length > 0);
   // La paleta busca los destinos del actor en el navegador, la Mesa incluida (ADR-165 regla 2).
   const destinations = [
-    ...(actor.isAdmin ? [{ href: "/admin", label: t("T-1401"), space: null }] : []),
+    ...(hasPanorama(roles) ? [{ href: "/admin", label: t("T-4929"), space: null }] : []),
     { href: "/admin/mesa", label: t("T-4864"), space: null },
+    { href: "/admin/calendario", label: tList("T-4918")[0] ?? "", space: null },
     ...groups.flatMap((group) =>
       group.items.map((item) => ({ href: item.href, label: item.label, space: group.label })),
     ),
@@ -104,7 +106,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <AdminShell
       groups={groups}
-      showHome={actor.isAdmin}
+      showHome={hasPanorama(roles)}
       createItems={createItems}
       desk={
         <Suspense fallback={<DeskLink total={null} />}>

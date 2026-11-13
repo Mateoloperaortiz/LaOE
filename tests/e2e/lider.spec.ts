@@ -54,7 +54,10 @@ test.afterEach(async () => {
 test("el líder entra a su comité, crea la serie semanal y no ve el resto del admin", async ({
   page,
 }) => {
+  // La dirección entra al Panorama, con el bloque de su comité, y de ahí a su comité (ADR-169).
   await page.goto("/admin");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-4929"));
+  await page.locator(`.panorama a[href="/admin/comites/${slug}"]`).first().click();
   await expect(page).toHaveURL(new RegExp(`/admin/comites/${slug}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
   await expect(page.getByText(tList("T-651")[0])).toBeVisible();

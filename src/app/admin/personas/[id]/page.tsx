@@ -48,7 +48,7 @@ import { TeamParticipations } from "@/modules/permanence/components/TeamParticip
 import { getConfig, getPrivacyPolicyState } from "@/modules/system";
 import { listAllTerms } from "@/modules/terms";
 import { listPassesFor } from "@/modules/wallet";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { Cabecera } from "./_ui/Cabecera";
 import { isTab, isTimelineFilter, type Tab, tabLabels } from "./_ui/etiquetas";
 import { Paneles } from "./_ui/Paneles";
@@ -69,6 +69,9 @@ import {
 // Persona 360 (02-crm.md, ADR-034): UI a medida con pestañas por URL y acciones en panel lateral.
 
 type Search = Record<string, string | string[] | undefined>;
+
+/** Cuántas entradas de la línea muestra la ficha como actividad reciente. */
+const RECENT_ACTIVITY = 8;
 
 /** Los tipos con filtro propio en la línea de tiempo; «Otros» es todo lo demás. */
 const MAIN_KINDS: InteractionKind[] = [
@@ -154,10 +157,13 @@ export default async function PersonaPage({
     tab === "comunicaciones" ? listPassesFor(id) : Promise.resolve([]),
     tab === "comunicaciones" ? getCarnetMetadata(id) : Promise.resolve(null),
   ]);
+  // La ficha (ADR-169 regla 3) abre con la actividad reciente: las últimas entradas de la línea.
   const interactions =
     tab === "linea"
       ? await listInteractions(id, filter === "OTHER" ? { except: MAIN_KINDS } : filter)
-      : [];
+      : tab === "resumen"
+        ? (await listInteractions(id, "ALL")).slice(0, RECENT_ACTIVITY)
+        : [];
   const tasks =
     tab === "tareas" ? (await listTasks({ q: "", personId: id, page: 1, pageSize: 100 })).rows : [];
   const assignees = accion === "tarea" ? await assigneeOptions() : [];
@@ -195,29 +201,50 @@ export default async function PersonaPage({
     my.term && tab === "resumen" ? await listTeamParticipations([id], my.term.id) : new Map();
   let content: React.ReactNode;
   switch (tab) {
-    case "resumen":
+    case "resumen": {
+      const [actividad, propiedades] = tList("T-4917");
       content = (
-        <>
-          {my.term ? <TeamParticipations items={teams.get(id) ?? []} term={my.term.code} /> : null}
-          <TabResumen
-            data={data}
-            permissions={permissions}
-            committeeNames={committeeNames}
-            lastContact={lastContact}
-            openTasks={openTasks}
-            balance={balance}
-            assemblies={
-              assemblies
-                ? t("T-670", {
-                    n: attendedRequired(assemblies.requirement, assemblies.compliance),
-                    total: requiredTotal(assemblies.requirement),
-                  })
-                : null
-            }
-          />
-        </>
+        <div className="persona-ficha">
+          <div className="flex min-w-0 flex-col gap-6">
+            {my.term ? (
+              <TeamParticipations items={teams.get(id) ?? []} term={my.term.code} />
+            ) : null}
+            <section aria-labelledby="ficha-actividad" className="flex flex-col gap-3">
+              <h2 id="ficha-actividad" className="text-titulo-md">
+                {actividad}
+              </h2>
+              <TabLinea
+                personId={id}
+                interactions={interactions}
+                filter="ALL"
+                actorId={actor.personId}
+                compact
+              />
+            </section>
+          </div>
+          <aside aria-label={propiedades} className="persona-ficha-propiedades">
+            <TabResumen
+              vertical
+              data={data}
+              permissions={permissions}
+              committeeNames={committeeNames}
+              lastContact={lastContact}
+              openTasks={openTasks}
+              balance={balance}
+              assemblies={
+                assemblies
+                  ? t("T-670", {
+                      n: attendedRequired(assemblies.requirement, assemblies.compliance),
+                      total: requiredTotal(assemblies.requirement),
+                    })
+                  : null
+              }
+            />
+          </aside>
+        </div>
       );
       break;
+    }
     case "participacion":
       content = (
         <TabParticipacion

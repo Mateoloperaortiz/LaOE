@@ -42,7 +42,10 @@ test.afterEach(async () => {
 test("la junta ve agregados sin nombres, exporta el CSV y no entra al resto del admin", async ({
   page,
 }) => {
+  // La junta entra al Panorama, con su bloque, y de ahí a su panel (ADR-169 regla 2).
   await page.goto("/admin");
+  await expect(page.getByRole("region", { name: tList("T-4922")[0], exact: true })).toBeVisible();
+  await page.locator('.panorama a[href="/admin/junta"]').first().click();
   await expect(page).toHaveURL(/\/admin\/junta$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-821"));
   await expect(page.getByText(tList("T-824")[0])).toBeVisible();

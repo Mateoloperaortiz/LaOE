@@ -184,6 +184,7 @@ export {
   getOccasionsByIds,
   listMemberAgenda,
   listOccasions,
+  listOccasionsBetween,
   listOccasionsForTerm,
   type OccasionListRow,
   type OccasionRow,

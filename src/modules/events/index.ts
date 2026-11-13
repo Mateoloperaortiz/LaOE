@@ -9,6 +9,7 @@ export {
   listEditionOptions,
   listEditionRefs,
   listEditions,
+  listEditionsBetween,
   listEditionsByCommittee,
   listMemberEditionsForIcs,
   listPublicEditionsForIcs,

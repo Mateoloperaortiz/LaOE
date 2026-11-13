@@ -3,10 +3,11 @@ import type { AdminSpaceIcon } from "@/shared/admin-kit/navigation";
 // Los atajos de la Operación (ADR-167 regla 1, plan maestro anexo A): qué hace cada tecla, sin el DOM,
 // para que se puedan probar solas. El componente `OperationShortcuts` las escucha y las ejecuta.
 
-/** La letra de cada espacio después de G. La Mesa y el Inicio no son espacios, pero también van. */
-export const SPACE_KEYS: Record<AdminSpaceIcon | "mesa" | "inicio", string> = {
+/** La letra de cada espacio después de G. La Mesa, el Panorama (inicio) y el Calendario no son espacios, pero también van. */
+export const SPACE_KEYS: Record<AdminSpaceIcon | "mesa" | "inicio" | "calendario", string> = {
   mesa: "m",
   inicio: "i",
+  calendario: "l",
   personas: "p",
   comites: "c",
   admision: "a",

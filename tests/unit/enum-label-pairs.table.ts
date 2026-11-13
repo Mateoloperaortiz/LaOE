@@ -2,6 +2,7 @@
 // tupla que hace sus veces) y una lista del catálogo de textos que el código empareja por posición
 // (DT-011, ADR-126 regla 1). `positions` dice qué posición LITERAL de la lista lee hoy cada valor.
 // No se compara ninguna redacción: un texto de docs/14-copy-y-textos.md cambia sin tocar esta tabla.
+import { CALENDAR_LAYERS } from "@/app/admin/_kit/calendar-grid";
 import { DESK_DATE_KINDS, DESK_SECTIONS } from "@/app/admin/_kit/desk-items";
 import { areaLabel } from "@/app/admin/comites/[slug]/_ui/Areas";
 import { END_REASONS, TABS, TIMELINE_FILTERS } from "@/app/admin/personas/[id]/_ui/etiquetas";
@@ -924,6 +925,12 @@ export const PAIRS: readonly LabelPair[] = [
     order: "TODO_KINDS",
     positions: { evidence: 0, availability: 1, call: 2, request: 3 },
     canonical: TODO_KINDS,
+  },
+  {
+    code: "T-4919",
+    order: "CALENDAR_LAYERS",
+    positions: { ACTIVITY: 0, ASSEMBLY: 1, EDITION_SESSION: 2, EDITION: 3 },
+    canonical: CALENDAR_LAYERS,
   },
 ];
 

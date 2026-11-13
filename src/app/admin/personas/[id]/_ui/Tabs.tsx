@@ -40,7 +40,10 @@ export function TabResumen({
   openTasks,
   balance,
   assemblies,
+  vertical = false,
 }: {
+  /** En la columna de propiedades de la ficha (ADR-169 regla 3), un dato debajo del otro. */
+  vertical?: boolean;
   data: Person360;
   permissions: ActorPermission[];
   committeeNames: Map<string, string>;
@@ -55,7 +58,7 @@ export function TabResumen({
   const [admin, lider, junta] = tList("T-289");
   const vivos = data.consents.filter((item) => item.live !== null).length;
   return (
-    <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <dl className={vertical ? "flex flex-col gap-4" : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"}>
       <Dato etiqueta={contacto} valor={lastContact ? formatDateTime(lastContact) : null} />
       <Dato etiqueta={tareas} valor={openTasks} />
       <Dato etiqueta={consentimientos} valor={`${vivos} / ${data.consents.length}`} />
@@ -86,11 +89,14 @@ export function TabLinea({
   interactions,
   filter,
   actorId,
+  compact = false,
 }: {
   personId: string;
   interactions: InteractionView[];
   filter: TimelineFilterKey;
   actorId: string;
+  /** La actividad reciente de la ficha: sin filtros y con el enlace a la línea completa. */
+  compact?: boolean;
 }) {
   const filtros = tList("T-454");
   const filtroLabels = tLabels("T-454", TIMELINE_FILTERS);
@@ -98,20 +104,22 @@ export function TabLinea({
   const base = `/admin/personas/${personId}?pestana=linea`;
   return (
     <div className="flex flex-col gap-4">
-      <nav aria-label={filtros[0]} className="flex flex-wrap gap-2">
-        {TIMELINE_FILTERS.map((key) => (
-          <Link
-            key={key}
-            href={key === "ALL" ? base : `${base}&tipo=${key}`}
-            aria-current={key === filter ? "page" : undefined}
-            className={`rounded-full px-3 py-1 text-sm font-semibold ${
-              key === filter ? "bg-oe-navy text-oe-paper" : "border border-borde text-titulo"
-            }`}
-          >
-            {filtroLabels[key] ?? key}
-          </Link>
-        ))}
-      </nav>
+      {compact ? null : (
+        <nav aria-label={filtros[0]} className="flex flex-wrap gap-2">
+          {TIMELINE_FILTERS.map((key) => (
+            <Link
+              key={key}
+              href={key === "ALL" ? base : `${base}&tipo=${key}`}
+              aria-current={key === filter ? "page" : undefined}
+              className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                key === filter ? "bg-oe-navy text-oe-paper" : "border border-borde text-titulo"
+              }`}
+            >
+              {filtroLabels[key] ?? key}
+            </Link>
+          ))}
+        </nav>
+      )}
       {interactions.length === 0 ? (
         <p className="text-tinta-suave">{t("T-457")}</p>
       ) : (
@@ -143,6 +151,11 @@ export function TabLinea({
           ))}
         </ol>
       )}
+      {compact ? (
+        <Link href={base} className="self-start text-sm font-semibold underline underline-offset-4">
+          {tList("T-4917")[2]}
+        </Link>
+      ) : null}
     </div>
   );
 }

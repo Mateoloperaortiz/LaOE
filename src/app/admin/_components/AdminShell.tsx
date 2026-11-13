@@ -22,6 +22,7 @@ import { AppLink as Link } from "@/shared/ui/AppLink";
 import { AreaSwitch } from "@/shared/ui/AreaSwitch";
 import { AdjustmentsIcon } from "@/shared/ui/icons/AdjustmentsIcon";
 import { BriefcaseIcon } from "@/shared/ui/icons/BriefcaseIcon";
+import { CalendarEventIcon } from "@/shared/ui/icons/CalendarEventIcon";
 import { ChevronDownIcon } from "@/shared/ui/icons/ChevronDownIcon";
 import { ChevronRightIcon } from "@/shared/ui/icons/ChevronRightIcon";
 import { ClipboardCheckIcon } from "@/shared/ui/icons/ClipboardCheckIcon";
@@ -117,6 +118,7 @@ function Navigation({
   const active = activeAdminHref(pathname, [
     ...(showHome ? ["/admin"] : []),
     "/admin/mesa",
+    "/admin/calendario",
     ...groups.flatMap((group) => group.items.map((item) => item.href)),
   ]);
   const activeGroup = groups.find((group) => group.items.some((item) => item.href === active))?.id;
@@ -135,7 +137,7 @@ function Navigation({
           <span className="admin-nav-icon">
             <HomeIcon size={18} />
           </span>
-          <span className="admin-nav-label">{t("T-1401")}</span>
+          <span className="admin-nav-label">{t("T-4929")}</span>
         </Link>
       ) : null}
       <Link
@@ -148,6 +150,17 @@ function Navigation({
           <InboxIcon size={18} />
         </span>
         <span className="admin-nav-label">{t("T-4864")}</span>
+      </Link>
+      <Link
+        href="/admin/calendario"
+        onClick={() => onNavigate?.()}
+        aria-current={active === "/admin/calendario" ? "page" : undefined}
+        className="admin-nav-link"
+      >
+        <span className="admin-nav-icon">
+          <CalendarEventIcon size={18} />
+        </span>
+        <span className="admin-nav-label">{tList("T-4918")[0]}</span>
       </Link>
       {fieldMode ? (
         <Link
@@ -251,7 +264,8 @@ export function AdminShell({
   // G y una letra: la Mesa, el Inicio y el primer destino de cada espacio que el actor ve.
   const spaces: ShortcutSpace[] = [
     { key: SPACE_KEYS.mesa, href: "/admin/mesa", label: t("T-4864") },
-    ...(showHome ? [{ key: SPACE_KEYS.inicio, href: "/admin", label: t("T-1401") }] : []),
+    ...(showHome ? [{ key: SPACE_KEYS.inicio, href: "/admin", label: t("T-4929") }] : []),
+    { key: SPACE_KEYS.calendario, href: "/admin/calendario", label: tList("T-4918")[0] ?? "" },
     ...groups.flatMap((group) => {
       const first = group.items[0];
       return group.icon && first
