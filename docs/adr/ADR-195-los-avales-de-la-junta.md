@@ -1,6 +1,6 @@
 # ADR-195: Los avales de la junta
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Enmienda: [ADR-059](ADR-059-presupuesto-del-comite.md) y [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 1 (quién decide el aval de evento); [ADR-123](ADR-123-reglas-de-verificacion-y-correccion-del-undecimo-ciclo.md) regla 7 (la prueba y el aval de evento); [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) reglas 6 y 11 (cuándo aplica una falta y el aval de la VP de GH para un nuevo); [ADR-150](ADR-150-inventario-reservas-y-operacion-logistica.md) (la reserva deja de nacer confirmada)
 - Relacionadas: ADR-061, ADR-166, ADR-193, ADR-194
