@@ -26,14 +26,15 @@ describe("pantalla de error por área", () => {
     for (const path of AREAS) {
       const source = readFileSync(path, "utf8");
       expect(source, path).toContain('import { AreaErrorScreen } from "@/shared/ui/ErrorScreen";');
-      expect(source, path).toContain("<AreaErrorScreen reset={reset} />");
+      // El área solo elige el tamaño del botón (R6-C): `area="operacion"` en /admin.
+      expect(source, path).toMatch(/<AreaErrorScreen reset=\{reset\}( area="operacion")? \/>/);
       expect(source, path).not.toMatch(/\bt\(/);
     }
     const screen = readFileSync(SCREEN, "utf8");
     expect(screen).toContain('t("T-033")');
     // La pantalla de un área es la misma de la raíz dentro de su contenedor.
     expect(screen.slice(screen.indexOf("export function AreaErrorScreen"))).toContain(
-      "<ErrorScreen reset={reset} />",
+      "<ErrorScreen reset={reset} area={area} />",
     );
   });
 
