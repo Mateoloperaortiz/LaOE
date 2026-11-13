@@ -491,3 +491,19 @@ export async function listMacroeventDirectorsForTerm(
       : [],
   );
 }
+
+/** Los cargos de la persona en mesas de macroevento, para su empalme (ADR-197 regla 5). */
+export async function listMyMacroeventSeats(
+  personId: string,
+): Promise<Array<{ editionId: string; roleCode: string; roleLabel: string }>> {
+  const rows = await getDb()
+    .selectDistinct({
+      editionId: appointment.editionId,
+      roleCode: macroeventRole.code,
+      roleLabel: macroeventRole.label,
+    })
+    .from(appointment)
+    .innerJoin(macroeventRole, eq(macroeventRole.code, appointment.roleCode))
+    .where(eq(appointment.personId, personId));
+  return rows.flatMap((row) => (row.editionId ? [{ ...row, editionId: row.editionId }] : []));
+}

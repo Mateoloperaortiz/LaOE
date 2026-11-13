@@ -55,6 +55,15 @@ export async function templateQuestions(
   return [...general, ...own];
 }
 
+/** Solo las preguntas propias de un cargo de la mesa, para editarlas aparte de las generales. */
+export async function roleQuestions(kind: FollowUpKind, roleCode: string): Promise<string[]> {
+  const [row] = await getDb()
+    .select()
+    .from(followUpTemplate)
+    .where(and(eq(followUpTemplate.kind, kind), eq(followUpTemplate.roleCode, roleCode)));
+  return row?.questions ?? [];
+}
+
 /** Si la persona está en el CAP del semestre (el grupo de trabajo de código CAP). */
 export async function isCapMember(
   personId: string,
@@ -98,7 +107,7 @@ async function currentTermId(): Promise<string> {
 export const templateInputSchema = z.object({
   kind: z.enum(FOLLOW_UP_KINDS),
   roleCode: z.string().trim().min(1).max(60).nullable().default(null),
-  questions: z.array(z.string().trim().min(2).max(300)).min(1).max(30),
+  questions: z.array(z.string().trim().min(2).max(300)).max(30),
 });
 
 export type TemplateInput = z.input<typeof templateInputSchema>;
@@ -107,6 +116,8 @@ export type TemplateInput = z.input<typeof templateInputSchema>;
 export async function saveTemplate(ctx: CommandContext, raw: TemplateInput): Promise<void> {
   const input = templateInputSchema.parse(raw);
   if (!(await isPresidency(ctx))) throw new DomainError(guard(0));
+  // La plantilla general necesita al menos una pregunta; la de un cargo puede quedar vacía.
+  if (input.questions.length === 0 && !input.roleCode) throw new DomainError(guard(4));
   const [before] = await ctx.tx
     .select()
     .from(followUpTemplate)

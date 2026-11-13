@@ -16,6 +16,7 @@ export {
   listPublishedEditionsOf,
   type MemberEdition,
   type PublicEdition,
+  previousEditionOf,
 } from "./domain/editions";
 export {
   getEvent,

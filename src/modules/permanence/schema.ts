@@ -500,3 +500,13 @@ export const followUpEntry = pgTable(
     check("follow_up_entry_answers_array", sql`jsonb_typeof(${t.answers}) = 'array'`),
   ],
 );
+
+// El cierre del seguimiento de una edición de macroevento (ADR-197 regla 5): lo hace la Presidencia, y
+// solo con el empalme de cada cargo de la mesa entregado.
+export const editionFollowUp = pgTable("edition_follow_up", {
+  editionId: text()
+    .primaryKey()
+    .references(() => eventEdition.id, { onDelete: "cascade" }),
+  closedAt: timestampTz().notNull(),
+  closedById: text().references(() => person.id, { onDelete: "set null" }),
+});

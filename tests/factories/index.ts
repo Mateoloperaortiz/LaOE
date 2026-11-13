@@ -1417,6 +1417,22 @@ export async function seedEdition(
   return row.id;
 }
 
+/** Cargo en la mesa de una edición de macroevento (titular, salvo `coDirector`). */
+export async function seedMacroeventDirector(
+  personId: string,
+  termId: string,
+  editionId: string,
+  roleCode: string,
+  coDirector = false,
+): Promise<string> {
+  const [row] = await db()
+    .insert(appointment)
+    .values({ personId, termId, kind: "MACROEVENT_DIRECTOR", editionId, roleCode, coDirector })
+    .returning({ id: appointment.id });
+  if (!row) throw new Error("seed macroevent director");
+  return row.id;
+}
+
 type MediaAssetOverrides = Partial<Omit<typeof mediaAsset.$inferInsert, "objectKey">>;
 
 /**

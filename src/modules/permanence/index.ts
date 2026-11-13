@@ -29,6 +29,17 @@ export {
   listCompliance,
 } from "./domain/compliance";
 export {
+  closeEditionFollowUpAs,
+  editionClosure,
+  editionHandovers,
+  editionLog,
+  editionsPendingClosure,
+  listEditionFollowUps,
+  myEditionHandovers,
+  saveEditionEntryAs,
+  saveEditionHandoverAs,
+} from "./domain/edition-follow-up";
+export {
   countPendingFor,
   evaluateAs,
   evaluationInputSchema,
@@ -41,6 +52,7 @@ export {
   listCapMembers,
   listCommitteeLog,
   listCompanions,
+  roleQuestions,
   saveCapEntryAs,
   saveTemplateAs,
   templateQuestions,

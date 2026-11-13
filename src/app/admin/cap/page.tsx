@@ -48,11 +48,10 @@ export default async function Page({ searchParams }: PageProps<"/admin/cap">) {
       ) : single(query.guardado) === "1" ? (
         <Banner tone="exito" title={tList("T-4302")[0]} />
       ) : null}
-      {presidency ? (
-        <p className="text-sm">
-          <Link href="/admin/cap/plantillas">{plantillas}</Link>
-        </p>
-      ) : null}
+      <p className="flex flex-wrap gap-4 text-sm">
+        <Link href="/admin/cap/ediciones">{tList("T-5135")[0]}</Link>
+        {presidency ? <Link href="/admin/cap/plantillas">{plantillas}</Link> : null}
+      </p>
       <WorkTable
         caption={heading ?? ""}
         columns={[

@@ -16566,7 +16566,7 @@ export const textos = {
   },
   "T-5129": {
     where: "Bitácora: guardas",
-    text: "Esto lo hace la Presidencia. · Elige a alguien que esté en el CAP este semestre. · En la bitácora de un comité escribe su acompañante del CAP o la Presidencia. · Responde al menos una pregunta.",
+    text: "Esto lo hace la Presidencia. · Elige a alguien que esté en el CAP este semestre. · En la bitácora de un comité escribe su acompañante del CAP o la Presidencia. · Responde al menos una pregunta. · Escribe al menos una pregunta.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16607,9 +16607,48 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-5135": {
+    where:
+      "Seguimiento de macroeventos: lista (título · texto · columnas: edición · empalmes · estado · abierto · cerrado · vacío)",
+    text: "Seguimiento de macroeventos · Cada edición con su plan del mes, las reuniones con Desarrollo Estudiantil y el empalme de cada cargo de la mesa. · Edición · Empalmes · Estado · Abierto · Cerrado · No hay ediciones de macroeventos.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5136": {
+    where: "Seguimiento de macroeventos: guardas",
+    text: "El seguimiento de esta edición ya se cerró. · El empalme de un cargo lo entrega quien tiene ese cargo en la mesa de la edición. · No se puede cerrar: falta el empalme de {cargos}.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5137": {
+    where:
+      "Seguimiento de una edición (título · plan · reunión · fecha · guardar · empalmes · entregado · falta · cerrar · cerrado · historia · vacío · volver)",
+    text: "Seguimiento del macroevento · Plan de {mes} con las direcciones generales · Reunión con Desarrollo Estudiantil · Fecha de la reunión · Guardar · Empalmes de la mesa · Entregado el {fecha} · Falta · Cerrar el seguimiento · Seguimiento cerrado el {fecha}. · Lo que va · Todavía no hay nada. · Volver al seguimiento de macroeventos",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5138": {
+    where: "Seguimiento de una edición: entradas de la historia",
+    text: "Plan de {mes} · Reunión del {fecha} con Desarrollo Estudiantil",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5139": {
+    where:
+      "Tu empalme: macroeventos (título · lo entregas · lo recibes · entregar · entregado · sin cargos)",
+    text: "Empalme de macroeventos · Lo entregas por tu cargo en {edición} · Lo recibes de {edición} · Entregar el empalme · Empalme entregado. · No tienes cargos en una mesa de macroevento.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-514": {
     where: "Membresía: sin cargos",
     text: "Sin cargos registrados.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5140": {
+    where: "Mesa de la Presidencia: seguimientos por cerrar",
+    text: "Seguimiento por cerrar: {edición} · faltan {n} empalmes",
     owner: "MATEO",
     status: "Propuesta",
   },

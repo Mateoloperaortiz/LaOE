@@ -10,9 +10,11 @@ import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
 import {
   assignCompanionAs,
+  closeEditionFollowUpAs,
   FOLLOW_UP_KINDS,
   questionsFromText,
   saveCapEntryAs,
+  saveEditionEntryAs,
   saveTemplateAs,
 } from "@/modules/permanence";
 import { t } from "@/shared/copy";
@@ -74,4 +76,34 @@ export async function saveTemplateAction(formData: FormData): Promise<void> {
       questions: questionsFromText(String(formData.get("questions") ?? "")),
     }),
   );
+}
+
+/** El plan del mes o una reunión con Desarrollo Estudiantil de una edición (ADR-197 regla 5). */
+export async function saveEditionEntryAction(formData: FormData): Promise<void> {
+  const editionId = formText(formData, "editionId");
+  if (!ID.test(editionId)) redirect("/admin/cap/ediciones");
+  const back = `/admin/cap/ediciones/${editionId}`;
+  const roles = await requireAdminAreaRoles(back);
+  const actor = await actorContext(roles.actor);
+  const kind = formText(formData, "kind") === "EDITION_PLAN" ? "EDITION_PLAN" : "EDITION_MEETING";
+  await run(back, () =>
+    saveEditionEntryAs(actor, {
+      editionId,
+      kind,
+      ...(kind === "EDITION_PLAN"
+        ? { month: formText(formData, "month") }
+        : { occurredOn: formText(formData, "occurredOn") }),
+      answers: formData.getAll("answers").map((value) => String(value)),
+    }),
+  );
+}
+
+/** Cerrar el seguimiento de una edición: sin todos los empalmes, el dominio no lo deja. */
+export async function closeEditionAction(formData: FormData): Promise<void> {
+  const editionId = formText(formData, "editionId");
+  if (!ID.test(editionId)) redirect("/admin/cap/ediciones");
+  const back = `/admin/cap/ediciones/${editionId}`;
+  const roles = await requireAdminAreaRoles(back);
+  const actor = await actorContext(roles.actor);
+  await run(back, () => closeEditionFollowUpAs(actor, editionId));
 }

@@ -8,6 +8,7 @@ import { actorContext } from "@/app/_lib/actor";
 import { formRaw } from "@/app/_lib/form";
 import { getMemberActor } from "@/modules/identity";
 import { saveHandoverAs, verifyHandoverAs } from "@/modules/people";
+import { saveEditionHandoverAs } from "@/modules/permanence";
 import { DomainError } from "@/shared/lib/errors";
 
 // Guardar y verificar el empalme de un cargo propio (ADR-172): el dominio comprueba que la persona
@@ -49,4 +50,25 @@ export async function verifyHandoverAction(formData: FormData): Promise<void> {
     roleCode: formData.get("roleCode"),
   });
   await run(formData, (actor) => verifyHandoverAs(actor, input));
+}
+
+/** El empalme de un cargo en la mesa de un macroevento (ADR-197 regla 5). */
+export async function saveEditionHandoverAction(formData: FormData): Promise<void> {
+  const actor = await getMemberActor();
+  if (!actor) redirect(`/ingresar?next=${encodeURIComponent(BACK)}`);
+  const editionId = String(formData.get("editionId") ?? "");
+  try {
+    await saveEditionHandoverAs(await actorContext(actor), {
+      editionId,
+      roleCode: String(formData.get("roleCode") ?? ""),
+      answers: formData.getAll("answers").map((value) => String(value)),
+    });
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(`${BACK}?error=${encodeURIComponent(error.message)}#empalme-macro`);
+    }
+    throw error;
+  }
+  revalidatePath(BACK);
+  redirect(`${BACK}?entregado=1#empalme-macro`);
 }

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { single } from "@/app/_lib/search";
-import { currentSeatAuthority } from "@/modules/people";
-import { FOLLOW_UP_KINDS, templateQuestions } from "@/modules/permanence";
+import { currentSeatAuthority, listMacroeventRoles } from "@/modules/people";
+import { FOLLOW_UP_KINDS, roleQuestions, templateQuestions } from "@/modules/permanence";
 import { tLabels, tList } from "@/shared/copy";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Banner } from "@/shared/ui/Banner";
@@ -25,10 +25,14 @@ export default async function Page({ searchParams }: PageProps<"/admin/cap/plant
   }
   const query = await searchParams;
   const templates = await Promise.all(
-    // Los formatos del CAP; los de los macroeventos llegan con su tramo (P4).
-    FOLLOW_UP_KINDS.filter((kind) => kind.startsWith("CAP_")).map(async (kind) => ({
-      kind,
-      questions: await templateQuestions(kind),
+    FOLLOW_UP_KINDS.map(async (kind) => ({ kind, questions: await templateQuestions(kind) })),
+  );
+  // El empalme lleva, además de las generales, las preguntas propias de cada cargo de la mesa.
+  const roles2 = await listMacroeventRoles();
+  const byRole = await Promise.all(
+    roles2.map(async (role) => ({
+      ...role,
+      questions: await roleQuestions("EDITION_HANDOVER", role.code),
     })),
   );
   const kinds = tLabels("T-5123", FOLLOW_UP_KINDS);
@@ -58,6 +62,27 @@ export default async function Page({ searchParams }: PageProps<"/admin/cap/plant
                 name="questions"
                 rows={Math.max(4, questions.length + 1)}
                 defaultValue={questions.join("\n")}
+              />
+            </Field>
+            <Button type="submit" variant="secundaria" area="operacion" className="self-start">
+              {guardar}
+            </Button>
+          </form>
+        ))}
+        {byRole.map((role) => (
+          <form key={role.code} action={saveTemplateAction} className="flex flex-col gap-3">
+            <h2 className="text-display-md">{`${kinds.EDITION_HANDOVER ?? ""} · ${role.label}`}</h2>
+            <input type="hidden" name="kind" value="EDITION_HANDOVER" />
+            <input type="hidden" name="roleCode" value={role.code} />
+            <Field
+              id={`plantilla-cargo-${role.code}`}
+              label={`${kinds.EDITION_HANDOVER ?? ""} · ${role.label}: ${unaPorLinea ?? ""}`}
+            >
+              <TextArea
+                id={`plantilla-cargo-${role.code}`}
+                name="questions"
+                rows={Math.max(3, role.questions.length + 1)}
+                defaultValue={role.questions.join("\n")}
               />
             </Field>
             <Button type="submit" variant="secundaria" area="operacion" className="self-start">

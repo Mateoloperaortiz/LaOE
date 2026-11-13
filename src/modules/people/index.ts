@@ -18,6 +18,7 @@ export {
   listDirectedEditionIds,
   listMacroeventBoard,
   listMacroeventRoles,
+  listMyMacroeventSeats,
   MACROEVENT_ROLE_CODES,
   requireEditionTerm,
 } from "./domain/appointments";

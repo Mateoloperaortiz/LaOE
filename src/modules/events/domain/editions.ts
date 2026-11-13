@@ -536,3 +536,29 @@ export const findUpcomingEditionsForMembers = cache(
     }));
   },
 );
+
+/** La edición anterior del mismo macroevento, la que le pasa su empalme (ADR-197 regla 5). */
+export async function previousEditionOf(editionId: string): Promise<EditionRef | null> {
+  const db = getDb();
+  const [current] = await db
+    .select({ eventId: eventEdition.eventId, startsAt: eventEdition.startsAt })
+    .from(eventEdition)
+    .where(eq(eventEdition.id, editionId));
+  if (!current) return null;
+  const [row] = await db
+    .select({
+      id: eventEdition.id,
+      eventId: event.id,
+      name: eventEdition.name,
+      eventName: event.name,
+      startsAt: eventEdition.startsAt,
+    })
+    .from(eventEdition)
+    .innerJoin(event, eq(event.id, eventEdition.eventId))
+    .where(
+      and(eq(eventEdition.eventId, current.eventId), lt(eventEdition.startsAt, current.startsAt)),
+    )
+    .orderBy(desc(eventEdition.startsAt))
+    .limit(1);
+  return row ?? null;
+}

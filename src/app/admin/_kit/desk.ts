@@ -9,7 +9,7 @@ import {
   VIABILITY_ALERTS,
 } from "@/modules/participation";
 import { listCommitteesMissingRequiredRoles, listPendingSanctions } from "@/modules/people";
-import { countPendingFor } from "@/modules/permanence";
+import { countPendingFor, editionsPendingClosure } from "@/modules/permanence";
 import { countDeadLetters } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
 import { t, tLabels, tList } from "@/shared/copy";
@@ -63,6 +63,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     loans,
     eventAvales,
     pendingFaltas,
+    pendingClosures,
   ] = await Promise.all([
     roles.isAdmin
       ? listTasks({
@@ -96,6 +97,10 @@ export const loadDesk = cache(async (): Promise<Desk> => {
       ? listEventApprovals({ status: "PENDING" })
       : [],
     roles.boardSeats.some((item) => item.seat === "VP_GH") ? listPendingSanctions() : [],
+    // Los seguimientos de macroeventos que ya terminaron y no se cierran (ADR-197 regla 5).
+    roles.boardSeats.some((item) => item.seat === "PRESIDENT" && item.as === "HOLDER")
+      ? editionsPendingClosure(now)
+      : [],
   ]);
   const overdueLoans = loans.filter((row) => row.status === "OUT" && row.overdue);
   const openIncidents = incidents.filter((row) => row.status === "OPEN");
@@ -131,6 +136,16 @@ export const loadDesk = cache(async (): Promise<Desk> => {
             date: null,
           })),
       ),
+    ...pendingClosures.map((row) => {
+      const [porCerrar, faltan] = tList("T-5140");
+      return {
+        id: `seguimiento-${row.id}`,
+        title: (porCerrar ?? "").replace("{edición}", row.label),
+        detail: (faltan ?? "").replace("{n}", String(row.total - row.delivered)),
+        href: `/admin/cap/ediciones/${row.id}`,
+        date: null,
+      };
+    }),
     ...(deadLetters > 0
       ? [
           {
