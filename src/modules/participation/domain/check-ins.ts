@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, type SQL, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { lockPersonAnonymization } from "@/modules/people";
 import { lockOpenTermPoints, lockTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
@@ -697,8 +697,11 @@ export interface ApprovedCheckIn {
   occasionId: string;
 }
 
-export async function listApprovedCheckInsForTerm(termId: string): Promise<ApprovedCheckIn[]> {
-  return getDb()
+export async function listApprovedCheckInsForTerm(
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<ApprovedCheckIn[]> {
+  return exec
     .select({ personId: checkIn.personId, occasionId: checkIn.occasionId })
     .from(checkIn)
     .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
@@ -706,8 +709,11 @@ export async function listApprovedCheckInsForTerm(termId: string): Promise<Appro
 }
 
 /** Ocasiones del término con excusa aceptada, por persona (ADR-060 regla 5). */
-export async function listExcusedCheckInsForTerm(termId: string): Promise<ApprovedCheckIn[]> {
-  return getDb()
+export async function listExcusedCheckInsForTerm(
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<ApprovedCheckIn[]> {
+  return exec
     .select({ personId: checkIn.personId, occasionId: checkIn.occasionId })
     .from(checkIn)
     .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
@@ -717,8 +723,9 @@ export async function listExcusedCheckInsForTerm(termId: string): Promise<Approv
 export async function listExcusedCheckInsForPersonInTerm(
   personId: string,
   termId: string,
+  exec: Executor = getDb(),
 ): Promise<string[]> {
-  const rows = await getDb()
+  const rows = await exec
     .select({ occasionId: checkIn.occasionId })
     .from(checkIn)
     .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
@@ -735,8 +742,9 @@ export async function listExcusedCheckInsForPersonInTerm(
 export async function listApprovedCheckInsForPersonInTerm(
   personId: string,
   termId: string,
+  exec: Executor = getDb(),
 ): Promise<string[]> {
-  const rows = await getDb()
+  const rows = await exec
     .select({ occasionId: checkIn.occasionId })
     .from(checkIn)
     .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))

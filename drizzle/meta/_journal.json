@@ -449,6 +449,13 @@
       "when": 1794003407474,
       "tag": "0063_normativa_actualizada_2026",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1794587504462,
+      "tag": "0064_bonos_de_permanencia",
+      "breakpoints": true
     }
   ]
 }

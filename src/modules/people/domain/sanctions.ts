@@ -323,8 +323,9 @@ export async function sanctionStateFor(
 export async function listExpulsionWarnings(
   onKey: string,
   personIds?: string[],
+  exec: Executor = getDb(),
 ): Promise<Set<string>> {
-  const map = await liveSanctions(onKey, personIds);
+  const map = await liveSanctions(onKey, personIds, exec);
   const warned = new Set<string>();
   for (const [personId, items] of map) {
     if (expulsionWarning(items, onKey)) {

@@ -1,6 +1,6 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { listActiveMemberRefs } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -130,11 +130,12 @@ export async function assemblyStatusFor(
 export async function assemblyAdjustmentsFor(
   termId: string,
   personIds: readonly string[],
+  exec: Executor = getDb(),
 ): Promise<Map<string, AssemblyRequirementView>> {
   if (personIds.length === 0) {
     return new Map();
   }
-  const adjustments = await getDb()
+  const adjustments = await exec
     .select()
     .from(assemblyRequirement)
     .where(

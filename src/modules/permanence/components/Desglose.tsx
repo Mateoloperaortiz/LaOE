@@ -33,6 +33,7 @@ type Props = {
 const CONDITIONS = ["ACTIVE", "NEW", "PROBATION", "TRANSFER"] as const;
 const EVALUATIONS = ["PENDING", "GOOD", "INSUFFICIENT"] as const;
 const MEMBER_STATUSES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"] as const;
+const decimal = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 });
 
 function stateLabel(state: CommitteeResult["state"]): string {
   return tLabels("T-791", COMPLIANCE_STATES)[state] ?? state;
@@ -228,6 +229,30 @@ function Criterios({
           <div className="text-sm">
             <Detalle criterion={criterion} personNames={personNames} closed={closed} />
           </div>
+          {criterion.bonusBreakdown ? (
+            <div className="mt-1 flex flex-col gap-2 border-t border-borde pt-2 text-sm">
+              <p className="text-tinta-suave">
+                {t("T-4877", { n: decimal.format(criterion.bonusBreakdown.baseAchieved) })}
+              </p>
+              <ul className="flex list-none flex-col gap-2 p-0">
+                {criterion.bonusBreakdown.grants.map((bonus) => (
+                  <li key={bonus.id}>
+                    <p className="font-semibold">
+                      {bonus.applied === bonus.value
+                        ? t("T-4876", { n: decimal.format(bonus.value) })
+                        : t("T-4878", {
+                            n: decimal.format(bonus.value),
+                            aplicado: decimal.format(bonus.applied),
+                          })}
+                    </p>
+                    <p className="whitespace-pre-wrap break-words text-tinta-suave">
+                      {bonus.reason}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </li>
       ))}
     </ul>

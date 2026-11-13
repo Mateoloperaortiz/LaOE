@@ -8,6 +8,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -257,6 +258,48 @@ export const manualCredit = pgTable(
     uniqueIndex("manual_credit_unique").on(t.ruleId, t.personId),
     index("manual_credit_person_term_idx").on(t.personId, t.termId),
     check("manual_credit_value_nonnegative", sql`${t.value} >= 0`),
+  ],
+);
+
+export const permanenceBonus = pgTable(
+  "permanence_bonus",
+  {
+    id: id(),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    requestId: text().notNull(),
+    reason: text().notNull(),
+    grantedById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("permanence_bonus_request_unique").on(t.personId, t.termId, t.requestId),
+    check(
+      "permanence_bonus_reason_length",
+      sql`char_length(btrim(${t.reason})) between 1 and 1000`,
+    ),
+  ],
+);
+
+export const permanenceBonusAllocation = pgTable(
+  "permanence_bonus_allocation",
+  {
+    bonusId: text()
+      .notNull()
+      .references(() => permanenceBonus.id, { onDelete: "cascade" }),
+    ruleId: text()
+      .notNull()
+      .references(() => permanenceRule.id, { onDelete: "restrict" }),
+    value: points().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.bonusId, t.ruleId] }),
+    index("permanence_bonus_allocation_rule_idx").on(t.ruleId),
+    check("permanence_bonus_allocation_positive", sql`${t.value} > 0`),
   ],
 );
 
