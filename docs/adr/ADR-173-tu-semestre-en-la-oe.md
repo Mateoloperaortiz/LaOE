@@ -1,6 +1,6 @@
 # ADR-173: «Tu semestre en la OE»
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-067, ADR-075, ADR-158, ADR-160
 

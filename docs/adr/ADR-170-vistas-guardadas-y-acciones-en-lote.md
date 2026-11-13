@@ -1,6 +1,6 @@
 # ADR-170: Vistas guardadas y acciones en lote
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Desarrolla: [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) (regla 5) y [ADR-167](ADR-167-patrones-de-escritorio-de-la-operacion.md) (regla 4, la tabla del kit)
 - Relacionadas: ADR-012, ADR-014, ADR-017, ADR-047, ADR-082, ADR-118

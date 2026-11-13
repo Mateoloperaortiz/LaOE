@@ -1,6 +1,6 @@
 # ADR-047: Política de datos, su versión y el respaldo de las autorizaciones
 
-- Estado: Aceptada; borrador entregado, publicación pendiente de aprobación de la junta
+- Estado: Aceptada; borrador aprobado por la junta (Mateo, 2026-11-13), publicación pendiente de cargar su versión; enmendada por ADR-175
 - Fecha: 2026-09-08
 - Enmienda: ADR-014, ADR-039 (punto 4) y ADR-046 (punto 7)
 - Relacionadas: ADR-002, ADR-030, ADR-034, ADR-037, ADR-040, ADR-045
@@ -35,3 +35,7 @@ El punto 3 cambia de alcance: la constancia de la admisión respalda el periodo 
 ## Decisión de publicación · 2026-09-08
 
 La junta aprobó el texto con la Universidad EAFIT como responsable, dirección Carrera 49 N.º 7 Sur-50, canal `datospersonales@eafit.edu.co` y versión `2026-09-08`. Sobre menores de edad se publica que la autorización otorgada a EAFIT al matricularse cubre este tratamiento. **Esa afirmación se publica sin que la Universidad la haya confirmado**: la consulta a `datospersonales@eafit.edu.co` estaba abierta al momento de decidirlo, y Mateo pidió expresamente publicarla igual. Si la respuesta la contradice, hay que corregir el texto, subir la versión y revisar las autorizaciones de las 15 personas menores de edad del lote.
+
+## Enmienda (2026-11-13, ADR-175)
+
+La política tiene que nombrar la capa social antes de que salga: la actividad visible es opcional y empieza apagada; con ella prendida se ven los aplausos dentro del comité y la liga de la semana; las metas colectivas son sumas sin nombres; apagarla esconde todo desde ya y anonimizar lo borra. Mateo informó el 2026-11-13 que la junta aprobó la política de datos. Ver [ADR-175](ADR-175-la-capa-social-y-su-politica-de-datos.md).

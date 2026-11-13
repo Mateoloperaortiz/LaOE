@@ -1,6 +1,6 @@
 # ADR-177: Metas colectivas y recompensas por umbral
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Enmienda: [ADR-067](ADR-067-retos-boosters-y-coleccion.md) (la gamificación suma metas de todos y recompensas por umbral)
 - Relacionadas: ADR-017, ADR-075, ADR-158, ADR-175

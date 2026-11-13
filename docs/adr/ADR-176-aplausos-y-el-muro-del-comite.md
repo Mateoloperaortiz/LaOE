@@ -1,6 +1,6 @@
 # ADR-176: Aplausos y el muro del comité
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-058, ADR-160, ADR-166, ADR-175
 

@@ -1,6 +1,6 @@
 # ADR-175: La capa social y su política de datos
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13); la junta aprobó la política de datos que nombra la capa social el mismo día
 - Fecha: 2026-11-13
 - Enmienda: [ADR-047](ADR-047-politica-de-datos-y-habilitacion.md) (lo que la política tiene que decir antes de que salga la capa social)
 - Relacionadas: ADR-014, ADR-160, ADR-164, ADR-166

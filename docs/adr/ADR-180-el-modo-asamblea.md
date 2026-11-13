@@ -1,6 +1,6 @@
 # ADR-180: El modo asamblea
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-035, ADR-060, ADR-082, ADR-179, ADR-181
 

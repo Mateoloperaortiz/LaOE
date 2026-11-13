@@ -1,6 +1,6 @@
 # ADR-172: El empalme entre semestres
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-057, ADR-058, ADR-073, ADR-160
 

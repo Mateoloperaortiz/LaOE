@@ -17,23 +17,23 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-186](ADR-186-oportunidades-de-los-aliados.md) | Oportunidades de los aliados | Propuesta |
 | [ADR-185](ADR-185-padrinos.md) | Padrinos | Propuesta |
 | [ADR-184](ADR-184-egresados-con-acceso.md) | Egresados con acceso | Propuesta |
-| [ADR-183](ADR-183-escala-de-las-olas-en-vivo.md) | La escala de las olas en vivo | Propuesta |
-| [ADR-182](ADR-182-registro-sin-senal.md) | El registro sin señal | Propuesta |
-| [ADR-181](ADR-181-the-games-en-vivo-y-pantallas-de-presentacion.md) | The Games en vivo y las pantallas de presentación | Propuesta |
-| [ADR-180](ADR-180-el-modo-asamblea.md) | El modo asamblea | Propuesta |
-| [ADR-179](ADR-179-tiempo-real-con-sse.md) | Tiempo real con SSE | Propuesta |
-| [ADR-178](ADR-178-las-ligas-semanales.md) | Las ligas semanales | Propuesta |
-| [ADR-177](ADR-177-metas-colectivas-y-recompensas-por-umbral.md) | Metas colectivas y recompensas por umbral | Propuesta |
-| [ADR-176](ADR-176-aplausos-y-el-muro-del-comite.md) | Aplausos y el muro del comité | Propuesta |
-| [ADR-175](ADR-175-la-capa-social-y-su-politica-de-datos.md) | La capa social y su política de datos | Propuesta |
-| [ADR-174](ADR-174-las-encuestas-pendientes-se-abren-desde-te-toca.md) | Las encuestas pendientes se abren desde «Te toca» | Propuesta |
-| [ADR-173](ADR-173-tu-semestre-en-la-oe.md) | «Tu semestre en la OE» | Propuesta |
-| [ADR-172](ADR-172-el-empalme-entre-semestres.md) | El empalme entre semestres | Propuesta |
-| [ADR-171](ADR-171-la-trayectoria-verificable.md) | La trayectoria verificable | Propuesta |
-| [ADR-170](ADR-170-vistas-guardadas-y-acciones-en-lote.md) | Vistas guardadas y acciones en lote | Propuesta |
-| [ADR-169](ADR-169-calendario-panoramas-y-ficha-de-la-persona.md) | El Calendario, los panoramas por rol y la ficha de la persona | Propuesta |
-| [ADR-168](ADR-168-el-modo-de-campo-de-la-operacion.md) | El modo de campo de la Operación | Propuesta |
-| [ADR-167](ADR-167-patrones-de-escritorio-de-la-operacion.md) | Patrones de escritorio de la Operación | Propuesta |
+| [ADR-183](ADR-183-escala-de-las-olas-en-vivo.md) | La escala de las olas en vivo | Aceptada |
+| [ADR-182](ADR-182-registro-sin-senal.md) | El registro sin señal | Aceptada |
+| [ADR-181](ADR-181-the-games-en-vivo-y-pantallas-de-presentacion.md) | The Games en vivo y las pantallas de presentación | Aceptada |
+| [ADR-180](ADR-180-el-modo-asamblea.md) | El modo asamblea | Aceptada |
+| [ADR-179](ADR-179-tiempo-real-con-sse.md) | Tiempo real con SSE | Aceptada |
+| [ADR-178](ADR-178-las-ligas-semanales.md) | Las ligas semanales | Aceptada |
+| [ADR-177](ADR-177-metas-colectivas-y-recompensas-por-umbral.md) | Metas colectivas y recompensas por umbral | Aceptada |
+| [ADR-176](ADR-176-aplausos-y-el-muro-del-comite.md) | Aplausos y el muro del comité | Aceptada |
+| [ADR-175](ADR-175-la-capa-social-y-su-politica-de-datos.md) | La capa social y su política de datos | Aceptada |
+| [ADR-174](ADR-174-las-encuestas-pendientes-se-abren-desde-te-toca.md) | Las encuestas pendientes se abren desde «Te toca» | Aceptada |
+| [ADR-173](ADR-173-tu-semestre-en-la-oe.md) | «Tu semestre en la OE» | Aceptada |
+| [ADR-172](ADR-172-el-empalme-entre-semestres.md) | El empalme entre semestres | Aceptada |
+| [ADR-171](ADR-171-la-trayectoria-verificable.md) | La trayectoria verificable | Aceptada |
+| [ADR-170](ADR-170-vistas-guardadas-y-acciones-en-lote.md) | Vistas guardadas y acciones en lote | Aceptada |
+| [ADR-169](ADR-169-calendario-panoramas-y-ficha-de-la-persona.md) | El Calendario, los panoramas por rol y la ficha de la persona | Aceptada |
+| [ADR-168](ADR-168-el-modo-de-campo-de-la-operacion.md) | El modo de campo de la Operación | Aceptada |
+| [ADR-167](ADR-167-patrones-de-escritorio-de-la-operacion.md) | Patrones de escritorio de la Operación | Aceptada |
 | [ADR-166](ADR-166-el-centro-de-avisos-de-mi-oe.md) | El centro de avisos de Mi OE | Aceptada |
 | [ADR-165](ADR-165-la-paleta-por-rol-con-alcance.md) | La paleta ⌘K por rol, con alcance | Aceptada |
 | [ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md) | El rediseño sale de una vez, sin bandera | Aceptada |

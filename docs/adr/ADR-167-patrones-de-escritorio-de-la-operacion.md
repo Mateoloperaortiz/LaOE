@@ -1,6 +1,6 @@
 # ADR-167: Patrones de escritorio de la Operación
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Desarrolla: [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) (regla 5, «Patrones de escritorio»)
 - Amplía: [ADR-165](ADR-165-la-paleta-por-rol-con-alcance.md) (la paleta también hace)

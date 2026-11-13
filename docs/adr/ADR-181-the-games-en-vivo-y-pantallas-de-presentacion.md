@@ -1,6 +1,6 @@
 # ADR-181: The Games en vivo y las pantallas de presentación
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-035, ADR-089, ADR-104, ADR-158, ADR-159 (regla 5), ADR-179, ADR-180
 

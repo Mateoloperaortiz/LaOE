@@ -1,6 +1,6 @@
 # ADR-183: La escala de las olas en vivo
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-074, ADR-085 (P2), ADR-164, ADR-179, ADR-180, ADR-181
 

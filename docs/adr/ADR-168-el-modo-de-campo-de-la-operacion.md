@@ -1,6 +1,6 @@
 # ADR-168: El modo de campo de la Operación
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Desarrolla: [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) (regla 6, «Modo de campo»)
 - Relacionadas: ADR-035, ADR-037, ADR-058, ADR-089, ADR-118, ADR-167

@@ -1,6 +1,6 @@
 # ADR-171: La trayectoria verificable
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-014, ADR-047, ADR-058, ADR-160, ADR-164
 

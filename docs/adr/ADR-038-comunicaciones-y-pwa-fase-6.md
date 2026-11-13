@@ -1,6 +1,6 @@
 # ADR-038: Comunicaciones y PWA (fase 6)
 
-- Estado: Aceptada (enmendada por ADR-039, ADR-074, ADR-113, ADR-115, ADR-116, ADR-118 y ADR-122); enmendada por ADR-144
+- Estado: Aceptada (enmendada por ADR-039, ADR-074, ADR-113, ADR-115, ADR-116, ADR-118 y ADR-122); enmendada por ADR-144; enmendada por ADR-174
 - Fecha: 2026-09-05
 - Relacionadas: ADR-001, ADR-010, ADR-011, ADR-012, ADR-014, ADR-015, ADR-017, ADR-021, ADR-023, ADR-030, ADR-031, ADR-033, ADR-034, ADR-035, ADR-036, ADR-037
 - Enmienda: ADR-012 (programados `campaigns` y `notices`; el bus de notificaciones), ADR-015 (reglas concretas de preferencias, roster por defecto y consentimiento para no miembros; campañas por SES), ADR-023 (cabeceras de baja y `sendCampaignEmail`), ADR-031 (la encuesta tras la ocasión no usa `form_submission`), ADR-033 (push desde la cartelera; `/app/cartelera/[id]`), ADR-034 (dependencias de `comms`; pestaña Comunicaciones de la 360; mis datos), ADR-035 (`surveyFormId`, `participation → forms`, recordatorios), ADR-036 (regla 11: avisos por push desde `permanence.notices`; `recognition.granted`; T-202 al aplicar el cierre), ADR-037 (tipo de campo `RATING`; `call.opened`), 03-modelo (tablas de `comms`, `Message.kind`, encuesta en `participation`, `calendar_token`), 05-acceso (tokens de baja y calendario, dueño de la invitación, step-up de campañas), 06-mapa (rutas nuevas) y 14-copy (T-133 con seis secciones, T-924 con la calificación, T-194, T-195, T-209 a T-211, T-1063 en adelante)
@@ -89,3 +89,7 @@ La regla 9 dice qué recordatorios salen y con qué clave. Los cuatro llevan aho
 ## Enmienda (2026-10-24, ADR-144)
 
 Las reglas 2 y 6 se amplían por [ADR-144](ADR-144-reintentos-de-avisos-push-fallidos.md): el resultado de un push se conserva por mensaje y dispositivo. Un rechazo transitorio hace fallar el handler para usar los intentos y esperas del outbox; el reintento conserva los éxitos por dispositivo. Las preferencias, el retiro de suscripciones vencidas y los rechazos permanentes se conservan. El contador de alcance de un anuncio se reconstruye de los mensajes `SENT` persistidos con su clave, para que un reintento no lo reemplace por el conteo del último intento. El correo no cambia.
+
+## Enmienda (2026-11-13, ADR-174)
+
+La regla 13 abre la encuesta de una ocasión solo con el enlace con token del push. Ahora la invitación también se abre por su id con la sesión, en `/app/encuestas/<invitación>`, con las mismas condiciones (es de quien tiene la sesión, la persona puede participar, no la respondió y sigue en su ventana), y «Te toca» la lista. El anonimato no cambia: la respuesta se guarda sin persona y sin IP, y el enlace con token sigue funcionando igual. Ver [ADR-174](ADR-174-las-encuestas-pendientes-se-abren-desde-te-toca.md).

@@ -1,6 +1,6 @@
 # ADR-174: Las encuestas pendientes se abren desde «Te toca»
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Enmienda: [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md) (regla 13, la encuesta de una ocasión)
 - Relacionadas: ADR-082, ADR-160, ADR-166

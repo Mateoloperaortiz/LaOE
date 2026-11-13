@@ -1,6 +1,6 @@
 # ADR-067: Retos relámpago, boosters y colección de insignias
 
-- Estado: Aceptada (enmendada por ADR-068, ADR-075, ADR-078, ADR-087, ADR-111, ADR-113, ADR-118 y ADR-122, ADR-131)
+- Estado: Aceptada (enmendada por ADR-068, ADR-075, ADR-078, ADR-087, ADR-111, ADR-113, ADR-118 y ADR-122, ADR-131, ADR-177)
 - Fecha: 2026-09-14
 - Relacionadas: ADR-004, ADR-007, ADR-008, ADR-011, ADR-012, ADR-014, ADR-020, ADR-022, ADR-030, ADR-032, ADR-035, ADR-038, ADR-041, ADR-062
 - Enmienda: ADR-007 (tipos `CHALLENGE` y `BOOST` del ledger), ADR-022 (evidencias con almacenamiento y autorización propios, fuera de `/api/media`), ADR-035 (participación en retos, boosters sobre asistencias, cierre de puntos que exige resolver pendientes), ADR-041 (el Wordle alimenta insignias y no admite boosters)
@@ -99,3 +99,7 @@ Regla 6: no decía qué pasa con la imagen que se sube y se quita de la lista an
 ## Enmienda (2026-10-14, ADR-131)
 
 Los retos presenciales, trivias y misiones con evidencia, sus premios y boosters legítimos siguen siendo GH Points. Los videojuegos y sus reversiones salen de esa proyección; sus hitos de racha 3/7/30 y las nuevas concesiones exclusivamente gamer no entregan boosters GH. Los beneficios ya concedidos con la política anterior conservan su historia, incluso los boosters disponibles; la reconstrucción no concede otros. El bono semanal presencial fijo 0/2/3/5 tiene techo propio y no admite boosters ni consume los topes de retos/boosters. Ver [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md).
+
+## Enmienda (2026-11-13, ADR-177)
+
+La gamificación suma metas colectivas, que celebran con el sello al cumplirse y no dan GH Points, y recompensas por umbral, que se reclaman sin gastar puntos y que ADMIN marca entregadas. El libro de puntos y sus reglas no cambian. Ver [ADR-177](ADR-177-metas-colectivas-y-recompensas-por-umbral.md).

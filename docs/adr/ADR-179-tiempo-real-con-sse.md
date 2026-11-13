@@ -1,6 +1,6 @@
 # ADR-179: Tiempo real con SSE
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-011, ADR-035 (regla 16, la consola en vivo), ADR-089, ADR-164, ADR-183
 

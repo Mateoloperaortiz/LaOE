@@ -1,6 +1,6 @@
 # ADR-169: El Calendario, los panoramas por rol y la ficha de la persona
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Desarrolla: [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) (reglas 3 y 5: la estructura y los patrones de escritorio)
 - Enmienda: [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) (la pestaña «Resumen» de la Persona 360) y la regla 15 de [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) (adónde entra quien no es ADMIN)

@@ -1,6 +1,6 @@
 # ADR-178: Las ligas semanales
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-067, ADR-075, ADR-160 (regla 5, momentos de marca), ADR-175
 

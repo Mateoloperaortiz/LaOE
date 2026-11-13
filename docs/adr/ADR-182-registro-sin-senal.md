@@ -1,6 +1,6 @@
 # ADR-182: El registro sin señal
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-035 (regla 8, el modo anfitrión), ADR-168, ADR-179
 
