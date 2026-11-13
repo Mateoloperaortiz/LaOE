@@ -540,6 +540,13 @@
       "when": 1794608307400,
       "tag": "0076_aval_con_ida_y_vuelta",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1794609755744,
+      "tag": "0077_calendario_de_la_junta",
+      "breakpoints": true
     }
   ]
 }

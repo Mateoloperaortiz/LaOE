@@ -132,3 +132,12 @@ export const sanctionRevoked = defineEvent(
   "sanction.revoked",
   person.extend({ sanctionId: id, termId: id, kind: z.string(), reason: z.string() }),
 );
+
+/** Escribir en el Google Calendar de la junta una fecha que nació en la casa (ADR-197 regla 6). */
+export const boardCalendarPush = defineEvent("board-calendar.push", z.object({ eventId: id }));
+
+/** El programado que lee de Google lo que cambió en el calendario de la junta (ADR-197 regla 6). */
+export const boardCalendarPull = defineEvent(
+  "board-calendar.pull",
+  z.object({ at: z.string().optional() }),
+);

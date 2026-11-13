@@ -533,6 +533,8 @@ export interface CalendarOccasion {
   kind: OccasionRow["kind"];
   status: OccasionStatus;
   startsAt: Date;
+  /** Null cuando la ocasión no dice hasta qué hora va. */
+  endsAt: Date | null;
   committeeId: string | null;
 }
 
@@ -548,6 +550,7 @@ export async function listOccasionsBetween(from: Date, to: Date): Promise<Calend
       kind: occasion.kind,
       status: occasion.status,
       startsAt: occasion.startsAt,
+      endsAt: occasion.endsAt,
       committeeId: occasion.committeeId,
     })
     .from(occasion)

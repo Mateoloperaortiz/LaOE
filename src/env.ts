@@ -118,6 +118,12 @@ const envSchema = z
       .string()
       .regex(/^[A-Za-z0-9._-]+$/)
       .optional(),
+    // El Google Calendar de la junta (ADR-197 regla 6): se escribe y se lee con la cuenta de servicio
+    // de Google Wallet, que debe tener el calendario compartido con permiso para editar eventos.
+    GOOGLE_CALENDAR_JUNTA_ID: z
+      .string()
+      .regex(/^[A-Za-z0-9._@-]+$/)
+      .optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === "production" && env.OTP_FIXED_CODE !== undefined) {

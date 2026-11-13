@@ -24,6 +24,18 @@ export {
 export { listAvailabilityCommittees, listAvailabilityPeople } from "./domain/availability";
 export { assertBenefitsAvailable, assertNotSuspended } from "./domain/benefits";
 export {
+  boardCalendarStatus,
+  cancelBoardEventAs,
+  createBoardEventAs,
+  getBoardEvent,
+  listBoardEventsBetween,
+  updateBoardEventAs,
+} from "./domain/board-calendar";
+export {
+  BOARD_CALENDAR_AREAS,
+  type BoardCalendarArea,
+} from "./domain/board-calendar-pure";
+export {
   BOARD_SEATS,
   type BoardSeat,
   currentSeatAuthority,

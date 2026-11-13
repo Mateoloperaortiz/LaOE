@@ -1121,3 +1121,15 @@ Se usó el importador de ADR-042 desde una copia del código desplegado y un tú
 Verificación posterior mediante las lecturas que usa la app: exactamente dos documentos de normativa publicados, contenido portable idéntico al revisado, descargas HTTP 200 con SHA-256 idéntico a los adjuntos, imagen PRIVATE/READY y objetos sin firma HTTP 403. La lectura de borradores para miembros quedó denegada; el acceso HTTP anónimo a Normativa y PDF sigue protegido. Cinco búsquedas positivas: organigrama (estatutos art. 4), almuerzo (reglamento art. 37), reactivación (art. 28), judiciales/notariales y psicológica/terapéutica (Anexo 1); ninguna devuelve las versiones retiradas. Repetir la publicación respondió `unchanged` para ambos. Auditoría: seis eventos de carga/contenido/publicación y dos de despublicación, sin duplicados.
 
 Originales, perfiles, imagen, JSON, manifiesto, respaldo previo, helpers y evidencias `verification-draft.json`, `verification-published.json`, `verification-final.json` y `audit.json` están en el paquete privado `informes/normativa-2026-11-06/`, fuera del checkout. La verificación fue de contenido, descarga, búsqueda y permisos; no se creó una sesión de miembro ni se registró onboarding para comprobar la interfaz.
+
+## Calendario de la junta con Google Calendar (ADR-197 regla 6)
+
+La casa escribe y lee el Google Calendar de la junta con la cuenta de servicio de Google Wallet. Sin la variable, el calendario de la junta funciona solo dentro de la casa.
+
+1. En el proyecto de Google Cloud de Wallet, habilitar la API de Google Calendar.
+2. Crear o elegir el calendario de la junta en una cuenta de la OE y compartirlo con el correo de la cuenta de servicio (`GOOGLE_WALLET_SA_EMAIL`) con permiso para «Hacer cambios en los eventos».
+3. Cargar en Railway `GOOGLE_CALENDAR_JUNTA_ID` con el identificador del calendario (Configuración del calendario › Integrar el calendario). Staging debe usar un calendario de prueba, nunca el de la junta.
+4. Reiniciar el proceso. En `/admin/calendario/junta` la pantalla dice «Conectado» y, tras el primer programado de cinco minutos, la hora de la última lectura.
+5. Verificar en los dos sentidos: una fecha creada en la casa aparece en Google al instante, y una creada en Google aparece en la casa en la siguiente lectura. Lo que nació en la casa y se cambia en Google vuelve a quedar como en la casa.
+
+Si Google falla, la fecha muestra el aviso de la falla y el outbox reintenta solo. Quitar la variable apaga la sincronización sin borrar nada de ninguno de los dos lados.

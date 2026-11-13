@@ -153,6 +153,8 @@ export function adminNavGroups(): AdminNavGroup[] {
         { href: "/admin/avales", label: tList("T-5092")[0] ?? "" },
         // Las faltas y sanciones que registra y anula la VP de Gestión Humana (ADR-196).
         { href: "/admin/faltas", label: tList("T-5099")[0] ?? "" },
+        // El calendario de la junta, sincronizado con su Google Calendar (ADR-197 regla 6).
+        { href: "/admin/calendario/junta", label: tList("T-5115")[0] ?? "" },
         { href: "/admin/terminos", label: terminos },
         { href: "/admin/permisos", label: permisos },
         { href: "/admin/horario-preferencial", label: tList("T-2323")[0] },

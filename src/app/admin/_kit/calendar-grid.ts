@@ -13,6 +13,7 @@ export const CALENDAR_LAYERS = [
   "EDITION_SESSION",
   "EDITION",
   "RESERVATION",
+  "BOARD",
 ] as const;
 export type CalendarLayer = (typeof CALENDAR_LAYERS)[number];
 
@@ -77,4 +78,29 @@ export function daysCovered(
   visible: readonly string[],
 ): string[] {
   return visible.filter((day) => day >= firstDay && day <= lastDay);
+}
+
+/**
+ * Los cruces de la vista (ADR-197 regla 6, tramo A8 de ADR-195): los elementos con hora que caen a la
+ * misma hora que otro. Dos se cruzan si uno empieza antes de que el otro termine; uno sin hora de fin
+ * solo se cruza con lo que empieza a su misma hora o lo contiene.
+ */
+export function overlappingIds(
+  items: ReadonlyArray<{ id: string; startsAt: Date; endsAt: Date }>,
+): Set<string> {
+  const sorted = [...items].sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+  const ids = new Set<string>();
+  for (let i = 0; i < sorted.length; i += 1) {
+    const a = sorted[i];
+    if (!a) continue;
+    for (let j = i + 1; j < sorted.length; j += 1) {
+      const b = sorted[j];
+      if (!b) continue;
+      const sameStart = b.startsAt.getTime() === a.startsAt.getTime();
+      if (!sameStart && b.startsAt >= a.endsAt) break;
+      ids.add(a.id);
+      ids.add(b.id);
+    }
+  }
+  return ids;
 }

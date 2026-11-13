@@ -15164,7 +15164,7 @@ export const textos = {
   },
   "T-4919": {
     where: "Calendario: capas, en el orden de CALENDAR_LAYERS",
-    text: "Actividades · Asambleas · Sesiones de macroeventos · Ediciones de macroeventos · Reservas de inventario",
+    text: "Actividades · Asambleas · Sesiones de macroeventos · Ediciones de macroeventos · Reservas de inventario · Junta",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16469,9 +16469,58 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-5115": {
+    where: "Calendario de la junta: pantalla (título · texto)",
+    text: "Calendario de la junta · Las reuniones de la junta y las fechas clave de cada cargo. Lo que agregas aquí se escribe en el Google Calendar de la junta, y lo que se crea allá llega aquí cada pocos minutos. Cada fecha se edita donde nació.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5116": {
+    where: "Calendario de la junta: campos",
+    text: "Qué · Área · Empieza · Termina · Lugar · Detalles",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5117": {
+    where: "Calendario de la junta: botones y confirmaciones",
+    text: "Agregar al calendario · Guardar cambios · Quitar del calendario · Cancelar · Listo: quedó en el calendario de la junta. · Listo: lo quitaste del calendario.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5118": {
+    where:
+      "Calendario de la junta: lista (título · vacío · viene de Google · editar · abrir en Google · todo el día)",
+    text: "Lo que viene · No hay nada agendado todavía. · Viene de Google Calendar · Editar · Abrir en Google Calendar · Todo el día",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5119": {
+    where: "Calendario de la junta: sincronización (conectada · última lectura · apagada · falla)",
+    text: "Conectado con el Google Calendar de la junta. · Última lectura: {fecha}. · La sincronización con Google Calendar está apagada: falta configurar el calendario de la junta. Lo que agendes queda solo en la casa. · Google Calendar no respondió; la casa lo vuelve a intentar sola.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-512": {
     where: "Editar datos: aviso al cambiar el correo",
     text: "Cambiar el correo cierra sus sesiones: vuelve a entrar con el nuevo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5120": {
+    where: "Calendario de la junta: guardas",
+    text: "Solo agenda en el calendario de la junta quien tiene un cargo de la junta este semestre. · Elige tu área o la junta en pleno. · Lo que viene de Google Calendar se edita allá. · Esto lo edita quien lo agregó o quien decide por esa área. · La hora de fin tiene que ser después de la de inicio.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5121": {
+    where: "Calendario de la junta: la junta en pleno (nombre del área)",
+    text: "Junta en pleno",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5122": {
+    where: "Calendario: cruces (marca · resumen)",
+    text: "Cruce · Cruces en esta vista: {n}. Son cosas que caen a la misma hora.",
     owner: "MATEO",
     status: "Propuesta",
   },

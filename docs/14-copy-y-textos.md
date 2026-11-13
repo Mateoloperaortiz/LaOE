@@ -3414,7 +3414,7 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | --- | --- | --- | --- | --- |
 | T-4917 | Persona 360, ficha: actividad reciente · propiedades · enlace a la línea completa | Actividad reciente · Propiedades · Ver toda la línea de tiempo | MATEO | Propuesta |
 | T-4918 | Calendario: título · semana · mes · hoy · anterior · siguiente · capas · aplicar | Calendario · Semana · Mes · Hoy · Anterior · Siguiente · Capas · Aplicar | MATEO | Propuesta |
-| T-4919 | Calendario: capas, en el orden de CALENDAR_LAYERS | Actividades · Asambleas · Sesiones de macroeventos · Ediciones de macroeventos · Reservas de inventario | MATEO | Propuesta |
+| T-4919 | Calendario: capas, en el orden de CALENDAR_LAYERS | Actividades · Asambleas · Sesiones de macroeventos · Ediciones de macroeventos · Reservas de inventario · Junta | MATEO | Propuesta |
 | T-4920 | Calendario: días de la semana, de lunes a domingo | Lun · Mar · Mié · Jue · Vie · Sáb · Dom | MATEO | Propuesta |
 | T-4921 | Calendario, vista de mes: lo que no cabe en el día | +{n} más | MATEO | Propuesta |
 | T-4922 | Panorama: títulos de los bloques por rol | Junta · Gestión humana · Dirección de comité · Comunicaciones | MATEO | Propuesta |
@@ -3778,3 +3778,11 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5112 | Aviso: semáforo cambiado (título · texto) | Cambiaron el semáforo de tu aval · La Presidencia puso en {nivel} el aval de «{evento}»: {motivo} | MATEO | Propuesta |
 | T-5113 | Aval: guardas de la ida y vuelta | El aval está devuelto: espera la versión nueva del comité. · Solo se envía una versión nueva de un aval devuelto. · Para devolver un aval escribe los comentarios: el comité los va a leer. · Di por qué cambias el semáforo. · Un aval rechazado ya no cambia de semáforo. · El aval ya está en ese nivel. · Di por qué el evento tiene ese nivel de riesgo. | MATEO | Propuesta |
 | T-5114 | Aval: imprimir o guardar en PDF (enlace · encabezado · versión · lo decidió · decidido el) | Imprimir o guardar en PDF · Aval de evento · Versión {versión} · Lo decidió · Decidido el | MATEO | Propuesta |
+| T-5115 | Calendario de la junta: pantalla (título · texto) | Calendario de la junta · Las reuniones de la junta y las fechas clave de cada cargo. Lo que agregas aquí se escribe en el Google Calendar de la junta, y lo que se crea allá llega aquí cada pocos minutos. Cada fecha se edita donde nació. | MATEO | Propuesta |
+| T-5116 | Calendario de la junta: campos | Qué · Área · Empieza · Termina · Lugar · Detalles | MATEO | Propuesta |
+| T-5117 | Calendario de la junta: botones y confirmaciones | Agregar al calendario · Guardar cambios · Quitar del calendario · Cancelar · Listo: quedó en el calendario de la junta. · Listo: lo quitaste del calendario. | MATEO | Propuesta |
+| T-5118 | Calendario de la junta: lista (título · vacío · viene de Google · editar · abrir en Google · todo el día) | Lo que viene · No hay nada agendado todavía. · Viene de Google Calendar · Editar · Abrir en Google Calendar · Todo el día | MATEO | Propuesta |
+| T-5119 | Calendario de la junta: sincronización (conectada · última lectura · apagada · falla) | Conectado con el Google Calendar de la junta. · Última lectura: {fecha}. · La sincronización con Google Calendar está apagada: falta configurar el calendario de la junta. Lo que agendes queda solo en la casa. · Google Calendar no respondió; la casa lo vuelve a intentar sola. | MATEO | Propuesta |
+| T-5120 | Calendario de la junta: guardas | Solo agenda en el calendario de la junta quien tiene un cargo de la junta este semestre. · Elige tu área o la junta en pleno. · Lo que viene de Google Calendar se edita allá. · Esto lo edita quien lo agregó o quien decide por esa área. · La hora de fin tiene que ser después de la de inicio. | MATEO | Propuesta |
+| T-5121 | Calendario de la junta: la junta en pleno (nombre del área) | Junta en pleno | MATEO | Propuesta |
+| T-5122 | Calendario: cruces (marca · resumen) | Cruce · Cruces en esta vista: {n}. Son cosas que caen a la misma hora. | MATEO | Propuesta |

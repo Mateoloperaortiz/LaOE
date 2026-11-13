@@ -63,6 +63,7 @@ describe("infraestructura por entorno (ADR-039)", () => {
       "GOOGLE_WALLET_ISSUER_ID",
       "GOOGLE_WALLET_SA_EMAIL",
       "GOOGLE_WALLET_SA_KEY_BASE64",
+      "GOOGLE_CALENDAR_JUNTA_ID",
     ])
       expect(web.variables?.[key]).toEqual({ type: "preserve" });
     expect(Object.keys(web.variables ?? {}).some((name) => name.startsWith("AWS_"))).toBe(false);

@@ -5,6 +5,7 @@
 import { mediaBackfill } from "@/domain-events/content";
 import { inventoryReturnReminder } from "@/domain-events/inventory";
 import { gamerStreakReminder, presenceStreakReconcile } from "@/domain-events/participation";
+import { boardCalendarPull } from "@/domain-events/people";
 import { walletReconcile } from "@/domain-events/wallet";
 
 export interface ScheduleEntry {
@@ -50,4 +51,6 @@ export const SCHEDULE: ScheduleEntry[] = [
   // Relleno de la variante completa de los medios de antes (ADR-114 regla 8): cada hora arranca una
   // pasada, que sigue sola por lotes. Sin medios por rellenar es una consulta.
   { name: "media-backfill", cron: "20 * * * *", events: [mediaBackfill.type] },
+  // El Google Calendar de la junta (ADR-197 regla 6): lo que cambió allá llega cada cinco minutos.
+  { name: "board-calendar", cron: "*/5 * * * *", events: [boardCalendarPull.type] },
 ];

@@ -1263,6 +1263,35 @@ body:has(.admin-shell dialog[open]) {
 [data-capa="RESERVATION"] {
   --capa: var(--color-oe-orange-soft);
 }
+/* La junta por áreas (ADR-197 regla 6): el color acompaña al nombre del área, nunca lo reemplaza. */
+[data-capa="BOARD"] {
+  --capa: var(--color-oe-navy);
+}
+[data-capa="BOARD"][data-area="PRESIDENT"] {
+  --capa: var(--color-oe-orange);
+}
+[data-capa="BOARD"][data-area="VP_ADMIN"] {
+  --capa: var(--color-oe-yellow);
+}
+[data-capa="BOARD"][data-area="VP_FINANCE"] {
+  --capa: var(--color-oe-blue);
+}
+[data-capa="BOARD"][data-area="VP_PUBLIC_RELATIONS"] {
+  --capa: var(--color-oe-orange-soft);
+}
+[data-capa="BOARD"][data-area="VP_COMMUNICATIONS"] {
+  --capa: var(--color-oe-yellow-soft);
+}
+[data-capa="BOARD"][data-area="VP_GH"] {
+  --capa: var(--color-oe-blue-soft);
+}
+.admin-calendar-cruce {
+  border-radius: 9999px;
+  padding: 0 0.375rem;
+  background: var(--color-oe-orange);
+  color: var(--color-oe-ink);
+  font-size: 0.6875rem;
+}
 .admin-calendar {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));

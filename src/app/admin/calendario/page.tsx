@@ -6,6 +6,7 @@ import {
   type CalendarLayer,
   type CalendarView,
   daysCovered,
+  overlappingIds,
   parseDayKey,
   parseLayers,
   shiftMonth,
@@ -14,6 +15,11 @@ import {
 import { listEditionsBetween } from "@/modules/events";
 import { listReservations } from "@/modules/inventory";
 import { dayKeyFor, listOccasionsBetween } from "@/modules/participation";
+import {
+  APPOINTMENT_KINDS,
+  type BoardCalendarArea,
+  listBoardEventsBetween,
+} from "@/modules/people";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatTime } from "@/shared/lib/dates";
 import { addDays, atHourIn } from "@/shared/lib/dates-pure";
@@ -23,7 +29,8 @@ import { AppLink as Link } from "@/shared/ui/AppLink";
 // apagan en la dirección. Junta lo que hoy vive en pantallas separadas: actividades, asambleas y
 // sesiones de macroeventos (ocasiones) y las ediciones de los macroeventos. Cada elemento lleva a su
 // pantalla. ADMIN y la junta ven todo; la dirección de un comité ve las ocasiones de sus comités, y
-// todos ven las asambleas y las ediciones, que son de toda la OE.
+// todos ven las asambleas y las ediciones, que son de toda la OE. La capa «Junta» la ven ADMIN y la
+// junta, y lo que cae a la misma hora se marca como cruce (ADR-197 regla 6).
 
 export const metadata: Metadata = { title: tList("T-4918")[0] ?? "" };
 
@@ -37,6 +44,10 @@ type Item = {
   time: string | null;
   href: string;
   days: string[];
+  /** El área de una fecha de la junta, que le da su color. */
+  area?: BoardCalendarArea;
+  /** Para los cruces: solo lo que tiene hora. */
+  span?: { startsAt: Date; endsAt: Date };
 };
 
 export default async function CalendarioPage({ searchParams }: PageProps<"/admin/calendario">) {
@@ -45,7 +56,9 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
   const view: CalendarView = single(search.vista) === "mes" ? "mes" : "semana";
   const today = dayKeyFor(new Date());
   const anchor = parseDayKey(single(search.fecha)) ?? today;
-  const layers = parseLayers(search.capas);
+  const seesBoard = roles.isAdmin || roles.isBoard || roles.boardSeats.length > 0;
+  const offered = CALENDAR_LAYERS.filter((layer) => layer !== "BOARD" || seesBoard);
+  const layers = parseLayers(search.capas).filter((layer) => offered.includes(layer));
   const days = visibleDays(view, anchor);
   const first = days[0] ?? anchor;
   const last = days[days.length - 1] ?? anchor;
@@ -53,7 +66,7 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
   const to = atHourIn(APP_TZ, addDays(last, 1), 0);
   const seesAll = roles.isAdmin || roles.isBoard;
   const mine = new Set(roles.committees.map((item) => item.committee.id));
-  const [occasions, editions, reservations] = await Promise.all([
+  const [occasions, editions, reservations, boardEvents] = await Promise.all([
     layers.some(
       (layer) => layer === "ACTIVITY" || layer === "ASSEMBLY" || layer === "EDITION_SESSION",
     )
@@ -62,7 +75,10 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
     layers.includes("EDITION") ? listEditionsBetween(from, to) : [],
     // Las reservas son de toda la OE: cualquiera ve quién reservó y para qué frente (ADR-150 regla 4).
     layers.includes("RESERVATION") ? listReservations(roles.actor.personId) : [],
+    layers.includes("BOARD") ? listBoardEventsBetween(from, to) : [],
   ]);
+  const cargos = tLabels("T-444", APPOINTMENT_KINDS);
+  const [juntaEnPleno] = tList("T-5121");
   const items: Item[] = [
     ...occasions
       .filter((row) => layers.includes(row.kind))
@@ -79,6 +95,7 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
         time: formatTime(row.startsAt),
         href: `/admin/ocasiones/${row.id}`,
         days: [dayKeyFor(row.startsAt)],
+        span: { startsAt: row.startsAt, endsAt: row.endsAt ?? row.startsAt },
       })),
     ...editions.map((row) => ({
       id: row.id,
@@ -109,7 +126,29 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
           days,
         ),
       })),
+    ...boardEvents.map((row) => ({
+      id: row.id,
+      layer: "BOARD" as const,
+      title: `${row.title} · ${(row.area === "BOARD" ? juntaEnPleno : cargos[row.area]) ?? ""}`,
+      time: row.allDay ? null : formatTime(row.startsAt),
+      // Lo que nació en la casa se edita en la casa; lo de Google, allá (ADR-197 regla 6).
+      href:
+        row.origin === "GOOGLE" && row.googleHtmlLink
+          ? row.googleHtmlLink
+          : `/admin/calendario/junta?editar=${row.id}`,
+      days: daysCovered(
+        dayKeyFor(row.startsAt),
+        dayKeyFor(new Date(Math.max(row.startsAt.getTime(), row.endsAt.getTime() - 1))),
+        days,
+      ),
+      area: row.area,
+      ...(row.allDay ? {} : { span: { startsAt: row.startsAt, endsAt: row.endsAt } }),
+    })),
   ];
+  const cruces = overlappingIds(
+    items.flatMap((item) => (item.span ? [{ id: item.id, ...item.span }] : [])),
+  );
+  const [cruceLabel, crucesResumen] = tList("T-5122");
   const byDay = new Map<string, Item[]>();
   for (const item of items) {
     for (const day of item.days) byDay.set(day, [...(byDay.get(day) ?? []), item]);
@@ -123,7 +162,7 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
     const query = new URLSearchParams({
       vista: view,
       fecha: anchor,
-      ...(layers.length < CALENDAR_LAYERS.length ? { capas: layers.join(",") } : {}),
+      ...(layers.length < offered.length ? { capas: layers.join(",") } : {}),
       ...params,
     });
     return `/admin/calendario?${query}`;
@@ -146,6 +185,16 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
               ? rangeLabel.format(new Date(`${anchor}T12:00:00Z`))
               : `${rangeLabel.format(new Date(`${first}T12:00:00Z`))} – ${rangeLabel.format(new Date(`${last}T12:00:00Z`))}`}
           </p>
+          {cruces.size > 0 ? (
+            <p className="text-secundario font-semibold">
+              {(crucesResumen ?? "").replace("{n}", String(cruces.size))}
+            </p>
+          ) : null}
+          {roles.boardSeats.length > 0 ? (
+            <p className="text-secundario">
+              <Link href="/admin/calendario/junta">{tList("T-5115")[0]}</Link>
+            </p>
+          ) : null}
         </div>
         <nav aria-label={titulo} className="flex flex-wrap items-center gap-2">
           <Link
@@ -185,7 +234,7 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
         <input type="hidden" name="fecha" value={anchor} />
         <fieldset className="flex flex-wrap items-center gap-2">
           <legend className="etiqueta-corta mr-2 text-tinta-secundaria">{capasLabel}</legend>
-          {CALENDAR_LAYERS.map((layer) => (
+          {offered.map((layer) => (
             <label key={layer} className="admin-calendar-layer" data-capa={layer}>
               <input
                 type="checkbox"
@@ -229,9 +278,18 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
               <ul className="m-0 flex list-none flex-col gap-1 p-0">
                 {shown.map((item) => (
                   <li key={`${item.id}-${day}`}>
-                    <Link href={item.href} className="admin-calendar-item" data-capa={item.layer}>
+                    <Link
+                      href={item.href}
+                      className="admin-calendar-item"
+                      data-capa={item.layer}
+                      data-area={item.area}
+                      data-cruce={cruces.has(item.id) ? "true" : undefined}
+                    >
                       {item.time ? <span className="admin-calendar-time">{item.time}</span> : null}
                       <span>{item.title}</span>
+                      {cruces.has(item.id) ? (
+                        <span className="admin-calendar-cruce">{cruceLabel}</span>
+                      ) : null}
                     </Link>
                   </li>
                 ))}

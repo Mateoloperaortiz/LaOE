@@ -668,3 +668,64 @@ export const mentorship = pgTable(
     check("mentorship_not_self", sql`${t.menteeId} <> ${t.mentorId}`),
   ],
 );
+
+// El calendario de la junta (ADR-197 regla 6): las reuniones de la junta y las fechas clave de cada
+// cargo, sincronizadas con el Google Calendar de la junta. `origin` dice dónde nació cada fecha, que es
+// donde se edita; quitar una fecha la marca y no la borra, para poder quitarla también en Google.
+export const boardCalendarEvent = pgTable(
+  "board_calendar_event",
+  {
+    id: id(),
+    title: text().notNull(),
+    area: text()
+      .$type<
+        | "BOARD"
+        | "PRESIDENT"
+        | "VP_ADMIN"
+        | "VP_FINANCE"
+        | "VP_PUBLIC_RELATIONS"
+        | "VP_COMMUNICATIONS"
+        | "VP_GH"
+      >()
+      .notNull()
+      .default("BOARD"),
+    startsAt: timestampTz().notNull(),
+    endsAt: timestampTz().notNull(),
+    allDay: boolean().notNull().default(false),
+    location: text().notNull().default(""),
+    description: text().notNull().default(""),
+    origin: text().$type<"CASA" | "GOOGLE">().notNull().default("CASA"),
+    googleEventId: text(),
+    googleHtmlLink: text(),
+    createdById: text().references(() => person.id, { onDelete: "set null" }),
+    updatedById: text().references(() => person.id, { onDelete: "set null" }),
+    cancelledAt: timestampTz(),
+    syncedAt: timestampTz(),
+    /** El último error al escribir en Google; vacío si quedó al día. */
+    syncError: text().notNull().default(""),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("board_calendar_event_google_unique").on(t.googleEventId),
+    index("board_calendar_event_starts_idx").on(t.startsAt),
+    check(
+      "board_calendar_event_area_known",
+      sql`${t.area} in ('BOARD', 'PRESIDENT', 'VP_ADMIN', 'VP_FINANCE', 'VP_PUBLIC_RELATIONS', 'VP_COMMUNICATIONS', 'VP_GH')`,
+    ),
+    check("board_calendar_event_origin_known", sql`${t.origin} in ('CASA', 'GOOGLE')`),
+    check("board_calendar_event_ends_after_start", sql`${t.endsAt} >= ${t.startsAt}`),
+    check(
+      "board_calendar_event_google_origin_has_id",
+      sql`${t.origin} <> 'GOOGLE' or ${t.googleEventId} is not null`,
+    ),
+  ],
+);
+
+// Hasta dónde leyó la casa el Google Calendar de la junta: una sola fila.
+export const boardCalendarSync = pgTable("board_calendar_sync", {
+  id: text().primaryKey(),
+  lastPulledAt: timestampTz(),
+  lastError: text().notNull().default(""),
+  updatedAt: updatedAt(),
+});

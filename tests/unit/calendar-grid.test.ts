@@ -3,6 +3,7 @@ import {
   CALENDAR_LAYERS,
   daysCovered,
   monthDays,
+  overlappingIds,
   parseDayKey,
   parseLayers,
   shiftMonth,
@@ -71,5 +72,36 @@ describe("lo que llega en la dirección", () => {
       "2026-11-14",
       "2026-11-15",
     ]);
+  });
+});
+
+describe("los cruces (ADR-197 regla 6)", () => {
+  const at = (hour: number) => new Date(Date.UTC(2099, 2, 2, hour));
+  const item = (id: string, from: number, to: number) => ({
+    id,
+    startsAt: at(from),
+    endsAt: at(to),
+  });
+
+  it("se cruzan dos cosas cuando una empieza antes de que la otra termine", () => {
+    expect(
+      [...overlappingIds([item("a", 14, 16), item("b", 15, 17), item("c", 17, 18)])].sort(),
+    ).toEqual(["a", "b"]);
+  });
+
+  it("terminar justo cuando empieza la otra no es cruce", () => {
+    expect(overlappingIds([item("a", 14, 16), item("b", 16, 18)]).size).toBe(0);
+  });
+
+  it("una sin hora de fin se cruza con lo que empieza a su hora o la contiene", () => {
+    expect([...overlappingIds([item("a", 15, 15), item("b", 15, 16)])].sort()).toEqual(["a", "b"]);
+    expect([...overlappingIds([item("a", 14, 18), item("b", 15, 15)])].sort()).toEqual(["a", "b"]);
+    expect(overlappingIds([item("a", 15, 15), item("b", 16, 16)]).size).toBe(0);
+  });
+
+  it("un evento largo se cruza con todos los que caen adentro, aunque estén en desorden", () => {
+    expect(
+      [...overlappingIds([item("c", 16, 17), item("a", 9, 20), item("b", 10, 11)])].sort(),
+    ).toEqual(["a", "b", "c"]);
   });
 });

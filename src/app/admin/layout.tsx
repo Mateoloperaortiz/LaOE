@@ -54,7 +54,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           : []),
         // Los avales que decide por su cargo en la junta (ADR-195 regla 3).
         ...(roles.boardSeats.length > 0
-          ? [{ href: "/admin/avales", label: tList("T-5092")[0] ?? "" }]
+          ? [
+              { href: "/admin/avales", label: tList("T-5092")[0] ?? "" },
+              // El calendario de la junta (ADR-197 regla 6).
+              { href: "/admin/calendario/junta", label: tList("T-5115")[0] ?? "" },
+            ]
           : []),
         // Las sanciones de Gestión Humana (ADR-196 regla 5): quien decide por la VP de GH.
         ...(roles.boardSeats.some((item) => item.seat === "VP_GH")

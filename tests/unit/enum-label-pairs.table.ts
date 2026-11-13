@@ -1020,7 +1020,14 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-4919",
     order: "CALENDAR_LAYERS",
-    positions: { ACTIVITY: 0, ASSEMBLY: 1, EDITION_SESSION: 2, EDITION: 3, RESERVATION: 4 },
+    positions: {
+      ACTIVITY: 0,
+      ASSEMBLY: 1,
+      EDITION_SESSION: 2,
+      EDITION: 3,
+      RESERVATION: 4,
+      BOARD: 5,
+    },
     canonical: CALENDAR_LAYERS,
   },
   {

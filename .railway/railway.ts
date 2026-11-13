@@ -117,6 +117,8 @@ export default defineRailway((ctx) => {
       GOOGLE_WALLET_SA_EMAIL: preserve(),
       GOOGLE_WALLET_SA_KEY_BASE64: preserve(),
       GOOGLE_WALLET_CLASS_SUFFIX: production ? "carnet-oe" : "carnet-oe-staging",
+      // ADR-197 regla 6: el Google Calendar de la junta; sin él, el calendario vive solo en la casa.
+      GOOGLE_CALENDAR_JUNTA_ID: preserve(),
       JOBS_ENABLED: "true",
       PUBLIC_INDEXING: production ? "true" : "false",
       // ADR-090: la vitrina de The Games en DÍAS; staging acepta el sitio en local.
