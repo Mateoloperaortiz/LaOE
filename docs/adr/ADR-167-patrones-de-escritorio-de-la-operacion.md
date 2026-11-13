@@ -3,7 +3,7 @@
 - Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Desarrolla: [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) (regla 5, «Patrones de escritorio»)
-- Amplía: [ADR-165](ADR-165-la-paleta-por-rol-con-alcance.md) (la paleta también hace)
+- Amplía: [ADR-190](ADR-190-la-paleta-por-rol-con-alcance.md) (la paleta también hace)
 - Relacionadas: ADR-017, ADR-043, ADR-072, ADR-082, ADR-161, ADR-164
 
 ## Contexto
@@ -23,7 +23,7 @@ Casi todos son presentación sobre lo que ya existe. Tres piden una regla: dónd
    - La dirección de un comité con la capacidad de ocasiones: una ocasión de su comité.
    - La junta: el enlace de activación.
 
-   Una acción lleva a la pantalla que ya hace la tarea, con su formulario abierto. La paleta no escribe: cada pantalla vuelve a exigir su permiso, como ya pide ADR-165. Sin nada que crear, el botón no aparece. C abre el «Nuevo» de la pantalla actual y, si no tiene, el menú «Crear».
+   Una acción lleva a la pantalla que ya hace la tarea, con su formulario abierto. La paleta no escribe: cada pantalla vuelve a exigir su permiso, como ya pide ADR-190. Sin nada que crear, el botón no aparece. C abre el «Nuevo» de la pantalla actual y, si no tiene, el menú «Crear».
 3. **Favoritos y Recientes.** La estrella de la barra superior fija la pantalla que se mira, con sus filtros pero sin el registro abierto ni la página. La barra lateral muestra hasta 8 favoritos y las últimas 5 pantallas visitadas, sin repetir la Mesa ni el Inicio. Viven en el navegador de cada persona (`localStorage`), como la barra recogida (ADR-159 regla 2): son una comodidad, no un dato, no viajan a la casa y no se comparten. Sin almacenamiento no aparecen. Las vistas guardadas, que sí se comparten con un rol, van en la base con su propia decisión.
 4. **La tabla del kit.** Las listas del admin kit (ADR-017) suman:
    - **Columnas a elección.** Las columnas visibles van en la dirección (`columnas=a,b`), así que se comparten con el enlace, se conservan al buscar, filtrar y paginar, y una vista guardada las podrá llevar. Sin el parámetro se ven todas, y siempre queda al menos una.

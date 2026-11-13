@@ -3275,10 +3275,10 @@ El marco de escritorio de `/admin`, que se construye en la rama `feat/rediseno`.
 
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
-| T-4860 | Operación: espacios de la barra lateral, en orden | Personas · Comités · Admisión · Comunicación · Participación · Permanencia · Finanzas y logística · Macroeventos · Junta · Sistema | MATEO | Propuesta |
-| T-4861 | Operación: título de la lista de espacios en la barra lateral | Espacios | MATEO | Propuesta |
-| T-4862 | Operación: botón para recoger la barra lateral y para mostrarla de nuevo | Recoger la barra lateral · Mostrar la barra lateral | MATEO | Propuesta |
-| T-4863 | Operación: línea debajo del nombre del área en la barra lateral | Organización Estudiantil | MATEO | Propuesta |
+| T-5040 | Operación: espacios de la barra lateral, en orden | Personas · Comités · Admisión · Comunicación · Participación · Permanencia · Finanzas y logística · Macroeventos · Junta · Sistema | MATEO | Propuesta |
+| T-5041 | Operación: título de la lista de espacios en la barra lateral | Espacios | MATEO | Propuesta |
+| T-5042 | Operación: botón para recoger la barra lateral y para mostrarla de nuevo | Recoger la barra lateral · Mostrar la barra lateral | MATEO | Propuesta |
+| T-5043 | Operación: línea debajo del nombre del área en la barra lateral | Organización Estudiantil | MATEO | Propuesta |
 
 ### La Mesa (ADR-159 regla 3)
 
@@ -3286,14 +3286,14 @@ Lo que le toca al actor en la Operación, venga del módulo que venga. Solo lee:
 
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
-| T-4864 | Operación: la Mesa en la barra lateral y título de su pantalla | Mesa | MATEO | Propuesta |
-| T-4865 | Mesa: lo que dice debajo del título | Lo que te toca, venga del espacio que venga. Cada cosa se resuelve en su pantalla, como siempre. | MATEO | Propuesta |
-| T-4866 | Mesa: títulos de sus grupos, en orden | Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Alertas | MATEO | Propuesta |
-| T-4867 | Mesa: nombre del contador de la barra superior (uno · varios) | Mesa: {n} pendiente · Mesa: {n} pendientes | MATEO | Propuesta |
-| T-4868 | Mesa: sin nada pendiente (título · explicación) | Nada pendiente · Cuando algo te toque, aparece aquí. Todo al día, pues. | MATEO | Propuesta |
-| T-4869 | Mesa: enlace al pie de un grupo que trae más de lo que se ve | Ver los {n} | MATEO | Propuesta |
-| T-4870 | Mesa: evaluaciones pendientes del actor (una · varias) | Tienes {n} evaluación por hacer · Tienes {n} evaluaciones por hacer | MATEO | Propuesta |
-| T-4871 | Mesa: fecha de un elemento (vence · venció · llegó) | Vence el {fecha} · Venció el {fecha} · Llegó el {fecha} | MATEO | Propuesta |
+| T-5044 | Operación: la Mesa en la barra lateral y título de su pantalla | Mesa | MATEO | Propuesta |
+| T-5045 | Mesa: lo que dice debajo del título | Lo que te toca, venga del espacio que venga. Cada cosa se resuelve en su pantalla, como siempre. | MATEO | Propuesta |
+| T-5046 | Mesa: títulos de sus grupos, en orden | Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Alertas | MATEO | Propuesta |
+| T-5047 | Mesa: nombre del contador de la barra superior (uno · varios) | Mesa: {n} pendiente · Mesa: {n} pendientes | MATEO | Propuesta |
+| T-5048 | Mesa: sin nada pendiente (título · explicación) | Nada pendiente · Cuando algo te toque, aparece aquí. Todo al día, pues. | MATEO | Propuesta |
+| T-5049 | Mesa: enlace al pie de un grupo que trae más de lo que se ve | Ver los {n} | MATEO | Propuesta |
+| T-5050 | Mesa: evaluaciones pendientes del actor (una · varias) | Tienes {n} evaluación por hacer · Tienes {n} evaluaciones por hacer | MATEO | Propuesta |
+| T-5051 | Mesa: fecha de un elemento (vence · venció · llegó) | Vence el {fecha} · Venció el {fecha} · Llegó el {fecha} | MATEO | Propuesta |
 
 ## Marco nuevo de Mi OE (ADR-160 y ADR-163)
 
@@ -3301,23 +3301,23 @@ La barra de Mi OE y las pantallas «Yo» y «Asistencia», que se construyen en 
 
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
-| T-4872 | Mi OE: pestañas de la barra, en orden | Hoy · Agenda · Asistencia · Juegos · Yo | MATEO | Propuesta |
-| T-4873 | Asistencia: lo que dice debajo del título | Registra tu asistencia a una ocasión o muéstrale tu carnet a quien registra. | MATEO | Propuesta |
-| T-4874 | Asistencia: escanear el QR de la ocasión (título · explicación) | Escanea el QR de la ocasión · Apunta la cámara al QR que muestra el anfitrión. Si la ocasión pide código, lo escribes en la pantalla que se abre. | MATEO | Propuesta |
-| T-4875 | Asistencia: el QR leído no es de una ocasión de la OE | Ese QR no es de una ocasión de la OE. Prueba con el que muestra el anfitrión. | MATEO | Propuesta |
-| T-4876 | Asistencia: mostrar el carnet (título · explicación · enlace) | Muestra tu carnet · Quien registra lo escanea y quedas en la lista. · Abrir mi carnet | MATEO | Propuesta |
-| T-4877 | Yo: el saldo de GH Points debajo de su enlace | {n} GH Points | MATEO | Propuesta |
-| T-4878 | Mi OE: bienvenida a la barra nueva (título · explicación · botón) | La barra cambió · «Hoy» es tu inicio. El carnet quedó en «Asistencia», el botón del centro. GH Points y todo lo que estaba en «Más» ahora vive en «Yo». · Listo | MATEO | Propuesta |
-| T-4879 | Asistencia: botones del lector | Escanear el QR · Detener · Subir una foto del QR | MATEO | Propuesta |
-| T-4880 | Asistencia: cámara no disponible o permiso negado | No pudimos usar la cámara. Abre el QR con la cámara del celular o sube una foto. | MATEO | Propuesta |
-| T-4881 | Asistencia: la foto del QR no abre | No pudimos abrir esa foto. Toma otra o escanea el QR con la cámara. | MATEO | Propuesta |
-| T-4882 | Asistencia: la lectura falló | No pudimos leer ese QR. Vuelve a intentarlo. | MATEO | Propuesta |
+| T-5052 | Mi OE: pestañas de la barra, en orden | Hoy · Agenda · Asistencia · Juegos · Yo | MATEO | Propuesta |
+| T-5053 | Asistencia: lo que dice debajo del título | Registra tu asistencia a una ocasión o muéstrale tu carnet a quien registra. | MATEO | Propuesta |
+| T-5054 | Asistencia: escanear el QR de la ocasión (título · explicación) | Escanea el QR de la ocasión · Apunta la cámara al QR que muestra el anfitrión. Si la ocasión pide código, lo escribes en la pantalla que se abre. | MATEO | Propuesta |
+| T-5055 | Asistencia: el QR leído no es de una ocasión de la OE | Ese QR no es de una ocasión de la OE. Prueba con el que muestra el anfitrión. | MATEO | Propuesta |
+| T-5056 | Asistencia: mostrar el carnet (título · explicación · enlace) | Muestra tu carnet · Quien registra lo escanea y quedas en la lista. · Abrir mi carnet | MATEO | Propuesta |
+| T-5057 | Yo: el saldo de GH Points debajo de su enlace | {n} GH Points | MATEO | Propuesta |
+| T-5058 | Mi OE: bienvenida a la barra nueva (título · explicación · botón) | La barra cambió · «Hoy» es tu inicio. El carnet quedó en «Asistencia», el botón del centro. GH Points y todo lo que estaba en «Más» ahora vive en «Yo». · Listo | MATEO | Propuesta |
+| T-5059 | Asistencia: botones del lector | Escanear el QR · Detener · Subir una foto del QR | MATEO | Propuesta |
+| T-5060 | Asistencia: cámara no disponible o permiso negado | No pudimos usar la cámara. Abre el QR con la cámara del celular o sube una foto. | MATEO | Propuesta |
+| T-5061 | Asistencia: la foto del QR no abre | No pudimos abrir esa foto. Toma otra o escanea el QR con la cámara. | MATEO | Propuesta |
+| T-5062 | Asistencia: la lectura falló | No pudimos leer ese QR. Vuelve a intentarlo. | MATEO | Propuesta |
 
-### La paleta ⌘K por rol (ADR-165)
+### La paleta ⌘K por rol (ADR-190)
 
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
-| T-4883 | Paleta ⌘K: tipo de un resultado que es una pantalla de la barra lateral | Pantalla | MATEO | Propuesta |
+| T-5063 | Paleta ⌘K: tipo de un resultado que es una pantalla de la barra lateral | Pantalla | MATEO | Propuesta |
 
 ### El centro de avisos (ADR-166)
 

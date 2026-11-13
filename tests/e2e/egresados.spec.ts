@@ -9,7 +9,7 @@ test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
 test("la galería de egresados muestra un cartel por año y pasa axe", async ({ page }) => {
   await page.goto("/app");
-  await page.getByRole("link", { name: tList("T-4872")[4], exact: true }).click();
+  await page.getByRole("link", { name: tList("T-5052")[4], exact: true }).click();
   await page.waitForURL(/\/app\/yo$/);
   await page
     .getByRole("main")

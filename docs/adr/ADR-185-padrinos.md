@@ -17,9 +17,9 @@ Con ADR-184 los egresados vuelven a entrar a su red, así que también pueden se
 3. **Quién asigna.** ADMIN, desde la Operación: `/admin/personas/padrinos`, un recurso del kit con crear, cambiar el padrino, quitar y exportar. El exporte lleva nombres, así que tiene datos personales (paso de seguridad y auditoría). Cuando la casa tenga un permiso propio de gestión humana, la asignación pasa a GH.
 4. **Qué ve cada uno.** En Mi OE, `/app/padrinos`: el nuevo ve «Tu padrino» y el padrino «Tus ahijados». Solo se ven el nombre y los comités del semestre, más «Egresado» cuando aplica. Sin correo ni celular: el contacto lo hacen ellos, o GH al presentarlos. «Yo» lleva a la página, y un egresado la tiene en su barra.
 5. **El aviso.** Asignar, o cambiar el padrino, avisa a los dos por el centro de avisos (ADR-166), con un enlace a la página.
-6. **Datos.** La relación vive en `mentorship` (en `people`, migración 0070). Anonimizar a cualquiera de los dos la borra en la misma transacción, porque nombra a dos personas y no es historia institucional.
+6. **Datos.** La relación vive en `mentorship` (en `people`, migración 0071). Anonimizar a cualquiera de los dos la borra en la misma transacción, porque nombra a dos personas y no es historia institucional.
 
 ## Consecuencias
 
-- **Migración 0070.** La tabla `mentorship`, con una relación por nuevo y semestre.
+- **Migración 0071.** La tabla `mentorship`, con una relación por nuevo y semestre.
 - **Pendiente.** Que la política de datos mencione a los padrinos (contenido pendiente). Y que la junta y GH decidan si el tope de tres les sirve.

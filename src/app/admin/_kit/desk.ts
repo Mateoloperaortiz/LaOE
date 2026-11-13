@@ -75,7 +75,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     ]);
 
   const viabilityLabels = tLabels("T-2264", VIABILITY_ALERTS);
-  const [evaluationOne, evaluationOther] = tList("T-4870");
+  const [evaluationOne, evaluationOther] = tList("T-5050");
   const alerts: DeskItem[] = [
     ...missing
       .filter((row) => inScope(row.committee.id))

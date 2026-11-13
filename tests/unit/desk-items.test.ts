@@ -22,7 +22,7 @@ const item = (id: string): DeskItem => ({
 
 describe("Mesa", () => {
   it("tiene un título por grupo, en el orden de sus grupos", () => {
-    expect(tList("T-4866")).toHaveLength(DESK_SECTIONS.length);
+    expect(tList("T-5046")).toHaveLength(DESK_SECTIONS.length);
   });
 
   it("una tarea lleva a su solicitud, a su persona, a su organización o a la lista", () => {

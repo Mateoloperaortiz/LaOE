@@ -40,7 +40,7 @@ Hoy la API v1 solo lee (ADR-090, la vitrina de The Games) y deja las escrituras 
 
 ## Consecuencias
 
-- **Migración 0072.** `ticket_hash`, `checked_in_at` y `checked_in_by_id` en `edition_registration`, con un índice único parcial sobre el hash.
+- **Migración 0073.** `ticket_hash`, `checked_in_at` y `checked_in_by_id` en `edition_registration`, con un índice único parcial sobre el hash.
 - **Las inscripciones de antes no tienen entrada.** La puerta no las encuentra; se registran por la lista de inscritos, como hasta hoy.
 - **La medición.** Antes de que DÍAS inscriba en la casa se corre la medición de ADR-183 con las inscripciones por minuto de una apertura.
 - **Pendiente con la junta.** Que la política de datos mencione la entrada y la hora de llegada (contenido pendiente).

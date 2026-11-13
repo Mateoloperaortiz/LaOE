@@ -451,66 +451,66 @@
       "breakpoints": true
     },
     {
-      "idx": 64,
-      "version": "7",
-      "when": 1794546789694,
-      "tag": "0064_centro_de_avisos",
-      "breakpoints": true
-    },
-    {
       "idx": 65,
       "version": "7",
-      "when": 1794553041157,
-      "tag": "0065_vistas_guardadas",
+      "when": 1794587505462,
+      "tag": "0065_centro_de_avisos",
       "breakpoints": true
     },
     {
       "idx": 66,
       "version": "7",
-      "when": 1794553914251,
-      "tag": "0066_trayectoria_verificable",
+      "when": 1794587506462,
+      "tag": "0066_vistas_guardadas",
       "breakpoints": true
     },
     {
       "idx": 67,
       "version": "7",
-      "when": 1794554060765,
-      "tag": "0067_empalme_entre_semestres",
+      "when": 1794587507462,
+      "tag": "0067_trayectoria_verificable",
       "breakpoints": true
     },
     {
       "idx": 68,
       "version": "7",
-      "when": 1794555239958,
-      "tag": "0068_capa_social",
+      "when": 1794587508462,
+      "tag": "0068_empalme_entre_semestres",
       "breakpoints": true
     },
     {
       "idx": 69,
       "version": "7",
-      "when": 1794556734414,
-      "tag": "0069_modo_asamblea",
+      "when": 1794587509462,
+      "tag": "0069_capa_social",
       "breakpoints": true
     },
     {
       "idx": 70,
       "version": "7",
-      "when": 1794568710927,
-      "tag": "0070_padrinos",
+      "when": 1794587510462,
+      "tag": "0070_modo_asamblea",
       "breakpoints": true
     },
     {
       "idx": 71,
       "version": "7",
-      "when": 1794569160542,
-      "tag": "0071_oportunidades",
+      "when": 1794587511462,
+      "tag": "0071_padrinos",
       "breakpoints": true
     },
     {
       "idx": 72,
       "version": "7",
-      "when": 1794569673521,
-      "tag": "0072_entrada_externa",
+      "when": 1794587512462,
+      "tag": "0072_oportunidades",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1794587513462,
+      "tag": "0073_entrada_externa",
       "breakpoints": true
     }
   ]

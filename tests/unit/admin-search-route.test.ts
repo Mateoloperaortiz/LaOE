@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/admin/buscar/route";
 import { tList } from "@/shared/copy";
 
-// La paleta ⌘K por rol (ADR-165, que enmienda ADR-072 regla 6): ADMIN busca en toda la casa; la
+// La paleta ⌘K por rol (ADR-190, que enmienda ADR-072 regla 6): ADMIN busca en toda la casa; la
 // dirección de un comité, solo a la gente de sus comités, por nombre y sin correo; los demás roles no
 // buscan en el servidor. Nadie que no sea ADMIN confirma si un correo existe.
 

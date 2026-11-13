@@ -1,7 +1,7 @@
 // Las piezas puras de la Mesa (ADR-159 regla 3, tramo O2): los grupos en su orden, a dónde lleva cada
 // elemento y cuántos pendientes suma. Lo que se lee de la base vive en `desk.ts`.
 
-/** Los grupos de la Mesa en el orden de T-4866. */
+/** Los grupos de la Mesa en el orden de T-5046. */
 export const DESK_SECTIONS = [
   "tasks",
   "requests",
@@ -13,7 +13,7 @@ export const DESK_SECTIONS = [
 
 export type DeskSectionKey = (typeof DESK_SECTIONS)[number];
 
-/** Las fechas que acompañan un elemento en el orden de T-4871: cuándo vence, que ya venció o cuándo llegó. */
+/** Las fechas que acompañan un elemento en el orden de T-5051: cuándo vence, que ya venció o cuándo llegó. */
 export const DESK_DATE_KINDS = ["due", "overdue", "arrived"] as const;
 
 export type DeskDate = { kind: (typeof DESK_DATE_KINDS)[number]; at: Date };
@@ -82,7 +82,7 @@ export function deskSection(
   return total > 0 ? [{ key, total, href, items: items.slice(0, DESK_ROWS) }] : [];
 }
 
-/** La Mesa con sus grupos en el orden de T-4866 y la suma que muestra el contador de la barra. */
+/** La Mesa con sus grupos en el orden de T-5046 y la suma que muestra el contador de la barra. */
 export function composeDesk(sections: DeskSection[]): Desk {
   const ordered = [...sections].sort(
     (a, b) => DESK_SECTIONS.indexOf(a.key) - DESK_SECTIONS.indexOf(b.key),

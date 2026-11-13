@@ -909,13 +909,13 @@ export const PAIRS: readonly LabelPair[] = [
     canonical: rewardStatus.enumValues,
   },
   {
-    code: "T-4866",
+    code: "T-5046",
     order: "DESK_SECTIONS",
     positions: { tasks: 0, requests: 1, excuses: 2, reviews: 3, evaluations: 4, alerts: 5 },
     canonical: DESK_SECTIONS,
   },
   {
-    code: "T-4871",
+    code: "T-5051",
     order: "DESK_DATE_KINDS",
     positions: { due: 0, overdue: 1, arrived: 2 },
     canonical: DESK_DATE_KINDS,

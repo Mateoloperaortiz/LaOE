@@ -4,7 +4,7 @@
 - Fecha: 2026-11-13
 - Desarrolla: [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) (reglas 3 y 5: la estructura y los patrones de escritorio)
 - Enmienda: [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) (la pestaña «Resumen» de la Persona 360) y la regla 15 de [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) (adónde entra quien no es ADMIN)
-- Relacionadas: ADR-036, ADR-058, ADR-072, ADR-165, ADR-167
+- Relacionadas: ADR-036, ADR-058, ADR-072, ADR-190, ADR-167
 
 ## Contexto
 
@@ -14,7 +14,7 @@ Hoy las fechas viven repartidas: las actividades, las asambleas y las sesiones d
 
 ## Decisión
 
-1. **El Calendario.** `/admin/calendario` muestra la semana (de lunes a domingo) o el mes (seis semanas) en la hora de la OE, con cuatro capas que se prenden y se apagan en la dirección (`capas=`): actividades, asambleas, sesiones de macroeventos y ediciones de macroeventos. Las canceladas no salen. Cada elemento lleva a su pantalla: la consola de la ocasión o la edición. El alcance sigue a ADR-072 y ADR-165:
+1. **El Calendario.** `/admin/calendario` muestra la semana (de lunes a domingo) o el mes (seis semanas) en la hora de la OE, con cuatro capas que se prenden y se apagan en la dirección (`capas=`): actividades, asambleas, sesiones de macroeventos y ediciones de macroeventos. Las canceladas no salen. Cada elemento lleva a su pantalla: la consola de la ocasión o la edición. El alcance sigue a ADR-072 y ADR-190:
    - ADMIN y la junta ven todo.
    - La dirección de un comité ve las ocasiones de sus comités.
    - Todos ven las asambleas y las ediciones, que son de toda la OE.

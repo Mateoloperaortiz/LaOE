@@ -149,7 +149,7 @@ function Navigation({
         <span className="admin-nav-icon">
           <InboxIcon size={18} />
         </span>
-        <span className="admin-nav-label">{t("T-4864")}</span>
+        <span className="admin-nav-label">{t("T-5044")}</span>
       </Link>
       <Link
         href="/admin/calendario"
@@ -176,7 +176,7 @@ function Navigation({
         </Link>
       ) : null}
       {rail ? null : <PinnedLists onNavigate={onNavigate} />}
-      <p className="admin-nav-section">{t("T-4861")}</p>
+      <p className="admin-nav-section">{t("T-5041")}</p>
       {groups.map((group) => {
         const Icon = group.icon ? SPACE_ICONS[group.icon] : null;
         const open =
@@ -260,10 +260,10 @@ export function AdminShell({
     () => false,
   );
   const rail = collapsed || midWidth;
-  const [recoger, mostrar] = tList("T-4862");
+  const [recoger, mostrar] = tList("T-5042");
   // G y una letra: la Mesa, el Inicio y el primer destino de cada espacio que el actor ve.
   const spaces: ShortcutSpace[] = [
-    { key: SPACE_KEYS.mesa, href: "/admin/mesa", label: t("T-4864") },
+    { key: SPACE_KEYS.mesa, href: "/admin/mesa", label: t("T-5044") },
     ...(showHome ? [{ key: SPACE_KEYS.inicio, href: "/admin", label: t("T-4929") }] : []),
     { key: SPACE_KEYS.calendario, href: "/admin/calendario", label: tList("T-4918")[0] ?? "" },
     ...groups.flatMap((group) => {
@@ -330,7 +330,7 @@ export function AdminShell({
           <div className="admin-brand">
             <Link href="/admin" className="admin-brand-name">
               <strong>{t("T-236")}</strong>
-              <span>{t("T-4863")}</span>
+              <span>{t("T-5043")}</span>
             </Link>
             <button
               type="button"

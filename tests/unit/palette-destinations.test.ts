@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { matchDestinations, type PaletteResult } from "@/shared/admin-kit/CommandPalette";
 
-// La paleta busca los destinos del actor en el navegador (ADR-165 regla 2): por su etiqueta, sin
+// La paleta busca los destinos del actor en el navegador (ADR-190 regla 2): por su etiqueta, sin
 // mirar acentos ni mayúsculas, y desde dos letras, como la búsqueda del servidor.
 
 const destination = (title: string, href: string): PaletteResult => ({

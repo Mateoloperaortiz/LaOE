@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-190](ADR-190-la-paleta-por-rol-con-alcance.md) | La paleta ⌘K por rol, con alcance | Aceptada |
 | [ADR-189](ADR-189-el-portal-como-afiche-vivo.md) | El portal como afiche vivo | Aceptada |
 | [ADR-188](ADR-188-el-rediseno-llega-a-todas-las-pantallas.md) | El rediseño llega a todas las pantallas | Aceptada |
 | [ADR-187](ADR-187-la-entrada-externa-y-la-inscripcion-por-la-api.md) | La entrada externa y la inscripción por la API | Aceptada |
@@ -37,7 +38,6 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-168](ADR-168-el-modo-de-campo-de-la-operacion.md) | El modo de campo de la Operación | Aceptada |
 | [ADR-167](ADR-167-patrones-de-escritorio-de-la-operacion.md) | Patrones de escritorio de la Operación | Aceptada |
 | [ADR-166](ADR-166-el-centro-de-avisos-de-mi-oe.md) | El centro de avisos de Mi OE | Aceptada |
-| [ADR-165](ADR-165-la-paleta-por-rol-con-alcance.md) | La paleta ⌘K por rol, con alcance | Aceptada |
 | [ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md) | El rediseño sale de una vez, sin bandera | Aceptada |
 | [ADR-163](ADR-163-aspecto-sobrio-de-la-capa-funcional.md) | Aspecto sobrio de la capa funcional | Aceptada (enmendada por ADR-164) |
 | [ADR-162](ADR-162-grupo-de-decoracion-en-mi-oe.md) | Grupo de decoración en Mi OE | Aceptada |
@@ -127,7 +127,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md) | Biblioteca de juegos y 2048 con replay verificado | Aceptada; enmendada por ADR-078, ADR-088 y ADR-122; en producción; enmendada por ADR-131; enmendada por ADR-134 |
 | [ADR-074](ADR-074-aviso-diario-del-wordle.md) | Aviso diario del Wordle | Aceptada; en producción; enmendada por ADR-131 |
 | [ADR-073](ADR-073-un-comite-inactivo-sale-de-la-app.md) | Un comité inactivo sale de la app | Aceptada; en producción |
-| [ADR-072](ADR-072-alcance-autorizado-en-el-dominio.md) | El alcance autorizado se verifica en el dominio | Aceptada (enmendada por ADR-112, ADR-122 y ADR-165); en producción |
+| [ADR-072](ADR-072-alcance-autorizado-en-el-dominio.md) | El alcance autorizado se verifica en el dominio | Aceptada (enmendada por ADR-112, ADR-122 y ADR-190); en producción |
 | [ADR-071](ADR-071-gt-de-macroevento-cumple-gap.md) | El GT de macroevento cumple el criterio GAP | Aceptada; en producción |
 | [ADR-070](ADR-070-podio-de-comites-en-gh-points.md) | Podio de comités en GH Points | Aceptada; enmendada por ADR-136 |
 | [ADR-069](ADR-069-directorio-de-comites-de-mi-oe.md) | Directorio de comités de Mi OE | Implementada en local; publicación pendiente |

@@ -120,7 +120,7 @@ for (const width of [360, 390, 768, 1440])
       // «Más» se fue (ADR-160 regla 1): lo suyo vive en «Yo», que queda activa en sus destinos.
       const nav = page.getByRole("navigation", { name: t("T-1663"), exact: true });
       await expect(nav.getByRole("link")).toHaveCount(5);
-      await nav.getByRole("link", { name: tList("T-4872")[4], exact: true }).click();
+      await nav.getByRole("link", { name: tList("T-5052")[4], exact: true }).click();
       await expect(page).toHaveURL(/\/app\/yo$/);
       await sinViolaciones(page);
       await page
@@ -129,7 +129,7 @@ for (const width of [360, 390, 768, 1440])
         .click();
       await expect(page).toHaveURL(/\/app\/personas$/);
       await expect(
-        nav.getByRole("link", { name: tList("T-4872")[4], exact: true }),
+        nav.getByRole("link", { name: tList("T-5052")[4], exact: true }),
       ).toHaveAttribute("aria-current", "page");
       for (const path of [
         "/app",
@@ -161,7 +161,7 @@ test("Mi OE mantiene acceso con texto al 200 %: las cinco pestañas y «Yo»", a
     document.documentElement.style.fontSize = "200%";
   });
   const nav = page.getByRole("navigation", { name: t("T-1663"), exact: true });
-  for (const label of tList("T-4872")) {
+  for (const label of tList("T-5052")) {
     await expect(nav.getByRole("link", { name: label, exact: true })).toBeVisible();
   }
   await expect(

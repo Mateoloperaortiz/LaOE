@@ -1,6 +1,6 @@
 {
-  "id": "308c228f-9165-46f6-ad1f-cd1bc0b1ba06",
-  "prevId": "a2fed524-faed-4117-96e6-0f2ba150c2b1",
+  "id": "a2fed524-faed-4117-96e6-0f2ba150c2b1",
+  "prevId": "d5c6102a-4087-4c56-aa7c-ccf251047bb4",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -7388,164 +7388,6 @@
             "id"
           ],
           "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.opportunity": {
-      "name": "opportunity",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "opportunity_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'OTHER'"
-        },
-        "audience": {
-          "name": "audience",
-          "type": "opportunity_audience",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'BOTH'"
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
-        "url": {
-          "name": "url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "closes_on": {
-          "name": "closes_on",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "publication_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'DRAFT'"
-        },
-        "created_by_id": {
-          "name": "created_by_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "opportunity_status_closes_idx": {
-          "name": "opportunity_status_closes_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "closes_on",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "opportunity_organization_idx": {
-          "name": "opportunity_organization_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "opportunity_organization_id_organization_id_fk": {
-          "name": "opportunity_organization_id_organization_id_fk",
-          "tableFrom": "opportunity",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "opportunity_created_by_id_person_id_fk": {
-          "name": "opportunity_created_by_id_person_id_fk",
-          "tableFrom": "opportunity",
-          "tableTo": "person",
-          "columnsFrom": [
-            "created_by_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -24145,26 +23987,6 @@
         "DRAFT",
         "OPEN",
         "CLOSED"
-      ]
-    },
-    "public.opportunity_audience": {
-      "name": "opportunity_audience",
-      "schema": "public",
-      "values": [
-        "MEMBERS",
-        "ALUMNI",
-        "BOTH"
-      ]
-    },
-    "public.opportunity_kind": {
-      "name": "opportunity_kind",
-      "schema": "public",
-      "values": [
-        "INTERNSHIP",
-        "JOB",
-        "VOLUNTEER",
-        "EVENT",
-        "OTHER"
       ]
     },
     "public.organization_kind": {

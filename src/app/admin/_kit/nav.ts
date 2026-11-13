@@ -44,7 +44,7 @@ export function adminNavGroups(): AdminNavGroup[] {
     espacioMacroeventos,
     espacioJunta,
     espacioSistema,
-  ] = tList("T-4860");
+  ] = tList("T-5040");
   return [
     {
       label: espacioPersonas,

@@ -18,7 +18,7 @@ export interface PaletteResult {
 type Props = {
   endpoint: string;
   /**
-   * Los destinos de la barra lateral del actor (ADR-165 regla 2): se buscan aquí, por su etiqueta,
+   * Los destinos de la barra lateral del actor (ADR-190 regla 2): se buscan aquí, por su etiqueta,
    * sin preguntarle a la casa, y salen antes que lo que responde el servidor.
    */
   destinations?: PaletteResult[];
@@ -44,7 +44,7 @@ export function matchDestinations(destinations: PaletteResult[], query: string):
   return destinations.filter((item) => folded(item.title).includes(wanted)).slice(0, 6);
 }
 
-// Paleta ⌘K (ADR-017, con el alcance de ADR-165): busca los destinos del actor en el navegador y lo
+// Paleta ⌘K (ADR-017, con el alcance de ADR-190): busca los destinos del actor en el navegador y lo
 // demás en el servidor con pg_trgm, y navega con el teclado.
 export function CommandPalette({ endpoint, labels, destinations = [] }: Props) {
   const router = useRouter();

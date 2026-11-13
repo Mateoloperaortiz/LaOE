@@ -36,12 +36,12 @@ test("una ruta protegida manda a ingresar y vuelve tras la contraseña", async (
   await expect(page.getByRole("cell", { name: t("T-232") })).toBeVisible();
   await sinViolaciones(page);
 
-  await page.getByRole("link", { name: tList("T-4872")[0], exact: true }).click();
+  await page.getByRole("link", { name: tList("T-5052")[0], exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     t("T-060", { "nombre preferido": "Prueba" }),
   );
 
-  await page.getByRole("link", { name: tList("T-4872")[4], exact: true }).click();
+  await page.getByRole("link", { name: tList("T-5052")[4], exact: true }).click();
   await page.waitForURL(/\/app\/yo$/);
   await page
     .getByRole("main")
@@ -98,7 +98,7 @@ test("cerrar sesión sin conexión avisa, deja la página en pie y se puede rein
   await entrar(page).click();
   await expect(page).toHaveURL(/\/app\/ajustes$/);
 
-  await page.getByRole("link", { name: tList("T-4872")[4], exact: true }).click();
+  await page.getByRole("link", { name: tList("T-5052")[4], exact: true }).click();
   await page.waitForURL(/\/app\/yo$/);
   const signOut = page.getByRole("main").getByRole("button", { name: t("T-231"), exact: true });
   // El pedido de salida no llega a la casa.

@@ -1,6 +1,6 @@
 {
-  "id": "4b0996fe-755c-4deb-b0b6-6a247829afd9",
-  "prevId": "308c228f-9165-46f6-ad1f-cd1bc0b1ba06",
+  "id": "308c228f-9165-46f6-ad1f-cd1bc0b1ba06",
+  "prevId": "a2fed524-faed-4117-96e6-0f2ba150c2b1",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -10236,24 +10236,6 @@
           "notNull": true,
           "default": "'REGISTERED'"
         },
-        "ticket_hash": {
-          "name": "ticket_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "checked_in_at": {
-          "name": "checked_in_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "checked_in_by_id": {
-          "name": "checked_in_by_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -10298,22 +10280,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "edition_registration_ticket_unique": {
-          "name": "edition_registration_ticket_unique",
-          "columns": [
-            {
-              "expression": "ticket_hash",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"edition_registration\".\"ticket_hash\" is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -10349,19 +10315,6 @@
           "tableTo": "form_submission",
           "columnsFrom": [
             "submission_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "edition_registration_checked_in_by_id_person_id_fk": {
-          "name": "edition_registration_checked_in_by_id_person_id_fk",
-          "tableFrom": "edition_registration",
-          "tableTo": "person",
-          "columnsFrom": [
-            "checked_in_by_id"
           ],
           "columnsTo": [
             "id"

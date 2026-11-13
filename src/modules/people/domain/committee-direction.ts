@@ -271,7 +271,7 @@ export interface CommitteeMemberMatch {
 
 /**
  * La gente de unos comités en un término, por nombre y sin correo: lo que busca la dirección en la
- * paleta ⌘K (ADR-165 regla 4). Solo mira los comités que recibe, que el llamador ya recortó a su
+ * paleta ⌘K (ADR-190 regla 4). Solo mira los comités que recibe, que el llamador ya recortó a su
  * alcance (ADR-072 regla 1), y a quien sigue en el comité; quien está en dos sale una vez por cada uno.
  */
 export async function searchCommitteeMembers(

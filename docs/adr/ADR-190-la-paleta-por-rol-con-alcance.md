@@ -1,6 +1,7 @@
-# ADR-165: La paleta ⌘K por rol, con alcance
+# ADR-190: La paleta ⌘K por rol, con alcance
 
 - Estado: Aceptada el 2026-11-12
+- Número: era la ADR-165 en `feat/rediseno`; pasó a la 190 porque `main` publicó la ADR-165 (bonos de permanencia por criterio) el 2026-11-13
 - Fecha: 2026-11-12
 - Enmienda: [ADR-072](ADR-072-alcance-autorizado-en-el-dominio.md) (regla 6)
 - Relacionadas: ADR-035, ADR-036, ADR-058, ADR-159, ADR-164

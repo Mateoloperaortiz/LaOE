@@ -1,6 +1,6 @@
 {
-  "id": "7a37ed76-4546-4aaf-bb9b-0c2c2ba6e4ba",
-  "prevId": "9a6f7dac-4e7b-4174-af85-f8ed872613d4",
+  "id": "9a6f7dac-4e7b-4174-af85-f8ed872613d4",
+  "prevId": "2d50d0f0-67a8-47d6-b356-70806ba0b074",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -8600,138 +8600,6 @@
             "id"
           ],
           "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.trajectory_credential": {
-      "name": "trajectory_credential",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "public_id": {
-          "name": "public_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "person_id": {
-          "name": "person_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "trajectory_credential_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source_id": {
-          "name": "source_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "term_code": {
-          "name": "term_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "published_at": {
-          "name": "published_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "revoked_at": {
-          "name": "revoked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "trajectory_credential_public_id_unique": {
-          "name": "trajectory_credential_public_id_unique",
-          "columns": [
-            {
-              "expression": "public_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "trajectory_credential_source_unique": {
-          "name": "trajectory_credential_source_unique",
-          "columns": [
-            {
-              "expression": "person_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "kind",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "source_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "trajectory_credential_person_id_person_id_fk": {
-          "name": "trajectory_credential_person_id_person_id_fk",
-          "tableFrom": "trajectory_credential",
-          "tableTo": "person",
-          "columnsFrom": [
-            "person_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -22874,14 +22742,6 @@
       "values": [
         "OPEN",
         "DONE"
-      ]
-    },
-    "public.trajectory_credential_kind": {
-      "name": "trajectory_credential_kind",
-      "schema": "public",
-      "values": [
-        "COMMITTEE",
-        "RECOGNITION"
       ]
     },
     "public.budget_kind": {

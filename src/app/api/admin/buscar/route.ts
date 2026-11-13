@@ -9,7 +9,7 @@ import { tLabels } from "@/shared/copy";
 import { stripAccents } from "@/shared/lib/accents";
 import { formatDateTime } from "@/shared/lib/dates";
 
-// Paleta ⌘K (ADR-165, que enmienda ADR-072 regla 6): responde a todos los roles de la Operación, cada
+// Paleta ⌘K (ADR-190, que enmienda ADR-072 regla 6): responde a todos los roles de la Operación, cada
 // uno dentro de su alcance. ADMIN busca como siempre: personas también por correo, comités, ocasiones
 // y organizaciones. La dirección de un comité busca a la gente de los comités donde ve «Personas», solo
 // por nombre y sin correo, y sus propios comités. La junta, los grupos y The Games no buscan aquí: sus
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
   return Response.json({ results }, NO_STORE);
 }
 
-/** Lo que busca quien no es ADMIN: la gente y los comités de su alcance (ADR-165 reglas 4 y 5). */
+/** Lo que busca quien no es ADMIN: la gente y los comités de su alcance (ADR-190 reglas 4 y 5). */
 async function scopedResults(
   roles: Awaited<ReturnType<typeof adminAreaRoles>>,
   q: string,

@@ -17,7 +17,7 @@ import { ChevronRightIcon } from "@/shared/ui/icons/ChevronRightIcon";
 // «Yo» (ADR-160 regla 1): recoge lo que estaba en «Más», más GH Points con su saldo y el enlace a la
 // Operación para quien tiene un rol (ADR-049). Solo enlaces: cada destino conserva su pantalla.
 
-export const metadata: Metadata = { title: tList("T-4872")[4] };
+export const metadata: Metadata = { title: tList("T-5052")[4] };
 
 type Row = { href: string; label: string; detail?: string | undefined };
 
@@ -156,7 +156,7 @@ export default async function YoPage() {
           {
             href: "/app/gh-points",
             label: ghPoints,
-            detail: saldo === null ? undefined : t("T-4877", { n: saldo }),
+            detail: saldo === null ? undefined : t("T-5057", { n: saldo }),
           },
           { href: "/app/permanencia", label: permanencia },
           { href: "/app/yo/trayectoria", label: trayectoria ?? "" },

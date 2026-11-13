@@ -88,8 +88,8 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
     adminAreaRoles(actor),
   ]);
   const [temaOscuro, temaClaro] = tList("T-034");
-  const [hoy, agenda, asistencia, juegos, yo] = tList("T-4872");
-  const [welcomeTitle, welcomeText, welcomeButton] = tList("T-4878");
+  const [hoy, agenda, asistencia, juegos, yo] = tList("T-5052");
+  const [welcomeTitle, welcomeText, welcomeButton] = tList("T-5058");
   return (
     <>
       <PwaRegistrar endpointsKey={devices.map((item) => item.endpoint).join("\n")} />

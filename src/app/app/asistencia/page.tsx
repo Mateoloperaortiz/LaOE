@@ -10,19 +10,19 @@ import { buttonClass } from "@/shared/ui/Button";
 // el carnet para que quien registra lo escanee. No lista ocasiones con enlace directo: el QR es la
 // prueba de que la persona está ahí, y saltárselo cambiaría cómo se valida un registro.
 
-export const metadata: Metadata = { title: tList("T-4872")[2] };
+export const metadata: Metadata = { title: tList("T-5052")[2] };
 
 export default async function AttendancePage() {
   await requireActor("/app/asistencia");
-  const [, , asistencia] = tList("T-4872");
-  const [qrTitle, qrText] = tList("T-4874");
-  const [carnetTitle, carnetText, carnetLink] = tList("T-4876");
-  const [scan, stop, upload] = tList("T-4879");
+  const [, , asistencia] = tList("T-5052");
+  const [qrTitle, qrText] = tList("T-5054");
+  const [carnetTitle, carnetText, carnetLink] = tList("T-5056");
+  const [scan, stop, upload] = tList("T-5059");
   return (
     <div className="flex max-w-2xl flex-col gap-8">
       <header className="flex flex-col gap-1">
         <h1 className="titulo-pantalla">{asistencia}</h1>
-        <p className="text-tinta-secundaria">{t("T-4873")}</p>
+        <p className="text-tinta-secundaria">{t("T-5053")}</p>
       </header>
       <section
         aria-labelledby="asistencia-qr"
@@ -37,10 +37,10 @@ export default async function AttendancePage() {
             scan,
             stop,
             upload,
-            cameraError: t("T-4880"),
-            photoError: t("T-4881"),
-            scanError: t("T-4882"),
-            notOccasion: t("T-4875"),
+            cameraError: t("T-5060"),
+            photoError: t("T-5061"),
+            scanError: t("T-5062"),
+            notOccasion: t("T-5055"),
           }}
         />
       </section>

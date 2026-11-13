@@ -16,7 +16,7 @@ import { EmptyState } from "@/shared/ui/States";
 // La Mesa (ADR-159 regla 3, tramo O2): lo que le toca al actor, agrupado y con lo más urgente arriba
 // en cada grupo. Solo lee; cada fila lleva al registro en su pantalla de origen, que lo resuelve.
 
-export const metadata: Metadata = { title: t("T-4864") };
+export const metadata: Metadata = { title: t("T-5044") };
 
 type DateLabels = Record<(typeof DESK_DATE_KINDS)[number], string>;
 
@@ -86,7 +86,7 @@ function Section({
             href={section.href}
             className="text-secundario text-enlace underline underline-offset-4"
           >
-            {t("T-4869", { n: section.total })}
+            {t("T-5049", { n: section.total })}
           </Link>
         ) : null}
       </div>
@@ -101,15 +101,15 @@ function Section({
 
 export default async function DeskPage() {
   const desk = await loadDesk();
-  const labels = tLabels("T-4866", DESK_SECTIONS);
-  const dates = tLabels("T-4871", DESK_DATE_KINDS);
-  const [emptyTitle, emptyDescription] = tList("T-4868");
+  const labels = tLabels("T-5046", DESK_SECTIONS);
+  const dates = tLabels("T-5051", DESK_DATE_KINDS);
+  const [emptyTitle, emptyDescription] = tList("T-5048");
   return (
     <div className="flex max-w-3xl flex-col gap-8">
       <header className="admin-page-header">
         <div>
-          <h1>{t("T-4864")}</h1>
-          <p className="text-secundario text-tinta-secundaria">{t("T-4865")}</p>
+          <h1>{t("T-5044")}</h1>
+          <p className="text-secundario text-tinta-secundaria">{t("T-5045")}</p>
         </div>
       </header>
       {/* En el celular, la Mesa ofrece el modo de campo (ADR-168 regla 5); el CSS lo esconde desde 1024 px. */}

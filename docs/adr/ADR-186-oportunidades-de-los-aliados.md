@@ -20,9 +20,9 @@ La OE tiene aliados: empresas, unidades de EAFIT y otros grupos estudiantiles, q
 2. **Quién la publica.** ADMIN, desde la Operación: `/admin/oportunidades`, un recurso del kit en el espacio de Admisión, junto a las organizaciones. No lleva datos personales.
 3. **Quién la ve.** En Mi OE, `/app/oportunidades` muestra las publicadas que no han cerrado: la fecha de cierre es hoy o después, o no tiene. Las que cierran antes van primero y las que no tienen fecha, al final. Un miembro ve las de miembros y las de los dos; un egresado (ADR-184), las de egresados y las de los dos.
 4. **Sin postulación en la casa.** El enlace lleva al aliado y la postulación es con él. La casa no guarda quién abrió qué ni quién se postuló: no hay datos personales nuevos.
-5. **Dónde vive.** La tabla `opportunity` en `crm`, junto a `organization` (migración 0071). Borrar la organización borra sus oportunidades.
+5. **Dónde vive.** La tabla `opportunity` en `crm`, junto a `organization` (migración 0072). Borrar la organización borra sus oportunidades.
 
 ## Consecuencias
 
-- **Migración 0071.** Los enums `opportunity_kind` y `opportunity_audience` y la tabla `opportunity`.
+- **Migración 0072.** Los enums `opportunity_kind` y `opportunity_audience` y la tabla `opportunity`.
 - **Sin aviso al publicar.** Una campaña o un aviso a miembros o a egresados se hace con lo que ya existe en Comunicaciones. Un aviso automático queda para cuando se mida cuántas oportunidades llegan.

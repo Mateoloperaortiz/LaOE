@@ -77,10 +77,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           ),
     }))
     .filter((group) => group.items.length > 0);
-  // La paleta busca los destinos del actor en el navegador, la Mesa incluida (ADR-165 regla 2).
+  // La paleta busca los destinos del actor en el navegador, la Mesa incluida (ADR-190 regla 2).
   const destinations = [
     ...(hasPanorama(roles) ? [{ href: "/admin", label: t("T-4929"), space: null }] : []),
-    { href: "/admin/mesa", label: t("T-4864"), space: null },
+    { href: "/admin/mesa", label: t("T-5044"), space: null },
     { href: "/admin/calendario", label: tList("T-4918")[0] ?? "", space: null },
     ...groups.flatMap((group) =>
       group.items.map((item) => ({ href: item.href, label: item.label, space: group.label })),
@@ -123,7 +123,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             empty: t("T-256"),
             close: t("T-291"),
             types: {
-              destination: t("T-4883"),
+              destination: t("T-5063"),
               action: t("T-4901"),
               person: persona,
               committee: comite,

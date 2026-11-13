@@ -9,15 +9,15 @@ import { formatCount } from "@/shared/ui/list-navigation";
 // enlace sin número. Se recalcula cuando el layout vuelve a pintarse, como después de una acción.
 
 export function DeskLink({ total }: { total: number | null }) {
-  const [one, other] = tList("T-4867");
+  const [one, other] = tList("T-5047");
   return (
     <Link
       href="/admin/mesa"
       className="admin-desk"
-      aria-label={total === null ? t("T-4864") : formatCount(total, { one, other })}
+      aria-label={total === null ? t("T-5044") : formatCount(total, { one, other })}
     >
       <InboxIcon size={18} />
-      <span className="admin-desk-label">{t("T-4864")}</span>
+      <span className="admin-desk-label">{t("T-5044")}</span>
       {total ? (
         <span className="admin-desk-count" aria-hidden="true">
           {total > 99 ? "99+" : total}

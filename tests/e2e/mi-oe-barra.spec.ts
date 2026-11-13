@@ -9,8 +9,8 @@ import { test } from "./fixtures";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
-const [hoy, , asistencia, , yo] = tList("T-4872");
-const [welcomeTitle, , welcomeButton] = tList("T-4878");
+const [hoy, , asistencia, , yo] = tList("T-5052");
+const [welcomeTitle, , welcomeButton] = tList("T-5058");
 
 test.describe("la primera vez", () => {
   test.use({ newBarWelcomeSeen: false });
@@ -49,9 +49,9 @@ test("Asistencia es el centro de la barra y lleva al carnet, que la deja activa"
   await central.click();
   await expect(page).toHaveURL(/\/app\/asistencia$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(asistencia);
-  await expect(page.getByRole("button", { name: tList("T-4879")[0], exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: tList("T-5059")[0], exact: true })).toBeVisible();
   await sinViolaciones(page);
-  await page.getByRole("link", { name: tList("T-4876")[2], exact: true }).click();
+  await page.getByRole("link", { name: tList("T-5056")[2], exact: true }).click();
   await expect(page).toHaveURL(/\/app\/carnet$/);
   await expect(central).toHaveAttribute("aria-current", "page");
 });

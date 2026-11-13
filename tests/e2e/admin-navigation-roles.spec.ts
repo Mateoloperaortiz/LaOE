@@ -37,7 +37,7 @@ test("líder y evaluador de grupo reciben solo sus destinos, con un único activ
     await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
     // Mesa, Calendario (ADR-169) y su grupo; sin bloque en el Panorama, no lleva Panorama.
     await expect(nav.locator("a:not(.admin-pinned a)")).toHaveCount(4);
-    // La paleta es de todos los roles (ADR-165); un grupo solo busca sus destinos.
+    // La paleta es de todos los roles (ADR-190); un grupo solo busca sus destinos.
     await expect(page.getByRole("button", { name: t("T-299") })).toHaveCount(1);
     await expect(nav.locator('a[href="/admin/personas"]')).toHaveCount(0);
     await page.goto("/admin/personas");

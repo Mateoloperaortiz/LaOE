@@ -508,10 +508,6 @@ export const textosCliente = {
   "T-4673": "Recargar página",
   "T-4674": "Hora",
   "T-4675": "{n} bloques seleccionados",
-  "T-4861": "Espacios",
-  "T-4862": "Recoger la barra lateral · Mostrar la barra lateral",
-  "T-4863": "Organización Estudiantil",
-  "T-4864": "Mesa",
   "T-4895": "Atajos de teclado · Espacios · y luego",
   "T-4896":
     "Buscar, ir y hacer · Mostrar estos atajos · Crear algo aquí · Buscar en la tabla · Bajar y subir en una lista · Abrir lo que tiene el foco · Cerrar el panel · Marcar la fila · Editar el registro · Guardar el formulario",
@@ -528,6 +524,10 @@ export const textosCliente = {
   "T-4929": "Panorama",
   "T-4930":
     "Vistas · Guardar esta vista · Nombre de la vista · Compartir con quienes ven esta tabla · Guardar · Borrar · Compartida",
+  "T-5041": "Espacios",
+  "T-5042": "Recoger la barra lateral · Mostrar la barra lateral",
+  "T-5043": "Organización Estudiantil",
+  "T-5044": "Mesa",
   "T-585": "Registrados · Pendientes · Rechazados · Anulados",
   "T-878": "Retirar solicitud",
   "T-880": "Cuéntanos por qué",

@@ -15,8 +15,8 @@ import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
 // La Mesa (ADR-159 regla 3, tramo O2): junta lo que le toca a cada actor, lleva cada elemento a su
 // pantalla de origen y suma sus pendientes en el contador de la barra superior.
 
-const [tusTareas, , , , evaluacionesTitulo] = tList("T-4866");
-const [, vencio] = tList("T-4871");
+const [tusTareas, , , , evaluacionesTitulo] = tList("T-5046");
+const [, vencio] = tList("T-5051");
 const contador = /^Mesa: \d+ pendientes?$/;
 
 async function personId(email: string): Promise<string> {
@@ -40,9 +40,9 @@ test.describe("ADMIN", () => {
     });
     try {
       await page.goto("/admin/mesa");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-4864"));
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-5044"));
       await expect(
-        page.locator(".admin-sidebar nav").getByRole("link", { name: t("T-4864"), exact: true }),
+        page.locator(".admin-sidebar nav").getByRole("link", { name: t("T-5044"), exact: true }),
       ).toHaveAttribute("aria-current", "page");
       await expect(page.locator(".admin-topbar a[href='/admin/mesa']")).toHaveAccessibleName(
         contador,
@@ -76,13 +76,13 @@ test.describe("evaluador de un grupo", () => {
     await seedWorkGroupMembership(group, evaluado);
     try {
       await page.goto("/admin/mesa");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-4864"));
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-5044"));
       await expect(page.getByRole("region", { name: new RegExp(`^${tusTareas}`) })).toHaveCount(0);
       const evaluaciones = page.getByRole("region", {
         name: new RegExp(`^${evaluacionesTitulo}`),
       });
       await expect(
-        evaluaciones.getByRole("link", { name: tList("T-4870")[0].replace("{n}", "1") }),
+        evaluaciones.getByRole("link", { name: tList("T-5050")[0].replace("{n}", "1") }),
       ).toHaveAttribute("href", "/admin/permanencia/evaluaciones");
       await expect(page.locator(".admin-topbar a[href='/admin/mesa']")).toHaveAccessibleName(
         contador,
