@@ -526,6 +526,8 @@ export const textosCliente = {
     "Modo de campo · Lo que se hace de pie: registrar asistencia, aprobar excusas y mirar la tabla de The Games.",
   "T-4918": "Calendario · Semana · Mes · Hoy · Anterior · Siguiente · Capas · Aplicar",
   "T-4929": "Panorama",
+  "T-4930":
+    "Vistas · Guardar esta vista · Nombre de la vista · Compartir con quienes ven esta tabla · Guardar · Borrar · Compartida",
   "T-585": "Registrados · Pendientes · Rechazados · Anulados",
   "T-878": "Retirar solicitud",
   "T-880": "Cuéntanos por qué",

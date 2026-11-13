@@ -456,6 +456,13 @@
       "when": 1794546789694,
       "tag": "0064_centro_de_avisos",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1794553041157,
+      "tag": "0065_vistas_guardadas",
+      "breakpoints": true
     }
   ]
 }

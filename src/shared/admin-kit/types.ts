@@ -139,6 +139,11 @@ export interface ResourceDefinition<Row extends { id: string }, Input> {
    * el mismo `update`.
    */
   inlineEdit?: Readonly<Record<string, string>>;
+  /**
+   * Acciones de fila que también se hacen en lote, con vista previa (ADR-170 regla 3): cada una corre
+   * `runRowAction` fila por fila, con su propio comando y su auditoría.
+   */
+  batchActions?: readonly string[];
   /** Las escrituras exigen un OTP reciente (ADR-010, step-up). */
   stepUp?: boolean;
   /**

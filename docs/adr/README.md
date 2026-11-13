@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-170](ADR-170-vistas-guardadas-y-acciones-en-lote.md) | Vistas guardadas y acciones en lote | Propuesta |
 | [ADR-169](ADR-169-calendario-panoramas-y-ficha-de-la-persona.md) | El Calendario, los panoramas por rol y la ficha de la persona | Propuesta |
 | [ADR-168](ADR-168-el-modo-de-campo-de-la-operacion.md) | El modo de campo de la Operación | Propuesta |
 | [ADR-167](ADR-167-patrones-de-escritorio-de-la-operacion.md) | Patrones de escritorio de la Operación | Propuesta |

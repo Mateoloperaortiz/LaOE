@@ -3,6 +3,7 @@ import { DOWNLOAD_SCREEN_PARAM } from "@/app/_lib/download";
 import { single } from "@/app/_lib/search";
 import { exportLimitNotice } from "@/app/admin/_kit/export-limit-notice";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
+import { listSavedViews, savedViewQuery } from "@/modules/system";
 import {
   type AnyResource,
   buildHref,
@@ -21,8 +22,16 @@ import { InlineEditCell } from "@/shared/admin-kit/InlineEditCell";
 import { t, tList } from "@/shared/copy";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
+import { BatchBar } from "@/shared/ui/BatchBar";
 import { ListShortcuts } from "@/shared/ui/ListShortcuts";
-import { inlineEditAction, rowActionAction, saveResourceAction } from "./actions";
+import {
+  batchRowAction,
+  deleteViewAction,
+  inlineEditAction,
+  rowActionAction,
+  saveResourceAction,
+  saveViewAction,
+} from "./actions";
 import { DownloadNotice } from "./DownloadNotice";
 
 const PAGE_SIZE = 25;
@@ -112,8 +121,86 @@ export async function ResourcePage({
         )
       : [];
 
+  // Vistas guardadas (ADR-170 regla 1): las propias y las compartidas de esta tabla.
+  const viewQuery = savedViewQuery(new URLSearchParams(listParams).toString());
+  const savedViews = await listSavedViews(actor.personId, basePath);
+  const viewSaved = single(searchParams.vista) === "guardada";
+  // Lote con vista previa (ADR-170 regla 3): solo ADMIN, que es quien corre acciones de fila.
+  const batchActions = (resource.rowActions ?? []).filter(
+    (action) => resource.batchActions?.includes(action.key) && resource.runRowAction,
+  );
+  const canBatch = actor.isAdmin && batchActions.length > 0;
+  const batchForm = `lote-${resource.key}`;
+  const batchKey = single(searchParams.lote);
+  const batchAction = canBatch ? batchActions.find((item) => item.key === batchKey) : undefined;
+  const batchDone = single(searchParams.lote_hechas);
+  const batchFailed = single(searchParams.lote_fallidas);
+  const [seleccionarTodas, accionLote, verVistaPrevia] = tList("T-4935");
+  const [uno, varios] = tList("T-4937");
+
   let panel: React.ReactNode = null;
-  if (creating || editId) {
+  if (batchAction) {
+    const ids = [
+      ...new Set(
+        (Array.isArray(searchParams.ids) ? searchParams.ids : [searchParams.ids ?? ""])
+          .flatMap((item) => item.split(","))
+          .filter(Boolean),
+      ),
+    ].slice(0, 100);
+    const found = (await Promise.all(ids.map((id) => resource.get(id)))).filter(
+      (row) => row !== null,
+    );
+    const applies = found.filter((row) => batchAction.applies?.(row) ?? true);
+    const [confirmar, cancelar, noAplica] = tList("T-4940");
+    const nameOf = (row: { id: string }) => {
+      const value = resource.columns[0]?.render(row);
+      return value === null || value === undefined
+        ? row.id
+        : typeof value === "object"
+          ? value.text
+          : String(value);
+    };
+    panel = (
+      <ResourcePanel
+        key={`${resource.key}:lote`}
+        title={t("T-4938", { acción: batchAction.label })}
+        closeHref={listHref}
+        closeLabel={t("T-291")}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="font-semibold">{t("T-4939", { n: applies.length, total: found.length })}</p>
+          <ul className="m-0 flex max-h-80 list-none flex-col gap-1 overflow-y-auto p-0 text-sm">
+            {found.map((row) => (
+              <li key={row.id} className="flex justify-between gap-3">
+                <span>{nameOf(row)}</span>
+                {applies.includes(row) ? null : (
+                  <span className="text-tinta-secundaria">{noAplica}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <form action={batchRowAction} className="flex flex-wrap gap-2">
+            <input type="hidden" name="__resource" value={resource.key} />
+            <input type="hidden" name="__action" value={batchAction.key} />
+            <input type="hidden" name="__returnTo" value={listHref} />
+            {applies.map((row) => (
+              <input key={row.id} type="hidden" name="ids" value={row.id} />
+            ))}
+            <button
+              type="submit"
+              disabled={applies.length === 0}
+              className="boton-primario min-h-11 px-4 py-2 text-sm"
+            >
+              {confirmar}
+            </button>
+            <Link href={listHref} className="boton-secundario min-h-11 px-4 py-2 text-sm">
+              {cancelar}
+            </Link>
+          </form>
+        </div>
+      </ResourcePanel>
+    );
+  } else if (creating || editId) {
     const row = editId ? await resource.get(editId) : null;
     if (editId && !row) notFound();
     if (resource.stepUp && !hasRecentStepUp(actor)) {
@@ -166,9 +253,11 @@ export async function ResourcePage({
           </Link>
         ) : null}
       </div>
-      {saved ? (
+      {saved || viewSaved || batchDone ? (
         <output className="admin-feedback block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-3 text-sm font-semibold text-oe-navy">
-          {t("T-259")}
+          {batchDone
+            ? t("T-4941", { hechas: Number(batchDone) || 0, fallidas: Number(batchFailed) || 0 })
+            : t(viewSaved ? "T-4931" : "T-259")}
         </output>
       ) : null}
       <DownloadNotice searchParams={searchParams} />
@@ -190,6 +279,20 @@ export async function ResourcePage({
         createHref={createHref}
         columns={resource.columns.map((column) => ({ key: column.key, label: column.label }))}
         visibleColumns={visible}
+        views={{
+          items: savedViews.map((view) => ({
+            id: view.id,
+            name: view.name,
+            href: view.query ? `${basePath}?${view.query}` : basePath,
+            shared: view.shared,
+            mine: view.ownerId === actor.personId,
+            current: view.query === viewQuery,
+          })),
+          query: viewQuery,
+          returnTo: listHref,
+          save: saveViewAction,
+          remove: deleteViewAction,
+        }}
         exportHref={buildHref(`/api/export/${resource.key}`, {
           q,
           ...filters,
@@ -203,6 +306,25 @@ export async function ResourcePage({
         <ResourceTable
           columns={columns}
           rows={rows}
+          {...(canBatch
+            ? {
+                selection: {
+                  form: batchForm,
+                  name: "ids",
+                  allLabel: seleccionarTodas ?? "",
+                  rowLabel: (row: { id: string }) => {
+                    const value = resource.columns[0]?.render(row);
+                    const name =
+                      value === null || value === undefined
+                        ? row.id
+                        : typeof value === "object"
+                          ? value.text
+                          : String(value);
+                    return t("T-4936", { fila: name });
+                  },
+                },
+              }
+            : {})}
           caption={title ?? resource.names.plural}
           editHref={
             resource.update
@@ -254,6 +376,37 @@ export async function ResourcePage({
           }}
         />
       </ListShortcuts>
+      {canBatch ? (
+        <BatchBar
+          form={batchForm}
+          name="ids"
+          countLabel={{ one: uno ?? "", other: varios ?? "" }}
+          action={basePath}
+        >
+          {Object.entries(listParams).map(([key, value]) =>
+            value && key !== "pagina" ? (
+              <input key={key} type="hidden" name={key} value={value} />
+            ) : null,
+          )}
+          <label className="sr-only" htmlFor={`${batchForm}-accion`}>
+            {accionLote}
+          </label>
+          <select
+            id={`${batchForm}-accion`}
+            name="lote"
+            className="admin-input min-h-9 rounded-xl border border-borde bg-fondo px-2 text-sm"
+          >
+            {batchActions.map((action) => (
+              <option key={action.key} value={action.key}>
+                {action.label}
+              </option>
+            ))}
+          </select>
+          <button type="submit" className="boton-primario min-h-9 px-3 py-1 text-sm">
+            {verVistaPrevia}
+          </button>
+        </BatchBar>
+      ) : null}
       <Pagination
         page={page}
         totalPages={totalPages}

@@ -1,6 +1,7 @@
 import { Insignia } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { AppLink as Link } from "@/shared/ui/AppLink";
+import { TableSelectAll } from "@/shared/ui/TableSelectAll";
 import { ResourceActionMenu } from "./ResourceActionMenu";
 import type { CellValue, Column, RowAction, RowLink } from "./types";
 
@@ -15,6 +16,8 @@ type Props<Row extends { id: string }> = {
   rowActions?: RowAction<Row>[];
   rowLinks?: RowLink<Row>[];
   rowActionForm?: (row: Row, action: RowAction<Row>) => React.ReactNode;
+  /** Casillas por fila para el lote (ADR-170 regla 3): el formulario de la barra y sus nombres. */
+  selection?: { form: string; name: string; allLabel: string; rowLabel: (row: Row) => string };
   /** La celda editable de una columna (ADR-167 regla 5), o `null` para la de siempre. */
   inlineCell?: (row: Row, column: Column<Row>, display: React.ReactNode) => React.ReactNode | null;
 };
@@ -57,6 +60,7 @@ export function ResourceTable<Row extends { id: string }>({
   rowLinks = [],
   rowActionForm,
   inlineCell,
+  selection,
 }: Props<Row>) {
   if (rows.length === 0) {
     return (
@@ -83,6 +87,15 @@ export function ResourceTable<Row extends { id: string }>({
         <caption className="sr-only">{caption}</caption>
         <thead className="bg-fondo-suave text-xs">
           <tr>
+            {selection ? (
+              <th scope="col" className="admin-table-heading w-10 px-4 py-3">
+                <TableSelectAll
+                  form={selection.form}
+                  name={selection.name}
+                  label={selection.allLabel}
+                />
+              </th>
+            ) : null}
             {columns.map((column) => (
               <th
                 key={column.key}
@@ -107,6 +120,18 @@ export function ResourceTable<Row extends { id: string }>({
             ));
             return (
               <tr key={row.id} data-row className="admin-table-row border-t border-borde align-top">
+                {selection ? (
+                  <td className="admin-table-cell w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      form={selection.form}
+                      name={selection.name}
+                      value={row.id}
+                      data-row-select
+                      aria-label={selection.rowLabel(row)}
+                    />
+                  </td>
+                ) : null}
                 {columns.map((column) => (
                   <td
                     key={column.key}

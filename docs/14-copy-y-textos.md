@@ -3397,3 +3397,20 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | T-4928 | Panorama: título del bloque de un comité | {rol}: {comité} | MATEO | Propuesta |
 | T-4929 | Operación: el Panorama en la barra lateral y su título | Panorama | MATEO | Propuesta |
 
+### Ola 2: vistas guardadas y acciones en lote (ADR-170)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4930 | Tabla, vistas guardadas: menú · guardar la actual · nombre · compartir · guardar · borrar · compartida | Vistas · Guardar esta vista · Nombre de la vista · Compartir con quienes ven esta tabla · Guardar · Borrar · Compartida | MATEO | Propuesta |
+| T-4931 | Tabla: aviso de vista guardada | Vista guardada. | MATEO | Propuesta |
+| T-4932 | Vista guardada: nombre fuera de rango | El nombre de la vista va de 2 a 60 caracteres. | MATEO | Propuesta |
+| T-4933 | Vista guardada: tope por tabla | Ya tienes {n} vistas en esta tabla: borra una para guardar otra. | MATEO | Propuesta |
+| T-4934 | Vista guardada: nombre repetido | Ya tienes una vista con ese nombre en esta tabla. | MATEO | Propuesta |
+| T-4935 | Tabla, lote: seleccionar todas · acción · ver la vista previa | Seleccionar todas · Acción en lote · Ver la vista previa | MATEO | Propuesta |
+| T-4936 | Tabla, lote: nombre de la casilla de una fila | Seleccionar: {fila} | MATEO | Propuesta |
+| T-4937 | Tabla, lote: cuántas filas van marcadas | {n} seleccionada · {n} seleccionadas | MATEO | Propuesta |
+| T-4938 | Lote, vista previa: título | Vista previa: {acción} | MATEO | Propuesta |
+| T-4939 | Lote, vista previa: a cuántas aplica | Se aplica a {n} de {total}. | MATEO | Propuesta |
+| T-4940 | Lote, vista previa: confirmar · cancelar · la fila a la que no aplica | Confirmar · Cancelar · No se aplica | MATEO | Propuesta |
+| T-4941 | Lote: resultado | Lote terminado: {hechas} hechas y {fallidas} sin hacer. | MATEO | Propuesta |
+

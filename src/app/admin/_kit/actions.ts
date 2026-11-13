@@ -12,6 +12,7 @@ import {
   hasRecentStepUp,
   safeNextPath,
 } from "@/modules/identity";
+import { deleteSavedViewAs, savedViewQuery, saveViewAs } from "@/modules/system";
 import {
   type FormState,
   formDataToInput,
@@ -202,4 +203,98 @@ export async function inlineEditAction(
   }
   revalidateReturn(returnTo);
   return { ok: true, message: null, at };
+}
+
+/** Las rutas de tabla que se guardan como vista: las del admin. */
+const tablePath = z.string().regex(/^\/admin(\/[a-z0-9-]+)+$/);
+
+/** Guardar la vista actual de una tabla (ADR-170 regla 1): vuelve a la tabla con la vista abierta. */
+export async function saveViewAction(formData: FormData): Promise<void> {
+  const basePath = tablePath.parse(formData.get("__basePath"));
+  const query = savedViewQuery(
+    z
+      .string()
+      .max(2000)
+      .parse(formData.get("__query") ?? ""),
+  );
+  const name = z.string().parse(formData.get("name") ?? "");
+  const shared = formData.get("shared") === "on";
+  const back = query ? `${basePath}?${query}` : basePath;
+  const actor = await requireAdminForAction(back);
+  try {
+    await saveViewAs(await actorContext(actor), { basePath, name, query, shared });
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(
+        `${back}${back.includes("?") ? "&" : "?"}error=${encodeURIComponent(error.message)}`,
+      );
+    }
+    throw error;
+  }
+  revalidateReturn(basePath);
+  redirect(`${back}${back.includes("?") ? "&" : "?"}vista=guardada`);
+}
+
+export async function deleteViewAction(formData: FormData): Promise<void> {
+  const id = z.string().min(1).parse(formData.get("__id"));
+  const returnTo = safeNextPath(formData.get("__returnTo"), "/admin");
+  const actor = await requireAdminForAction(returnTo);
+  try {
+    await deleteSavedViewAs(await actorContext(actor), id);
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(
+        `${returnTo}${returnTo.includes("?") ? "&" : "?"}error=${encodeURIComponent(error.message)}`,
+      );
+    }
+    throw error;
+  }
+  revalidateReturn(returnTo);
+  redirect(returnTo);
+}
+
+/** Tope de filas de un lote (ADR-170 regla 3). */
+const BATCH_LIMIT = 100;
+
+/**
+ * Lote con vista previa ya confirmada (ADR-170 regla 3): corre la misma acción de fila, una por una,
+ * cada una con su comando y su auditoría. Una fila a la que no aplica se salta y una que falla no frena
+ * a las demás; al final vuelve a la tabla con la cuenta.
+ */
+export async function batchRowAction(formData: FormData): Promise<void> {
+  const key = z.string().parse(formData.get("__resource"));
+  const actionKey = z.string().parse(formData.get("__action"));
+  const returnTo = safeNextPath(formData.get("__returnTo"), "/admin");
+  const ids = [...new Set(formData.getAll("ids").filter((item) => typeof item === "string"))]
+    .map((item) => z.string().min(1).parse(item))
+    .slice(0, BATCH_LIMIT);
+  const resource = getResource(key);
+  const action = resource?.rowActions?.find((item) => item.key === actionKey);
+  if (!resource?.runRowAction || !action || !resource.batchActions?.includes(actionKey)) {
+    redirect("/admin");
+  }
+  const actor = await requireAdminForAction(returnTo);
+  if (resource.stepUp && !hasRecentStepUp(actor)) {
+    redirect(`/ingresar/paso?next=${encodeURIComponent(returnTo)}`);
+  }
+  const commandActor = await actorContext(actor);
+  let done = 0;
+  let failed = 0;
+  for (const id of ids) {
+    const row = await resource.get(id);
+    if (!row || (action.applies && !action.applies(row))) {
+      failed += 1;
+      continue;
+    }
+    try {
+      await resource.runRowAction(commandActor, actionKey, id);
+      done += 1;
+    } catch (error) {
+      if (!(error instanceof DomainError)) throw error;
+      failed += 1;
+    }
+  }
+  revalidateReturn(returnTo);
+  const separator = returnTo.includes("?") ? "&" : "?";
+  redirect(`${returnTo}${separator}lote_hechas=${done}&lote_fallidas=${failed}`);
 }

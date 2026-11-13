@@ -43,3 +43,9 @@ export {
   setPrivacyPolicyVersionAs,
 } from "./domain/privacy";
 export { isPrivacyPolicyReady, privacyPolicyVersionSchema } from "./domain/privacy-pure";
+export {
+  deleteSavedViewAs,
+  listSavedViews,
+  savedViewQuery,
+  saveViewAs,
+} from "./domain/saved-views";

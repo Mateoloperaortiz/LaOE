@@ -173,6 +173,7 @@ export const tasksResource: ResourceDefinition<TaskRow, TaskInput> = {
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createTask(ctx, input)),
   rowActions: [{ key: "done", label: t("T-462"), applies: (row) => row.status === "OPEN" }],
+  batchActions: ["done"],
   runRowAction: async (actor, actionKey, id) => {
     if (actionKey === "done") {
       await runCommand(actor, (ctx) => completeTask(ctx, id));

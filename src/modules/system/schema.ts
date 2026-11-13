@@ -115,3 +115,25 @@ export const importJob = pgTable(
   },
   (t) => [index("import_job_created_idx").on(t.createdAt)],
 );
+
+// Vistas guardadas de las tablas de la Operación (ADR-170 regla 1): una dirección con nombre, de quien
+// la guarda o compartida con quienes pueden abrir esa tabla. Nunca guarda filas.
+export const savedView = pgTable(
+  "saved_view",
+  {
+    id: id(),
+    ownerId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    basePath: text().notNull(),
+    name: text().notNull(),
+    query: text().notNull().default(""),
+    shared: boolean().notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("saved_view_owner_table_name_unique").on(t.ownerId, t.basePath, t.name),
+    index("saved_view_table_idx").on(t.basePath),
+  ],
+);

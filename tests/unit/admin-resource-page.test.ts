@@ -28,9 +28,16 @@ vi.mock("@/modules/identity", () => ({
   hasRecentStepUp: state.stepUp,
 }));
 vi.mock("@/app/admin/_kit/actions", () => ({
+  batchRowAction: vi.fn(),
+  deleteViewAction: vi.fn(),
   inlineEditAction: vi.fn(),
   rowActionAction: vi.fn(),
   saveResourceAction: vi.fn(),
+  saveViewAction: vi.fn(),
+}));
+vi.mock("@/modules/system", () => ({
+  listSavedViews: async () => [],
+  savedViewQuery: (raw: string) => raw,
 }));
 vi.mock("@/shared/admin-kit", async () => {
   const { isInlineField, resolveFilters } = await import("@/shared/admin-kit/types");

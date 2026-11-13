@@ -22,6 +22,21 @@ type Props = {
   columns?: { key: string; label: string }[];
   /** Las visibles; `null` cuando se ven todas. */
   visibleColumns?: string[] | null;
+  /** Vistas guardadas de esta tabla (ADR-170 regla 1) y cómo guardar la actual. */
+  views?: {
+    items: {
+      id: string;
+      name: string;
+      href: string;
+      shared: boolean;
+      mine: boolean;
+      current: boolean;
+    }[];
+    query: string;
+    returnTo: string;
+    save: (formData: FormData) => Promise<void>;
+    remove: (formData: FormData) => Promise<void>;
+  };
 };
 
 // GET conserva una URL compartible. Cambiar búsqueda o filtros reinicia la paginación; las columnas
@@ -37,6 +52,7 @@ export function ResourceToolbar({
   canCreate,
   columns = [],
   visibleColumns = null,
+  views,
 }: Props) {
   const id = useId();
   const disclosure = useRef<HTMLDetailsElement>(null);
@@ -46,6 +62,15 @@ export function ResourceToolbar({
   const columnsParam = visibleColumns ? visibleColumns.join(",") : "";
   const keep = columnsParam ? { [COLUMNS_PARAM]: columnsParam } : {};
   const [columnasLabel, aplicarLabel] = tList("T-4905");
+  const [
+    vistasLabel,
+    guardarVista,
+    nombreVista,
+    compartirVista,
+    guardarLabel,
+    borrarLabel,
+    compartida,
+  ] = tList("T-4930");
   useEffect(() => {
     const media = window.matchMedia("(min-width: 768px)");
     const sync = () => {
@@ -157,7 +182,7 @@ export function ResourceToolbar({
           </details>
         ) : null}
       </ActionForm>
-      {chips.length > 0 || columns.length > 1 ? (
+      {chips.length > 0 || columns.length > 1 || views ? (
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
           <ul className="admin-chips">
             {chips.map((chip) => (
@@ -183,37 +208,108 @@ export function ResourceToolbar({
               </li>
             ) : null}
           </ul>
-          {columns.length > 1 ? (
-            <details className="admin-columns">
-              <summary className="boton-secundario inline-flex min-h-11 cursor-pointer items-center gap-2 px-4 py-2 text-sm">
-                <LayoutColumnsIcon size={16} />
-                {columnasLabel}
-              </summary>
-              <form action={basePath} method="get" className="admin-columns-panel">
-                {q ? <input type="hidden" name="q" value={q} /> : null}
-                {Object.entries(filterValues).map(([key, value]) =>
-                  value ? <input key={key} type="hidden" name={key} value={value} /> : null,
-                )}
-                <fieldset className="flex flex-col gap-2">
-                  <legend className="sr-only">{columnasLabel}</legend>
-                  {columns.map((column) => (
-                    <label key={column.key} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        name={COLUMNS_PARAM}
-                        value={column.key}
-                        defaultChecked={!visibleColumns || visibleColumns.includes(column.key)}
-                      />
-                      {column.label}
+          <div className="flex flex-wrap items-center gap-2">
+            {views ? (
+              <details className="admin-views">
+                <summary className="boton-secundario inline-flex min-h-11 cursor-pointer items-center gap-2 px-4 py-2 text-sm">
+                  {vistasLabel}
+                  {views.items.length ? ` (${views.items.length})` : ""}
+                </summary>
+                <div className="admin-columns-panel">
+                  {views.items.length > 0 ? (
+                    <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                      {views.items.map((view) => (
+                        <li key={view.id} className="flex items-center justify-between gap-2">
+                          <Link
+                            href={view.href}
+                            aria-current={view.current ? "page" : undefined}
+                            className="admin-view-link"
+                          >
+                            {view.name}
+                            {view.shared ? (
+                              <span className="text-xs text-tinta-secundaria"> · {compartida}</span>
+                            ) : null}
+                          </Link>
+                          {view.mine ? (
+                            <form action={views.remove}>
+                              <input type="hidden" name="__id" value={view.id} />
+                              <input type="hidden" name="__returnTo" value={views.returnTo} />
+                              <button
+                                type="submit"
+                                className="admin-inline-trigger opacity-100"
+                                aria-label={`${borrarLabel}: ${view.name}`}
+                                title={`${borrarLabel}: ${view.name}`}
+                              >
+                                <XIcon size={14} />
+                              </button>
+                            </form>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <form
+                    action={views.save}
+                    className="flex flex-col gap-2 border-t border-borde pt-2"
+                  >
+                    <input type="hidden" name="__basePath" value={basePath} />
+                    <input type="hidden" name="__query" value={views.query} />
+                    <p className="text-sm font-semibold">{guardarVista}</p>
+                    <label htmlFor={`${id}-vista`} className="sr-only">
+                      {nombreVista}
                     </label>
-                  ))}
-                </fieldset>
-                <button type="submit" className="boton-primario min-h-11 px-4 py-2 text-sm">
-                  {aplicarLabel}
-                </button>
-              </form>
-            </details>
-          ) : null}
+                    <input
+                      id={`${id}-vista`}
+                      name="name"
+                      required
+                      minLength={2}
+                      maxLength={60}
+                      placeholder={nombreVista}
+                      className="admin-input min-h-11 rounded-xl border border-borde bg-fondo px-3 py-2 text-sm"
+                    />
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" name="shared" />
+                      {compartirVista}
+                    </label>
+                    <button type="submit" className="boton-primario min-h-11 px-4 py-2 text-sm">
+                      {guardarLabel}
+                    </button>
+                  </form>
+                </div>
+              </details>
+            ) : null}
+            {columns.length > 1 ? (
+              <details className="admin-columns">
+                <summary className="boton-secundario inline-flex min-h-11 cursor-pointer items-center gap-2 px-4 py-2 text-sm">
+                  <LayoutColumnsIcon size={16} />
+                  {columnasLabel}
+                </summary>
+                <form action={basePath} method="get" className="admin-columns-panel">
+                  {q ? <input type="hidden" name="q" value={q} /> : null}
+                  {Object.entries(filterValues).map(([key, value]) =>
+                    value ? <input key={key} type="hidden" name={key} value={value} /> : null,
+                  )}
+                  <fieldset className="flex flex-col gap-2">
+                    <legend className="sr-only">{columnasLabel}</legend>
+                    {columns.map((column) => (
+                      <label key={column.key} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          name={COLUMNS_PARAM}
+                          value={column.key}
+                          defaultChecked={!visibleColumns || visibleColumns.includes(column.key)}
+                        />
+                        {column.label}
+                      </label>
+                    ))}
+                  </fieldset>
+                  <button type="submit" className="boton-primario min-h-11 px-4 py-2 text-sm">
+                    {aplicarLabel}
+                  </button>
+                </form>
+              </details>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>
