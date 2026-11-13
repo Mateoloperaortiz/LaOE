@@ -6,6 +6,7 @@ export { fontContenido, fontTitulos } from "./fonts";
 export { Insignia } from "./Insignia";
 export { LogoComite } from "./LogoComite";
 export { IsotipoDecorativo, LogoOE } from "./LogoOE";
+export { MomentoExito } from "./MomentoExito";
 export { Numeral } from "./Numeral";
 export { Progreso } from "./Progreso";
 export { SelloOE } from "./SelloOE";

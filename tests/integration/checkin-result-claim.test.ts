@@ -81,7 +81,11 @@ async function shown(publicId: string, result: string) {
   return {
     mark: message.props["data-resultado"],
     text: message.props.children,
-    seal: all.some((item) => typeof item.type === "function" && item.type.name === "SelloOE"),
+    // El sello llega solo o dentro del momento de marca (ADR-160 regla 5), que lo envuelve.
+    seal: all.some(
+      (item) =>
+        typeof item.type === "function" && ["SelloOE", "MomentoExito"].includes(item.type.name),
+    ),
   };
 }
 

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { dayKeyFor, nextDayAt } from "@/modules/participation/domain/gamification-pure";
+import {
+  dayKeyFor,
+  GAMES_FIRST_DAY,
+  gameEditionFor,
+  nextDayAt,
+} from "@/modules/participation/domain/gamification-pure";
 import { APP_TIME_ZONE, atHourIn } from "@/shared/lib/dates-pure";
 
 // DT-010: los juegos traían dos cálculos del día civil y dos de «cuándo empieza el siguiente». Esta
@@ -121,5 +126,26 @@ describe("el día civil de los juegos", () => {
       })
       .filter((item) => !item.same || !item.shown);
     expect(wrong).toEqual([]);
+  });
+});
+
+describe("gameEditionFor: el número de edición de los juegos del día (plan maestro §4.2)", () => {
+  it("el día en que abrió la biblioteca es la edición 1 y cada día suma una", () => {
+    expect(gameEditionFor(GAMES_FIRST_DAY)).toBe(1);
+    expect(gameEditionFor("2026-09-19")).toBe(2);
+    expect(gameEditionFor("2026-10-18")).toBe(31);
+  });
+
+  it("cruza el cambio de año y de mes sin saltarse ni repetir un número", () => {
+    const days: string[] = [];
+    for (let at = Date.parse("2026-12-25T00:00:00Z"); days.length < 14; at += 86_400_000) {
+      days.push(new Date(at).toISOString().slice(0, 10));
+    }
+    const editions = days.map(gameEditionFor);
+    expect(editions.slice(1).map((n, i) => n - (editions[i] ?? 0))).toEqual(Array(13).fill(1));
+  });
+
+  it("un día anterior a la biblioteca no tiene edición", () => {
+    expect(gameEditionFor("2026-09-17")).toBe(0);
   });
 });

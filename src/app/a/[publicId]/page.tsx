@@ -27,7 +27,7 @@ import { excuseCell } from "@/modules/participation/admin";
 import { getMembershipRef } from "@/modules/people";
 import { resolveAlias } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
-import { Cartel, Elemento, LogoOE, SelloOE } from "@/shared/brand";
+import { Cartel, Elemento, LogoOE, MomentoExito } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateRange, formatTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
@@ -332,7 +332,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
                   {t("T-2462", { booster: boosterName(applied.kind) })}
                 </p>
               ) : null}
-              {view.success && view.points ? <SelloOE tamano="lg" /> : null}
+              {view.success && view.points ? <MomentoExito clave={`asistencia:${row.id}`} /> : null}
               {view.success ? (
                 <Link href="/app/gh-points" className="boton-secundario">
                   {t("T-531")}

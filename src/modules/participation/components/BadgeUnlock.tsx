@@ -2,6 +2,7 @@
 
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { MomentoExito } from "@/shared/brand";
 import { t, tLabels } from "@/shared/copy/client";
 import { BOOSTER_KINDS, type BoosterKind } from "../gamification-types";
 import { BadgeArt } from "./BadgeArt";
@@ -117,6 +118,10 @@ export function BadgeUnlock({ unseen, onSeen }: Props) {
             );
           })}
         </ul>
+        <MomentoExito
+          tamano="md"
+          clave={`insignia:${unseen.map((item) => item.achievementId).join(",")}`}
+        />
         <button
           type="button"
           onClick={() => close(true)}

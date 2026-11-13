@@ -7,6 +7,8 @@ import { findUpcomingEditionsForMembers } from "@/modules/events";
 import { requireActor } from "@/modules/identity";
 import {
   balanceFor,
+  dayKeyFor,
+  gameEditionFor,
   listMemberAgenda,
   loadGamificationSettings,
   nextChallengeForMember,
@@ -334,6 +336,9 @@ export default async function AppHome() {
             >
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="font-semibold">{t("T-4893")}</span>
+                <span className="text-secundario text-tinta-secundaria">
+                  {t("T-4894", { n: gameEditionFor(dayKeyFor(new Date())) })}
+                </span>
                 {nextChallengeTerm ? (
                   <span className="text-secundario text-tinta-secundaria">{t("T-2447")}</span>
                 ) : null}

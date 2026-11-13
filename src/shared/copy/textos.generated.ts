@@ -14174,6 +14174,13 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-4894": {
+    where:
+      "Juegos y «Hoy»: número de edición de los juegos del día, contado desde que abrió la biblioteca",
+    text: "Edición n.º {n}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-490": {
     where: "Importación: columnas obligatorias que faltan en el archivo",
     text: "Faltan columnas obligatorias: {lista}",

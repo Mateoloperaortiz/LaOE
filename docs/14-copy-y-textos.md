@@ -3341,3 +3341,9 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | T-4892 | Hoy, «Te toca»: hasta cuándo se puede | Hasta el {fecha} | MATEO | Propuesta |
 | T-4893 | Hoy, «Juegos y retos»: enlace a la biblioteca de juegos | Jugar hoy | MATEO | Propuesta |
 
+### Ola 2: juegos del día
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4894 | Juegos y «Hoy»: número de edición de los juegos del día, contado desde que abrió la biblioteca | Edición n.º {n} | MATEO | Propuesta |
+

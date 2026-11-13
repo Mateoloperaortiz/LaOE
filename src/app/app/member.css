@@ -494,3 +494,40 @@
     transform: none;
   }
 }
+
+/* Transición entre pestañas de Mi OE (plan maestro §4.5): el contenido viejo se va rápido y el nuevo
+   llega con un fundido y un desplazamiento corto hacia arriba. La barra y la cabecera no se mueven,
+   y los clics no se pierden mientras dura. Con movimiento reducido no hay animación. */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-group(.mi-oe) {
+  animation-duration: 0s;
+}
+::view-transition-old(.mi-oe) {
+  animation: mi-oe-sale 120ms ease-in both;
+}
+::view-transition-new(.mi-oe) {
+  animation: mi-oe-entra 220ms ease-out 80ms both;
+}
+@keyframes mi-oe-sale {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes mi-oe-entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(.mi-oe),
+  ::view-transition-new(.mi-oe) {
+    animation: none;
+  }
+}

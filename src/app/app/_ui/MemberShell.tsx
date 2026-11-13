@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { type ReactNode, ViewTransition } from "react";
 import { LogoOE } from "@/shared/brand";
 import { t } from "@/shared/copy/client";
 import { AppLink as Link } from "@/shared/ui/AppLink";
@@ -46,6 +46,10 @@ export function MemberShell({
     tab.href === "/app"
       ? pathname === "/app"
       : [tab.href, ...(tab.also ?? [])].some((href) => isUnder(pathname, href));
+  // Cada pestaña es un lugar: al cambiar de pestaña el contenido se funde (plan maestro §4.5). La
+  // clave es la pestaña y no la ruta, así que entrar más hondo en la misma pestaña, refrescar tras una
+  // acción o cambiar un filtro no anima nada.
+  const section = tabs.find(active)?.href ?? pathname;
   return (
     <div className="member-shell fondo-sobrio" data-capa="funcional">
       <a className="member-skip-link" href="#member-content">
@@ -78,7 +82,16 @@ export function MemberShell({
       </header>
       <main id="member-content" tabIndex={-1} className="member-content">
         {pathname === "/app" ? <NewBarWelcome {...welcome} /> : null}
-        {children}
+        <ViewTransition
+          key={section}
+          name="mi-oe-contenido"
+          share="mi-oe"
+          enter="mi-oe"
+          exit="mi-oe"
+          default="none"
+        >
+          <div>{children}</div>
+        </ViewTransition>
       </main>
     </div>
   );

@@ -18,7 +18,7 @@ import { EvidenceUploader } from "@/modules/participation/components/EvidenceUpl
 import { RewardBreakdown } from "@/modules/participation/components/RewardBreakdown";
 import { Trivia } from "@/modules/participation/components/Trivia";
 import { getCurrentTerm } from "@/modules/terms";
-import { Cartel, Insignia } from "@/shared/brand";
+import { Cartel, Insignia, MomentoExito } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
@@ -43,6 +43,7 @@ function PresentialBlock({ challenge }: { challenge: MemberChallengeDetail }) {
   if (participation?.status === "COMPLETED") {
     return (
       <section className="flex flex-col gap-2">
+        <MomentoExito clave={`reto:${challenge.id}`} />
         <p className="font-semibold">
           {t("T-2434", { n: challenge.rewardPoints ?? challenge.basePoints })}
         </p>
@@ -102,6 +103,9 @@ function TriviaAnswered({ challenge }: { challenge: MemberChallengeDetail }) {
       <h2 id="trivia-resultado" className="text-display-md">
         {t("T-2573")}
       </h2>
+      {participation.status === "COMPLETED" ? (
+        <MomentoExito clave={`reto:${challenge.id}`} />
+      ) : null}
       {participation.score !== null && participation.total !== null ? (
         <p className="font-semibold">
           {participation.status === "COMPLETED"
@@ -168,6 +172,7 @@ function EvidenceBlock({ challenge }: { challenge: MemberChallengeDetail }) {
   if (participation?.status === "COMPLETED") {
     return (
       <section className="flex flex-col gap-2">
+        <MomentoExito clave={`reto:${challenge.id}`} />
         <p className="font-semibold">
           {t("T-2434", { n: challenge.rewardPoints ?? challenge.basePoints })}
         </p>

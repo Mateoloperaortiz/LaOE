@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { single } from "@/app/_lib/search";
 import { requireActor } from "@/modules/identity";
 import {
+  dayKeyFor,
+  gameEditionFor,
   getGamerLeaderboard,
   getGamerProfile,
   getTodayColor,
@@ -85,6 +87,9 @@ export default async function JuegosPage({ searchParams }: PageProps<"/app/juego
     <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerCopy}>
+          <p className="etiqueta-corta text-tinta-secundaria">
+            {t("T-4894", { n: gameEditionFor(dayKeyFor(new Date())) })}
+          </p>
           <h1 className="text-display-lg">{t("T-2621")}</h1>
           <p className={styles.intro}>{t("T-3486")}</p>
         </div>

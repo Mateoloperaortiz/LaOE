@@ -154,7 +154,7 @@ export {
 } from "./domain/gamification-commands";
 export { getGamificationLaunch, setGamificationEnabledAs } from "./domain/gamification-launch";
 export { gamificationOverview } from "./domain/gamification-metrics";
-export { isVoluntaryOccasion } from "./domain/gamification-pure";
+export { dayKeyFor, gameEditionFor, isVoluntaryOccasion } from "./domain/gamification-pure";
 export {
   balanceFor,
   type LedgerListRow,

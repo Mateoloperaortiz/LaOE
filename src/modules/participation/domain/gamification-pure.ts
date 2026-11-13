@@ -79,6 +79,19 @@ export function dayKeyFor(at: Date, timeZone = GAMIFICATION_TIMEZONE): string {
   return dateKeyIn(timeZone, at);
 }
 
+/** El primer día de la biblioteca de juegos (ADR-075): su edición 1. */
+export const GAMES_FIRST_DAY = "2026-09-18";
+
+/**
+ * El número de edición de los juegos de un día ("AAAA-MM-DD"), contado desde que abrió la biblioteca,
+ * como el número del Wordle del NYT (plan maestro §4.2). Un día anterior a la biblioteca no tiene
+ * edición: devuelve 0.
+ */
+export function gameEditionFor(day: string): number {
+  const ms = Date.parse(`${day}T00:00:00Z`) - Date.parse(`${GAMES_FIRST_DAY}T00:00:00Z`);
+  return ms < 0 ? 0 : Math.round(ms / 86_400_000) + 1;
+}
+
 /**
  * Instante (ISO) en que empieza el día civil siguiente a `day` ("AAAA-MM-DD") en la zona dada: lo que
  * un juego anuncia como su próxima partida. Recibe el día y no el instante porque una partida vencida
