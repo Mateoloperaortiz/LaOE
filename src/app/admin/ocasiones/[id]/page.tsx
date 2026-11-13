@@ -6,6 +6,7 @@ import { getEnv } from "@/env";
 import { listExcuseStates } from "@/modules/crm";
 import { hasRecentStepUp } from "@/modules/identity";
 import {
+  ASSEMBLY_POLL_STATUSES,
   ATTENDANCE_EXTENTS,
   ATTENDANCE_LISTS,
   buildLiveSnapshot,
@@ -17,6 +18,7 @@ import {
   getOccasion,
   listCheckIns,
   listOccasionScores,
+  listPolls,
   SURVEY_TEXT_MIN,
   surveySummary,
 } from "@/modules/participation";
@@ -28,6 +30,7 @@ import {
   occasionStatusCell,
 } from "@/modules/participation/admin";
 import { ConsolaEnVivo } from "@/modules/participation/components/ConsolaEnVivo";
+import { ConsultasEnVivo } from "@/modules/participation/components/ConsultasEnVivo";
 import {
   getPeopleByIds,
   listAllCommittees,
@@ -47,8 +50,10 @@ import { PrintButton } from "@/shared/ui/PrintButton";
 import {
   approveAllAction,
   cancelAction,
+  createPollAction,
   decideAction,
   lifecycleAction,
+  pollStatusAction,
   registerAction,
   rotatingAction,
 } from "./actions";
@@ -174,6 +179,14 @@ export default async function ConsolaPage({
 
       <div className="flex flex-wrap items-center gap-3">
         <PrintButton />
+        <Link
+          href={`/presentar/ocasion/${id}`}
+          target="_blank"
+          data-no-imprimir
+          className="boton-secundario min-h-11 px-4 py-2 text-sm"
+        >
+          {t("T-5005")}
+        </Link>
         {canOpen ? (
           <ActionForm action={lifecycleAction}>
             <AdminFormBody>
@@ -566,6 +579,8 @@ export default async function ConsolaPage({
         </details>
       </section>
 
+      {occasion.kind === "ASSEMBLY" ? <ConsultasAsamblea occasionId={id} /> : null}
+
       {accion === "cancelar" && actor.isAdmin ? (
         <ResourcePanel title={cancelar ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <ActionForm action={cancelAction} className="flex flex-col gap-4">
@@ -702,5 +717,71 @@ export default async function ConsolaPage({
         </section>
       ) : null}
     </div>
+  );
+}
+
+/** Las consultas de una asamblea (ADR-180): crear, abrir y cerrar, con los resultados en vivo. */
+async function ConsultasAsamblea({ occasionId }: { occasionId: string }) {
+  const polls = await listPolls(occasionId);
+  const [titulo, pregunta, opciones, secreta, crear, abrir, cerrar, presentacion] = tList("T-4992");
+  const statuses = tLabels("T-4999", ASSEMBLY_POLL_STATUSES);
+  return (
+    <section aria-labelledby="consultas-titulo" className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="consultas-titulo" className="text-display-md">
+          {titulo}
+        </h2>
+        <Link
+          href={`/presentar/asamblea/${occasionId}`}
+          target="_blank"
+          className="boton-secundario min-h-11 px-4 py-2 text-sm"
+        >
+          {presentacion}
+        </Link>
+      </div>
+      <ConsultasEnVivo
+        url={`/api/asambleas/${occasionId}/vivo`}
+        initial={polls}
+        labels={{
+          statuses: { ...statuses },
+          votes: t("T-5000"),
+          secret: t("T-5001"),
+          empty: "",
+        }}
+        occasionId={occasionId}
+        operator={{ action: pollStatusAction, open: abrir ?? "", close: cerrar ?? "" }}
+      />
+      <ActionForm
+        action={createPollAction}
+        className="flex max-w-xl flex-col gap-3 rounded-xl border border-borde p-4"
+      >
+        <input type="hidden" name="occasionId" value={occasionId} />
+        <label className="flex flex-col gap-1 text-sm font-semibold">
+          {pregunta}
+          <input
+            name="question"
+            required
+            minLength={3}
+            className="rounded-xl border border-borde bg-fondo px-3 py-2 font-normal"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-semibold">
+          {opciones}
+          <textarea
+            name="options"
+            required
+            rows={4}
+            className="rounded-xl border border-borde bg-fondo px-3 py-2 font-normal"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="secret" />
+          {secreta}
+        </label>
+        <AdminSubmitButton type="submit" className="boton-secundario self-start">
+          {crear}
+        </AdminSubmitButton>
+      </ActionForm>
+    </section>
   );
 }

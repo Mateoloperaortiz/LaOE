@@ -64,3 +64,18 @@ export async function requireCompetitionStaff(
   if (!result.roles.operator && result.roles.judgeBaseIds.length === 0) redirect("/admin");
   return result;
 }
+
+/**
+ * Para las rutas en vivo (ADR-179): si el actor es operador o juez de la competencia, sin redirigir.
+ * Una ruta de datos responde 401 o 403; la pantalla es la que redirige.
+ */
+export async function competitionStaffFor(
+  actor: Actor,
+  competitionId: string,
+): Promise<{ competition: CompetitionRow; staff: boolean } | null> {
+  const competition = await getCompetition(competitionId);
+  if (!competition) return null;
+  if (!canOperate(actor)) return { competition, staff: false };
+  const roles = await competitionRoles(actor, competition.id);
+  return { competition, staff: roles.operator || roles.judgeBaseIds.length > 0 };
+}

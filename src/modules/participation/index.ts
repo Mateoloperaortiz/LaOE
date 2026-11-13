@@ -17,6 +17,16 @@ export {
   listTermAssemblies,
 } from "./domain/assemblies";
 export {
+  ASSEMBLY_POLL_STATUSES,
+  createPollAs,
+  listPendingVotes,
+  listPolls,
+  listPollsForMember,
+  pollOccasionId,
+  setPollStatusAs,
+  votePollAs,
+} from "./domain/assembly-polls";
+export {
   attendedRequired,
   requiredTotal,
   termAssemblyRequirement,

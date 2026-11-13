@@ -54,6 +54,7 @@ import {
 import { budgetKindLabel, budgetStatusLabel } from "@/modules/finance/domain/budgets";
 import { FIELD_TYPES } from "@/modules/forms/domain/pure";
 import { occasionStatusCell } from "@/modules/participation/admin";
+import { ASSEMBLY_POLL_STATUSES } from "@/modules/participation/domain/assembly-polls";
 import {
   ATTENDANCE_EXTENTS,
   ATTENDANCE_LISTS,
@@ -927,8 +928,14 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-4891",
     order: "TODO_KINDS",
-    positions: { evidence: 0, availability: 1, call: 2, request: 3, survey: 4 },
+    positions: { evidence: 0, availability: 1, call: 2, request: 3, survey: 4, vote: 5 },
     canonical: TODO_KINDS,
+  },
+  {
+    code: "T-4999",
+    order: "ASSEMBLY_POLL_STATUSES",
+    positions: { DRAFT: 0, OPEN: 1, CLOSED: 2 },
+    canonical: ASSEMBLY_POLL_STATUSES,
   },
   {
     code: "T-4977",

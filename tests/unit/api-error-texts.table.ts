@@ -44,6 +44,9 @@ const PUSH_CLIENT =
   "El cliente de push (`push-client.ts`) mira solo `response.ok` y el 409 al guardar, y no lee la respuesta al borrar.";
 const LIVE_CONSOLE =
   "La consola en vivo (`ConsolaEnVivo`) mira solo `response.ok` y pasa a su estado de rechazo sin leer el cuerpo.";
+/** Los flujos en vivo (ADR-179): `EventSource` no lee el cuerpo de un error, solo que falló. */
+const LIVE_STREAM =
+  "Los flujos en vivo (`EventSource`) no leen el cuerpo de un error: solo ven que la conexión falló y se cierran.";
 const ONE_CLICK =
   "El POST de un clic (RFC 8058) lo manda el cliente de correo desde la cabecera `List-Unsubscribe`, sin interfaz.";
 const CALENDAR_APP =
@@ -161,6 +164,20 @@ export const API_ERROR_TEXTS: Record<string, readonly ErrorTextRow[]> = {
   ],
   "mis-datos/route.ts": [
     { status: 404, via: "body", class: "shown", text: "No existe", reader: PERSONAL_DATA_LINKS },
+  ],
+  "ocasiones/[id]/vivo/route.ts": [
+    { status: 401, via: "error", class: "unread", text: "sin sesión", reader: LIVE_STREAM },
+    { status: 404, via: "error", class: "unread", text: "no existe", reader: LIVE_STREAM },
+    { status: 403, via: "error", class: "unread", text: "sin permiso", reader: LIVE_STREAM },
+  ],
+  "asambleas/[id]/vivo/route.ts": [
+    { status: 401, via: "error", class: "unread", text: "sin sesión", reader: LIVE_STREAM },
+    { status: 404, via: "error", class: "unread", text: "no existe", reader: LIVE_STREAM },
+  ],
+  "the-games/[id]/vivo/route.ts": [
+    { status: 401, via: "error", class: "unread", text: "sin sesión", reader: LIVE_STREAM },
+    { status: 404, via: "error", class: "unread", text: "no existe", reader: LIVE_STREAM },
+    { status: 403, via: "error", class: "unread", text: "sin permiso", reader: LIVE_STREAM },
   ],
   "ocasiones/[id]/live/route.ts": [
     { status: 401, via: "error", class: "unread", text: "sin sesión", reader: LIVE_CONSOLE },

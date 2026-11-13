@@ -1,0 +1,50 @@
+/* Las consultas de una asamblea (ADR-180): en Mi OE, en la consola y en la pantalla de presentación. */
+.consulta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--radius-tarjeta);
+  background: var(--superficie);
+}
+.pregunta {
+  color: var(--titulo);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.consulta[data-grande="true"] .pregunta {
+  font-size: clamp(1.75rem, 3vw, 3rem);
+}
+.opcion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.barra {
+  display: block;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--relleno);
+}
+.barra > span {
+  display: block;
+  height: 100%;
+  background: var(--titulo);
+  transition: width 300ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .barra > span {
+    transition: none;
+  }
+}
+.eleccion {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-control);
+  background: var(--relleno);
+  font-weight: 600;
+}

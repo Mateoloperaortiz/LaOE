@@ -13,12 +13,15 @@ import {
   cancelOccasionAs,
   canOpenOccasion,
   closeOccasionAs,
+  createPollAs,
   decideCheckInAs,
   decideManyAs,
   hostCheckInAs,
   listCheckIns,
   openOccasionAs,
+  pollOccasionId,
   rotateSecretAs,
+  setPollStatusAs,
   setRotatingCodeAs,
 } from "@/modules/participation";
 import { getPeopleByIds } from "@/modules/people";
@@ -236,4 +239,35 @@ export async function scanAction(
   }
   revalidatePath(pageUrl(id, "anfitrion"));
   return { ok: true, message: t("T-602", { nombre: personName }) };
+}
+
+// El modo asamblea (ADR-180): quien opera la asamblea crea, abre y cierra sus consultas.
+export async function createPollAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("occasionId"));
+  const { actor } = await operator(id, "consola");
+  const options = String(formData.get("options") ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  await run(id, "consola", async () => {
+    await createPollAs(await actorContext(actor), {
+      occasionId: id,
+      question: formText(formData, "question"),
+      options,
+      secret: formData.get("secret") === "on",
+    });
+    return { consultas: "1" };
+  });
+}
+
+export async function pollStatusAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("occasionId"));
+  const pollId = idSchema.parse(formData.get("pollId"));
+  const to = z.enum(["OPEN", "CLOSED"]).parse(formData.get("to"));
+  const { actor } = await operator(id, "consola");
+  if ((await pollOccasionId(pollId)) !== id) redirect(pageUrl(id, "consola"));
+  await run(id, "consola", async () => {
+    await setPollStatusAs(await actorContext(actor), pollId, to);
+    return { consultas: "1" };
+  });
 }

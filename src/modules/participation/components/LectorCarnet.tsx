@@ -3,6 +3,7 @@
 import jsQR from "jsqr";
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { dequeue, enqueueScan, parseQueue, type QueuedScan } from "./offline-queue";
 import {
   createCamera,
   createStartGate,
@@ -29,12 +30,35 @@ type Labels = {
   photoError: string;
   /** La acción no respondió: se cayó la red o el servidor falló. */
   scanError: string;
+  /** Sin señal (ADR-182): lo escaneado quedó guardado para subirlo cuando vuelva la red. */
+  queued?: string;
+  /** Cuántos esperan para subir, con `{n}`. */
+  pending?: string;
 };
 
 type Props = {
   labels: Labels;
   onScan: (token: string) => Promise<ScanResult>;
+  /** Dónde guardar lo escaneado sin señal (ADR-182); sin clave, el lector no guarda nada. */
+  offlineKey?: string;
 };
+
+function readQueue(key: string): QueuedScan[] {
+  try {
+    return parseQueue(window.localStorage.getItem(key));
+  } catch {
+    return [];
+  }
+}
+
+function writeQueue(key: string, queue: QueuedScan[]): void {
+  try {
+    if (queue.length === 0) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(queue));
+  } catch {
+    // Sin almacenamiento no hay cola: el lector sigue como antes.
+  }
+}
 
 interface DetectedBarcode {
   rawValue: string;
@@ -59,13 +83,50 @@ function decodeCanvas(canvas: HTMLCanvasElement): string | null {
   return jsQR(image.data, image.width, image.height)?.data ?? null;
 }
 
-export function LectorCarnet({ labels, onScan }: Props) {
+export function LectorCarnet({ labels, onScan, offlineKey }: Props) {
   const router = useRouter();
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [camera] = useState(() => createCamera<MediaStream>());
   const [startOnce] = useState(createStartGate);
   const [state, setState] = useState<ScanState>({ kind: "idle" });
+  const [pending, setPending] = useState(0);
+
+  // Al volver la señal, sube lo guardado, uno a uno y con la hora de la casa (ADR-182). La acción va
+  // por referencia: refrescar la pantalla trae otra y no debe volver a disparar la subida.
+  const scan = useRef(onScan);
+  useEffect(() => {
+    scan.current = onScan;
+  }, [onScan]);
+  useEffect(() => {
+    if (!offlineKey) return;
+    const key = offlineKey;
+    let flushing = false;
+    async function flush() {
+      if (flushing || !navigator.onLine) return;
+      flushing = true;
+      let uploaded = 0;
+      try {
+        for (const item of readQueue(key)) {
+          try {
+            await scan.current(item.token);
+          } catch {
+            break;
+          }
+          writeQueue(key, dequeue(readQueue(key), item.token));
+          uploaded += 1;
+        }
+      } finally {
+        flushing = false;
+        setPending(readQueue(key).length);
+        if (uploaded > 0) router.refresh();
+      }
+    }
+    setPending(readQueue(key).length);
+    flush();
+    window.addEventListener("online", flush);
+    return () => window.removeEventListener("online", flush);
+  }, [offlineKey, router]);
 
   // Salir de la pantalla detiene el lector, como «Detener»: apaga la cámara y cancela el arranque que
   // siga esperando el permiso, que es cuando todavía no hay un flujo que apagar (ADR-127 regla 5).
@@ -73,8 +134,23 @@ export function LectorCarnet({ labels, onScan }: Props) {
 
   async function handleToken(token: string) {
     camera.stop();
+    // Sin señal: se guarda en el teléfono y se sube cuando vuelva (ADR-182).
+    if (offlineKey && !navigator.onLine) {
+      const queue = enqueueScan(readQueue(offlineKey), token, Date.now());
+      writeQueue(offlineKey, queue);
+      setPending(queue.length);
+      setState({ kind: "result", ok: true, message: labels.queued ?? "" });
+      return;
+    }
     setState({ kind: "busy" });
     const next = await sendScan(onScan, token, labels.scanError, unstable_rethrow);
+    if (offlineKey && next.kind === "error") {
+      const queue = enqueueScan(readQueue(offlineKey), token, Date.now());
+      writeQueue(offlineKey, queue);
+      setPending(queue.length);
+      setState({ kind: "result", ok: true, message: labels.queued ?? next.message });
+      return;
+    }
     setState(next);
     if (next.kind === "result") {
       router.refresh();
@@ -150,6 +226,11 @@ export function LectorCarnet({ labels, onScan }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
+      {pending > 0 && labels.pending ? (
+        <output className="block rounded-xl bg-oe-yellow-soft px-4 py-2 font-semibold text-oe-navy">
+          {labels.pending.replace("{n}", String(pending))}
+        </output>
+      ) : null}
       <div className="flex flex-wrap gap-3">
         {state.kind === "scanning" ? (
           <button

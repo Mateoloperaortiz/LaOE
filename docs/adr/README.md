@@ -13,6 +13,11 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-183](ADR-183-escala-de-las-olas-en-vivo.md) | La escala de las olas en vivo | Propuesta |
+| [ADR-182](ADR-182-registro-sin-senal.md) | El registro sin señal | Propuesta |
+| [ADR-181](ADR-181-the-games-en-vivo-y-pantallas-de-presentacion.md) | The Games en vivo y las pantallas de presentación | Propuesta |
+| [ADR-180](ADR-180-el-modo-asamblea.md) | El modo asamblea | Propuesta |
+| [ADR-179](ADR-179-tiempo-real-con-sse.md) | Tiempo real con SSE | Propuesta |
 | [ADR-178](ADR-178-las-ligas-semanales.md) | Las ligas semanales | Propuesta |
 | [ADR-177](ADR-177-metas-colectivas-y-recompensas-por-umbral.md) | Metas colectivas y recompensas por umbral | Propuesta |
 | [ADR-176](ADR-176-aplausos-y-el-muro-del-comite.md) | Aplausos y el muro del comité | Propuesta |

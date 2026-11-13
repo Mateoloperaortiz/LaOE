@@ -3337,7 +3337,7 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
 | T-4890 | Hoy: títulos nuevos de los bloques, en orden | Lo que sigue · Te toca · Juegos y retos | MATEO | Propuesta |
-| T-4891 | Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud · encuesta) | Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión · Responde la encuesta de «{asunto}» | MATEO | Propuesta |
+| T-4891 | Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud · encuesta · votación) | Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión · Responde la encuesta de «{asunto}» · Vota en «{asunto}» | MATEO | Propuesta |
 | T-4892 | Hoy, «Te toca»: hasta cuándo se puede | Hasta el {fecha} | MATEO | Propuesta |
 | T-4893 | Hoy, «Juegos y retos»: enlace a la biblioteca de juegos | Jugar hoy | MATEO | Propuesta |
 
@@ -3473,4 +3473,25 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | T-4989 | Admin, recompensa: campos | Semestre · GH Points · Título · Descripción | MATEO | Propuesta |
 | T-4990 | Admin: entregas de recompensas (plural · singular · persona · recompensa · reclamada · entregada · marcar entregada · pendiente) | Entregas de recompensas · Entrega · Persona · Recompensa · Reclamada · Entregada · Marcar entregada · Pendiente | MATEO | Propuesta |
 | T-4991 | Admin, meta de un comité: solo asistencias | Una meta de un comité solo cuenta asistencias. | MATEO | Propuesta |
+
+### Ola 4: en vivo, modo asamblea, The Games, sin señal y presentación (ADR-179 a ADR-183)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4992 | Consola de una asamblea, consultas: título · pregunta · opciones · secreta · crear · abrir · cerrar · presentación | Consultas · Pregunta · Opciones, una por línea · Votación secreta: los resultados salen al cerrar · Crear consulta · Abrir · Cerrar · Pantalla de presentación | MATEO | Propuesta |
+| T-4993 | Consulta: pregunta muy corta | La pregunta es muy corta. | MATEO | Propuesta |
+| T-4994 | Consulta: número de opciones | Una consulta lleva de {min} a {max} opciones. | MATEO | Propuesta |
+| T-4995 | Votar sin asistencia aprobada | Solo vota quien tiene su asistencia aprobada en esta asamblea. | MATEO | Propuesta |
+| T-4996 | Votar dos veces | Ya votaste en esta consulta. | MATEO | Propuesta |
+| T-4997 | Consulta que no está abierta (o ya no está en ese estado) | La consulta no está abierta. | MATEO | Propuesta |
+| T-4998 | Abrir una segunda consulta | Ya hay una consulta abierta en esta asamblea: ciérrala primero. | MATEO | Propuesta |
+| T-4999 | Estado de una consulta, en el orden de ASSEMBLY_POLL_STATUSES | Borrador · Abierta · Cerrada | MATEO | Propuesta |
+| T-5000 | Consulta: votos de una opción o del total | {n} votos | MATEO | Propuesta |
+| T-5001 | Consulta secreta abierta | Votación secreta: los resultados salen al cerrar. | MATEO | Propuesta |
+| T-5002 | Mi OE, votaciones de una asamblea: título · ya votó · nada abierto · votar · sin asistencia | Votaciones · Ya votaste. · No hay nada abierto para votar ahora. · Votar · Para votar, registra primero tu asistencia a la asamblea. | MATEO | Propuesta |
+| T-5003 | Pantalla de presentación de una ocasión: lo que cuenta | registrados | MATEO | Propuesta |
+| T-5004 | Tabla de The Games en vivo: unidad · sin equipos | puntos · Todavía no hay equipos en la tabla. | MATEO | Propuesta |
+| T-5005 | Operación: abrir una pantalla en el proyector | Abrir en el proyector | MATEO | Propuesta |
+| T-5006 | The Games: sala de operación (título · la tabla está oculta para el público) | Sala de operación · La tabla está oculta para el público; aquí la ves igual. | MATEO | Propuesta |
+| T-5007 | Modo anfitrión sin señal: guardado · cuántos esperan | Sin señal: quedó guardado y sube solo cuando vuelva la red. · {n} esperan para subir | MATEO | Propuesta |
 

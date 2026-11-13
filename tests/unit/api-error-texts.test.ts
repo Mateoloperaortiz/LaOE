@@ -102,7 +102,7 @@ describe("los textos con que las rutas de API responden un error", () => {
     expect(codes.filter((code) => !(code in textos))).toEqual([]);
   });
 
-  it("hoy son 50 escritos en 20 archivos, y 32 los puede leer una persona sin que hayan pasado por el catálogo: qué lee espera la decisión abierta 82", () => {
+  it("hoy son 58 escritos en 23 archivos, y 32 los puede leer una persona sin que hayan pasado por el catálogo: qué lee espera la decisión abierta 82", () => {
     const written = rows.filter(({ row }) => row.class === "shown" || row.class === "unread");
     expect({
       shown: total("shown"),
@@ -110,7 +110,7 @@ describe("los textos con que las rutas de API responden un error", () => {
       files: new Set(written.map(({ key }) => key.split(" › ")[0])).size,
       catalog: total("catalog"),
       passed: total("passed"),
-    }).toEqual({ shown: 32, unread: 18, files: 20, catalog: 11, passed: 11 });
+    }).toEqual({ shown: 32, unread: 26, files: 23, catalog: 11, passed: 11 });
   });
 });
 

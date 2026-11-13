@@ -25,11 +25,12 @@ import {
   validateSchedule,
 } from "@/modules/competition";
 import { Actualizador } from "@/modules/competition/components/Actualizador";
+import { TablaEnVivo } from "@/modules/competition/components/TablaEnVivo";
 import { listFormOptions } from "@/modules/forms";
 import { listPeopleWithPassword } from "@/modules/identity";
 import { isMacroeventDirector, listActiveMemberRefs } from "@/modules/people";
 import { AdminSectionSelect } from "@/shared/admin-kit/AdminSectionSelect";
-import { t, tLabels } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Anuncios, Apuestas } from "./_ui/Community";
 import { Extras, Posiciones, Resultados, Rotaciones } from "./_ui/Play";
@@ -178,13 +179,39 @@ export default async function CompetitionPage({
       </>
     );
   } else if (area === "posiciones") {
+    const standings = await listStandings(id);
+    const [salaTitulo, oculta] = tList("T-5006");
+    const [puntos, sinEquipos] = tList("T-5004");
     body = (
-      <Posiciones
-        context={context}
-        standings={await listStandings(id)}
-        scope={single(search.alcance)}
-        showStandings={competition.showStandings}
-      />
+      <>
+        {/* La sala de operación (ADR-181): la tabla general en vivo y el proyector a un clic. */}
+        <section aria-labelledby="sala-de-operacion" className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="sala-de-operacion" className="text-display-md">
+              {salaTitulo}
+            </h2>
+            <Link
+              href={`/presentar/the-games/${id}`}
+              target="_blank"
+              className="boton-secundario min-h-11 px-4 py-2 text-sm"
+            >
+              {t("T-5005")}
+            </Link>
+          </div>
+          {competition.showStandings ? null : <p className="text-sm text-tinta-suave">{oculta}</p>}
+          <TablaEnVivo
+            url={`/api/the-games/${id}/vivo`}
+            initial={standings.overall}
+            labels={{ points: puntos ?? "", empty: sinEquipos ?? "" }}
+          />
+        </section>
+        <Posiciones
+          context={context}
+          standings={standings}
+          scope={single(search.alcance)}
+          showStandings={competition.showStandings}
+        />
+      </>
     );
   } else if (area === "extras") {
     const [extras, teams, ledger] = await Promise.all([

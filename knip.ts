@@ -7,6 +7,8 @@ const config: KnipConfig = {
   entry: [
     // Medición del generador que cita ADR-078; se corre a mano.
     "scripts/sudoku-bench.ts",
+    // Medición de base de la escala (ADR-183): se corre a mano, contra local y contra staging.
+    "scripts/medir-escala.ts",
     // De los `index.ts` de los módulos solo es entrada el de `competition`, que está quieto hasta la
     // decisión abierta 8: knip no analiza los exports de una entrada, y los otros trece salieron de acá
     // al cerrar la poda (ADR-125 reglas 3 y 5). `tests/unit/module-public-interface.test.ts` importa

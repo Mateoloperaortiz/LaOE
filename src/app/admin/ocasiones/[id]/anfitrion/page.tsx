@@ -90,8 +90,11 @@ export default async function AnfitrionPage({
                 cameraError: t("T-617"),
                 photoError: t("T-3256"),
                 scanError: t("T-3251"),
+                queued: tList("T-5007")[0] ?? "",
+                pending: tList("T-5007")[1] ?? "",
               }}
               onScan={scanAction.bind(null, id)}
+              offlineKey={`oe.sin-senal.${id}`}
             />
           </section>
           <section aria-label={altaBoton} className="flex flex-col gap-3">

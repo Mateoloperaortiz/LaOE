@@ -1,6 +1,10 @@
 import { hasWeeklyAvailability } from "@/modules/availability";
 import { listMyEntries, listOpenCalls, listRequestsByPerson } from "@/modules/crm";
-import { listChallengesForMember, listPendingSurveys } from "@/modules/participation";
+import {
+  listChallengesForMember,
+  listPendingSurveys,
+  listPendingVotes,
+} from "@/modules/participation";
 import { listGroupIdsOf, listGroupRefs } from "@/modules/permanence";
 import { sortTodo, type TodoItem } from "./today-items";
 
@@ -20,7 +24,7 @@ export async function loadTodo(
   now = new Date(),
 ): Promise<TodoItem[]> {
   const active = participationAllowed && termId !== null;
-  const [challenges, availabilityDone, openCalls, myEntries, myGroups, requests, surveys] =
+  const [challenges, availabilityDone, openCalls, myEntries, myGroups, requests, surveys, votes] =
     await Promise.all([
       active ? listChallengesForMember(personId, termId, now) : [],
       active ? hasWeeklyAvailability(personId, termId) : true,
@@ -29,6 +33,7 @@ export async function loadTodo(
       active ? listGroupIdsOf(personId) : [],
       listRequestsByPerson(personId),
       participationAllowed ? listPendingSurveys(personId, now) : [],
+      participationAllowed ? listPendingVotes(personId) : [],
     ]);
   const applied = new Set(myEntries.map((entry) => entry.callId));
   const inGroup = new Set(myGroups);
@@ -79,6 +84,14 @@ export async function loadTodo(
       subject: survey.occasionTitle,
       href: `/app/encuestas/${survey.inviteId}`,
       due: survey.due,
+    })),
+    // Una votación abierta en una asamblea donde está presente (ADR-180 regla 4): va de primera.
+    ...votes.map((vote) => ({
+      id: `votacion-${vote.occasionId}`,
+      kind: "vote" as const,
+      subject: vote.occasionTitle,
+      href: `/app/asamblea/${vote.occasionId}`,
+      due: now,
     })),
   ]);
 }

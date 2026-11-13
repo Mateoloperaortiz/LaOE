@@ -1351,3 +1351,57 @@ export const leagueStanding = pgTable(
     index("league_standing_week_tier_idx").on(t.weekStart, t.tier),
   ],
 );
+
+// El modo asamblea (ADR-180): consultas dentro de una asamblea. El padrón dice quién votó; el conteo
+// suma votos por opción. En una consulta secreta el padrón no guarda la opción y no hay papeletas
+// sueltas: nada une a la persona con lo que eligió.
+export const assemblyPollStatus = pgEnum("assembly_poll_status", ["DRAFT", "OPEN", "CLOSED"]);
+
+export const assemblyPoll = pgTable(
+  "assembly_poll",
+  {
+    id: id(),
+    occasionId: text()
+      .notNull()
+      .references(() => occasion.id, { onDelete: "cascade" }),
+    question: text().notNull(),
+    options: jsonb().$type<string[]>().notNull(),
+    secret: boolean().notNull().default(false),
+    status: assemblyPollStatus().notNull().default("DRAFT"),
+    openedAt: timestampTz(),
+    closedAt: timestampTz(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("assembly_poll_occasion_idx").on(t.occasionId),
+    uniqueIndex("assembly_poll_one_open_unique").on(t.occasionId).where(sql`${t.status} = 'OPEN'`),
+  ],
+);
+
+export const assemblyVoter = pgTable(
+  "assembly_voter",
+  {
+    pollId: text()
+      .notNull()
+      .references(() => assemblyPoll.id, { onDelete: "cascade" }),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    // Solo en una consulta consultiva; en una secreta siempre es nula.
+    optionIndex: integer(),
+  },
+  (t) => [uniqueIndex("assembly_voter_unique").on(t.pollId, t.personId)],
+);
+
+export const assemblyTally = pgTable(
+  "assembly_tally",
+  {
+    pollId: text()
+      .notNull()
+      .references(() => assemblyPoll.id, { onDelete: "cascade" }),
+    optionIndex: integer().notNull(),
+    votes: integer().notNull().default(0),
+  },
+  (t) => [uniqueIndex("assembly_tally_unique").on(t.pollId, t.optionIndex)],
+);

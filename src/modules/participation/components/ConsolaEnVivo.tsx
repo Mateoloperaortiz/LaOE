@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { labelsFromProps, tLabels } from "@/shared/copy/client";
 import { afterPoll, type LiveStatus, showsAsCurrent } from "./console-live";
 
@@ -60,6 +60,9 @@ function fill(text: string, values: Record<string, string>): string {
   return text.replace(/\{([a-z]+)\}/g, (match, key: string) => values[key] ?? match);
 }
 
+/** Cada cuánto pregunta el sondeo mientras el flujo en vivo está abierto (ADR-179). */
+const STREAMING_POLL_MS = 10_000;
+
 export function ConsolaEnVivo({
   occasionId,
   initial,
@@ -75,6 +78,37 @@ export function ConsolaEnVivo({
   const sources = labelsFromProps(labels.sources);
   const statuses = labelsFromProps(labels.statuses);
 
+  // Tiempo real por SSE (ADR-179). Mientras el flujo está abierto, el sondeo baja a cada 10 segundos:
+  // sigue siendo el que comprueba la sesión y el permiso. Si el sondeo es rechazado, el flujo se cierra
+  // y la consola vuelve a sondear como antes, sin que el flujo la dé por vigente.
+  const streaming = useRef(false);
+  const source = useRef<EventSource | null>(null);
+  const lastPoll = useRef(0);
+  useEffect(() => {
+    if (typeof EventSource === "undefined") return;
+    const stream = new EventSource(`/api/ocasiones/${occasionId}/vivo`);
+    source.current = stream;
+    stream.onmessage = (event) => {
+      try {
+        const next = JSON.parse(event.data) as LiveData;
+        streaming.current = true;
+        setData(next);
+        setSecondsLeft(next.code?.secondsLeft ?? 0);
+        setStatus((previous) => afterPoll(previous, "fresh"));
+      } catch {
+        // Un evento mal formado no tumba la consola: el siguiente lo reemplaza.
+      }
+    };
+    stream.onerror = () => {
+      streaming.current = false;
+    };
+    return () => {
+      streaming.current = false;
+      stream.close();
+      source.current = null;
+    };
+  }, [occasionId]);
+
   useEffect(() => {
     let cancelled = false;
     let controller: AbortController | null = null;
@@ -82,6 +116,10 @@ export function ConsolaEnVivo({
       if (document.visibilityState === "hidden") {
         return;
       }
+      if (streaming.current && Date.now() - lastPoll.current < STREAMING_POLL_MS) {
+        return;
+      }
+      lastPoll.current = Date.now();
       controller?.abort();
       const request = new AbortController();
       controller = request;
@@ -91,7 +129,10 @@ export function ConsolaEnVivo({
           signal: request.signal,
         });
         if (!response.ok) {
-          // Sesión vencida o revocada, permiso retirado, ocasión borrada o un fallo de la casa.
+          // Sesión vencida o revocada, permiso retirado, ocasión borrada o un fallo de la casa: el
+          // flujo tampoco vale, así que se cierra y queda el sondeo.
+          source.current?.close();
+          streaming.current = false;
           if (!cancelled) setStatus((previous) => afterPoll(previous, "rejected"));
           return;
         }

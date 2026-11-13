@@ -1,0 +1,53 @@
+/* Pantalla de presentación (ADR-181): fondo navy, texto claro y todo grande para leerse de lejos. */
+.presentacion {
+  --superficie: rgb(255 255 255 / 0.08);
+  --relleno: rgb(255 255 255 / 0.14);
+  --titulo: var(--color-oe-yellow);
+  --tinta-secundaria: rgb(255 255 255 / 0.75);
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  gap: 2rem;
+  padding: clamp(1.5rem, 4vw, 4rem);
+  background: var(--color-oe-navy);
+  color: #fff;
+}
+.presentacion-titulo {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.presentacion-qr {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+@media (min-width: 64rem) {
+  .presentacion-qr {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+.presentacion-qr-imagen {
+  width: min(70vh, 100%);
+  padding: 1.5rem;
+  border-radius: 1.5rem;
+  background: #fff;
+}
+.presentacion-qr-imagen svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.presentacion-codigo {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 9vw, 8rem);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+.presentacion-cifra {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 200;
+}

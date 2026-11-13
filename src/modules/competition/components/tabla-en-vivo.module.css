@@ -1,0 +1,47 @@
+/* La tabla de The Games en vivo (ADR-181): en la sala de operación y en la pantalla de presentación. */
+.tabla {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fila {
+  display: grid;
+  grid-template-columns: 2.5rem 0.75rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--superficie, rgb(255 255 255 / 0.08));
+}
+.puesto {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+}
+.color {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+}
+.nombre {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.puntos {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.unidad {
+  font-size: 0.75em;
+  font-weight: 400;
+  opacity: 0.8;
+}
+.tabla[data-grande="true"] .fila {
+  padding: 0.75rem 1.25rem;
+  font-size: clamp(1.25rem, 2.4vw, 2.25rem);
+}

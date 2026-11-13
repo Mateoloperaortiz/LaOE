@@ -14157,8 +14157,8 @@ export const textos = {
   },
   "T-4891": {
     where:
-      "Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud · encuesta)",
-    text: "Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión · Responde la encuesta de «{asunto}»",
+      "Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud · encuesta · votación)",
+    text: "Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión · Responde la encuesta de «{asunto}» · Vota en «{asunto}»",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -14832,9 +14832,107 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-4992": {
+    where:
+      "Consola de una asamblea, consultas: título · pregunta · opciones · secreta · crear · abrir · cerrar · presentación",
+    text: "Consultas · Pregunta · Opciones, una por línea · Votación secreta: los resultados salen al cerrar · Crear consulta · Abrir · Cerrar · Pantalla de presentación",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4993": {
+    where: "Consulta: pregunta muy corta",
+    text: "La pregunta es muy corta.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4994": {
+    where: "Consulta: número de opciones",
+    text: "Una consulta lleva de {min} a {max} opciones.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4995": {
+    where: "Votar sin asistencia aprobada",
+    text: "Solo vota quien tiene su asistencia aprobada en esta asamblea.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4996": {
+    where: "Votar dos veces",
+    text: "Ya votaste en esta consulta.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4997": {
+    where: "Consulta que no está abierta (o ya no está en ese estado)",
+    text: "La consulta no está abierta.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4998": {
+    where: "Abrir una segunda consulta",
+    text: "Ya hay una consulta abierta en esta asamblea: ciérrala primero.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4999": {
+    where: "Estado de una consulta, en el orden de ASSEMBLY_POLL_STATUSES",
+    text: "Borrador · Abierta · Cerrada",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-500": {
     where: "Documentos: columnas",
     text: "Título · Tipo · Versión · Artículos · Publicación · Subido el",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5000": {
+    where: "Consulta: votos de una opción o del total",
+    text: "{n} votos",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5001": {
+    where: "Consulta secreta abierta",
+    text: "Votación secreta: los resultados salen al cerrar.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5002": {
+    where:
+      "Mi OE, votaciones de una asamblea: título · ya votó · nada abierto · votar · sin asistencia",
+    text: "Votaciones · Ya votaste. · No hay nada abierto para votar ahora. · Votar · Para votar, registra primero tu asistencia a la asamblea.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5003": {
+    where: "Pantalla de presentación de una ocasión: lo que cuenta",
+    text: "registrados",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5004": {
+    where: "Tabla de The Games en vivo: unidad · sin equipos",
+    text: "puntos · Todavía no hay equipos en la tabla.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5005": {
+    where: "Operación: abrir una pantalla en el proyector",
+    text: "Abrir en el proyector",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5006": {
+    where: "The Games: sala de operación (título · la tabla está oculta para el público)",
+    text: "Sala de operación · La tabla está oculta para el público; aquí la ves igual.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5007": {
+    where: "Modo anfitrión sin señal: guardado · cuántos esperan",
+    text: "Sin señal: quedó guardado y sube solo cuando vuelva la red. · {n} esperan para subir",
     owner: "MATEO",
     status: "Propuesta",
   },

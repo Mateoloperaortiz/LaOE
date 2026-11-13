@@ -484,6 +484,13 @@
       "when": 1794555239958,
       "tag": "0068_capa_social",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1794556734414,
+      "tag": "0069_modo_asamblea",
+      "breakpoints": true
     }
   ]
 }

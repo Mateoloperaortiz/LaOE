@@ -2,7 +2,14 @@
 // Lo que se lee de la base vive en `today.ts`.
 
 /** Lo que puede tocarle a la persona, en el orden de T-4891. */
-export const TODO_KINDS = ["evidence", "availability", "call", "request", "survey"] as const;
+export const TODO_KINDS = [
+  "evidence",
+  "availability",
+  "call",
+  "request",
+  "survey",
+  "vote",
+] as const;
 
 export type TodoKind = (typeof TODO_KINDS)[number];
 
