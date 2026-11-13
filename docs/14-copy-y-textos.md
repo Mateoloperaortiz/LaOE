@@ -3366,7 +3366,7 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
 | T-4890 | Hoy: títulos nuevos de los bloques, en orden | Lo que sigue · Te toca · Juegos y retos | MATEO | Propuesta |
-| T-4891 | Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud · encuesta · votación · carnet) | Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión · Responde la encuesta de «{asunto}» · Vota en «{asunto}» · Registra el UID de tu carnet universitario | MATEO | Propuesta |
+| T-4891 | Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud · encuesta · votación · carnet · recoger · devolver) | Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión · Responde la encuesta de «{asunto}» · Vota en «{asunto}» · Registra el UID de tu carnet universitario · Recoge los materiales de {asunto} · Devuelve los materiales de {asunto} | MATEO | Propuesta |
 | T-4892 | Hoy, «Te toca»: hasta cuándo se puede | Hasta el {fecha} | MATEO | Propuesta |
 | T-4893 | Hoy, «Juegos y retos»: enlace a la biblioteca de juegos | Jugar hoy | MATEO | Propuesta |
 
@@ -3414,7 +3414,7 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | --- | --- | --- | --- | --- |
 | T-4917 | Persona 360, ficha: actividad reciente · propiedades · enlace a la línea completa | Actividad reciente · Propiedades · Ver toda la línea de tiempo | MATEO | Propuesta |
 | T-4918 | Calendario: título · semana · mes · hoy · anterior · siguiente · capas · aplicar | Calendario · Semana · Mes · Hoy · Anterior · Siguiente · Capas · Aplicar | MATEO | Propuesta |
-| T-4919 | Calendario: capas, en el orden de CALENDAR_LAYERS | Actividades · Asambleas · Sesiones de macroeventos · Ediciones de macroeventos | MATEO | Propuesta |
+| T-4919 | Calendario: capas, en el orden de CALENDAR_LAYERS | Actividades · Asambleas · Sesiones de macroeventos · Ediciones de macroeventos · Reservas de inventario | MATEO | Propuesta |
 | T-4920 | Calendario: días de la semana, de lunes a domingo | Lun · Mar · Mié · Jue · Vie · Sáb · Dom | MATEO | Propuesta |
 | T-4921 | Calendario, vista de mes: lo que no cabe en el día | +{n} más | MATEO | Propuesta |
 | T-4922 | Panorama: títulos de los bloques por rol | Junta · Gestión humana · Dirección de comité · Comunicaciones | MATEO | Propuesta |
@@ -3728,3 +3728,8 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
 | T-5064 | Operación, inventario: pestañas, en orden | Materiales · Logística · Préstamos · Novedades · Etiquetas | MATEO | Propuesta |
+| T-5065 | Inventario, línea de tiempo: título · días anteriores · días siguientes · volver a hoy | Línea de tiempo · Días anteriores · Días siguientes · Hoy | MATEO | Propuesta |
+| T-5066 | Inventario, línea de tiempo: nombre de una barra para el lector de pantalla | {frente}, de {persona}: {cantidad} × {material}, del {desde} al {hasta} | MATEO | Propuesta |
+| T-5067 | Inventario, carrito: botón para quitar uno | Quitar uno de {material} | MATEO | Propuesta |
+| T-5068 | Inventario, carrito: botón para agregar uno | Agregar uno de {material} | MATEO | Propuesta |
+| T-5069 | Inventario, carrito: cuánto llevas (uno · varios) | Llevas {n} material · Llevas {n} materiales | MATEO | Propuesta |

@@ -1,5 +1,6 @@
 import { hasWeeklyAvailability } from "@/modules/availability";
 import { listMyEntries, listOpenCalls, listRequestsByPerson } from "@/modules/crm";
+import { listMyLiveReservations } from "@/modules/inventory";
 import {
   listChallengesForMember,
   listPendingSurveys,
@@ -18,6 +19,8 @@ import { sortTodo, type TodoItem } from "./today-items";
 // - Encuestas: las que todavía puede responder, abiertas por su id con la sesión (ADR-174).
 // - Carnet: el UID del carnet universitario, mientras no lo haya registrado (ADR-150 regla 7): sin él
 //   no puede retirar materiales del inventario.
+// - Inventario: lo que reservó o le toca recoger desde las próximas 24 horas, y lo que debe devolver
+//   en las próximas 24 horas o ya se venció (ADR-191 regla 5).
 // Los pasos de bienvenida los pinta la página con su botón.
 
 export async function loadTodo(
@@ -37,6 +40,7 @@ export async function loadTodo(
     surveys,
     votes,
     who,
+    reservations,
   ] = await Promise.all([
     active ? listChallengesForMember(personId, termId, now) : [],
     active ? hasWeeklyAvailability(personId, termId) : true,
@@ -47,7 +51,9 @@ export async function loadTodo(
     participationAllowed ? listPendingSurveys(personId, now) : [],
     participationAllowed ? listPendingVotes(personId) : [],
     participationAllowed ? getPersonRecord(personId) : null,
+    participationAllowed ? listMyLiveReservations(personId) : [],
   ]);
+  const soon = now.getTime() + 86_400_000;
   const applied = new Set(myEntries.map((entry) => entry.callId));
   const inGroup = new Set(myGroups);
   const calls = openCalls.filter((call) => !applied.has(call.id) && !inGroup.has(call.groupId));
@@ -117,5 +123,23 @@ export async function loadTodo(
           },
         ]
       : []),
+    ...reservations
+      .filter((row) => row.status === "CONFIRMED" && row.startsAt.getTime() <= soon)
+      .map((row) => ({
+        id: `recoger-${row.id}`,
+        kind: "pickup" as const,
+        subject: row.scopeLabel,
+        href: "/app/inventario",
+        due: row.startsAt,
+      })),
+    ...reservations
+      .filter((row) => row.status === "OUT" && row.endsAt.getTime() <= soon)
+      .map((row) => ({
+        id: `devolver-${row.id}`,
+        kind: "return" as const,
+        subject: row.scopeLabel,
+        href: "/app/inventario",
+        due: row.endsAt,
+      })),
   ]);
 }

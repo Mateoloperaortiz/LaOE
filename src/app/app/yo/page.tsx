@@ -165,6 +165,7 @@ export default async function YoPage() {
           { href: "/app/solicitudes", label: solicitudes },
           { href: "/app/convocatorias", label: convocatorias },
           { href: "/app/carnet", label: carnet },
+          { href: "/app/inventario", label: t("T-4300") },
           { href: "/app/normativa", label: normativa },
         ]}
       />

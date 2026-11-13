@@ -950,7 +950,17 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-4891",
     order: "TODO_KINDS",
-    positions: { evidence: 0, availability: 1, call: 2, request: 3, survey: 4, vote: 5, card: 6 },
+    positions: {
+      evidence: 0,
+      availability: 1,
+      call: 2,
+      request: 3,
+      survey: 4,
+      vote: 5,
+      card: 6,
+      pickup: 7,
+      return: 8,
+    },
     canonical: TODO_KINDS,
   },
   {
@@ -986,7 +996,7 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-4919",
     order: "CALENDAR_LAYERS",
-    positions: { ACTIVITY: 0, ASSEMBLY: 1, EDITION_SESSION: 2, EDITION: 3 },
+    positions: { ACTIVITY: 0, ASSEMBLY: 1, EDITION_SESSION: 2, EDITION: 3, RESERVATION: 4 },
     canonical: CALENDAR_LAYERS,
   },
   {

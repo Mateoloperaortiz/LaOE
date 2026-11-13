@@ -158,9 +158,7 @@ const EXCEPTIONS: Exceptions = {
   inventory: {
     "solo-pruebas": `
       checkoutAs
-      getAvailability
       recordIncidentAs
-      reserveAs
       returnAs
     `,
   },

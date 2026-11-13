@@ -162,6 +162,32 @@ export async function listReservations(
   }));
 }
 
+/** Lo que una persona tiene vivo en el inventario, como quien reservó o quien recoge: lo lee «Hoy» sin
+ * calcular permisos ni leer el semestre (ADR-191 regla 5). */
+export async function listMyLiveReservations(personId: string, exec: Executor = getDb()) {
+  return exec
+    .select({
+      id: inventoryReservation.id,
+      status: inventoryReservation.status,
+      startsAt: inventoryReservation.startsAt,
+      endsAt: inventoryReservation.endsAt,
+      scopeLabel: inventoryReservation.scopeLabel,
+      requesterId: inventoryReservation.requesterId,
+      collectorId: inventoryReservation.collectorId,
+    })
+    .from(inventoryReservation)
+    .where(
+      and(
+        inArray(inventoryReservation.status, ["CONFIRMED", "OUT"]),
+        or(
+          eq(inventoryReservation.requesterId, personId),
+          eq(inventoryReservation.collectorId, personId),
+        ),
+      ),
+    )
+    .orderBy(asc(inventoryReservation.startsAt));
+}
+
 export async function listIncidents(
   personId: string,
   exec: Executor = getDb(),

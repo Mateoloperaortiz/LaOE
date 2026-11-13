@@ -1260,6 +1260,9 @@ body:has(.admin-shell dialog[open]) {
 [data-capa="EDITION"] {
   --capa: var(--color-oe-navy);
 }
+[data-capa="RESERVATION"] {
+  --capa: var(--color-oe-orange-soft);
+}
 .admin-calendar {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));

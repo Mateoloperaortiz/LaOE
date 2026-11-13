@@ -7,7 +7,13 @@ import { addDays } from "@/shared/lib/dates-pure";
 export const CALENDAR_VIEWS = ["semana", "mes"] as const;
 export type CalendarView = (typeof CALENDAR_VIEWS)[number];
 
-export const CALENDAR_LAYERS = ["ACTIVITY", "ASSEMBLY", "EDITION_SESSION", "EDITION"] as const;
+export const CALENDAR_LAYERS = [
+  "ACTIVITY",
+  "ASSEMBLY",
+  "EDITION_SESSION",
+  "EDITION",
+  "RESERVATION",
+] as const;
 export type CalendarLayer = (typeof CALENDAR_LAYERS)[number];
 
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;

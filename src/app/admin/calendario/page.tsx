@@ -12,6 +12,7 @@ import {
   visibleDays,
 } from "@/app/admin/_kit/calendar-grid";
 import { listEditionsBetween } from "@/modules/events";
+import { listReservations } from "@/modules/inventory";
 import { dayKeyFor, listOccasionsBetween } from "@/modules/participation";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatTime } from "@/shared/lib/dates";
@@ -52,9 +53,15 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
   const to = atHourIn(APP_TZ, addDays(last, 1), 0);
   const seesAll = roles.isAdmin || roles.isBoard;
   const mine = new Set(roles.committees.map((item) => item.committee.id));
-  const [occasions, editions] = await Promise.all([
-    layers.some((layer) => layer !== "EDITION") ? listOccasionsBetween(from, to) : [],
+  const [occasions, editions, reservations] = await Promise.all([
+    layers.some(
+      (layer) => layer === "ACTIVITY" || layer === "ASSEMBLY" || layer === "EDITION_SESSION",
+    )
+      ? listOccasionsBetween(from, to)
+      : [],
     layers.includes("EDITION") ? listEditionsBetween(from, to) : [],
+    // Las reservas son de toda la OE: cualquiera ve quién reservó y para qué frente (ADR-150 regla 4).
+    layers.includes("RESERVATION") ? listReservations(roles.actor.personId) : [],
   ]);
   const items: Item[] = [
     ...occasions
@@ -81,6 +88,27 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
       href: `/admin/eventos/${row.eventId}/ediciones?editar=${row.id}`,
       days: daysCovered(dayKeyFor(row.startsAt), dayKeyFor(row.endsAt ?? row.startsAt), days),
     })),
+    ...reservations
+      .filter(
+        (row) =>
+          (row.status === "CONFIRMED" || row.status === "OUT") &&
+          row.startsAt < to &&
+          row.endsAt > from,
+      )
+      .map((row) => ({
+        id: row.id,
+        layer: "RESERVATION" as const,
+        title: `${row.scopeLabel} · ${row.requesterName}`,
+        time: formatTime(row.startsAt),
+        href: roles.managesInventory
+          ? `/admin/inventario/prestamos?reserva=${row.id}`
+          : "/app/inventario",
+        days: daysCovered(
+          dayKeyFor(row.startsAt),
+          dayKeyFor(new Date(row.endsAt.getTime() - 1)),
+          days,
+        ),
+      })),
   ];
   const byDay = new Map<string, Item[]>();
   for (const item of items) {

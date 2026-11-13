@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { requireInventoryAccess } from "@/app/_authz/inventory";
 import { single, withQuery } from "@/app/_lib/search";
-import { listReservations } from "@/modules/inventory";
+import { listReservations, readCatalog } from "@/modules/inventory";
 import { t } from "@/shared/copy";
-import { formatDateTime } from "@/shared/lib/dates";
+import { APP_TIME_ZONE, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Badge } from "@/shared/ui/Badge";
 import { Button } from "@/shared/ui/Button";
@@ -13,7 +13,9 @@ import { SplitView } from "@/shared/ui/SplitView";
 import { EmptyState } from "@/shared/ui/States";
 import { WorkTable } from "@/shared/ui/WorkTable";
 import { reservationTone, statusLabel } from "../_ui/estado";
+import { LineaDeTiempo } from "../_ui/LineaDeTiempo";
 import { InventarioMarco } from "../_ui/Marco";
+import { buildTimeline, timelineDays } from "../_ui/timeline";
 import { cancelReservationAction, writeOffAction } from "../actions";
 
 // Las reservas y los préstamos de toda la OE (ADR-150 reglas 4 y 6): quién reservó, quién recoge, el
@@ -24,10 +26,20 @@ export default async function InventarioPrestamosPage({
   searchParams,
 }: PageProps<"/admin/inventario/prestamos">) {
   const { session } = await requireInventoryAccess("/admin/inventario/prestamos", "MANAGE");
-  const [query, reservations] = await Promise.all([
+  const [query, reservations, items] = await Promise.all([
     searchParams,
     listReservations(session.personId),
+    readCatalog(),
   ]);
+  const today = todayKey();
+  const desde = single(query.desde);
+  const days = timelineDays(/^\d{4}-\d{2}-\d{2}$/.test(desde) ? desde : today);
+  const timeline = buildTimeline(
+    items.filter((item) => item.active),
+    reservations,
+    days,
+    APP_TIME_ZONE,
+  );
   const selected = reservations.find((row) => row.id === single(query.reserva));
   const close = "/admin/inventario/prestamos";
 
@@ -124,6 +136,13 @@ export default async function InventarioPrestamosPage({
 
   return (
     <InventarioMarco active="prestamos" query={query}>
+      <LineaDeTiempo
+        rows={timeline}
+        days={days}
+        today={today}
+        timeZone={APP_TIME_ZONE}
+        basePath={close}
+      />
       <SplitView
         list={
           <WorkTable

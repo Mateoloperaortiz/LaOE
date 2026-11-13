@@ -14979,8 +14979,8 @@ export const textos = {
   },
   "T-4891": {
     where:
-      "Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud · encuesta · votación · carnet)",
-    text: "Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión · Responde la encuesta de «{asunto}» · Vota en «{asunto}» · Registra el UID de tu carnet universitario",
+      "Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud · encuesta · votación · carnet · recoger · devolver)",
+    text: "Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión · Responde la encuesta de «{asunto}» · Vota en «{asunto}» · Registra el UID de tu carnet universitario · Recoge los materiales de {asunto} · Devuelve los materiales de {asunto}",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -15164,7 +15164,7 @@ export const textos = {
   },
   "T-4919": {
     where: "Calendario: capas, en el orden de CALENDAR_LAYERS",
-    text: "Actividades · Asambleas · Sesiones de macroeventos · Ediciones de macroeventos",
+    text: "Actividades · Asambleas · Sesiones de macroeventos · Ediciones de macroeventos · Reservas de inventario",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16135,6 +16135,36 @@ export const textos = {
   "T-5064": {
     where: "Operación, inventario: pestañas, en orden",
     text: "Materiales · Logística · Préstamos · Novedades · Etiquetas",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5065": {
+    where: "Inventario, línea de tiempo: título · días anteriores · días siguientes · volver a hoy",
+    text: "Línea de tiempo · Días anteriores · Días siguientes · Hoy",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5066": {
+    where: "Inventario, línea de tiempo: nombre de una barra para el lector de pantalla",
+    text: "{frente}, de {persona}: {cantidad} × {material}, del {desde} al {hasta}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5067": {
+    where: "Inventario, carrito: botón para quitar uno",
+    text: "Quitar uno de {material}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5068": {
+    where: "Inventario, carrito: botón para agregar uno",
+    text: "Agregar uno de {material}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5069": {
+    where: "Inventario, carrito: cuánto llevas (uno · varios)",
+    text: "Llevas {n} material · Llevas {n} materiales",
     owner: "MATEO",
     status: "Propuesta",
   },
