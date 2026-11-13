@@ -112,7 +112,9 @@ export default async function AdminHome() {
                 ? competition.operator
                   ? `/admin/the-games/${competition.competitionId}`
                   : `/admin/the-games/${competition.competitionId}/juez`
-                : "/app",
+                : roles.managesInventory
+                  ? "/admin/inventario"
+                  : "/app",
     );
   }
   const term = await getCurrentTerm();

@@ -52,6 +52,8 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               { href: "/admin/personas/activacion", label: t("T-2128") },
             ]
           : []),
+        // El inventario (ADR-150 regla 2): solo la VP administrativa vigente.
+        ...(roles.managesInventory ? [{ href: "/admin/inventario", label: t("T-4300") }] : []),
         // The Games (ADR-089): el operador entra a su panel y el juez, a su base.
         ...roles.competitions.map((item) => ({
           href: item.operator
@@ -69,7 +71,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       label: group.label,
       icon: group.icon,
       items: actor.isAdmin
-        ? group.items
+        ? group.items.filter(
+            // ADMIN no administra el inventario: es de la VP (ADR-150 regla 2).
+            (item) => item.href !== "/admin/inventario" || roles.managesInventory,
+          )
         : ownLinks.filter((link) =>
             group.items.some(
               (item) => link.href === item.href || link.href.startsWith(`${item.href}/`),

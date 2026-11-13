@@ -127,7 +127,11 @@ export function adminNavGroups(): AdminNavGroup[] {
     {
       label: espacioFinanzas,
       icon: "finanzas",
-      items: [{ href: "/admin/presupuestos", label: tList("T-2200")[0] }],
+      items: [
+        { href: "/admin/presupuestos", label: tList("T-2200")[0] },
+        // El inventario es de la VP administrativa (ADR-150 regla 2); el layout lo muestra solo a ella.
+        { href: "/admin/inventario", label: t("T-4300") },
+      ],
     },
     {
       label: espacioMacroeventos,

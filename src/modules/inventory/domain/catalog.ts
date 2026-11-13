@@ -20,7 +20,8 @@ const createSchema = fields.extend({
   total: z.number().int().min(1).max(10000),
 });
 export type CreateItemInput = z.input<typeof createSchema>;
-
+const updateSchema = fields.extend({ itemId: z.string().min(1).max(160), active: z.boolean() });
+export type UpdateItemInput = z.input<typeof updateSchema>;
 const adjustSchema = z.object({
   itemId: z.string().min(1).max(160),
   delta: z.number().int().min(-10000).max(10000),
@@ -62,6 +63,33 @@ export async function createItem(
   });
   return { id: item.id };
 }
+
+export async function updateItem(ctx: CommandContext, raw: UpdateItemInput): Promise<void> {
+  const input = updateSchema.parse(raw);
+  const actorId = await lockActors(ctx.tx, ctx.actor);
+  await assertManager(actorId, ctx.tx);
+  const [item] = await ctx.tx
+    .select()
+    .from(inventoryItem)
+    .where(eq(inventoryItem.id, input.itemId))
+    .for("update");
+  if (!item) throw new DomainError(t("T-032"));
+  const after = {
+    name: input.name,
+    location: input.location,
+    box: input.box,
+    active: input.active ? 1 : 0,
+  };
+  await ctx.tx.update(inventoryItem).set(after).where(eq(inventoryItem.id, item.id));
+  await ctx.audit({
+    action: "inventory.item-updated",
+    entityType: "inventory_item",
+    entityId: item.id,
+    before: item,
+    after,
+  });
+}
+
 export async function adjustStock(ctx: CommandContext, raw: AdjustStockInput): Promise<void> {
   const input = adjustSchema.parse(raw);
   const actorId = await lockActors(ctx.tx, ctx.actor);

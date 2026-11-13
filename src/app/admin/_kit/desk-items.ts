@@ -8,6 +8,7 @@ export const DESK_SECTIONS = [
   "excuses",
   "reviews",
   "evaluations",
+  "inventory",
   "alerts",
 ] as const;
 

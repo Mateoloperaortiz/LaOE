@@ -16014,7 +16014,7 @@ export const textos = {
   },
   "T-5046": {
     where: "Mesa: títulos de sus grupos, en orden",
-    text: "Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Alertas",
+    text: "Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Novedades del inventario · Alertas",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16129,6 +16129,12 @@ export const textos = {
   "T-5063": {
     where: "Paleta ⌘K: tipo de un resultado que es una pantalla de la barra lateral",
     text: "Pantalla",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5064": {
+    where: "Operación, inventario: pestañas, en orden",
+    text: "Materiales · Logística · Préstamos · Novedades · Etiquetas",
     owner: "MATEO",
     status: "Propuesta",
   },

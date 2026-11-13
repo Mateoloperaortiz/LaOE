@@ -3317,7 +3317,7 @@ Lo que le toca al actor en la Operación, venga del módulo que venga. Solo lee:
 | --- | --- | --- | --- | --- |
 | T-5044 | Operación: la Mesa en la barra lateral y título de su pantalla | Mesa | MATEO | Propuesta |
 | T-5045 | Mesa: lo que dice debajo del título | Lo que te toca, venga del espacio que venga. Cada cosa se resuelve en su pantalla, como siempre. | MATEO | Propuesta |
-| T-5046 | Mesa: títulos de sus grupos, en orden | Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Alertas | MATEO | Propuesta |
+| T-5046 | Mesa: títulos de sus grupos, en orden | Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Novedades del inventario · Alertas | MATEO | Propuesta |
 | T-5047 | Mesa: nombre del contador de la barra superior (uno · varios) | Mesa: {n} pendiente · Mesa: {n} pendientes | MATEO | Propuesta |
 | T-5048 | Mesa: sin nada pendiente (título · explicación) | Nada pendiente · Cuando algo te toque, aparece aquí. Todo al día, pues. | MATEO | Propuesta |
 | T-5049 | Mesa: enlace al pie de un grupo que trae más de lo que se ve | Ver los {n} | MATEO | Propuesta |
@@ -3722,3 +3722,9 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-4212 | Gestión antes de remitir | Registra primero la gestión de la novedad y deja constancia de la respuesta o de que no hubo respuesta. | MATEO | Propuesta |
 | T-4213 | Historia de inventario anonimizada | Datos personales retirados | MATEO | Propuesta |
 | T-4502 | Reserva afectada por otro préstamo o material fuera de servicio | Esta reserva tiene materiales pendientes de otro préstamo o fuera de servicio. La VP administrativa debe revisar la disponibilidad. | MATEO | Propuesta |
+
+### Inventario en el rediseño (ADR-191)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-5064 | Operación, inventario: pestañas, en orden | Materiales · Logística · Préstamos · Novedades · Etiquetas | MATEO | Propuesta |

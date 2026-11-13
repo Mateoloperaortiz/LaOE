@@ -5,6 +5,7 @@
 import { CALENDAR_LAYERS } from "@/app/admin/_kit/calendar-grid";
 import { DESK_DATE_KINDS, DESK_SECTIONS } from "@/app/admin/_kit/desk-items";
 import { areaLabel } from "@/app/admin/comites/[slug]/_ui/Areas";
+import { INVENTORY_TABS } from "@/app/admin/inventario/_ui/tabs";
 import { END_REASONS, TABS, TIMELINE_FILTERS } from "@/app/admin/personas/[id]/_ui/etiquetas";
 import { TODO_KINDS } from "@/app/app/_ui/today-items";
 import { STOP_STATES } from "@/app/app/permanencia/_ui/route-stops";
@@ -911,7 +912,15 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-5046",
     order: "DESK_SECTIONS",
-    positions: { tasks: 0, requests: 1, excuses: 2, reviews: 3, evaluations: 4, alerts: 5 },
+    positions: {
+      tasks: 0,
+      requests: 1,
+      excuses: 2,
+      reviews: 3,
+      evaluations: 4,
+      inventory: 5,
+      alerts: 6,
+    },
     canonical: DESK_SECTIONS,
   },
   {
@@ -925,6 +934,18 @@ export const PAIRS: readonly LabelPair[] = [
     order: "INBOX_FILTER_KEYS",
     positions: { cartelera: 0, recordatorios: 1, juegos: 2, puntos: 3, tramites: 4, campanas: 5 },
     canonical: INBOX_FILTER_KEYS,
+  },
+  {
+    code: "T-4403",
+    order: "INVENTORY_INCIDENT_STATUSES",
+    positions: { OPEN: 0, RESOLVED: 1, REFERRED: 2 },
+    copies: ["src/app/admin/inventario/novedades/page.tsx"],
+  },
+  {
+    code: "T-5064",
+    order: "INVENTORY_TABS",
+    positions: { materiales: 0, logistica: 1, prestamos: 2, novedades: 3, etiquetas: 4 },
+    canonical: INVENTORY_TABS,
   },
   {
     code: "T-4891",

@@ -157,23 +157,11 @@ const EXCEPTIONS: Exceptions = {
   },
   inventory: {
     "solo-pruebas": `
-      adjustStockAs
-      cancelReservationAs
       checkoutAs
-      createItemAs
       getAvailability
-      getIncidentForReview
-      getInventoryContext
-      listIncidents
-      listReservations
-      manageIncidentAs
-      readCatalog
       recordIncidentAs
-      referIncidentAs
       reserveAs
       returnAs
-      setReservationGrantAs
-      writeOffAs
     `,
   },
   participation: {
@@ -197,7 +185,6 @@ const EXCEPTIONS: Exceptions = {
       SanctionScope
       createCommittee
       createPersonAs
-      setLogisticsDirectorAs
     `,
   },
   permanence: {

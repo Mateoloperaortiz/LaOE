@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { listPendingExcusesForCommittee, listRequests, listTasks } from "@/modules/crm";
+import { listIncidents } from "@/modules/inventory";
 import {
   listCommitteeViability,
   listPendingReviews,
@@ -29,6 +30,7 @@ import {
 //   los trabajos con error.
 // - La dirección de un comité: las excusas de su comité si tiene PERMANENCE, y las alertas de su comité.
 // - Quien evalúa un grupo del término: cuántas evaluaciones le faltan.
+// - La VP administrativa: las novedades del inventario que siguen abiertas (ADR-191 regla 3).
 // La pintan la página de la Mesa y el contador de la barra superior en el mismo pedido; `cache` hace que
 // se lea una sola vez.
 
@@ -44,35 +46,46 @@ export const loadDesk = cache(async (): Promise<Desk> => {
   );
   const watchesCommittees = roles.isAdmin || roles.committees.length > 0;
 
-  const [tasks, requests, reviews, excuses, evaluations, missing, viability, deadLetters] =
-    await Promise.all([
-      roles.isAdmin
-        ? listTasks({
-            q: "",
-            status: "OPEN",
-            assignee: "mine",
-            actorId: personId,
-            page: 1,
-            pageSize: DESK_ROWS,
-          })
-        : null,
-      roles.isAdmin
-        ? listRequests({ status: "PENDING", order: "oldest", page: 1, pageSize: DESK_ROWS })
-        : null,
-      roles.isAdmin && term ? listPendingReviews(term.id) : [],
-      term
-        ? Promise.all(
-            excuseCommittees.map(async (row) => ({
-              committee: row.committee,
-              rows: await listPendingExcusesForCommittee(row.committee.id, term.id),
-            })),
-          )
-        : [],
-      term ? countPendingFor(personId, term.id) : 0,
-      watchesCommittees && term ? listCommitteesMissingRequiredRoles(term.id) : [],
-      watchesCommittees && term ? listCommitteeViability(term.id, now) : [],
-      roles.isAdmin ? countDeadLetters() : 0,
-    ]);
+  const [
+    tasks,
+    requests,
+    reviews,
+    excuses,
+    evaluations,
+    missing,
+    viability,
+    deadLetters,
+    incidents,
+  ] = await Promise.all([
+    roles.isAdmin
+      ? listTasks({
+          q: "",
+          status: "OPEN",
+          assignee: "mine",
+          actorId: personId,
+          page: 1,
+          pageSize: DESK_ROWS,
+        })
+      : null,
+    roles.isAdmin
+      ? listRequests({ status: "PENDING", order: "oldest", page: 1, pageSize: DESK_ROWS })
+      : null,
+    roles.isAdmin && term ? listPendingReviews(term.id) : [],
+    term
+      ? Promise.all(
+          excuseCommittees.map(async (row) => ({
+            committee: row.committee,
+            rows: await listPendingExcusesForCommittee(row.committee.id, term.id),
+          })),
+        )
+      : [],
+    term ? countPendingFor(personId, term.id) : 0,
+    watchesCommittees && term ? listCommitteesMissingRequiredRoles(term.id) : [],
+    watchesCommittees && term ? listCommitteeViability(term.id, now) : [],
+    roles.isAdmin ? countDeadLetters() : 0,
+    roles.managesInventory ? listIncidents(personId) : [],
+  ]);
+  const openIncidents = incidents.filter((row) => row.status === "OPEN");
 
   const viabilityLabels = tLabels("T-2264", VIABILITY_ALERTS);
   const [evaluationOne, evaluationOther] = tList("T-5050");
@@ -184,6 +197,18 @@ export const loadDesk = cache(async (): Promise<Desk> => {
         },
       ],
       "/admin/permanencia/evaluaciones",
+    ),
+    ...deskSection(
+      "inventory",
+      openIncidents.length,
+      openIncidents.map((row) => ({
+        id: row.id,
+        title: row.personName,
+        detail: row.scopeLabel,
+        href: `/admin/inventario/novedades?novedad=${row.id}`,
+        date: { kind: "arrived", at: row.createdAt },
+      })),
+      "/admin/inventario/novedades",
     ),
     ...deskSection("alerts", alerts.length, alerts, roles.isAdmin ? "/admin/comites" : null),
   ]);
