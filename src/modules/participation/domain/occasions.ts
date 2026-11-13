@@ -518,8 +518,9 @@ export async function getOccasionByPublicId(publicId: string): Promise<OccasionR
 export async function listOccasionsForTerm(
   termId: string,
   statuses: readonly OccasionStatus[] = OCCASION_STATUSES,
+  exec: Executor = getDb(),
 ): Promise<OccasionRow[]> {
-  return getDb()
+  return exec
     .select()
     .from(occasion)
     .where(and(eq(occasion.termId, termId), inArray(occasion.status, [...statuses])))

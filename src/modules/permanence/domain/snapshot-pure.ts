@@ -89,6 +89,14 @@ export const criterionSchema: z.ZodType<CriterionResult> = z.object({
   achieved: z.number(),
   remaining: z.number(),
   detail,
+  bonusBreakdown: z
+    .object({
+      baseAchieved: z.number(),
+      grants: z.array(
+        z.object({ id: z.string(), value: z.number(), reason: z.string(), applied: z.number() }),
+      ),
+    })
+    .optional(),
 });
 
 /** Los seis estados de cumplimiento en el orden de T-791: la tupla que comparten el esquema del

@@ -3268,3 +3268,32 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-4857 | Persona no disponible en lista activa | Ver persona | MATEO | Aprobado |
 | T-4858 | Regla de asistencias más grupo: opción de aceptar una evidencia | Aceptar asistencia o buen desempeño | GH | Propuesta |
 | T-4859 | Permanencia: regla que acepta cualquiera de las dos evidencias | Este criterio cuenta con la asistencia requerida o con buen desempeño en el grupo. | GH | Propuesta |
+
+## Bonos de permanencia (ADR-165)
+
+| Código | Dónde | Texto | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-4860 | Cumplimiento: acción y panel | Dar bono de permanencia | GH | Propuesta |
+| T-4861 | Bono: selección de persona | Persona | GH | Propuesta |
+| T-4862 | Bono: consultar criterios | Ver criterios | GH | Propuesta |
+| T-4863 | Bono: persona fuera del roster evaluado | Esta persona no tiene una permanencia activa en este semestre. | GH | Propuesta |
+| T-4864 | Bono: suma de faltantes | Total requerido · {n} pp | GH | Propuesta |
+| T-4865 | Bono: total incorrecto | Ingresa {n} pp para cubrir el faltante de los criterios seleccionados. | GH | Propuesta |
+| T-4866 | Bono: selección que dejó de ser válida | Los criterios disponibles cambiaron. Vuelve a consultar a la persona. | GH | Propuesta |
+| T-4867 | Bono: datos inválidos | Revisa los criterios, el total y el motivo del bono. | GH | Propuesta |
+| T-4868 | Bono: total a ingresar | Total del bono (puntos porcentuales) | GH | Propuesta |
+| T-4869 | Bono: nota visible | Motivo (la persona podrá leerlo) | GH | Propuesta |
+| T-4870 | Bono: solicitud ya utilizada | Este formulario ya registró un bono. Ábrelo de nuevo para registrar otro. | GH | Propuesta |
+| T-4871 | Bono: opciones vacías | Esta persona no tiene criterios con puntos por completar. | GH | Propuesta |
+| T-4872 | Bono: guía de la selección | Selecciona los criterios que quieres completar. | GH | Propuesta |
+| T-4873 | Bono: puntos que faltan por criterio | Faltan {n} pp | GH | Propuesta |
+| T-4874 | Bono: guardar | Guardar bono | GH | Propuesta |
+| T-4875 | Cumplimiento: confirmación | El bono de permanencia quedó registrado. | GH | Propuesta |
+| T-4876 | Desglose: bono aplicado | Bono de GH · +{n} pp | GH | Propuesta |
+| T-4877 | Desglose: aporte de la evidencia | Por el criterio · {n} pp | GH | Propuesta |
+| T-4878 | Desglose: bono al cambiar la evidencia | Bono de GH · {n} pp otorgados · {aplicado} pp aplicados hoy | GH | Propuesta |
+| T-4879 | Bono: persona sin elegir | Elige una persona | GH | Propuesta |
+| T-4880 | Cumplimiento: acceso al bono por persona | Dar bono a {nombre} | GH | Propuesta |
+| T-4881 | Cumplimiento: acción en la fila | Dar bono | GH | Propuesta |
+| T-4882 | Bono: volver al selector | Cambiar persona | GH | Propuesta |
+| T-4883 | Bono: selector sin opciones | No hay miembros activos con comité en este semestre. | GH | Propuesta |

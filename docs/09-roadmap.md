@@ -16,6 +16,15 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | --- | --- | --- |
 | 2026-11-06 | Normativa actualizada | Implementación de la corrección de Estatutos art. 7.5 y cambios de Reglamento arts. 1, 3, 8, 13, 27–28 y 41–46. Migración aditiva 0063, constancias auditadas y corte anual. Vigencia y conteo confirmados por Mateo. `npm run check` aprobado: 2.718 unitarias, 2.077 de integración, 11 del extractor y build. E2E focalizado 6/6 (dos preparaciones y cuatro flujos), con permisos, constancias conservadas, corte anual, axe y anchos 390/1440 px. Publicada por [PR #410](https://github.com/Mateoloperaortiz/LaOE/pull/410), SHA `46b3ac98ee6698950c34b5a6465f4d85a225f824`: CI de main y promoción aprobados, staging y producción SUCCESS, smoke 6/6 en ambos. Recálculo auditado de 475 snapshots de 2026-2; 11 snapshots anteriores, membresías, decisiones y términos idénticos. Demo de inventario restaurada al SHA `5ebaabf7`, con configuración y conexión originales comprobadas. Evidencia en el runbook. |
 
+## Bonos de permanencia (ADR-165) · `lista localmente`
+
+- [x] Elegir persona y criterios con faltante en Cumplimiento y guardar un bono por el total exacto con motivo.
+- [x] Mostrar los puntos del bono y el motivo en Mi OE y la Persona 360, y conservarlos en el cierre.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-11-13 | Permanencia · Bonos por criterio | [ADR-165](adr/ADR-165-bonos-de-permanencia-por-criterio.md) y migración `0064`. Cumplimiento muestra y valida los faltantes. El bono, sus asignaciones, la auditoría y el snapshot se guardan juntos. El desglose indica el importe que aporta cada bono. |
+
 ## Disponibilidad privada de grupos (ADR-156) · `lista en producción`
 
 - [x] Guardar la semana habitual y comparar dentro de comités y grupos vigentes.

@@ -45,8 +45,17 @@ const LOCK_PREFIX = "wallet-member:";
 export async function lockMembershipCycle(
   tx: Tx,
   personId: string,
+  options: { lockStatus?: boolean } = {},
 ): Promise<WalletMemberState | null> {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${LOCK_PREFIX}${personId}`}))`);
+  if (options.lockStatus) {
+    // Una transacción con foto fija debe reintentar si cambió el estado mientras esperaba.
+    await tx
+      .select({ id: membership.id })
+      .from(membership)
+      .where(eq(membership.personId, personId))
+      .for("share");
+  }
   return getWalletMemberState(tx, personId);
 }
 

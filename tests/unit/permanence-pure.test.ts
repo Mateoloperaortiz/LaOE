@@ -152,6 +152,7 @@ function person(overrides: Partial<PersonFacts> = {}): PersonFacts {
     groupMemberships: [],
     leaderScores: [],
     credits: [],
+    bonuses: [],
     assemblyRequirement: {
       requiredOrdinary: 1,
       requiresBoardElection: true,

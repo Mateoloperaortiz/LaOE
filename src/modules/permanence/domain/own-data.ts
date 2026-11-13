@@ -1,10 +1,12 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { OWN_DATA_QUERY_LIMIT, ownDataCollections } from "@/shared/lib/own-data";
 import {
   leaderScore,
   manualCredit,
+  permanenceBonus,
+  permanenceBonusAllocation,
   permanenceDecision,
   permanenceSnapshot,
   workGroup,
@@ -74,6 +76,18 @@ function ownCriterion(row: CriterionResult) {
     weight: row.weight,
     achieved: row.achieved,
     remaining: row.remaining,
+    ...(row.bonusBreakdown
+      ? {
+          bonusBreakdown: {
+            baseAchieved: row.bonusBreakdown.baseAchieved,
+            grants: row.bonusBreakdown.grants.map(({ id, value, applied }) => ({
+              id,
+              value,
+              applied,
+            })),
+          },
+        }
+      : {}),
     detail,
   };
 }
@@ -86,6 +100,7 @@ export async function collectOwnPermanenceData(personId: string) {
     permanenceDecisions,
     leaderScores,
     manualCredits,
+    permanenceBonuses,
     workGroupMemberships,
     workGroupEvaluations,
     workGroupLeaderships,
@@ -152,6 +167,25 @@ export async function collectOwnPermanenceData(personId: string) {
       .from(manualCredit)
       .where(eq(manualCredit.personId, personId))
       .orderBy(desc(manualCredit.createdAt), desc(manualCredit.id))
+      .limit(OWN_DATA_QUERY_LIMIT),
+    db
+      .select({
+        id: permanenceBonus.id,
+        termId: permanenceBonus.termId,
+        createdAt: permanenceBonus.createdAt,
+        allocations: sql<Array<{ ruleId: string; value: number }>>`
+          jsonb_agg(jsonb_build_object('ruleId', ${permanenceBonusAllocation.ruleId}, 'value', ${permanenceBonusAllocation.value})
+            order by ${permanenceBonusAllocation.ruleId})
+        `,
+      })
+      .from(permanenceBonus)
+      .innerJoin(
+        permanenceBonusAllocation,
+        eq(permanenceBonusAllocation.bonusId, permanenceBonus.id),
+      )
+      .where(eq(permanenceBonus.personId, personId))
+      .groupBy(permanenceBonus.id)
+      .orderBy(desc(permanenceBonus.createdAt), desc(permanenceBonus.id))
       .limit(OWN_DATA_QUERY_LIMIT),
     db
       .select({
@@ -247,6 +281,7 @@ export async function collectOwnPermanenceData(personId: string) {
     permanenceDecisions,
     leaderScores,
     manualCredits,
+    permanenceBonuses,
     workGroupMemberships,
     workGroupEvaluations,
     workGroupLeaderships,
