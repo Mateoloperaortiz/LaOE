@@ -14,6 +14,7 @@ import {
   selectionState,
 } from "@/shared/ui/list-navigation";
 import { SplitView } from "@/shared/ui/SplitView";
+import { EmptyState, ErrorState, LoadingState, Skeleton } from "@/shared/ui/States";
 import { WorkTable } from "@/shared/ui/WorkTable";
 
 // Componentes de trabajo del tramo R6-B (ADR-159 regla 5, con el aspecto de ADR-163).
@@ -240,5 +241,39 @@ describe("campos de formulario", () => {
     expect(markup).toContain('role="alert"');
     expect(markup).toContain('href="#codigo"');
     expect(renderToStaticMarkup(createElement(ErrorSummary, { title: "x", errors: [] }))).toBe("");
+  });
+});
+
+describe("estados de una pantalla (R6-C)", () => {
+  it("cargando se anuncia una vez, queda ocupado y guarda la forma de lo que viene", () => {
+    const markup = renderToStaticMarkup(
+      LoadingState({ label: "Cargando la bandeja", shape: "tabla", rows: 3 }),
+    );
+    expect(markup).toContain('aria-busy="true"');
+    expect(markup).toContain('<output class="sr-only">Cargando la bandeja</output>');
+    expect(markup.match(/h-10/g)).toHaveLength(3);
+  });
+
+  it("el esqueleto no se anima con movimiento reducido y no lo lee el lector de pantalla", () => {
+    const markup = renderToStaticMarkup(Skeleton({ className: "h-4" }));
+    expect(markup).toContain('aria-hidden="true"');
+    expect(markup).toContain("motion-safe:animate-pulse");
+  });
+
+  it("vacío dice qué no hay y a lo sumo una acción; error se anuncia como alerta, con icono", () => {
+    const empty = renderToStaticMarkup(
+      EmptyState({ title: "Estás al día", description: "Nada por revisar." }),
+    );
+    expect(empty).toContain("titulo-tarjeta");
+    expect(empty).not.toContain('role="alert"');
+    const error = renderToStaticMarkup(
+      ErrorState({
+        title: "No cargó.",
+        action: createElement("button", { type: "button" }, "Intentar de nuevo"),
+      }),
+    );
+    expect(error).toContain('role="alert"');
+    expect(error).toContain("<svg");
+    expect(error).toContain("Intentar de nuevo");
   });
 });

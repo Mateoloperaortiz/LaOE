@@ -400,6 +400,7 @@ El tema oscuro del aspecto sobrio se deriva del navy y no usa sombras: una super
   - `BottomSheet`: la hoja inferior de Mi OE y el modo de campo; cierra con su botón, con Esc o tocando fuera.
   - Campos: `Field` conecta la etiqueta, la ayuda y el error con el control; `TextInput`, `TextArea` y `Select` usan la utilidad `campo` (superficie con sombra en Mi OE, línea en la Operación, una línea en oscuro y 2 px de error); `Checkbox`, `Switch` y `RadioGroup` son controles nativos que se tocan en toda la fila; `ErrorSummary` lleva a cada campo con error.
   - La URL es la fuente de verdad del panel y de la hoja: abrir es llegar a una dirección y cerrar vuelve a `closeHref`.
+- **Estados de una pantalla (R6-C):** `LoadingState` (con la forma de lista, tabla o tarjetas, `aria-busy` y su anuncio), `Skeleton`, `EmptyState` y `ErrorState`, que se anuncia como alerta y lleva la acción de reintentar. El error de `/admin` y `/app` (`AreaErrorScreen`) ya los usa.
 - **Pruebas:** `tests/unit/functional-layer-contrast.test.ts` lee los tokens y comprueba AA en los dos temas, las dos densidades, las esquinas, los pesos y los campos; `tests/unit/work-components.test.ts` prueba la selección, los atajos y el marcado de los componentes de trabajo.
 - **Muestrario:** `/marca`, que solo existe en desarrollo, los muestra vivos en las dos áreas.
 

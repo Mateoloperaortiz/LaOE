@@ -8,5 +8,5 @@ type Props = { reset: () => void };
 // su navegación sigue en su sitio. Misma pantalla que la raíz, sin contenedor principal propio: ya lo
 // abre `AdminShell`. El contenedor de un área está escrito una vez, en `AreaErrorScreen`.
 export default function AdminErrorPage({ reset }: Props) {
-  return <AreaErrorScreen reset={reset} />;
+  return <AreaErrorScreen reset={reset} area="operacion" />;
 }

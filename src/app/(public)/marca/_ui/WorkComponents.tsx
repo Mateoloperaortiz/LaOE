@@ -8,6 +8,7 @@ import { Checkbox, RadioGroup, Switch } from "@/shared/ui/Choice";
 import { DetailPanel } from "@/shared/ui/DetailPanel";
 import { ErrorSummary } from "@/shared/ui/ErrorSummary";
 import { Field, Select, TextArea, TextInput } from "@/shared/ui/Field";
+import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { ChevronRightIcon } from "@/shared/ui/icons/ChevronRightIcon";
 import { IdIcon } from "@/shared/ui/icons/IdIcon";
 import { MaximizeIcon } from "@/shared/ui/icons/MaximizeIcon";
@@ -15,6 +16,7 @@ import { PencilIcon } from "@/shared/ui/icons/PencilIcon";
 import { ListShortcuts } from "@/shared/ui/ListShortcuts";
 import { ScreenHeader } from "@/shared/ui/ScreenHeader";
 import { SplitView } from "@/shared/ui/SplitView";
+import { EmptyState, ErrorState, LoadingState } from "@/shared/ui/States";
 import { Surface } from "@/shared/ui/Surface";
 import { WorkTable, type WorkTableDensity } from "@/shared/ui/WorkTable";
 
@@ -324,6 +326,37 @@ export function WorkComponents({ params }: { params: WorkParams }) {
             <IdIcon size={18} />
             Registrar asistencia
           </AppLink>
+        </Surface>
+      </div>
+
+      <div
+        data-densidad="escritorio"
+        className="fondo-sobrio grid gap-3 rounded-marco p-3 lg:grid-cols-3"
+      >
+        <p className="etiqueta-corta px-2 text-tinta-sobre-fondo lg:col-span-3">
+          Estados de una pantalla · cargando, vacío y error
+        </p>
+        <Surface className="p-5">
+          <LoadingState label="Cargando la bandeja" shape="tabla" rows={4} />
+        </Surface>
+        <Surface className="px-5">
+          <EmptyState
+            tone="exito"
+            icon={<CheckIcon size={20} />}
+            title="Estás al día"
+            description="Cuando algo necesite tu revisión, aparece aquí."
+          />
+        </Surface>
+        <Surface className="px-5">
+          <ErrorState
+            title="No cargó la bandeja."
+            description="Puede ser la conexión. Intenta otra vez en un momento."
+            action={
+              <Button area="operacion" variant="secundaria">
+                Intentar de nuevo
+              </Button>
+            }
+          />
         </Surface>
       </div>
 
