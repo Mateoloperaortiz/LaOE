@@ -13,9 +13,9 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-197](ADR-197-las-herramientas-de-presidencia.md) | Las herramientas de Presidencia | Propuesta |
+| [ADR-197](ADR-197-las-herramientas-de-presidencia.md) | Las herramientas de Presidencia | Aceptada |
 | [ADR-196](ADR-196-las-faltas-pasan-por-la-vp-de-gestion-humana.md) | Las faltas pasan por la VP de Gestión Humana | Propuesta |
-| [ADR-195](ADR-195-los-avales-de-la-junta.md) | Los avales de la junta | Aceptada |
+| [ADR-195](ADR-195-los-avales-de-la-junta.md) | Los avales de la junta | Aceptada; enmendada por ADR-197 |
 | [ADR-194](ADR-194-la-junta-del-semestre-y-sus-comites-de-trabajo.md) | La junta del semestre y sus comités de trabajo | Aceptada |
 | [ADR-193](ADR-193-la-presidencia-suple-a-la-vp-en-el-inventario.md) | La Presidencia suple a la VP en el inventario | Aceptada |
 | [ADR-192](ADR-192-revision-temporal-de-rama-en-staging.md) | Revisión temporal de una rama funcional en staging | Aceptada (era la ADR-153 de la rama del inventario) |
@@ -41,7 +41,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-172](ADR-172-el-empalme-entre-semestres.md) | El empalme entre semestres | Aceptada |
 | [ADR-171](ADR-171-la-trayectoria-verificable.md) | La trayectoria verificable | Aceptada |
 | [ADR-170](ADR-170-vistas-guardadas-y-acciones-en-lote.md) | Vistas guardadas y acciones en lote | Aceptada |
-| [ADR-169](ADR-169-calendario-panoramas-y-ficha-de-la-persona.md) | El Calendario, los panoramas por rol y la ficha de la persona | Aceptada |
+| [ADR-169](ADR-169-calendario-panoramas-y-ficha-de-la-persona.md) | El Calendario, los panoramas por rol y la ficha de la persona | Aceptada; enmendada por ADR-191 y ADR-197 |
 | [ADR-168](ADR-168-el-modo-de-campo-de-la-operacion.md) | El modo de campo de la Operación | Aceptada |
 | [ADR-167](ADR-167-patrones-de-escritorio-de-la-operacion.md) | Patrones de escritorio de la Operación | Aceptada |
 | [ADR-166](ADR-166-el-centro-de-avisos-de-mi-oe.md) | El centro de avisos de Mi OE | Aceptada |
@@ -77,7 +77,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-134](ADR-134-juegos-protagonista-y-color.md) | Juegos con reto protagonista y Color integrado a Más gamer | Aceptada; enmendada por ADR-135 |
 | [ADR-133](ADR-133-mas-gamer-por-puntos-de-desempeno.md) | Más gamer por puntos de desempeño | Aceptada; enmendada por ADR-134; enmendada por ADR-135 |
 | [ADR-132](ADR-132-aviso-de-24-horas-para-la-racha-presencial.md) | Aviso de 24 horas para la racha presencial | Aceptada |
-| [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) | GH Points y Más gamer con rachas separadas | Aceptada (enmendada por ADR-132 y ADR-133); enmendada por ADR-134; enmendada por ADR-135; enmendada por ADR-136; enmendada por ADR-137 |
+| [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) | GH Points y Más gamer con rachas separadas | Aceptada (enmendada por ADR-132 y ADR-133); enmendada por ADR-134; enmendada por ADR-135; enmendada por ADR-136; enmendada por ADR-137 y ADR-197 |
 | [ADR-130](ADR-130-fotos-privadas-en-mi-oe.md) | Fotos privadas en Mi OE y carga reanudable de DÍAS 2026 | Aceptada |
 | [ADR-129](ADR-129-reglas-de-consolidacion-del-decimoseptimo-ciclo.md) | Reglas de consolidación del decimoséptimo ciclo del refactor | Aceptada |
 | [ADR-128](ADR-128-reglas-de-correccion-del-decimosexto-ciclo.md) | Reglas de corrección del decimosexto ciclo del refactor | Aceptada (enmendada por ADR-129) |
@@ -117,7 +117,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-094](ADR-094-calendario-de-the-games-desde-la-hoja-de-la-oe.md) | El calendario de The Games se importa desde la hoja de la OE | Aceptada |
 | [ADR-093](ADR-093-cada-equipo-juega-todas-las-bases.md) | En The Games, cada equipo juega todas las bases de la jornada | Aceptada |
 | [ADR-092](ADR-092-panal-corto-y-premios-por-avance.md) | Panal corto y premios por avance desde el 24 de septiembre | Aceptada; en producción desde el 24 a las 08:30 de Colombia; enmendada por ADR-131 |
-| [ADR-091](ADR-091-apuestas-de-the-games.md) | Apuestas de The Games con puntos virtuales | Aceptada (enmendada por ADR-096, ADR-104 y ADR-118); implementación en curso |
+| [ADR-091](ADR-091-apuestas-de-the-games.md) | Apuestas de The Games con puntos virtuales | Aceptada (enmendada por ADR-096, ADR-104, ADR-118 y ADR-197); implementación en curso |
 | [ADR-090](ADR-090-api-publica-v1-vitrina-de-the-games.md) | API pública v1: la vitrina de The Games para DÍAS | Aceptada (enmendada por ADR-095, ADR-096, ADR-097, ADR-098 y ADR-107); implementación en curso |
 | [ADR-089](ADR-089-the-games-competencia-por-equipos.md) | The Games: competencia por equipos de Días EAFIT | Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098, ADR-100, ADR-101, ADR-104, ADR-106 y ADR-118); implementación en curso |
 | [ADR-088](ADR-088-panal-diario-en-espanol.md) | Panal diario en español y premio por rango Genio | Aceptada; enmendada por ADR-092 y ADR-119; publicación pendiente; enmendada por ADR-131 |

@@ -1,6 +1,6 @@
 # ADR-091: Apuestas de The Games con puntos virtuales
 
-- Estado: Aceptada (enmendada por ADR-096, ADR-104 y ADR-118); implementación en curso
+- Estado: Aceptada (enmendada por ADR-096, ADR-104, ADR-118 y ADR-197); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-007, ADR-012, ADR-072, ADR-085, ADR-089, ADR-090
 
@@ -57,3 +57,7 @@ Regla 1: los puntos de apuestas siguen en su libro propio, pero la tabla general
 ## Enmienda (2026-10-08, ADR-118)
 
 Regla 4: «resolver una apuesta ya resuelta no hace nada» valía también cuando se pedía otro ganador, y la respuesta era «guardado» sin que cambiara nada. Ahora solo es inocuo repetir el mismo ganador; con otro, la orden responde que la apuesta ya está resuelta (T-3255) y no escribe. Cómo se corrige una apuesta resuelta con el ganador equivocado sigue sin comando: es la decisión abierta 41. Ver [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 29.
+
+## Enmienda (2026-11-13, ADR-197)
+
+Regla 1: las apuestas de The Games siguen con sus puntos virtuales. Aparte, los pronósticos de los partidos del Athletic se juegan con GH Points, solo para quien registró su asistencia al partido y con un tope por partido ([ADR-197](ADR-197-las-herramientas-de-presidencia.md) regla 7).

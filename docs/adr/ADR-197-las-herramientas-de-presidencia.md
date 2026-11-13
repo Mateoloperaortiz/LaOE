@@ -1,8 +1,8 @@
 # ADR-197: Las herramientas de Presidencia
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
-- Enmienda: [ADR-195](ADR-195-los-avales-de-la-junta.md) regla 1 (el aval de evento se puede devolver con comentarios); [ADR-169](ADR-169-calendario-panoramas-y-ficha-de-la-persona.md) regla 1 (la capa de la junta); la separación entre GH Points y puntos de juego (los pronósticos del Athletic se juegan con GH Points)
+- Enmienda: [ADR-195](ADR-195-los-avales-de-la-junta.md) regla 1 (el aval de evento se puede devolver con comentarios); [ADR-169](ADR-169-calendario-panoramas-y-ficha-de-la-persona.md) regla 1 (la capa de la junta); [ADR-091](ADR-091-apuestas-de-the-games.md) regla 1 y [ADR-131](ADR-131-gh-points-y-mas-gamer-con-rachas-separadas.md) regla 1 (los pronósticos del Athletic se juegan con GH Points)
 - Relacionadas: ADR-036, ADR-051, ADR-091, ADR-166, ADR-194, ADR-196
 
 ## Contexto

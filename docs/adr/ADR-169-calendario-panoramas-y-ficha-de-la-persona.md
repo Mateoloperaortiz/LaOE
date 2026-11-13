@@ -1,6 +1,6 @@
 # ADR-169: El Calendario, los panoramas por rol y la ficha de la persona
 
-- Estado: Aceptada (2026-11-13) (enmendada por ADR-191)
+- Estado: Aceptada (2026-11-13) (enmendada por ADR-191 y ADR-197)
 - Fecha: 2026-11-13
 - Desarrolla: [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) (reglas 3 y 5: la estructura y los patrones de escritorio)
 - Enmienda: [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) (la pestaña «Resumen» de la Persona 360) y la regla 15 de [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) (adónde entra quien no es ADMIN)
@@ -39,3 +39,7 @@ Hoy las fechas viven repartidas: las actividades, las asambleas y las sesiones d
 ## Enmienda (2026-11-13, ADR-191)
 
 Regla 1: las reservas de inventario son una capa del Calendario, con quien reservó y su comité o macroevento ([ADR-191](ADR-191-el-inventario-entra-al-rediseno.md) regla 4).
+
+## Enmienda (2026-11-13, ADR-197)
+
+Regla 1: el Calendario suma la capa «Junta», con las reuniones de la junta y las fechas clave que registra cada cargo, sincronizada en los dos sentidos con el Google Calendar de la junta ([ADR-197](ADR-197-las-herramientas-de-presidencia.md) regla 6).

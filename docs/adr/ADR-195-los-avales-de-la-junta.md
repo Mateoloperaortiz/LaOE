@@ -1,6 +1,6 @@
 # ADR-195: Los avales de la junta
 
-- Estado: Aceptada (2026-11-13)
+- Estado: Aceptada (2026-11-13); enmendada por ADR-197
 - Fecha: 2026-11-13
 - Enmienda: [ADR-059](ADR-059-presupuesto-del-comite.md) y [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 1 (quién decide el aval de evento); [ADR-123](ADR-123-reglas-de-verificacion-y-correccion-del-undecimo-ciclo.md) regla 7 (la prueba y el aval de evento); [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) reglas 6 y 11 (cuándo aplica una falta y el aval de la VP de GH para un nuevo); [ADR-150](ADR-150-inventario-reservas-y-operacion-logistica.md) (la reserva deja de nacer confirmada)
 - Relacionadas: ADR-061, ADR-166, ADR-193, ADR-194
@@ -66,3 +66,7 @@ Hasta hoy ningún cargo de la junta decide nada por su nombramiento, salvo la VP
 - Mientras una falta espera el aval, la persona conserva sus derechos y beneficios.
 - La Mesa de cada cargo de la junta suma una sección. Una VP que hoy solo ve el panel de agregados entra a la Operación por sus avales.
 - Las pantallas de finanzas que hoy decide ADMIN pasan a mostrar «lo decide la Presidencia» o «lo decide la VP Financiera».
+
+## Enmienda (2026-11-13, ADR-197)
+
+Regla 1: la Presidencia puede devolver el aval de evento con comentarios antes de decidirlo. Devolver no decide: el comité lo corrige y lo envía otra vez como una versión nueva, y queda la historia de versiones y comentarios. Aprobar o rechazar sigue siendo una sola vez ([ADR-197](ADR-197-las-herramientas-de-presidencia.md) regla 1).
