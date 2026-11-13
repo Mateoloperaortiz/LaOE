@@ -19,7 +19,7 @@ test("el inicio del admin muestra el tablero con sus bloques y enlaces", async (
     "aria-current",
     "page",
   );
-  await navigation.getByRole("button", { name: tList("T-1400")[1] }).click();
+  await navigation.getByRole("button", { name: tList("T-4860")[2] }).click();
   await expect(
     navigation.getByRole("link", { name: tList("T-908")[2], exact: true }),
   ).toHaveAttribute("href", "/admin/organizaciones");

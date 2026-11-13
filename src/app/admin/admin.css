@@ -1,58 +1,98 @@
-/* ADR-043: extensión funcional de marca, confinada a Administración. */
+/* La Operación (ADR-043, ADR-159 y el aspecto sobrio de ADR-163), en la rama feat/rediseno (ADR-164).
+   El marco es de escritorio: la barra lateral va sobre el fondo con degradado y el contenido en una
+   superficie blanca. Estas reglas también dan el aspecto sobrio a las páginas de siempre (títulos,
+   botones y campos) mientras su contenido se rediseña en la ola 2. */
 .admin-shell {
   --radius-cartel: 0.75rem;
-  display: flex;
+  --ancho-barra: 15rem;
+  display: grid;
+  grid-template-columns: var(--ancho-barra) minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem;
   flex: 1;
   min-height: 100dvh;
   min-width: 0;
-  background: var(--fondo);
+  padding: 0.75rem;
+  color: var(--tinta);
+  --nav-activo-fondo: var(--superficie);
+  --nav-activo-tinta: var(--titulo);
+  --nav-activo-sombra: var(--sombra-control);
+  --nav-sobre: color-mix(in oklab, var(--superficie) 55%, transparent);
+}
+.admin-shell[data-barra="recogida"] {
+  --ancho-barra: 4rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .admin-shell {
+    --nav-activo-fondo: var(--activo);
+    --nav-activo-tinta: var(--activo-tinta);
+  }
+}
+:root[data-theme="dark"] .admin-shell {
+  --nav-activo-fondo: var(--activo);
+  --nav-activo-tinta: var(--activo-tinta);
 }
 .admin-shell .textura-granito {
   background-image: none;
 }
+
+/* Títulos, botones y campos de las páginas, con el aspecto sobrio (ADR-163 reglas 3, 4 y 6). */
 .admin-shell h1 {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 800;
-  line-height: 1.1;
+  font-family: var(--font-sans);
+  font-size: var(--text-pantalla);
+  line-height: var(--text-pantalla--line-height);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
   text-align: left;
   text-wrap: pretty;
+  color: var(--titulo);
 }
 .admin-shell h2 {
   font-family: var(--font-sans);
-  font-size: 1.125rem;
-  line-height: 1.4;
-  font-weight: 700;
+  font-size: var(--text-seccion);
+  line-height: var(--text-seccion--line-height);
+  font-weight: 600;
   text-transform: none;
   text-wrap: pretty;
 }
 .admin-shell h3 {
   font-size: 1rem;
   line-height: 1.5;
+  font-weight: 600;
 }
 .admin-shell .bg-white.text-oe-navy :is(h1, h2, h3) {
   color: var(--color-oe-navy);
 }
 .admin-shell .eyebrow {
-  font-size: 0.8125rem;
-  letter-spacing: 0.015em;
+  font-size: var(--text-etiqueta);
+  font-weight: 500;
+  letter-spacing: normal;
   text-transform: none;
 }
 .admin-shell :is(.boton-primario, .boton-secundario, .boton-calido) {
-  min-height: 44px;
-  border-radius: 0.625rem;
-  padding: 0.625rem 0.875rem;
+  min-height: var(--alto-control);
+  border-radius: var(--radius-control);
+  padding: 0.5rem 0.875rem;
   font-size: 0.875rem;
+  font-weight: 600;
   line-height: 1.4;
 }
 .admin-shell .boton-secundario {
-  border-width: 1px;
-  border-color: var(--borde);
+  border: 0;
+  background: var(--relleno);
+  color: var(--titulo);
 }
-.admin-shell .boton-primario {
-  background: var(--color-oe-orange);
+.admin-shell .boton-secundario:hover {
+  background: color-mix(in oklab, var(--relleno) 90%, var(--titulo));
+}
+.admin-shell :is(.boton-primario, .boton-calido) {
   border-color: transparent;
-  color: var(--color-oe-navy);
+  background: var(--accion);
+  color: var(--accion-tinta);
+}
+.admin-shell :is(.boton-primario, .boton-calido):hover {
+  background: color-mix(in oklab, var(--accion) 88%, var(--accion-tinta));
 }
 .admin-shell :is(input, select, textarea) {
   max-width: 100%;
@@ -63,15 +103,20 @@
     select,
     textarea
   ) {
-  min-height: 44px;
+  min-height: var(--alto-control);
   min-width: 0;
-  border-width: 1px;
-  border-radius: 0.5rem;
-  font-size: 1rem;
+  border: 1px solid var(--campo-borde);
+  border-radius: var(--radius-control);
+  background-color: var(--superficie);
+  box-shadow: var(--campo-sombra);
+  font-size: 0.875rem;
 }
 .admin-shell :is(input, select, textarea):focus-visible {
   outline: 2px solid var(--titulo);
   outline-offset: 2px;
+}
+.admin-shell :is(input, select, textarea)[aria-invalid="true"] {
+  border: 2px solid var(--error);
 }
 .admin-shell :is(button, input, select, textarea):disabled {
   cursor: wait;
@@ -96,141 +141,278 @@
 .admin-shell [role="alert"].text-oe-orange {
   border-left: 2px solid var(--color-oe-orange);
   padding: 0.75rem;
-  background: var(--fondo-suave);
+  background: var(--panel);
 }
 .admin-shell .boton-secundario.text-oe-orange {
-  border-color: var(--color-oe-orange);
+  box-shadow: inset 0 0 0 1px var(--color-oe-orange);
 }
 .admin-shell :is(section, div, form).bg-fondo-suave {
-  background-color: var(--fondo);
+  background-color: var(--panel);
 }
 .admin-shell :is(.text-display-md, .text-display-lg):not(h1) {
   font-size: 1.5rem;
   line-height: 1.35;
 }
+
+/* La barra lateral: va sobre el fondo, sin superficie ni borde (ADR-163 regla 9). */
 .admin-sidebar {
   position: sticky;
-  top: 0;
+  top: 0.75rem;
   display: flex;
-  flex: 0 0 256px;
   flex-direction: column;
-  width: 256px;
-  height: 100dvh;
+  gap: 0.875rem;
+  height: calc(100dvh - 1.5rem);
+  min-width: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
-  border-right: 1px solid var(--borde);
-  background: var(--color-oe-navy);
-  color: var(--color-oe-paper);
+  padding: 0.375rem 0.25rem;
 }
 .admin-brand {
   display: flex;
   align-items: center;
-  gap: 0.875rem;
-  padding: 1.25rem;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.375rem 0 0.5rem;
 }
-.admin-shell .admin-brand {
-  color: var(--color-oe-paper);
-  font-size: 0.875rem;
-  font-weight: 700;
+.admin-brand-name {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  color: var(--titulo);
+  text-decoration: none;
 }
-.admin-brand .logo-mascara {
+.admin-brand-name strong {
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+}
+.admin-brand-name span {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--tinta-sobre-fondo);
+}
+.admin-collapse {
+  display: flex;
+  width: 2rem;
+  height: 2rem;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: var(--tinta-sobre-fondo);
+}
+.admin-collapse:hover {
+  background: var(--nav-sobre);
+  color: var(--titulo);
 }
 .admin-navigation {
-  padding: 0.5rem 0.75rem 1.5rem;
-}
-.admin-shell .admin-navigation a {
   display: flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0.625rem 0.875rem;
-  border-left: 3px solid transparent;
-  border-radius: 0.375rem;
-  color: var(--color-oe-paper);
-  font-size: 0.875rem;
-  line-height: 1.5;
-  text-decoration: none;
-  overflow-wrap: anywhere;
+  flex-direction: column;
+  gap: 0.125rem;
 }
-.admin-shell .admin-navigation a:hover {
-  background: color-mix(in oklab, var(--color-oe-blue) 12%, transparent);
+.admin-nav-section {
+  margin: 0.625rem 0 0.25rem;
+  padding: 0 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--tinta-sobre-fondo);
 }
-.admin-shell .admin-navigation a[aria-current="page"] {
-  border-left-color: var(--color-oe-blue);
-  background: color-mix(in oklab, var(--color-oe-blue) 20%, transparent);
-  color: var(--color-oe-paper);
-  font-weight: 700;
-}
-.admin-nav-group {
-  margin-top: 0.5rem;
-}
-.admin-nav-group-toggle {
+.admin-shell :is(.admin-nav-link, .admin-nav-group-toggle) {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
   width: 100%;
-  min-height: 44px;
-  padding: 0.5rem 0.875rem;
-  color: var(--color-oe-blue-soft);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0 0.625rem;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--tinta);
+  font-size: 0.875rem;
+  font-weight: 500;
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
 }
-.admin-nav-group-toggle:hover {
-  color: var(--color-oe-paper);
+.admin-shell :is(.admin-nav-link, .admin-nav-group-toggle):hover {
+  background: var(--nav-sobre);
+}
+.admin-nav-icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--tinta-sobre-fondo);
+}
+.admin-nav-label {
+  flex: 1;
+  min-width: 0;
+}
+.admin-nav-chevron {
+  display: flex;
+  color: var(--tinta-sobre-fondo);
+  transition: transform 150ms ease;
+}
+.admin-nav-group-toggle[aria-expanded="true"] .admin-nav-chevron {
+  transform: rotate(90deg);
 }
 .admin-nav-items {
-  margin: 0;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  margin: 0.125rem 0 0.375rem;
+  padding: 0 0 0 2.125rem;
   list-style: none;
 }
 .admin-nav-items[hidden] {
   display: none;
 }
+.admin-nav-items a {
+  display: flex;
+  min-height: 2rem;
+  align-items: center;
+  padding: 0 0.625rem;
+  border-radius: var(--radius-control);
+  color: var(--tinta);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.admin-nav-items a:hover {
+  background: var(--nav-sobre);
+}
+.admin-shell .admin-nav-group-toggle[data-active="true"] {
+  color: var(--titulo);
+  font-weight: 600;
+}
+.admin-shell[data-barra="recogida"] .admin-nav-group-toggle[data-active="true"] {
+  background: var(--nav-activo-fondo);
+  box-shadow: var(--nav-activo-sombra);
+  color: var(--nav-activo-tinta);
+}
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  .admin-shell .admin-sidebar .admin-nav-group-toggle[data-active="true"] {
+    background: var(--nav-activo-fondo);
+    box-shadow: var(--nav-activo-sombra);
+    color: var(--nav-activo-tinta);
+  }
+}
+.admin-shell :is(.admin-nav-link, .admin-nav-items a)[aria-current="page"] {
+  background: var(--nav-activo-fondo);
+  box-shadow: var(--nav-activo-sombra);
+  color: var(--nav-activo-tinta);
+  font-weight: 600;
+}
+.admin-shell .admin-nav-group-toggle[data-active="true"] .admin-nav-icon,
+.admin-shell .admin-nav-link[aria-current="page"] .admin-nav-icon {
+  color: var(--nav-activo-tinta);
+}
+.admin-nav-items a[aria-current="page"] {
+  box-shadow: none;
+}
+.admin-sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+/* El riel: la barra recogida a iconos, a pedido de la persona o entre 1024 y 1279 px (ADR-159 regla 1).
+   En el riel, cada espacio abre el menú completo en el cajón. */
+.admin-shell[data-barra="recogida"] :is(.admin-brand-name, .admin-nav-section, .admin-nav-chevron),
+.admin-shell[data-barra="recogida"] .admin-nav-items {
+  display: none;
+}
+.admin-shell[data-barra="recogida"] .admin-brand {
+  justify-content: center;
+  padding: 0;
+}
+.admin-shell[data-barra="recogida"] :is(.admin-nav-link, .admin-nav-group-toggle) {
+  justify-content: center;
+  padding: 0;
+}
+.admin-shell[data-barra="recogida"] .admin-nav-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  .admin-shell {
+    --ancho-barra: 4rem;
+  }
+  .admin-shell :is(.admin-brand-name, .admin-nav-section, .admin-nav-chevron, .admin-collapse),
+  .admin-shell .admin-sidebar .admin-nav-items {
+    display: none;
+  }
+  .admin-shell .admin-brand {
+    justify-content: center;
+    padding: 0;
+  }
+  .admin-shell .admin-sidebar :is(.admin-nav-link, .admin-nav-group-toggle) {
+    justify-content: center;
+    padding: 0;
+  }
+  .admin-shell .admin-sidebar .admin-nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* El contenido va en una superficie blanca de esquinas de 20 px, a 12 px del borde (ADR-163 regla 9). */
 .admin-workspace {
-  flex: 1;
+  display: flex;
   min-width: 0;
+  min-height: calc(100dvh - 1.5rem);
+  flex-direction: column;
+  border: 1px solid var(--superficie-borde);
+  border-radius: var(--radius-marco);
+  background: var(--superficie);
+  box-shadow: var(--sombra-flota);
 }
 .admin-topbar {
-  position: sticky;
-  z-index: 30;
-  top: 0;
   display: flex;
-  flex-wrap: wrap;
+  min-height: 3.25rem;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 72px;
-  padding: 0.75rem 2rem;
-  border-bottom: 1px solid var(--borde);
-  background: var(--fondo);
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.5rem 1.25rem;
+  border-bottom: 1px solid var(--linea-tenue);
 }
 .admin-topbar-label {
-  color: var(--tinta-suave);
   font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--titulo);
 }
 .admin-utilities {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  min-width: 0;
   margin-left: auto;
 }
+.admin-utilities > * {
+  white-space: nowrap;
+}
 .admin-utilities > button {
-  flex-shrink: 0;
-  border-radius: 0.625rem;
-  border-width: 1px;
-  border-color: var(--borde);
+  min-height: var(--alto-control);
+}
+.admin-shell .admin-utilities > button.rounded-full {
+  width: var(--alto-control);
+  height: var(--alto-control);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--relleno);
 }
 .admin-content {
   width: 100%;
   max-width: 1536px;
   min-width: 0;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem 1.75rem 2rem;
 }
 .admin-content:focus {
   outline: none;
@@ -243,12 +425,13 @@
 }
 .admin-account > summary {
   display: flex;
+  min-height: var(--alto-control);
   align-items: center;
   gap: 0.5rem;
-  min-height: 44px;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--borde);
-  border-radius: 0.625rem;
+  border-radius: var(--radius-control);
+  background: var(--relleno);
+  color: var(--titulo);
   font-size: 0.875rem;
   font-weight: 600;
   list-style: none;
@@ -264,63 +447,71 @@
   z-index: 40;
   width: 13rem;
   padding: 0.375rem;
-  border: 1px solid var(--borde);
-  border-radius: 0.75rem;
-  background: var(--fondo);
-  box-shadow: 0 8px 24px #001f3e18;
+  border: 1px solid var(--superficie-borde);
+  border-radius: var(--radius-tarjeta);
+  background: var(--superficie);
+  box-shadow: var(--sombra-flota);
 }
 .admin-account-menu :is(a, button) {
   display: flex;
-  align-items: center;
   width: 100%;
-  min-height: 44px;
-  border-radius: 0.375rem;
-  padding: 0.625rem;
+  min-height: var(--alto-control);
+  align-items: center;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius-control);
   font-size: 0.875rem;
   text-align: left;
 }
 .admin-account-menu :is(a, button):hover {
-  background: var(--fondo-suave);
+  background: var(--relleno);
 }
 .admin-menu-button {
   display: none;
+  min-height: var(--alto-control);
   align-items: center;
   gap: 0.5rem;
-  min-height: 44px;
+  padding: 0 0.75rem;
+  border-radius: var(--radius-control);
+  background: var(--relleno);
+  color: var(--titulo);
   font-size: 0.875rem;
   font-weight: 600;
 }
 .admin-drawer {
   position: fixed;
   inset: 0 auto 0 0;
-  width: min(320px, 90vw);
+  width: min(20rem, 90vw);
   max-width: none;
   height: 100dvh;
   max-height: none;
   margin: 0;
-  padding: 0;
+  padding: 0.75rem;
   border: 0;
-  background: var(--color-oe-navy);
-  color: var(--color-oe-paper);
+  border-right: 1px solid var(--superficie-borde);
+  color: var(--tinta);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 .admin-drawer::backdrop {
-  background: #001f3e99;
+  background: #001f3e66;
 }
 .admin-drawer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 1rem;
-  border-bottom: 1px solid #94b6f055;
-  font-size: 0.875rem;
-  font-weight: 700;
+  padding: 0.25rem 0.25rem 0.75rem 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--titulo);
 }
 .admin-drawer-header button {
-  min-height: 44px;
-  padding: 0.5rem;
+  min-height: var(--alto-control);
+  padding: 0 0.75rem;
+  border-radius: var(--radius-control);
+  background: var(--relleno);
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 body:has(.admin-shell dialog[open]) {
   overflow: hidden;
@@ -332,9 +523,9 @@ body:has(.admin-shell dialog[open]) {
   left: 0.5rem;
   transform: translateY(-200%);
   padding: 0.75rem 1rem;
-  border: 1px solid var(--borde);
-  border-radius: 0.5rem;
-  background: var(--fondo);
+  border: 1px solid var(--superficie-borde);
+  border-radius: var(--radius-control);
+  background: var(--superficie);
 }
 .admin-skip-link:focus {
   transform: none;
@@ -352,13 +543,13 @@ body:has(.admin-shell dialog[open]) {
   margin: 0;
 }
 .admin-resource-toolbar {
-  border: 1px solid var(--borde);
-  border-radius: 0.75rem;
+  border: 1px solid var(--linea-tenue);
+  border-radius: var(--radius-tarjeta);
   padding: 1rem;
 }
 .admin-empty-state {
-  border: 1px dashed var(--borde);
-  border-radius: 0.75rem;
+  border: 1px dashed var(--linea);
+  border-radius: var(--radius-tarjeta);
   padding: 2rem;
   text-align: center;
 }
@@ -366,8 +557,8 @@ body:has(.admin-shell dialog[open]) {
   position: sticky;
   bottom: 0;
   z-index: 2;
-  border-top: 1px solid var(--borde);
-  background: var(--fondo);
+  border-top: 1px solid var(--linea-tenue);
+  background: var(--superficie);
   padding-top: 1rem;
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
@@ -381,19 +572,20 @@ body:has(.admin-shell dialog[open]) {
 }
 .admin-shell table {
   width: 100%;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 .admin-shell th {
-  padding: 0.75rem 1rem;
-  background: var(--fondo-suave);
+  padding: 0.625rem 0.875rem;
+  background: var(--panel);
+  color: var(--tinta-secundaria);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.5;
-  letter-spacing: 0.02em;
+  letter-spacing: normal;
   text-transform: none;
 }
 .admin-shell td {
-  padding: 0.875rem 1rem;
+  padding: 0.625rem 0.875rem;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -401,15 +593,15 @@ body:has(.admin-shell dialog[open]) {
   border-bottom: 0;
 }
 .admin-shell tbody tr:hover {
-  background: color-mix(in oklab, var(--fondo-suave) 30%, transparent);
+  background: var(--panel);
 }
 .admin-shell td :is(.boton-secundario, .boton-calido) {
   font-size: 0.8125rem;
 }
 .admin-shell :is(.admin-table-region, .admin-matrix) {
   overflow-x: auto;
-  border: 1px solid var(--borde);
-  border-radius: 0.75rem;
+  border: 1px solid var(--linea-tenue);
+  border-radius: var(--radius-tarjeta);
 }
 .admin-shell :is(.admin-matrix) table {
   min-width: 42rem;
@@ -420,28 +612,51 @@ body:has(.admin-shell dialog[open]) {
 .admin-dashboard section:first-child {
   border-top: 3px solid var(--color-oe-blue);
 }
-@media (max-width: 1023px) {
+
+/* Por debajo de 1280 px, el menú completo está en el cajón; por debajo de 1024, no hay barra lateral. */
+@media (max-width: 1279.98px) {
+  .admin-menu-button {
+    display: inline-flex;
+  }
+}
+@media (min-width: 1280px) {
+  .admin-topbar-label {
+    display: none;
+  }
+}
+@media (max-width: 1023.98px) {
+  .admin-shell {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0;
+  }
   .admin-sidebar {
     display: none;
   }
-  .admin-menu-button {
-    display: inline-flex;
+  .admin-workspace {
+    min-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .admin-topbar {
+    min-height: 3.5rem;
+    padding: 0.5rem 1rem;
+  }
+  .admin-content {
+    padding: 1.25rem 1.25rem 2rem;
+  }
+}
+@media (max-width: 639px) {
+  .admin-topbar {
+    flex-wrap: wrap;
+    padding: 0.5rem 0.75rem;
   }
   .admin-topbar-label {
     display: none;
   }
-  .admin-topbar {
-    min-height: 64px;
-    gap: 0.5rem;
-    padding: 0.625rem 1rem;
-  }
-  .admin-content {
-    padding: 1.5rem;
-  }
-}
-@media (max-width: 639px) {
-  .admin-shell h1 {
-    font-size: 1.75rem;
+  .admin-utilities {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
   .admin-content {
     padding: 1.25rem 1rem 2rem;
@@ -479,7 +694,7 @@ body:has(.admin-shell dialog[open]) {
   .admin-shell :is(.admin-resource-table, .admin-data-table) tr {
     display: grid;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--borde);
+    border-bottom: 1px solid var(--linea-tenue);
   }
   .admin-shell :is(.admin-resource-table, .admin-data-table) tr:last-child {
     border-bottom: 0;
@@ -496,7 +711,7 @@ body:has(.admin-shell dialog[open]) {
   }
   .admin-shell :is(.admin-resource-table, .admin-data-table) td::before {
     content: attr(data-label);
-    color: var(--tinta-suave);
+    color: var(--tinta-secundaria);
     font-size: 0.75rem;
     font-weight: 500;
   }

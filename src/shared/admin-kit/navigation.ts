@@ -1,6 +1,20 @@
+/** El icono de cada espacio de la Operación (ADR-159 regla 2); el cliente lo traduce a su glifo. */
+export type AdminSpaceIcon =
+  | "personas"
+  | "comites"
+  | "admision"
+  | "comunicacion"
+  | "participacion"
+  | "permanencia"
+  | "finanzas"
+  | "macroeventos"
+  | "junta"
+  | "sistema";
+
 export interface AdminNavGroup {
   id: string;
   label: string;
+  icon?: AdminSpaceIcon;
   items: { href: string; label: string }[];
 }
 

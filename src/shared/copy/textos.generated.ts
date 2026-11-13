@@ -5259,8 +5259,8 @@ export const textos = {
     status: "Confirmado",
   },
   "T-236": {
-    where: "Título del área de administración",
-    text: "Administración",
+    where: "Título del área de administración, que pasa a llamarse Operación (ADR-159 regla 1)",
+    text: "Operación",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -13948,6 +13948,30 @@ export const textos = {
   "T-486": {
     where: "Importación: cargos por crear",
     text: "Cargos nuevos que se agregan al catálogo: {lista}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4860": {
+    where: "Operación: espacios de la barra lateral, en orden",
+    text: "Personas · Comités · Admisión · Comunicación · Participación · Permanencia · Finanzas y logística · Macroeventos · Junta · Sistema",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4861": {
+    where: "Operación: título de la lista de espacios en la barra lateral",
+    text: "Espacios",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4862": {
+    where: "Operación: botón para recoger la barra lateral y para mostrarla de nuevo",
+    text: "Recoger la barra lateral · Mostrar la barra lateral",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4863": {
+    where: "Operación: línea debajo del nombre del área en la barra lateral",
+    text: "Organización Estudiantil",
     owner: "MATEO",
     status: "Propuesta",
   },

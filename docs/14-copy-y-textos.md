@@ -1377,7 +1377,7 @@ Avisos de arranque con política pendiente (ADR-039; excepción del primer ADMIN
 | T-233 | Sesiones: columna de última actividad | Última actividad | MATEO | Propuesta |
 | T-234 | Sesiones: dispositivo sin identificar | Dispositivo | MATEO | Propuesta |
 | T-235 | Sesiones: confirmación al cerrar las demás | Listo: cerramos tus otras sesiones. | MATEO | Propuesta |
-| T-236 | Título del área de administración | Administración | MATEO | Propuesta |
+| T-236 | Título del área de administración, que pasa a llamarse Operación (ADR-159 regla 1) | Operación | MATEO | Propuesta |
 | T-237 | Ingresar: volver al primer paso | Pedir otro código | MATEO | Propuesta |
 | T-238 | Ingresar: etiqueta del campo del código | Código de seis dígitos | MATEO | Propuesta |
 | T-239 | Ingresar: correo con formato inválido | Ese correo no tiene un formato válido. Revísalo. | MATEO | Propuesta |
@@ -3268,3 +3268,15 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-4857 | Persona no disponible en lista activa | Ver persona | MATEO | Aprobado |
 | T-4858 | Regla de asistencias más grupo: opción de aceptar una evidencia | Aceptar asistencia o buen desempeño | GH | Propuesta |
 | T-4859 | Permanencia: regla que acepta cualquiera de las dos evidencias | Este criterio cuenta con la asistencia requerida o con buen desempeño en el grupo. | GH | Propuesta |
+
+## Marco nuevo de la Operación (ADR-159, ADR-163 y ADR-164)
+
+El marco de escritorio de `/admin`, que se construye en la rama `feat/rediseno`. Los espacios reordenan los grupos de hoy (ADR-159 regla 2).
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4860 | Operación: espacios de la barra lateral, en orden | Personas · Comités · Admisión · Comunicación · Participación · Permanencia · Finanzas y logística · Macroeventos · Junta · Sistema | MATEO | Propuesta |
+| T-4861 | Operación: título de la lista de espacios en la barra lateral | Espacios | MATEO | Propuesta |
+| T-4862 | Operación: botón para recoger la barra lateral y para mostrarla de nuevo | Recoger la barra lateral · Mostrar la barra lateral | MATEO | Propuesta |
+| T-4863 | Operación: línea debajo del nombre del área en la barra lateral | Organización Estudiantil | MATEO | Propuesta |
+

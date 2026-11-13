@@ -259,6 +259,8 @@ Una flecha dentro de un rango o de una oración (`apertura → cierre`) y el ata
 | Desplegar un menú de cuenta | `ChevronDownIcon` |
 | Separar los pasos de la ruta en la cabecera de una pantalla; seguir a una opción de una hoja | `ChevronRightIcon` |
 | Cerrar un panel de detalle o una hoja inferior | `XIcon` |
+| Espacios de la Operación: Personas · Comités · Admisión · Comunicación · Participación · Permanencia · Finanzas y logística · Macroeventos · Junta · Sistema | `UsersIcon` · `UsersGroupIcon` · `UserPlusIcon` · `MessageIcon` · `StarIcon` · `ClipboardCheckIcon` · `WalletIcon` · `FlagIcon` · `BriefcaseIcon` · `AdjustmentsIcon` |
+| Recoger y mostrar la barra lateral de la Operación | `LayoutSidebarLeftCollapseIcon` · `LayoutSidebarLeftExpandIcon` |
 | Orden de una columna de una tabla de trabajo, ascendente o descendente | `ArrowUpIcon` · `ArrowDownIcon` |
 | Abrir la ficha completa · Editar, desde un panel de detalle | `MaximizeIcon` · `PencilIcon` |
 | Abrir o cerrar un grupo de navegación; desplegar una actividad | `PlusIcon` · `MinusIcon` |
@@ -400,7 +402,7 @@ El tema oscuro del aspecto sobrio se deriva del navy y no usa sombras: una super
   - `BottomSheet`: la hoja inferior de Mi OE y el modo de campo; cierra con su botón, con Esc o tocando fuera.
   - Campos: `Field` conecta la etiqueta, la ayuda y el error con el control; `TextInput`, `TextArea` y `Select` usan la utilidad `campo` (superficie con sombra en Mi OE, línea en la Operación, una línea en oscuro y 2 px de error); `Checkbox`, `Switch` y `RadioGroup` son controles nativos que se tocan en toda la fila; `ErrorSummary` lleva a cada campo con error.
   - La URL es la fuente de verdad del panel y de la hoja: abrir es llegar a una dirección y cerrar vuelve a `closeHref`.
-- **Estados de una pantalla (R6-C):** `LoadingState` (con la forma de lista, tabla o tarjetas, `aria-busy` y su anuncio), `Skeleton`, `EmptyState` y `ErrorState`, que se anuncia como alerta y lleva la acción de reintentar. El error de `/admin` y `/app` (`AreaErrorScreen`) ya los usa.
+- **Estados de una pantalla (R6-C):** `LoadingState` (con la forma de lista, tabla o tarjetas, `aria-busy` y su anuncio), `Skeleton`, `EmptyState` y `ErrorState`, que se anuncia como alerta y lleva la acción de reintentar. La pantalla de error (`ErrorScreen`, la misma en la raíz, `/admin` y `/app`) ya lo usa.
 - **Pruebas:** `tests/unit/functional-layer-contrast.test.ts` lee los tokens y comprueba AA en los dos temas, las dos densidades, las esquinas, los pesos y los campos; `tests/unit/work-components.test.ts` prueba la selección, los atajos y el marcado de los componentes de trabajo.
 - **Muestrario:** `/marca`, que solo existe en desarrollo, los muestra vivos en las dos áreas.
 

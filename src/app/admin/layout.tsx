@@ -63,6 +63,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     .map((group, index) => ({
       id: `group-${index}`,
       label: group.label,
+      icon: group.icon,
       items: actor.isAdmin
         ? group.items
         : ownLinks.filter((link) =>

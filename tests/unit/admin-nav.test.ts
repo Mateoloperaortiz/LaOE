@@ -22,6 +22,21 @@ describe("navegación del área de administración", () => {
     );
   });
 
+  it("son los diez espacios de ADR-159, en su orden y cada uno con su icono", () => {
+    expect(groups.map((group) => group.icon)).toEqual([
+      "personas",
+      "comites",
+      "admision",
+      "comunicacion",
+      "participacion",
+      "permanencia",
+      "finanzas",
+      "macroeventos",
+      "junta",
+      "sistema",
+    ]);
+  });
+
   it("los destinos propios de los roles que no son ADMIN caen en algún grupo", () => {
     // El layout ubica un destino propio por prefijo de un destino del menú.
     const prefixes = items.map((item) => item.href);

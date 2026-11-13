@@ -91,7 +91,7 @@ test("publica primero, habilita desde el control y vuelve a bloquear de inmediat
   await page.goto("/admin");
   await page
     .getByRole("navigation", { name: t("T-236") })
-    .getByRole("button", { name: tList("T-1400")[6] })
+    .getByRole("button", { name: tList("T-4860")[9] })
     .click();
   await page
     .getByRole("navigation", { name: t("T-236") })

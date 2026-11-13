@@ -113,7 +113,7 @@ export const textosCliente = {
   "T-230": "Intentar de nuevo",
   "T-2336":
     "Si está fuera de plazo, solicito revisión excepcional de la Vicepresidencia de Gestión Humana; explico el retraso en el motivo.",
-  "T-236": "Administración",
+  "T-236": "Operación",
   "T-2402": "Resumen · Retos · Boosters · Colección",
   "T-2409": "Presencial · Trivia · Misión con evidencia",
   "T-2410": "Disponible · Enviado · Pendiente de revisión · Completado · Rechazado · Vencido",
@@ -511,6 +511,9 @@ export const textosCliente = {
   "T-4673": "Recargar página",
   "T-4674": "Hora",
   "T-4675": "{n} bloques seleccionados",
+  "T-4861": "Espacios",
+  "T-4862": "Recoger la barra lateral · Mostrar la barra lateral",
+  "T-4863": "Organización Estudiantil",
   "T-585": "Registrados · Pendientes · Rechazados · Anulados",
   "T-878": "Retirar solicitud",
   "T-880": "Cuéntanos por qué",
