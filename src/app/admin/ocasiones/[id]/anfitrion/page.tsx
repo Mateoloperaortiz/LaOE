@@ -11,7 +11,7 @@ import { t, tList } from "@/shared/copy";
 import { formatTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
-import { registerAction, scanAction } from "../actions";
+import { decideAction, registerAction, scanAction } from "../actions";
 
 // Modo anfitrión (ADR-035 regla 8): móvil primero, buscar por nombre o escanear el carnet; el token
 // oe1 u oe2 lo valida el servidor con readCarnet. No hace falta abrir una sesión en el celular.
@@ -42,12 +42,18 @@ export default async function AnfitrionPage({
   }
   const { actor, occasion } = found;
   const canRegister = occasion.status === "OPEN" || (actor.isAdmin && occasion.status === "CLOSED");
-  const [results, recent] = await Promise.all([
+  // Los pendientes, para quien los decide (ADR-168 regla 3): ADMIN, como en la consola completa.
+  const [results, recent, pending] = await Promise.all([
     q && canRegister ? searchMembersByName(q) : Promise.resolve([]),
     listCheckIns(id, ["APPROVED"]),
+    actor.isAdmin ? listCheckIns(id, ["PENDING"]) : Promise.resolve([]),
   ]);
   const latest = recent.slice(0, 10);
-  const people = await getPeopleByIds(latest.map((item) => item.personId));
+  const people = await getPeopleByIds([
+    ...latest.map((item) => item.personId),
+    ...pending.map((item) => item.personId),
+  ]);
+  const [aprobar, rechazar] = tList("T-592");
   const [scan, stop, upload] = tList("T-616");
   const [, altaBoton] = tList("T-598");
 
@@ -132,6 +138,44 @@ export default async function AnfitrionPage({
         </>
       )}
 
+      {pending.length > 0 ? (
+        <section aria-labelledby="anfitrion-pendientes" className="flex flex-col gap-2">
+          <h2 id="anfitrion-pendientes" className="eyebrow text-xs">
+            {t("T-591")} · {pending.length}
+          </h2>
+          <ul className="flex list-none flex-col gap-2 p-0">
+            {pending.map((item) => (
+              <li
+                key={item.id}
+                className="flex flex-col gap-2 rounded-xl border border-borde bg-fondo px-4 py-3"
+              >
+                <span className="text-lg font-semibold">
+                  {people.get(item.personId)?.fullName?.trim()}
+                </span>
+                <div className="admin-campo-acciones">
+                  {(["APPROVE", "REJECT"] as const).map((decision) => (
+                    <ActionForm key={decision} action={decideAction}>
+                      <AdminFormBody>
+                        <input type="hidden" name="occasionId" value={id} />
+                        <input type="hidden" name="checkInId" value={item.id} />
+                        <input type="hidden" name="decision" value={decision} />
+                        <input type="hidden" name="seen" value={item.status} />
+                        <input type="hidden" name="back" value="anfitrion" />
+                        <AdminSubmitButton
+                          type="submit"
+                          className={decision === "APPROVE" ? "boton-primario" : "boton-secundario"}
+                        >
+                          {decision === "APPROVE" ? aprobar : rechazar}
+                        </AdminSubmitButton>
+                      </AdminFormBody>
+                    </ActionForm>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       <section aria-label={t("T-603")} className="flex flex-col gap-2">
         <h2 className="eyebrow text-xs">{t("T-603")}</h2>
         {latest.length === 0 ? (

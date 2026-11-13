@@ -3366,3 +3366,16 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | T-4907 | Tabla: ficha de la búsqueda | Búsqueda: «{q}» | MATEO | Propuesta |
 | T-4908 | Imprimir una pantalla de la Operación (lista de asistencia): botón | Imprimir | MATEO | Propuesta |
 
+### Ola 2: modo de campo (ADR-168)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4909 | Modo de campo: título · lo que reúne | Modo de campo · Lo que se hace de pie: registrar asistencia, aprobar excusas y mirar la tabla de The Games. | MATEO | Propuesta |
+| T-4910 | Modo de campo, ocasiones de hoy: título · ir al modo anfitrión · ir a la consola | Tus ocasiones de hoy · Escanear y registrar · Abrir la consola | MATEO | Propuesta |
+| T-4911 | Modo de campo: cuántos van registrados y cuántos esperan aprobación | {n} registrados y {p} por aprobar | MATEO | Propuesta |
+| T-4912 | Modo de campo, excusas: título · aprobar · abrir en la bandeja | Excusas por aprobar · Aprobar · Ver | MATEO | Propuesta |
+| T-4913 | Modo de campo, The Games: título · tabla del operador · base del juez | The Games · Ver la tabla · Juzgar | MATEO | Propuesta |
+| T-4914 | Modo de campo sin nada para hoy | Hoy no tienes nada en campo. Lo demás está en la Mesa. | MATEO | Propuesta |
+| T-4915 | Modo de campo: barra fija con una sola ocasión abierta | Escanear un carnet | MATEO | Propuesta |
+| T-4916 | Mesa y menú del celular: abrir el modo de campo | Abrir el modo de campo | MATEO | Propuesta |
+

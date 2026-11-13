@@ -33,6 +33,7 @@ import { LayoutSidebarLeftCollapseIcon } from "@/shared/ui/icons/LayoutSidebarLe
 import { LayoutSidebarLeftExpandIcon } from "@/shared/ui/icons/LayoutSidebarLeftExpandIcon";
 import { Menu2Icon } from "@/shared/ui/icons/Menu2Icon";
 import { MessageIcon } from "@/shared/ui/icons/MessageIcon";
+import { QrcodeIcon } from "@/shared/ui/icons/QrcodeIcon";
 import { StarIcon } from "@/shared/ui/icons/StarIcon";
 import { UserCircleIcon } from "@/shared/ui/icons/UserCircleIcon";
 import { UserPlusIcon } from "@/shared/ui/icons/UserPlusIcon";
@@ -99,9 +100,12 @@ function Navigation({
   initialOpen,
   onOpenSpace,
   onNavigate,
+  fieldMode = false,
 }: {
   groups: AdminNavGroup[];
   showHome: boolean;
+  /** En el menú del celular, el modo de campo va debajo de la Mesa (ADR-168 regla 5). */
+  fieldMode?: boolean;
   /** En el riel, un espacio no se despliega: abre el cajón en ese espacio. */
   rail?: boolean;
   initialOpen?: string | null;
@@ -145,6 +149,19 @@ function Navigation({
         </span>
         <span className="admin-nav-label">{t("T-4864")}</span>
       </Link>
+      {fieldMode ? (
+        <Link
+          href="/admin/campo"
+          onClick={() => onNavigate?.()}
+          aria-current={pathname === "/admin/campo" ? "page" : undefined}
+          className="admin-nav-link"
+        >
+          <span className="admin-nav-icon">
+            <QrcodeIcon size={18} />
+          </span>
+          <span className="admin-nav-label">{tList("T-4909")[0]}</span>
+        </Link>
+      ) : null}
       {rail ? null : <PinnedLists onNavigate={onNavigate} />}
       <p className="admin-nav-section">{t("T-4861")}</p>
       {groups.map((group) => {
@@ -381,6 +398,7 @@ export function AdminShell({
               showHome={showHome}
               initialOpen={drawerSpace}
               onNavigate={closeMenu}
+              fieldMode
             />
           ) : null}
         </dialog>

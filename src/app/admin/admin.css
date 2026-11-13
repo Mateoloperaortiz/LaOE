@@ -1071,3 +1071,60 @@ body:has(.admin-shell dialog[open]) {
     break-inside: avoid;
   }
 }
+
+/* Modo de campo (ADR-168): tarjetas con la acción principal abajo, zonas táctiles de 44 px y, con una
+   sola ocasión abierta, una barra fija abajo para escanear. El aviso de la Mesa solo sale en el celular. */
+.admin-campo-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: var(--radius-tarjeta);
+  background: var(--superficie);
+}
+.admin-campo-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+.admin-campo-acciones > :is(a, form, button) {
+  flex: 1 1 10rem;
+}
+.admin-campo-acciones :is(a, button) {
+  display: inline-flex;
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+}
+.admin-campo-vacio {
+  padding: 1rem;
+  border-radius: var(--radius-tarjeta);
+  background: var(--relleno);
+}
+.admin-campo-barra {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  padding: 0.75rem 0 calc(0.75rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--fondo) 70%, transparent);
+}
+.admin-campo-barra a {
+  display: flex;
+  width: 100%;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+}
+.admin-campo-aviso {
+  display: none;
+}
+@media (max-width: 1023.98px) {
+  .admin-campo-aviso {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+  }
+}

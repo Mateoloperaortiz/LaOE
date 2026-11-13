@@ -112,6 +112,10 @@ export default async function DeskPage() {
           <p className="text-secundario text-tinta-secundaria">{t("T-4865")}</p>
         </div>
       </header>
+      {/* En el celular, la Mesa ofrece el modo de campo (ADR-168 regla 5); el CSS lo esconde desde 1024 px. */}
+      <Link href="/admin/campo" className="admin-campo-aviso boton-primario">
+        {t("T-4916")}
+      </Link>
       {desk.sections.length === 0 ? (
         <EmptyState
           tone="exito"

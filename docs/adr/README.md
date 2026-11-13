@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-168](ADR-168-el-modo-de-campo-de-la-operacion.md) | El modo de campo de la Operación | Propuesta |
 | [ADR-167](ADR-167-patrones-de-escritorio-de-la-operacion.md) | Patrones de escritorio de la Operación | Propuesta |
 | [ADR-166](ADR-166-el-centro-de-avisos-de-mi-oe.md) | El centro de avisos de Mi OE | Aceptada |
 | [ADR-165](ADR-165-la-paleta-por-rol-con-alcance.md) | La paleta ⌘K por rol, con alcance | Aceptada |

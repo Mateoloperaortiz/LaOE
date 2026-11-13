@@ -523,6 +523,8 @@ export const textosCliente = {
   "T-4906": "Quitar filtro: {filtro}",
   "T-4907": "Búsqueda: «{q}»",
   "T-4908": "Imprimir",
+  "T-4909":
+    "Modo de campo · Lo que se hace de pie: registrar asistencia, aprobar excusas y mirar la tabla de The Games.",
   "T-585": "Registrados · Pendientes · Rechazados · Anulados",
   "T-878": "Retirar solicitud",
   "T-880": "Cuéntanos por qué",

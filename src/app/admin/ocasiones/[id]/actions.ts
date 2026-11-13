@@ -118,14 +118,16 @@ export async function decideAction(formData: FormData): Promise<void> {
   const checkInId = idSchema.parse(formData.get("checkInId"));
   const decision = decisionSchema.parse(formData.get("decision"));
   const seenStatus = seenStatusSchema.parse(formData.get("seen"));
-  const { actor } = await operator(id, "consola");
+  // Desde el modo anfitrión (ADR-168 regla 3) la decisión vuelve allá; por defecto, a la consola.
+  const back = backSchema.parse(formText(formData, "back"));
+  const { actor } = await operator(id, back);
   if (!actor.isAdmin) {
     redirect("/app");
   }
   const reason = formText(formData, "reason") || null;
   await run(
     id,
-    "consola",
+    back,
     async () => {
       await decideCheckInAs(await actorContext(actor), {
         occasionId: id,

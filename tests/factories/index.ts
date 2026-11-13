@@ -989,11 +989,13 @@ export async function seedCard(
 export async function seedRequest(
   personId: string,
   termId: string,
-  kind: "LEAVE" | "RESIGNATION" | "TRANSFER" = "LEAVE",
+  kind: "LEAVE" | "RESIGNATION" | "TRANSFER" | "EXCUSE" = "LEAVE",
   overrides: Partial<{
     payload: Record<string, unknown>;
     status: "PENDING" | "APPROVED" | "REJECTED" | "WITHDRAWN";
     reason: string | null;
+    /** La ocasión de una excusa (ADR-060 regla 5). */
+    occasionId: string;
   }> = {},
 ): Promise<string> {
   const [row] = await db()
@@ -1002,6 +1004,7 @@ export async function seedRequest(
       personId,
       termId,
       kind,
+      occasionId: overrides.occasionId ?? null,
       payload: overrides.payload ?? { reason: "Motivo de prueba" },
       status: overrides.status ?? "PENDING",
       reason: overrides.reason ?? null,
