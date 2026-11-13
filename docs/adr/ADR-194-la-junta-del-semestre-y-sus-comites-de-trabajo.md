@@ -1,6 +1,6 @@
 # ADR-194: La junta del semestre y sus comités de trabajo
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Enmienda: [ADR-036](ADR-036-permanencia-fase-4.md) regla 6 (quién lidera el CCM) y [ADR-057](ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md) regla 2 (lo que quedó pendiente de confirmar)
 - Relacionadas: ADR-034, ADR-060, ADR-188
