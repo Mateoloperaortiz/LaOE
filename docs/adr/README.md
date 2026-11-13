@@ -13,7 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-193](ADR-193-la-presidencia-suple-a-la-vp-en-el-inventario.md) | La Presidencia suple a la VP en el inventario | Propuesta |
+| [ADR-193](ADR-193-la-presidencia-suple-a-la-vp-en-el-inventario.md) | La Presidencia suple a la VP en el inventario | Aceptada |
 | [ADR-192](ADR-192-revision-temporal-de-rama-en-staging.md) | Revisión temporal de una rama funcional en staging | Aceptada (era la ADR-153 de la rama del inventario) |
 | [ADR-191](ADR-191-el-inventario-entra-al-rediseno.md) | El inventario entra al rediseño | Aceptada |
 | [ADR-190](ADR-190-la-paleta-por-rol-con-alcance.md) | La paleta ⌘K por rol, con alcance | Aceptada |

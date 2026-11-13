@@ -1,6 +1,6 @@
 # ADR-193: La Presidencia suple a la VP en el inventario
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Enmienda: [ADR-150](ADR-150-inventario-reservas-y-operacion-logistica.md) regla 2 (quién administra el inventario)
 - Relacionadas: ADR-058, ADR-060, ADR-157, ADR-191
