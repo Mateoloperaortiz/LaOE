@@ -114,7 +114,7 @@ for (const width of [360, 390, 768, 1440])
       expect(
         await page.locator(".member-topbar").evaluate((el) => el.getBoundingClientRect().height),
       ).toBeLessThanOrEqual(80);
-      const week = page.getByRole("heading", { name: t("T-062"), exact: true });
+      const week = page.getByRole("heading", { name: tList("T-4890")[0], exact: true });
       expect((await week.boundingBox())?.y).toBeLessThan(300);
       await page.screenshot({ path: testInfo.outputPath(`inicio-${width}-${theme}.png`) });
       // «Más» se fue (ADR-160 regla 1): lo suyo vive en «Yo», que queda activa en sus destinos.

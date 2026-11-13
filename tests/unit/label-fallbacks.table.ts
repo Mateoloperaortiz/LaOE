@@ -66,6 +66,7 @@ export const FALLBACKS_BY_FILE: Record<
   "src/app/app/gh-points/retos/[id]/page.tsx": [2, 0, 0, 0],
   "src/app/app/gh-points/retos/page.tsx": [1, 0, 0, 0],
   "src/app/app/normativa/page.tsx": [1, 0, 0, 0],
+  "src/app/app/page.tsx": [0, 0, 0, 1],
   "src/app/app/solicitudes/page.tsx": [1, 0, 0, 0],
   "src/modules/comms/admin.ts": [7, 0, 0, 0],
   "src/modules/competition/domain/play.ts": [1, 0, 0, 0],

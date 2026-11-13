@@ -101,3 +101,16 @@ export async function saveAvailabilityAs(actor: Actor, input: unknown) {
     return saved;
   });
 }
+
+/**
+ * Si la persona ya marcó su disponibilidad de la semana en el término: «Hoy» la pide en «Te toca»
+ * mientras falte (ADR-160 regla 2).
+ */
+export async function hasWeeklyAvailability(personId: string, termId: string): Promise<boolean> {
+  const [row] = await getDb()
+    .select({ personId: weeklyAvailability.personId })
+    .from(weeklyAvailability)
+    .where(and(eq(weeklyAvailability.personId, personId), eq(weeklyAvailability.termId, termId)))
+    .limit(1);
+  return Boolean(row);
+}

@@ -12,6 +12,7 @@
   line-height: var(--text-pantalla--line-height);
   font-weight: 600;
   letter-spacing: -0.01em;
+  text-transform: none;
   text-wrap: pretty;
 }
 .member-shell :is(h2, h3) {
@@ -281,29 +282,6 @@
   font-size: 1rem;
   color: var(--titulo);
 }
-.member-home-priority {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
-  gap: 1.5rem;
-}
-.member-carnet-shortcut {
-  position: relative;
-  overflow: hidden;
-  align-self: start;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border-radius: 1.25rem;
-  background: var(--color-oe-navy);
-  color: var(--color-oe-paper);
-}
-.member-carnet-shortcut h2 {
-  color: inherit;
-}
-.member-carnet-shortcut .boton-calido {
-  align-self: start;
-}
 .member-section-heading {
   display: flex;
   align-items: center;
@@ -478,17 +456,8 @@
   .member-content {
     padding: 1.5rem 1rem calc(6rem + env(safe-area-inset-bottom));
   }
-  .member-home-priority {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .member-carnet-shortcut {
-    padding: 1rem 1.25rem;
-  }
 }
 @media (max-width: 639px) {
-  .member-shell h1 {
-    font-size: 2rem;
-  }
   .member-shell .cartel {
     padding: 1.25rem;
   }

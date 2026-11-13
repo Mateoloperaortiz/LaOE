@@ -3330,3 +3330,14 @@ La barra de Mi OE y las pantallas «Yo» y «Asistencia», que se construyen en 
 | T-4888 | Avisos: sin avisos (título · explicación) | No tienes avisos · Cuando la OE te mande algo por push o por correo, aquí lo vuelves a leer. | MATEO | Propuesta |
 | T-4889 | Hoy: la campana de avisos (sin avisos nuevos · uno · varios) | Avisos · Avisos: {n} sin leer · Avisos: {n} sin leer | MATEO | Propuesta |
 
+### «Hoy» por urgencia (ADR-160 regla 2)
+
+El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no aparece. Los demás títulos ya existían: Tu permanencia (T-110), Cartelera (T-301) y Tus comités (T-375).
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4890 | Hoy: títulos nuevos de los bloques, en orden | Lo que sigue · Te toca · Juegos y retos | MATEO | Propuesta |
+| T-4891 | Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud) | Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión | MATEO | Propuesta |
+| T-4892 | Hoy, «Te toca»: hasta cuándo se puede | Hasta el {fecha} | MATEO | Propuesta |
+| T-4893 | Hoy, «Juegos y retos»: enlace a la biblioteca de juegos | Jugar hoy | MATEO | Propuesta |
+

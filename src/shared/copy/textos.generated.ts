@@ -14149,6 +14149,31 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-4890": {
+    where: "Hoy: títulos nuevos de los bloques, en orden",
+    text: "Lo que sigue · Te toca · Juegos y retos",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4891": {
+    where:
+      "Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud)",
+    text: "Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4892": {
+    where: "Hoy, «Te toca»: hasta cuándo se puede",
+    text: "Hasta el {fecha}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4893": {
+    where: "Hoy, «Juegos y retos»: enlace a la biblioteca de juegos",
+    text: "Jugar hoy",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-490": {
     where: "Importación: columnas obligatorias que faltan en el archivo",
     text: "Faltan columnas obligatorias: {lista}",

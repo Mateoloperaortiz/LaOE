@@ -5,6 +5,7 @@
 import { DESK_DATE_KINDS, DESK_SECTIONS } from "@/app/admin/_kit/desk-items";
 import { areaLabel } from "@/app/admin/comites/[slug]/_ui/Areas";
 import { END_REASONS, TABS, TIMELINE_FILTERS } from "@/app/admin/personas/[id]/_ui/etiquetas";
+import { TODO_KINDS } from "@/app/app/_ui/today-items";
 import {
   campaignStatusLabel,
   channelLabel,
@@ -917,6 +918,12 @@ export const PAIRS: readonly LabelPair[] = [
     order: "INBOX_FILTER_KEYS",
     positions: { cartelera: 0, recordatorios: 1, juegos: 2, puntos: 3, tramites: 4, campanas: 5 },
     canonical: INBOX_FILTER_KEYS,
+  },
+  {
+    code: "T-4891",
+    order: "TODO_KINDS",
+    positions: { evidence: 0, availability: 1, call: 2, request: 3 },
+    canonical: TODO_KINDS,
   },
 ];
 

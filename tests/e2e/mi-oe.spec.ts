@@ -16,7 +16,7 @@ test("el inicio saluda, muestra tus comités y el admin lo devuelve a Mi OE", as
     t("T-060", { "nombre preferido": "Miembro" }),
   );
   await expect(page.getByRole("heading", { name: t("T-375") })).toBeVisible();
-  await expect(page.getByRole("heading", { name: t("T-062") })).toBeVisible();
+  await expect(page.getByRole("heading", { name: tList("T-4890")[0], exact: true })).toBeVisible();
   await sinViolaciones(page);
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/app$/);
