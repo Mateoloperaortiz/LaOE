@@ -3313,3 +3313,9 @@ La barra de Mi OE y las pantallas «Yo» y «Asistencia», que se construyen en 
 | T-4881 | Asistencia: la foto del QR no abre | No pudimos abrir esa foto. Toma otra o escanea el QR con la cámara. | MATEO | Propuesta |
 | T-4882 | Asistencia: la lectura falló | No pudimos leer ese QR. Vuelve a intentarlo. | MATEO | Propuesta |
 
+### La paleta ⌘K por rol (ADR-165)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4883 | Paleta ⌘K: tipo de un resultado que es una pantalla de la barra lateral | Pantalla | MATEO | Propuesta |
+

@@ -2,10 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/admin/buscar/route";
 import { tList } from "@/shared/copy";
 
-// La paleta ⌘K es solo de ADMIN (ADR-072): otro rol no busca personas ni confirma si un correo existe.
+// La paleta ⌘K por rol (ADR-165, que enmienda ADR-072 regla 6): ADMIN busca en toda la casa; la
+// dirección de un comité, solo a la gente de sus comités, por nombre y sin correo; los demás roles no
+// buscan en el servidor. Nadie que no sea ADMIN confirma si un correo existe.
 
 const identity = vi.hoisted(() => ({ getActor: vi.fn() }));
-const people = vi.hoisted(() => ({ searchPeople: vi.fn(), searchCommittees: vi.fn() }));
+const authz = vi.hoisted(() => ({ adminAreaRoles: vi.fn() }));
+const terms = vi.hoisted(() => ({ getCurrentTerm: vi.fn() }));
+const people = vi.hoisted(() => ({
+  searchPeople: vi.fn(),
+  searchCommittees: vi.fn(),
+  searchCommitteeMembers: vi.fn(),
+}));
 const participation = vi.hoisted(() => ({ searchOccasions: vi.fn() }));
 const crm = vi.hoisted(() => ({
   searchOrganizations: vi.fn(),
@@ -14,7 +22,15 @@ const crm = vi.hoisted(() => ({
 
 vi.mock("@/env", () => ({ getEnv: () => ({ APP_TIMEZONE: "America/Bogota" }) }));
 vi.mock("@/modules/identity", () => identity);
-vi.mock("@/modules/people", () => people);
+vi.mock("@/app/_authz/admin-area", () => authz);
+vi.mock("@/modules/terms", () => terms);
+// Qué área ve cada capacidad es la regla de verdad: la ruta la usa para recortar el alcance.
+vi.mock("@/modules/people", async () => {
+  const capabilities = await vi.importActual<typeof import("@/modules/people/domain/capabilities")>(
+    "@/modules/people/domain/capabilities",
+  );
+  return { ...people, areasFor: capabilities.areasFor };
+});
 vi.mock("@/modules/participation", () => participation);
 vi.mock("@/modules/crm", () => crm);
 
@@ -24,13 +40,27 @@ function search(q: string): Request {
 
 function expectNoSearch(): void {
   expect(people.searchPeople).not.toHaveBeenCalled();
+  expect(people.searchCommitteeMembers).not.toHaveBeenCalled();
   expect(people.searchCommittees).not.toHaveBeenCalled();
   expect(participation.searchOccasions).not.toHaveBeenCalled();
   expect(crm.searchOrganizations).not.toHaveBeenCalled();
 }
 
+const committee = (id: string, slug: string, name: string, capabilities: string[]) => ({
+  committee: { id, slug, name },
+  capabilities,
+  isLeader: false,
+});
+
 beforeEach(() => {
   vi.resetAllMocks();
+  authz.adminAreaRoles.mockImplementation(async (actor: { isAdmin: boolean }) => ({
+    isAdmin: actor.isAdmin,
+    isBoard: false,
+    any: actor.isAdmin,
+    committees: [],
+  }));
+  terms.getCurrentTerm.mockResolvedValue({ id: "terminosintetico" });
   people.searchPeople.mockResolvedValue([
     {
       id: "personasintetica",
@@ -51,19 +81,83 @@ describe("buscador de la paleta ⌘K", () => {
     expectNoSearch();
   });
 
-  it("la dirección de un comité y el líder técnico reciben 403 sin buscar", async () => {
-    for (const actor of [
-      { isAdmin: false, permissions: [] },
+  it("sin ningún rol de la Operación responde 403 sin buscar", async () => {
+    identity.getActor.mockResolvedValue({ isAdmin: false, permissions: [] });
+    const response = await GET(search("persona@oe-sintetica.example"));
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ results: [] });
+    expectNoSearch();
+  });
+
+  it("la dirección busca solo a la gente de sus comités con «Personas», por nombre y sin correo", async () => {
+    identity.getActor.mockResolvedValue({ isAdmin: false, permissions: [] });
+    authz.adminAreaRoles.mockResolvedValue({
+      isAdmin: false,
+      isBoard: false,
+      any: true,
+      committees: [
+        committee("comitea3", "a3", "A3", ["ROSTER"]),
+        committee("comitepixel", "pixel", "PIXEL", ["OCCASIONS"]),
+      ],
+    });
+    people.searchCommitteeMembers.mockResolvedValue([
+      { id: "personasintetica", fullName: "Persona Sintética", committeeId: "comitea3" },
+    ]);
+    const response = await GET(search("persona"));
+    expect(response.status).toBe(200);
+    expect(people.searchCommitteeMembers).toHaveBeenCalledWith(
+      "persona",
+      ["comitea3"],
+      "terminosintetico",
+    );
+    expect(people.searchPeople).not.toHaveBeenCalled();
+    expect(participation.searchOccasions).not.toHaveBeenCalled();
+    expect(crm.searchOrganizations).not.toHaveBeenCalled();
+    const body = await response.json();
+    expect(body.results).toEqual([
       {
-        isAdmin: false,
-        permissions: [{ code: "COMMITTEE_LEADER", committeeId: "comitesintetico" }],
+        type: "person",
+        id: "personasintetica-comitea3",
+        title: "Persona Sintética",
+        subtitle: "A3",
+        href: "/admin/comites/a3?area=personas#persona-personasintetica",
       },
-    ]) {
-      identity.getActor.mockResolvedValue(actor);
-      const response = await GET(search("persona@oe-sintetica.example"));
-      expect(response.status).toBe(403);
-      expect(await response.json()).toEqual({ results: [] });
-    }
+    ]);
+    expect(JSON.stringify(body)).not.toContain("@");
+  });
+
+  it("sus comités salen por nombre, sin mirar acentos ni mayúsculas", async () => {
+    identity.getActor.mockResolvedValue({ isAdmin: false, permissions: [] });
+    authz.adminAreaRoles.mockResolvedValue({
+      isAdmin: false,
+      isBoard: false,
+      any: true,
+      committees: [committee("comitepixel", "pixel", "PÍXEL", ["OCCASIONS"])],
+    });
+    const response = await GET(search("pixel"));
+    expect((await response.json()).results).toEqual([
+      {
+        type: "committee",
+        id: "comitepixel",
+        title: "PÍXEL",
+        subtitle: "pixel",
+        href: "/admin/comites/pixel",
+      },
+    ]);
+    expect(people.searchCommitteeMembers).not.toHaveBeenCalled();
+  });
+
+  it("la junta, sin comités, no busca nada en el servidor", async () => {
+    identity.getActor.mockResolvedValue({ isAdmin: false, permissions: [{ code: "BOARD" }] });
+    authz.adminAreaRoles.mockResolvedValue({
+      isAdmin: false,
+      isBoard: true,
+      any: true,
+      committees: [],
+    });
+    const response = await GET(search("persona@oe-sintetica.example"));
+    expect(response.status).toBe(200);
+    expect((await response.json()).results).toEqual([]);
     expectNoSearch();
   });
 

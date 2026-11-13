@@ -263,6 +263,48 @@ export async function searchEligibleMembers(
   return rows.map((row) => ({ ...row, fullName: row.fullName?.trim() ?? "" }));
 }
 
+export interface CommitteeMemberMatch {
+  id: string;
+  fullName: string;
+  committeeId: string;
+}
+
+/**
+ * La gente de unos comités en un término, por nombre y sin correo: lo que busca la dirección en la
+ * paleta ⌘K (ADR-165 regla 4). Solo mira los comités que recibe, que el llamador ya recortó a su
+ * alcance (ADR-072 regla 1), y a quien sigue en el comité; quien está en dos sale una vez por cada uno.
+ */
+export async function searchCommitteeMembers(
+  q: string,
+  committeeIds: string[],
+  termId: string,
+  limit = 8,
+): Promise<CommitteeMemberMatch[]> {
+  if (committeeIds.length === 0) {
+    return [];
+  }
+  const rows = await getDb()
+    .select({
+      id: person.id,
+      fullName: person.fullName,
+      committeeId: committeeMembership.committeeId,
+    })
+    .from(committeeMembership)
+    .innerJoin(person, eq(person.id, committeeMembership.personId))
+    .where(
+      and(
+        inArray(committeeMembership.committeeId, committeeIds),
+        eq(committeeMembership.termId, termId),
+        isNull(committeeMembership.leftAt),
+        isNull(person.anonymizedAt),
+        or(sql`similarity(${person.fullName}, ${q}) > 0.2`, ilike(person.fullName, `%${q}%`)),
+      ),
+    )
+    .orderBy(sql`similarity(${person.fullName}, ${q}) desc`, asc(person.fullName))
+    .limit(limit);
+  return rows.map((row) => ({ ...row, fullName: row.fullName?.trim() ?? "" }));
+}
+
 export const rosterChangeSchema = z.object({
   personId: z.string().trim().min(1),
   roles: z.array(roleAssignmentInputSchema).default([]),

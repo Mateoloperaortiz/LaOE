@@ -75,10 +75,11 @@ test("Gestión Humana ve solo Personas, agrega un miembro y pide un retiro a GH"
   await expect(page.getByText(tList("T-651")[0])).toBeVisible();
   const nav = page.locator(".admin-sidebar nav");
   await expect(nav.getByRole("link")).toHaveCount(3);
-  await expect(page.getByRole("button", { name: t("T-299") })).toHaveCount(0);
-  // La paleta tampoco responde por su ruta: es solo de ADMIN (ADR-072).
+  // La paleta es de todos los roles, con su alcance (ADR-165): la dirección no ve correos.
+  await expect(page.getByRole("button", { name: t("T-299") })).toHaveCount(1);
   const busqueda = await page.request.get("/api/admin/buscar?q=Licencia");
-  expect(busqueda.status()).toBe(403);
+  expect(busqueda.status()).toBe(200);
+  expect(await busqueda.text()).not.toContain("@");
   const tabs = page.getByRole("navigation", { name: t("T-1502") });
   await expect(tabs.getByRole("link", { name: personas })).toBeVisible();
   await expect(tabs.getByRole("link", { name: actividades })).toHaveCount(0);

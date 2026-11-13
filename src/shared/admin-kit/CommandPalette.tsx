@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { t } from "@/shared/copy/client";
+import { stripAccents } from "@/shared/lib/accents";
 import { preservePageScroll } from "@/shared/lib/navigation-scroll";
 import { AppLink } from "@/shared/ui/AppLink";
 
@@ -16,6 +17,11 @@ export interface PaletteResult {
 
 type Props = {
   endpoint: string;
+  /**
+   * Los destinos de la barra lateral del actor (ADR-165 regla 2): se buscan aquí, por su etiqueta,
+   * sin preguntarle a la casa, y salen antes que lo que responde el servidor.
+   */
+  destinations?: PaletteResult[];
   labels: {
     open: string;
     placeholder: string;
@@ -25,8 +31,22 @@ type Props = {
   };
 };
 
-// Paleta ⌘K (ADR-017): busca en el servidor con pg_trgm y navega con el teclado.
-export function CommandPalette({ endpoint, labels }: Props) {
+function folded(value: string): string {
+  return stripAccents(value).toLowerCase();
+}
+
+/** Los destinos cuya etiqueta contiene lo escrito, sin mirar acentos ni mayúsculas. */
+export function matchDestinations(destinations: PaletteResult[], query: string): PaletteResult[] {
+  const wanted = folded(query.trim());
+  if (wanted.length < 2) {
+    return [];
+  }
+  return destinations.filter((item) => folded(item.title).includes(wanted)).slice(0, 6);
+}
+
+// Paleta ⌘K (ADR-017, con el alcance de ADR-165): busca los destinos del actor en el navegador y lo
+// demás en el servidor con pg_trgm, y navega con el teclado.
+export function CommandPalette({ endpoint, labels, destinations = [] }: Props) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const base = useId();
@@ -36,6 +56,8 @@ export function CommandPalette({ endpoint, labels }: Props) {
   const [results, setResults] = useState<PaletteResult[]>([]);
   const [active, setActive] = useState(0);
   const [searching, setSearching] = useState(false);
+  const local = useMemo(() => matchDestinations(destinations, query), [destinations, query]);
+  const shown = [...local, ...results];
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -88,12 +110,12 @@ export function CommandPalette({ endpoint, labels }: Props) {
   function onInputKey(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setActive((current) => Math.min(current + 1, Math.max(results.length - 1, 0)));
+      setActive((current) => Math.min(current + 1, Math.max(shown.length - 1, 0)));
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
       setActive((current) => Math.max(current - 1, 0));
     } else if (event.key === "Enter") {
-      const target = results[active];
+      const target = shown[active];
       if (target) {
         event.preventDefault();
         dialog.current?.close();
@@ -123,7 +145,7 @@ export function CommandPalette({ endpoint, labels }: Props) {
       <dialog
         ref={dialog}
         aria-label={labels.open}
-        className="m-auto w-[min(40rem,92vw)] rounded-[var(--radius-cartel)] border border-borde bg-fondo p-0 text-tinta shadow-2xl backdrop:bg-oe-navy/60"
+        className="m-auto w-[min(40rem,92vw)] rounded-tarjeta border border-superficie-borde bg-superficie p-0 text-tinta sombra-flota backdrop:bg-oe-navy/40"
         onClose={() => setQuery("")}
       >
         <div className="flex flex-col gap-3 p-4">
@@ -137,7 +159,7 @@ export function CommandPalette({ endpoint, labels }: Props) {
               aria-label={labels.placeholder}
               aria-describedby={`${base}-status`}
               autoFocus
-              className="min-w-0 flex-1 rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-lg focus:border-titulo focus:outline-none"
+              className="campo min-w-0 flex-1 px-3 py-2 text-cuerpo"
             />
             <button
               type="button"
@@ -154,7 +176,7 @@ export function CommandPalette({ endpoint, labels }: Props) {
                 ? t("T-1407")
                 : query.trim().length < 2
                   ? t("T-1408")
-                  : (results[active]?.title ?? labels.empty)}
+                  : (shown[active]?.title ?? labels.empty)}
           </output>
           {failed ? (
             <button type="button" className="boton-secundario" onClick={() => setRetry(retry + 1)}>
@@ -165,11 +187,11 @@ export function CommandPalette({ endpoint, labels }: Props) {
             className="flex max-h-80 list-none flex-col gap-1 overflow-y-auto p-0"
             aria-busy={searching}
           >
-            {results.map((result, index) => (
+            {shown.map((result, index) => (
               <li key={`${result.type}-${result.id}`}>
                 <AppLink
                   href={result.href}
-                  className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2 no-underline ${index === active ? "bg-fondo-suave" : ""}`}
+                  className={`flex items-center justify-between gap-3 rounded-control px-3 py-2 no-underline ${index === active ? "bg-relleno" : ""}`}
                   onNavigate={() => dialog.current?.close()}
                   onMouseEnter={() => setActive(index)}
                   aria-current={index === active ? "true" : undefined}
@@ -180,7 +202,7 @@ export function CommandPalette({ endpoint, labels }: Props) {
                       <span className="text-xs text-tinta-suave">{result.subtitle}</span>
                     ) : null}
                   </span>
-                  <span className="eyebrow text-xs text-tinta-suave">
+                  <span className="etiqueta-corta text-tinta-secundaria">
                     {labels.types[result.type] ?? result.type}
                   </span>
                 </AppLink>

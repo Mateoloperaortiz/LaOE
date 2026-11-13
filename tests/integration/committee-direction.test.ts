@@ -12,6 +12,7 @@ import {
   listMyCommitteeCapabilities,
   requestCommitteeRemovalAs,
   requestDeletionAs,
+  searchCommitteeMembers,
   searchEligibleMembers,
   setCommitteeMemberships,
   setMemberRolesAs,
@@ -137,6 +138,20 @@ describe("capacidades por cargo", () => {
     expect(
       (await searchEligibleMembers(f.pixel, f.termId, "Gema")).map((r) => r.committeeCount),
     ).toEqual([1]);
+  });
+
+  it("la paleta de la dirección busca solo en los comités que recibe, por nombre y sin correo", async () => {
+    const f = await fixture();
+    const inA3 = await searchCommitteeMembers("Mila", [f.a3], f.termId);
+    expect(inA3).toEqual([{ id: f.member, fullName: "Mila Miembro", committeeId: f.a3 }]);
+    expect(inA3[0]).not.toHaveProperty("email");
+    expect(await searchCommitteeMembers("Nico", [f.a3, f.pixel], f.termId)).toEqual([]);
+    expect(
+      (await searchCommitteeMembers("Mila", [f.a3, f.pixel], f.termId))
+        .map((row) => row.committeeId)
+        .sort(),
+    ).toEqual([f.a3, f.pixel].sort());
+    expect(await searchCommitteeMembers("Mila", [], f.termId)).toEqual([]);
   });
 });
 

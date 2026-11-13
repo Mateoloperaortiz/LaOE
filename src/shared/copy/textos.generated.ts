@@ -14101,6 +14101,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-4883": {
+    where: "Paleta ⌘K: tipo de un resultado que es una pantalla de la barra lateral",
+    text: "Pantalla",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-489": {
     where: "Importación: aviso del modo actualización",
     text: "El archivo trae solo algunas columnas: se actualizan esas columnas en las personas que ya existen.",

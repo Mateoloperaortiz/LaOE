@@ -244,7 +244,11 @@ export function Personas({
               {members.map((member) => {
                 const isSelf = member.personId === actorPersonId;
                 return (
-                  <tr key={member.personId} className="border-t border-borde align-top">
+                  <tr
+                    key={member.personId}
+                    id={`persona-${member.personId}`}
+                    className="border-t border-borde align-top"
+                  >
                     <td data-label={columnas[0]} className="px-3 py-2 font-semibold">
                       {member.fullName}
                     </td>

@@ -65,6 +65,7 @@ export {
   type RosterActorContext,
   removalRequestSchema,
   rosterChangeSchema,
+  searchCommitteeMembers,
   searchEligibleMembers,
 } from "./domain/committee-direction";
 export { committeeRolesLabel, type RoleView } from "./domain/committee-direction-pure";

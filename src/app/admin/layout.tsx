@@ -75,6 +75,20 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           ),
     }))
     .filter((group) => group.items.length > 0);
+  // La paleta busca los destinos del actor en el navegador, la Mesa incluida (ADR-165 regla 2).
+  const destinations = [
+    ...(actor.isAdmin ? [{ href: "/admin", label: t("T-1401"), space: null }] : []),
+    { href: "/admin/mesa", label: t("T-4864"), space: null },
+    ...groups.flatMap((group) =>
+      group.items.map((item) => ({ href: item.href, label: item.label, space: group.label })),
+    ),
+  ].map((item) => ({
+    type: "destination",
+    id: item.href,
+    title: item.label,
+    subtitle: item.space,
+    href: item.href,
+  }));
   return (
     <AdminShell
       groups={groups}
@@ -85,23 +99,23 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         </Suspense>
       }
       search={
-        actor.isAdmin ? (
-          <CommandPalette
-            endpoint="/api/admin/buscar"
-            labels={{
-              open: t("T-299"),
-              placeholder: t("T-264"),
-              empty: t("T-256"),
-              close: t("T-291"),
-              types: {
-                person: persona,
-                committee: comite,
-                occasion: ocasion,
-                organization: organizacion,
-              },
-            }}
-          />
-        ) : null
+        <CommandPalette
+          endpoint="/api/admin/buscar"
+          destinations={destinations}
+          labels={{
+            open: t("T-299"),
+            placeholder: t("T-264"),
+            empty: t("T-256"),
+            close: t("T-291"),
+            types: {
+              destination: t("T-4883"),
+              person: persona,
+              committee: comite,
+              occasion: ocasion,
+              organization: organizacion,
+            },
+          }}
+        />
       }
       theme={<ThemeToggle etiquetas={[temaOscuro, temaClaro]} />}
       account={
