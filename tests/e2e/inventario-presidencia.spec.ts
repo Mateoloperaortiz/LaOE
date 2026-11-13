@@ -79,8 +79,8 @@ test("la Presidencia administra el inventario mientras no hay VP activa", async 
   await expect(page.getByRole("main").getByText(suple ?? "", { exact: true })).toBeVisible();
   await sinViolaciones(page);
 
-  // Llega una VP activa: el inventario vuelve a ella y la Presidencia ya no lo administra. Como el
-  // inventario era su única razón para estar en la Operación, la Operación la devuelve a Mi OE.
+  // Llega una VP activa: el inventario vuelve a ella y la Presidencia ya no lo administra. Sigue en
+  // la Operación por sus avales (ADR-195), así que el inventario la manda a su vista de Mi OE.
   const vp = await seedPerson(`e2e-vp-presidencia-${marca}@eafit.edu.co`, {
     firstName: "Vicepresidencia",
     lastName: `Sintética ${marca}`,
@@ -90,6 +90,6 @@ test("la Presidencia administra el inventario mientras no hay VP activa", async 
   limpiar.appointments.push(await seedAppointment(vp, current.id, "VP_ADMIN"));
   await closeDb();
   await page.goto("/admin/inventario");
-  await expect(page).toHaveURL(/\/app$/);
+  await expect(page).toHaveURL(/\/app\/inventario$/);
   await expect(page.getByText(suple ?? "", { exact: true })).toHaveCount(0);
 });

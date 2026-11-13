@@ -3,7 +3,6 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { requireAdminContext } from "@/app/_lib/actor";
 import { formText } from "@/app/_lib/form";
 import {
@@ -11,7 +10,6 @@ import {
   approveBudgetSchema,
   budgetLinesInputSchema,
   closeBudgetAs,
-  decideEventApprovalAs,
   openBudgetAs,
   sanctionBudgetAs,
   sanctionBudgetSchema,
@@ -110,31 +108,4 @@ export async function sanctionAction(formData: FormData): Promise<void> {
     redirect(`${base(id)}?error=${encodeURIComponent("T-260")}`);
   }
   await run(id, () => sanctionBudgetAs(actor, id, parsed.data));
-}
-
-const decisionSchema = z.object({
-  approvalId: z.string().regex(ID),
-  decision: z.enum(["APPROVED", "REJECTED"]),
-  note: z.string().trim().max(500),
-});
-
-export async function decideApprovalAction(formData: FormData): Promise<void> {
-  const id = budgetId(formData);
-  const actor = await requireAdminContext(base(id));
-  const parsed = decisionSchema.safeParse({
-    approvalId: formText(formData, "approvalId"),
-    decision: formText(formData, "decision"),
-    note: formText(formData, "note"),
-  });
-  if (!parsed.success) {
-    redirect(`${base(id)}?error=${encodeURIComponent("T-260")}`);
-  }
-  await run(id, () =>
-    decideEventApprovalAs(
-      actor,
-      parsed.data.approvalId,
-      { decision: parsed.data.decision, note: parsed.data.note },
-      { budgetId: id },
-    ),
-  );
 }

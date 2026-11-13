@@ -21,7 +21,7 @@ import {
 } from "@/modules/finance/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { seedCommittee, seedMember } from "../factories";
+import { seedAppointment, seedCommittee, seedMember, seedTerm } from "../factories";
 import { holdTransaction, whileHeld } from "../helpers/locks";
 import { truncateAll } from "./db";
 
@@ -67,7 +67,12 @@ async function setup() {
     title: "Evento sintético",
     eventOn: "2026-11-20",
   });
-  await decideEventApprovalAs(admin, approvalId, { decision: "APPROVED" }, { budgetId: other.id });
+  // El aval lo decide la Presidencia por su cargo (ADR-195).
+  const presidencia = await seedMember("presidencia.movimientos@eafit.edu.co");
+  await seedAppointment(presidencia, await seedTerm(), "PRESIDENT");
+  await decideEventApprovalAs({ personId: presidencia, ip: null }, approvalId, {
+    decision: "APPROVED",
+  });
   await submitPrerequestAs(actor, { budgetId: other.id, month: "2026-09" }, { committeeId: pixel });
   return { a3, pixel, actor, own, other, approvalId };
 }

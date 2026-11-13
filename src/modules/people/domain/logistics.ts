@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
@@ -18,6 +18,7 @@ import {
   person,
 } from "../schema";
 import { addMacroeventDirector, removeAppointment } from "./appointments";
+import { seatAuthorityInTerm } from "./board-seats";
 import { liveCommitteesPayload } from "./committee-memberships";
 import { listLiveRolesByMembership, replaceRoles } from "./committee-role-assignments";
 import { assertNoInhabilities, leadershipRolesOf } from "./inhabilities";
@@ -57,40 +58,17 @@ export async function currentInventoryManagerRole(
   return inventoryManagerRoleInTerm(personId, current.id, exec);
 }
 
-/** Resuelve el rol en el término que la composición ya resolvió; no vuelve a buscar el actual. */
+/**
+ * Resuelve el rol en el término que la composición ya resolvió; no vuelve a buscar el actual. Es la
+ * regla de quién decide por la VP Administrativa (ADR-195 regla 2).
+ */
 export async function inventoryManagerRoleInTerm(
   personId: string,
   termId: string,
   exec: Executor = getDb(),
 ): Promise<InventoryManagerRole | null> {
-  if (await holdsOperatingAppointment(termId, "VP_ADMIN", exec, personId)) return "VP";
-  if (!(await holdsOperatingAppointment(termId, "PRESIDENT", exec, personId))) return null;
-  return (await holdsOperatingAppointment(termId, "VP_ADMIN", exec)) ? null : "PRESIDENCY";
-}
-
-/** Un nombramiento del término con membresía operativa: el de esa persona o, sin ella, el de alguien. */
-async function holdsOperatingAppointment(
-  termId: string,
-  kind: "VP_ADMIN" | "PRESIDENT",
-  exec: Executor,
-  personId?: string,
-): Promise<boolean> {
-  const [row] = await exec
-    .select({ id: appointment.id })
-    .from(appointment)
-    .innerJoin(membership, eq(membership.personId, appointment.personId))
-    .innerJoin(person, eq(person.id, appointment.personId))
-    .where(
-      and(
-        personId === undefined ? undefined : eq(appointment.personId, personId),
-        eq(appointment.termId, termId),
-        eq(appointment.kind, kind),
-        inArray(membership.status, [...OPERATING]),
-        isNull(person.anonymizedAt),
-      ),
-    )
-    .limit(1);
-  return row !== undefined;
+  const authority = await seatAuthorityInTerm(personId, "VP_ADMIN", termId, exec);
+  return authority === "HOLDER" ? "VP" : authority === "PRESIDENCY" ? "PRESIDENCY" : null;
 }
 
 /** Resuelve la asignación exacta: una baja y nueva designación nunca recuperan una concesión vieja. */

@@ -118,7 +118,7 @@ describe("regresiones de la revisión normativa", () => {
     expect(member).toMatchObject({ firstTermId: previous, leaveCondition: null, leaveUntil: null });
   });
 
-  it("la prueba bloquea reconocimientos, avales y horario preferencial; levantarla permite el beneficio", async () => {
+  it("la prueba bloquea reconocimientos y horario preferencial, no el aval de evento; levantarla permite el beneficio", async () => {
     const termId = await seedTerm();
     const personId = await seedMember("beneficio-sintetico@eafit.edu.co");
     const committeeId = await seedCommittee("sintetico");
@@ -138,12 +138,11 @@ describe("regresiones de la revisión normativa", () => {
       title: "",
     };
     await expect(grantRecognitionAs(SYSTEM_ACTOR, award)).rejects.toThrow(t("T-2331"));
-    await expect(
-      requestEventApprovalAs(
-        { personId, ip: null },
-        { committeeId, title: "Evento sintético", eventOn: "2099-11-20" },
-      ),
-    ).rejects.toThrow(t("T-2331"));
+    // El aval de evento es del comité, no un beneficio: en prueba se pide (ADR-195 regla 5).
+    await requestEventApprovalAs(
+      { personId, ip: null },
+      { committeeId, title: "Evento sintético", eventOn: "2099-11-20" },
+    );
     expect(await listPreferentialSchedule(termId)).toEqual([]);
     expect(await listRecognitionsFor(personId)).toEqual([]);
     await runCommand(SYSTEM_ACTOR, (ctx) =>
@@ -197,12 +196,10 @@ describe("regresiones de la revisión normativa", () => {
       expect(await listRecognitionsFor(personId)).toEqual([]);
     });
 
-    it("con la prueba guardada no pide un aval", async () => {
+    it("con la prueba guardada sí pide el aval de evento, que no es un beneficio (ADR-195)", async () => {
       const { personId, aval } = await onLeave("aval-guardada@eafit.edu.co", true);
 
-      await expect(requestEventApprovalAs({ personId, ip: null }, aval)).rejects.toThrow(
-        t("T-2331"),
-      );
+      await requestEventApprovalAs({ personId, ip: null }, aval);
     });
 
     it("con la prueba guardada no figura en el horario preferencial", async () => {

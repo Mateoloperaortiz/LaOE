@@ -11,7 +11,6 @@ import {
   changeMembershipStatus,
   changeMembershipStatusAs,
   endMembershipAs,
-  lockMembershipCycle,
   recordSanctionAs,
   requestDeletionAs,
   setProbationAs,
@@ -36,7 +35,6 @@ import {
   outcome,
   waitingForLock,
   waitingOn,
-  whileHeld,
 } from "../helpers/locks";
 import { truncateAll } from "./db";
 
@@ -117,21 +115,6 @@ const BENEFITS = [
           .select({ id: recognition.id })
           .from(recognition)
           .where(eq(recognition.personId, f.personId))
-      ).length,
-  },
-  {
-    benefit: "un aval",
-    request: (f: Scenario): Promise<unknown> =>
-      requestEventApprovalAs(
-        { personId: f.personId, ip: null },
-        { committeeId: f.committeeId, title: "Evento sintético", eventOn: "2099-11-20" },
-      ),
-    written: async (f: Scenario): Promise<number> =>
-      (
-        await db()
-          .select({ id: eventApproval.id })
-          .from(eventApproval)
-          .where(eq(eventApproval.requestedById, f.personId))
       ).length,
   },
 ];
@@ -301,12 +284,59 @@ describe("un beneficio pedido mientras cambia la condición de la persona", () =
       expect(await stateOf(f)).toEqual(leaves);
     });
   });
+});
 
-  // Conducta de hoy, sin elegir (DT-343 inciso c): sin semestre vigente el aval no pregunta por los
-  // beneficios, así que tampoco toma el consultivo, y una suspensión, que va por fechas y no por
-  // término (ADR-061 regla 2), no lo impide. Que haya días así es la decisión abierta 27, y qué mide
-  // el aval sin término roza la 72.
-  it("sin semestre vigente el aval de alguien suspendido se crea, sin esperar el consultivo (decisiones abiertas 27 y 72)", async () => {
+// El aval de evento ya no es un beneficio (ADR-195 regla 5): es del comité, así que la prueba no lo
+// impide, y lo impide una suspensión vigente, porque mientras dura la mesa asume las funciones de quien
+// está suspendido (Regl. art. 59.3). Toma el mismo consultivo del ciclo de membresía.
+describe("el aval de evento pedido mientras cambia la condición de la persona", () => {
+  beforeEach(truncateAll);
+  afterAll(() => closeDb());
+
+  const requestAval = (f: Scenario): Promise<unknown> =>
+    requestEventApprovalAs(
+      { personId: f.personId, ip: null },
+      { committeeId: f.committeeId, title: "Evento sintético", eventOn: "2099-11-20" },
+    );
+  const avales = async (f: Scenario): Promise<number> =>
+    (
+      await db()
+        .select({ id: eventApproval.id })
+        .from(eventApproval)
+        .where(eq(eventApproval.requestedById, f.personId))
+    ).length;
+
+  it("mientras le registran una suspensión, espera a que confirme y responde T-5089", async () => {
+    const f = await activeMember();
+
+    const results = await firstThenSecond(
+      await holdPersonRow(f.personId),
+      () => suspension(f),
+      () => requestAval(f),
+    );
+
+    expect(results.map(outcome)).toEqual(["ok", t("T-5089")]);
+    expect(await avales(f)).toBe(0);
+  });
+
+  it("mientras le fijan el periodo de prueba, el aval se crea: la prueba no lo impide", async () => {
+    const f = await activeMember();
+
+    const results = await firstThenSecond(
+      await holdPersonRow(f.personId),
+      () =>
+        setProbationAs(f.admin, f.personId, f.termId, {
+          probation: true,
+          reason: "Bajo desempeño el semestre pasado",
+        }),
+      () => requestAval(f),
+    );
+
+    expect(results.map(outcome)).toEqual(["ok", "ok"]);
+    expect(await avales(f)).toBe(1);
+  });
+
+  it("sin semestre vigente, la suspensión, que va por fechas, también lo impide", async () => {
     const previous = await seedTerm("2026-1");
     const withoutCurrentTerm = async (email: string) => {
       const personId = await seedPerson(email);
@@ -321,15 +351,8 @@ describe("un beneficio pedido mientras cambia la condición de la persona", () =
     };
     await suspension(f, previous);
     expect((await getCurrentTerm()) ?? null).toBeNull();
-    const endorsement = BENEFITS[1];
-    if (!endorsement) throw new Error("falta el aval");
 
-    const during = await whileHeld(
-      await holdTransaction((tx) => lockMembershipCycle(tx, f.personId)),
-      () => endorsement.request(f),
-    );
-
-    expect(during).toBe("ok");
-    expect(await endorsement.written(f)).toBe(1);
+    await expect(requestAval(f)).rejects.toThrow(t("T-5089"));
+    expect(await avales(f)).toBe(0);
   });
 });

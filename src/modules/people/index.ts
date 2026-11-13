@@ -22,7 +22,15 @@ export {
   requireEditionTerm,
 } from "./domain/appointments";
 export { listAvailabilityCommittees, listAvailabilityPeople } from "./domain/availability";
-export { assertBenefitsAvailable } from "./domain/benefits";
+export { assertBenefitsAvailable, assertNotSuspended } from "./domain/benefits";
+export {
+  BOARD_SEATS,
+  type BoardSeat,
+  currentSeatAuthority,
+  type SeatAuthority,
+  seatDeciders,
+  seatsDecidedBy,
+} from "./domain/board-seats";
 export {
   areasFor,
   COMMITTEE_AREA_KEYS,

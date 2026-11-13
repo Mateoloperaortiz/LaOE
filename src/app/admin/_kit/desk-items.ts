@@ -4,6 +4,7 @@
 /** Los grupos de la Mesa en el orden de T-5046. */
 export const DESK_SECTIONS = [
   "tasks",
+  "avales",
   "requests",
   "excuses",
   "reviews",

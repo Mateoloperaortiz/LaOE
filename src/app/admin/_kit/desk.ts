@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { listPendingExcusesForCommittee, listRequests, listTasks } from "@/modules/crm";
+import { listEventApprovals } from "@/modules/finance";
 import { listIncidents, listReservations } from "@/modules/inventory";
 import {
   listCommitteeViability,
@@ -32,6 +33,8 @@ import {
 // - Quien evalúa un grupo del término: cuántas evaluaciones le faltan.
 // - La VP administrativa: los préstamos vencidos y las novedades del inventario que siguen abiertas
 //   (ADR-191 reglas 3 y 8).
+// - Un cargo de la junta: los avales que le toca decidir (ADR-195 regla 3). Hoy, la Presidencia y los
+//   avales de evento.
 // La pintan la página de la Mesa y el contador de la barra superior en el mismo pedido; `cache` hace que
 // se lea una sola vez.
 
@@ -58,6 +61,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     deadLetters,
     incidents,
     loans,
+    eventAvales,
   ] = await Promise.all([
     roles.isAdmin
       ? listTasks({
@@ -87,6 +91,9 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     roles.isAdmin ? countDeadLetters() : 0,
     roles.managesInventory ? listIncidents(personId) : [],
     roles.managesInventory ? listReservations(personId) : [],
+    roles.boardSeats.some((item) => item.seat === "PRESIDENT")
+      ? listEventApprovals({ status: "PENDING" })
+      : [],
   ]);
   const overdueLoans = loans.filter((row) => row.status === "OUT" && row.overdue);
   const openIncidents = incidents.filter((row) => row.status === "OPEN");
@@ -151,6 +158,18 @@ export const loadDesk = cache(async (): Promise<Desk> => {
         date: taskDate(row.dueAt, now),
       })),
       "/admin/tareas?status=OPEN&assignee=mine",
+    ),
+    ...deskSection(
+      "avales",
+      eventAvales.length,
+      eventAvales.map((row) => ({
+        id: row.id,
+        title: row.title,
+        detail: row.committeeName,
+        href: `/admin/avales?aval=${row.id}`,
+        date: { kind: "arrived" as const, at: row.requestedAt },
+      })),
+      "/admin/avales",
     ),
     ...deskSection(
       "requests",

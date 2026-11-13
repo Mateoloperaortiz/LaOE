@@ -1,6 +1,8 @@
 import { and, count, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
+  BOARD_SEATS,
+  type BoardSeat,
   canParticipate,
   getMembershipRef,
   getPeopleByIds,
@@ -12,16 +14,6 @@ import { WORK_COMMITTEES } from "./groups";
 // La junta del semestre y sus comités de trabajo (ADR-194): los seis cargos de los Estatutos (art. 21),
 // en ese orden, con quién los tiene y el comité de trabajo que dirige cada uno (art. 43 par. 1). Es una
 // lectura: los cargos se nombran en la Persona 360 y los comités se siembran y se corrigen en Grupos.
-
-export const BOARD_SEATS = [
-  "PRESIDENT",
-  "VP_ADMIN",
-  "VP_FINANCE",
-  "VP_PUBLIC_RELATIONS",
-  "VP_COMMUNICATIONS",
-  "VP_GH",
-] as const;
-export type BoardSeatKind = (typeof BOARD_SEATS)[number];
 
 export const BOARD_COMMITTEE_STATES = ["OK", "MISSING", "NO_LEADER", "OTHER_LEADER"] as const;
 export type BoardCommitteeState = (typeof BOARD_COMMITTEE_STATES)[number];
@@ -42,14 +34,14 @@ export interface BoardSeatCommittee {
   state: BoardCommitteeState;
 }
 
-export interface BoardSeat {
-  kind: BoardSeatKind;
+export interface BoardSeatRow {
+  kind: BoardSeat;
   holders: BoardSeatHolder[];
   committees: BoardSeatCommittee[];
 }
 
 export interface BoardComposition {
-  seats: BoardSeat[];
+  seats: BoardSeatRow[];
   /** Cargos vacantes, titulares sin membresía activa y comités que no están al día. */
   issues: number;
 }
@@ -109,7 +101,7 @@ export async function boardComposition(termId: string): Promise<BoardComposition
   );
   const nameOf = (personId: string) => people.get(personId)?.fullName ?? "";
 
-  const seats = BOARD_SEATS.map((kind): BoardSeat => {
+  const seats = BOARD_SEATS.map((kind): BoardSeatRow => {
     const holders = appointments
       .filter((row) => row.kind === kind)
       .map((row) => ({

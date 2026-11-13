@@ -52,6 +52,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               { href: "/admin/personas/activacion", label: t("T-2128") },
             ]
           : []),
+        // Los avales que decide por su cargo en la junta (ADR-195 regla 3).
+        ...(roles.boardSeats.length > 0
+          ? [{ href: "/admin/avales", label: tList("T-5092")[0] ?? "" }]
+          : []),
         // El inventario (ADR-150 regla 2): solo la VP administrativa vigente.
         ...(roles.managesInventory ? [{ href: "/admin/inventario", label: t("T-4300") }] : []),
         ...(roles.operatesInventory

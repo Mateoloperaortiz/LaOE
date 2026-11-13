@@ -3317,7 +3317,7 @@ Lo que le toca al actor en la Operación, venga del módulo que venga. Solo lee:
 | --- | --- | --- | --- | --- |
 | T-5044 | Operación: la Mesa en la barra lateral y título de su pantalla | Mesa | MATEO | Propuesta |
 | T-5045 | Mesa: lo que dice debajo del título | Lo que te toca, venga del espacio que venga. Cada cosa se resuelve en su pantalla, como siempre. | MATEO | Propuesta |
-| T-5046 | Mesa: títulos de sus grupos, en orden | Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Inventario · Alertas | MATEO | Propuesta |
+| T-5046 | Mesa: títulos de sus grupos, en orden | Tus tareas · Avales por decidir · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Inventario · Alertas | MATEO | Propuesta |
 | T-5047 | Mesa: nombre del contador de la barra superior (uno · varios) | Mesa: {n} pendiente · Mesa: {n} pendientes | MATEO | Propuesta |
 | T-5048 | Mesa: sin nada pendiente (título · explicación) | Nada pendiente · Cuando algo te toque, aparece aquí. Todo al día, pues. | MATEO | Propuesta |
 | T-5049 | Mesa: enlace al pie de un grupo que trae más de lo que se ve | Ver los {n} | MATEO | Propuesta |
@@ -3746,3 +3746,13 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5080 | Junta del semestre: estado del comité | Al día · No está creado · Sin líder · Lo lidera otra persona | MATEO | Propuesta |
 | T-5081 | Junta del semestre: avisos | Vacante · No está activo · Hay una cosa por revisar · Hay {n} cosas por revisar · La junta y sus comités de trabajo están al día · Sembrar los que faltan | MATEO | Propuesta |
 | T-5082 | Menú de la Operación: la junta del semestre | Junta del semestre | MATEO | Propuesta |
+| T-5083 | Avales: pantalla (título · texto) | Avales · Lo que te toca decidir por tu cargo en la junta. Si rechazas un aval, di por qué: el comité lo ve. | MATEO | Propuesta |
+| T-5084 | Avales: tipos (en el orden del modelo) | Aval de evento | MATEO | Propuesta |
+| T-5085 | Avales: campos | Comité · Evento · Fecha del evento · Lo pidió · Estado · Pedido el · Motivo | MATEO | Propuesta |
+| T-5086 | Avales: decisión | Aprobar · Rechazar · Motivo (obligatorio para rechazar) · Lo decide la {cargo} · Decides como Presidencia mientras falte la {cargo} · No hay avales por decidir. · Decididos hace poco · Volver a los avales | MATEO | Propuesta |
+| T-5087 | Aval: rechazo sin motivo | Para rechazar un aval escribe el motivo: el comité lo va a leer. | MATEO | Propuesta |
+| T-5088 | Aval: lo decide otro cargo | Este aval lo decide la {cargo}. | MATEO | Propuesta |
+| T-5089 | Aval de evento: suspensión vigente | Con una suspensión vigente no se piden avales: mientras dure, tu mesa asume tus funciones (Reglamento, art. 59). | JUNTA | Propuesta |
+| T-5090 | Aviso: aval por decidir (título · texto) | Tienes un aval por decidir · {comité} pidió el aval de «{evento}» para el {fecha}. | MATEO | Propuesta |
+| T-5091 | Aviso: aval decidido (título · aprobado · rechazado) | Ya decidieron tu aval · La Presidencia aprobó el aval de «{evento}». · La Presidencia rechazó el aval de «{evento}»: {motivo} | MATEO | Propuesta |
+| T-5092 | Menú de la Operación: avales | Avales | MATEO | Propuesta |

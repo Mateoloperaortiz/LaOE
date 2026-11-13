@@ -87,3 +87,31 @@ export async function assertBenefitsAvailable(
     throw new DomainError(t("T-2331"), "personId");
   }
 }
+
+/**
+ * La puerta del aval de evento (ADR-195 regla 5). El aval es del comité, no un beneficio de quien lo
+ * pide, y el Reglamento (art. 74) no lo nombra: la prueba no lo impide. Lo impide una suspensión
+ * vigente, porque mientras dura la mesa asume las funciones de quien está suspendido (art. 59.3). Toma
+ * el mismo consultivo del ciclo de membresía que `assertBenefitsAvailable` (ADR-127 regla 4).
+ */
+export async function assertNotSuspended(
+  tx: Tx,
+  personId: string,
+  now = new Date(),
+): Promise<void> {
+  await lockMembershipCycle(tx, personId);
+  const day = todayKey(now);
+  const live = await tx
+    .select()
+    .from(sanction)
+    .where(
+      and(
+        eq(sanction.personId, personId),
+        isNull(sanction.revokedAt),
+        gte(sanction.expiresOn, day),
+      ),
+    );
+  if (suspendedUntil(live, day)) {
+    throw new DomainError(t("T-5089"), "personId");
+  }
+}

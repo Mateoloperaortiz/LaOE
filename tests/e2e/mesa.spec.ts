@@ -1,11 +1,12 @@
 import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
+import { DESK_SECTIONS } from "@/app/admin/_kit/desk-items";
 import { closeDb, getDb } from "@/db/client";
 import { task } from "@/modules/crm/schema";
 import { person } from "@/modules/people/schema";
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { seedPerson, seedTask, seedWorkGroup, seedWorkGroupMembership } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -15,7 +16,9 @@ import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
 // La Mesa (ADR-159 regla 3, tramo O2): junta lo que le toca a cada actor, lleva cada elemento a su
 // pantalla de origen y suma sus pendientes en el contador de la barra superior.
 
-const [tusTareas, , , , evaluacionesTitulo] = tList("T-5046");
+// Por valor y no por posición (ADR-126): la Mesa suma grupos, como «Avales por decidir» (ADR-195).
+const secciones = tLabels("T-5046", DESK_SECTIONS);
+const [tusTareas, evaluacionesTitulo] = [secciones.tasks, secciones.evaluations];
 const [, vencio] = tList("T-5051");
 const contador = /^Mesa: \d+ pendientes?$/;
 

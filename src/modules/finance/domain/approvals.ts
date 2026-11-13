@@ -2,18 +2,26 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
-import { assertBenefitsAvailable, listCommitteesByIds } from "@/modules/people";
+import { notificationRequested } from "@/domain-events/comms";
+import { eventOf } from "@/domain-events/define";
+import {
+  APPOINTMENT_KINDS,
+  assertNotSuspended,
+  currentSeatAuthority,
+  listCommitteesByIds,
+  seatDeciders,
+} from "@/modules/people";
 import { getCurrentTerm } from "@/modules/terms";
-import { t, tLabels } from "@/shared/copy";
-import { todayKey } from "@/shared/lib/dates";
+import { t, tLabels, tList } from "@/shared/copy";
+import { formatDate, todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { scopeId } from "@/shared/lib/scope-id";
 import { committeeBudget, eventApproval } from "../schema";
 import { APPROVAL_STATUSES } from "./budget-pure";
 
 // Aval de evento (Regl. art. 36 par. 1; Est. art. 23.11 y 36.3; ADR-060 regla 12): el comité lo pide
-// con la fecha del evento y la Presidencia (ADMIN) lo aprueba o rechaza antes de ejecutar, difundir o
-// comprar. Los gastos y traslados del evento se ligan al aval aprobado.
+// con la fecha del evento y la Presidencia lo aprueba o lo rechaza antes de ejecutar, difundir o
+// comprar. Los gastos y traslados del evento se ligan al aval aprobado. Desde ADR-195 lo decide la
+// Presidencia por su cargo, no quien tenga ADMIN, y a ella le llega el aviso.
 
 export type EventApprovalRow = typeof eventApproval.$inferSelect;
 
@@ -40,14 +48,17 @@ export interface EventApprovalListRow extends EventApprovalRow {
   committeeSlug: string;
 }
 
+const civilDate = (day: string) => formatDate(new Date(`${day}T12:00:00Z`));
+
 export async function requestEventApproval(
   ctx: CommandContext,
   raw: ApprovalRequestInput,
 ): Promise<{ id: string }> {
   const input = approvalRequestSchema.parse(raw);
   const term = await getCurrentTerm();
-  if (ctx.actor.personId && term) {
-    await assertBenefitsAvailable(ctx.tx, ctx.actor.personId, term.id);
+  // La prueba no impide pedirlo; una suspensión vigente sí (ADR-195 regla 5).
+  if (ctx.actor.personId) {
+    await assertNotSuspended(ctx.tx, ctx.actor.personId);
   }
   if (input.budgetId) {
     const [budget] = await ctx.tx
@@ -83,44 +94,57 @@ export async function requestEventApproval(
     entityId: row.id,
     after: values,
   });
+  // El aviso a quien decide (ADR-195 regla 3). Sin Presidencia activa nadie lo recibe y el aval espera.
+  const deciders = term ? await seatDeciders("PRESIDENT", term.id, ctx.tx) : [];
+  if (deciders.length > 0) {
+    const [committee] = await listCommitteesByIds([input.committeeId]);
+    const [title, body] = tList("T-5090");
+    await ctx.emit(
+      eventOf(notificationRequested, {
+        kind: "TRANSACTIONAL",
+        recipients: deciders.map((personId) => ({ personId })),
+        title: title ?? "",
+        body: (body ?? "")
+          .replace("{comité}", committee?.name ?? "")
+          .replace("{evento}", input.title)
+          .replace("{fecha}", civilDate(input.eventOn)),
+        url: `/admin/avales?aval=${row.id}`,
+        tag: `aval-${row.id}`,
+        dedupeKey: `aval-evento:${row.id}`,
+      }),
+    );
+  }
   return row;
 }
 
-/** Desde dónde se decide un aval: la página del presupuesto que lo muestra (ADR-122 regla 1). */
-export interface ApprovalScope {
-  budgetId: string;
-}
-
 /**
- * La Presidencia decide una sola vez; una decisión distinta exige un aval nuevo. El alcance es
- * obligatorio (ADR-122 regla 1): la página de un presupuesto muestra los avales de su comité, así que
- * sin presupuesto, con uno que no existe o con el de otro comité, el aval responde como uno que no
- * existe.
+ * La Presidencia decide, por su cargo y una sola vez; una decisión distinta exige un aval nuevo
+ * (ADR-195 reglas 1 y 2). Decide los avales de todos los comités, así que no hay alcance de página: el
+ * alcance es el cargo, que se comprueba aquí dentro (ADR-072). Rechazar exige el motivo, que el comité
+ * lee en el aviso y en su sección de finanzas.
  */
 export async function decideEventApproval(
   ctx: CommandContext,
   id: string,
   raw: ApprovalDecisionInput,
-  scope: ApprovalScope,
   now = new Date(),
 ): Promise<void> {
   const input = approvalDecisionSchema.parse(raw);
-  // Falla cerrado: un alcance que no trae presupuesto no decide nada.
-  const budgetId = scopeId(scope, "budgetId");
-  if (budgetId === null) {
-    throw new DomainError(t("T-032"));
+  const authority = ctx.actor.personId
+    ? await currentSeatAuthority(ctx.actor.personId, "PRESIDENT", ctx.tx, now)
+    : null;
+  if (authority !== "HOLDER") {
+    throw new DomainError(t("T-5088", { cargo: tLabels("T-444", APPOINTMENT_KINDS).PRESIDENT }));
   }
-  // Lectura sin candado: solo dice de qué comité es la página.
-  const [pageBudget] = await ctx.tx
-    .select({ committeeId: committeeBudget.committeeId })
-    .from(committeeBudget)
-    .where(eq(committeeBudget.id, budgetId));
+  if (input.decision === "REJECTED" && input.note.length < 2) {
+    throw new DomainError(t("T-5087"), "note");
+  }
   const [row] = await ctx.tx
     .select()
     .from(eventApproval)
     .where(eq(eventApproval.id, id))
     .for("update");
-  if (!row || !pageBudget || row.committeeId !== pageBudget.committeeId) {
+  if (!row) {
     throw new DomainError(t("T-032"));
   }
   if (row.status !== "PENDING") {
@@ -145,6 +169,23 @@ export async function decideEventApproval(
     before: { status: row.status },
     after: { status: input.decision, note: input.note },
   });
+  // El aviso a quien lo pidió, con el motivo si se rechazó (ADR-195 regla 3).
+  if (row.requestedById) {
+    const [committee] = await listCommitteesByIds([row.committeeId]);
+    const [title, approved, rejected] = tList("T-5091");
+    const body = input.decision === "APPROVED" ? approved : rejected;
+    await ctx.emit(
+      eventOf(notificationRequested, {
+        kind: "TRANSACTIONAL",
+        recipients: [{ personId: row.requestedById }],
+        title: title ?? "",
+        body: (body ?? "").replace("{evento}", row.title).replace("{motivo}", input.note),
+        url: committee ? `/admin/comites/${committee.slug}?area=finanzas` : "/admin",
+        tag: `aval-${row.id}`,
+        dedupeKey: `aval-evento-decidido:${row.id}`,
+      }),
+    );
+  }
 }
 
 export async function listEventApprovals(params: {

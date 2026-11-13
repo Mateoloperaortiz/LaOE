@@ -2,12 +2,14 @@ import { redirect } from "next/navigation";
 import { listMyCompetitionRoles, type MyCompetitionRole } from "@/modules/competition";
 import { type Actor, canOperate, hasPermission, requireActor } from "@/modules/identity";
 import {
+  type BoardSeat,
   COMMITTEE_CAPABILITIES,
   type CommitteeCapability,
   type CommitteeRef,
-  inventoryManagerRoleInTerm,
   listCommitteesByIds,
   listMyCommitteeCapabilities,
+  type SeatAuthority,
+  seatsDecidedBy,
 } from "@/modules/people";
 import { type GroupRef, hasCmlMembershipInTerm, listMyGroupRoles } from "@/modules/permanence";
 import { getCurrentTerm } from "@/modules/terms";
@@ -30,6 +32,11 @@ export interface AdminAreaRoles {
   isBoard: boolean;
   /** VP administrativa vigente: acceso limitado al inventario. */
   managesInventory: boolean;
+  /**
+   * Los cargos de la junta por los que decide avales (ADR-195 regla 2): como titular o como Presidencia
+   * que suple a una VP ausente.
+   */
+  boardSeats: Array<{ seat: BoardSeat; as: SeatAuthority }>;
   /** CML vigente (o la VP): entrega y recibe inventario desde el modo de campo (ADR-191 regla 6). */
   operatesInventory: boolean;
   /** Semestre ya consultado para componer navegación sin repetir la lectura. */
@@ -56,6 +63,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
       isAdmin: false,
       isBoard: false,
       managesInventory: false,
+      boardSeats: [],
       operatesInventory: false,
       currentTermId: null,
       ledCommittees: [],
@@ -69,11 +77,10 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
   const isAdmin = actor.isAdmin;
   const isBoard = hasPermission(actor, "BOARD");
   const term = await getCurrentTerm();
-  // La VP o, sin VP activa en el término, la Presidencia (ADR-193).
-  const managesInventory =
-    !onLeave &&
-    term !== null &&
-    (await inventoryManagerRoleInTerm(actor.personId, term.id)) !== null;
+  // Los cargos de la junta por los que decide (ADR-195): el inventario es de quien decide por la VP
+  // Administrativa, la titular o, sin VP activa en el término, la Presidencia (ADR-193).
+  const boardSeats = !onLeave && term !== null ? await seatsDecidedBy(actor.personId, term.id) : [];
+  const managesInventory = boardSeats.some((item) => item.seat === "VP_ADMIN");
   const operatesInventory =
     managesInventory ||
     (!onLeave && term !== null && (await hasCmlMembershipInTerm(actor.personId, term.id)));
@@ -118,6 +125,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
     isAdmin,
     isBoard,
     managesInventory,
+    boardSeats,
     operatesInventory,
     currentTermId: term?.id ?? null,
     ledCommittees,
@@ -128,6 +136,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
     any:
       isAdmin ||
       isBoard ||
+      boardSeats.length > 0 ||
       operatesInventory ||
       committees.length > 0 ||
       groups.leads.length > 0 ||

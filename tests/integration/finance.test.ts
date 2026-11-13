@@ -21,7 +21,7 @@ import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { formatMoney } from "@/shared/lib/money";
-import { seedCommittee, seedMember } from "../factories";
+import { seedAppointment, seedCommittee, seedMember, seedTerm } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
@@ -30,6 +30,15 @@ import { truncateAll } from "./db";
 // de abrir, rubros, presolicitud mensual, gastos y traslados con disponible, aval de evento y sanción.
 
 const admin = { personId: null, ip: null };
+
+/** La Presidencia decide los avales por su cargo (ADR-195); aquí la tiene en los dos semestres del año. */
+async function presidencia(): Promise<{ personId: string; ip: null }> {
+  const personId = await seedMember("presidencia.finanzas@eafit.edu.co");
+  for (const code of ["2026-1", "2026-2"]) {
+    await seedAppointment(personId, await seedTerm(code), "PRESIDENT");
+  }
+  return { personId, ip: null };
+}
 
 async function openBudgetFor(committeeId: string, year = 2026): Promise<string> {
   const { id } = await createBudgetAs(admin, { committeeId, year });
@@ -169,7 +178,7 @@ describe("presupuesto del comité", () => {
       title: "Evento sintético",
       eventOn: "2026-11-20",
     });
-    await decideEventApprovalAs(admin, approvedId, { decision: "APPROVED" }, { budgetId: id });
+    await decideEventApprovalAs(await presidencia(), approvedId, { decision: "APPROVED" });
     await recordTransferAs(
       actor,
       {
@@ -287,34 +296,20 @@ describe("presupuesto del comité", () => {
         { committeeId: a3 },
       ),
     ).rejects.toThrow(t("T-2294"));
-    await expect(
-      decideEventApprovalAs(admin, pasado, { decision: "APPROVED" }, { budgetId: id }),
-    ).rejects.toThrow(t("T-2330"));
-    // Un aval histórico se aprobó antes de su evento; hoy ya no permite traslados.
-    await runCommand(admin, (ctx) =>
-      decideEventApproval(
-        ctx,
-        pasado,
-        { decision: "APPROVED" },
-        { budgetId: id },
-        new Date("2026-01-10T12:00:00Z"),
-      ),
+    const presi = await presidencia();
+    await expect(decideEventApprovalAs(presi, pasado, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-2330"),
     );
-    // Cada aval se decide desde un presupuesto de su comité (ADR-122 regla 1).
-    const { id: pixelBudget } = await createBudgetAs(admin, { committeeId: pixel, year: 2026 });
-    for (const [approvalId, budgetId] of [
-      [aval, id],
-      [ajeno, pixelBudget],
-    ] as const) {
-      await decideEventApprovalAs(
-        admin,
-        approvalId,
-        { decision: "APPROVED", note: "Adelante" },
-        { budgetId },
-      );
+    // Un aval histórico se aprobó antes de su evento; hoy ya no permite traslados.
+    await runCommand(presi, (ctx) =>
+      decideEventApproval(ctx, pasado, { decision: "APPROVED" }, new Date("2026-01-10T12:00:00Z")),
+    );
+    // La Presidencia decide los avales de todos los comités, tengan o no presupuesto (ADR-195).
+    for (const approvalId of [aval, ajeno]) {
+      await decideEventApprovalAs(presi, approvalId, { decision: "APPROVED", note: "Adelante" });
     }
     await expect(
-      decideEventApprovalAs(admin, aval, { decision: "REJECTED", note: "Tarde" }, { budgetId: id }),
+      decideEventApprovalAs(presi, aval, { decision: "REJECTED", note: "Tarde" }),
     ).rejects.toThrow(t("T-2296"));
     await expect(
       recordExpenseAs(
@@ -389,12 +384,9 @@ describe("presupuesto del comité", () => {
     expect(
       (await listEventApprovals({ committeeId: a3, status: "APPROVED" })).map((r) => r.title),
     ).toEqual(["Ya pasó", "Noche de talentos"]);
-    const error = await decideEventApprovalAs(
-      admin,
-      "no-existe-000",
-      { decision: "APPROVED" },
-      { budgetId: id },
-    ).catch((e: unknown) => e);
+    const error = await decideEventApprovalAs(presi, "no-existe-000", {
+      decision: "APPROVED",
+    }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(DomainError);
   });
 
@@ -453,12 +445,10 @@ describe("presupuesto del comité", () => {
       title: "Noche de talentos",
       eventOn: "2026-11-20",
     });
-    await decideEventApprovalAs(
-      admin,
-      aval,
-      { decision: "APPROVED", note: "Adelante" },
-      { budgetId: id },
-    );
+    await decideEventApprovalAs(await presidencia(), aval, {
+      decision: "APPROVED",
+      note: "Adelante",
+    });
     const move = (reason: string) =>
       recordTransferAs(
         actor,
@@ -505,14 +495,12 @@ describe("presupuesto del comité", () => {
       { personId: financiero, ip: null },
       { committeeId: a3, title: "Noche de talentos", eventOn: "2026-11-20" },
     );
-    const { id: budgetId } = await createBudgetAs(admin, { committeeId: a3, year: 2026 });
+    const presi = await presidencia();
     const decisions = ["APPROVED", "REJECTED"] as const;
 
     await warmPool();
     const outcomes = await Promise.allSettled(
-      decisions.map((decision) =>
-        decideEventApprovalAs(admin, aval, { decision, note: decision }, { budgetId }),
-      ),
+      decisions.map((decision) => decideEventApprovalAs(presi, aval, { decision, note: decision })),
     );
 
     expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);

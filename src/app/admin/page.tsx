@@ -116,7 +116,10 @@ export default async function AdminHome() {
                   ? "/admin/inventario"
                   : roles.operatesInventory
                     ? "/admin/campo"
-                    : "/app",
+                    : // Un cargo de la junta que solo decide avales entra a ellos (ADR-195 regla 3).
+                      roles.boardSeats.length > 0
+                      ? "/admin/avales"
+                      : "/app",
     );
   }
   const term = await getCurrentTerm();

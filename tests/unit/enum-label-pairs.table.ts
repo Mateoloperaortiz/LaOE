@@ -4,6 +4,7 @@
 // No se compara ninguna redacción: un texto de docs/14-copy-y-textos.md cambia sin tocar esta tabla.
 import { CALENDAR_LAYERS } from "@/app/admin/_kit/calendar-grid";
 import { DESK_DATE_KINDS, DESK_SECTIONS } from "@/app/admin/_kit/desk-items";
+import { AVAL_KINDS } from "@/app/admin/avales/_ui/kinds";
 import { areaLabel } from "@/app/admin/comites/[slug]/_ui/Areas";
 import { INVENTORY_TABS } from "@/app/admin/inventario/_ui/tabs";
 import { END_REASONS, TABS, TIMELINE_FILTERS } from "@/app/admin/personas/[id]/_ui/etiquetas";
@@ -915,12 +916,13 @@ export const PAIRS: readonly LabelPair[] = [
     order: "DESK_SECTIONS",
     positions: {
       tasks: 0,
-      requests: 1,
-      excuses: 2,
-      reviews: 3,
-      evaluations: 4,
-      inventory: 5,
-      alerts: 6,
+      avales: 1,
+      requests: 2,
+      excuses: 3,
+      reviews: 4,
+      evaluations: 5,
+      inventory: 6,
+      alerts: 7,
     },
     canonical: DESK_SECTIONS,
   },
@@ -953,6 +955,12 @@ export const PAIRS: readonly LabelPair[] = [
     order: "BOARD_COMMITTEE_STATES",
     positions: { OK: 0, MISSING: 1, NO_LEADER: 2, OTHER_LEADER: 3 },
     canonical: BOARD_COMMITTEE_STATES,
+  },
+  {
+    code: "T-5084",
+    order: "AVAL_KINDS",
+    positions: { EVENT: 0 },
+    canonical: AVAL_KINDS,
   },
   {
     code: "T-4891",

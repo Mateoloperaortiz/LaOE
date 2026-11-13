@@ -10,6 +10,7 @@ import {
   LATE_BUDGET_SANCTION_PERCENT,
 } from "@/modules/finance";
 import { requireAdminActor } from "@/modules/identity";
+import { APPOINTMENT_KINDS } from "@/modules/people";
 import { Campo, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
@@ -20,14 +21,7 @@ import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
-import {
-  approveAction,
-  closeAction,
-  decideApprovalAction,
-  openAction,
-  sanctionAction,
-  setLinesAction,
-} from "./actions";
+import { approveAction, closeAction, openAction, sanctionAction, setLinesAction } from "./actions";
 
 // Detalle de un presupuesto (ADR-059, ADR-060 regla 12): rubros, aprobaciones, apertura y cierre,
 // sanción, presolicitudes, avales (la Presidencia decide) y movimientos.
@@ -72,11 +66,15 @@ export default async function Page({
   const [rubro, asignado, gastado, trasladado, disponible] = tList("T-2191");
   const [nombre, asignadoCampo, orden] = tList("T-2203");
   const [aprobaciones, sancionTitulo, presolicitudes, avales, movimientos] = tList("T-2302");
-  const [registrarAprobacion, abrir, cerrar, aplicarSancion, guardarRubros, aprobar, rechazar] =
-    tList("T-2303");
+  const [registrarAprobacion, abrir, cerrar, aplicarSancion, guardarRubros] = tList("T-2303");
   const aprobadores = tLabels("T-2304", APPROVERS);
   const [sinMovimientos, sinPresolicitudes, sinAvales] = tList("T-2311");
-  const [quienAprueba, fecha, porcentaje, motivo, notaDecision] = tList("T-2312");
+  const [quienAprueba, fecha, porcentaje, motivo] = tList("T-2312");
+  // El aval de evento lo decide la Presidencia por su cargo (ADR-195), no esta página.
+  const loDecide = (tList("T-5086")[3] ?? "").replace(
+    "{cargo}",
+    tLabels("T-444", APPOINTMENT_KINDS).PRESIDENT,
+  );
   const [, , presentadoEl, aprobDE, aprobVP, sancionCampo, motivoSancion] = tList("T-2288");
   const editable = budget.status !== "CLOSED";
   const rows = [...rawLines, ...Array.from({ length: BLANK_LINES }, () => null)];
@@ -362,36 +360,7 @@ export default async function Page({
                 </p>
                 {item.description ? <p className="text-tinta-suave">{item.description}</p> : null}
                 {item.decisionNote ? <p>{item.decisionNote}</p> : null}
-                {item.status === "PENDING" ? (
-                  <ActionForm
-                    action={decideApprovalAction}
-                    className="flex flex-wrap items-end gap-2"
-                  >
-                    <AdminFormBody>
-                      <input type="hidden" name="budgetId" value={budget.id} />
-                      <input type="hidden" name="approvalId" value={item.id} />
-                      <Campo id={`nota-${item.id}`} label={notaDecision ?? ""}>
-                        <input id={`nota-${item.id}`} name="note" className={inputClass} />
-                      </Campo>
-                      <AdminSubmitButton
-                        type="submit"
-                        name="decision"
-                        value="APPROVED"
-                        className="boton-primario"
-                      >
-                        {aprobar}
-                      </AdminSubmitButton>
-                      <AdminSubmitButton
-                        type="submit"
-                        name="decision"
-                        value="REJECTED"
-                        className="boton-secundario"
-                      >
-                        {rechazar}
-                      </AdminSubmitButton>
-                    </AdminFormBody>
-                  </ActionForm>
-                ) : null}
+                {item.status === "PENDING" ? <p className="text-tinta-suave">{loDecide}</p> : null}
               </li>
             ))}
           </ul>
