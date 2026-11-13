@@ -3,6 +3,7 @@
 // siguiente (fase 3); `campaigns` arranca las campañas vencidas y manda un lote por minuto (fase 6).
 
 import { mediaBackfill } from "@/domain-events/content";
+import { inventoryReturnReminder } from "@/domain-events/inventory";
 import { gamerStreakReminder, presenceStreakReconcile } from "@/domain-events/participation";
 import { walletReconcile } from "@/domain-events/wallet";
 
@@ -42,6 +43,8 @@ export const SCHEDULE: ScheduleEntry[] = [
     events: ["identity.prune", "people.prune", "system.prune", "comms.prune"],
   },
   { name: "backup-check", cron: "30 3 * * *", events: ["system.backup-check"] },
+  // Avisos de devolución del inventario (ADR-191 regla 8): cada hora, sobre una ventana de dos.
+  { name: "inventory", cron: "10 * * * *", events: [inventoryReturnReminder.type] },
   // Ligas semanales (ADR-178 regla 3): el lunes temprano cierra la semana anterior; es idempotente.
   { name: "league-close", cron: "15 0 * * 1", events: ["participation.league-close"] },
   // Relleno de la variante completa de los medios de antes (ADR-114 regla 8): cada hora arranca una

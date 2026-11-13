@@ -16014,7 +16014,7 @@ export const textos = {
   },
   "T-5046": {
     where: "Mesa: títulos de sus grupos, en orden",
-    text: "Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Novedades del inventario · Alertas",
+    text: "Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Inventario · Alertas",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16171,6 +16171,48 @@ export const textos = {
   "T-507": {
     where: "Comunicaciones vacía",
     text: "Todavía no le hemos enviado nada.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5070": {
+    where: "Modo de campo, inventario: título del bloque · entregar · recibir",
+    text: "Inventario de hoy · Entregar · Recibir",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5071": {
+    where: "Entregas y devoluciones: la última lectura del lector",
+    text: "Última lectura",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5072": {
+    where: "Entregas y devoluciones: borrador recuperado del teléfono",
+    text: "Recuperamos lo que llevabas sin confirmar. Revísalo antes de confirmar.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5073": {
+    where: "Entregas y devoluciones: confirmación sin señal",
+    text: "Sin señal. Quedó guardado en el teléfono y lo confirmamos solo cuando vuelva la conexión.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5074": {
+    where: "Aviso de devolución, un día antes (título · texto)",
+    text: "Mañana devuelves materiales · Los materiales de {frente} vuelven al CML mañana antes de las {hora}.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5075": {
+    where: "Aviso de préstamo vencido (título · texto)",
+    text: "Se venció un préstamo · Los materiales de {frente} debían volver el {fecha}. Devuélvelos al CML lo antes posible.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5076": {
+    where: "Mesa: préstamo vencido",
+    text: "Préstamo vencido de {frente}",
     owner: "MATEO",
     status: "Propuesta",
   },

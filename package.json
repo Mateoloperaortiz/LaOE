@@ -55,6 +55,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1125.0",
     "@paralleldrive/cuid2": "^3.3.0",
     "@tabler/icons-react": "^3.46.0",
+    "@zxing/browser": "^0.2.1",
     "bwip-js": "^4.11.4",
     "croner": "^10.0.1",
     "drizzle-orm": "^0.45.2",

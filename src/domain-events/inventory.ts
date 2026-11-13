@@ -13,3 +13,9 @@ export const inventoryIncidentReferred = defineEvent(
     committeeId: z.string().nullable(),
   }),
 );
+
+/** La pasada horaria de los avisos de devolución (ADR-191 regla 8). */
+export const inventoryReturnReminder = defineEvent(
+  "inventory.return-reminder",
+  z.object({ at: z.string().optional() }),
+);

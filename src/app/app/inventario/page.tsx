@@ -121,7 +121,10 @@ export default async function InventarioPage({ searchParams }: PageProps<"/app/i
               </Link>
             ) : null}
             {context.canOperate ? (
-              <Link href="/admin/campo" className={buttonClass({ variant: "secundaria" })}>
+              <Link
+                href="/admin/inventario/entregas"
+                className={buttonClass({ variant: "secundaria" })}
+              >
                 {t("T-4301")}
               </Link>
             ) : null}

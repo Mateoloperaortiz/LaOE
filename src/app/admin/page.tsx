@@ -114,7 +114,9 @@ export default async function AdminHome() {
                   : `/admin/the-games/${competition.competitionId}/juez`
                 : roles.managesInventory
                   ? "/admin/inventario"
-                  : "/app",
+                  : roles.operatesInventory
+                    ? "/admin/campo"
+                    : "/app",
     );
   }
   const term = await getCurrentTerm();

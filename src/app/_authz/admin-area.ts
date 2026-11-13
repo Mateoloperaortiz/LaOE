@@ -9,7 +9,7 @@ import {
   listCommitteesByIds,
   listMyCommitteeCapabilities,
 } from "@/modules/people";
-import { type GroupRef, listMyGroupRoles } from "@/modules/permanence";
+import { type GroupRef, hasCmlMembershipInTerm, listMyGroupRoles } from "@/modules/permanence";
 import { getCurrentTerm } from "@/modules/terms";
 
 // Roles del área de administración (ADR-036 regla 10, ADR-058, ADR-089): ADMIN, líder de comité, junta
@@ -30,6 +30,8 @@ export interface AdminAreaRoles {
   isBoard: boolean;
   /** VP administrativa vigente: acceso limitado al inventario. */
   managesInventory: boolean;
+  /** CML vigente (o la VP): entrega y recibe inventario desde el modo de campo (ADR-191 regla 6). */
+  operatesInventory: boolean;
   /** Semestre ya consultado para componer navegación sin repetir la lectura. */
   currentTermId: string | null;
   /** Comités con permiso técnico `COMMITTEE_LEADER`. */
@@ -54,6 +56,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
       isAdmin: false,
       isBoard: false,
       managesInventory: false,
+      operatesInventory: false,
       currentTermId: null,
       ledCommittees: [],
       committees: [],
@@ -68,6 +71,9 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
   const term = await getCurrentTerm();
   const managesInventory =
     !onLeave && term !== null && (await hasVpAdminInTerm(actor.personId, term.id));
+  const operatesInventory =
+    managesInventory ||
+    (!onLeave && term !== null && (await hasCmlMembershipInTerm(actor.personId, term.id)));
   const ledCommittees = isAdmin
     ? []
     : await listCommitteesByIds(
@@ -109,6 +115,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
     isAdmin,
     isBoard,
     managesInventory,
+    operatesInventory,
     currentTermId: term?.id ?? null,
     ledCommittees,
     committees,
@@ -118,7 +125,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
     any:
       isAdmin ||
       isBoard ||
-      managesInventory ||
+      operatesInventory ||
       committees.length > 0 ||
       groups.leads.length > 0 ||
       groups.evaluates.length > 0 ||

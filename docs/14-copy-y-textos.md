@@ -3317,7 +3317,7 @@ Lo que le toca al actor en la Operación, venga del módulo que venga. Solo lee:
 | --- | --- | --- | --- | --- |
 | T-5044 | Operación: la Mesa en la barra lateral y título de su pantalla | Mesa | MATEO | Propuesta |
 | T-5045 | Mesa: lo que dice debajo del título | Lo que te toca, venga del espacio que venga. Cada cosa se resuelve en su pantalla, como siempre. | MATEO | Propuesta |
-| T-5046 | Mesa: títulos de sus grupos, en orden | Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Novedades del inventario · Alertas | MATEO | Propuesta |
+| T-5046 | Mesa: títulos de sus grupos, en orden | Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Inventario · Alertas | MATEO | Propuesta |
 | T-5047 | Mesa: nombre del contador de la barra superior (uno · varios) | Mesa: {n} pendiente · Mesa: {n} pendientes | MATEO | Propuesta |
 | T-5048 | Mesa: sin nada pendiente (título · explicación) | Nada pendiente · Cuando algo te toque, aparece aquí. Todo al día, pues. | MATEO | Propuesta |
 | T-5049 | Mesa: enlace al pie de un grupo que trae más de lo que se ve | Ver los {n} | MATEO | Propuesta |
@@ -3733,3 +3733,10 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5067 | Inventario, carrito: botón para quitar uno | Quitar uno de {material} | MATEO | Propuesta |
 | T-5068 | Inventario, carrito: botón para agregar uno | Agregar uno de {material} | MATEO | Propuesta |
 | T-5069 | Inventario, carrito: cuánto llevas (uno · varios) | Llevas {n} material · Llevas {n} materiales | MATEO | Propuesta |
+| T-5070 | Modo de campo, inventario: título del bloque · entregar · recibir | Inventario de hoy · Entregar · Recibir | MATEO | Propuesta |
+| T-5071 | Entregas y devoluciones: la última lectura del lector | Última lectura | MATEO | Propuesta |
+| T-5072 | Entregas y devoluciones: borrador recuperado del teléfono | Recuperamos lo que llevabas sin confirmar. Revísalo antes de confirmar. | MATEO | Propuesta |
+| T-5073 | Entregas y devoluciones: confirmación sin señal | Sin señal. Quedó guardado en el teléfono y lo confirmamos solo cuando vuelva la conexión. | MATEO | Propuesta |
+| T-5074 | Aviso de devolución, un día antes (título · texto) | Mañana devuelves materiales · Los materiales de {frente} vuelven al CML mañana antes de las {hora}. | MATEO | Propuesta |
+| T-5075 | Aviso de préstamo vencido (título · texto) | Se venció un préstamo · Los materiales de {frente} debían volver el {fecha}. Devuélvelos al CML lo antes posible. | MATEO | Propuesta |
+| T-5076 | Mesa: préstamo vencido | Préstamo vencido de {frente} | MATEO | Propuesta |

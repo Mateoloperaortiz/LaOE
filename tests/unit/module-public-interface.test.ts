@@ -155,13 +155,6 @@ const EXCEPTIONS: Exceptions = {
       verifyOtp
     `,
   },
-  inventory: {
-    "solo-pruebas": `
-      checkoutAs
-      recordIncidentAs
-      returnAs
-    `,
-  },
   participation: {
     "solo-pruebas": `
       CheckInSource

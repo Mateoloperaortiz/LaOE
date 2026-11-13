@@ -54,6 +54,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           : []),
         // El inventario (ADR-150 regla 2): solo la VP administrativa vigente.
         ...(roles.managesInventory ? [{ href: "/admin/inventario", label: t("T-4300") }] : []),
+        ...(roles.operatesInventory
+          ? [{ href: "/admin/inventario/entregas", label: t("T-4301") }]
+          : []),
         // The Games (ADR-089): el operador entra a su panel y el juez, a su base.
         ...roles.competitions.map((item) => ({
           href: item.operator

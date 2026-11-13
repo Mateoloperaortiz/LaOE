@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { listPendingExcusesForCommittee, listRequests, listTasks } from "@/modules/crm";
-import { listIncidents } from "@/modules/inventory";
+import { listIncidents, listReservations } from "@/modules/inventory";
 import {
   listCommitteeViability,
   listPendingReviews,
@@ -30,7 +30,8 @@ import {
 //   los trabajos con error.
 // - La dirección de un comité: las excusas de su comité si tiene PERMANENCE, y las alertas de su comité.
 // - Quien evalúa un grupo del término: cuántas evaluaciones le faltan.
-// - La VP administrativa: las novedades del inventario que siguen abiertas (ADR-191 regla 3).
+// - La VP administrativa: los préstamos vencidos y las novedades del inventario que siguen abiertas
+//   (ADR-191 reglas 3 y 8).
 // La pintan la página de la Mesa y el contador de la barra superior en el mismo pedido; `cache` hace que
 // se lea una sola vez.
 
@@ -56,6 +57,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     viability,
     deadLetters,
     incidents,
+    loans,
   ] = await Promise.all([
     roles.isAdmin
       ? listTasks({
@@ -84,7 +86,9 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     watchesCommittees && term ? listCommitteeViability(term.id, now) : [],
     roles.isAdmin ? countDeadLetters() : 0,
     roles.managesInventory ? listIncidents(personId) : [],
+    roles.managesInventory ? listReservations(personId) : [],
   ]);
+  const overdueLoans = loans.filter((row) => row.status === "OUT" && row.overdue);
   const openIncidents = incidents.filter((row) => row.status === "OPEN");
 
   const viabilityLabels = tLabels("T-2264", VIABILITY_ALERTS);
@@ -200,15 +204,24 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     ),
     ...deskSection(
       "inventory",
-      openIncidents.length,
-      openIncidents.map((row) => ({
-        id: row.id,
-        title: row.personName,
-        detail: row.scopeLabel,
-        href: `/admin/inventario/novedades?novedad=${row.id}`,
-        date: { kind: "arrived", at: row.createdAt },
-      })),
-      "/admin/inventario/novedades",
+      overdueLoans.length + openIncidents.length,
+      [
+        ...overdueLoans.map((row) => ({
+          id: row.id,
+          title: t("T-5076", { frente: row.scopeLabel }),
+          detail: row.collectorName,
+          href: `/admin/inventario/prestamos?reserva=${row.id}`,
+          date: { kind: "overdue" as const, at: row.endsAt },
+        })),
+        ...openIncidents.map((row) => ({
+          id: row.id,
+          title: row.personName,
+          detail: row.scopeLabel,
+          href: `/admin/inventario/novedades?novedad=${row.id}`,
+          date: { kind: "arrived" as const, at: row.createdAt },
+        })),
+      ],
+      "/admin/inventario/prestamos",
     ),
     ...deskSection("alerts", alerts.length, alerts, roles.isAdmin ? "/admin/comites" : null),
   ]);

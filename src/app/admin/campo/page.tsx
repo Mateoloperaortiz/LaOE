@@ -3,6 +3,7 @@ import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { canOperateOccasion } from "@/app/_authz/occasion";
 import { single } from "@/app/_lib/search";
 import { listRequests } from "@/modules/crm";
+import { listReservations } from "@/modules/inventory";
 import { dayKeyFor, listCheckIns, listOccasionsForTerm } from "@/modules/participation";
 import { occasionStatusCell } from "@/modules/participation/admin";
 import { getCurrentTerm } from "@/modules/terms";
@@ -74,10 +75,23 @@ export default async function CampoPage({ searchParams }: PageProps<"/admin/camp
   const [ocasionesTitulo, escanear, consola] = tList("T-4910");
   const [excusasTitulo, aprobar, ver] = tList("T-4912");
   const [gamesTitulo, verTabla, juzgar] = tList("T-4913");
+  // Entregar y recibir inventario (ADR-168 regla 6 enmendada por ADR-191): lo que empieza hoy o ya
+  // empezó sin entregarse, y lo que vence hoy o ya se venció sin volver.
+  const finDeHoy = new Date(`${today}T23:59:59-05:00`);
+  const inventario = roles.operatesInventory ? await listReservations(actor.personId) : [];
+  const porEntregar = inventario.filter(
+    (row) => row.status === "CONFIRMED" && row.startsAt <= finDeHoy,
+  );
+  const porRecibir = inventario.filter((row) => row.status === "OUT" && row.endsAt <= finDeHoy);
+  const [inventarioTitulo, entregar, recibir] = tList("T-5070");
   const openOnes = operable.filter((item) => item.status === "OPEN");
   const onlyOpen = openOnes.length === 1 ? openOnes[0] : undefined;
   const nothing =
-    operable.length === 0 && excuses.rows.length === 0 && roles.competitions.length === 0;
+    operable.length === 0 &&
+    excuses.rows.length === 0 &&
+    roles.competitions.length === 0 &&
+    porEntregar.length === 0 &&
+    porRecibir.length === 0;
 
   return (
     <div className="admin-campo mx-auto flex w-full max-w-lg flex-col gap-6">
@@ -201,6 +215,33 @@ export default async function CampoPage({ searchParams }: PageProps<"/admin/camp
                       {juzgar}
                     </Link>
                   ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {porEntregar.length + porRecibir.length > 0 ? (
+        <section aria-labelledby="campo-inventario" className="flex flex-col gap-3">
+          <h2 id="campo-inventario" className="etiqueta-corta text-tinta-secundaria">
+            {inventarioTitulo}
+          </h2>
+          <ul className="flex list-none flex-col gap-3 p-0">
+            {[...porEntregar, ...porRecibir].map((row) => (
+              <li key={row.id} className="admin-campo-tarjeta">
+                <p className="text-lg font-semibold">{row.scopeLabel}</p>
+                <p className="text-sm text-tinta-secundaria">
+                  {row.collectorName} ·{" "}
+                  {formatDateRange(row.status === "OUT" ? row.endsAt : row.startsAt, null)}
+                </p>
+                <div className="admin-campo-acciones">
+                  <Link
+                    href={`/admin/inventario/entregas?reserva=${row.id}`}
+                    className="boton-primario"
+                  >
+                    {row.status === "OUT" ? recibir : entregar}
+                  </Link>
                 </div>
               </li>
             ))}
