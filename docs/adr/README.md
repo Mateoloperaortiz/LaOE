@@ -14,7 +14,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | ADR | Título | Estado |
 | --- | --- | --- |
 | [ADR-192](ADR-192-revision-temporal-de-rama-en-staging.md) | Revisión temporal de una rama funcional en staging | Aceptada (era la ADR-153 de la rama del inventario) |
-| [ADR-191](ADR-191-el-inventario-entra-al-rediseno.md) | El inventario entra al rediseño | Propuesta |
+| [ADR-191](ADR-191-el-inventario-entra-al-rediseno.md) | El inventario entra al rediseño | Aceptada |
 | [ADR-190](ADR-190-la-paleta-por-rol-con-alcance.md) | La paleta ⌘K por rol, con alcance | Aceptada |
 | [ADR-189](ADR-189-el-portal-como-afiche-vivo.md) | El portal como afiche vivo | Aceptada |
 | [ADR-188](ADR-188-el-rediseno-llega-a-todas-las-pantallas.md) | El rediseño llega a todas las pantallas | Aceptada |

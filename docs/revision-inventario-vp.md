@@ -5,7 +5,7 @@ El inventario ([ADR-150](adr/ADR-150-inventario-reservas-y-operacion-logistica.m
 ## Cómo se prepara
 
 - **Datos.** `npm run inventory:review:seed -- --access-file /ruta/privada/accesos.json` siembra cuentas y materiales ficticios. Solo corre contra una base `inventory_review_<identificador>` vacía y ya migrada, nunca contra la habitual de staging ni contra producción. Si la base ya tiene personas, no la toca.
-- **En local.** El script no lee el `.env`, para que en staging solo use lo que entrega Railway. En local se corre con `node --conditions=react-server --env-file=.env --import tsx scripts/seed-inventory-review.ts`, con `DATABASE_URL` apuntando a la base de revisión y `APP_URL=http://localhost:<puerto>`. La base se prepara antes con `npm run db:migrate`.
+- **En local.** El script no lee el `.env`, para que en staging solo use lo que entrega Railway. En local se corre con `node --conditions=react-server --env-file=.env --import tsx scripts/seed-inventory-review.ts`, con `DATABASE_URL` apuntando a la base de revisión y `APP_URL=http://localhost:<puerto>`. La base se prepara antes con `npm run db:migrate`. En local, el lector usa la cámara del computador, y lo de sin señal se prueba cortando la red del navegador. Un teléfono solo abre la cámara con HTTPS, así que las etiquetas impresas se leen en staging o después de la salida.
 - **Cuentas.** Hay una VP, una dirección logística de comité, una persona del CML que también puede recoger como delegada, una dirección de macroevento, un miembro con el carnet pendiente y ADMIN, para revisar las remisiones.
 - **Contraseñas.** Se entregan en un archivo privado, fuera del repositorio.
 - **Sin envíos reales.** No se mandan invitaciones ni correos a personas reales.
@@ -16,7 +16,7 @@ El inventario ([ADR-150](adr/ADR-150-inventario-reservas-y-operacion-logistica.m
    - En «Hoy», «Te toca» pide el UID del carnet; el enlace lleva a Ajustes. Completa cuatro pares hexadecimales, por ejemplo `aa bb cc dd`; quedan en mayúsculas.
    - Desde «Yo», abre Inventario. Cambia las fechas y revisa lo disponible y las reservas de esas fechas, con quién reservó y para qué comité o macroevento.
 2. **VP.**
-   - Entra a la Operación: llega a «Administrar inventario».
+   - Entra a la Operación. Como lidera el grupo del CML, llega primero a ese grupo; «Inventario», en el menú, abre «Administrar inventario».
    - En Materiales, agrega un material por cantidades y otro por unidades, con su ubicación y su caja. Abre uno y ajusta sus existencias.
    - En Etiquetas, imprime las de un material.
    - En Logística, nombra y retira una dirección logística, y habilita o quita su permiso para reservar.

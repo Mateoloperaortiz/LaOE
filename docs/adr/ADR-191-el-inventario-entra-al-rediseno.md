@@ -1,6 +1,6 @@
 # ADR-191: El inventario entra al rediseño
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Enmienda: [ADR-150](ADR-150-inventario-reservas-y-operacion-logistica.md) (las pantallas y la salida), [ADR-168](ADR-168-el-modo-de-campo-de-la-operacion.md) regla 6 (entregar y recibir inventario) y [ADR-169](ADR-169-calendario-panoramas-y-ficha-de-la-persona.md) regla 1 (la capa de reservas)
 - Relacionadas: ADR-058, ADR-151, ADR-159, ADR-160, ADR-164, ADR-166, ADR-167, ADR-182, ADR-192
