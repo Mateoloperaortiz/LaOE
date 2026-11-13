@@ -257,7 +257,10 @@ Una flecha dentro de un rango o de una oración (`apertura → cierre`) y el ata
 | Inicio · Agenda · Carnet · GH Points · Juegos | `HomeIcon` · `CalendarEventIcon` · `IdIcon` · `StarIcon` · `DeviceGamepad2Icon`, cada uno con su par relleno para la pestaña activa |
 | Abrir el menú | `Menu2Icon` |
 | Desplegar un menú de cuenta | `ChevronDownIcon` |
-| Separar los pasos de la ruta en la cabecera de una pantalla | `ChevronRightIcon` |
+| Separar los pasos de la ruta en la cabecera de una pantalla; seguir a una opción de una hoja | `ChevronRightIcon` |
+| Cerrar un panel de detalle o una hoja inferior | `XIcon` |
+| Orden de una columna de una tabla de trabajo, ascendente o descendente | `ArrowUpIcon` · `ArrowDownIcon` |
+| Abrir la ficha completa · Editar, desde un panel de detalle | `MaximizeIcon` · `PencilIcon` |
 | Abrir o cerrar un grupo de navegación; desplegar una actividad | `PlusIcon` · `MinusIcon` |
 | Lleva a otra pantalla | `ArrowUpRightIcon` |
 | Ver el detalle | `ArrowRightIcon` |
@@ -388,8 +391,16 @@ El tema oscuro del aspecto sobrio se deriva del navy y no usa sombras: una super
 - **Utilidades de texto:** `titulo-pantalla`, `titulo-seccion`, `titulo-ficha`, `titulo-tarjeta`, `cifra-resumen` y `etiqueta-corta`.
 - **Utilidades de superficie:** `fondo-sobrio` para el degradado, `sombra-flota` y `sombra-control` para lo que flota, y `superficie-flotante` para las barras de acción y los avisos.
 - **Esquinas:** `rounded-control`, `rounded-tarjeta`, `rounded-marco` y `rounded-barra`. Las dos primeras cambian dentro de `data-densidad="escritorio"`.
-- **Componentes base:** en `src/shared/ui`. Son `Button` (y `buttonClass` para un enlace), `Chip` (y `chipClass`) para los filtros, `Banner`, `Badge`, `Surface`, con sus variantes `flota` y `plana`, y `ScreenHeader`, que en la Operación abre con la ruta.
-- **Pruebas:** `tests/unit/functional-layer-contrast.test.ts` lee los tokens y comprueba AA en los dos temas, las dos densidades, las esquinas y los pesos.
+- **Componentes base:** en `src/shared/ui`. Son `Button` (y `buttonClass` para un enlace, con `onFloating` sobre una superficie que flota), `Chip` (y `chipClass`) para los filtros, `Banner`, `Badge`, `Surface`, con sus variantes `flota` y `plana`, y `ScreenHeader`, que en la Operación abre con la ruta.
+- **Componentes de trabajo (R6-B):**
+  - `WorkTable`: la tabla de trabajo, con cabecera fija, orden por enlaces con `aria-sort`, densidad cómoda (40 px) o compacta (32 px) y una casilla por fila que pertenece al formulario del lote; `TableSelectAll` marca todas y queda a medias con algunas.
+  - `BatchBar`: la barra de acciones en lote, que es ese formulario, se ve solo con algo marcado y anuncia la cuenta.
+  - `ListShortcuts`: J y K mueven el foco entre filas y X marca la fila; ninguno actúa mientras se escribe.
+  - `SplitView` y `DetailPanel`: la vista dividida. Desde 1280 px el detalle es un panel al lado, que no le quita el foco a la lista; por debajo es un diálogo. Esc cierra, salvo mientras se escribe.
+  - `BottomSheet`: la hoja inferior de Mi OE y el modo de campo; cierra con su botón, con Esc o tocando fuera.
+  - Campos: `Field` conecta la etiqueta, la ayuda y el error con el control; `TextInput`, `TextArea` y `Select` usan la utilidad `campo` (superficie con sombra en Mi OE, línea en la Operación, una línea en oscuro y 2 px de error); `Checkbox`, `Switch` y `RadioGroup` son controles nativos que se tocan en toda la fila; `ErrorSummary` lleva a cada campo con error.
+  - La URL es la fuente de verdad del panel y de la hoja: abrir es llegar a una dirección y cerrar vuelve a `closeHref`.
+- **Pruebas:** `tests/unit/functional-layer-contrast.test.ts` lee los tokens y comprueba AA en los dos temas, las dos densidades, las esquinas, los pesos y los campos; `tests/unit/work-components.test.ts` prueba la selección, los atajos y el marcado de los componentes de trabajo.
 - **Muestrario:** `/marca`, que solo existe en desarrollo, los muestra vivos en las dos áreas.
 
 **Transición.** Las pantallas se rediseñan por olas en la rama `feat/rediseno` y pasan juntas a la capa funcional cuando el rediseño sale completo ([ADR-164](adr/ADR-164-el-rediseno-sale-de-una-vez.md)). Hasta entonces, en producción siguen las reglas anteriores, incluidas la extensión administrativa y la enmienda del portal y Mi OE. Los tokens nuevos entran a `src/shared/brand/tokens.css` con los componentes base del tramo R6, y la página `/marca` documenta las dos capas. La revisión de Comunicaciones sigue anotada en [11-contenido-pendiente](11-contenido-pendiente.md).

@@ -34,18 +34,41 @@ const SECUNDARIA =
 
 const ENLACE = "text-enlace underline underline-offset-4 hover:decoration-2";
 
+// Sobre una superficie que flota (la barra de acciones en lote, un aviso), el fondo es navy en claro y
+// azul oscuro en oscuro, con texto paper: la principal va en paper con texto navy y la secundaria es un
+// velo claro sobre la barra (R6-B).
+const PRINCIPAL_FLOTANTE =
+  "bg-oe-paper text-oe-navy no-underline hover:bg-[color-mix(in_oklab,var(--color-oe-paper)_88%,var(--color-oe-navy))]";
+
+const SECUNDARIA_FLOTANTE =
+  "bg-[rgb(246_246_246/0.14)] text-[var(--flota-tinta)] no-underline hover:bg-[rgb(246_246_246/0.22)]";
+
+const ENLACE_FLOTANTE = "text-[var(--flota-tinta)] underline underline-offset-4 hover:decoration-2";
+
 export function buttonClass({
   variant = "principal",
   area = "mi-oe",
   size = "normal",
+  onFloating = false,
   className = "",
 }: {
   variant?: Variant;
   area?: Area;
   size?: Size;
+  onFloating?: boolean;
   className?: string;
 } = {}): string {
-  const look = variant === "principal" ? PRINCIPAL : variant === "secundaria" ? SECUNDARIA : ENLACE;
+  const look = onFloating
+    ? variant === "principal"
+      ? PRINCIPAL_FLOTANTE
+      : variant === "secundaria"
+        ? SECUNDARIA_FLOTANTE
+        : ENLACE_FLOTANTE
+    : variant === "principal"
+      ? PRINCIPAL
+      : variant === "secundaria"
+        ? SECUNDARIA
+        : ENLACE;
   const sized = variant === "enlace" ? "min-h-11 px-0" : SIZE[area][size];
   return `${BASE} ${sized} ${look} ${className}`.trim();
 }
@@ -54,6 +77,7 @@ export function Button({
   variant,
   area,
   size,
+  onFloating,
   className,
   type = "button",
   ...props
@@ -61,6 +85,7 @@ export function Button({
   variant?: Variant;
   area?: Area;
   size?: Size;
+  onFloating?: boolean;
 }) {
   return (
     <button
@@ -69,6 +94,7 @@ export function Button({
         ...(variant ? { variant } : {}),
         ...(area ? { area } : {}),
         ...(size ? { size } : {}),
+        ...(onFloating ? { onFloating } : {}),
         ...(className ? { className } : {}),
       })}
       {...props}

@@ -24,6 +24,7 @@ import { Chip } from "@/shared/ui/Chip";
 import { IdIcon } from "@/shared/ui/icons/IdIcon";
 import { ScreenHeader } from "@/shared/ui/ScreenHeader";
 import { Surface } from "@/shared/ui/Surface";
+import { WorkComponents, type WorkParams } from "./_ui/WorkComponents";
 
 export const metadata: Metadata = { title: "Muestrario de marca", robots: { index: false } };
 
@@ -80,10 +81,17 @@ const ESCALA = [
 ] as const;
 
 // Muestrario de la línea gráfica para revisar cada pieza contra docs/07-marca.md. Solo en desarrollo.
-export default function MarcaPage() {
+export default async function MarcaPage({ searchParams }: PageProps<"/marca">) {
   if (process.env.NODE_ENV === "production") {
     notFound();
   }
+  const query = await searchParams;
+  const workParams: WorkParams = Object.fromEntries(
+    (["densidad", "orden", "dir", "registro", "hoja"] as const).flatMap((key) => {
+      const value = query[key];
+      return typeof value === "string" ? [[key, value]] : [];
+    }),
+  );
   const pendientes = (Object.keys(textos) as (keyof typeof textos)[]).filter((code) =>
     copyStatus(code).startsWith("Pendiente"),
   );
@@ -358,6 +366,18 @@ export default function MarcaPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section id="trabajo" className="flex scroll-mt-6 flex-col gap-6">
+        <BarraTitulo color="amarillo" className="self-start">
+          Componentes de trabajo
+        </BarraTitulo>
+        <p className="max-w-prose">
+          Tramo R6-B: la tabla de trabajo con orden, densidad y selección; la barra de acciones en
+          lote; la vista dividida con su panel de detalle; los campos de formulario y la hoja
+          inferior. La URL lleva el estado, así que cada vista se puede compartir.
+        </p>
+        <WorkComponents params={workParams} />
       </section>
 
       <section className="flex flex-col gap-4">

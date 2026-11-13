@@ -56,6 +56,8 @@
   --radius-tarjeta: 1.25rem;
   --radius-marco: 1.25rem;
   --radius-barra: 1.5rem;
+  /* Alto mínimo de un control (R6-B): 44 px en Mi OE y el modo de campo; 40 px en la Operación. */
+  --alto-control: 2.75rem;
 }
 
 /* Tokens semánticos: cambian con el tema; los carteles no. */
@@ -94,6 +96,8 @@
   --color-accion-asistencia-tinta: var(--accion-asistencia-tinta);
   --color-activo: var(--activo);
   --color-activo-tinta: var(--activo-tinta);
+  /* Campos (ADR-163 regla 6): en Mi OE, superficie con sombra; en la Operación, una línea. */
+  --color-campo-borde: var(--campo-borde);
 }
 
 :root {
@@ -139,6 +143,8 @@
   --flota-tinta: #f6f6f6;
   --sombra-flota: 0 1px 2px rgb(0 31 62 / 0.04), 0 12px 32px rgb(0 31 62 / 0.07);
   --sombra-control: 0 1px 2px rgb(0 31 62 / 0.05), 0 6px 16px rgb(0 31 62 / 0.06);
+  --campo-borde: transparent;
+  --campo-sombra: var(--sombra-control);
   /* Fondo: del azul claro al papel, con cierre crema. La Operación cambia los tonos del medio. */
   --sobrio-desde: #dce6f4;
   --sobrio-medio-1: #edf1f6;
@@ -197,6 +203,8 @@
     --flota-tinta: #f6f6f6;
     --sombra-flota: none;
     --sombra-control: none;
+    --campo-borde: #24456a;
+    --campo-sombra: none;
     --sobrio-desde: #03203e;
     --sobrio-medio-1: #001a35;
     --sobrio-medio-2: #001a35;
@@ -248,6 +256,8 @@
   --flota-tinta: #f6f6f6;
   --sombra-flota: none;
   --sombra-control: none;
+  --campo-borde: #24456a;
+  --campo-sombra: none;
   --sobrio-desde: #03203e;
   --sobrio-medio-1: #001a35;
   --sobrio-medio-2: #001a35;
@@ -410,6 +420,27 @@
   box-shadow: var(--sombra-control);
 }
 
+/* Campo de formulario (ADR-163 regla 6, tramo R6-B): superficie, borde del área y sombra del área. Un
+   campo con error lleva el borde de error en los dos temas. */
+@utility campo {
+  min-height: var(--alto-control);
+  border: 1px solid var(--campo-borde);
+  border-radius: var(--radius-control);
+  background-color: var(--superficie);
+  box-shadow: var(--campo-sombra);
+  color: var(--tinta);
+  &::placeholder {
+    color: var(--tinta-secundaria);
+  }
+  &[aria-invalid="true"] {
+    border: 2px solid var(--error);
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
 /* Superficie navy que flota: barras de acción y avisos (ADR-163 reglas 8 y 11). */
 @utility superficie-flotante {
   border: 1px solid var(--flota-linea);
@@ -432,6 +463,9 @@
   --text-secundario--line-height: 1.125rem;
   --radius-control: 0.625rem;
   --radius-tarjeta: 1rem;
+  --alto-control: 2.5rem;
+  --campo-borde: var(--linea-campo);
+  --campo-sombra: none;
   --sobrio-medio-1: var(--sobrio-medio-1-escritorio);
   --sobrio-medio-2: var(--sobrio-medio-2-escritorio);
   --sobrio-angulo: 155deg;
@@ -601,6 +635,17 @@
     0.06em 0.06em 0 var(--color-oe-navy),
     0.08em 0.08em 0 var(--color-oe-navy);
   animation: sello-entra 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+/* La hoja inferior sube desde abajo; con movimiento reducido no se anima (BottomSheet, R6-B). */
+@keyframes hoja-sube {
+  from {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
 }
 @keyframes sello-entra {
   from {

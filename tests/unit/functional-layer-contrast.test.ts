@@ -267,6 +267,34 @@ describe("densidad de escritorio de la Operación (ADR-161 y ADR-163)", () => {
   });
 });
 
+describe("campos de formulario (ADR-163 regla 6, R6-B)", () => {
+  const desk = declarations(block('[data-densidad="escritorio"] {'));
+  const base = declarations(block("@theme {"));
+
+  it("en Mi OE el campo es una superficie con sombra y en la Operación lleva la línea", () => {
+    expect([light.get("campo-borde"), light.get("campo-sombra")]).toEqual([
+      "transparent",
+      "var(--sombra-control)",
+    ]);
+    expect([desk.get("campo-borde"), desk.get("campo-sombra")]).toEqual([
+      "var(--linea-campo)",
+      "none",
+    ]);
+  });
+
+  it("en oscuro el campo lleva una línea, porque no hay sombras", () => {
+    expect([darkChosen.get("campo-borde"), darkChosen.get("campo-sombra")]).toEqual([
+      "#24456a",
+      "none",
+    ]);
+  });
+
+  it("un control mide 44 px en Mi OE y 40 px en la Operación", () => {
+    const px = (rem: string | undefined) => Number.parseFloat(rem ?? "0") * 16;
+    expect([px(base.get("alto-control")), px(desk.get("alto-control"))]).toEqual([44, 40]);
+  });
+});
+
 describe("tipografía del aspecto sobrio (ADR-163 regla 3)", () => {
   const utility = (name: string) => block(`@utility ${name} {`);
 
