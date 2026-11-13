@@ -1,6 +1,6 @@
 # ADR-187: La entrada externa y la inscripción por la API
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Enmienda: ADR-090 (regla 7: la primera escritura pública de la API v1)
 - Relacionadas: ADR-013, ADR-037, ADR-085 (reglas 6 a 8 y 12, P2 y P3), ADR-183, ADR-184

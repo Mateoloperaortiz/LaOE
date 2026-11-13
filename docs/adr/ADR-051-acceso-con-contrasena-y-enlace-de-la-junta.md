@@ -1,6 +1,6 @@
 # ADR-051: Acceso con contraseña propia y enlace de un solo uso de la junta
 
-- Estado: Aceptada (enmendada por ADR-113, ADR-114, ADR-116, ADR-118)
+- Estado: Aceptada (enmendada por ADR-113, ADR-114, ADR-116, ADR-118); enmendada por ADR-184
 - Fecha: 2026-09-10
 - Enmienda: ADR-010, ADR-011, ADR-014 (seguridad), ADR-050
 - Relacionadas: ADR-012, ADR-023, ADR-034, ADR-038, ADR-047, ADR-048
@@ -81,3 +81,7 @@ La regla 15 dice que la baja y la anonimización borran la contraseña y los enl
 ## Enmienda (2026-10-08, ADR-118)
 
 La regla 15 dice que la baja borra la contraseña y los enlaces de la persona, junto al carnet, las sesiones y los permisos. El handler decidía con el estado que traía el evento, y un evento de baja reintentado después de un alta le quitaba a la persona la contraseña, el enlace y los permisos que acababa de recibir. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 5 lo precisa: la contraseña, los enlaces, el enlace del calendario y los permisos se retiran, en una sola transacción, si la baja sigue vigente cuando corre el evento. El carnet no cambia, porque lleva época, y las sesiones se siguen cerrando con el estado del evento. Quien vuelve antes de que el evento termine conserva la contraseña, los enlaces vigentes y los permisos que tenía (decisión abierta 44).
+
+## Enmienda (2026-11-13, ADR-184)
+
+El enlace de un solo uso que emite la junta también se emite para un **egresado**: membresía `INACTIVE` con `endReason = GRADUATION` y sin anonimizar. Con ese enlace elige su contraseña y entra con su correo institucional, como egresado: sin permisos y solo a las rutas de su red. La renuncia, la permanencia, la expulsión y la pérdida de la calidad de estudiante siguen sin volver a entrar. Ver [ADR-184](ADR-184-egresados-con-acceso.md), reglas 1 y 2.

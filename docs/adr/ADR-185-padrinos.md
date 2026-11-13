@@ -1,6 +1,6 @@
 # ADR-185: Padrinos
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-034, ADR-166, ADR-184, plan maestro del rediseño §2 (el nuevo) y §7 (ola 5)
 

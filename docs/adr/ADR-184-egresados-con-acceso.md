@@ -1,6 +1,6 @@
 # ADR-184: Egresados con acceso
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Enmienda: ADR-051 (quién recibe el enlace de la junta), ADR-034 (qué depura una baja)
 - Relacionadas: ADR-030, ADR-048, ADR-085, ADR-164, plan maestro del rediseño §7 (ola 5) y decisión abierta 8

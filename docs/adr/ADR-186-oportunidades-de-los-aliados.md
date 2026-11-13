@@ -1,6 +1,6 @@
 # ADR-186: Oportunidades de los aliados
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Relacionadas: ADR-033, ADR-184, plan maestro del rediseño §7 (ola 5)
 

@@ -1,6 +1,6 @@
 # ADR-163: Aspecto sobrio de la capa funcional
 
-- Estado: Aceptada el 2026-11-12 (enmendada por ADR-164)
+- Estado: Aceptada el 2026-11-12 (enmendada por ADR-164 y ADR-188)
 - Fecha: 2026-11-12
 - Enmienda: [ADR-158](ADR-158-la-marca-en-dos-capas.md) reglas 1, 2, 3 y 5; [ADR-161](ADR-161-densidad-de-escritorio-en-la-operacion.md) reglas 1 y 4
 - Relacionadas: ADR-043, ADR-044, ADR-158, ADR-159, ADR-160, ADR-161
@@ -99,3 +99,7 @@ Las maquetas se rehicieron con ese aspecto y con datos ficticios. Primero fueron
 ## Enmienda (2026-11-12, ADR-164)
 
 La consecuencia «Alcance» cambia ([ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md)). El aspecto no entra detrás de una bandera por persona: cada pantalla rediseñada lo lleva en la rama `feat/rediseno`, que sale para todos de una vez.
+
+## Enmienda (2026-11-13, ADR-188)
+
+Regla 1: el alcance suma las pantallas de acceso (ingreso, código, paso de seguridad, activación, autorización, baja y check-in por QR) y las de «no encontrado» y error general, con un marco propio (`AccessFrame`) y el aspecto de Mi OE. Las reglas del aspecto sobrio valen en los tres marcos también para las piezas del diseño anterior, y no entran a las zonas que declaran `data-capa="marca"` o `data-capa="juego"`. Ver [ADR-188](ADR-188-el-rediseno-llega-a-todas-las-pantallas.md), reglas 2 a 4.

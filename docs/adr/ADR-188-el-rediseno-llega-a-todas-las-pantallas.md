@@ -1,6 +1,6 @@
 # ADR-188: El rediseño llega a todas las pantallas
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-11-13)
 - Fecha: 2026-11-13
 - Enmienda: [ADR-158](ADR-158-la-marca-en-dos-capas.md) (la transición por pantallas) y [ADR-163](ADR-163-aspecto-sobrio-de-la-capa-funcional.md) regla 1 (el alcance suma las pantallas de acceso)
 - Relacionadas: ADR-044, ADR-159, ADR-160, ADR-161, ADR-164, [22-inventario-de-pantallas](../22-inventario-de-pantallas.md)
