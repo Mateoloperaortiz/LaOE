@@ -5,6 +5,7 @@ import {
   listPendingSurveys,
   listPendingVotes,
 } from "@/modules/participation";
+import { getPersonRecord } from "@/modules/people";
 import { listGroupIdsOf, listGroupRefs } from "@/modules/permanence";
 import { sortTodo, type TodoItem } from "./today-items";
 
@@ -15,6 +16,8 @@ import { sortTodo, type TodoItem } from "./today-items";
 // - Convocatorias: las abiertas de grupos donde no está ni se postuló.
 // - Solicitudes: las suyas que siguen en revisión.
 // - Encuestas: las que todavía puede responder, abiertas por su id con la sesión (ADR-174).
+// - Carnet: el UID del carnet universitario, mientras no lo haya registrado (ADR-150 regla 7): sin él
+//   no puede retirar materiales del inventario.
 // Los pasos de bienvenida los pinta la página con su botón.
 
 export async function loadTodo(
@@ -24,17 +27,27 @@ export async function loadTodo(
   now = new Date(),
 ): Promise<TodoItem[]> {
   const active = participationAllowed && termId !== null;
-  const [challenges, availabilityDone, openCalls, myEntries, myGroups, requests, surveys, votes] =
-    await Promise.all([
-      active ? listChallengesForMember(personId, termId, now) : [],
-      active ? hasWeeklyAvailability(personId, termId) : true,
-      active ? listOpenCalls(termId, now) : [],
-      active ? listMyEntries(personId) : [],
-      active ? listGroupIdsOf(personId) : [],
-      listRequestsByPerson(personId),
-      participationAllowed ? listPendingSurveys(personId, now) : [],
-      participationAllowed ? listPendingVotes(personId) : [],
-    ]);
+  const [
+    challenges,
+    availabilityDone,
+    openCalls,
+    myEntries,
+    myGroups,
+    requests,
+    surveys,
+    votes,
+    who,
+  ] = await Promise.all([
+    active ? listChallengesForMember(personId, termId, now) : [],
+    active ? hasWeeklyAvailability(personId, termId) : true,
+    active ? listOpenCalls(termId, now) : [],
+    active ? listMyEntries(personId) : [],
+    active ? listGroupIdsOf(personId) : [],
+    listRequestsByPerson(personId),
+    participationAllowed ? listPendingSurveys(personId, now) : [],
+    participationAllowed ? listPendingVotes(personId) : [],
+    participationAllowed ? getPersonRecord(personId) : null,
+  ]);
   const applied = new Set(myEntries.map((entry) => entry.callId));
   const inGroup = new Set(myGroups);
   const calls = openCalls.filter((call) => !applied.has(call.id) && !inGroup.has(call.groupId));
@@ -93,5 +106,16 @@ export async function loadTodo(
       href: `/app/asamblea/${vote.occasionId}`,
       due: now,
     })),
+    ...(who && !who.cardUid
+      ? [
+          {
+            id: "carnet",
+            kind: "card" as const,
+            subject: "",
+            href: "/app/ajustes#mis-datos",
+            due: null,
+          },
+        ]
+      : []),
   ]);
 }

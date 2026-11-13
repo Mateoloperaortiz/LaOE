@@ -52,6 +52,7 @@ test("ajustes: edita el celular, autoriza la foto y descarga sus datos", async (
   await sinViolaciones(page);
 
   await page.getByLabel(t("T-404")).fill("300 555 1234");
+  await page.getByRole("textbox", { name: t("T-4100"), exact: true }).fill("00 11 22 33");
   await page.getByRole("button", { name: t("T-253"), exact: true }).click();
   await expect(page.getByText(t("T-259"))).toBeVisible();
   await expect(page.getByLabel(t("T-404"))).toHaveValue("+573005551234");

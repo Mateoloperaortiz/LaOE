@@ -929,7 +929,7 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-4891",
     order: "TODO_KINDS",
-    positions: { evidence: 0, availability: 1, call: 2, request: 3, survey: 4, vote: 5 },
+    positions: { evidence: 0, availability: 1, call: 2, request: 3, survey: 4, vote: 5, card: 6 },
     canonical: TODO_KINDS,
   },
   {

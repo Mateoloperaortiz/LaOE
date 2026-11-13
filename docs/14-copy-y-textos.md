@@ -3366,7 +3366,7 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
 | T-4890 | Hoy: títulos nuevos de los bloques, en orden | Lo que sigue · Te toca · Juegos y retos | MATEO | Propuesta |
-| T-4891 | Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud · encuesta · votación) | Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión · Responde la encuesta de «{asunto}» · Vota en «{asunto}» | MATEO | Propuesta |
+| T-4891 | Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud · encuesta · votación · carnet) | Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión · Responde la encuesta de «{asunto}» · Vota en «{asunto}» · Registra el UID de tu carnet universitario | MATEO | Propuesta |
 | T-4892 | Hoy, «Te toca»: hasta cuándo se puede | Hasta el {fecha} | MATEO | Propuesta |
 | T-4893 | Hoy, «Juegos y retos»: enlace a la biblioteca de juegos | Jugar hoy | MATEO | Propuesta |
 

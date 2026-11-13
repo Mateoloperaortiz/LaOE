@@ -9,6 +9,7 @@ export const TODO_KINDS = [
   "request",
   "survey",
   "vote",
+  "card",
 ] as const;
 
 export type TodoKind = (typeof TODO_KINDS)[number];

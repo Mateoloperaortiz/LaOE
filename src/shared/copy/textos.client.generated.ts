@@ -468,6 +468,9 @@ export const textosCliente = {
   "T-404": "Celular",
   "T-405": "Correo personal",
   "T-406": "Correo institucional",
+  "T-4100": "UID del carnet universitario",
+  "T-4101":
+    "Escribe los cuatro pares hexadecimales de tu carnet, por ejemplo 0A 1B 2C 3D. Es distinto del ID EPIK.",
   "T-4605": "Hora de Colombia · bloques de 30 minutos",
   "T-4606": "Guardar disponibilidad",
   "T-4615": "{n} de {total} miembros respondieron",
