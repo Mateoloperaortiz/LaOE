@@ -105,7 +105,7 @@ export default async function JuegosPage({ searchParams }: PageProps<"/app/juego
         </div>
       </header>
 
-      <section className={styles.feature} aria-labelledby="color-feature-title">
+      <section className={styles.feature} aria-labelledby="color-feature-title" data-capa="marca">
         <div>
           <h2 id="color-feature-title" className={styles.featureQuestion}>
             {t("T-3488")}

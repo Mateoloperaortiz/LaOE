@@ -3,7 +3,18 @@
    superficie blanca. Estas reglas también dan el aspecto sobrio a las páginas de siempre (títulos,
    botones y campos) mientras su contenido se rediseña en la ola 2. */
 .admin-shell {
-  --radius-cartel: 0.75rem;
+  /* Los tokens del diseño anterior valen lo de la capa funcional (ADR-188): una caja de antes es una
+     superficie plana, separada por la línea neutra, con las esquinas de una tarjeta. */
+  --radius-cartel: var(--radius-tarjeta);
+  --borde: var(--linea);
+  --fondo: var(--superficie);
+  --fondo-suave: var(--panel);
+  --tinta-suave: var(--tinta-secundaria);
+  /* Los alias del tema se resuelven en la raíz: se vuelven a declarar para las hojas que los leen directo. */
+  --color-borde: var(--borde);
+  --color-fondo: var(--fondo);
+  --color-fondo-suave: var(--fondo-suave);
+  --color-tinta-suave: var(--tinta-suave);
   --ancho-barra: 15rem;
   display: grid;
   grid-template-columns: var(--ancho-barra) minmax(0, 1fr);
@@ -77,6 +88,8 @@
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.4;
+  /* El fondo sale de un token que cambia con el tema: sin transición no queda a medio camino. */
+  transition: none;
 }
 .admin-shell .boton-secundario {
   border: 0;
@@ -152,6 +165,30 @@
 .admin-shell :is(.text-display-md, .text-display-lg):not(h1) {
   font-size: 1.5rem;
   line-height: 1.35;
+}
+/* El peso máximo de la capa funcional es 600 (ADR-163 regla 3). */
+.admin-shell :is(strong, b, th, legend, .font-bold, .font-extrabold, .font-black) {
+  font-weight: 600;
+}
+/* La insignia de contorno y los avisos usan las líneas neutras, no el azul ni el naranja de la marca
+   (ADR-163 regla 4). Un aviso de error lleva el color de error. */
+.admin-shell :is(.border-oe-blue-soft, .border-oe-orange) {
+  border-color: var(--linea-fuerte);
+}
+.admin-shell [role="alert"].border-oe-orange {
+  border-color: var(--error);
+}
+/* Las cifras de una pantalla de trabajo van en la familia de contenido (ADR-163 regla 3): 30/36 en
+   peso 600. El numeral condensado queda para los momentos de marca. */
+.admin-shell .font-display {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.admin-shell .font-display:is(.text-display-md, .text-display-lg, .panorama-cifra-valor) {
+  font-size: var(--text-cifra);
+  line-height: var(--text-cifra--line-height);
 }
 
 /* La barra lateral: va sobre el fondo, sin superficie ni borde (ADR-163 regla 9). */
@@ -657,9 +694,6 @@ body:has(.admin-shell dialog[open]) {
 }
 .admin-dashboard section {
   min-width: 0;
-}
-.admin-dashboard section:first-child {
-  border-top: 3px solid var(--color-oe-blue);
 }
 
 /* Por debajo de 1280 px, el menú completo está en el cajón; por debajo de 1024, no hay barra lateral. */

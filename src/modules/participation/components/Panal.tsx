@@ -179,7 +179,7 @@ export function Panal({ initial, onStart, onWord }: Props) {
   }
 
   return (
-    <section id="panal" aria-label={t("T-2722")} className={styles.game}>
+    <section id="panal" data-capa="juego" aria-label={t("T-2722")} className={styles.game}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-borde pb-4">
         <time dateTime={initial.day} className="text-sm text-tinta-suave">
           {new Intl.DateTimeFormat("es-CO", {

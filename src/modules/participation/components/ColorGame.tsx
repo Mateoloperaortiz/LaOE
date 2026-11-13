@@ -214,7 +214,7 @@ export function ColorGame({ initial, onStart, onNextRound, onSubmit }: Props) {
   );
 
   return (
-    <section id="color" aria-label={t("T-3487")} className={styles.game}>
+    <section id="color" data-capa="juego" aria-label={t("T-3487")} className={styles.game}>
       <div className={styles.bar}>
         <p>{t("T-3495")}</p>
         {run ? (

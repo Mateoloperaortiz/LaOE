@@ -35,7 +35,7 @@ export function GalleryHome({ collection }: { collection: GalleryCollectionView 
       </header>
       {collection ? (
         <>
-          <section className={styles.hero} aria-label={collection.title}>
+          <section className={styles.hero} aria-label={collection.title} data-capa="marca">
             <div className={styles.heroCopy}>
               <h2>{collection.title.replace(/ (\d{4})$/, "\n$1")}</h2>
               <p>{collection.description || t("T-3272")}</p>
@@ -128,7 +128,7 @@ export function GalleryHome({ collection }: { collection: GalleryCollectionView 
               <p className={styles.empty}>{t("T-3294")}</p>
             )}
           </section>
-          <footer className={styles.endnote}>
+          <footer className={styles.endnote} data-capa="marca">
             <span>{t("T-3296", { coleccion: collection.title })}</span>
             <strong>{t("T-037")}</strong>
           </footer>

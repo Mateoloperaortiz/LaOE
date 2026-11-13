@@ -1,9 +1,10 @@
 .root {
   container-type: inline-size;
   min-width: 0;
-  border: 1px solid var(--borde);
-  border-radius: var(--radius-cartel);
-  background: var(--fondo);
+  border: 1px solid var(--superficie-borde);
+  border-radius: var(--radius-tarjeta);
+  background: var(--superficie);
+  box-shadow: var(--sombra-control);
   color: var(--tinta);
 }
 

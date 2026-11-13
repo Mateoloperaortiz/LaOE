@@ -164,6 +164,7 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
   return (
     <section
       id="wordle"
+      data-capa="juego"
       aria-labelledby="wordle-title"
       className="rounded-[var(--radius-cartel)] border-2 border-borde bg-fondo-alterno p-4 sm:p-6"
     >

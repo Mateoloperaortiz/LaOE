@@ -18,7 +18,7 @@
 }
 .puesto {
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 600;
   text-align: right;
 }
 .color {
@@ -34,7 +34,7 @@
 }
 .puntos {
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 600;
 }
 .unidad {
   font-size: 0.75em;

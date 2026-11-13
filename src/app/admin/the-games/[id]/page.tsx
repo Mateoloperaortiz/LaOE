@@ -283,7 +283,7 @@ export default async function CompetitionPage({
               <Link
                 href={option.href}
                 aria-current={area === option.value ? "page" : undefined}
-                className={`inline-block rounded-t-xl border-b-2 px-4 py-3 text-sm font-semibold ${area === option.value ? "border-oe-orange bg-fondo-suave text-titulo" : "border-transparent text-titulo hover:bg-fondo-suave"}`}
+                className={`inline-block whitespace-nowrap rounded-t-xl px-3 py-2 text-sm font-semibold ${area === option.value ? "bg-accion text-accion-tinta" : "text-titulo hover:bg-relleno"}`}
               >
                 {option.label}
               </Link>

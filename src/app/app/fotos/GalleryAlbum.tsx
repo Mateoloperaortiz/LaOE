@@ -99,7 +99,7 @@ export function GalleryAlbum({ album }: { album: GalleryAlbumPage }) {
           </button>
         ) : null}
       </div>
-      <footer className={styles.endnote}>
+      <footer className={styles.endnote} data-capa="marca">
         <span>{t("T-3296", { coleccion: album.collectionTitle })}</span>
         <strong>{t("T-037")}</strong>
       </footer>

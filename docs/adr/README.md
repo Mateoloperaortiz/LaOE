@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-188](ADR-188-el-rediseno-llega-a-todas-las-pantallas.md) | El rediseño llega a todas las pantallas | Propuesta |
 | [ADR-187](ADR-187-la-entrada-externa-y-la-inscripcion-por-la-api.md) | La entrada externa y la inscripción por la API | Propuesta |
 | [ADR-186](ADR-186-oportunidades-de-los-aliados.md) | Oportunidades de los aliados | Propuesta |
 | [ADR-185](ADR-185-padrinos.md) | Padrinos | Propuesta |

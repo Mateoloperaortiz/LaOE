@@ -25,7 +25,7 @@ export function Pestanas({ personId, active }: Props) {
               href={`/admin/personas/${personId}?pestana=${tab}`}
               aria-current={tab === active ? "page" : undefined}
               className={`inline-block whitespace-nowrap rounded-t-xl px-3 py-2 text-sm font-semibold ${
-                tab === active ? "bg-oe-navy text-oe-paper" : "text-titulo hover:bg-fondo-suave"
+                tab === active ? "bg-accion text-accion-tinta" : "text-titulo hover:bg-relleno"
               }`}
             >
               {labels[tab]}

@@ -13,7 +13,7 @@ export function GamePreview({ game, featured = false }: { game: GamerGame; featu
     );
   }
   return (
-    <span className={styles.preview} aria-hidden="true">
+    <span className={styles.preview} data-capa="juego" aria-hidden="true">
       {game === "WORDLE" ? (
         <span className={styles.word}>
           {Array.from({ length: 5 }, (_, index) => index + 1).map((cell) => (

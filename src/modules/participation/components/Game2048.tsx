@@ -266,6 +266,7 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
   return (
     <section
       id="game2048"
+      data-capa="juego"
       aria-labelledby="game2048-title"
       className="flex flex-col gap-5 rounded-[var(--radius-cartel)] border-2 border-borde bg-fondo-alterno p-4 sm:p-6"
     >

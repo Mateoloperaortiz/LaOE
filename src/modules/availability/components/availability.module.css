@@ -58,9 +58,11 @@
 .gridScroll {
   overflow: auto;
   max-height: 29rem;
-  border: 1px solid var(--borde);
-  border-radius: 0.75rem;
-  scrollbar-color: var(--borde) var(--fondo);
+  border: 1px solid var(--superficie-borde);
+  border-radius: var(--radius-tarjeta);
+  background: var(--superficie);
+  box-shadow: var(--sombra-control);
+  scrollbar-color: var(--linea-fuerte) var(--superficie);
 }
 .grid {
   width: 100%;
@@ -217,8 +219,10 @@
 .dates button {
   min-height: 44px;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--borde);
-  border-radius: 0.5rem;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--relleno);
+  color: var(--titulo);
 }
 .divider {
   border-top: 1px solid var(--borde);

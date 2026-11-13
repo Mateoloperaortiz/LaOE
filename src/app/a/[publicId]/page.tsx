@@ -27,7 +27,7 @@ import { excuseCell } from "@/modules/participation/admin";
 import { getMembershipRef } from "@/modules/people";
 import { resolveAlias } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
-import { Cartel, Elemento, LogoOE, MomentoExito } from "@/shared/brand";
+import { Elemento, LogoOE, MomentoExito } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateRange, formatTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
@@ -273,14 +273,11 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
       <Link href="/app" className="self-start text-titulo" aria-label={inicio}>
         <LogoOE height={72} />
       </Link>
-      <Cartel
-        variante="navy"
-        nivel="h1"
-        tamano="hero"
-        eyebrow={t("T-534")}
-        titulo={t("T-090", { "nombre de la actividad": row.title })}
-      >
-        <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-base">
+      {/* Una tarjeta de trabajo (ADR-188): el momento de marca es el sello del registro, no el formulario. */}
+      <section className="flex flex-col gap-4 rounded-tarjeta border border-superficie-borde bg-superficie p-6 sombra-flota">
+        <span className="etiqueta-corta block text-tinta-secundaria">{t("T-534")}</span>
+        <h1 className="titulo-pantalla">{t("T-090", { "nombre de la actividad": row.title })}</h1>
+        <dl className="flex flex-wrap gap-x-6 gap-y-1 text-base">
           <div className="flex gap-2">
             <dt className="shrink-0 font-semibold">{cuando}</dt>
             <dd>{formatDateRange(row.startsAt, row.endsAt)}</dd>
@@ -302,7 +299,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
             </dd>
           </div>
         </dl>
-        <div className="mt-8 flex flex-col items-start gap-4" aria-live="polite">
+        <div className="mt-4 flex flex-col items-start gap-4" aria-live="polite">
           {actor.membershipStatus === "ON_LEAVE" ? (
             <p className="max-w-prose text-xl font-semibold">{t("T-2041")}</p>
           ) : view.kind === "message" ? (
@@ -359,7 +356,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
                     defaultValue={code}
                     aria-invalid={view.codeError ? true : undefined}
                     aria-describedby={view.codeError ? "codigo-error" : undefined}
-                    className="rounded-xl border border-borde bg-white px-4 py-3 text-2xl tracking-[0.3em] text-oe-navy"
+                    className="px-4 py-3 text-2xl tracking-[0.3em]"
                   />
                   {view.codeError ? (
                     <span id="codigo-error" className="text-sm font-normal">
@@ -375,7 +372,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
                     name="boosterId"
                     defaultValue={targeted?.id ?? ""}
                     aria-describedby={view.boosterError ? "booster-error" : undefined}
-                    className="rounded-xl border border-borde bg-white px-4 py-3 text-oe-navy"
+                    className="px-4 py-3"
                   >
                     <option value="">{selectorLabels[0]}</option>
                     {selectable.map((item) => (
@@ -404,7 +401,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
             </ActionForm>
           )}
         </div>
-      </Cartel>
+      </section>
     </main>
   );
 }

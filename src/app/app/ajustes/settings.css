@@ -13,17 +13,18 @@
   align-items: center;
   min-height: 44px;
   padding: 0.65rem 0.8rem;
-  border: 1px solid var(--borde);
-  border-radius: 0.75rem;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--relleno);
+  color: var(--titulo);
   font-size: 0.875rem;
   line-height: 1.45;
   text-decoration: none;
 }
 .member-settings .settings-navigation a[aria-current="location"] {
-  border-color: var(--titulo);
-  background: var(--fondo-suave);
-  color: var(--titulo);
-  font-weight: 700;
+  background: var(--accion);
+  color: var(--accion-tinta);
+  font-weight: 600;
 }
 .member-settings section {
   min-width: 0;

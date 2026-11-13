@@ -84,6 +84,8 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
         <p className="max-w-prose text-sm text-tinta-suave">{t("T-1118")}</p>
         {preview ? (
           <div
+            // El correo se ve con su propio diseño de marca, no con el de la pantalla (ADR-158 regla 1).
+            data-capa="marca"
             className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde bg-white text-black"
             // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML generado por la app desde Markdown escapado (ADR-038 regla 8)
             dangerouslySetInnerHTML={{ __html: preview.preview }}

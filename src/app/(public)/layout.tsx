@@ -18,7 +18,8 @@ export default function PublicLayout({ children }: LayoutProps<"/">) {
   const contacto = tList("T-013").filter((item) => item !== "redes"); // redes: por confirmar (T-013)
   const enlaces = tList("T-038").filter((nombre) => nombre in RUTAS);
   return (
-    <div className="portal-shell">
+    // El portal es capa de marca (ADR-158 regla 1): conserva la línea gráfica del manual y lo declara.
+    <div className="portal-shell" data-capa="marca">
       <a
         href="#contenido"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-oe-yellow focus:px-4 focus:py-2 focus:text-oe-navy"

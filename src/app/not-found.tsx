@@ -1,17 +1,21 @@
 import { Elemento } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { AppLink as Link } from "@/shared/ui/AppLink";
+import { AccessFrame } from "./_ui/AccessFrame";
 
 export default function NotFound() {
   const [inicio] = tList("T-038");
   const [mensaje, accion] = t("T-2721").split(". ");
+  // Fuera de las áreas no hay marco: la pantalla trae el de la capa funcional (ADR-188).
   return (
-    <main className="mx-auto flex max-w-2xl flex-1 flex-col items-start justify-center gap-6 px-4 py-16">
-      <Elemento tipo="destello" className="size-16 text-oe-orange" />
-      <h1 className="text-display-lg">{mensaje}.</h1>
-      <Link href="/" className="boton-primario">
-        {(accion ?? inicio ?? "").replace(/\.$/, "")}
-      </Link>
-    </main>
+    <AccessFrame>
+      <main className="mx-auto flex max-w-2xl flex-1 flex-col items-start justify-center gap-6 px-4 py-16">
+        <Elemento tipo="destello" className="size-16 text-oe-orange" />
+        <h1 className="text-display-lg">{mensaje}.</h1>
+        <Link href="/" className="boton-primario">
+          {(accion ?? inicio ?? "").replace(/\.$/, "")}
+        </Link>
+      </main>
+    </AccessFrame>
   );
 }

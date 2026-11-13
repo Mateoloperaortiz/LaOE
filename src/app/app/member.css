@@ -6,7 +6,7 @@
   min-width: 0;
   min-height: 100dvh;
 }
-.member-shell h1 {
+:is(.member-shell, .acceso-shell) h1 {
   font-family: var(--font-sans);
   font-size: var(--text-pantalla);
   line-height: var(--text-pantalla--line-height);
@@ -15,7 +15,7 @@
   text-transform: none;
   text-wrap: pretty;
 }
-.member-shell :is(h2, h3) {
+:is(.member-shell, .acceso-shell) :is(h2, h3) {
   font-family: var(--font-sans);
   font-size: var(--text-seccion);
   line-height: var(--text-seccion--line-height);
@@ -23,86 +23,252 @@
   text-transform: none;
   text-wrap: pretty;
 }
-.member-shell .barra-titulo {
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  line-height: 1.1;
-  text-transform: uppercase;
+:is(.member-shell, .acceso-shell) .barra-titulo {
+  padding-right: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-seccion);
+  line-height: var(--text-seccion--line-height);
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
 }
-.member-shell .barra-titulo::before {
-  left: -1rem;
-  pointer-events: none;
+:is(.member-shell, .acceso-shell) h1.barra-titulo {
+  font-size: var(--text-pantalla);
+  line-height: var(--text-pantalla--line-height);
+  letter-spacing: -0.01em;
 }
-.member-shell .text-display-md:not(h1, h2, h3) {
+/* La barra de color es de la capa de marca: un título de trabajo no la lleva (ADR-158 regla 6). */
+:is(.member-shell, .acceso-shell) .barra-titulo::before {
+  content: none;
+}
+:is(.member-shell, .acceso-shell) .text-display-md:not(h1, h2, h3) {
   font-family: var(--font-sans);
   font-size: 1.125rem;
   line-height: 1.4;
   font-weight: 600;
 }
-.member-shell .eyebrow {
+:is(.member-shell, .acceso-shell) .eyebrow {
   font-size: 0.8125rem;
   letter-spacing: 0.02em;
   text-transform: none;
 }
-.member-shell :is(.boton-primario, .boton-secundario, .boton-calido) {
+/* Los botones de antes, con el aspecto de los nuevos (ADR-163 reglas 4 y 6): esquinas de 14 px, el
+   principal en navy y el secundario con relleno y sin borde. Dentro de un cartel se quedan como son:
+   es un momento de marca y lleva su propia tinta. */
+:is(.member-shell, .acceso-shell)
+  :is(.boton-primario, .boton-secundario, .boton-calido):not(
+    :is(.cartel, [data-capa="marca"], [data-capa="juego"]) *
+  ) {
   min-height: 44px;
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border: 0;
+  border-radius: var(--radius-control);
+  font-size: 0.9375rem;
+  font-weight: 600;
   line-height: 1.4;
+  /* El fondo sale de un token que cambia con el tema: sin transición, el botón nunca queda a medio
+     camino entre los dos, con el texto ya en el color nuevo. */
+  transition: none;
 }
-.member-shell .boton-secundario {
-  border-width: 1px;
+:is(.member-shell, .acceso-shell)
+  :is(.boton-primario, .boton-calido):not(
+    :is(.cartel, [data-capa="marca"], [data-capa="juego"]) *
+  ) {
+  background: var(--accion);
+  color: var(--accion-tinta);
 }
-.member-shell :is(input, textarea, select) {
+:is(.member-shell, .acceso-shell)
+  :is(.boton-primario, .boton-calido):not(
+    :is(.cartel, [data-capa="marca"], [data-capa="juego"]) *
+  ):hover {
+  background: color-mix(in oklab, var(--accion) 88%, var(--accion-tinta));
+}
+:is(.member-shell, .acceso-shell)
+  .boton-secundario:not(:is(.cartel, [data-capa="marca"], [data-capa="juego"]) *) {
+  background: var(--relleno);
+  /* Un control suelto sobre el fondo se separa con la sombra suave (ADR-163 regla 7). */
+  box-shadow: var(--sombra-control);
+  color: var(--titulo);
+}
+:is(.member-shell, .acceso-shell)
+  .boton-secundario:not(:is(.cartel, [data-capa="marca"], [data-capa="juego"]) *):hover {
+  background: color-mix(in oklab, var(--relleno) 90%, var(--titulo));
+}
+:is(.member-shell, .acceso-shell) :is(input, textarea, select) {
   min-width: 0;
   max-width: 100%;
 }
-.member-shell
+:is(.member-shell, .acceso-shell)
   :is(
     input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="file"]),
     textarea,
     select
   ) {
   min-height: 44px;
-  border-width: 1px;
+  border: 1px solid var(--campo-borde);
+  border-radius: var(--radius-control);
+  background-color: var(--superficie);
+  box-shadow: var(--campo-sombra);
+  color: var(--tinta);
   font-size: 1rem;
 }
-.member-shell :is(fieldset, form, article, section) {
+:is(.member-shell, .acceso-shell) :is(input, textarea, select)[aria-invalid="true"] {
+  border: 2px solid var(--error);
+}
+:is(.member-shell, .acceso-shell) :is(fieldset, form, article, section) {
   min-width: 0;
 }
-.member-shell :is(button, input, textarea, select):disabled {
+:is(.member-shell, .acceso-shell) :is(button, input, textarea, select):disabled {
   cursor: wait;
   opacity: 0.65;
 }
-.member-shell :is(a, button, summary, input, textarea, select):focus-visible {
+:is(.member-shell, .acceso-shell) :is(a, button, summary, input, textarea, select):focus-visible {
   outline: 2px solid var(--titulo);
   outline-offset: 3px;
 }
-.member-shell summary {
+:is(.member-shell, .acceso-shell) summary {
   min-height: 44px;
   cursor: pointer;
 }
-.member-shell .cartel {
+:is(.member-shell, .acceso-shell) .cartel {
   min-height: 0;
   padding: 1.5rem;
 }
-.member-shell .cartel :is(h1, h2, h3) {
+:is(.member-shell, .acceso-shell) .cartel :is(h1, h2, h3) {
   color: inherit;
 }
-.member-shell .member-points-summary h2 {
+:is(.member-shell, .acceso-shell) .member-points-summary h2 {
   font-family: var(--font-display);
   font-size: 2.5rem;
 }
-.member-shell .member-points-summary .mt-6 {
+:is(.member-shell, .acceso-shell) .member-points-summary .mt-6 {
   margin-top: 0.5rem;
 }
-.member-shell :is(.overflow-x-auto, .overflow-auto) {
+:is(.member-shell, .acceso-shell) :is(.overflow-x-auto, .overflow-auto) {
   position: relative;
   max-width: 100%;
   overscroll-behavior-x: contain;
 }
-.member-shell [id] {
+:is(.member-shell, .acceso-shell) [id] {
   scroll-margin-top: 5.5rem;
+}
+/* Las piezas de siempre toman el aspecto sobrio (ADR-188, sobre ADR-163). Dentro del marco de Mi OE y
+   del de acceso, los tokens del diseño anterior valen lo que vale la capa funcional: una pantalla que
+   todavía usa `border-borde`, `bg-fondo` o `text-tinta-suave` se pinta como las nuevas, en cualquiera
+   de sus estados. Los momentos de marca (`.cartel`, `[data-capa="marca"]`) conservan lo suyo. */
+:is(.member-shell, .acceso-shell) {
+  --borde: var(--linea-tenue);
+  --fondo: var(--superficie);
+  --fondo-suave: var(--panel);
+  --tinta-suave: var(--tinta-secundaria);
+  --radius-cartel: var(--radius-tarjeta);
+  /* Los alias del tema se resuelven en la raíz: se vuelven a declarar para que los hereden las hojas
+     que los leen directo (`var(--color-borde)`). */
+  --color-borde: var(--borde);
+  --color-fondo: var(--fondo);
+  --color-fondo-suave: var(--fondo-suave);
+  --color-tinta-suave: var(--tinta-suave);
+}
+/* Un tablero de juego se queda como es (inventario de pantallas): adentro valen los tokens de antes. */
+:is(.member-shell, .acceso-shell) [data-capa="juego"] {
+  --borde: var(--color-oe-blue-soft);
+  --fondo: var(--color-oe-paper);
+  --fondo-suave: var(--color-oe-sky);
+  --color-borde: var(--borde);
+  --color-fondo: var(--fondo);
+  --color-fondo-suave: var(--fondo-suave);
+}
+/* Una caja de antes que flota sobre el fondo es una superficie: sin borde y con sombra suave (ADR-163
+   regla 7). La que va dentro de otra se separa con la línea tenue, que es lo que ya vale `--borde`. El
+   fondo de superficie es solo para la que no trae uno propio: una fila resaltada conserva el suyo. */
+:is(.member-shell, .acceso-shell)
+  :is(.border, .border-2).border-borde:not(
+    .border-borde .border-borde,
+    :is(.cartel, [data-capa="marca"], [data-capa="juego"]) *,
+    input,
+    select,
+    textarea,
+    table
+  ) {
+  border-width: 1px;
+  border-color: var(--superficie-borde);
+  box-shadow: var(--sombra-control);
+}
+:is(.member-shell, .acceso-shell)
+  :is(.border, .border-2).border-borde:not(
+    .border-borde .border-borde,
+    :is(.cartel, [data-capa="marca"], [data-capa="juego"]) *,
+    [class*="bg-"],
+    input,
+    select,
+    textarea,
+    table
+  ) {
+  background-color: var(--superficie);
+}
+/* El grano va solo en las superficies de marca, nunca detrás de texto de trabajo (ADR-158 regla 6). */
+:is(.member-shell, .acceso-shell)
+  .textura-granito:not(.cartel, :is(.cartel, [data-capa="marca"], [data-capa="juego"]) *) {
+  background-image: none;
+}
+/* Las cifras de una pantalla de trabajo van en la familia de contenido; el numeral condensado queda
+   para los momentos de marca (ADR-163 regla 3). */
+:is(.member-shell, .acceso-shell)
+  .font-display:not(:is(.cartel, [data-capa="marca"], [data-capa="juego"]) *) {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+:is(.member-shell, .acceso-shell)
+  :is(.text-display-lg, .text-display-xl):not(
+    h1,
+    h2,
+    h3,
+    :is(.cartel, [data-capa="marca"], [data-capa="juego"]) *
+  ) {
+  font-family: var(--font-sans);
+  font-size: var(--text-cifra);
+  line-height: var(--text-cifra--line-height);
+  font-weight: 600;
+  text-transform: none;
+}
+/* Un bloque con el color de texto fijo (navy sobre amarillo, paper sobre navy) lo hereda a sus títulos:
+   el color de título cambia con el tema y, en oscuro, quedaría claro sobre claro. */
+:is(.member-shell, .acceso-shell) :is(.text-oe-navy, .text-oe-paper) :is(h1, h2, h3, h4) {
+  color: inherit;
+}
+/* El peso máximo de la capa funcional es 600 (ADR-163 regla 3). */
+:is(.member-shell, .acceso-shell)
+  :is(strong, b, th, legend, .font-bold, .font-extrabold, .font-black):not(
+    :is(.cartel, [data-capa="marca"], [data-capa="juego"]) *
+  ) {
+  font-weight: 600;
+}
+/* La insignia de contorno y los avisos usan las líneas neutras, no el azul ni el naranja de la marca
+   (ADR-163 regla 4). Un aviso de error lleva el color de error. */
+:is(.member-shell, .acceso-shell)
+  :is(.border-oe-blue-soft, .border-oe-orange):not(
+    :is(.cartel, [data-capa="marca"], [data-capa="juego"]) *
+  ) {
+  border-color: var(--linea-fuerte);
+}
+:is(.member-shell, .acceso-shell)
+  [role="alert"].border-oe-orange:not(:is(.cartel, [data-capa="marca"], [data-capa="juego"]) *) {
+  border-color: var(--error);
+}
+/* Un error se dice con el color de error, no con el naranja de la marca (ADR-158 regla 4). */
+:is(.member-shell, .acceso-shell)
+  .text-oe-orange:not(svg, :is(.cartel, [data-capa="marca"], [data-capa="juego"]) *) {
+  color: var(--error);
+}
+/* El marco de las pantallas de acceso (ADR-188): ingreso, activación, autorización, baja y check-in. */
+.acceso-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100dvh;
 }
 .member-topbar {
   position: sticky;
@@ -300,9 +466,10 @@
   padding: 0;
 }
 .member-agenda-item {
-  border: 1px solid var(--borde);
-  border-radius: 0.875rem;
-  background: var(--fondo);
+  border: 1px solid var(--superficie-borde);
+  border-radius: var(--radius-tarjeta);
+  background: var(--superficie);
+  box-shadow: var(--sombra-control);
 }
 .member-agenda-summary {
   display: flex;
@@ -345,9 +512,11 @@
 }
 .member-notices {
   padding: 1rem;
-  border: 1px solid var(--borde);
-  border-left: 4px solid var(--color-oe-orange);
-  border-radius: 0.75rem;
+  border: 1px solid var(--superficie-borde);
+  border-left: 4px solid var(--linea-fuerte);
+  border-radius: var(--radius-tarjeta);
+  background: var(--superficie);
+  box-shadow: var(--sombra-control);
 }
 .member-notices summary {
   display: flex;

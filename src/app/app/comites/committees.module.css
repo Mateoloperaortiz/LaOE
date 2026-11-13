@@ -50,9 +50,10 @@
   flex-direction: column;
   gap: 1rem;
   padding: 1.25rem;
-  border: 1px solid var(--borde);
-  border-radius: 1rem;
-  background: var(--fondo);
+  border: 1px solid var(--superficie-borde);
+  border-radius: var(--radius-tarjeta);
+  background: var(--superficie);
+  box-shadow: var(--sombra-control);
   color: var(--titulo);
   text-decoration: none;
   transition:

@@ -2,6 +2,8 @@
 
 Tramo de la ola 0 del rediseño ([ADR-158](adr/ADR-158-la-marca-en-dos-capas.md), [ADR-159](adr/ADR-159-la-operacion-es-de-escritorio.md) y [ADR-160](adr/ADR-160-la-navegacion-de-mi-oe.md)). Hecho el 2026-11-08 sobre `main` en `c2f06fb`, a partir de cada `page.tsx` de `src/app`: su comentario de cabecera, sus componentes y su guard.
 
+> **Nota del 2026-11-13.** Desde [ADR-188](adr/ADR-188-el-rediseno-llega-a-todas-las-pantallas.md) ninguna pantalla espera su ola para verse con el rediseño: los marcos revisten las piezas de siempre, y las pantallas de acceso tienen su propio marco. La columna **Ola** queda como registro de cuándo se pensaba rehacer la estructura de cada una. Este inventario es del 2026-11-08 y cuenta 124 páginas; hoy son 150.
+
 ## Cómo leerlo
 
 - **Cuántas son.** Hay 124 páginas: 74 de la Operación (`/admin`), 31 de Mi OE (`/app`), 11 del portal y 8 de acceso.

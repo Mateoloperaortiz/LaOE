@@ -19,7 +19,7 @@ export function GamerPodium({
   const limited = leaderboard.length === 10 && (leaderboard.at(-1)?.rank ?? 4) <= 3;
 
   return (
-    <section aria-labelledby="gamer-podium-title" className={styles.podium}>
+    <section aria-labelledby="gamer-podium-title" className={styles.podium} data-capa="marca">
       <h3 id="gamer-podium-title" className={styles.title}>
         {t("T-3549")}
       </h3>

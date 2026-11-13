@@ -318,6 +318,7 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
   return (
     <section
       id="sudoku"
+      data-capa="juego"
       aria-labelledby="sudoku-title"
       className="flex flex-col gap-5 rounded-[var(--radius-cartel)] border-2 border-borde bg-fondo-alterno p-3 sm:p-6"
     >
