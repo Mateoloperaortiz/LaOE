@@ -33,9 +33,10 @@ test("pedir licencia, aprobarla y conservar el acceso de consulta", async ({
       await page.getByLabel(t("T-238")).fill(CODE);
       await page.getByRole("button", { name: t("T-046") }).click();
       await expect(page).toHaveURL(/\/app$/);
-      await page.getByRole("button", { name: t("T-1662"), exact: true }).click();
+      await page.getByRole("link", { name: tList("T-4872")[4], exact: true }).click();
+      await page.waitForURL(/\/app\/yo$/);
       await page
-        .getByRole("dialog", { name: t("T-1660"), exact: true })
+        .getByRole("main")
         .getByRole("link", { name: tList("T-061")[7], exact: true })
         .click();
       await page.waitForURL(/\/app\/solicitudes$/);

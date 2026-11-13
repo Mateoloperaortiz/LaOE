@@ -22,7 +22,26 @@ function logRestore(testInfo: TestInfo, startedAt: Date, ms: number): void {
 }
 
 /** Antes de los beforeEach del spec, también cuando se filtra un caso o se reintenta. */
-export const test = base.extend<{ isolatedData: undefined }>({
+export const test = base.extend<{ isolatedData: undefined; newBarWelcomeSeen: boolean }>({
+  /**
+   * La bienvenida a la barra nueva de Mi OE (ADR-160 regla 6) sale una vez por navegador arriba de
+   * «Hoy»: en las pruebas del contexto de siempre ya está vista, para que no corra lo que miden, salvo
+   * en la que la prueba (`test.use({ newBarWelcomeSeen: false })`). No es modal: un contexto propio
+   * la ve y nada le queda tapado.
+   */
+  newBarWelcomeSeen: [true, { option: true }],
+  context: async ({ context, newBarWelcomeSeen }, use) => {
+    if (newBarWelcomeSeen) {
+      await context.addInitScript(() => {
+        try {
+          window.localStorage.setItem("oe.mi-oe.barra-nueva", "vista");
+        } catch {
+          // Sin almacenamiento la bienvenida tampoco sale.
+        }
+      });
+    }
+    await use(context);
+  },
   isolatedData: [
     async ({ browser }, use, testInfo) => {
       if (testInfo.config.workers !== 1)

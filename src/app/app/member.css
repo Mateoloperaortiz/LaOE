@@ -7,16 +7,18 @@
   min-height: 100dvh;
 }
 .member-shell h1 {
-  font-family: var(--font-display);
-  font-size: 2.25rem;
-  line-height: 1.1;
+  font-family: var(--font-sans);
+  font-size: var(--text-pantalla);
+  line-height: var(--text-pantalla--line-height);
+  font-weight: 600;
+  letter-spacing: -0.01em;
   text-wrap: pretty;
 }
 .member-shell :is(h2, h3) {
   font-family: var(--font-sans);
-  font-size: 1.25rem;
-  line-height: 1.4;
-  font-weight: 700;
+  font-size: var(--text-seccion);
+  line-height: var(--text-seccion--line-height);
+  font-weight: 600;
   text-transform: none;
   text-wrap: pretty;
 }
@@ -105,8 +107,16 @@
   position: sticky;
   top: 0;
   z-index: 30;
-  border-bottom: 1px solid var(--borde);
-  background: var(--fondo);
+  border-bottom: 1px solid var(--linea-tenue);
+  background: color-mix(in oklab, var(--superficie) 94%, transparent);
+}
+/* El desenfoque solo desde 1024 px: un `backdrop-filter` vuelve a la cabecera el bloque contenedor de
+   lo que va `fixed` dentro de ella, y en el celular la barra de abajo vive ahí. */
+@media (min-width: 1024px) {
+  .member-topbar {
+    background: color-mix(in oklab, var(--superficie) 82%, transparent);
+    backdrop-filter: blur(12px);
+  }
 }
 .member-topbar-inner {
   display: flex;
@@ -115,23 +125,23 @@
   justify-content: space-between;
   gap: 0.75rem;
   max-width: 1152px;
-  min-height: 72px;
+  min-height: 64px;
   margin: 0 auto;
   padding: 0.5rem 1.5rem;
 }
 .member-brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
   flex-shrink: 0;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--titulo);
   text-decoration: none;
 }
 .member-utilities {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   margin-left: auto;
 }
@@ -141,31 +151,54 @@
 .member-utilities .boton-secundario {
   padding-inline: 0.75rem;
 }
+/* El tema, como los demás controles de la capa funcional: relleno y sin borde (ADR-163 regla 6). */
+.member-shell .member-utilities > button.rounded-full {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--relleno);
+}
 .member-primary-nav {
   display: flex;
-  gap: 0.375rem;
+  align-items: center;
+  gap: 0.25rem;
 }
-.member-primary-nav :is(a, button) {
+.member-primary-nav a {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   min-height: 44px;
   padding: 0.5rem 0.875rem;
-  border-radius: 999px;
-  color: var(--titulo);
+  border-radius: var(--radius-control);
+  color: var(--tinta-secundaria);
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
-  cursor: pointer;
 }
-.member-primary-nav :is(a, button):hover {
-  background: var(--fondo-suave);
+.member-tab-icon {
+  display: flex;
 }
-.member-primary-nav :is([aria-current="page"], .member-menu-current) {
-  background: var(--color-oe-sky);
+.member-primary-nav a:hover {
+  background: var(--relleno);
+  color: var(--titulo);
+}
+.member-primary-nav a[aria-current="page"] {
+  background: var(--relleno);
+  color: var(--titulo);
+}
+/* Asistencia: el botón central y el único naranja del área (ADR-163 regla 4). */
+.member-primary-nav a[data-central] {
+  background: var(--color-oe-orange);
   color: var(--color-oe-navy);
-  box-shadow: inset 0 -3px var(--color-oe-blue);
+}
+.member-primary-nav a[data-central]:hover {
+  background: color-mix(in oklab, var(--color-oe-orange) 88%, var(--color-oe-navy));
+  color: var(--color-oe-navy);
+}
+.member-primary-nav a[data-central][aria-current="page"] {
+  box-shadow: inset 0 0 0 2px var(--titulo);
 }
 .member-content {
   width: 100%;
@@ -188,67 +221,6 @@
 }
 .member-skip-link:focus {
   transform: none;
-}
-.member-menu {
-  width: min(100% - 2rem, 32rem);
-  max-height: calc(100dvh - 2rem);
-  margin: auto;
-  padding: 0;
-  border: 1px solid var(--borde);
-  border-radius: 1.25rem;
-  background: var(--fondo);
-  color: var(--tinta);
-  overscroll-behavior: contain;
-}
-.member-menu::backdrop {
-  background: #001f3e99;
-}
-.member-menu-header {
-  position: sticky;
-  top: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid var(--borde);
-  padding: 1rem 1.25rem;
-  background: var(--fondo);
-}
-.member-menu nav {
-  padding: 0.5rem 1.25rem;
-}
-.member-menu section {
-  padding: 0.75rem 0;
-}
-.member-menu section h3 {
-  margin-bottom: 0.25rem;
-  color: var(--tinta-suave);
-  font-size: 0.8125rem;
-}
-.member-menu ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.member-menu li a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 44px;
-  padding: 0.625rem 0.75rem;
-  border-radius: 0.5rem;
-  text-decoration: none;
-  font-weight: 600;
-}
-.member-menu li a:is(:hover, [aria-current="page"]) {
-  background: var(--fondo-suave);
-}
-.member-menu li a[aria-current="page"] {
-  box-shadow: inset 3px 0 var(--color-oe-orange);
-}
-.member-menu-footer {
-  border-top: 1px solid var(--borde);
-  padding: 1rem 1.25rem;
 }
 .member-home {
   display: flex;
@@ -421,20 +393,55 @@
     left: 0;
     right: 0;
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: end;
     gap: 0.125rem;
     padding: 0.375rem 0.375rem max(0.375rem, env(safe-area-inset-bottom));
-    border-top: 1px solid var(--borde);
-    background: var(--fondo);
+    border-top: 1px solid var(--linea-tenue);
+    background: color-mix(in oklab, var(--superficie) 92%, transparent);
+    backdrop-filter: blur(12px);
   }
-  .member-primary-nav :is(a, button) {
+  .member-primary-nav a {
     min-width: 0;
     min-height: 56px;
     padding: 0.375rem 0.125rem;
     gap: 0.25rem;
     flex-direction: column;
-    border-radius: 0.625rem;
     font-size: 0.6875rem;
+  }
+  .member-primary-nav a[aria-current="page"]:not([data-central]) {
+    background: transparent;
+  }
+  .member-primary-nav a[aria-current="page"]:not([data-central]) .member-tab-icon {
+    padding: 0.125rem 0.875rem;
+    border-radius: 999px;
+    background: var(--relleno);
+  }
+  /* En la barra de abajo, Asistencia sube y es redondo: el pulgar lo encuentra sin mirar. */
+  .member-primary-nav a[data-central] {
+    background: transparent;
+    color: var(--titulo);
+  }
+  .member-primary-nav a[data-central] .member-tab-icon {
+    display: flex;
+    width: 3.25rem;
+    height: 3.25rem;
+    align-items: center;
+    justify-content: center;
+    margin-top: -1.25rem;
+    border-radius: 999px;
+    background: var(--color-oe-orange);
+    color: var(--color-oe-navy);
+    box-shadow: 0 6px 16px rgb(4 30 66 / 0.18);
+  }
+  .member-primary-nav a[data-central]:hover {
+    background: transparent;
+  }
+  .member-primary-nav a[data-central][aria-current="page"] {
+    box-shadow: none;
+  }
+  .member-primary-nav a[data-central][aria-current="page"] .member-tab-icon {
+    box-shadow: 0 0 0 2px var(--titulo);
   }
   .member-content {
     padding: 1.5rem 1rem calc(6rem + env(safe-area-inset-bottom));
@@ -444,9 +451,6 @@
   }
   .member-carnet-shortcut {
     padding: 1rem 1.25rem;
-  }
-  .member-menu {
-    max-height: calc(100dvh - 2rem);
   }
 }
 @media (max-width: 639px) {

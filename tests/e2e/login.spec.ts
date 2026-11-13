@@ -36,14 +36,15 @@ test("una ruta protegida manda a ingresar y vuelve tras la contraseña", async (
   await expect(page.getByRole("cell", { name: t("T-232") })).toBeVisible();
   await sinViolaciones(page);
 
-  await page.getByRole("link", { name: tList("T-061")[0] }).click();
+  await page.getByRole("link", { name: tList("T-4872")[0], exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     t("T-060", { "nombre preferido": "Prueba" }),
   );
 
-  await page.getByRole("button", { name: t("T-1662"), exact: true }).click();
+  await page.getByRole("link", { name: tList("T-4872")[4], exact: true }).click();
+  await page.waitForURL(/\/app\/yo$/);
   await page
-    .getByRole("dialog", { name: t("T-1660"), exact: true })
+    .getByRole("main")
     .getByRole("button", { name: t("T-231"), exact: true })
     .click();
   await expect(page).toHaveURL(/\/$/);
@@ -97,17 +98,16 @@ test("cerrar sesión sin conexión avisa, deja la página en pie y se puede rein
   await entrar(page).click();
   await expect(page).toHaveURL(/\/app\/ajustes$/);
 
-  await page.getByRole("button", { name: t("T-1662"), exact: true }).click();
-  const signOut = page
-    .getByRole("dialog", { name: t("T-1660"), exact: true })
-    .getByRole("button", { name: t("T-231"), exact: true });
+  await page.getByRole("link", { name: tList("T-4872")[4], exact: true }).click();
+  await page.waitForURL(/\/app\/yo$/);
+  const signOut = page.getByRole("main").getByRole("button", { name: t("T-231"), exact: true });
   // El pedido de salida no llega a la casa.
   await page.route("**/app/**", (route) =>
     route.request().method() === "POST" ? route.abort() : route.continue(),
   );
   await signOut.click();
   await expect(page.getByText(t("T-3263"))).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-418"));
+  await expect(page).toHaveURL(/\/app\/yo$/);
 
   // Con la conexión de vuelta, el mismo botón cierra la sesión.
   await page.unroute("**/app/**");

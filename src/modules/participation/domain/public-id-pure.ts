@@ -1,12 +1,13 @@
 import { randomInt } from "node:crypto";
+import { isPublicId } from "@/shared/lib/occasion-public-id";
+
+export { isPublicId };
 
 // Identificador público de una ocasión (ADR-035 regla 3): diez caracteres sin ambiguos para dictarlo
-// o imprimirlo; la validación acepta cualquier [0-9a-z] para que los publicId heredados de GHPOINTS
-// sigan resolviendo tal cual.
+// o imprimirlo. Su forma, sin nada de servidor, vive en `src/shared/lib/occasion-public-id.ts`.
 
 export const PUBLIC_ID_ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
 export const PUBLIC_ID_LENGTH = 10;
-export const PUBLIC_ID = /^[0-9a-z]{10}$/;
 
 export function newPublicId(random: (max: number) => number = randomInt): string {
   let value = "";
@@ -14,8 +15,4 @@ export function newPublicId(random: (max: number) => number = randomInt): string
     value += PUBLIC_ID_ALPHABET[random(PUBLIC_ID_ALPHABET.length)] ?? "";
   }
   return value;
-}
-
-export function isPublicId(value: string): boolean {
-  return PUBLIC_ID.test(value);
 }

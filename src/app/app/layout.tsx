@@ -3,7 +3,6 @@ import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { listSubscriptionsFor } from "@/modules/comms";
 import { PwaRegistrar } from "@/modules/comms/components/PwaRegistrar";
 import { requireActor } from "@/modules/identity";
-import { SignOutForm } from "@/modules/identity/components/SignOutForm";
 import { hasLiveConsent } from "@/modules/people";
 import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
@@ -13,29 +12,26 @@ import { DeviceGamepad2FilledIcon } from "@/shared/ui/icons/DeviceGamepad2Filled
 import { DeviceGamepad2Icon } from "@/shared/ui/icons/DeviceGamepad2Icon";
 import { HomeFilledIcon } from "@/shared/ui/icons/HomeFilledIcon";
 import { HomeIcon } from "@/shared/ui/icons/HomeIcon";
-import { IdFilledIcon } from "@/shared/ui/icons/IdFilledIcon";
-import { IdIcon } from "@/shared/ui/icons/IdIcon";
-import { StarFilledIcon } from "@/shared/ui/icons/StarFilledIcon";
-import { StarIcon } from "@/shared/ui/icons/StarIcon";
+import { QrcodeIcon } from "@/shared/ui/icons/QrcodeIcon";
+import { UserFilledIcon } from "@/shared/ui/icons/UserFilledIcon";
+import { UserIcon } from "@/shared/ui/icons/UserIcon";
 import { MemberShell } from "./_ui/MemberShell";
 import "./member.css";
 
-// Mi OE incluye la consulta y la autogestión de miembros en licencia.
-const RUTAS: Record<string, string> = {
-  Inicio: "/app",
-  Comités: "/app/comites",
-  Personas: "/app/personas",
-  Egresados: "/app/egresados",
-  Fotos: "/app/fotos",
-  "GH Points": "/app/gh-points",
-  Permanencia: "/app/permanencia",
-  Solicitudes: "/app/solicitudes",
-  Convocatorias: "/app/convocatorias",
-  Normativa: "/app/normativa",
-  Carnet: "/app/carnet",
-  Ajustes: "/app/ajustes",
-  Juegos: "/app/juegos",
-};
+// Lo que «Yo» recoge (ADR-160 regla 1): en esas rutas, la pestaña activa es «Yo».
+const YO_ROUTES = [
+  "/app/comites",
+  "/app/personas",
+  "/app/egresados",
+  "/app/fotos",
+  "/app/disponibilidad",
+  "/app/gh-points",
+  "/app/permanencia",
+  "/app/solicitudes",
+  "/app/convocatorias",
+  "/app/normativa",
+  "/app/ajustes",
+];
 
 // Lado de los iconos de la barra: no acompañan a una línea de texto, van sobre ella (ADR-076 regla 3).
 const TAB_ICON = 22;
@@ -51,64 +47,50 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
     adminAreaRoles(actor),
   ]);
   const [temaOscuro, temaClaro] = tList("T-034");
-  const pestañas = tList("T-061").filter((nombre) => nombre in RUTAS);
-  const groups = [
-    { label: t("T-1664"), names: ["Comités", "Personas", "Egresados", "Fotos"] },
-    { label: t("T-1665"), names: ["Permanencia", "Solicitudes", "Convocatorias", "Normativa"] },
-    { label: t("T-1666"), names: ["Ajustes"] },
-  ].map((group) => ({
-    label: group.label,
-    items: group.names
-      .filter((name) => pestañas.includes(name))
-      .map((name) => ({ href: RUTAS[name] ?? "/app", label: name })),
-  }));
-  groups[0]?.items.push({ href: "/app/disponibilidad", label: t("T-4600") });
+  const [hoy, agenda, asistencia, juegos, yo] = tList("T-4872");
+  const [welcomeTitle, welcomeText, welcomeButton] = tList("T-4878");
   return (
     <>
       <PwaRegistrar endpointsKey={devices.map((item) => item.endpoint).join("\n")} />
       <MemberShell
         canAccessAdmin={roles.any}
-        primary={[
+        tabs={[
           {
             href: "/app",
-            label: pestañas[0] ?? "",
+            label: hoy,
             icon: <HomeIcon size={TAB_ICON} />,
             iconActive: <HomeFilledIcon size={TAB_ICON} />,
           },
           {
             href: "/app/agenda",
-            label: t("T-1661"),
+            label: agenda,
             icon: <CalendarEventIcon size={TAB_ICON} />,
             iconActive: <CalendarEventFilledIcon size={TAB_ICON} />,
           },
           {
-            href: "/app/carnet",
-            label: pestañas.find((name) => RUTAS[name] === "/app/carnet") ?? t("T-131"),
-            icon: <IdIcon size={TAB_ICON} />,
-            iconActive: <IdFilledIcon size={TAB_ICON} />,
-          },
-          {
-            href: "/app/gh-points",
-            label: t("T-080"),
-            icon: <StarIcon size={TAB_ICON} />,
-            iconActive: <StarFilledIcon size={TAB_ICON} />,
+            href: "/app/asistencia",
+            label: asistencia,
+            icon: <QrcodeIcon size={TAB_ICON} />,
+            iconActive: <QrcodeIcon size={TAB_ICON} />,
+            also: ["/app/carnet"],
+            central: true,
           },
           {
             href: "/app/juegos",
-            label: t("T-2621"),
+            label: juegos,
             icon: <DeviceGamepad2Icon size={TAB_ICON} />,
             iconActive: <DeviceGamepad2FilledIcon size={TAB_ICON} />,
           },
+          {
+            href: "/app/yo",
+            label: yo,
+            icon: <UserIcon size={TAB_ICON} />,
+            iconActive: <UserFilledIcon size={TAB_ICON} />,
+            also: YO_ROUTES,
+          },
         ]}
-        groups={groups}
+        welcome={{ title: welcomeTitle, text: welcomeText, button: welcomeButton }}
         theme={<ThemeToggle etiquetas={[temaOscuro, temaClaro]} />}
-        account={
-          <SignOutForm>
-            <button type="submit" className="boton-secundario">
-              {t("T-231")}
-            </button>
-          </SignOutForm>
-        }
       >
         {actor.membershipStatus === "ON_LEAVE" ? (
           <output className="mb-6 block rounded-xl border border-borde bg-fondo-suave p-4">

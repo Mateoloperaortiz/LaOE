@@ -117,24 +117,20 @@ for (const width of [360, 390, 768, 1440])
       const week = page.getByRole("heading", { name: t("T-062"), exact: true });
       expect((await week.boundingBox())?.y).toBeLessThan(300);
       await page.screenshot({ path: testInfo.outputPath(`inicio-${width}-${theme}.png`) });
-      const more = page.getByRole("button", { name: t("T-1662"), exact: true });
-      await more.click();
-      const menu = page.getByRole("dialog", { name: t("T-1660"), exact: true });
-      await expect(menu).toBeVisible();
+      // «Más» se fue (ADR-160 regla 1): lo suyo vive en «Yo», que queda activa en sus destinos.
+      const nav = page.getByRole("navigation", { name: t("T-1663"), exact: true });
+      await expect(nav.getByRole("link")).toHaveCount(5);
+      await nav.getByRole("link", { name: tList("T-4872")[4], exact: true }).click();
+      await expect(page).toHaveURL(/\/app\/yo$/);
       await sinViolaciones(page);
-      await page.keyboard.press("Escape");
-      await expect(menu).toBeHidden();
-      await expect(more).toBeFocused();
-      await more.click();
-      await menu.getByRole("link", { name: tList("T-061")[3], exact: true }).click();
-      await expect(menu).toBeHidden();
-      // La navegación es de cliente: sin esperar el destino, el menú se reabre sobre la página vieja.
+      await page
+        .getByRole("main")
+        .getByRole("link", { name: tList("T-061")[3], exact: true })
+        .click();
       await expect(page).toHaveURL(/\/app\/personas$/);
-      await more.click();
       await expect(
-        menu.getByRole("link", { name: tList("T-061")[3], exact: true }),
+        nav.getByRole("link", { name: tList("T-4872")[4], exact: true }),
       ).toHaveAttribute("aria-current", "page");
-      await page.keyboard.press("Escape");
       for (const path of [
         "/app",
         "/app/agenda",
@@ -144,6 +140,8 @@ for (const width of [360, 390, 768, 1440])
         "/app/personas",
         "/app/comites",
         "/app/solicitudes",
+        "/app/yo",
+        "/app/asistencia",
       ]) {
         await page.goto(path);
         await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
@@ -156,19 +154,19 @@ for (const width of [360, 390, 768, 1440])
     });
   }
 
-test("Mi OE mantiene acceso con texto al 200 % y foco dentro del menú", async ({ page }) => {
+test("Mi OE mantiene acceso con texto al 200 %: las cinco pestañas y «Yo»", async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 900 });
-  await page.goto("/app");
+  await page.goto("/app/yo");
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
   });
-  await page.getByRole("button", { name: t("T-1662"), exact: true }).click();
-  const menu = page.getByRole("dialog", { name: t("T-1660"), exact: true });
-  for (let i = 0; i < 14; i++) {
-    await page.keyboard.press("Tab");
-    expect(await menu.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+  const nav = page.getByRole("navigation", { name: t("T-1663"), exact: true });
+  for (const label of tList("T-4872")) {
+    await expect(nav.getByRole("link", { name: label, exact: true })).toBeVisible();
   }
-  await expect(menu.getByRole("button", { name: t("T-291"), exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("main").getByRole("button", { name: t("T-231"), exact: true }),
+  ).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await sinViolaciones(page);
 });

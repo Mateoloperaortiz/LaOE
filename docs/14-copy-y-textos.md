@@ -3295,3 +3295,21 @@ Lo que le toca al actor en la Operación, venga del módulo que venga. Solo lee:
 | T-4870 | Mesa: evaluaciones pendientes del actor (una · varias) | Tienes {n} evaluación por hacer · Tienes {n} evaluaciones por hacer | MATEO | Propuesta |
 | T-4871 | Mesa: fecha de un elemento (vence · venció · llegó) | Vence el {fecha} · Venció el {fecha} · Llegó el {fecha} | MATEO | Propuesta |
 
+## Marco nuevo de Mi OE (ADR-160 y ADR-163)
+
+La barra de Mi OE y las pantallas «Yo» y «Asistencia», que se construyen en la rama `feat/rediseno` (ADR-160 regla 1). «Hoy» es el inicio de siempre, en `/app`.
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4872 | Mi OE: pestañas de la barra, en orden | Hoy · Agenda · Asistencia · Juegos · Yo | MATEO | Propuesta |
+| T-4873 | Asistencia: lo que dice debajo del título | Registra tu asistencia a una ocasión o muéstrale tu carnet a quien registra. | MATEO | Propuesta |
+| T-4874 | Asistencia: escanear el QR de la ocasión (título · explicación) | Escanea el QR de la ocasión · Apunta la cámara al QR que muestra el anfitrión. Si la ocasión pide código, lo escribes en la pantalla que se abre. | MATEO | Propuesta |
+| T-4875 | Asistencia: el QR leído no es de una ocasión de la OE | Ese QR no es de una ocasión de la OE. Prueba con el que muestra el anfitrión. | MATEO | Propuesta |
+| T-4876 | Asistencia: mostrar el carnet (título · explicación · enlace) | Muestra tu carnet · Quien registra lo escanea y quedas en la lista. · Abrir mi carnet | MATEO | Propuesta |
+| T-4877 | Yo: el saldo de GH Points debajo de su enlace | {n} GH Points | MATEO | Propuesta |
+| T-4878 | Mi OE: bienvenida a la barra nueva (título · explicación · botón) | La barra cambió · «Hoy» es tu inicio. El carnet quedó en «Asistencia», el botón del centro. GH Points y todo lo que estaba en «Más» ahora vive en «Yo». · Listo | MATEO | Propuesta |
+| T-4879 | Asistencia: botones del lector | Escanear el QR · Detener · Subir una foto del QR | MATEO | Propuesta |
+| T-4880 | Asistencia: cámara no disponible o permiso negado | No pudimos usar la cámara. Abre el QR con la cámara del celular o sube una foto. | MATEO | Propuesta |
+| T-4881 | Asistencia: la foto del QR no abre | No pudimos abrir esa foto. Toma otra o escanea el QR con la cámara. | MATEO | Propuesta |
+| T-4882 | Asistencia: la lectura falló | No pudimos leer ese QR. Vuelve a intentarlo. | MATEO | Propuesta |
+

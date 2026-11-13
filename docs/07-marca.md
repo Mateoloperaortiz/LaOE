@@ -254,7 +254,7 @@ Una flecha dentro de un rango o de una oración (`apertura → cierre`) y el ata
 
 | Concepto | Icono |
 | --- | --- |
-| Inicio · Agenda · Carnet · GH Points · Juegos | `HomeIcon` · `CalendarEventIcon` · `IdIcon` · `StarIcon` · `DeviceGamepad2Icon`, cada uno con su par relleno para la pestaña activa |
+| Hoy · Agenda · Asistencia · Juegos · Yo (la barra de Mi OE, ADR-160) | `HomeIcon` · `CalendarEventIcon` · `QrcodeIcon` · `DeviceGamepad2Icon` · `UserIcon`, con su par relleno para la pestaña activa (`UserFilledIcon` en «Yo»); Asistencia no cambia de icono: la marca su anillo |
 | Abrir el menú | `Menu2Icon` |
 | Desplegar un menú de cuenta | `ChevronDownIcon` |
 | Separar los pasos de la ruta en la cabecera de una pantalla; seguir a una opción de una hoja | `ChevronRightIcon` |

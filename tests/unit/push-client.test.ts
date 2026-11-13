@@ -280,7 +280,7 @@ describe("cerrar sesión en este navegador", () => {
     );
     expect(forms.sort()).toEqual([
       "src/app/admin/layout.tsx",
-      "src/app/app/layout.tsx",
+      "src/app/app/yo/page.tsx",
       "src/app/autorizacion/page.tsx",
     ]);
   });
