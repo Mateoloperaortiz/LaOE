@@ -155,6 +155,27 @@ const EXCEPTIONS: Exceptions = {
       verifyOtp
     `,
   },
+  inventory: {
+    "solo-pruebas": `
+      adjustStockAs
+      cancelReservationAs
+      checkoutAs
+      createItemAs
+      getAvailability
+      getIncidentForReview
+      getInventoryContext
+      listIncidents
+      listReservations
+      manageIncidentAs
+      readCatalog
+      recordIncidentAs
+      referIncidentAs
+      reserveAs
+      returnAs
+      setReservationGrantAs
+      writeOffAs
+    `,
+  },
   participation: {
     "solo-pruebas": `
       CheckInSource
@@ -176,6 +197,7 @@ const EXCEPTIONS: Exceptions = {
       SanctionScope
       createCommittee
       createPersonAs
+      setLogisticsDirectorAs
     `,
   },
   permanence: {

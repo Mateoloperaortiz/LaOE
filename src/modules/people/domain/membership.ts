@@ -523,6 +523,7 @@ export async function anonymizePerson(
       documentType: null,
       documentNumber: null,
       epikId: null,
+      cardUid: null,
       birthDate: null,
       photoAssetId: null,
       stage: "ALUMNI",

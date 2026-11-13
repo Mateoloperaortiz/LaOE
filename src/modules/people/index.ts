@@ -122,6 +122,13 @@ export {
 } from "./domain/honorary-pure";
 export { leaveUntilError, leaveWindow } from "./domain/leave-pure";
 export {
+  hasCurrentVpAdmin,
+  hasVpAdminInTerm,
+  listLogisticsSources,
+  resolveLogisticsSource,
+  setLogisticsDirectorAs,
+} from "./domain/logistics";
+export {
   decideMacroeventReactivationAs,
   getMacroeventGovernance,
   proposeMacroeventReactivationAs,

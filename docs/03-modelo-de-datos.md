@@ -376,3 +376,11 @@ Las migraciones 0026–0027 agregan `membership.leaveCondition` (condiciones por
 `appointment_election_record` conserva origen, acta, requisitos revisados, composición de la candidatura al revisar y responsable. Un cambio en los nombramientos de ese cargo invalida su uso en el conteo hasta nueva revisión.
 
 `macroevent_review` guarda un corte por evento y año, fecha de segunda asamblea, acta, cargos electos contados y resultado institucional. `macroevent_reactivation` conserva propuestas con misión, plan y mesa completa, su presentación en jornadas electorales, decisión de Junta y aviso a Asamblea. Son registros administrativos privados; no publican datos de las candidaturas.
+
+## Inventario y carnet universitario (ADR-150)
+
+`Person.cardUid` es nullable durante la transición, único cuando existe y canónico en cuatro pares hexadecimales mayúsculos separados por espacios. Ajustes lo exige al guardar el perfil de miembro; no forma parte de los DTO de directorio/calendario ni sustituye EPIK o los tokens del carnet OE.
+
+`inventory` conserva materiales `UNIT` o `QUANTITY`, unidades con etiqueta y estado, ubicación/caja y existencias en cuarentena. La concesión referencia el identificador exacto del cargo logístico sin FK hacia un nombramiento que el dominio puede retirar. La reserva conserva un solo comité/edición, reservante y recogedor, intervalo y líneas; las unidades asignadas mantienen devolución/pérdida individual. Los movimientos conservan clave idempotente y huella del contenido. Las incidencias guardan nota, gestión, estado y remisión. Sus notas no se copian al outbox ni a la auditoría.
+
+Una devolución parcial reduce solamente lo pendiente; daño y pérdida no producen existencias prestables. La anonimización redacta nombres conservados y notas asociadas sin alterar el saldo físico. Mis datos incluye proyecciones propias con límites declarados y remite notas y gestión a revisión por el canal de la política.

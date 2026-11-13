@@ -519,6 +519,13 @@
       "when": 1794587513462,
       "tag": "0073_entrada_externa",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1794589626012,
+      "tag": "0074_inventario_vp_administrativa",
+      "breakpoints": true
     }
   ]
 }

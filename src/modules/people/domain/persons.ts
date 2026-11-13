@@ -12,7 +12,7 @@ import { committee, committeeMembership, committeeRole, membership, person } fro
 import { committeeRolesLabel } from "./committee-direction-pure";
 import { rolesOf } from "./committee-memberships";
 import { listLiveRolesByMembership } from "./committee-role-assignments";
-import { birthDateSchema, documentTypeSchema, normalizePhone } from "./person-pure";
+import { birthDateSchema, cardUidSchema, documentTypeSchema, normalizePhone } from "./person-pure";
 
 // La persona como eje del CRM (ADR-002): alta manual, edición por ADMIN y listado del admin.
 
@@ -47,6 +47,10 @@ export const personInputSchema = z.object({
     .transform((value) => value || null)
     .nullable()
     .optional(),
+  cardUid: cardUidSchema
+    .or(z.literal("").transform(() => null))
+    .nullable()
+    .optional(),
   birthDate: birthDateSchema
     .or(z.literal("").transform(() => null))
     .nullable()
@@ -68,6 +72,7 @@ function toValues(input: PersonInput) {
     ...(input.documentType !== undefined ? { documentType: input.documentType } : {}),
     ...(input.documentNumber !== undefined ? { documentNumber: input.documentNumber } : {}),
     ...(input.epikId !== undefined ? { epikId: input.epikId } : {}),
+    ...(input.cardUid !== undefined ? { cardUid: input.cardUid } : {}),
     ...(input.birthDate !== undefined ? { birthDate: input.birthDate } : {}),
   };
 }
@@ -94,6 +99,9 @@ export async function createPerson(
     });
     return row;
   } catch (error) {
+    if (isUniqueViolation(error, "person_card_uid_unique")) {
+      throw new DomainError(t("T-4103"), "cardUid");
+    }
     if (isUniqueViolation(error, "person_email_unique")) {
       throw new DomainError(t("T-430"), "email");
     }
@@ -167,6 +175,7 @@ const EDITABLE = [
   "documentType",
   "documentNumber",
   "epikId",
+  "cardUid",
   "birthDate",
 ] as const;
 
@@ -194,6 +203,9 @@ export async function updatePerson(
       .set({ ...values, ...(emailChanged ? { sessionsRevokedAt: sql`now()` } : {}) })
       .where(eq(person.id, id));
   } catch (error) {
+    if (isUniqueViolation(error, "person_card_uid_unique")) {
+      throw new DomainError(t("T-4103"), "cardUid");
+    }
     if (isUniqueViolation(error, "person_email_unique")) {
       throw new DomainError(t("T-430"), "email");
     }

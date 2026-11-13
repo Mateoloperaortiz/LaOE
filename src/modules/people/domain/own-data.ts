@@ -1,6 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
+import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { personDeletionRequested, personUpdated } from "@/domain-events/people";
@@ -22,12 +23,13 @@ import {
   tag,
 } from "../schema";
 import { listConsents } from "./consents";
-import { normalizePhone } from "./person-pure";
+import { cardUidSchema, normalizePhone } from "./person-pure";
 
 // Lo que una persona hace sobre sus propios datos desde Ajustes (ADR-034 reglas 8 y 12): contacto,
 // foto, solicitud de eliminación y el paquete de "mis datos". Nunca toca el correo institucional.
 
 export const ownContactSchema = z.object({
+  cardUid: cardUidSchema,
   phone: z.string().trim().max(40).default(""),
   personalEmail: z.string().trim().toLowerCase().max(254).default(""),
 });
@@ -36,7 +38,7 @@ export type OwnContactInput = z.infer<typeof ownContactSchema>;
 
 const E164 = /^\+\d{8,15}$/;
 const emailSchema = z.email();
-const CONTACT_FIELDS = ["phone", "personalEmail"] as const;
+const CONTACT_FIELDS = ["phone", "personalEmail", "cardUid"] as const;
 
 const leaveConditionSchema = z
   .array(
@@ -55,6 +57,8 @@ export async function updateOwnContact(
   personId: string,
   input: OwnContactInput,
 ): Promise<void> {
+  const uid = cardUidSchema.safeParse(input.cardUid);
+  if (!uid.success) throw new DomainError(t("T-4102"), "cardUid");
   let phone: string | null = null;
   if (input.phone) {
     const parsed = normalizePhone(input.phone);
@@ -72,18 +76,24 @@ export async function updateOwnContact(
     personalEmail = candidate;
   }
   const [before] = await ctx.tx
-    .select({ phone: person.phone, personalEmail: person.personalEmail })
+    .select({ phone: person.phone, personalEmail: person.personalEmail, cardUid: person.cardUid })
     .from(person)
     .where(eq(person.id, personId));
   if (!before) {
     throw new DomainError(t("T-032"));
   }
-  const after = { phone, personalEmail };
+  const after = { phone, personalEmail, cardUid: uid.data };
   const changed = CONTACT_FIELDS.filter((field) => before[field] !== after[field]);
   if (changed.length === 0) {
     return;
   }
-  await ctx.tx.update(person).set(after).where(eq(person.id, personId));
+  try {
+    await ctx.tx.update(person).set(after).where(eq(person.id, personId));
+  } catch (error) {
+    if (isUniqueViolation(error, "person_card_uid_unique"))
+      throw new DomainError(t("T-4103"), "cardUid");
+    throw error;
+  }
   await ctx.audit({
     action: "person.updated",
     entityType: "person",
@@ -174,6 +184,7 @@ export async function collectPersonalData(personId: string) {
       documentType: person.documentType,
       documentNumber: person.documentNumber,
       epikId: person.epikId,
+      cardUid: person.cardUid,
       birthDate: person.birthDate,
       photoAssetId: person.photoAssetId,
       source: person.source,

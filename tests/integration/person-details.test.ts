@@ -85,6 +85,7 @@ describe("datos privados del integrante", () => {
         ctx,
         id,
         ownContactSchema.parse({
+          cardUid: "00 11 22 33",
           phone: "3001234567",
           personalEmail: "sintetica@example.com",
           documentNumber: "NO-DEBE-CAMBIAR",

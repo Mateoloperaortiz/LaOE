@@ -9,6 +9,21 @@ export function hasInstitutionalDomain(email: string, domains: readonly string[]
   return domains.some((allowed) => domain === allowed || domain.endsWith(`.${allowed}`));
 }
 
+/** UID físico de cuatro bytes; la representación guardada conserva ceros y usa pares en mayúsculas. */
+export const CARD_UID_PATTERN = /^[0-9A-F]{2}(?: [0-9A-F]{2}){3}$/;
+
+export function normalizeCardUid(raw: string): string {
+  const compact = raw.trim().toUpperCase().replace(/[ :-]/g, "");
+  return /^[0-9A-F]{8}$/.test(compact)
+    ? (compact.match(/.{2}/g) ?? []).join(" ")
+    : raw.trim().toUpperCase();
+}
+
+export const cardUidSchema = z
+  .string()
+  .transform(normalizeCardUid)
+  .pipe(z.string().regex(CARD_UID_PATTERN));
+
 export const DOCUMENT_TYPE_CODES = ["CC", "TI", "CE", "PPT"] as const;
 export const documentTypeSchema = z.enum(DOCUMENT_TYPE_CODES);
 

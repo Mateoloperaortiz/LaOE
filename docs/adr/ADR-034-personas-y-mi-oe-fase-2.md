@@ -1,6 +1,6 @@
 # ADR-034: Personas, CRM mínimo y Mi OE (fase 2)
 
-- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113, ADR-115); enmendada por ADR-143; enmendada por ADR-169; enmendada por ADR-184
+- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113, ADR-115); enmendada por ADR-143; enmendada por ADR-169; enmendada por ADR-184; enmendada por ADR-150
 - Fecha: 2026-09-03
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-022, ADR-029, ADR-030, ADR-031, ADR-032, ADR-033
 - Enmienda: ADR-010 (destrucción de sesiones), ADR-018 y 08-migracion (mapeo del líder de comité), ADR-022 (el archivo del roster sí pasa por la app)
@@ -106,3 +106,7 @@ La pestaña «Resumen» de la Persona 360 pasa a ser una ficha: desde 1280 px, a
 ## Enmienda (2026-11-13, ADR-184)
 
 Lo que depura una baja cambia para quien egresa por grado: el efecto de la baja sobre identidad borra su contraseña, sus enlaces y sus sesiones solo **hasta el instante de su salida** (`membership.endedAt`). Lo que cree después con el enlace de la junta no es de la baja y se conserva. Para las demás salidas no cambia nada. Ver [ADR-184](ADR-184-egresados-con-acceso.md), regla 3.
+
+## Enmienda (2026-10-29, ADR-150)
+
+El perfil de miembro incorpora el UID del carnet universitario, único y normalizado, con transición para miembros existentes. Ver [ADR-150](ADR-150-inventario-reservas-y-operacion-logistica.md).

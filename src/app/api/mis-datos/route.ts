@@ -14,6 +14,7 @@ import {
   listPermissionsFor,
   listSessionsFor,
 } from "@/modules/identity";
+import { exportOwnInventoryData } from "@/modules/inventory";
 import {
   collectOwnParticipationData,
   listAchievementsForPerson,
@@ -63,6 +64,7 @@ export async function GET() {
     identity,
     media,
     availability,
+    inventory,
     sessions,
     permissions,
     preferences,
@@ -91,6 +93,7 @@ export async function GET() {
     collectOwnIdentityData(actor.personId),
     collectOwnMediaData(actor.personId),
     exportOwnAvailabilityData(actor.personId),
+    exportOwnInventoryData(actor.personId),
     listSessionsFor(actor.personId),
     listPermissionsFor(actor.personId),
     getPreferences(actor.personId),
@@ -118,6 +121,8 @@ export async function GET() {
     weekly_availability: [actor.personId],
     meeting_availability: [actor.personId],
     meeting_poll: availability.data.meetingPolls.map((row) => row.id),
+    inventory_reservation: [...new Set(inventory.data.inventoryReservations.map((row) => row.id))],
+    inventory_incident: inventory.data.inventoryIncidents.map((row) => row.id),
     person: [actor.personId],
     notification_preference: [actor.personId],
     calendar_token: [actor.personId],
@@ -174,6 +179,7 @@ export async function GET() {
     ...identityData,
     ...media.data,
     ...availability.data,
+    ...inventory.data,
     ...audit.data,
     sessions: sessions.map((session) => ({
       id: session.id,
@@ -403,6 +409,7 @@ export async function GET() {
     ...audit.limits,
     ...media.limits,
     ...availability.limits,
+    ...inventory.limits,
     "consents.history": {
       limit: null,
       returned: data.consents.reduce((n, state) => n + state.history.length, 0),
@@ -452,6 +459,8 @@ export async function GET() {
       "boosters.origin.reason",
       "auditHistory.before",
       "auditHistory.after",
+      "inventoryIncidents.note",
+      "inventoryIncidents.management",
     ],
     excluded: [
       "credentials",

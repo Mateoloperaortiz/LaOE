@@ -44,6 +44,7 @@ export {
   getGroup,
   getGroupDetail,
   groupJoinBlocker,
+  hasCmlMembershipInTerm,
   isOfficeDecorationGroup,
   listGroupIdsOf,
   listGroupOptions,
