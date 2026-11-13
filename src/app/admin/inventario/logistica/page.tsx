@@ -117,7 +117,7 @@ export default async function InventarioLogisticaPage({
               persona: people.get(source.personId)?.fullName ?? "",
               frente: source.label,
               estado: (
-                <Badge tone={source.granted ? "exito" : "neutral"}>
+                <Badge tone={source.granted ? "exito" : "neutral"} className="whitespace-nowrap">
                   {t(source.granted ? "T-4359" : "T-4360")}
                 </Badge>
               ),

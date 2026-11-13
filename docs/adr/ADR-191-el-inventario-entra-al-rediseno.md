@@ -48,7 +48,7 @@ La rama del inventario no se puede mezclar tal como está. Su PR está en confli
 
    `/app/cml` deja de existir.
 7. **Un solo lector.** Lee el QR del carnet y el Code 128 de las etiquetas. Usa el lector nativo del navegador donde existe y una librería donde no, como en Safari de iPhone.
-8. **Los avisos.** Quien reservó recibe un aviso antes de la devolución y otro si se venció, por el centro de avisos ([ADR-166](ADR-166-el-centro-de-avisos-de-mi-oe.md)) y push. Un préstamo vencido aparece también en la Mesa de la VP. Ninguno de los dos avisos sanciona.
+8. **Los avisos.** Quien reservó y quien recoge reciben un aviso antes de la devolución y otro si se venció, por el centro de avisos ([ADR-166](ADR-166-el-centro-de-avisos-de-mi-oe.md)) y push. Un préstamo vencido aparece también en la Mesa de la VP. Ninguno de los dos avisos sanciona.
 9. **Los números.**
    - La ADR-150 conserva el suyo.
    - La ADR-152 de la rama no se trae: ella misma dice que la reemplazó la [ADR-151](ADR-151-repositorio-publico-y-colaboracion-protegida.md), que ya está en `main`.

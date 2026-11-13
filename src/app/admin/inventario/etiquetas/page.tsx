@@ -30,7 +30,7 @@ export default async function InventarioEtiquetasPage({
               key={code}
               className="flex break-inside-avoid flex-col gap-1 rounded-tarjeta bg-white p-3 text-black"
             >
-              <h3 className="font-semibold">{item.name}</h3>
+              <h3 className="font-semibold text-black">{item.name}</h3>
               <Image
                 unoptimized
                 src={`/admin/inventario/etiquetas/${encodeURIComponent(code)}`}

@@ -30,7 +30,11 @@ export default async function InventarioNovedadesPage({
   const detail = selected ? (
     <DetailPanel
       title={`${selected.personName} · ${selected.scopeLabel}`}
-      eyebrow={<Badge tone={tone[selected.status]}>{labels[selected.status]}</Badge>}
+      eyebrow={
+        <Badge tone={tone[selected.status]} className="whitespace-nowrap">
+          {labels[selected.status]}
+        </Badge>
+      }
       closeHref={close}
       closeLabel={t("T-4407")}
     >
@@ -115,7 +119,11 @@ export default async function InventarioNovedadesPage({
                 ),
                 frente: row.scopeLabel,
                 fecha: formatDateTime(row.createdAt),
-                estado: <Badge tone={tone[row.status]}>{labels[row.status]}</Badge>,
+                estado: (
+                  <Badge tone={tone[row.status]} className="whitespace-nowrap">
+                    {labels[row.status]}
+                  </Badge>
+                ),
               },
             }))}
             empty={<EmptyState title={t("T-4398")} />}

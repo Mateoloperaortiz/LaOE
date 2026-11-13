@@ -46,7 +46,11 @@ export default async function InventarioPrestamosPage({
   const detail = selected ? (
     <DetailPanel
       title={selected.scopeLabel}
-      eyebrow={<Badge tone={reservationTone(selected)}>{statusLabel(selected)}</Badge>}
+      eyebrow={
+        <Badge tone={reservationTone(selected)} className="whitespace-nowrap">
+          {statusLabel(selected)}
+        </Badge>
+      }
       closeHref={close}
       closeLabel={t("T-4407")}
     >
@@ -172,7 +176,11 @@ export default async function InventarioPrestamosPage({
                 recoge: row.collectorName,
                 desde: formatDateTime(row.startsAt),
                 hasta: formatDateTime(row.endsAt),
-                estado: <Badge tone={reservationTone(row)}>{statusLabel(row)}</Badge>,
+                estado: (
+                  <Badge tone={reservationTone(row)} className="whitespace-nowrap">
+                    {statusLabel(row)}
+                  </Badge>
+                ),
               },
             }))}
             empty={<EmptyState title={t("T-4321")} />}

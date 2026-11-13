@@ -270,7 +270,7 @@ export default async function InventarioMaterialesPage({
                 revision: item.quarantined,
                 lugar: `${item.location} · ${item.box}`,
                 estado: (
-                  <Badge tone={item.active ? "exito" : "neutral"}>
+                  <Badge tone={item.active ? "exito" : "neutral"} className="whitespace-nowrap">
                     {t(item.active ? "T-4392" : "T-4391")}
                   </Badge>
                 ),
