@@ -147,6 +147,8 @@ export function adminNavGroups(): AdminNavGroup[] {
       icon: "junta",
       items: [
         { href: "/admin/junta", label: junta },
+        // La junta del semestre y sus comités de trabajo (ADR-194), solo para ADMIN.
+        { href: "/admin/junta/composicion", label: tList("T-5082")[0] ?? "" },
         { href: "/admin/terminos", label: terminos },
         { href: "/admin/permisos", label: permisos },
         { href: "/admin/horario-preferencial", label: tList("T-2323")[0] },

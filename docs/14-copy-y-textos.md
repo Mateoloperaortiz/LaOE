@@ -3741,3 +3741,8 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5075 | Aviso de préstamo vencido (título · texto) | Se venció un préstamo · Los materiales de {frente} debían volver el {fecha}. Devuélvelos al CML lo antes posible. | MATEO | Propuesta |
 | T-5076 | Mesa: préstamo vencido | Préstamo vencido de {frente} | MATEO | Propuesta |
 | T-5077 | Inventario: la Presidencia suple a la VP (título · texto) | Suples a la Vicepresidencia Administrativa · Este semestre no hay una VP Administrativa activa, así que la Presidencia aprueba los préstamos y administra el inventario (Reglamento, art. 54). Cuando haya una, el inventario vuelve a ella. | MATEO | Propuesta |
+| T-5078 | Junta del semestre (título · texto) | La junta del semestre · Los seis cargos de la junta (Estatutos, art. 21) y el comité de trabajo que lidera cada uno (art. 43). Los cargos se corrigen en la Persona 360 y los comités en su grupo. | MATEO | Propuesta |
+| T-5079 | Junta del semestre: columnas | Cargo · Quién lo tiene · Comité de trabajo · Lo lidera · Estado | MATEO | Propuesta |
+| T-5080 | Junta del semestre: estado del comité | Al día · No está creado · Sin líder · Lo lidera otra persona | MATEO | Propuesta |
+| T-5081 | Junta del semestre: avisos | Vacante · No está activo · Hay una cosa por revisar · Hay {n} cosas por revisar · La junta y sus comités de trabajo están al día · Sembrar los que faltan | MATEO | Propuesta |
+| T-5082 | Menú de la Operación: la junta del semestre | Junta del semestre | MATEO | Propuesta |

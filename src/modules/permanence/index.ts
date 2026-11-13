@@ -3,6 +3,7 @@
 export { listAvailabilityWorkGroups } from "./domain/availability";
 
 export { boardExportRows, boardIndicators } from "./domain/board";
+export { BOARD_COMMITTEE_STATES, boardComposition } from "./domain/board-composition";
 export {
   grantPermanenceBonusAs,
   type PermanenceBonusGroup,

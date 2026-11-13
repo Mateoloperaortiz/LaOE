@@ -473,7 +473,10 @@ export async function removeMember(
   return true;
 }
 
-/** Los siete comités de trabajo por código (12-permanencia), con el líder que da su cargo de junta. */
+/**
+ * Los siete comités de trabajo por código (12-permanencia), con el líder que da su cargo de junta.
+ * El CCM lo dirige la Vicepresidencia de Comunicaciones y Mercadeo (Est. art. 27.8; ADR-194).
+ */
 export const WORK_COMMITTEES: ReadonlyArray<{
   code: string;
   name: string;
@@ -481,7 +484,7 @@ export const WORK_COMMITTEES: ReadonlyArray<{
 }> = [
   { code: "CAP", name: "Comité de Acompañamiento Presidencial", leaderKind: "PRESIDENT" },
   { code: "CGH", name: "Comité de Gestión Humana", leaderKind: "VP_GH" },
-  { code: "CCM", name: "Comité de Creatividad y Mercadeo", leaderKind: "VP_PUBLIC_RELATIONS" },
+  { code: "CCM", name: "Comité de Creatividad y Mercadeo", leaderKind: "VP_COMMUNICATIONS" },
   { code: "CAE", name: "Comité de Alianzas Estratégicas", leaderKind: "VP_PUBLIC_RELATIONS" },
   { code: "CML", name: "Comité de Mejoramiento Logístico", leaderKind: "VP_ADMIN" },
   { code: "CAF", name: "Comité de Acompañamiento Financiero", leaderKind: "VP_FINANCE" },

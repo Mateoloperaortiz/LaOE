@@ -99,6 +99,7 @@ import {
 } from "@/modules/people/domain/macroevent-governance-pure";
 import { SANCTION_KINDS } from "@/modules/people/domain/sanction-pure";
 import { sanctionKindLabel } from "@/modules/people/domain/sanctions";
+import { BOARD_COMMITTEE_STATES } from "@/modules/permanence/domain/board-composition";
 import { CLOSING_FILTERS } from "@/modules/permanence/domain/closing";
 import { COMPLIANCE_FILTERS } from "@/modules/permanence/domain/compliance";
 import {
@@ -946,6 +947,12 @@ export const PAIRS: readonly LabelPair[] = [
     order: "INVENTORY_TABS",
     positions: { materiales: 0, logistica: 1, prestamos: 2, novedades: 3, etiquetas: 4 },
     canonical: INVENTORY_TABS,
+  },
+  {
+    code: "T-5080",
+    order: "BOARD_COMMITTEE_STATES",
+    positions: { OK: 0, MISSING: 1, NO_LEADER: 2, OTHER_LEADER: 3 },
+    canonical: BOARD_COMMITTEE_STATES,
   },
   {
     code: "T-4891",

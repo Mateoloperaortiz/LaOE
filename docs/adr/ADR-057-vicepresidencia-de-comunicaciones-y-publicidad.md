@@ -1,6 +1,6 @@
 # ADR-057: Vicepresidencia de Comunicaciones y Publicidad como cargo de junta
 
-- Estado: Aceptada (enmendada por ADR-060); en producción desde el 2026-09-12 (`7d7594f`)
+- Estado: Aceptada (enmendada por ADR-060 y ADR-194); en producción desde el 2026-09-12 (`7d7594f`)
 - Fecha: 2026-09-11
 - Enmienda: ADR-034 (regla 13), 03-modelo (`Appointment.kind`) y 14-copy (T-444)
 - Relacionadas: ADR-029, ADR-031, ADR-034, ADR-036
@@ -22,3 +22,7 @@ La junta de la OE tiene una Vicepresidencia de Comunicaciones y Publicidad que e
 ## Enmienda (2026-09-13, ADR-060)
 
 El nombre del cargo es el del cuerpo de los Estatutos 2026 (art. 21.5 y 27): "Vicepresidencia de Comunicaciones y Mercadeo". Cambia solo la etiqueta de T-444; el código `VP_COMMUNICATIONS`, los permisos y los comités de trabajo no cambian. Ver [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) regla 4.
+
+## Enmienda (2026-11-13, ADR-194)
+
+Lo que la regla 2 dejaba pendiente ya está confirmado: los Estatutos 2026 (art. 27.8) le dan a esta vicepresidencia la dirección del Comité de Creatividad y Mercadeo (CCM). Ver [ADR-194](ADR-194-la-junta-del-semestre-y-sus-comites-de-trabajo.md).

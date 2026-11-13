@@ -395,6 +395,8 @@ async function seedAppointments(terms: Map<string, string>): Promise<void> {
     { email: "oe.demo.06@eafit.edu.co", kind: "VP_PUBLIC_RELATIONS" },
     { email: "oe.demo.10@eafit.edu.co", kind: "VP_ADMIN" },
     { email: "oe.demo.09@eafit.edu.co", kind: "VP_FINANCE" },
+    // ADR-194: el CCM lo dirige la Vicepresidencia de Comunicaciones y Mercadeo (Est. art. 27.8).
+    { email: "oe.demo.19@eafit.edu.co", kind: "VP_COMMUNICATIONS" },
   ];
   for (const cargo of cargos) {
     const [who] = await db
@@ -588,7 +590,7 @@ async function seedWorkGroups(terms: Map<string, string>): Promise<void> {
       code: "CCM",
       name: "Comité de Creatividad y Mercadeo",
       kind: "WORK_COMMITTEE",
-      leaderKind: "VP_PUBLIC_RELATIONS",
+      leaderKind: "VP_COMMUNICATIONS",
       evaluators: [director],
       members: [],
     },

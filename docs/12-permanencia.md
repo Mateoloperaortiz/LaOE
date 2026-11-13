@@ -52,7 +52,7 @@ Son distintos de los comités de pertenencia. Se cargan como grupos de trabajo `
 | --- | --- | --- |
 | CAP | Comité de Acompañamiento Presidencial | Presidente |
 | CGH | Comité de Gestión Humana | Vicepresidente de Gestión Humana |
-| CCM | Comité de Creatividad y Mercadeo | Vicepresidencia de Relaciones Públicas |
+| CCM | Comité de Creatividad y Mercadeo | Vicepresidencia de Comunicaciones y Mercadeo (Est. art. 27.8; [ADR-194](adr/ADR-194-la-junta-del-semestre-y-sus-comites-de-trabajo.md)) |
 | CAE | Comité de Alianzas Estratégicas | Vicepresidencia de Relaciones Públicas |
 | CML | Comité de Mejoramiento Logístico | Vicepresidencia Administrativa |
 | CAF | Comité de Acompañamiento Financiero | Vicepresidencia Financiera |
