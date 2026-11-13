@@ -215,7 +215,7 @@ export default async function GrupoPage({
           {evaluadores}
         </h2>
         {detail.evaluators.length === 0 ? (
-          <p className="font-semibold text-oe-navy">{t("T-759")}</p>
+          <p className="font-semibold text-titulo">{t("T-759")}</p>
         ) : (
           <ul className="flex list-none flex-wrap gap-2 p-0">
             {detail.evaluators.map((evaluator) => (

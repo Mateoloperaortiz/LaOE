@@ -628,6 +628,17 @@ body:has(.admin-shell dialog[open]) {
 .admin-shell td :is(.boton-secundario, .boton-calido) {
   font-size: 0.8125rem;
 }
+/* Las acciones de una fila van en una sola línea desde 640 px (R6, marco O1). Si se parten, el ancho de
+   la columna depende del botón más largo y una etiqueta que cambia al enviar («Guardando…») rehace
+   todas las filas: la tabla se encogía y la página saltaba. */
+@media (min-width: 640px) {
+  .admin-shell .admin-table-actions > div {
+    flex-wrap: nowrap;
+  }
+  .admin-shell .admin-table-actions :is(a, button, summary) {
+    white-space: nowrap;
+  }
+}
 .admin-shell :is(.admin-table-region, .admin-matrix) {
   overflow-x: auto;
   border: 1px solid var(--linea-tenue);
