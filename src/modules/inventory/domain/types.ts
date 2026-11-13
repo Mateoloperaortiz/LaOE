@@ -33,6 +33,8 @@ export interface InventorySourceView {
 }
 export interface InventoryContext {
   canManage: boolean;
+  /** Por qué administra (ADR-193): la VP, o la Presidencia porque no hay VP activa. */
+  managerRole: "VP" | "PRESIDENCY" | null;
   canOperate: boolean;
   isCml: boolean;
   canReserve: boolean;

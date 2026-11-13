@@ -5,7 +5,7 @@ import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { checkoutAs, createItemAs, reserveAs, setReservationGrantAs } from "@/modules/inventory";
 import { inventoryItem, inventoryReservation } from "@/modules/inventory/schema";
 import {
-  hasCurrentVpAdmin,
+  currentInventoryManagerRole,
   listLogisticsSources,
   removeAppointmentAs,
   resolveLogisticsSource,
@@ -66,7 +66,7 @@ describe("dirección logística con alcance limitado", () => {
   it("la VP vigente asigna y retira solo Logística conservando Mercadeo y la historia del origen", async () => {
     const f = await fixture();
     const scope = { kind: "COMMITTEE" as const, committeeId: f.committeeId, termId: f.termId };
-    expect(await hasCurrentVpAdmin(f.vp)).toBe(true);
+    expect(await currentInventoryManagerRole(f.vp)).toBe("VP");
     await setLogisticsDirectorAs(manager(f.vp), scope, {
       personId: f.candidate,
       assigned: true,
@@ -112,7 +112,7 @@ describe("dirección logística con alcance limitado", () => {
     const past = await seedTerm("2026-1");
     const oldVp = await seedMember("vp.anterior.sintetica@eafit.edu.co");
     await seedAppointment(oldVp, past, "VP_ADMIN");
-    expect(await hasCurrentVpAdmin(oldVp)).toBe(false);
+    expect(await currentInventoryManagerRole(oldVp)).toBeNull();
     const scope = { kind: "COMMITTEE" as const, committeeId: f.committeeId, termId: f.termId };
     const input = { personId: f.candidate, assigned: true, coDirector: false };
     await expect(setLogisticsDirectorAs(manager(oldVp), scope, input)).rejects.toThrow(DomainError);
@@ -197,7 +197,7 @@ describe("dirección logística con alcance limitado", () => {
       .where(eq(membership.personId, f.candidate));
     expect(await resolveLogisticsSource(source)).toMatchObject({ live: false });
     vi.setSystemTime(new Date("2027-02-01T17:00:00Z"));
-    expect(await hasCurrentVpAdmin(f.vp)).toBe(false);
+    expect(await currentInventoryManagerRole(f.vp)).toBeNull();
     expect(await listLogisticsSources(f.candidate)).toEqual([]);
   });
 

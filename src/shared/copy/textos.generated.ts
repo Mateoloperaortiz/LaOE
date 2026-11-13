@@ -16216,6 +16216,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-5077": {
+    where: "Inventario: la Presidencia suple a la VP (título · texto)",
+    text: "Suples a la Vicepresidencia Administrativa · Este semestre no hay una VP Administrativa activa, así que la Presidencia aprueba los préstamos y administra el inventario (Reglamento, art. 54). Cuando haya una, el inventario vuelve a ella.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-508": {
     where: "Personas: filtros",
     text: "Etapa · Estado · Comité · Segmento",

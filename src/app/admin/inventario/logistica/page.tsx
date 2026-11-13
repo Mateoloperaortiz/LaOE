@@ -40,7 +40,7 @@ export default async function InventarioLogisticaPage({
       }),
   );
   return (
-    <InventarioMarco active="logistica" query={query}>
+    <InventarioMarco active="logistica" managerRole={context.managerRole} query={query}>
       <Surface as="section" aria-labelledby="directores" className="flex flex-col gap-4 p-5">
         <h2 id="directores" className="titulo-seccion">
           {t("T-4346")}

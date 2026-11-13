@@ -122,8 +122,8 @@ export {
 } from "./domain/honorary-pure";
 export { leaveUntilError, leaveWindow } from "./domain/leave-pure";
 export {
-  hasCurrentVpAdmin,
-  hasVpAdminInTerm,
+  currentInventoryManagerRole,
+  inventoryManagerRoleInTerm,
   listLogisticsSources,
   resolveLogisticsSource,
   setLogisticsDirectorAs,

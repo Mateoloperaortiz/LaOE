@@ -3,9 +3,9 @@ import { getDb } from "@/db/client";
 import type { Actor, Executor, Tx } from "@/db/tx";
 import {
   canParticipate,
+  currentInventoryManagerRole,
   getMembershipRef,
-  hasCurrentVpAdmin,
-  hasVpAdminInTerm,
+  inventoryManagerRoleInTerm,
   listLogisticsSources,
   lockMembershipCycles,
 } from "@/modules/people";
@@ -23,8 +23,11 @@ export async function getInventoryContext(
   const member = await getMembershipRef(personId, exec);
   const current = await getCurrentTerm(new Date(), exec);
   const operational = canParticipate(member?.status);
-  const canManage =
-    operational && current !== null && (await hasVpAdminInTerm(personId, current.id, exec));
+  const managerRole =
+    operational && current !== null
+      ? await inventoryManagerRoleInTerm(personId, current.id, exec)
+      : null;
+  const canManage = managerRole !== null;
   const isCml =
     operational && current !== null && (await hasCmlMembershipInTerm(personId, current.id, exec));
   const sources = operational
@@ -42,6 +45,7 @@ export async function getInventoryContext(
   }));
   return {
     canManage,
+    managerRole,
     canOperate: canManage || isCml,
     isCml,
     canReserve: result.some((source) => source.personId === personId && source.granted),
@@ -59,7 +63,7 @@ export async function lockActors(tx: Tx, actor: Actor, ids: string[] = []): Prom
 }
 
 export async function assertManager(personId: string, exec: Executor): Promise<void> {
-  if (!(await hasCurrentVpAdmin(personId, exec))) throw new DomainError(t("T-4200"));
+  if (!(await currentInventoryManagerRole(personId, exec))) throw new DomainError(t("T-4200"));
 }
 
 export async function assertOperator(personId: string, exec: Executor): Promise<void> {

@@ -20,7 +20,10 @@ import { manageIncidentAction, referIncidentAction } from "../actions";
 export default async function InventarioNovedadesPage({
   searchParams,
 }: PageProps<"/admin/inventario/novedades">) {
-  const { session } = await requireInventoryAccess("/admin/inventario/novedades", "MANAGE");
+  const { session, context } = await requireInventoryAccess(
+    "/admin/inventario/novedades",
+    "MANAGE",
+  );
   const [query, incidents] = await Promise.all([searchParams, listIncidents(session.personId)]);
   const labels = tLabels("T-4403", ["OPEN", "RESOLVED", "REFERRED"] as const);
   const selected = incidents.find((row) => row.id === single(query.novedad));
@@ -93,7 +96,7 @@ export default async function InventarioNovedadesPage({
   ) : null;
 
   return (
-    <InventarioMarco active="novedades" query={query}>
+    <InventarioMarco active="novedades" managerRole={context.managerRole} query={query}>
       <SplitView
         list={
           <WorkTable

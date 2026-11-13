@@ -1,6 +1,6 @@
 # ADR-150: Inventario, reservas y operación logística de la OE
 
-- Estado: Aceptada; verificada localmente; revisión en staging en curso (enmendada por ADR-191)
+- Estado: Aceptada; verificada localmente; revisión en staging en curso (enmendada por ADR-191 y ADR-193)
 - Fecha: 2026-10-29
 - Relacionadas: ADR-031, ADR-034, ADR-058, ADR-060, ADR-064, ADR-072, ADR-084, ADR-110, ADR-112, ADR-115, ADR-119, ADR-191, ADR-192
 - Enmienda: ADR-031 (inventario pasa del backlog a implementación), ADR-034 (carnet universitario en el perfil), ADR-058 y ADR-060 (registro de cargos logísticos por la VP administrativa)
@@ -27,3 +27,7 @@ Las cajas son ubicaciones, no kits, y los materiales son retornables en esta ver
 ## Enmienda (2026-11-13, ADR-191)
 
 El inventario no sale por su rama: entra a `feat/rediseno` y sale con el rediseño ([ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md)). El dominio, los datos y las ocho reglas de esta ADR se conservan. Las pantallas cambian: la Operación de la VP usa los patrones de escritorio, las reservas son una capa del Calendario, reservar se hace desde Mi OE en el celular y el CML entrega y recibe desde el modo de campo de la Operación. Ver [ADR-191](ADR-191-el-inventario-entra-al-rediseno.md).
+
+## Enmienda (2026-11-13, ADR-193)
+
+La regla 2 se amplía: si el término no tiene una VP Administrativa con membresía operativa, la Presidencia vigente administra el inventario y sus cargos logísticos, con las mismas facultades, hasta que vuelva a haber una VP ([ADR-193](ADR-193-la-presidencia-suple-a-la-vp-en-el-inventario.md), Reglamento art. 54).

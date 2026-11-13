@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-193](ADR-193-la-presidencia-suple-a-la-vp-en-el-inventario.md) | La Presidencia suple a la VP en el inventario | Propuesta |
 | [ADR-192](ADR-192-revision-temporal-de-rama-en-staging.md) | Revisión temporal de una rama funcional en staging | Aceptada (era la ADR-153 de la rama del inventario) |
 | [ADR-191](ADR-191-el-inventario-entra-al-rediseno.md) | El inventario entra al rediseño | Aceptada |
 | [ADR-190](ADR-190-la-paleta-por-rol-con-alcance.md) | La paleta ⌘K por rol, con alcance | Aceptada |
@@ -54,7 +55,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-154](ADR-154-conservar-la-posicion-al-guardar.md) | Conservar la posición de la página al guardar | Aceptada (enmendada por ADR-155); publicada |
 | [ADR-153](ADR-153-parches-de-dependencias-transitivas.md) | Parches acotados de esbuild y uuid transitivos | Aceptada |
 | [ADR-151](ADR-151-repositorio-publico-y-colaboracion-protegida.md) | Repositorio público y colaboración protegida | Aceptada |
-| [ADR-150](ADR-150-inventario-reservas-y-operacion-logistica.md) | Inventario, reservas y operación logística de la OE | Aceptada (enmendada por ADR-191) |
+| [ADR-150](ADR-150-inventario-reservas-y-operacion-logistica.md) | Inventario, reservas y operación logística de la OE | Aceptada (enmendada por ADR-191 y ADR-193) |
 | [ADR-148](ADR-148-ci-en-runners-linux-locales.md) | CI completo en runners Linux locales del repositorio privado | Reemplazada por ADR-151 |
 | [ADR-147](ADR-147-vueltas-adicionales-de-eleccion-obligatorias.md) | Vueltas adicionales de elección, todas obligatorias | Aceptada |
 | [ADR-146](ADR-146-limites-de-colecciones-en-la-entrada.md) | Límites explícitos de colecciones en la entrada no confiable | Aceptada |

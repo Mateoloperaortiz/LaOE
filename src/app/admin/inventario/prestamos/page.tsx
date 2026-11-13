@@ -25,7 +25,10 @@ import { cancelReservationAction, writeOffAction } from "../actions";
 export default async function InventarioPrestamosPage({
   searchParams,
 }: PageProps<"/admin/inventario/prestamos">) {
-  const { session } = await requireInventoryAccess("/admin/inventario/prestamos", "MANAGE");
+  const { session, context } = await requireInventoryAccess(
+    "/admin/inventario/prestamos",
+    "MANAGE",
+  );
   const [query, reservations, items] = await Promise.all([
     searchParams,
     listReservations(session.personId),
@@ -139,7 +142,7 @@ export default async function InventarioPrestamosPage({
   ) : null;
 
   return (
-    <InventarioMarco active="prestamos" query={query}>
+    <InventarioMarco active="prestamos" managerRole={context.managerRole} query={query}>
       <LineaDeTiempo
         rows={timeline}
         days={days}

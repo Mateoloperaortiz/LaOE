@@ -3740,3 +3740,4 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5074 | Aviso de devolución, un día antes (título · texto) | Mañana devuelves materiales · Los materiales de {frente} vuelven al CML mañana antes de las {hora}. | MATEO | Propuesta |
 | T-5075 | Aviso de préstamo vencido (título · texto) | Se venció un préstamo · Los materiales de {frente} debían volver el {fecha}. Devuélvelos al CML lo antes posible. | MATEO | Propuesta |
 | T-5076 | Mesa: préstamo vencido | Préstamo vencido de {frente} | MATEO | Propuesta |
+| T-5077 | Inventario: la Presidencia suple a la VP (título · texto) | Suples a la Vicepresidencia Administrativa · Este semestre no hay una VP Administrativa activa, así que la Presidencia aprueba los préstamos y administra el inventario (Reglamento, art. 54). Cuando haya una, el inventario vuelve a ella. | MATEO | Propuesta |

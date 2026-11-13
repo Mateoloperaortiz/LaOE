@@ -12,12 +12,17 @@ import { InventarioMarco } from "../_ui/Marco";
 export default async function InventarioEtiquetasPage({
   searchParams,
 }: PageProps<"/admin/inventario/etiquetas">) {
-  await requireInventoryAccess("/admin/inventario/etiquetas", "MANAGE");
+  const { context } = await requireInventoryAccess("/admin/inventario/etiquetas", "MANAGE");
   const query = await searchParams;
   const material = single(query.material);
   const items = (await readCatalog()).filter((item) => !material || item.id === material);
   return (
-    <InventarioMarco active="etiquetas" query={query} actions={<PrintButton />}>
+    <InventarioMarco
+      active="etiquetas"
+      managerRole={context.managerRole}
+      query={query}
+      actions={<PrintButton />}
+    >
       <h2 className="titulo-seccion print:hidden">{t("T-4351")}</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3">
         {items.flatMap((item) => {

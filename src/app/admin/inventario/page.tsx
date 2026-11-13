@@ -54,7 +54,7 @@ export default async function InventarioMaterialesPage({
     );
   }
 
-  await requireInventoryAccess("/admin/inventario", "MANAGE");
+  const { context } = await requireInventoryAccess("/admin/inventario", "MANAGE");
   const items = await readCatalog();
   const selected = items.find((item) => item.id === single(query.material));
   const creating = !selected && single(query.nuevo) === "1";
@@ -233,6 +233,7 @@ export default async function InventarioMaterialesPage({
   return (
     <InventarioMarco
       active="materiales"
+      managerRole={context.managerRole}
       query={query}
       actions={
         <Link href="/admin/inventario?nuevo=1" className={buttonClass({ area: "operacion" })}>

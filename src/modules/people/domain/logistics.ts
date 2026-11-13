@@ -39,22 +39,41 @@ export interface LogisticsSourceView extends LogisticsSource {
   live: boolean;
 }
 
-/** El cargo se deriva de datos vigentes; no concede ADMIN ni usa el líder histórico del CML. */
-export async function hasCurrentVpAdmin(
+/**
+ * Quién administra el inventario y sus cargos logísticos (ADR-193): la VP administrativa vigente y,
+ * cuando el término no tiene ninguna con membresía operativa, la Presidencia, porque «en su ausencia,
+ * la Presidencia será quien lo autorice» (Reglamento art. 54). El rol se deriva de datos vigentes; no
+ * concede ADMIN ni usa el líder histórico del CML.
+ */
+export type InventoryManagerRole = "VP" | "PRESIDENCY";
+
+export async function currentInventoryManagerRole(
   personId: string,
   exec: Executor = getDb(),
   now = new Date(),
-): Promise<boolean> {
+): Promise<InventoryManagerRole | null> {
   const current = await getCurrentTerm(now, exec);
-  if (!current) return false;
-  return hasVpAdminInTerm(personId, current.id, exec);
+  if (!current) return null;
+  return inventoryManagerRoleInTerm(personId, current.id, exec);
 }
 
-/** Consulta el cargo en el término que la composición ya resolvió; no vuelve a buscar el actual. */
-export async function hasVpAdminInTerm(
+/** Resuelve el rol en el término que la composición ya resolvió; no vuelve a buscar el actual. */
+export async function inventoryManagerRoleInTerm(
   personId: string,
   termId: string,
   exec: Executor = getDb(),
+): Promise<InventoryManagerRole | null> {
+  if (await holdsOperatingAppointment(termId, "VP_ADMIN", exec, personId)) return "VP";
+  if (!(await holdsOperatingAppointment(termId, "PRESIDENT", exec, personId))) return null;
+  return (await holdsOperatingAppointment(termId, "VP_ADMIN", exec)) ? null : "PRESIDENCY";
+}
+
+/** Un nombramiento del término con membresía operativa: el de esa persona o, sin ella, el de alguien. */
+async function holdsOperatingAppointment(
+  termId: string,
+  kind: "VP_ADMIN" | "PRESIDENT",
+  exec: Executor,
+  personId?: string,
 ): Promise<boolean> {
   const [row] = await exec
     .select({ id: appointment.id })
@@ -63,9 +82,9 @@ export async function hasVpAdminInTerm(
     .innerJoin(person, eq(person.id, appointment.personId))
     .where(
       and(
-        eq(appointment.personId, personId),
+        personId === undefined ? undefined : eq(appointment.personId, personId),
         eq(appointment.termId, termId),
-        eq(appointment.kind, "VP_ADMIN"),
+        eq(appointment.kind, kind),
         inArray(membership.status, [...OPERATING]),
         isNull(person.anonymizedAt),
       ),
@@ -254,7 +273,7 @@ async function setDirector(
   if (
     !operator ||
     !OPERATING.some((status) => status === operator.status) ||
-    (!actor.isAdmin && !(await hasCurrentVpAdmin(actor.personId, ctx.tx, now)))
+    (!actor.isAdmin && !(await currentInventoryManagerRole(actor.personId, ctx.tx, now)))
   )
     throw new DomainError(t("T-4106"));
   const [member] = await ctx.tx

@@ -5,7 +5,7 @@ import {
   COMMITTEE_CAPABILITIES,
   type CommitteeCapability,
   type CommitteeRef,
-  hasVpAdminInTerm,
+  inventoryManagerRoleInTerm,
   listCommitteesByIds,
   listMyCommitteeCapabilities,
 } from "@/modules/people";
@@ -69,8 +69,11 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
   const isAdmin = actor.isAdmin;
   const isBoard = hasPermission(actor, "BOARD");
   const term = await getCurrentTerm();
+  // La VP o, sin VP activa en el término, la Presidencia (ADR-193).
   const managesInventory =
-    !onLeave && term !== null && (await hasVpAdminInTerm(actor.personId, term.id));
+    !onLeave &&
+    term !== null &&
+    (await inventoryManagerRoleInTerm(actor.personId, term.id)) !== null;
   const operatesInventory =
     managesInventory ||
     (!onLeave && term !== null && (await hasCmlMembershipInTerm(actor.personId, term.id)));
