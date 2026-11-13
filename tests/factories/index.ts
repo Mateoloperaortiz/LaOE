@@ -13,6 +13,7 @@ import {
   pipeline,
   pipelineStage,
   request,
+  task,
 } from "@/modules/crm/schema";
 import { event, eventEdition } from "@/modules/events/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
@@ -866,6 +867,23 @@ export async function seedSubmission(
     })
     .returning({ id: formSubmission.id });
   if (!row) throw new Error("seed submission");
+  return row.id;
+}
+
+/** Tarea abierta de crm, a mano (sin motivo del sistema), con su responsable y su límite. */
+export async function seedTask(
+  title: string,
+  overrides: { assigneeId?: string | null; dueAt?: Date | null } = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(task)
+    .values({
+      title,
+      assigneeId: overrides.assigneeId ?? null,
+      dueAt: overrides.dueAt ?? null,
+    })
+    .returning({ id: task.id });
+  if (!row) throw new Error("seed task");
   return row.id;
 }
 

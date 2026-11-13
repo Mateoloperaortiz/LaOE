@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
@@ -140,6 +140,8 @@ export interface RequestListParams {
   status?: string | undefined;
   kind?: string | undefined;
   personId?: string | undefined;
+  /** La Mesa lee primero las más viejas (ADR-159 regla 3); la bandeja, las más recientes. */
+  order?: "newest" | "oldest" | undefined;
   page: number;
   pageSize: number;
 }
@@ -164,7 +166,7 @@ export async function listRequests(
       .select()
       .from(request)
       .where(where)
-      .orderBy(desc(request.createdAt))
+      .orderBy(params.order === "oldest" ? asc(request.createdAt) : desc(request.createdAt))
       .limit(params.pageSize)
       .offset((params.page - 1) * params.pageSize),
     db.select({ n: count() }).from(request).where(where),

@@ -35,7 +35,7 @@ test("líder y evaluador de grupo reciben solo sus destinos, con un único activ
     await expect(page).toHaveURL(new RegExp(`/admin/permanencia/grupos/${group.id}$`));
     const nav = page.locator(".admin-sidebar nav");
     await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
-    await expect(nav.getByRole("link")).toHaveCount(2);
+    await expect(nav.getByRole("link")).toHaveCount(3);
     await expect(page.getByRole("button", { name: t("T-299") })).toHaveCount(0);
     await expect(nav.locator('a[href="/admin/personas"]')).toHaveCount(0);
     await page.goto("/admin/personas");
@@ -44,7 +44,7 @@ test("líder y evaluador de grupo reciben solo sus destinos, con un único activ
     await page.goto("/app");
     await page.getByRole("link", { name: t("T-2090"), exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/permanencia\/evaluaciones$/);
-    await expect(nav.getByRole("link")).toHaveCount(1);
+    await expect(nav.getByRole("link")).toHaveCount(2);
     await expect(nav.locator('a[aria-current="page"]')).toHaveAttribute(
       "href",
       "/admin/permanencia/evaluaciones",

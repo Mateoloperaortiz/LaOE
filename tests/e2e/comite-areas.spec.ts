@@ -74,7 +74,7 @@ test("Gestión Humana ve solo Personas, agrega un miembro y pide un retiro a GH"
   await expect(page).toHaveURL(new RegExp(`/admin/comites/${slug}$`));
   await expect(page.getByText(tList("T-651")[0])).toBeVisible();
   const nav = page.locator(".admin-sidebar nav");
-  await expect(nav.getByRole("link")).toHaveCount(2);
+  await expect(nav.getByRole("link")).toHaveCount(3);
   await expect(page.getByRole("button", { name: t("T-299") })).toHaveCount(0);
   // La paleta tampoco responde por su ruta: es solo de ADMIN (ADR-072).
   const busqueda = await page.request.get("/api/admin/buscar?q=Licencia");
@@ -130,7 +130,7 @@ test("Logística ve Personas y Actividades, sin las otras áreas", async ({ page
   await page.goto("/admin");
   await expect(page).toHaveURL(new RegExp(`/admin/comites/${slug}$`));
   const nav = page.locator(".admin-sidebar nav");
-  await expect(nav.getByRole("link")).toHaveCount(1);
+  await expect(nav.getByRole("link")).toHaveCount(2);
   const tabs = page.getByRole("navigation", { name: t("T-1502") });
   await expect(tabs.getByRole("link", { name: actividades })).toBeVisible();
   await expect(tabs.getByRole("link", { name: personas })).toBeVisible();

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SignOutForm } from "@/modules/identity/components/SignOutForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import "./admin.css";
@@ -6,6 +7,7 @@ import { CommandPalette } from "@/shared/admin-kit";
 import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { AdminShell } from "./_components/AdminShell";
+import { DeskCounter, DeskLink } from "./_components/DeskCounter";
 import { adminNavGroups } from "./_kit/nav";
 
 // Administración: ADMIN completo; un líder de comité, la dirección de un comité por sus cargos
@@ -77,6 +79,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     <AdminShell
       groups={groups}
       showHome={actor.isAdmin}
+      desk={
+        <Suspense fallback={<DeskLink total={null} />}>
+          <DeskCounter />
+        </Suspense>
+      }
       search={
         actor.isAdmin ? (
           <CommandPalette

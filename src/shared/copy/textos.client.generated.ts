@@ -514,6 +514,7 @@ export const textosCliente = {
   "T-4861": "Espacios",
   "T-4862": "Recoger la barra lateral · Mostrar la barra lateral",
   "T-4863": "Organización Estudiantil",
+  "T-4864": "Mesa",
   "T-585": "Registrados · Pendientes · Rechazados · Anulados",
   "T-878": "Retirar solicitud",
   "T-880": "Cuéntanos por qué",

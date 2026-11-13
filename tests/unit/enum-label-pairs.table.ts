@@ -2,6 +2,7 @@
 // tupla que hace sus veces) y una lista del catálogo de textos que el código empareja por posición
 // (DT-011, ADR-126 regla 1). `positions` dice qué posición LITERAL de la lista lee hoy cada valor.
 // No se compara ninguna redacción: un texto de docs/14-copy-y-textos.md cambia sin tocar esta tabla.
+import { DESK_DATE_KINDS, DESK_SECTIONS } from "@/app/admin/_kit/desk-items";
 import { areaLabel } from "@/app/admin/comites/[slug]/_ui/Areas";
 import { END_REASONS, TABS, TIMELINE_FILTERS } from "@/app/admin/personas/[id]/_ui/etiquetas";
 import {
@@ -897,6 +898,18 @@ export const PAIRS: readonly LabelPair[] = [
     order: "REWARD_STATUSES",
     positions: { RESERVED: 0, GRANTED: 1, RELEASED: 2, REVERSED: 3 },
     canonical: rewardStatus.enumValues,
+  },
+  {
+    code: "T-4866",
+    order: "DESK_SECTIONS",
+    positions: { tasks: 0, requests: 1, excuses: 2, reviews: 3, evaluations: 4, alerts: 5 },
+    canonical: DESK_SECTIONS,
+  },
+  {
+    code: "T-4871",
+    order: "DESK_DATE_KINDS",
+    positions: { due: 0, overdue: 1, arrived: 2 },
+    canonical: DESK_DATE_KINDS,
   },
 ];
 

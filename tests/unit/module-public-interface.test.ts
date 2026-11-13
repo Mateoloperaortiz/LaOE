@@ -182,7 +182,6 @@ const EXCEPTIONS: Exceptions = {
     "solo-pruebas": `
       applyDecisions
       computePerson
-      countPendingFor
       createGroupAs
       freezeSnapshots
       getSnapshot

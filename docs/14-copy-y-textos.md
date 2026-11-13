@@ -3280,3 +3280,18 @@ El marco de escritorio de `/admin`, que se construye en la rama `feat/rediseno`.
 | T-4862 | Operación: botón para recoger la barra lateral y para mostrarla de nuevo | Recoger la barra lateral · Mostrar la barra lateral | MATEO | Propuesta |
 | T-4863 | Operación: línea debajo del nombre del área en la barra lateral | Organización Estudiantil | MATEO | Propuesta |
 
+### La Mesa (ADR-159 regla 3)
+
+Lo que le toca al actor en la Operación, venga del módulo que venga. Solo lee: cada elemento se resuelve en su pantalla de origen. Las alertas reusan los textos del tablero (T-2175, T-2261 y T-1039).
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4864 | Operación: la Mesa en la barra lateral y título de su pantalla | Mesa | MATEO | Propuesta |
+| T-4865 | Mesa: lo que dice debajo del título | Lo que te toca, venga del espacio que venga. Cada cosa se resuelve en su pantalla, como siempre. | MATEO | Propuesta |
+| T-4866 | Mesa: títulos de sus grupos, en orden | Tus tareas · Solicitudes · Excusas por decidir · Evidencias por revisar · Evaluaciones · Alertas | MATEO | Propuesta |
+| T-4867 | Mesa: nombre del contador de la barra superior (uno · varios) | Mesa: {n} pendiente · Mesa: {n} pendientes | MATEO | Propuesta |
+| T-4868 | Mesa: sin nada pendiente (título · explicación) | Nada pendiente · Cuando algo te toque, aparece aquí. Todo al día, pues. | MATEO | Propuesta |
+| T-4869 | Mesa: enlace al pie de un grupo que trae más de lo que se ve | Ver los {n} | MATEO | Propuesta |
+| T-4870 | Mesa: evaluaciones pendientes del actor (una · varias) | Tienes {n} evaluación por hacer · Tienes {n} evaluaciones por hacer | MATEO | Propuesta |
+| T-4871 | Mesa: fecha de un elemento (vence · venció · llegó) | Vence el {fecha} · Venció el {fecha} · Llegó el {fecha} | MATEO | Propuesta |
+

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
+import { taskHref } from "@/app/admin/_kit/desk-items";
 import { listActiveCampaigns } from "@/modules/comms";
 import { campaignStatusLabel } from "@/modules/comms/admin";
 import { dashboardForAdmin, type TaskRow } from "@/modules/crm";
@@ -20,19 +21,6 @@ import { AppLink as Link } from "@/shared/ui/AppLink";
 // ocasiones abiertas y alertas de sistema). Quien no es ADMIN entra derecho a lo suyo.
 
 const OCCASION_ROWS = 6;
-
-function taskHref(row: TaskRow): string {
-  if (row.kind === "REQUEST") {
-    return `/admin/solicitudes?tarea=${row.id}`;
-  }
-  if (row.personId) {
-    return `/admin/personas/${row.personId}`;
-  }
-  if (row.organizationId) {
-    return `/admin/organizaciones/${row.organizationId}`;
-  }
-  return "/admin/tareas";
-}
 
 function Bloque({
   id,

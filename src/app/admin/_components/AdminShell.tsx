@@ -27,11 +27,13 @@ import { ClipboardCheckIcon } from "@/shared/ui/icons/ClipboardCheckIcon";
 import { FlagIcon } from "@/shared/ui/icons/FlagIcon";
 import type { IconProps } from "@/shared/ui/icons/Glyph";
 import { HomeIcon } from "@/shared/ui/icons/HomeIcon";
+import { InboxIcon } from "@/shared/ui/icons/InboxIcon";
 import { LayoutSidebarLeftCollapseIcon } from "@/shared/ui/icons/LayoutSidebarLeftCollapseIcon";
 import { LayoutSidebarLeftExpandIcon } from "@/shared/ui/icons/LayoutSidebarLeftExpandIcon";
 import { Menu2Icon } from "@/shared/ui/icons/Menu2Icon";
 import { MessageIcon } from "@/shared/ui/icons/MessageIcon";
 import { StarIcon } from "@/shared/ui/icons/StarIcon";
+import { UserCircleIcon } from "@/shared/ui/icons/UserCircleIcon";
 import { UserPlusIcon } from "@/shared/ui/icons/UserPlusIcon";
 import { UsersGroupIcon } from "@/shared/ui/icons/UsersGroupIcon";
 import { UsersIcon } from "@/shared/ui/icons/UsersIcon";
@@ -41,6 +43,7 @@ import { WalletIcon } from "@/shared/ui/icons/WalletIcon";
 // - Desde 1280 px la barra lateral mide 240 px y se recoge a 64 a pedido de la persona; entre 1024 y
 //   1279 px es un riel de iconos; por debajo no hay barra y el menú vive en el cajón.
 // - En el riel, cada espacio abre el cajón con el menú completo, abierto en ese espacio.
+// - Arriba de los espacios va la Mesa, para todos los roles, y su contador en la barra superior.
 // - La barra se recoge por persona y por navegador (`localStorage`): es una comodidad, no un dato.
 
 const SPACE_ICONS: Record<AdminSpaceIcon, ComponentType<IconProps>> = {
@@ -102,6 +105,7 @@ function Navigation({
   const id = useId();
   const active = activeAdminHref(pathname, [
     ...(showHome ? ["/admin"] : []),
+    "/admin/mesa",
     ...groups.flatMap((group) => group.items.map((item) => item.href)),
   ]);
   const activeGroup = groups.find((group) => group.items.some((item) => item.href === active))?.id;
@@ -123,6 +127,17 @@ function Navigation({
           <span className="admin-nav-label">{t("T-1401")}</span>
         </Link>
       ) : null}
+      <Link
+        href="/admin/mesa"
+        onClick={() => onNavigate?.()}
+        aria-current={active === "/admin/mesa" ? "page" : undefined}
+        className="admin-nav-link"
+      >
+        <span className="admin-nav-icon">
+          <InboxIcon size={18} />
+        </span>
+        <span className="admin-nav-label">{t("T-4864")}</span>
+      </Link>
       <p className="admin-nav-section">{t("T-4861")}</p>
       {groups.map((group) => {
         const Icon = group.icon ? SPACE_ICONS[group.icon] : null;
@@ -178,6 +193,7 @@ export function AdminShell({
   groups,
   showHome,
   children,
+  desk,
   search,
   theme,
   account,
@@ -185,6 +201,8 @@ export function AdminShell({
   groups: AdminNavGroup[];
   showHome: boolean;
   children: ReactNode;
+  /** El contador de la Mesa, que llega en streaming desde el servidor. */
+  desk: ReactNode;
   search: ReactNode;
   theme: ReactNode;
   account: ReactNode;
@@ -300,12 +318,14 @@ export function AdminShell({
             </button>
             <span className="admin-topbar-label">{t("T-236")}</span>
             <div className="admin-utilities">
+              {desk}
               <AreaSwitch to="member" />
               {search}
               {theme}
               <details className="admin-account" ref={accountMenu}>
                 <summary>
-                  {t("T-1403")}
+                  <UserCircleIcon size={18} className="admin-account-icon" />
+                  <span className="admin-account-label">{t("T-1403")}</span>
                   <ChevronDownIcon />
                 </summary>
                 <div className="admin-account-menu">{account}</div>
