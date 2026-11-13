@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-195](ADR-195-los-avales-de-la-junta.md) | Los avales de la junta | Propuesta |
 | [ADR-194](ADR-194-la-junta-del-semestre-y-sus-comites-de-trabajo.md) | La junta del semestre y sus comités de trabajo | Aceptada |
 | [ADR-193](ADR-193-la-presidencia-suple-a-la-vp-en-el-inventario.md) | La Presidencia suple a la VP en el inventario | Aceptada |
 | [ADR-192](ADR-192-revision-temporal-de-rama-en-staging.md) | Revisión temporal de una rama funcional en staging | Aceptada (era la ADR-153 de la rama del inventario) |
