@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [165](adr/ADR-165-bonos-de-permanencia-por-criterio.md) | Bonos de permanencia | GH ingresa el total exacto de los faltantes elegidos. La persona ve los puntos por criterio y el motivo | Aceptada |
 | [164](adr/ADR-164-el-rediseno-sale-de-una-vez.md) | El rediseño sale de una vez | Sin bandera por persona: el rediseño se construye en la rama `feat/rediseno`, con `main` mezclado cada semana y migraciones solo aditivas; cada ola se prueba en staging y el rediseño sale completo, las olas 1 a 5, para todos en un solo PR; si algo falla, se vuelve al SHA anterior | Aceptada |
 | [163](adr/ADR-163-aspecto-sobrio-de-la-capa-funcional.md) | Aspecto sobrio de la capa funcional | En la Operación, Mi OE y el modo de campo: fondo con degradado suave y superficies blancas sin borde, peso máximo 600, etiqueta corta en tipo oración, navy como único acento fuerte y acción principal de las dos áreas, botón secundario sin borde y pastillas para pestañas y filtros; el naranja queda en el botón de Asistencia y en los momentos de marca | Aceptada |
 | [162](adr/ADR-162-grupo-de-decoracion-en-mi-oe.md) | Grupo de decoración en Mi OE | El buen desempeño completa el paso de Decoración solo para el grupo con el código de su criterio general o el código histórico `DECORACION` cuando la regla carece de código | Aceptada |

@@ -334,13 +334,17 @@ export interface TermRosterRow {
   leftAt: Date | null;
 }
 
-async function rosterRows(termId: string, personIds?: string[]): Promise<TermRosterRow[]> {
+async function rosterRows(
+  termId: string,
+  personIds: string[] | undefined,
+  exec: Executor,
+): Promise<TermRosterRow[]> {
   if (personIds && personIds.length === 0) {
     return [];
   }
   const personTerm = alias(membershipTerm, "person_term");
   const committeeTerm = alias(membershipTerm, "committee_term");
-  const rows = await getDb()
+  const rows = await exec
     .select({
       personId: committeeMembership.personId,
       status: membership.status,
@@ -401,8 +405,12 @@ async function rosterRows(termId: string, personIds?: string[]): Promise<TermRos
 }
 
 /** Una fila por pertenencia del término, con estado, primer término y condición de prueba; opcionalmente solo algunas personas. */
-export function listTermRoster(termId: string, personIds?: string[]): Promise<TermRosterRow[]> {
-  return rosterRows(termId, personIds);
+export function listTermRoster(
+  termId: string,
+  personIds?: string[],
+  exec: Executor = getDb(),
+): Promise<TermRosterRow[]> {
+  return rosterRows(termId, personIds, exec);
 }
 
 export interface MemberByEmail {

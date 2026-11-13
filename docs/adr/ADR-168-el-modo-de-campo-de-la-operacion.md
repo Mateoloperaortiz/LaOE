@@ -1,6 +1,6 @@
 # ADR-168: El modo de campo de la Operación
 
-- Estado: Aceptada (2026-11-13)
+- Estado: Aceptada (2026-11-13) (enmendada por ADR-191)
 - Fecha: 2026-11-13
 - Desarrolla: [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) (regla 6, «Modo de campo»)
 - Relacionadas: ADR-035, ADR-037, ADR-058, ADR-089, ADR-118, ADR-167
@@ -30,3 +30,7 @@ Casi todo eso ya existe por separado. El modo anfitrión (ADR-035 regla 8) es m�
 - **Sin migración.** Lee lo que ya existe: ocasiones, asistencias, solicitudes y competencias.
 - **Permisos.** La pantalla de campo no da permisos nuevos: muestra solo lo que el actor ya podía operar, y cada acción pasa por el mismo comando.
 - **Pruebas.** E2E en el ancho de un celular: la ocasión de hoy con su conteo y el camino al modo anfitrión, aprobar una excusa con un toque, los pendientes del modo anfitrión y el aviso cuando no hay nada.
+
+## Enmienda (2026-11-13, ADR-191)
+
+Regla 6: entregar y recibir inventario entra al modo de campo con el inventario ([ADR-191](ADR-191-el-inventario-entra-al-rediseno.md) regla 6). La Operación suma el rol de operar el inventario, para el CML, que solo ve el modo de campo y la consola de entregas y devoluciones.

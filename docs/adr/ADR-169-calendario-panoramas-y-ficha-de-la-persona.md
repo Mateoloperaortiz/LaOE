@@ -1,6 +1,6 @@
 # ADR-169: El Calendario, los panoramas por rol y la ficha de la persona
 
-- Estado: Aceptada (2026-11-13)
+- Estado: Aceptada (2026-11-13) (enmendada por ADR-191)
 - Fecha: 2026-11-13
 - Desarrolla: [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) (reglas 3 y 5: la estructura y los patrones de escritorio)
 - Enmienda: [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) (la pestaña «Resumen» de la Persona 360) y la regla 15 de [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) (adónde entra quien no es ADMIN)
@@ -35,3 +35,7 @@ Hoy las fechas viven repartidas: las actividades, las asambleas y las sesiones d
 - **Sin migración.** El Calendario y el Panorama leen lo que ya existe con dos lecturas nuevas por rango de fechas (`listOccasionsBetween` en `participation` y `listEditionsBetween` en `events`).
 - **Navegación.** Las pruebas que esperaban la entrada derecha de un rol al comité cambian: la dirección de un comité ahora entra al Panorama.
 - **Pruebas.** Unitarias de la cuadrícula (semanas, meses, cambio de año y capas). E2E del Calendario por semana y por mes con sus capas, del Panorama de ADMIN y de la dirección de un comité, y de la ficha con su actividad reciente.
+
+## Enmienda (2026-11-13, ADR-191)
+
+Regla 1: las reservas de inventario son una capa del Calendario, con quien reservó y su comité o macroevento ([ADR-191](ADR-191-el-inventario-entra-al-rediseno.md) regla 4).

@@ -73,6 +73,7 @@ export async function enqueueEvent(
 export async function runCommand<T>(
   actor: Actor,
   command: (ctx: CommandContext) => Promise<T>,
+  options?: Parameters<Db["transaction"]>[1],
 ): Promise<T> {
   return getDb().transaction(async (tx) => {
     const ctx: CommandContext = {
@@ -94,5 +95,5 @@ export async function runCommand<T>(
       },
     };
     return command(ctx);
-  });
+  }, options);
 }

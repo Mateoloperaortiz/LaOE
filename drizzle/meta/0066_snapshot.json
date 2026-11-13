@@ -15225,7 +15225,7 @@
       "checkConstraints": {
         "panal_word_format": {
           "name": "panal_word_format",
-          "value": "\"panal_word\".\"word\" ~ '^[A-ZÑ]{4,32}$'"
+          "value": "\"panal_word\".\"word\" ~ '^[A-Z\u00d1]{4,32}$'"
         }
       },
       "isRLSEnabled": false
@@ -16896,7 +16896,7 @@
         },
         "wordle_attempt_guess_format": {
           "name": "wordle_attempt_guess_format",
-          "value": "\"wordle_attempt\".\"guess\" ~ '^[A-ZÑ]{5}$'"
+          "value": "\"wordle_attempt\".\"guess\" ~ '^[A-Z\u00d1]{5}$'"
         },
         "wordle_attempt_feedback_length": {
           "name": "wordle_attempt_feedback_length",
@@ -17073,7 +17073,7 @@
       "checkConstraints": {
         "wordle_game_answer_format": {
           "name": "wordle_game_answer_format",
-          "value": "\"wordle_game\".\"answer\" ~ '^[A-ZÑ]{5}$'"
+          "value": "\"wordle_game\".\"answer\" ~ '^[A-Z\u00d1]{5}$'"
         },
         "wordle_game_completed_consistent": {
           "name": "wordle_game_completed_consistent",
@@ -22405,6 +22405,222 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.permanence_bonus": {
+      "name": "permanence_bonus",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "term_id": {
+          "name": "term_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "granted_by_id": {
+          "name": "granted_by_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "permanence_bonus_request_unique": {
+          "name": "permanence_bonus_request_unique",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "term_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "request_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "permanence_bonus_term_id_term_id_fk": {
+          "name": "permanence_bonus_term_id_term_id_fk",
+          "tableFrom": "permanence_bonus",
+          "tableTo": "term",
+          "columnsFrom": [
+            "term_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "permanence_bonus_person_id_person_id_fk": {
+          "name": "permanence_bonus_person_id_person_id_fk",
+          "tableFrom": "permanence_bonus",
+          "tableTo": "person",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "permanence_bonus_granted_by_id_person_id_fk": {
+          "name": "permanence_bonus_granted_by_id_person_id_fk",
+          "tableFrom": "permanence_bonus",
+          "tableTo": "person",
+          "columnsFrom": [
+            "granted_by_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "permanence_bonus_reason_length": {
+          "name": "permanence_bonus_reason_length",
+          "value": "char_length(btrim(\"permanence_bonus\".\"reason\")) between 1 and 1000"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.permanence_bonus_allocation": {
+      "name": "permanence_bonus_allocation",
+      "schema": "",
+      "columns": {
+        "bonus_id": {
+          "name": "bonus_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rule_id": {
+          "name": "rule_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "permanence_bonus_allocation_rule_idx": {
+          "name": "permanence_bonus_allocation_rule_idx",
+          "columns": [
+            {
+              "expression": "rule_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "permanence_bonus_allocation_bonus_id_permanence_bonus_id_fk": {
+          "name": "permanence_bonus_allocation_bonus_id_permanence_bonus_id_fk",
+          "tableFrom": "permanence_bonus_allocation",
+          "tableTo": "permanence_bonus",
+          "columnsFrom": [
+            "bonus_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "permanence_bonus_allocation_rule_id_permanence_rule_id_fk": {
+          "name": "permanence_bonus_allocation_rule_id_permanence_rule_id_fk",
+          "tableFrom": "permanence_bonus_allocation",
+          "tableTo": "permanence_rule",
+          "columnsFrom": [
+            "rule_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "permanence_bonus_allocation_bonus_id_rule_id_pk": {
+          "name": "permanence_bonus_allocation_bonus_id_rule_id_pk",
+          "columns": [
+            "bonus_id",
+            "rule_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "permanence_bonus_allocation_positive": {
+          "name": "permanence_bonus_allocation_positive",
+          "value": "\"permanence_bonus_allocation\".\"value\" > 0"
+        }
+      },
       "isRLSEnabled": false
     }
   },

@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import type { Executor } from "@/db/tx";
 import {
   assemblyAdjustmentsFor,
   listApprovedCheckInsForPersonInTerm,
@@ -10,11 +11,13 @@ import {
   termAssemblyRequirement,
 } from "@/modules/participation";
 import { listExpulsionWarnings, listTermRoster, type TermRosterRow } from "@/modules/people";
-import { requireConfig } from "@/modules/system";
+import { type ConfigKey, requireConfig } from "@/modules/system";
 import { getTerm, type TermRow } from "@/modules/terms";
 import {
   leaderScore,
   manualCredit,
+  permanenceBonus,
+  permanenceBonusAllocation,
   permanenceRule,
   workGroup,
   workGroupEvaluator,
@@ -37,26 +40,29 @@ import {
 // que se decide con lo leído vive en `permanence-pure.ts`: con qué estado, condición de nuevo y prueba
 // llega la persona lo dice `personStanding`. Quién es nuevo ya viene decidido en el roster de `people`.
 
-export async function loadPermanenceConfig(termCode?: string): Promise<PermanenceConfig> {
+export async function loadPermanenceConfig(
+  termCode?: string,
+  exec?: Executor,
+): Promise<PermanenceConfig> {
+  const config = <K extends ConfigKey>(key: K) => requireConfig(key, exec);
   return {
     thresholds: {
-      active: await requireConfig("permanence.threshold.active"),
-      new: await requireConfig("permanence.threshold.new"),
-      probation: await requireConfig("permanence.threshold.probation"),
-      transfer: await requireConfig("permanence.threshold.transfer"),
+      active: await config("permanence.threshold.active"),
+      new: await config("permanence.threshold.new"),
+      probation: await config("permanence.threshold.probation"),
+      transfer: await config("permanence.threshold.transfer"),
     },
     probationMargins: probationMarginsForTerm(
       termCode,
-      await requireConfig("permanence.probationMargins"),
-      await requireConfig("permanence.probationMargins2026"),
+      await config("permanence.probationMargins"),
+      await config("permanence.probationMargins2026"),
     ),
-    evaluationWindowDays: await requireConfig("permanence.evaluationWindowDays"),
-    warningDays: await requireConfig("permanence.warningDays"),
+    evaluationWindowDays: await config("permanence.evaluationWindowDays"),
+    warningDays: await config("permanence.warningDays"),
   };
 }
 
-export async function loadGroups(termId: string): Promise<GroupFact[]> {
-  const db = getDb();
+export async function loadGroups(termId: string, db: Executor = getDb()): Promise<GroupFact[]> {
   const groups = await db
     .select({
       id: workGroup.id,
@@ -87,8 +93,8 @@ export async function loadGroups(termId: string): Promise<GroupFact[]> {
   return groups.map((item) => ({ ...item, evaluatorIds: byGroup.get(item.id) ?? [] }));
 }
 
-export async function loadRules(termId: string) {
-  const rows = await getDb()
+export async function loadRules(termId: string, exec: Executor = getDb()) {
+  const rows = await exec
     .select()
     .from(permanenceRule)
     .where(eq(permanenceRule.termId, termId))
@@ -104,27 +110,38 @@ export async function loadRules(termId: string) {
  * Los hechos del término: reglas, ocasiones, grupos y configuración; null si el término no existe.
  * Quien ya leyó el término lo pasa entero y no se vuelve a leer (ADR-121 regla 11).
  */
-export async function loadTermFacts(termOrId: string | TermRow): Promise<TermFacts | null> {
-  const term = typeof termOrId === "string" ? await getTerm(termOrId) : termOrId;
+export function loadTermFacts(term: TermRow, exec?: Executor): Promise<TermFacts>;
+export function loadTermFacts(
+  termOrId: string | TermRow,
+  exec?: Executor,
+): Promise<TermFacts | null>;
+export async function loadTermFacts(
+  termOrId: string | TermRow,
+  exec?: Executor,
+): Promise<TermFacts | null> {
+  const db = exec ?? getDb();
+  const term = typeof termOrId === "string" ? await getTerm(termOrId, db) : termOrId;
   if (!term) {
     return null;
   }
   const termId = term.id;
-  const config = await loadPermanenceConfig(term.code);
-  const rules = await loadRules(termId);
-  const occasions: OccasionFact[] = (await listOccasionsForTerm(termId)).map((row) => ({
-    id: row.id,
-    title: row.title,
-    location: row.location,
-    kind: row.kind,
-    assemblyKind: row.assemblyKind,
-    category: row.category,
-    committeeId: row.committeeId,
-    newMembersOnly: row.newMembersOnly,
-    startsAt: row.startsAt,
-    status: row.status,
-  }));
-  const groups = await loadGroups(termId);
+  const config = await loadPermanenceConfig(term.code, exec);
+  const rules = await loadRules(termId, db);
+  const occasions: OccasionFact[] = (await listOccasionsForTerm(termId, undefined, db)).map(
+    (row) => ({
+      id: row.id,
+      title: row.title,
+      location: row.location,
+      kind: row.kind,
+      assemblyKind: row.assemblyKind,
+      category: row.category,
+      committeeId: row.committeeId,
+      newMembersOnly: row.newMembersOnly,
+      startsAt: row.startsAt,
+      status: row.status,
+    }),
+  );
+  const groups = await loadGroups(termId, db);
   return {
     term: {
       id: term.id,
@@ -156,41 +173,26 @@ function groupRoster(rows: TermRosterRow[]): Map<string, TermRosterRow[]> {
 async function occasionsByPerson(
   termId: string,
   personIds: string[] | undefined,
-  forPerson: (personId: string, termId: string) => Promise<string[]>,
-  forTerm: (termId: string) => Promise<Array<{ personId: string; occasionId: string }>>,
+  exec: Executor,
+  forPerson: (personId: string, termId: string, exec: Executor) => Promise<string[]>,
+  forTerm: (
+    termId: string,
+    exec: Executor,
+  ) => Promise<Array<{ personId: string; occasionId: string }>>,
 ): Promise<Map<string, Set<string>>> {
   const map = new Map<string, Set<string>>();
   if (personIds) {
     for (const personId of personIds) {
-      map.set(personId, new Set(await forPerson(personId, termId)));
+      map.set(personId, new Set(await forPerson(personId, termId, exec)));
     }
     return map;
   }
-  for (const row of await forTerm(termId)) {
+  for (const row of await forTerm(termId, exec)) {
     const set = map.get(row.personId) ?? new Set<string>();
     set.add(row.occasionId);
     map.set(row.personId, set);
   }
   return map;
-}
-
-function attendedByPerson(termId: string, personIds: string[] | undefined) {
-  return occasionsByPerson(
-    termId,
-    personIds,
-    listApprovedCheckInsForPersonInTerm,
-    listApprovedCheckInsForTerm,
-  );
-}
-
-/** Ocasiones con excusa aceptada (ADR-060 regla 5): no cuentan como falta. */
-function excusedByPerson(termId: string, personIds: string[] | undefined) {
-  return occasionsByPerson(
-    termId,
-    personIds,
-    listExcusedCheckInsForPersonInTerm,
-    listExcusedCheckInsForTerm,
-  );
 }
 
 /**
@@ -200,18 +202,31 @@ function excusedByPerson(termId: string, personIds: string[] | undefined) {
 export async function loadPeopleFacts(
   facts: TermFacts,
   personIds?: string[],
+  db: Executor = getDb(),
 ): Promise<PersonFacts[]> {
   const termId = facts.term.id;
-  const roster = groupRoster(await listTermRoster(termId, personIds));
+  const roster = groupRoster(await listTermRoster(termId, personIds, db));
   const ids = [...roster.keys()];
   if (ids.length === 0) {
     return [];
   }
-  const db = getDb();
-  const attended = await attendedByPerson(termId, personIds);
-  const excused = await excusedByPerson(termId, personIds);
+  const attended = await occasionsByPerson(
+    termId,
+    personIds,
+    db,
+    listApprovedCheckInsForPersonInTerm,
+    listApprovedCheckInsForTerm,
+  );
+  // Ocasiones con excusa aceptada (ADR-060 regla 5): no cuentan como falta.
+  const excused = await occasionsByPerson(
+    termId,
+    personIds,
+    db,
+    listExcusedCheckInsForPersonInTerm,
+    listExcusedCheckInsForTerm,
+  );
   // Sanciones vivas al cerrar el término (ADR-060 regla 6).
-  const warned = await listExpulsionWarnings(facts.term.endsOn, ids);
+  const warned = await listExpulsionWarnings(facts.term.endsOn, ids, db);
   const memberships = await db
     .select({
       personId: workGroupMembership.personId,
@@ -244,12 +259,30 @@ export async function loadPeopleFacts(
     })
     .from(manualCredit)
     .where(and(eq(manualCredit.termId, termId), inArray(manualCredit.personId, ids)));
+  const bonusRows = await db
+    .select({
+      personId: permanenceBonus.personId,
+      id: permanenceBonus.id,
+      ruleId: permanenceBonusAllocation.ruleId,
+      value: permanenceBonusAllocation.value,
+      reason: permanenceBonus.reason,
+    })
+    .from(permanenceBonus)
+    .innerJoin(permanenceBonusAllocation, eq(permanenceBonusAllocation.bonusId, permanenceBonus.id))
+    .where(and(eq(permanenceBonus.termId, termId), inArray(permanenceBonus.personId, ids)))
+    .orderBy(asc(permanenceBonus.createdAt), asc(permanenceBonus.id));
+  const bonuses = new Map<string, PersonFacts["bonuses"]>();
+  for (const { personId, ...bonus } of bonusRows) {
+    const list = bonuses.get(personId) ?? [];
+    list.push(bonus);
+    bonuses.set(personId, list);
+  }
   // El requisito «del término» sale de las ocasiones que ya se leyeron, con la misma función que usa
   // `participation` para su mesa de asambleas (ADR-123 regla 13).
   const fallback: AssemblyRequirementFact = termAssemblyRequirement(facts.term, facts.occasions);
   // Solo los ajustes de las personas pedidas: antes se leía el cumplimiento de todos los activos de la
   // OE para quedarse con el requisito de cada una (ADR-121 regla 3).
-  const adjustments = await assemblyAdjustmentsFor(termId, ids);
+  const adjustments = await assemblyAdjustmentsFor(termId, ids, db);
   return ids.map((personId) => {
     const rows = roster.get(personId) ?? [];
     const standing = personStanding(rows);
@@ -278,6 +311,7 @@ export async function loadPeopleFacts(
       credits: credits
         .filter((item) => item.personId === personId)
         .map(({ personId: _p, ...rest }) => rest),
+      bonuses: bonuses.get(personId) ?? [],
       // El ajuste es del miembro activo. Quien no lo está llega con el requisito del término aunque
       // tenga un ajuste: así lo entregaba la lectura de toda la OE, que solo traía activos.
       assemblyRequirement: adjustment

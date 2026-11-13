@@ -2,7 +2,7 @@
 
 Enmienda posterior: [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) permite importar evidencia previamente validada por GH como `GOOD`, conservando fuente, fila, autor y auditoría. Los cálculos y la exención de licencia se conservan.
 
-- Estado: Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058, ADR-116, ADR-118, ADR-121, ADR-123 y ADR-162)
+- Estado: Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058, ADR-116, ADR-118, ADR-121, ADR-123, ADR-162 y ADR-165)
 - Fecha: 2026-09-04
 - Relacionadas: ADR-003, ADR-004, ADR-005, ADR-011, ADR-012, ADR-014, ADR-017, ADR-025, ADR-026, ADR-027, ADR-028, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035
 - Enmienda: ADR-025 (recompute, estados, decisiones y vista en vivo), ADR-026 (bloqueo y comentario por tabla), ADR-028 (ventana por configuración y pendientes al cierre), ADR-031 (avisos en la app hasta la fase 6; anuncios de comité), ADR-033 (`announcement.committeeId`), ADR-035 (layout del admin con más roles; handlers de `term.points-closed` y `occasion.closed`), 03-modelo (tablas definitivas de `permanence`, `permanence_table`, `ruleId`, columnas del snapshot, `term.permanenceClosedAt`) y 05-acceso (roles derivados de los grupos, `BOARD`, step-up del cierre)
@@ -84,3 +84,7 @@ Regla 4: su enmienda de ADR-121 dice que el requisito sale de `participation.ass
 ## Enmienda (2026-11-12, ADR-162)
 
 El buen desempeño completa el paso de Decoración en Mi OE solo si el grupo de la evaluación tiene el código de Decoración de oficina en ese semestre. Las reglas compuestas pueden acreditar su peso con cualquiera de sus evidencias cuando GH activa esa opción. Ver [ADR-162](ADR-162-grupo-de-decoracion-en-mi-oe.md).
+
+## Enmienda (2026-11-13, ADR-165)
+
+Reglas 1, 4, 5 y 8. GH puede otorgar bonos en criterios existentes por el faltante exacto, con motivo visible. El guardado y el recálculo leen los hechos por las APIs de cada módulo dentro de la misma transacción que actualiza el snapshot. El cierre conserva el desglose. [ADR-165](ADR-165-bonos-de-permanencia-por-criterio.md).

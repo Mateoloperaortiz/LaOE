@@ -194,7 +194,6 @@ const EXCEPTIONS: Exceptions = {
   },
   system: {
     "solo-pruebas": `
-      ConfigKey
       ConfigValue
       checkBackup
     `,

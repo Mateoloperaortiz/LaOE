@@ -104,6 +104,7 @@ Con los puntos del término ya cerrados, la app **propone** para cada persona y 
 - Encabezado por comité: "En Pixel vas en 75 %: cumplís (necesitás 60 %). En Cigma vas en 52 %: te faltan 8 %." Con el umbral que le aplica (60, 80 o 70) y su condición (activo, nuevo, en prueba, transferencia).
 - Bloque **general**: cada criterio con logrado / máximo, qué cuenta y cómo sumar más ("asististe a 2 de 5 integraciones; quedan 6 este semestre, la próxima es el jueves"). Asambleas obligatorias aparte.
 - Bloque por **comité**: reuniones (asistencia y próximas), eventos, puntajes del líder y sus observaciones.
+- Los bonos de GH aparecen debajo del criterio correspondiente, con los puntos otorgados y el motivo. Si después sube el puntaje del criterio, el desglose muestra cuánto del bono sigue contando.
 - Evaluaciones pendientes con quién debe evaluarlas.
 - Si la persona es nueva, arriba aparece su lista de onboarding de la primera semana, ligada a sus criterios (integración de nuevos, decoración de oficina).
 - Historial desde la línea de tiempo. Barra compacta en el inicio de Mi OE.
@@ -116,6 +117,7 @@ Con los puntos del término ya cerrados, la app **propone** para cada persona y 
 - **Grupos**: crear grupos de trabajo del término con líder, evaluador e miembros; importar desde CSV; los seis comités de trabajo y el Athletic vienen sembrados.
 - **Evaluaciones**: ventana que se abre dos semanas antes del cierre del término; bandeja de pendientes por evaluador; recordatorios.
 - **Cumplimiento**: roster con resultado por comité, condición, umbral y estado; filtros "por debajo", "no alcanza", "en prueba", "nuevos", "exentos"; recálculo a pedido; export con step-up.
+- **Dar bono de permanencia** en Cumplimiento permite elegir a la persona y varios criterios del semestre. El panel muestra los puntos que faltan en cada uno y exige ingresar su suma exacta y un motivo visible para la persona. [ADR-165](adr/ADR-165-bonos-de-permanencia-por-criterio.md).
 - **Cierre**: propuesta automática por persona y comité, confirmación por persona o en bloque, aplicación con step-up y avance del job; solo con los puntos cerrados.
 - **Persona 360**: pestaña Permanencia con el mismo desglose que ve la persona.
 

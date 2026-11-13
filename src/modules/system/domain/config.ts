@@ -143,8 +143,11 @@ export function readConfigNow<K extends ConfigKey>(key: K): Promise<ConfigValue<
 }
 
 /** Lectura obligatoria: falla si la clave no está sembrada. */
-export async function requireConfig<K extends ConfigKey>(key: K): Promise<ConfigValue<K>> {
-  const value = await getConfig(key);
+export async function requireConfig<K extends ConfigKey>(
+  key: K,
+  exec?: Executor,
+): Promise<ConfigValue<K>> {
+  const value = exec ? await readConfig(exec, key) : await getConfig(key);
   if (value === null) {
     throw new Error(`Falta la configuración ${key}`);
   }
@@ -161,11 +164,7 @@ export async function requireConfigIn<K extends ConfigKey>(
   ctx: CommandContext,
   key: K,
 ): Promise<ConfigValue<K>> {
-  const value = await readConfig(ctx.tx, key);
-  if (value === null) {
-    throw new Error(`Falta la configuración ${key}`);
-  }
-  return value;
+  return requireConfig(key, ctx.tx);
 }
 
 export async function setConfig<K extends ConfigKey>(

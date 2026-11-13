@@ -3,6 +3,7 @@ import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { permanenceRecompute } from "@/domain-events/permanence";
+import { getTerm } from "@/modules/terms";
 import { permanenceSnapshot } from "../schema";
 import { loadPeopleFacts, loadTermFacts } from "./facts";
 import {
@@ -98,6 +99,49 @@ export async function lockTermSnapshots(tx: Tx, termId: string): Promise<void> {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`permanence:${termId}`}))`);
 }
 
+/** Persiste un resultado bajo el candado de snapshots del término. */
+export async function saveSnapshot(
+  tx: Tx,
+  termId: string,
+  result: PersonPermanence,
+  computedAt: Date,
+): Promise<void> {
+  const {
+    personId,
+    status,
+    isNew,
+    probation,
+    expulsionWarning,
+    generalTotal,
+    generalMax,
+    general,
+    results,
+    mandatory,
+  } = result;
+  const values = {
+    termId,
+    personId,
+    status,
+    isNew,
+    probation,
+    expulsionWarning,
+    generalTotal,
+    generalMax,
+    general,
+    results,
+    mandatory,
+    computedAt,
+  };
+  await tx
+    .insert(permanenceSnapshot)
+    .values(values)
+    .onConflictDoUpdate({
+      target: [permanenceSnapshot.termId, permanenceSnapshot.personId],
+      set: values,
+      setWhere: isNull(permanenceSnapshot.frozenAt),
+    });
+}
+
 /**
  * Recalcula los snapshots del término (o solo de una persona) bajo el lock del término. Devuelve
  * cuántas filas escribió; 0 si el término no existe o ya cerró su permanencia.
@@ -109,37 +153,14 @@ export async function recomputeSnapshots(
 ): Promise<number> {
   return getDb().transaction(async (tx) => {
     await lockTermSnapshots(tx, termId);
-    const facts = await loadTermFacts(termId);
-    if (!facts || facts.term.permanenceClosedAt) {
+    const term = await getTerm(termId, tx);
+    if (!term || term.permanenceClosedAt) {
       return 0;
     }
-    const people = await loadPeopleFacts(facts, personId ? [personId] : undefined);
-    let written = 0;
+    const facts = await loadTermFacts(term, tx);
+    const people = await loadPeopleFacts(facts, personId ? [personId] : undefined, tx);
     for (const person of people) {
-      const result = computePerson(facts, person, now);
-      const values = {
-        termId,
-        personId: person.personId,
-        status: person.status,
-        isNew: result.isNew,
-        probation: result.probation,
-        expulsionWarning: result.expulsionWarning,
-        generalTotal: result.generalTotal,
-        generalMax: result.generalMax,
-        general: result.general,
-        results: result.results,
-        mandatory: result.mandatory,
-        computedAt: now,
-      };
-      await tx
-        .insert(permanenceSnapshot)
-        .values(values)
-        .onConflictDoUpdate({
-          target: [permanenceSnapshot.termId, permanenceSnapshot.personId],
-          set: values,
-          setWhere: isNull(permanenceSnapshot.frozenAt),
-        });
-      written += 1;
+      await saveSnapshot(tx, termId, computePerson(facts, person, now), now);
     }
     if (!personId) {
       // Quien ya no tiene pertenencia en el término sale del snapshot (salvo que esté congelado).
@@ -164,7 +185,7 @@ export async function recomputeSnapshots(
           ),
         );
     }
-    return written;
+    return people.length;
   });
 }
 

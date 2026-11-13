@@ -9,7 +9,13 @@ import { requireConfig } from "@/modules/system";
 import { findTermByCode, getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { leaderScore, manualCredit, permanenceRule, permanenceTable } from "../schema";
+import {
+  leaderScore,
+  manualCredit,
+  permanenceBonusAllocation,
+  permanenceRule,
+  permanenceTable,
+} from "../schema";
 import { loadPeopleFacts, loadRules, loadTermFacts } from "./facts";
 import { type Rule, type RuleInput, ruleInputSchema, type Scope, toRule } from "./params";
 import {
@@ -213,7 +219,8 @@ async function ruleOfTable(ctx: CommandContext, ref: TableRef, id: string) {
   const [row] = await ctx.tx
     .select()
     .from(permanenceRule)
-    .where(and(eq(permanenceRule.id, id), rulesWhere(ref)));
+    .where(and(eq(permanenceRule.id, id), rulesWhere(ref)))
+    .for("no key update");
   if (!row) {
     throw new DomainError(t("T-032"));
   }
@@ -255,11 +262,15 @@ export async function deleteRule(
 ) {
   const before = await ruleOfTable(ctx, ref, id);
   await assertEditable(ctx, ref, context);
-  const [[scores], [credits]] = [
+  const [[scores], [credits], [bonuses]] = [
     await ctx.tx.select({ n: count() }).from(leaderScore).where(eq(leaderScore.ruleId, id)),
     await ctx.tx.select({ n: count() }).from(manualCredit).where(eq(manualCredit.ruleId, id)),
+    await ctx.tx
+      .select({ n: count() })
+      .from(permanenceBonusAllocation)
+      .where(eq(permanenceBonusAllocation.ruleId, id)),
   ];
-  if ((scores?.n ?? 0) > 0 || (credits?.n ?? 0) > 0) {
+  if ((scores?.n ?? 0) > 0 || (credits?.n ?? 0) > 0 || (bonuses?.n ?? 0) > 0) {
     throw new DomainError(t("T-732"));
   }
   await ctx.tx.delete(permanenceRule).where(eq(permanenceRule.id, id));

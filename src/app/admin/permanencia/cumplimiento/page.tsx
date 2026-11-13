@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { single } from "@/app/_lib/search";
+import { single, withQuery } from "@/app/_lib/search";
 import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import { exportLimitNotice } from "@/app/admin/_kit/export-limit-notice";
 import { requireAdminActor } from "@/modules/identity";
@@ -21,6 +21,7 @@ import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { recomputeAction } from "./actions";
+import { BonusPanel } from "./BonusPanel";
 
 // Cumplimiento de permanencia para GH (12-permanencia): una fila por persona y comité desde los
 // snapshots, filtros de GH, recálculo a pedido y export con step-up.
@@ -61,6 +62,7 @@ export default async function CumplimientoPage({
     complianceSummary(term.id),
   ]);
   const base = `/admin/permanencia/cumplimiento?termId=${term.id}`;
+  const bonusOpen = term.permanenceClosedAt === null && single(search.bono) === "1";
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -111,6 +113,15 @@ export default async function CumplimientoPage({
               </AdminSubmitButton>
             </AdminFormBody>
           </ActionForm>
+          {term.permanenceClosedAt === null ? (
+            <Link
+              href={withQuery(base, { filtro: filter, bono: "1" })}
+              scroll={false}
+              className="boton-calido min-h-8 px-3 py-1 text-sm"
+            >
+              {t("T-4860")}
+            </Link>
+          ) : null}
           <a
             href={`/api/export/permanencia?termId=${term.id}&filtro=${filter}`}
             className="boton-secundario min-h-8 px-3 py-1 text-sm"
@@ -121,6 +132,7 @@ export default async function CumplimientoPage({
       </header>
 
       <DownloadNotice searchParams={search} />
+      {single(search.bonoGuardado) === "1" ? <output>{t("T-4875")}</output> : null}
       {exportLimitNotice(rows.length)}
       <nav aria-label={filterLabels[0] ?? ""} className="flex flex-wrap gap-2">
         {COMPLIANCE_FILTERS.map((key) => (
@@ -153,12 +165,29 @@ export default async function CumplimientoPage({
               {rows.map((row) => (
                 <tr key={row.id} className="border-borde border-t">
                   <td className="py-2 pr-3 font-semibold">
-                    <Link
-                      href={`/admin/personas/${row.personId}?pestana=permanencia`}
-                      className="underline"
-                    >
-                      {row.personName}
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <Link
+                        href={`/admin/personas/${row.personId}?pestana=permanencia`}
+                        className="underline"
+                      >
+                        {row.personName}
+                      </Link>
+                      {term.permanenceClosedAt === null && row.status === "ACTIVE" && row.state ? (
+                        <Link
+                          href={withQuery(base, {
+                            filtro: filter,
+                            bono: "1",
+                            persona: row.personId,
+                          })}
+                          prefetch={false}
+                          scroll={false}
+                          className="text-xs font-medium underline"
+                          aria-label={t("T-4880", { nombre: row.personName })}
+                        >
+                          {t("T-4881")}
+                        </Link>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="py-2 pr-3">
                     {row.condition
@@ -194,6 +223,9 @@ export default async function CumplimientoPage({
           </table>
         </AdminTableRegion>
       )}
+      {bonusOpen ? (
+        <BonusPanel termId={term.id} personId={single(search.persona)} filter={filter} />
+      ) : null}
     </div>
   );
 }

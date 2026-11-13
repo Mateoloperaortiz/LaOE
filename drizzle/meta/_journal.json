@@ -451,6 +451,13 @@
       "breakpoints": true
     },
     {
+      "idx": 64,
+      "version": "7",
+      "when": 1794587504462,
+      "tag": "0064_bonos_de_permanencia",
+      "breakpoints": true
+    },
+    {
       "idx": 65,
       "version": "7",
       "when": 1794587505462,

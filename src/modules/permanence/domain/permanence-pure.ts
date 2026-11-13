@@ -116,6 +116,7 @@ export interface PersonFacts {
   groupMemberships: GroupMembershipFact[];
   leaderScores: Array<{ ruleId: string; value: number; note: string | null; scoredAt: Date }>;
   credits: Array<{ ruleId: string; value: number; reason: string }>;
+  bonuses: Array<CriterionBonus & { ruleId: string }>;
   assemblyRequirement: AssemblyRequirementFact;
 }
 
@@ -181,6 +182,12 @@ export type CriterionDetail =
     }
   | { type: "MANUAL"; credited: number | null; reason: string | null };
 
+interface CriterionBonus {
+  id: string;
+  value: number;
+  reason: string;
+}
+
 export interface CriterionResult {
   ruleId: string;
   key: string;
@@ -190,6 +197,12 @@ export interface CriterionResult {
   achieved: number;
   remaining: number;
   detail: CriterionDetail;
+  bonusBreakdown?:
+    | {
+        baseAchieved: number;
+        grants: Array<CriterionBonus & { applied: number }>;
+      }
+    | undefined;
 }
 
 export interface CommitteeResult {
@@ -534,7 +547,7 @@ function groupAchieved(
   return { achieved: goodCount >= 1 ? weight : 0, tier: null };
 }
 
-export function computeCriterion(
+function computeCriterion(
   rule: Rule,
   facts: TermFacts,
   person: PersonFacts,
@@ -750,6 +763,24 @@ export function computeCriterion(
   }
 }
 
+function withBonuses(criterion: CriterionResult, bonuses: PersonFacts["bonuses"]): CriterionResult {
+  const grants = bonuses.filter((bonus) => bonus.ruleId === criterion.ruleId);
+  if (grants.length === 0) return criterion;
+
+  let achieved = criterion.achieved;
+  const detail = grants.map(({ id, reason, value }) => {
+    const applied = Math.min(value, round2(criterion.weight - achieved));
+    achieved = round2(achieved + applied);
+    return { id, reason, value, applied };
+  });
+  return {
+    ...criterion,
+    achieved,
+    remaining: Math.min(criterion.remaining, round2(criterion.weight - achieved)),
+    bonusBreakdown: { baseAchieved: criterion.achieved, grants: detail },
+  };
+}
+
 /**
  * Estado abierto por la banda de riesgo (ADR-036 regla 4) o, cerrado, el final con el margen de
  * prueba de la condición (ADR-060 regla 1), como si cerrara hoy.
@@ -923,13 +954,13 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
   const options: ComputeOptions = { now, closed, windowOpen };
   const liveCommittees = person.committees.filter((item) => item.leftAt === null);
   const evaluated = person.status === "ACTIVE" && liveCommittees.length > 0;
+  const score = (rule: Rule) =>
+    withBonuses(computeCriterion(rule, facts, person, options), person.bonuses);
   const applicable = facts.rules.filter((rule) => ruleApplies(rule.appliesTo, person.isNew));
   const generalRules = applicable
     .filter((rule) => rule.scope === "GENERAL")
     .sort((a, b) => a.sortOrder - b.sortOrder);
-  const general = evaluated
-    ? generalRules.map((rule) => computeCriterion(rule, facts, person, options))
-    : [];
+  const general = evaluated ? generalRules.map(score) : [];
   const generalTotal = sum(general.map((item) => item.achieved));
   // Sin tabla cargada, todo el nominal sigue siendo posible: nadie arranca en "no alcanza".
   const generalRemaining =
@@ -949,7 +980,7 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
             (rule) => rule.scope === "COMMITTEE" && rule.committeeId === membership.committeeId,
           )
           .sort((a, b) => a.sortOrder - b.sortOrder);
-        const criteria = rules.map((rule) => computeCriterion(rule, facts, person, options));
+        const criteria = rules.map(score);
         const committeeTotal = sum(criteria.map((item) => item.achieved));
         const committeeRemaining =
           rules.length === 0

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
@@ -18,6 +18,7 @@ import { colorRun } from "@/modules/participation/schema";
 import { changeMembershipStatus } from "@/modules/people/domain/membership";
 import { setProbation } from "@/modules/people/domain/term-outcomes";
 import { membership } from "@/modules/people/schema";
+import { grantPermanenceBonusAs } from "@/modules/permanence";
 import { confirmDecisions, listClosingRows } from "@/modules/permanence/domain/closing";
 import { grantManualCredit, scoreCriterion } from "@/modules/permanence/domain/leader-scores";
 import { recomputeSnapshots } from "@/modules/permanence/domain/snapshots";
@@ -408,6 +409,8 @@ describe("Mis datos incluye las categorías de la política con aislamiento por 
     });
     const ruleId = await seedRule(termId, "credito-propio");
     const leaderRuleId = await seedRule(termId, "lider-propio", { computation: "LEADER_SCORE" });
+    const bonusRuleId = await seedRule(termId, "bono-propio", { weight: 4 });
+    const bonusCommittee = await seedCommittee("export-bono");
     const groupId = await seedWorkGroup(termId, "Grupo sintético");
     const callId = await seedCall(termId, groupId);
     const tagId = await seedTag("Etiqueta sintética");
@@ -438,14 +441,22 @@ describe("Mis datos incluye las categorías de la política con aislamiento por 
         personId: who,
         answers: { motivo: `${prefix}-respuesta` },
       });
-      // Snapshot dañado: una clave desconocida que el cálculo actual no produce (excepción ADR-124).
-      await getDb()
-        .insert(permanenceSnapshot)
-        .values({
-          id: `${prefix}-snapshot`,
+      await seedCommitteeMembership(who, bonusCommittee, termId);
+      await grantPermanenceBonusAs(
+        { personId: other, ip: null },
+        {
           personId: who,
           termId,
-          status: "ACTIVE",
+          ruleIds: [bonusRuleId],
+          total: 4,
+          reason: "NOTA_INTERNA_SECRETA",
+          requestId: crypto.randomUUID(),
+        },
+      );
+      // Snapshot dañado: una clave desconocida que el cálculo actual no produce (excepción ADR-124).
+      await getDb()
+        .update(permanenceSnapshot)
+        .set({
           generalTotal: 7,
           generalMax: 10,
           general: [
@@ -470,7 +481,8 @@ describe("Mis datos incluye las categorías de la política con aislamiento por 
             lost: [],
             upcoming: [],
           },
-        });
+        })
+        .where(and(eq(permanenceSnapshot.termId, termId), eq(permanenceSnapshot.personId, who)));
       await seedContinuesDecision(who, termId, "NOTA_INTERNA_SECRETA");
       await seedLeaderScore(termId, leaderRuleId, who, 7);
       await seedManualCredit(termId, ruleId, who, 7, { reason: "NOTA_INTERNA_SECRETA" });
@@ -511,6 +523,7 @@ describe("Mis datos incluye las categorías de la política con aislamiento por 
       "permanenceDecisions",
       "leaderScores",
       "manualCredits",
+      "permanenceBonuses",
       "workGroupMemberships",
       "recognitions",
       "internalCallEntries",
@@ -521,7 +534,7 @@ describe("Mis datos incluye las categorías de la política con aislamiento por 
       "tasks",
       "auditHistory",
     ]) {
-      const expected = section === "auditHistory" ? 2 : 1;
+      const expected = section === "auditHistory" ? 3 : 1;
       expect(data[section], section).toHaveLength(expected);
       expect(data.exportCoverage.collections[section], section).toMatchObject({
         limit: 10000,
@@ -534,6 +547,7 @@ describe("Mis datos incluye las categorías de la política con aislamiento por 
     expect(data.permanenceSnapshots[0].general[0]).toMatchObject({ achieved: 7, weight: 10 });
     expect(data.leaderScores[0].value).toBe(7);
     expect(data.manualCredits[0].value).toBe(7);
+    expect(data.permanenceBonuses[0].allocations).toEqual([{ ruleId: bonusRuleId, value: 4 }]);
     expect(data.exportCoverage.reviewRequired).toContain("permanenceDecisions.reason");
     const serialized = JSON.stringify(data);
     for (const value of ["ajeno-", "NOTA_INTERNA_SECRETA", "NO_EXPORTAR_", other])

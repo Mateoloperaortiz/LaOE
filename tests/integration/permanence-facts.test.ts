@@ -671,11 +671,11 @@ describe("la permanencia de una persona lee las ocasiones del término una sola 
     expect(read.result?.result?.mandatory).toBeDefined();
     expect(occasionReads(read.queries)).toHaveLength(1);
     expect(occasionReads(recalc.queries)).toHaveLength(1);
-    // Eran 16 y 17 (ADR-121 regla 3): la lectura de las asambleas del término ya no sale.
-    expect(read.queries.length).toBeLessThanOrEqual(15);
-    expect(recalc.queries.length).toBeLessThanOrEqual(16);
-    // Y eran 7 filas: la de la asamblea, que esa lectura traía, tampoco.
+    // El bono agrega una consulta acotada a las personas solicitadas. El recálculo también lee las
+    // ocho claves de configuración por su propia transacción y bajo el candado del término.
+    expect(read.queries.length).toBeLessThanOrEqual(16);
+    expect(recalc.queries.length).toBeLessThanOrEqual(25);
     expect(rowsOf(read.queries)).toBeLessThanOrEqual(6);
-    expect(rowsOf(recalc.queries)).toBeLessThanOrEqual(6);
+    expect(rowsOf(recalc.queries)).toBeLessThanOrEqual(14);
   });
 });

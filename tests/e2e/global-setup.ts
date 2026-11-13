@@ -31,6 +31,7 @@ import {
 import {
   leaderScore,
   manualCredit,
+  permanenceBonusAllocation,
   permanenceDecision,
   permanenceRule,
   permanenceSnapshot,
@@ -209,6 +210,9 @@ export default async function globalSetup(): Promise<void> {
     .from(permanenceRule)
     .where(like(permanenceRule.key, "e2e-%"));
   await db.delete(manualCredit).where(inArray(manualCredit.ruleId, e2eRules));
+  await db
+    .delete(permanenceBonusAllocation)
+    .where(inArray(permanenceBonusAllocation.ruleId, e2eRules));
   await db.delete(leaderScore).where(inArray(leaderScore.ruleId, e2eRules));
   await db.delete(permanenceRule).where(like(permanenceRule.key, "e2e-%"));
   await db.delete(permanenceTable).where(like(permanenceTable.comment, "e2e-%"));
