@@ -67,5 +67,7 @@ export async function submitAction(
       values: { ...identity, ...answers },
     };
   }
-  redirect(`/f/${slug}?ok=1${result.registered ? "&inscrito=1" : ""}`);
+  // La entrada de una inscripción (ADR-187) viaja en la dirección: es la única vez que sale el código.
+  const entrada = result.ticket ? `&entrada=${result.ticket}` : "";
+  redirect(`/f/${slug}?ok=1${result.registered ? "&inscrito=1" : ""}${entrada}`);
 }

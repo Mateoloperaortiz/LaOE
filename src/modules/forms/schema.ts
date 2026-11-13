@@ -97,10 +97,17 @@ export const editionRegistration = pgTable(
       .references(() => person.id, { onDelete: "cascade" }),
     submissionId: text().references(() => formSubmission.id, { onDelete: "set null" }),
     status: registrationStatus().notNull().default("REGISTERED"),
+    // La entrada propia (ADR-187): solo el hash del código, y cuándo y quién la leyó en la puerta.
+    ticketHash: text(),
+    checkedInAt: timestampTz(),
+    checkedInById: text().references(() => person.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
   (t) => [
     uniqueIndex("edition_registration_unique").on(t.editionId, t.personId),
     index("edition_registration_person_idx").on(t.personId),
+    uniqueIndex("edition_registration_ticket_unique")
+      .on(t.ticketHash)
+      .where(sql`${t.ticketHash} is not null`),
   ],
 );

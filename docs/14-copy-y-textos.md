@@ -3516,3 +3516,13 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | T-5021 | Oportunidad: fecha de cierre | Cierra el {fecha} | MATEO | Propuesta |
 | T-5022 | Oportunidad: para quién, en el orden de OPPORTUNITY_AUDIENCES | Miembros · Egresados · Miembros y egresados | MATEO | Propuesta |
 | T-5023 | Admin: oportunidades (plural · singular · organización · tipo · para quién · título · descripción · enlace · cierra · estado) | Oportunidades · Oportunidad · Organización · Tipo · Para quién · Título · Descripción · Enlace · Cierra · Estado | MATEO | Propuesta |
+| T-5024 | Entrada de un inscrito: título · cómo se usa | Tu entrada · Muéstrala en la puerta: la leen desde el celular de la organización. | MATEO | Propuesta |
+| T-5025 | Admin, puerta de una edición: título · explicación | Puerta · Escanea la entrada de cada inscrito. La primera lectura marca la llegada; la segunda dice a qué hora entró. | MATEO | Propuesta |
+| T-5026 | Puerta: entrada que no es de esta edición | Esa entrada no es de esta edición o ya no está vigente. | MATEO | Propuesta |
+| T-5027 | Puerta: la entrada ya se usó | {nombre} ya entró a las {hora}. | MATEO | Propuesta |
+| T-5028 | Puerta: entrada válida | Adelante, {nombre}. | MATEO | Propuesta |
+| T-5029 | Puerta: cuántos entraron | {adentro} de {total} inscritos ya entraron | MATEO | Propuesta |
+| T-5030 | Entrada de un inscrito que ya entró | Ya entraste a las {hora}. | MATEO | Propuesta |
+| T-5031 | Entrada de un inscrito: texto alternativo del QR | Código QR de tu entrada | MATEO | Propuesta |
+| T-5032 | Formulario propio, confirmación de una inscripción: enlace a la entrada · explicación | Ver tu entrada · Guárdala: con ella entras al evento. | MATEO | Propuesta |
+| T-5033 | Admin, ediciones: enlace a la puerta | Puerta | MATEO | Propuesta |

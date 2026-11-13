@@ -9,6 +9,7 @@ import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNo
 import { BarraTitulo, Elemento, SelloOE } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { paginaMetadata } from "@/shared/lib/seo";
+import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Markdown } from "@/shared/ui/Markdown";
 import { FormularioPublico } from "./FormularioPublico";
 
@@ -62,6 +63,12 @@ export default async function FormularioPage({ params, searchParams }: PageProps
   }
   const [firstName, lastName, email] = tList("T-851");
   const enviado = search.ok === "1";
+  // La entrada recién emitida (ADR-187): solo un código con la forma de los que genera la casa.
+  const entrada =
+    typeof search.entrada === "string" && /^[A-Za-z0-9_-]{24}$/.test(search.entrada)
+      ? search.entrada
+      : null;
+  const [verEntrada, guardala] = tList("T-5032");
   const edicion =
     enviado && search.inscrito === "1" && formulario.parsedActions.editionId
       ? await getEdition(formulario.parsedActions.editionId)
@@ -86,6 +93,17 @@ export default async function FormularioPage({ params, searchParams }: PageProps
           {edicion ? (
             <p className="text-lg">
               {t("T-867", { edición: `${edicion.eventName} · ${edicion.name}` })}
+            </p>
+          ) : null}
+          {edicion && entrada ? (
+            <p className="flex flex-col gap-1">
+              <Link
+                href={`/entrada/${entrada}`}
+                className="self-start text-lg font-semibold underline"
+              >
+                {verEntrada}
+              </Link>
+              <span>{guardala}</span>
             </p>
           ) : null}
           <SelloOE tamano="md" />

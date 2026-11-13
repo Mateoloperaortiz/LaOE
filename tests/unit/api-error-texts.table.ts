@@ -69,6 +69,8 @@ const DIAS_HUB_4XX =
   "La pide DÍAS (`src/lib/hub.ts` del repo `dias`), que toma `body.error` como el mensaje de un 4xx y lo muestra en el hub de capitanes; a un origen que no está permitido el navegador no le deja leerlo.";
 const DIAS_HUB_5XX =
   "La pide DÍAS (`src/lib/hub.ts` del repo `dias`), que trata un 5xx como falta de conexión y no usa `body.error`.";
+const EDITION_API =
+  "La API de ediciones (ADR-187) responde un código, no un texto: el frontend delgado que inscribe (DÍAS) lo traduce, y ninguna pantalla de la casa enlaza a esta ruta.";
 
 /** Por archivo, con la ruta desde `src/app/api`. */
 export const API_ERROR_TEXTS: Record<string, readonly ErrorTextRow[]> = {
@@ -226,6 +228,15 @@ export const API_ERROR_TEXTS: Record<string, readonly ErrorTextRow[]> = {
     { status: 403, via: "error", class: "catalog", code: "T-2442" },
     { status: 403, via: "error", class: "catalog", code: "T-2440" },
     { status: 400, via: "error", class: "passed", expression: "error.message" },
+  ],
+  "v1/ediciones/[id]/route.ts": [
+    { status: 404, via: "error", class: "unread", text: "NOT_FOUND", reader: EDITION_API },
+  ],
+  "v1/ediciones/[id]/inscripciones/route.ts": [
+    { status: 404, via: "error", class: "unread", text: "NOT_FOUND", reader: EDITION_API },
+    { status: 400, via: "error", class: "unread", text: "INVALID", reader: EDITION_API },
+    // El código del rechazo de `submitFormAs`, con el status que le corresponde en `STATUS`.
+    { status: null, via: "error", class: "passed", expression: "result.code" },
   ],
   "v1/the-games/[slug]/equipos/[numero]/route.ts": [
     { status: 404, via: "error", class: "unread", text: "no existe", reader: DIAS_TEAM_ROUTE },

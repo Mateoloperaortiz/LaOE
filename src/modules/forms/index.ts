@@ -40,3 +40,4 @@ export {
   type SubmissionListRow,
   submitFormAs,
 } from "./domain/submissions";
+export { checkInTicketAs, getTicket, ticketCounts } from "./domain/tickets";

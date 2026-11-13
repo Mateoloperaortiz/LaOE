@@ -29,6 +29,7 @@ import {
   publicIdentitySchema,
   validateAnswers,
 } from "./pure";
+import { newTicket } from "./tickets";
 
 // Respuestas (ADR-013, ADR-037 reglas 3 y 4): vinculan o crean la persona por correo, registran el
 // consentimiento de tratamiento de datos y ejecutan solo las acciones declaradas; nunca crean miembros,
@@ -57,7 +58,7 @@ export interface CreateSubmissionInput {
 export async function createSubmission(
   ctx: CommandContext,
   input: CreateSubmissionInput,
-): Promise<{ id: string; registered: boolean }> {
+): Promise<{ id: string; registered: boolean; ticket: string | null }> {
   const member = input.personId ? await getMembershipRef(input.personId, ctx.tx) : null;
   if (
     member?.status === "ON_LEAVE" ||
@@ -94,6 +95,7 @@ export async function createSubmission(
     throw new Error("No se pudo guardar la respuesta");
   }
   let registered = false;
+  let ticket: string | null = null;
   const actions = input.form.parsedActions;
   if (input.personId) {
     if (input.consentAcceptedAt) {
@@ -107,15 +109,23 @@ export async function createSubmission(
       await addPersonTags(ctx, input.personId, actions.tagIds);
     }
     if (actions.editionId) {
+      // Cada inscripción lleva su entrada (ADR-187): el código sale una sola vez, en la respuesta.
+      const entry = newTicket();
       const inserted = await ctx.tx
         .insert(editionRegistration)
-        .values({ editionId: actions.editionId, personId: input.personId, submissionId: row.id })
+        .values({
+          editionId: actions.editionId,
+          personId: input.personId,
+          submissionId: row.id,
+          ticketHash: entry.hash,
+        })
         .onConflictDoNothing({
           target: [editionRegistration.editionId, editionRegistration.personId],
         })
         .returning({ id: editionRegistration.id });
       registered = inserted.length > 0;
       if (registered) {
+        ticket = entry.code;
         const edition = await getEdition(actions.editionId);
         await ctx.emit(
           eventOf(registrationCreated, {
@@ -149,7 +159,7 @@ export async function createSubmission(
       actions,
     }),
   );
-  return { id: row.id, registered };
+  return { id: row.id, registered, ticket };
 }
 
 export interface SubmitInput {
@@ -163,7 +173,14 @@ export interface SubmitInput {
 }
 
 export type SubmitResult =
-  | { ok: true; submissionId: string | null; registered: boolean; honeypot: boolean }
+  | {
+      ok: true;
+      submissionId: string | null;
+      registered: boolean;
+      honeypot: boolean;
+      /** El código de la entrada, si inscribió a una edición (ADR-187): sale solo aquí. */
+      ticket: string | null;
+    }
   | {
       ok: false;
       code:
@@ -202,7 +219,7 @@ export async function submitFormAs(
       { formId: target.id, ip: input.ip },
       "formulario: campo trampa lleno, respuesta descartada",
     );
-    return { ok: true, submissionId: null, registered: false, honeypot: true };
+    return { ok: true, submissionId: null, registered: false, honeypot: true, ticket: null };
   }
   if (target.state !== "OPEN") {
     return { ok: false, code: target.state, errors: {} };
@@ -292,7 +309,13 @@ export async function submitFormAs(
       ip: input.ip ?? null,
       userAgent: input.userAgent ?? null,
     });
-    return { ok: true, submissionId: created.id, registered: created.registered, honeypot: false };
+    return {
+      ok: true,
+      submissionId: created.id,
+      registered: created.registered,
+      honeypot: false,
+      ticket: created.ticket,
+    };
   }).catch((error: unknown): SubmitResult => {
     // Fuera de runCommand: la persona y todos los efectos anteriores también se revierten.
     if (error instanceof PrivacyPolicyPendingError) {

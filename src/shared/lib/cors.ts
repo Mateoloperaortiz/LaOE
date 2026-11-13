@@ -39,3 +39,21 @@ export function credentialedCorsHeaders(
     vary: "Origin",
   };
 }
+
+/** CORS de una escritura pública de la API v1 (ADR-187): solo el origen exacto permitido, sin
+ *  credenciales, con `POST` y `content-type`, y siempre `Vary: Origin`. Sin origen permitido no hay
+ *  encabezados de CORS y el navegador bloquea; un servidor sin `Origin` no los necesita. */
+export function writeCorsHeaders(
+  allowed: readonly string[],
+  requestOrigin: string | null,
+): Record<string, string> {
+  const origin = requestOrigin?.toLowerCase() ?? null;
+  if (!origin || !allowed.includes(origin)) return { vary: "Origin" };
+  return {
+    "access-control-allow-origin": origin,
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": "content-type",
+    "access-control-max-age": "600",
+    vary: "Origin",
+  };
+}

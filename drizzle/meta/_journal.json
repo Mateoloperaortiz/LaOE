@@ -505,6 +505,13 @@
       "when": 1794569160542,
       "tag": "0071_oportunidades",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1794569673521,
+      "tag": "0072_entrada_externa",
+      "breakpoints": true
     }
   ]
 }

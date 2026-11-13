@@ -102,6 +102,16 @@ export const edicionesResource = {
       }),
     },
   ],
+  // La puerta de la edición (ADR-187): quien opera lee la entrada propia de cada inscrito.
+  rowLinks: [
+    ...(editionsResource.rowLinks ?? []),
+    {
+      key: "puerta",
+      label: t("T-5033"),
+      href: (row: EditionRowWithRegistrations) =>
+        `/admin/eventos/${row.eventId}/ediciones/${row.id}/entrada`,
+    },
+  ],
   list: async (params: Parameters<typeof editionsResource.list>[0]) => {
     const result = await editionsResource.list(params);
     const counts = await countRegistrationsByEdition(result.rows.map((row) => row.id));
