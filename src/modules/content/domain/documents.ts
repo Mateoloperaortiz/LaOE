@@ -387,6 +387,20 @@ export async function listPublishedDocuments(): Promise<PublishedDocument[]> {
   return rows.sort((a, b) => (order.get(a.kind) ?? 9) - (order.get(b.kind) ?? 9));
 }
 
+/**
+ * El protocolo de crisis publicado más reciente, que enlaza el semáforo rojo de un aval (ADR-197 regla
+ * 2); null mientras no se haya publicado.
+ */
+export async function findPublishedCrisisProtocol(): Promise<{ id: string; title: string } | null> {
+  const [row] = await getDb()
+    .select({ id: document.id, title: document.title })
+    .from(document)
+    .where(and(eq(document.status, "PUBLISHED"), eq(document.kind, "PROTOCOLO_CRISIS")))
+    .orderBy(desc(document.updatedAt))
+    .limit(1);
+  return row ?? null;
+}
+
 export interface PublishedDocumentDetail {
   document: PublishedDocument;
   articles: ArticleRow[];

@@ -300,7 +300,13 @@ describe("el aval de evento pedido mientras cambia la condición de la persona",
   const requestAval = (f: Scenario): Promise<unknown> =>
     requestEventApprovalAs(
       { personId: f.personId, ip: null },
-      { committeeId: f.committeeId, title: "Evento sintético", eventOn: "2099-11-20" },
+      {
+        committeeId: f.committeeId,
+        title: "Evento sintético",
+        eventOn: "2099-11-20",
+        riskLevel: "GREEN" as const,
+        riskJustification: "Actividad de rutina, sin publicaciones sensibles",
+      },
     );
   const avales = async (f: Scenario): Promise<number> =>
     (

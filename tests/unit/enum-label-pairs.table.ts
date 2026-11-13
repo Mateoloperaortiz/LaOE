@@ -47,12 +47,13 @@ import {
   requestStatusLabel,
 } from "@/modules/crm/domain/requests";
 import { EXCUSE_CAUSES, REQUEST_KINDS, REQUEST_STATUSES } from "@/modules/crm/domain/requests-pure";
-import { approvalStatusLabel } from "@/modules/finance/domain/approvals";
+import { approvalStatusLabel, riskLevelLabel } from "@/modules/finance/domain/approvals";
 import {
   APPROVAL_STATUSES,
   APPROVERS,
   BUDGET_KINDS,
   BUDGET_STATUSES,
+  RISK_LEVELS,
 } from "@/modules/finance/domain/budget-pure";
 import { budgetKindLabel, budgetStatusLabel } from "@/modules/finance/domain/budgets";
 import { FIELD_TYPES } from "@/modules/forms/domain/pure";
@@ -119,6 +120,7 @@ const LABELS = {
   appointment: (value) => appointmentLabel({ kind: value as never, title: null }),
   area: (value) => areaLabel(value as never),
   approvalStatus: (value) => approvalStatusLabel(value as never),
+  riskLevel: (value) => riskLevelLabel(value as never),
   award: (value) => awardLabel(value),
   budgetKind: (value) => budgetKindLabel(value as never),
   budgetStatus: (value) => budgetStatusLabel(value as never),
@@ -215,7 +217,7 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-394",
     order: "DOCUMENT_KINDS",
-    positions: { ESTATUTOS: 0, REGLAMENTO: 1, ACTA: 2, OTRO: 3 },
+    positions: { ESTATUTOS: 0, REGLAMENTO: 1, ACTA: 2, OTRO: 3, PROTOCOLO_CRISIS: 4 },
     canonical: DOCUMENT_KINDS,
   },
   {
@@ -673,7 +675,7 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-2300",
     order: "APPROVAL_STATUSES",
-    positions: { PENDING: 0, APPROVED: 1, REJECTED: 2 },
+    positions: { PENDING: 0, APPROVED: 1, REJECTED: 2, RETURNED: 3 },
     canonical: APPROVAL_STATUSES,
     label: LABELS.approvalStatus,
   },
@@ -961,6 +963,13 @@ export const PAIRS: readonly LabelPair[] = [
     order: "AVAL_KINDS",
     positions: { EVENT: 0, SANCTION: 1 },
     canonical: AVAL_KINDS,
+  },
+  {
+    code: "T-5102",
+    order: "RISK_LEVELS",
+    positions: { GREEN: 0, YELLOW: 1, RED: 2 },
+    canonical: RISK_LEVELS,
+    label: LABELS.riskLevel,
   },
   {
     code: "T-4891",

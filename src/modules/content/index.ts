@@ -23,6 +23,7 @@ export {
   confirmDocumentSchema,
   type DocumentListRow,
   type DocumentRow,
+  findPublishedCrisisProtocol,
   getDocumentWithArticles,
   getPublishedDocumentWithArticles,
   HIGHLIGHT,

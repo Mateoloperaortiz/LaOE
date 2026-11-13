@@ -2,7 +2,16 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { single, withQuery } from "@/app/_lib/search";
-import { approvalStatusLabel, listEventApprovals } from "@/modules/finance";
+import { findPublishedCrisisProtocol } from "@/modules/content";
+import {
+  approvalStatusLabel,
+  byRisk,
+  getEventApprovalDetail,
+  listEventApprovals,
+  RISK_LEVELS,
+  type RiskLevel,
+  riskLevelLabel,
+} from "@/modules/finance";
 import { APPOINTMENT_KINDS, getPeopleByIds, listPendingSanctions } from "@/modules/people";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
@@ -11,22 +20,24 @@ import { Badge } from "@/shared/ui/Badge";
 import { Banner } from "@/shared/ui/Banner";
 import { Button } from "@/shared/ui/Button";
 import { DetailPanel } from "@/shared/ui/DetailPanel";
-import { Field, TextArea } from "@/shared/ui/Field";
+import { Field, Select, TextArea } from "@/shared/ui/Field";
 import { ScreenHeader } from "@/shared/ui/ScreenHeader";
 import { SplitView } from "@/shared/ui/SplitView";
 import { EmptyState } from "@/shared/ui/States";
 import { WorkTable } from "@/shared/ui/WorkTable";
+import { AvalHistoria, RiesgoBadge, RiesgoRojo } from "../_kit/aval";
 import { AVAL_KINDS } from "./_ui/kinds";
-import { decideAvalAction } from "./actions";
+import { changeRiskAction, decideAvalAction, returnAvalAction } from "./actions";
 
 // Los avales de la junta (ADR-195): cada cargo ve lo que le toca decidir. El aval de evento lo decide la
 // Presidencia (A1) y las faltas por avalar, quien decide por la VP de Gestión Humana (A2, ADR-196).
-// ADMIN ve la lista sin decidir: no decide por la junta.
+// ADMIN ve la lista sin decidir: no decide por la junta. La Presidencia también devuelve el aval con
+// comentarios y cambia su semáforo, y la lista va del riesgo más alto al más bajo (ADR-197).
 
 const [titulo] = tList("T-5083");
 export const metadata: Metadata = { title: titulo };
 
-const TONE = { PENDING: "aviso", APPROVED: "exito", REJECTED: "error" } as const;
+const TONE = { PENDING: "aviso", APPROVED: "exito", REJECTED: "error", RETURNED: "info" } as const;
 
 type Kind = (typeof AVAL_KINDS)[number];
 
@@ -41,19 +52,38 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
     decidesEvents || roles.isAdmin ? listEventApprovals({}) : [],
     decidesFaltas || roles.isAdmin ? listPendingSanctions() : [],
   ]);
-  const pendingEvents = events.filter((row) => row.status === "PENDING");
-  const recentEvents = events.filter((row) => row.status !== "PENDING").slice(0, 10);
-  const selectedEvent = events.find((row) => row.id === single(query.aval)) ?? null;
+  // Abiertos: por decidir y devueltos al comité, del riesgo más alto al más bajo (ADR-197 regla 2).
+  const openEvents = events
+    .filter((row) => row.status === "PENDING" || row.status === "RETURNED")
+    .sort(byRisk);
+  const recentEvents = events
+    .filter((row) => row.status === "APPROVED" || row.status === "REJECTED")
+    .slice(0, 10);
+  const selectedId = events.find((row) => row.id === single(query.aval))?.id;
+  const [selectedEvent, protocol] = await Promise.all([
+    selectedId ? getEventApprovalDetail(selectedId) : null,
+    selectedId ? findPublishedCrisisProtocol() : null,
+  ]);
   const selectedFalta = faltas.find((row) => row.id === single(query.falta)) ?? null;
   const people = await getPeopleByIds([
-    ...new Set(events.flatMap((row) => (row.requestedById ? [row.requestedById] : []))),
+    ...new Set([
+      ...events.flatMap((row) => (row.requestedById ? [row.requestedById] : [])),
+      ...(selectedEvent?.entries ?? []).flatMap((entry) =>
+        entry.authorId ? [entry.authorId] : [],
+      ),
+    ]),
   ]);
+  const names = new Map([...people].map(([id, item]) => [id, item.fullName]));
 
   const [heading, intro] = tList("T-5083");
   const [comite, , fechaEvento, loPidio, estado, pedidoEl, motivo] = tList("T-5085");
   const columnas = tList("T-5101");
   const [aprobar, rechazar, motivoCampo, loDecide, , vacio, decididos, volver] = tList("T-5086");
   const [persona, tipo, causa, referencia, fechaFalta, laAnoto] = tList("T-5096");
+  const [riesgoCampo, porQue] = tList("T-5103");
+  const [devolver, comentarios] = tList("T-5106");
+  const [cambiarTitulo, nivelCampo, motivoCambio, cambiar] = tList("T-5107");
+  const [imprimir, , version] = tList("T-5114");
   const kinds = tLabels("T-5084", AVAL_KINDS);
   const cargos = tLabels("T-444", APPOINTMENT_KINDS);
   const error = single(query.error);
@@ -68,6 +98,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
     date: string;
     status: keyof typeof TONE;
     statusLabel: string;
+    risk: RiskLevel | null | undefined;
   };
   const eventRow = (row: (typeof events)[number]): Row => ({
     kind: "EVENT",
@@ -77,6 +108,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
     date: row.eventOn,
     status: row.status,
     statusLabel: approvalStatusLabel(row.status),
+    risk: row.riskLevel,
   });
   const faltaRow = (row: (typeof faltas)[number]): Row => ({
     kind: "SANCTION",
@@ -86,6 +118,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
     date: row.occurredOn,
     status: "PENDING",
     statusLabel: row.stateLabel,
+    risk: undefined,
   });
   const isSelected = (row: Row) =>
     row.kind === "EVENT" ? row.id === selectedEvent?.id : row.id === selectedFalta?.id;
@@ -99,6 +132,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
         { key: "comite", label: columnas[2] ?? "" },
         { key: "fecha", label: columnas[3] ?? "" },
         { key: "estado", label: columnas[4] ?? "" },
+        { key: "riesgo", label: columnas[5] ?? "" },
       ]}
       rows={rows.map((row) => ({
         id: `${row.kind}-${row.id}`,
@@ -121,6 +155,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
               {row.statusLabel}
             </Badge>
           ),
+          riesgo: row.risk === undefined ? "—" : <RiesgoBadge level={row.risk} />,
         },
       }))}
       empty={<EmptyState title={vacio ?? ""} />}
@@ -186,11 +221,71 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
             <dd>{selectedEvent.decisionNote}</dd>
           </>
         ) : null}
+        <dt className="text-tinta-secundaria">{riesgoCampo}</dt>
+        <dd>
+          <RiesgoBadge level={selectedEvent.riskLevel} />
+        </dd>
+        {selectedEvent.riskJustification ? (
+          <>
+            <dt className="text-tinta-secundaria">{porQue}</dt>
+            <dd>{selectedEvent.riskJustification}</dd>
+          </>
+        ) : null}
       </dl>
+      {selectedEvent.riskLevel === "RED" ? <RiesgoRojo protocol={protocol} /> : null}
       {selectedEvent.description ? <p className="text-sm">{selectedEvent.description}</p> : null}
-      {selectedEvent.status === "PENDING"
-        ? decision("EVENT", selectedEvent.id, decidesEvents, cargos.PRESIDENT)
-        : null}
+      <p className="text-sm">
+        <span className="text-tinta-secundaria">
+          {(version ?? "").replace("{versión}", String(selectedEvent.version))} ·{" "}
+        </span>
+        <Link href={`/admin/avales/${selectedEvent.id}/imprimir`}>{imprimir}</Link>
+      </p>
+      {selectedEvent.status === "PENDING" ? (
+        <>
+          {decision("EVENT", selectedEvent.id, decidesEvents, cargos.PRESIDENT)}
+          {decidesEvents ? (
+            <form action={returnAvalAction} className="flex flex-col gap-3">
+              <input name="avalId" type="hidden" value={selectedEvent.id} />
+              <Field id="aval-comentarios" label={comentarios ?? ""}>
+                <TextArea id="aval-comentarios" name="note" maxLength={1000} rows={3} />
+              </Field>
+              <Button type="submit" variant="secundaria" area="operacion" className="self-start">
+                {devolver}
+              </Button>
+            </form>
+          ) : null}
+        </>
+      ) : null}
+      {decidesEvents && selectedEvent.status !== "REJECTED" ? (
+        <form action={changeRiskAction} className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold">{cambiarTitulo}</h3>
+          <input name="avalId" type="hidden" value={selectedEvent.id} />
+          <Field id="aval-nivel" label={nivelCampo ?? ""}>
+            <Select
+              id="aval-nivel"
+              name="riskLevel"
+              defaultValue={selectedEvent.riskLevel ?? ""}
+              required
+            >
+              <option value="" disabled>
+                —
+              </option>
+              {RISK_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {riskLevelLabel(level)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field id="aval-motivo-semaforo" label={motivoCambio ?? ""}>
+            <TextArea id="aval-motivo-semaforo" name="note" maxLength={500} rows={2} />
+          </Field>
+          <Button type="submit" variant="secundaria" area="operacion" className="self-start">
+            {cambiar}
+          </Button>
+        </form>
+      ) : null}
+      <AvalHistoria entries={selectedEvent.entries} names={names} headingId="aval-historia" />
     </DetailPanel>
   ) : selectedFalta ? (
     <DetailPanel
@@ -236,7 +331,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
       <SplitView
         list={
           <div className="flex flex-col gap-6">
-            {table([...faltas.map(faltaRow), ...pendingEvents.map(eventRow)], heading ?? "")}
+            {table([...faltas.map(faltaRow), ...openEvents.map(eventRow)], heading ?? "")}
             {recentEvents.length > 0 ? table(recentEvents.map(eventRow), decididos ?? "") : null}
           </div>
         }

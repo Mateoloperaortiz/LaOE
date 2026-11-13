@@ -3,12 +3,19 @@
 export {
   approvalRequestSchema,
   approvalStatusLabel,
+  approvalVersionSchema,
+  type EventApprovalDetail,
   type EventApprovalListRow,
+  getEventApprovalDetail,
   listEventApprovals,
+  riskLevelLabel,
 } from "./domain/approvals";
 export {
   APPROVERS,
+  byRisk,
   LATE_BUDGET_SANCTION_PERCENT,
+  RISK_LEVELS,
+  type RiskLevel,
 } from "./domain/budget-pure";
 export {
   approveBudgetSchema,
@@ -23,12 +30,15 @@ export {
 } from "./domain/budgets";
 export {
   approveBudgetAs,
+  changeEventApprovalRiskAs,
   closeBudgetAs,
   decideEventApprovalAs,
   openBudgetAs,
   recordExpenseAs,
   recordTransferAs,
   requestEventApprovalAs,
+  resubmitEventApprovalAs,
+  returnEventApprovalAs,
   sanctionBudgetAs,
   setBudgetLinesAs,
   submitPrerequestAs,

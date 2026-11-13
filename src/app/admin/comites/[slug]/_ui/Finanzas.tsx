@@ -1,5 +1,10 @@
 import type { BudgetSummary, EventApprovalListRow } from "@/modules/finance";
-import { approvalStatusLabel, budgetKindLabel } from "@/modules/finance";
+import {
+  approvalStatusLabel,
+  budgetKindLabel,
+  RISK_LEVELS,
+  riskLevelLabel,
+} from "@/modules/finance";
 import { Campo, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
@@ -9,31 +14,85 @@ import { t, tList } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
 import { ActionForm } from "@/shared/ui/ActionForm";
+import { AppLink as Link } from "@/shared/ui/AppLink";
+import { RiesgoBadge } from "../../../_kit/aval";
 import {
   recordExpenseAction,
   recordTransferAction,
   requestApprovalAction,
+  resubmitApprovalAction,
   submitPrerequestAction,
 } from "../actions";
 
 // Área Finanzas del comité (ADR-059 regla 2; ADR-060 regla 12): con la capacidad FINANCE se ve el
 // resumen por rubro de cada presupuesto del año, se registra la presolicitud del mes, un gasto o un
-// traslado, y se pide el aval de un evento a la Presidencia. Rubros y montos los fija la junta.
+// traslado, y se pide el aval de un evento a la Presidencia. Rubros y montos los fija la junta. El aval
+// lleva el semáforo de riesgo y, si la Presidencia lo devuelve, aquí se corrige (ADR-197).
 
 interface Props {
   slug: string;
   year: number;
   budgets: BudgetSummary[];
   approvals: EventApprovalListRow[];
+  /** Los comentarios de la última devolución de cada aval devuelto. */
+  returned: Record<string, string>;
   editions: Array<{ id: string; label: string }>;
   guardado: string;
+}
+
+/** El semáforo que declara el comité, con su porqué (ADR-197 regla 2). */
+function CamposRiesgo({
+  prefix,
+  level,
+  justification,
+}: {
+  prefix: string;
+  level?: string | null;
+  justification?: string;
+}) {
+  const [riesgo, porQue] = tList("T-5103");
+  return (
+    <>
+      <Campo id={`${prefix}-riskLevel`} label={riesgo ?? ""}>
+        <select
+          id={`${prefix}-riskLevel`}
+          name="riskLevel"
+          required
+          className={inputClass}
+          defaultValue={level ?? ""}
+        >
+          <option value="" disabled>
+            —
+          </option>
+          {RISK_LEVELS.map((item) => (
+            <option key={item} value={item}>
+              {riskLevelLabel(item)}
+            </option>
+          ))}
+        </select>
+      </Campo>
+      <Campo id={`${prefix}-riskJustification`} label={porQue ?? ""}>
+        <textarea
+          id={`${prefix}-riskJustification`}
+          name="riskJustification"
+          required
+          minLength={2}
+          maxLength={1000}
+          rows={2}
+          defaultValue={justification ?? ""}
+          className={inputClass}
+        />
+      </Campo>
+      <p className="max-w-prose text-sm text-tinta-suave">{t("T-5104")}</p>
+    </>
+  );
 }
 
 function civil(key: string): string {
   return formatDate(new Date(`${key}T12:00:00Z`));
 }
 
-export function Finanzas({ slug, year, budgets, approvals, editions, guardado }: Props) {
+export function Finanzas({ slug, year, budgets, approvals, returned, editions, guardado }: Props) {
   const [tituloPresupuesto, rubrosTitulo] = tList("T-2190");
   const [rubro, asignado, gastado, trasladado, disponible] = tList("T-2191");
   const [fecha, rubroCampo, monto, descripcion] = tList("T-2194");
@@ -43,6 +102,8 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
     tList("T-2299");
   const [avalCampo, proveedor, sinAval] = tList("T-2307");
   const [, , sinAvales] = tList("T-2311");
+  const [devueltoTexto, enviarVersion, versionOk, corregir] = tList("T-5109");
+  const [imprimir] = tList("T-5114");
   const aprobados = approvals.filter((item) => item.status === "APPROVED");
   const hidden = <input type="hidden" name="slug" value={slug} />;
   const confirmaciones: Record<string, string | undefined> = {
@@ -50,6 +111,7 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
     traslado: t("T-2199"),
     presolicitud: presolOk,
     aval: avalOk,
+    version: versionOk,
   };
 
   return (
@@ -305,7 +367,7 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
         {approvals.length === 0 ? (
           <p className="text-sm text-tinta-suave">{sinAvales}</p>
         ) : (
-          <ul className="flex list-none flex-col gap-1 p-0 text-sm">
+          <ul className="flex list-none flex-col gap-3 p-0 text-sm">
             {approvals.map((item) => (
               <li key={item.id} className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold">{item.title}</span> · {civil(item.eventOn)}
@@ -320,8 +382,71 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
                 >
                   {approvalStatusLabel(item.status)}
                 </Insignia>
+                <RiesgoBadge level={item.riskLevel} />
                 {item.decisionNote ? (
                   <span className="text-tinta-suave">· {item.decisionNote}</span>
+                ) : null}
+                <Link href={`/admin/avales/${item.id}/imprimir`} className="text-sm">
+                  {imprimir}
+                </Link>
+                {item.status === "RETURNED" ? (
+                  <div className="flex w-full flex-col gap-2 rounded-xl border-2 border-borde p-3">
+                    <p className="m-0">{devueltoTexto}</p>
+                    {returned[item.id] ? (
+                      <p className="m-0 whitespace-pre-line">{returned[item.id]}</p>
+                    ) : null}
+                    <details>
+                      <summary className="cursor-pointer font-semibold">{corregir}</summary>
+                      <ActionForm
+                        action={resubmitApprovalAction}
+                        className="mt-3 flex max-w-xl flex-col gap-3"
+                      >
+                        <AdminFormBody>
+                          {hidden}
+                          <input type="hidden" name="approvalId" value={item.id} />
+                          <Campo id={`version-${item.id}-title`} label={evento ?? ""}>
+                            <input
+                              id={`version-${item.id}-title`}
+                              name="title"
+                              required
+                              defaultValue={item.title}
+                              className={inputClass}
+                            />
+                          </Campo>
+                          <Campo id={`version-${item.id}-eventOn`} label={fechaEvento ?? ""}>
+                            <input
+                              id={`version-${item.id}-eventOn`}
+                              name="eventOn"
+                              type="date"
+                              required
+                              defaultValue={item.eventOn}
+                              className={inputClass}
+                            />
+                          </Campo>
+                          <Campo
+                            id={`version-${item.id}-description`}
+                            label={descripcionAval ?? ""}
+                          >
+                            <textarea
+                              id={`version-${item.id}-description`}
+                              name="description"
+                              rows={3}
+                              defaultValue={item.description}
+                              className={inputClass}
+                            />
+                          </Campo>
+                          <CamposRiesgo
+                            prefix={`version-${item.id}`}
+                            level={item.riskLevel}
+                            justification={item.riskJustification}
+                          />
+                          <AdminSubmitButton type="submit" className="boton-secundario self-start">
+                            {enviarVersion}
+                          </AdminSubmitButton>
+                        </AdminFormBody>
+                      </ActionForm>
+                    </details>
+                  </div>
                 ) : null}
               </li>
             ))}
@@ -350,6 +475,7 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
             <Campo id="aval-description" label={descripcionAval ?? ""}>
               <textarea id="aval-description" name="description" rows={3} className={inputClass} />
             </Campo>
+            <CamposRiesgo prefix="aval" />
             <AdminSubmitButton type="submit" className="boton-secundario self-start">
               {pedirAval}
             </AdminSubmitButton>

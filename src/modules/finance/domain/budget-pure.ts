@@ -5,7 +5,23 @@ export const BUDGET_KINDS = ["ORDINARY", "EXTRAORDINARY"] as const;
 
 export const BUDGET_STATUSES = ["DRAFT", "OPEN", "CLOSED"] as const;
 
-export const APPROVAL_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
+export const APPROVAL_STATUSES = ["PENDING", "APPROVED", "REJECTED", "RETURNED"] as const;
+
+/** Semáforo de riesgo reputacional del aval (ADR-197 regla 2), de menos a más riesgo. */
+export const RISK_LEVELS = ["GREEN", "YELLOW", "RED"] as const;
+export type RiskLevel = (typeof RISK_LEVELS)[number];
+
+/**
+ * El orden de la lista de avales (ADR-197 regla 2): primero el rojo, después el amarillo, el verde y los
+ * pedidos antes del semáforo; dentro de cada nivel, el evento más cercano.
+ */
+export function byRisk<T extends { riskLevel: RiskLevel | null; eventOn: string }>(
+  a: T,
+  b: T,
+): number {
+  const rank = (level: RiskLevel | null) => (level ? RISK_LEVELS.indexOf(level) : -1);
+  return rank(b.riskLevel) - rank(a.riskLevel) || a.eventOn.localeCompare(b.eventOn);
+}
 
 export const APPROVERS = ["STUDENT_DEVELOPMENT", "VP_FINANCE"] as const;
 

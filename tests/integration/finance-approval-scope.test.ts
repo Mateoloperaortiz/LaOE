@@ -28,7 +28,13 @@ async function setup(withPresident = true) {
   await seedAppointment(financeId, termId, "VP_FINANCE");
   const { id: aval } = await requestEventApprovalAs(
     { personId: requesterId, ip: null },
-    { committeeId: pixel, title: "Evento sintético", eventOn: "2099-11-20" },
+    {
+      committeeId: pixel,
+      title: "Evento sintético",
+      eventOn: "2099-11-20",
+      riskLevel: "GREEN" as const,
+      riskJustification: "Actividad de rutina, sin publicaciones sensibles",
+    },
   );
   return { termId, pixel, requesterId, presidentId, financeId, aval };
 }

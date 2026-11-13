@@ -66,6 +66,8 @@ async function setup() {
     budgetId: other.id,
     title: "Evento sintético",
     eventOn: "2026-11-20",
+    riskLevel: "GREEN",
+    riskJustification: "Actividad de rutina, sin publicaciones sensibles",
   });
   // El aval lo decide la Presidencia por su cargo (ADR-195).
   const presidencia = await seedMember("presidencia.movimientos@eafit.edu.co");

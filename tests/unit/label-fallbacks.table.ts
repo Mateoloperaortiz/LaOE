@@ -89,7 +89,7 @@ export const FALLBACKS_BY_FILE: Record<
   "src/modules/crm/admin.ts": [9, 0, 0, 4],
   "src/modules/crm/domain/recognitions.ts": [1, 0, 0, 0],
   "src/modules/crm/domain/requests.ts": [3, 0, 0, 0],
-  "src/modules/finance/domain/approvals.ts": [1, 0, 0, 0],
+  "src/modules/finance/domain/approvals.ts": [2, 0, 0, 0],
   "src/modules/finance/domain/budgets.ts": [2, 0, 0, 0],
   "src/modules/participation/admin.ts": [10, 2, 0, 4],
   "src/modules/participation/components/BadgeUnlock.tsx": [1, 0, 0, 0],

@@ -2,8 +2,15 @@ import { type Actor, runCommand } from "@/db/tx";
 import {
   type ApprovalDecisionInput,
   type ApprovalRequestInput,
+  type ApprovalReturnInput,
+  type ApprovalRiskInput,
+  type ApprovalScope,
+  type ApprovalVersionInput,
+  changeEventApprovalRisk,
   decideEventApproval,
   requestEventApproval,
+  resubmitEventApproval,
+  returnEventApproval,
 } from "./approvals";
 import {
   type ApproveBudgetInput,
@@ -108,4 +115,32 @@ export function decideEventApprovalAs(
   input: ApprovalDecisionInput,
 ): Promise<void> {
   return runCommand(actor, (ctx) => decideEventApproval(ctx, id, input));
+}
+
+/** La Presidencia lo devuelve con comentarios, sin decidir (ADR-197 regla 1). */
+export function returnEventApprovalAs(
+  actor: Actor,
+  id: string,
+  input: ApprovalReturnInput,
+): Promise<void> {
+  return runCommand(actor, (ctx) => returnEventApproval(ctx, id, input));
+}
+
+/** El comité envía la versión nueva desde su página de finanzas (ADR-197 regla 1). */
+export function resubmitEventApprovalAs(
+  actor: Actor,
+  id: string,
+  input: ApprovalVersionInput,
+  scope: ApprovalScope,
+): Promise<void> {
+  return runCommand(actor, (ctx) => resubmitEventApproval(ctx, id, input, scope));
+}
+
+/** La Presidencia cambia el semáforo y dice por qué (ADR-197 regla 2). */
+export function changeEventApprovalRiskAs(
+  actor: Actor,
+  id: string,
+  input: ApprovalRiskInput,
+): Promise<void> {
+  return runCommand(actor, (ctx) => changeEventApprovalRisk(ctx, id, input));
 }

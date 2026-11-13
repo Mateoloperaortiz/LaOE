@@ -11,12 +11,14 @@ import { withQuery } from "@/app/_lib/search";
 import { committeeAnnouncementSchema, createCommitteeAnnouncementAs } from "@/modules/content";
 import {
   approvalRequestSchema,
+  approvalVersionSchema,
   expenseInputSchema,
   getBudget,
   prerequestInputSchema,
   recordExpenseAs,
   recordTransferAs,
   requestEventApprovalAs,
+  resubmitEventApprovalAs,
   submitPrerequestAs,
   transferInputSchema,
 } from "@/modules/finance";
@@ -484,9 +486,31 @@ export async function requestApprovalAction(formData: FormData): Promise<void> {
     title: formText(formData, "title"),
     description: formText(formData, "description"),
     eventOn: formText(formData, "eventOn"),
+    riskLevel: formText(formData, "riskLevel"),
+    riskJustification: formText(formData, "riskJustification"),
   });
   if (!parsed.success) {
     redirect(back(slug, { ...finanzas, error: t("T-260") }));
   }
   await runFinance(slug, "aval", () => requestEventApprovalAs(actor, parsed.data));
+}
+
+/** La versión nueva de un aval que la Presidencia devolvió con comentarios (ADR-197 regla 1). */
+export async function resubmitApprovalAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const { actor, committee } = await financeOf(slug, "");
+  const approvalId = formText(formData, "approvalId");
+  const parsed = approvalVersionSchema.safeParse({
+    title: formText(formData, "title"),
+    description: formText(formData, "description"),
+    eventOn: formText(formData, "eventOn"),
+    riskLevel: formText(formData, "riskLevel"),
+    riskJustification: formText(formData, "riskJustification"),
+  });
+  if (!parsed.success || !/^[a-z0-9-]{10,40}$/.test(approvalId)) {
+    redirect(back(slug, { ...finanzas, error: t("T-260") }));
+  }
+  await runFinance(slug, "version", () =>
+    resubmitEventApprovalAs(actor, approvalId, parsed.data, { committeeId: committee.id }),
+  );
 }

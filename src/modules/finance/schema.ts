@@ -25,6 +25,15 @@ export const eventApprovalStatus = pgEnum("event_approval_status", [
   "PENDING",
   "APPROVED",
   "REJECTED",
+  "RETURNED",
+]);
+// Semáforo de riesgo reputacional del aval (ADR-197 regla 2): lo declara el comité y la Presidencia lo
+// puede cambiar.
+export const eventRiskLevel = pgEnum("event_risk_level", ["GREEN", "YELLOW", "RED"]);
+export const eventApprovalEntryKind = pgEnum("event_approval_entry_kind", [
+  "SUBMITTED",
+  "RETURNED",
+  "RISK_CHANGED",
 ]);
 
 const money = () => numeric({ precision: 12, scale: 2, mode: "number" });
@@ -90,6 +99,8 @@ export const budgetLine = pgTable(
 
 // Aval de evento (Regl. art. 36 par. 1; Est. art. 23.11 y 36.3): lo pide el comité y lo decide la
 // Presidencia antes de ejecutar, difundir o comprar; los gastos y traslados del evento se ligan aquí.
+// La Presidencia lo puede devolver con comentarios y el comité envía una versión nueva (ADR-197 regla
+// 1): la fila guarda la versión vigente y `event_approval_entry`, la historia.
 export const eventApproval = pgTable(
   "event_approval",
   {
@@ -103,6 +114,11 @@ export const eventApproval = pgTable(
     description: text().notNull().default(""),
     eventOn: date({ mode: "string" }).notNull(),
     status: eventApprovalStatus().notNull().default("PENDING"),
+    /** La versión vigente: sube cada vez que el comité reenvía un aval devuelto. */
+    version: integer().notNull().default(1),
+    /** Nulo solo en los avales pedidos antes del semáforo. */
+    riskLevel: eventRiskLevel(),
+    riskJustification: text().notNull().default(""),
     requestedById: text().references(() => person.id, { onDelete: "set null" }),
     requestedAt: createdAt(),
     decidedById: text().references(() => person.id, { onDelete: "set null" }),
@@ -113,7 +129,44 @@ export const eventApproval = pgTable(
     index("event_approval_committee_idx").on(t.committeeId, t.status),
     check(
       "event_approval_decided_consistent",
-      sql`(${t.status}::text = 'PENDING') = (${t.decidedAt} is null)`,
+      sql`(${t.status}::text in ('APPROVED', 'REJECTED')) = (${t.decidedAt} is not null)`,
+    ),
+    check("event_approval_version_positive", sql`${t.version} >= 1`),
+  ],
+);
+
+// La historia del aval (ADR-197 regla 1): cada versión enviada con lo que decía, cada devolución con sus
+// comentarios y cada cambio de semáforo con su motivo. Solo se agrega.
+export const eventApprovalEntry = pgTable(
+  "event_approval_entry",
+  {
+    id: id(),
+    approvalId: text()
+      .notNull()
+      .references(() => eventApproval.id, { onDelete: "cascade" }),
+    version: integer().notNull(),
+    kind: eventApprovalEntryKind().notNull(),
+    /** Lo que decía la versión enviada; vacío en las devoluciones y los cambios de semáforo. */
+    title: text().notNull().default(""),
+    description: text().notNull().default(""),
+    eventOn: date({ mode: "string" }),
+    /** El nivel declarado en una versión, o el nuevo en un cambio de semáforo. */
+    riskLevel: eventRiskLevel(),
+    riskJustification: text().notNull().default(""),
+    /** Los comentarios de una devolución o el motivo de un cambio de semáforo. */
+    note: text().notNull().default(""),
+    authorId: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("event_approval_entry_approval_idx").on(t.approvalId, t.createdAt),
+    check(
+      "event_approval_entry_submitted_snapshot",
+      sql`${t.kind}::text <> 'SUBMITTED' or ${t.eventOn} is not null`,
+    ),
+    check(
+      "event_approval_entry_risk_changed_level",
+      sql`${t.kind}::text <> 'RISK_CHANGED' or ${t.riskLevel} is not null`,
     ),
   ],
 );

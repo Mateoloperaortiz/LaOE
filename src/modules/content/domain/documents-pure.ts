@@ -7,7 +7,14 @@ export const DOCUMENT_CONTENT_TYPE = "application/pdf";
 export const DOCUMENT_MIN_BYTES = 1024;
 export const DOCUMENT_MAX_BYTES = 20 * 1024 * 1024;
 export const DOCUMENT_KEY_PATTERN = /^documents\/[a-z0-9]{10,40}\.pdf$/;
-export const DOCUMENT_KINDS = ["ESTATUTOS", "REGLAMENTO", "ACTA", "OTRO"] as const;
+// El protocolo de crisis es el documento que enlaza el semáforo rojo de un aval (ADR-197 regla 2).
+export const DOCUMENT_KINDS = [
+  "ESTATUTOS",
+  "REGLAMENTO",
+  "ACTA",
+  "OTRO",
+  "PROTOCOLO_CRISIS",
+] as const;
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 export const ARTICLES_FORMAT = "oe-normativa/2";
 

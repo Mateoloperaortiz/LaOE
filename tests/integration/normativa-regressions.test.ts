@@ -141,7 +141,13 @@ describe("regresiones de la revisión normativa", () => {
     // El aval de evento es del comité, no un beneficio: en prueba se pide (ADR-195 regla 5).
     await requestEventApprovalAs(
       { personId, ip: null },
-      { committeeId, title: "Evento sintético", eventOn: "2099-11-20" },
+      {
+        committeeId,
+        title: "Evento sintético",
+        eventOn: "2099-11-20",
+        riskLevel: "GREEN" as const,
+        riskJustification: "Actividad de rutina, sin publicaciones sensibles",
+      },
     );
     expect(await listPreferentialSchedule(termId)).toEqual([]);
     expect(await listRecognitionsFor(personId)).toEqual([]);
@@ -185,7 +191,13 @@ describe("regresiones de la revisión normativa", () => {
         award: "BEST_NEW_MEMBER" as const,
         title: "",
       };
-      const aval = { committeeId, title: "Evento sintético", eventOn: "2099-11-20" };
+      const aval = {
+        committeeId,
+        title: "Evento sintético",
+        eventOn: "2099-11-20",
+        riskLevel: "GREEN" as const,
+        riskJustification: "Actividad de rutina, sin publicaciones sensibles",
+      };
       return { termId, personId, award, aval };
     }
 

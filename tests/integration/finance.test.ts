@@ -177,6 +177,8 @@ describe("presupuesto del comité", () => {
       budgetId: id,
       title: "Evento sintético",
       eventOn: "2026-11-20",
+      riskLevel: "GREEN",
+      riskJustification: "Actividad de rutina, sin publicaciones sensibles",
     });
     await decideEventApprovalAs(await presidencia(), approvedId, { decision: "APPROVED" });
     await recordTransferAs(
@@ -255,6 +257,8 @@ describe("presupuesto del comité", () => {
         budgetId: id,
         title: "Ajeno",
         eventOn: "2026-11-20",
+        riskLevel: "GREEN",
+        riskJustification: "Actividad de rutina, sin publicaciones sensibles",
       }),
     ).rejects.toThrow(t("T-2294"));
     await expect(
@@ -263,6 +267,8 @@ describe("presupuesto del comité", () => {
         budgetId: id,
         title: "Otro año",
         eventOn: "2027-11-20",
+        riskLevel: "GREEN",
+        riskJustification: "Actividad de rutina, sin publicaciones sensibles",
       }),
     ).rejects.toThrow(t("T-2329", { año: 2026 }));
     const { id: aval } = await requestEventApprovalAs(actor, {
@@ -270,16 +276,22 @@ describe("presupuesto del comité", () => {
       budgetId: id,
       title: "Noche de talentos",
       eventOn: "2026-11-20",
+      riskLevel: "GREEN",
+      riskJustification: "Actividad de rutina, sin publicaciones sensibles",
     });
     const { id: pasado } = await requestEventApprovalAs(actor, {
       committeeId: a3,
       title: "Ya pasó",
       eventOn: "2026-01-15",
+      riskLevel: "GREEN",
+      riskJustification: "Actividad de rutina, sin publicaciones sensibles",
     });
     const { id: ajeno } = await requestEventApprovalAs(actor, {
       committeeId: pixel,
       title: "De otro comité",
       eventOn: "2026-11-20",
+      riskLevel: "GREEN",
+      riskJustification: "Actividad de rutina, sin publicaciones sensibles",
     });
     // Pendiente no sirve como aval.
     await expect(
@@ -444,6 +456,8 @@ describe("presupuesto del comité", () => {
       budgetId: id,
       title: "Noche de talentos",
       eventOn: "2026-11-20",
+      riskLevel: "GREEN",
+      riskJustification: "Actividad de rutina, sin publicaciones sensibles",
     });
     await decideEventApprovalAs(await presidencia(), aval, {
       decision: "APPROVED",
@@ -493,7 +507,13 @@ describe("presupuesto del comité", () => {
     const financiero = await seedMember("fin@eafit.edu.co");
     const { id: aval } = await requestEventApprovalAs(
       { personId: financiero, ip: null },
-      { committeeId: a3, title: "Noche de talentos", eventOn: "2026-11-20" },
+      {
+        committeeId: a3,
+        title: "Noche de talentos",
+        eventOn: "2026-11-20",
+        riskLevel: "GREEN" as const,
+        riskJustification: "Actividad de rutina, sin publicaciones sensibles",
+      },
     );
     const presi = await presidencia();
     const decisions = ["APPROVED", "REJECTED"] as const;

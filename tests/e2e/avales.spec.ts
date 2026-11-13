@@ -3,7 +3,7 @@ import { expect } from "@playwright/test";
 import { eq, inArray } from "drizzle-orm";
 import { DESK_SECTIONS } from "@/app/admin/_kit/desk-items";
 import { closeDb, getDb } from "@/db/client";
-import { requestEventApprovalAs } from "@/modules/finance";
+import { requestEventApprovalAs, returnEventApprovalAs } from "@/modules/finance";
 import { eventApproval } from "@/modules/finance/schema";
 import { recordSanctionAs } from "@/modules/people";
 import { appointment, person, sanction } from "@/modules/people/schema";
@@ -23,17 +23,22 @@ import { E2E_MEMBER_EMAIL } from "./global-setup";
 
 // Los avales de la junta (ADR-195, tramos A0 y A1): el aval de evento lo decide la Presidencia por su
 // cargo. El miembro de pruebas es Presidencia solo durante la prueba: ve el aval en su Mesa, lo abre y
-// lo decide; rechazar exige el motivo. ADMIN ve la lista sin poder decidir.
+// lo decide; rechazar exige el motivo. ADMIN ve la lista sin poder decidir. Con la ida y vuelta
+// (ADR-197), la Presidencia devuelve con comentarios y cambia el semáforo, el comité envía la versión
+// nueva, y el aval se imprime o se guarda en PDF.
 
 const marca = randomBytes(3).toString("hex");
 const enUnMes = () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 const limpiar: string[] = [];
+let pedidos = 0;
 
 async function avalPedido(titulo: string) {
   const [current] = await getDb().select().from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("Falta el semestre sintético");
-  const comite = await seedCommittee(`e2e-avales-${marca}`, `Comité Avales ${marca}`);
-  const pide = await seedPerson(`e2e-avales-${marca}-${titulo.length}@eafit.edu.co`, {
+  const n = ++pedidos;
+  const slug = `e2e-avales-${marca}-${n}`;
+  const comite = await seedCommittee(slug, `Comité Avales ${marca} ${n}`);
+  const pide = await seedPerson(`e2e-avales-${marca}-${n}@eafit.edu.co`, {
     firstName: "Dirección",
     lastName: `General ${marca}`,
     source: "E2E",
@@ -41,9 +46,21 @@ async function avalPedido(titulo: string) {
   await seedMembership(pide, current.id);
   const { id } = await requestEventApprovalAs(
     { personId: pide, ip: null },
-    { committeeId: comite, title: titulo, eventOn: enUnMes() },
+    {
+      committeeId: comite,
+      title: titulo,
+      eventOn: enUnMes(),
+      riskLevel: "GREEN" as const,
+      riskJustification: "Actividad de rutina, sin publicaciones sensibles",
+    },
   );
-  return { id, termId: current.id };
+  return { id, termId: current.id, slug };
+}
+
+async function miembroDePruebas() {
+  const [member] = await getDb().select().from(person).where(eq(person.email, E2E_MEMBER_EMAIL));
+  if (!member) throw new Error("Falta el miembro de pruebas");
+  return member;
 }
 
 test.afterEach(async () => {
@@ -92,8 +109,87 @@ test.describe("la Presidencia", () => {
   });
 });
 
+test.describe("la Presidencia, con la ida y vuelta", () => {
+  test.use({ storageState: "tests/e2e/.auth/member.json" });
+
+  test("devuelve el aval con comentarios, lo sube a rojo y lo abre para imprimir", async ({
+    page,
+  }) => {
+    const titulo = `Concierto al aire libre ${marca}`;
+    const aval = await avalPedido(titulo);
+    const member = await miembroDePruebas();
+    limpiar.push(await seedAppointment(member.id, aval.termId, "PRESIDENT"));
+    await closeDb();
+
+    await page.goto(`/admin/avales?aval=${aval.id}`);
+    const [devolver, comentarios] = tList("T-5106");
+    await page.getByLabel(comentarios ?? "", { exact: true }).fill("Falta el plan de la tarima");
+    await page.getByRole("button", { name: devolver, exact: true }).click();
+    await expect(page.getByRole("main").getByText(t("T-4302"))).toBeVisible();
+
+    const [, nivel, porQue, cambiar] = tList("T-5107");
+    await page.getByLabel(nivel ?? "", { exact: true }).selectOption("RED");
+    await page
+      .getByLabel(porQue ?? "", { exact: true })
+      .fill("Se publica en redes con un tema sensible");
+    await page.getByRole("button", { name: cambiar, exact: true }).click();
+    await expect(page.getByRole("main").getByText(t("T-4302"))).toBeVisible();
+    const [riesgoRojo] = tList("T-5105");
+    await expect(page.getByText(riesgoRojo ?? "", { exact: true })).toBeVisible();
+    await sinViolaciones(page);
+
+    const [devuelto] = await getDb()
+      .select()
+      .from(eventApproval)
+      .where(eq(eventApproval.id, aval.id));
+    expect(devuelto).toMatchObject({ status: "RETURNED", riskLevel: "RED", decidedAt: null });
+
+    const [imprimir] = tList("T-5114");
+    await page.getByRole("link", { name: imprimir, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/admin/avales/${aval.id}/imprimir$`));
+    await expect(page.getByRole("heading", { level: 1, name: titulo })).toBeVisible();
+    await expect(page.getByText("Falta el plan de la tarima")).toBeVisible();
+    await sinViolaciones(page);
+  });
+});
+
 test.describe("ADMIN", () => {
   test.use({ storageState: "tests/e2e/.auth/admin.json" });
+
+  test("corrige desde el comité un aval devuelto y envía la versión nueva", async ({ page }) => {
+    const titulo = `Cine foro ${marca}`;
+    const aval = await avalPedido(titulo);
+    const member = await miembroDePruebas();
+    limpiar.push(await seedAppointment(member.id, aval.termId, "PRESIDENT"));
+    await returnEventApprovalAs({ personId: member.id, ip: null }, aval.id, {
+      note: "Cambien la fecha: se cruza con parciales",
+    });
+    await closeDb();
+
+    await page.goto(`/admin/comites/${aval.slug}?area=finanzas`);
+    const item = page.getByRole("listitem").filter({ hasText: titulo });
+    await expect(item.getByText("Cambien la fecha: se cruza con parciales")).toBeVisible();
+    const [, enviar, enviada, corregir] = tList("T-5109");
+    await item.getByText(corregir ?? "", { exact: true }).click();
+    const [, evento] = tList("T-2299");
+    await item.getByLabel(evento ?? "", { exact: true }).fill(`${titulo} (corregido)`);
+    const [riesgo, porQue] = tList("T-5103");
+    await item.getByLabel(riesgo ?? "", { exact: true }).selectOption("YELLOW");
+    await item
+      .getByLabel(porQue ?? "", { exact: true })
+      .fill("Se proyecta una película con público");
+    await sinViolaciones(page);
+    await item.getByRole("button", { name: enviar, exact: true }).click();
+    await expect(page.getByText(enviada ?? "", { exact: true })).toBeVisible();
+
+    const [nueva] = await getDb().select().from(eventApproval).where(eq(eventApproval.id, aval.id));
+    expect(nueva).toMatchObject({
+      status: "PENDING",
+      version: 2,
+      title: `${titulo} (corregido)`,
+      riskLevel: "YELLOW",
+    });
+  });
 
   test("ve los avales pendientes, pero no los decide: los decide la Presidencia", async ({
     page,

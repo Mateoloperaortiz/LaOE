@@ -181,3 +181,9 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 - [ ] Dónde sube Comunicaciones la foto del titular. Hoy la casa solo tiene imagen publicada en la portada de un evento o de una edición.
 - [ ] Que Comunicaciones confirme los rótulos de las cifras de la portada (T-5037): «el año en que empezamos», «comités» y «macroeventos».
 - [x] Umbral de «semana de evento»: siete días, y la convocatoria manda cuando coincide con un evento (Mateo, 2026-11-13).
+
+## Herramientas de Presidencia · 2026-11-13 ([ADR-197](adr/ADR-197-las-herramientas-de-presidencia.md))
+
+- [ ] Los campos del formato de aval de evento de la Presidencia. La hoja de propuestas no los trae; hasta tenerlos, el aval lleva evento, fecha, edición, descripción y el semáforo de riesgo con su porqué.
+- [ ] El protocolo de crisis, en PDF, para publicarlo en la Normativa con el tipo «Protocolo de crisis». Hasta que se publique, el semáforo rojo dice que todavía no está.
+- [ ] Qué significa cada nivel del semáforo (verde, amarillo y rojo), si la Presidencia quiere fijarlo. Hoy el comité declara el nivel y lo justifica con sus palabras.

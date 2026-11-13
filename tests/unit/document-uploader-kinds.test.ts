@@ -59,6 +59,7 @@ describe("el selector de tipo de la subida de normativa", () => {
       ["REGLAMENTO", labels[1]],
       ["ACTA", labels[2]],
       ["OTRO", labels[3]],
+      ["PROTOCOLO_CRISIS", labels[4]],
     ]);
   });
 

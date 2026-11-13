@@ -3,7 +3,12 @@ import { requireCommitteeAccess } from "@/app/_authz/committee";
 import { single } from "@/app/_lib/search";
 import { listCommitteeAnnouncements } from "@/modules/content";
 import { listEditionsByCommittee } from "@/modules/events";
-import { getBudgetSummary, listCommitteeBudgets, listEventApprovals } from "@/modules/finance";
+import {
+  getBudgetSummary,
+  getEventApprovalDetail,
+  listCommitteeBudgets,
+  listEventApprovals,
+} from "@/modules/finance";
 import {
   listCommitteeRepresentation,
   listCommitteeScores,
@@ -634,15 +639,27 @@ async function FinanzasArea({
     listEventApprovals({ committeeId }),
     listEditionsByCommittee(committeeId),
   ]);
-  const summaries = (
-    await Promise.all(budgets.map((budget) => getBudgetSummary(budget.id)))
-  ).flatMap((summary) => (summary ? [summary] : []));
+  const [summaries, returnedDetails] = await Promise.all([
+    Promise.all(budgets.map((budget) => getBudgetSummary(budget.id))),
+    Promise.all(
+      approvals
+        .filter((item) => item.status === "RETURNED")
+        .map((item) => getEventApprovalDetail(item.id)),
+    ),
+  ]);
+  // Los comentarios de la última devolución de cada aval devuelto (ADR-197 regla 1).
+  const returned: Record<string, string> = {};
+  for (const detail of returnedDetails) {
+    const last = detail?.entries.filter((entry) => entry.kind === "RETURNED").at(-1);
+    if (detail && last) returned[detail.id] = last.note;
+  }
   return (
     <Finanzas
       slug={slug}
       year={year}
-      budgets={summaries}
+      budgets={summaries.flatMap((summary) => (summary ? [summary] : []))}
       approvals={approvals}
+      returned={returned}
       editions={editions.map((item) => ({
         id: item.id,
         label: `${item.eventName} · ${item.name}`,

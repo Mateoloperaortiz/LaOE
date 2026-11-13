@@ -294,7 +294,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-391 | Normativa, título de los resultados | Resultados para “{q}” | MATEO | Propuesta |
 | T-392 | Normativa sin resultados | No encontramos nada con esas palabras. Prueba con otras. | MATEO | Propuesta |
 | T-393 | Normativa sin documentos publicados | Todavía no hay documentos publicados. | MATEO | Propuesta |
-| T-394 | Normativa y admin, tipos de documento | Estatutos · Reglamento · Acta · Otro | JUNTA | Propuesta |
+| T-394 | Normativa y admin, tipos de documento | Estatutos · Reglamento · Acta · Otro · Protocolo de crisis | JUNTA | Propuesta |
 | T-395 | Normativa, versión de un documento | Versión {v} | MATEO | Propuesta |
 | T-396 | Normativa, enlace al PDF firmado | Abrir el PDF original | MATEO | Propuesta |
 | T-397 | Normativa, título de un artículo | Artículo {n} | MATEO | Propuesta |
@@ -1904,7 +1904,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2297 | Presolicitud: guarda de mes repetido | Ya hay presolicitud para {mes}. | MATEO | Propuesta |
 | T-2298 | Presolicitud: título, campos, botón y confirmación | Presolicitud mensual · Mes · Notas · Registrar presolicitud · Presolicitud registrada. | MATEO | Propuesta |
 | T-2299 | Aval de evento: título, campos, botón y confirmación | Avales de evento · Evento · Fecha del evento · Edición (opcional) · Descripción · Pedir aval · Aval pedido: lo decide la Presidencia. | MATEO | Propuesta |
-| T-2300 | Aval de evento: estados (en el orden del modelo) | Pendiente · Aprobado · Rechazado | MATEO | Propuesta |
+| T-2300 | Aval de evento: estados (en el orden del modelo) | Pendiente · Aprobado · Rechazado · Devuelto con comentarios | MATEO | Propuesta |
 | T-2301 | Aval de evento: ayuda | Antes de ejecutar, difundir o comprar para un evento, la Presidencia lo avala (Reglamento, art. 36 par. 1). Los gastos y los traslados de ese evento se ligan a su aval. | JUNTA | Propuesta |
 | T-2302 | Presupuesto (detalle): títulos | Aprobaciones · Sanción por presentación tardía · Presolicitudes · Avales · Movimientos · Detalle | MATEO | Propuesta |
 | T-2303 | Presupuesto (detalle): botones | Registrar aprobación · Abrir · Cerrar · Aplicar sanción · Guardar rubros · Aprobar · Rechazar | MATEO | Propuesta |
@@ -3746,7 +3746,7 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5080 | Junta del semestre: estado del comité | Al día · No está creado · Sin líder · Lo lidera otra persona | MATEO | Propuesta |
 | T-5081 | Junta del semestre: avisos | Vacante · No está activo · Hay una cosa por revisar · Hay {n} cosas por revisar · La junta y sus comités de trabajo están al día · Sembrar los que faltan | MATEO | Propuesta |
 | T-5082 | Menú de la Operación: la junta del semestre | Junta del semestre | MATEO | Propuesta |
-| T-5083 | Avales: pantalla (título · texto) | Avales · Lo que te toca decidir por tu cargo en la junta. Si rechazas un aval, di por qué: el comité lo ve. | MATEO | Propuesta |
+| T-5083 | Avales: pantalla (título · texto) | Avales · Lo que te toca decidir por tu cargo en la junta, con el riesgo más alto primero. Puedes devolver un aval con comentarios para que el comité lo corrija; si lo rechazas, di por qué: el comité lo ve. | MATEO | Propuesta |
 | T-5084 | Avales: tipos (en el orden del modelo) | Aval de evento · Falta por avalar | MATEO | Propuesta |
 | T-5085 | Avales: campos | Comité · Evento · Fecha del evento · Lo pidió · Estado · Pedido el · Motivo | MATEO | Propuesta |
 | T-5086 | Avales: decisión | Aprobar · Rechazar · Motivo (obligatorio para rechazar) · Lo decide la {cargo} · Decides como Presidencia mientras falte la {cargo} · No hay avales por decidir. · Decididos hace poco · Volver a los avales | MATEO | Propuesta |
@@ -3764,4 +3764,17 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5098 | Faltas de Gestión Humana: persona | Persona · Elige a la persona · No hay sanciones en este semestre. · Volver a las faltas | MATEO | Propuesta |
 | T-5099 | Menú de la Operación: faltas | Faltas | MATEO | Propuesta |
 | T-5100 | Persona 360: quién sanciona | Las sanciones las registra, las avala y las anula la Vicepresidencia de Gestión Humana, por su cargo. | MATEO | Propuesta |
-| T-5101 | Avales: columnas de la lista | Aval · Tipo · Comité · Fecha · Estado | MATEO | Propuesta |
+| T-5101 | Avales: columnas de la lista | Aval · Tipo · Comité · Fecha · Estado · Riesgo | MATEO | Propuesta |
+| T-5102 | Aval: niveles del semáforo de riesgo (en el orden del modelo) | Verde · Amarillo · Rojo | MATEO | Propuesta |
+| T-5103 | Aval: campos del semáforo | Riesgo reputacional · Por qué ese nivel · Sin semáforo | MATEO | Propuesta |
+| T-5104 | Aval: ayuda del semáforo | Di qué tanto puede afectar este evento, o lo que se publique de él, la imagen de la OE o de la Universidad, y por qué. Es una alerta temprana: no garantiza que se hayan visto todos los riesgos. | MATEO | Propuesta |
+| T-5105 | Aval: semáforo rojo (título · texto · enlace · sin protocolo) | Riesgo rojo · Revisen las medidas preventivas y tengan a mano el protocolo de crisis antes del evento. · Ver el protocolo de crisis · El protocolo de crisis todavía no está publicado en la Normativa. | MATEO | Propuesta |
+| T-5106 | Aval: devolver (botón · campo) | Devolver con comentarios · Comentarios para el comité (obligatorios para devolver) | MATEO | Propuesta |
+| T-5107 | Aval: cambiar el semáforo (título · nivel · motivo · botón) | Cambiar el semáforo · Nivel · Por qué lo cambias · Cambiar el semáforo | MATEO | Propuesta |
+| T-5108 | Aval: historia (título · versión enviada · devuelto · semáforo cambiado) | Historia del aval · Versión {versión} enviada · Devuelto con comentarios · Semáforo en {nivel} | MATEO | Propuesta |
+| T-5109 | Aval devuelto, en el comité (texto · botón · confirmación · título del formulario) | Te lo devolvieron con comentarios: corrígelo y envía una versión nueva. · Enviar versión nueva · Versión nueva enviada: la Presidencia la revisa. · Corregir el aval | MATEO | Propuesta |
+| T-5110 | Aviso: aval devuelto (título · texto) | Te devolvieron un aval · La Presidencia devolvió el aval de «{evento}» con comentarios: {comentarios} | MATEO | Propuesta |
+| T-5111 | Aviso: versión nueva de un aval (título · texto) | Llegó una versión nueva de un aval · {comité} envió la versión {versión} del aval de «{evento}» para el {fecha}. | MATEO | Propuesta |
+| T-5112 | Aviso: semáforo cambiado (título · texto) | Cambiaron el semáforo de tu aval · La Presidencia puso en {nivel} el aval de «{evento}»: {motivo} | MATEO | Propuesta |
+| T-5113 | Aval: guardas de la ida y vuelta | El aval está devuelto: espera la versión nueva del comité. · Solo se envía una versión nueva de un aval devuelto. · Para devolver un aval escribe los comentarios: el comité los va a leer. · Di por qué cambias el semáforo. · Un aval rechazado ya no cambia de semáforo. · El aval ya está en ese nivel. · Di por qué el evento tiene ese nivel de riesgo. | MATEO | Propuesta |
+| T-5114 | Aval: imprimir o guardar en PDF (enlace · encabezado · versión · lo decidió · decidido el) | Imprimir o guardar en PDF · Aval de evento · Versión {versión} · Lo decidió · Decidido el | MATEO | Propuesta |

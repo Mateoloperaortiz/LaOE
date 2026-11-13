@@ -533,6 +533,13 @@
       "when": 1794604279031,
       "tag": "0075_faltas_por_avalar",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1794608307400,
+      "tag": "0076_aval_con_ida_y_vuelta",
+      "breakpoints": true
     }
   ]
 }

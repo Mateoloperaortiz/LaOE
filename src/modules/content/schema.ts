@@ -20,7 +20,13 @@ import type { DocumentBlock } from "./domain/documents-pure";
 
 export const mediaVisibility = pgEnum("media_visibility", ["PUBLIC", "PRIVATE"]);
 export const mediaStatus = pgEnum("media_status", ["PENDING", "READY", "FAILED"]);
-export const documentKind = pgEnum("document_kind", ["ESTATUTOS", "REGLAMENTO", "ACTA", "OTRO"]);
+export const documentKind = pgEnum("document_kind", [
+  "ESTATUTOS",
+  "REGLAMENTO",
+  "ACTA",
+  "OTRO",
+  "PROTOCOLO_CRISIS",
+]);
 export const documentUnitType = pgEnum("document_unit_type", ["ARTICLE", "SECTION"]);
 
 const tsvector = customType<{ data: string }>({
