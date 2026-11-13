@@ -37,6 +37,13 @@ export {
   editNoteAs,
   markOnboardingStepAs,
 } from "./domain/commands";
+export {
+  getPublicCredential,
+  listTrajectory,
+  publishCredentialAs,
+  revokeCredentialAs,
+} from "./domain/credentials";
+export { linkedInAddUrl } from "./domain/credentials-pure";
 export { dashboardForAdmin } from "./domain/dashboard";
 export { type ExcuseState, listExcuseStates } from "./domain/excuse-states";
 export {

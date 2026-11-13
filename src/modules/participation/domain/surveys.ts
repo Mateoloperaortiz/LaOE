@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, asc, count, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { NOTIFICATION_MAX_RECIPIENTS, notificationRequested } from "@/domain-events/comms";
@@ -126,21 +126,33 @@ export type SurveyInviteState =
     };
 
 const TOKEN = /^[A-Za-z0-9_-]{24,64}$/;
+const INVITE_ID = /^[a-z0-9]{8,64}$/;
 
-/** La invitación del actor por su token: abierta, ya respondida, vencida o inexistente. */
+/**
+ * Cómo se llega a una invitación: por el token del enlace o, con la sesión, por su id (ADR-174). En los
+ * dos casos la invitación tiene que ser de quien tiene la sesión: el token nunca reemplaza a la persona.
+ */
+export type SurveyKey = string | { inviteId: string };
+
+/** La invitación del actor por su token o por su id: abierta, ya respondida, vencida o inexistente. */
 export async function getSurveyInviteForActor(
   personId: string,
-  token: string,
+  key: SurveyKey,
   now = new Date(),
 ): Promise<SurveyInviteState> {
-  if (!TOKEN.test(token) || !canParticipate((await getMembershipRef(personId))?.status)) {
+  const valid = typeof key === "string" ? TOKEN.test(key) : INVITE_ID.test(key.inviteId);
+  if (!valid || !canParticipate((await getMembershipRef(personId))?.status)) {
     return { state: "NOT_FOUND" };
   }
   const db = getDb();
   const [invite] = await db
     .select()
     .from(occasionSurveyInvite)
-    .where(eq(occasionSurveyInvite.tokenHash, hashToken(token)))
+    .where(
+      typeof key === "string"
+        ? eq(occasionSurveyInvite.tokenHash, hashToken(key))
+        : eq(occasionSurveyInvite.id, key.inviteId),
+    )
     .limit(1);
   if (!invite || invite.personId !== personId) {
     return { state: "NOT_FOUND" };
@@ -215,11 +227,11 @@ async function answerSurvey(
 /** La persona responde su invitación: valida contra los campos y guarda sin persona. */
 export async function answerSurveyAs(
   actor: Actor & { personId: string },
-  token: string,
+  key: SurveyKey,
   raw: Record<string, unknown>,
   now = new Date(),
 ): Promise<AnswerSurveyResult> {
-  const invite = await getSurveyInviteForActor(actor.personId, token, now);
+  const invite = await getSurveyInviteForActor(actor.personId, key, now);
   if (invite.state !== "OPEN") {
     return { ok: false, state: invite.state };
   }
@@ -366,4 +378,43 @@ export async function deleteSurveyInvitesFor(exec: Executor, personId: string): 
     .where(eq(occasionSurveyInvite.personId, personId))
     .returning({ id: occasionSurveyInvite.id });
   return rows.length;
+}
+
+export interface PendingSurvey {
+  inviteId: string;
+  occasionTitle: string;
+  /** Hasta cuándo se responde: el cierre de la ocasión más la ventana de la encuesta. */
+  due: Date;
+}
+
+/** Las encuestas que la persona todavía puede responder, para «Te toca» (ADR-174 regla 2). */
+export async function listPendingSurveys(
+  personId: string,
+  now = new Date(),
+): Promise<PendingSurvey[]> {
+  const windowDays = await requireConfig("survey.windowDays");
+  const rows = await getDb()
+    .select({
+      inviteId: occasionSurveyInvite.id,
+      occasionTitle: occasion.title,
+      closedAt: occasion.closedAt,
+      checkInClosesAt: occasion.checkInClosesAt,
+    })
+    .from(occasionSurveyInvite)
+    .innerJoin(occasion, eq(occasion.id, occasionSurveyInvite.occasionId))
+    .where(
+      and(
+        eq(occasionSurveyInvite.personId, personId),
+        isNull(occasionSurveyInvite.answeredAt),
+        isNotNull(occasion.surveyFormId),
+      ),
+    );
+  return rows
+    .map((row) => ({
+      inviteId: row.inviteId,
+      occasionTitle: row.occasionTitle,
+      due: new Date((row.closedAt ?? row.checkInClosesAt).getTime() + windowDays * 86_400_000),
+    }))
+    .filter((row) => row.due.getTime() > now.getTime())
+    .sort((a, b) => a.due.getTime() - b.due.getTime());
 }

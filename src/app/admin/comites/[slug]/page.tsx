@@ -18,6 +18,7 @@ import { occasionKindLabel, occasionStatusCell } from "@/modules/participation/a
 import {
   areasFor,
   type CommitteeArea,
+  listCommitteeHandover,
   listCommitteeRoles,
   listCommitteesMissingRequiredRoles,
   listInternalRoster,
@@ -194,6 +195,7 @@ export default async function ComitePage({
           error={error}
         />
       ) : null}
+      {area === "personas" ? <EmpalmeEstado committeeId={roster.committee.id} /> : null}
 
       {area === "actividades" ? (
         <Actividades
@@ -647,5 +649,33 @@ async function FinanzasArea({
       }))}
       guardado={guardado}
     />
+  );
+}
+
+/** El estado del empalme del comité (ADR-172 regla 4): qué cargos tienen documento y si está verificado. */
+async function EmpalmeEstado({ committeeId }: { committeeId: string }) {
+  const docs = await listCommitteeHandover(committeeId);
+  if (docs.length === 0) return null;
+  const [titulo, sinDocumento, sinVerificar, verificado] = tList("T-4960");
+  return (
+    <section aria-labelledby="empalme-comite" className="flex flex-col gap-2">
+      <h2 id="empalme-comite" className="text-display-md">
+        {titulo}
+      </h2>
+      <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm">
+        {docs.map((doc) => (
+          <li key={doc.roleCode} className="flex justify-between gap-3">
+            <span className="font-semibold">{doc.roleLabel}</span>
+            <span className="text-tinta-secundaria">
+              {!doc.hasDoc
+                ? sinDocumento
+                : doc.verifiedAt
+                  ? `${verificado} · ${formatDate(doc.verifiedAt)}`
+                  : sinVerificar}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

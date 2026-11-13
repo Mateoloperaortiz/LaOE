@@ -463,6 +463,20 @@
       "when": 1794553041157,
       "tag": "0065_vistas_guardadas",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1794553914251,
+      "tag": "0066_trayectoria_verificable",
+      "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1794554060765,
+      "tag": "0067_empalme_entre_semestres",
+      "breakpoints": true
     }
   ]
 }

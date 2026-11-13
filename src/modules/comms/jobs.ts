@@ -31,7 +31,7 @@ import {
   pushRecognition,
   pushRequestDecided,
 } from "./domain/events";
-import { deleteInboxFor, pruneInbox } from "./domain/inbox";
+import { deleteInboxFor, pruneInbox, recordInbox } from "./domain/inbox";
 import { deleteMessagesFor } from "./domain/messages";
 import { type DeliveryStats, deliverNotification } from "./domain/notify";
 import { deletePreferencesFor } from "./domain/preferences";
@@ -131,6 +131,18 @@ onEvent(badgeUnlocked, async (payload, ctx) => {
 
 // Resultado de permanencia (ADR-038 regla 10): correo T-202 a quien cumple; una vez por término.
 onEvent(permanenceDecided, async (payload, ctx) => {
+  // «Tu semestre en la OE» se abre al cerrar la permanencia (ADR-173 regla 4): el centro de avisos lo
+  // anuncia una vez por persona y semestre, con la fila por persona del cierre.
+  if (payload.committeeId === null) {
+    const [title, body] = tList("T-4964");
+    await recordInbox(payload.personId, {
+      kind: "ANNOUNCEMENT",
+      title: title ?? "",
+      body: body ?? "",
+      href: "/app/semestre",
+      dedupeKey: `semestre:${payload.termId}`,
+    });
+  }
   const receipt = await emailPermanenceOutcome(payload);
   if (receipt) {
     ctx.log.info(

@@ -13,6 +13,10 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-174](ADR-174-las-encuestas-pendientes-se-abren-desde-te-toca.md) | Las encuestas pendientes se abren desde «Te toca» | Propuesta |
+| [ADR-173](ADR-173-tu-semestre-en-la-oe.md) | «Tu semestre en la OE» | Propuesta |
+| [ADR-172](ADR-172-el-empalme-entre-semestres.md) | El empalme entre semestres | Propuesta |
+| [ADR-171](ADR-171-la-trayectoria-verificable.md) | La trayectoria verificable | Propuesta |
 | [ADR-170](ADR-170-vistas-guardadas-y-acciones-en-lote.md) | Vistas guardadas y acciones en lote | Propuesta |
 | [ADR-169](ADR-169-calendario-panoramas-y-ficha-de-la-persona.md) | El Calendario, los panoramas por rol y la ficha de la persona | Propuesta |
 | [ADR-168](ADR-168-el-modo-de-campo-de-la-operacion.md) | El modo de campo de la Operación | Propuesta |

@@ -75,6 +75,7 @@ export {
   committeeMembershipInputSchema,
   getMyMembership,
   getMyMembershipForUpdate,
+  listCommitteeMembershipsByTerm,
   listCommitteeRoles,
   type MyMembership as MyMembershipView,
   setCommitteeMemberships,
@@ -108,6 +109,12 @@ export {
   listInternalRoster,
   type RosterMember,
 } from "./domain/directory";
+export {
+  listCommitteeHandover,
+  listHandoverDocsFor,
+  saveHandoverAs,
+  verifyHandoverAs,
+} from "./domain/handover";
 export { honoraryFacts } from "./domain/honorary";
 export {
   type HonoraryEligibility,

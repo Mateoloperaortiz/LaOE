@@ -589,3 +589,25 @@ export const macroeventReactivation = pgTable(
     check("macroevent_reactivation_year", sql`${t.year} between 2026 and 2100`),
   ],
 );
+
+// Empalme entre semestres (ADR-172): un documento por comité y cargo que pasa de mano en mano. Lo edita
+// quien tiene el cargo; editarlo después de verificarlo lo deja sin verificar.
+export const handoverDoc = pgTable(
+  "handover_doc",
+  {
+    id: id(),
+    committeeId: text()
+      .notNull()
+      .references(() => committee.id, { onDelete: "cascade" }),
+    roleCode: text()
+      .notNull()
+      .references(() => committeeRole.code),
+    body: text().notNull().default(""),
+    updatedById: text().references(() => person.id, { onDelete: "set null" }),
+    verifiedById: text().references(() => person.id, { onDelete: "set null" }),
+    verifiedAt: timestampTz(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("handover_doc_committee_role_unique").on(t.committeeId, t.roleCode)],
+);

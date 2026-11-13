@@ -7,6 +7,8 @@ import { DESK_DATE_KINDS, DESK_SECTIONS } from "@/app/admin/_kit/desk-items";
 import { areaLabel } from "@/app/admin/comites/[slug]/_ui/Areas";
 import { END_REASONS, TABS, TIMELINE_FILTERS } from "@/app/admin/personas/[id]/_ui/etiquetas";
 import { TODO_KINDS } from "@/app/app/_ui/today-items";
+import { STOP_STATES } from "@/app/app/permanencia/_ui/route-stops";
+import { SEMESTER_CARDS } from "@/app/app/semestre/semester-cards";
 import {
   campaignStatusLabel,
   channelLabel,
@@ -923,8 +925,20 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-4891",
     order: "TODO_KINDS",
-    positions: { evidence: 0, availability: 1, call: 2, request: 3 },
+    positions: { evidence: 0, availability: 1, call: 2, request: 3, survey: 4 },
     canonical: TODO_KINDS,
+  },
+  {
+    code: "T-4962",
+    order: "SEMESTER_CARDS",
+    positions: { attended: 0, points: 1, challenges: 2, badges: 3, games: 4 },
+    canonical: SEMESTER_CARDS,
+  },
+  {
+    code: "T-4943",
+    order: "STOP_STATES",
+    positions: { done: 0, progress: 1, todo: 2, closed: 3 },
+    canonical: STOP_STATES,
   },
   {
     code: "T-4919",

@@ -132,9 +132,9 @@ const inlineCopies = copies.filter(
 
 describe("la tabla de los pares", () => {
   it("trae los pares históricos de la spec y los tres de asistencia y excusa separadas", () => {
-    expect(PAIRS).toHaveLength(86);
+    expect(PAIRS).toHaveLength(88);
     expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(0);
-    // Los que completan los 86 son el par de largo distinto de T-791, que la migración deshizo, el
+    // Los que completan los 88 son el par de largo distinto de T-791, que la migración deshizo, el
     // de T-427, que dejó el `zip` por posiciones escritas, y el de T-801, que dejó de ser un par: la
     // pestaña de permanencia lee el número que le da el dominio.
     expect(UNDONE_UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(1);

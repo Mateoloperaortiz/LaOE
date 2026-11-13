@@ -415,3 +415,32 @@ export const recognition = pgTable(
     ),
   ],
 );
+
+// Trayectoria verificable (ADR-171): lo que la persona eligió publicar de lo que hizo en la OE. Guarda
+// la foto de lo que dice al publicarla; se revoca y se vuelve a publicar con el mismo identificador.
+export const trajectoryCredentialKind = pgEnum("trajectory_credential_kind", [
+  "COMMITTEE",
+  "RECOGNITION",
+]);
+
+export const trajectoryCredential = pgTable(
+  "trajectory_credential",
+  {
+    id: id(),
+    publicId: text().notNull(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    kind: trajectoryCredentialKind().notNull(),
+    sourceId: text().notNull(),
+    title: text().notNull(),
+    termCode: text().notNull(),
+    publishedAt: timestampTz().notNull(),
+    revokedAt: timestampTz(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("trajectory_credential_public_id_unique").on(t.publicId),
+    uniqueIndex("trajectory_credential_source_unique").on(t.personId, t.kind, t.sourceId),
+  ],
+);

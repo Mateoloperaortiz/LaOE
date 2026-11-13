@@ -12,7 +12,9 @@ import { initialSurveyState, type SurveyFormState } from "./state";
 // llegan por props. Al terminar muestra el gracias; si la invitación cambió de estado, lo dice.
 
 export interface FormularioEncuestaProps {
-  token: string;
+  /** El token del enlace, o el id de la invitación cuando se abre con la sesión (ADR-174). */
+  token?: string;
+  invite?: string;
   fields: FormField[];
   labels: {
     submit: string;
@@ -61,7 +63,11 @@ export function FormularioEncuesta(props: FormularioEncuestaProps) {
   }
   return (
     <ActionForm action={action} className="flex max-w-2xl flex-col gap-6" noValidate>
-      <input type="hidden" name="token" value={props.token} />
+      {props.invite ? (
+        <input type="hidden" name="invite" value={props.invite} />
+      ) : (
+        <input type="hidden" name="token" value={props.token ?? ""} />
+      )}
       {state.message ? (
         <p role="alert" className="rounded-xl bg-oe-orange px-4 py-3 font-semibold text-oe-navy">
           {state.message}

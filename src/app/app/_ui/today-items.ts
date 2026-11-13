@@ -2,14 +2,14 @@
 // Lo que se lee de la base vive en `today.ts`.
 
 /** Lo que puede tocarle a la persona, en el orden de T-4891. */
-export const TODO_KINDS = ["evidence", "availability", "call", "request"] as const;
+export const TODO_KINDS = ["evidence", "availability", "call", "request", "survey"] as const;
 
 export type TodoKind = (typeof TODO_KINDS)[number];
 
 export interface TodoItem {
   id: string;
   kind: TodoKind;
-  /** El nombre que completa el texto: el reto, el grupo o el tipo de solicitud. */
+  /** El nombre que completa el texto: el reto, el grupo, el tipo de solicitud o la ocasión. */
   subject: string;
   href: string;
   /** Hasta cuándo se puede: lo que vence antes va primero; sin fecha, al final. */

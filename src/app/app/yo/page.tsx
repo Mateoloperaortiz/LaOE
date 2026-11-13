@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { requireActor } from "@/modules/identity";
 import { SignOutForm } from "@/modules/identity/components/SignOutForm";
-import { balanceFor } from "@/modules/participation";
+import { balanceFor, listAchievementsForPerson } from "@/modules/participation";
+import { BadgeArt } from "@/modules/participation/components/BadgeArt";
 import { getMyMembership } from "@/modules/people";
 import { t, tList } from "@/shared/copy";
 import { AppLink as Link } from "@/shared/ui/AppLink";
@@ -57,7 +58,14 @@ function Group({
 
 export default async function YoPage() {
   const actor = await requireActor("/app/yo");
-  const [mine, roles] = await Promise.all([getMyMembership(actor.personId), adminAreaRoles(actor)]);
+  const [mine, roles, achievements] = await Promise.all([
+    getMyMembership(actor.personId),
+    adminAreaRoles(actor),
+    listAchievementsForPerson(actor.personId),
+  ]);
+  const recentBadges = achievements.slice(0, 6);
+  const [insigniasTitulo, verColeccion] = tList("T-4946");
+  const [trayectoria, empalme, semestre] = tList("T-4953");
   const saldo = mine.term ? await balanceFor(actor.personId, mine.term.id) : null;
   const [
     ,
@@ -83,6 +91,27 @@ export default async function YoPage() {
           <p className="text-secundario text-tinta-secundaria">{mine.term.code}</p>
         ) : null}
       </header>
+      {recentBadges.length > 0 ? (
+        <section aria-labelledby="yo-insignias" className="flex flex-col gap-2">
+          <h2 id="yo-insignias" className="titulo-seccion">
+            {insigniasTitulo}
+          </h2>
+          <ul className="m-0 flex list-none flex-wrap gap-3 p-0">
+            {recentBadges.map((item) => (
+              <li key={item.id} className="flex w-24 flex-col items-center gap-1 text-center">
+                <BadgeArt family={item.badge.family} level={item.badge.level} unlocked />
+                <span className="text-secundario">{item.badge.name}</span>
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/app/gh-points/coleccion"
+            className="self-start text-sm font-semibold underline"
+          >
+            {verColeccion}
+          </Link>
+        </section>
+      ) : null}
       <Group
         id="yo-participacion"
         title={t("T-1665")}
@@ -93,6 +122,9 @@ export default async function YoPage() {
             detail: saldo === null ? undefined : t("T-4877", { n: saldo }),
           },
           { href: "/app/permanencia", label: permanencia },
+          { href: "/app/yo/trayectoria", label: trayectoria ?? "" },
+          { href: "/app/yo/empalme", label: empalme ?? "" },
+          { href: "/app/semestre", label: semestre ?? "" },
           { href: "/app/solicitudes", label: solicitudes },
           { href: "/app/convocatorias", label: convocatorias },
           { href: "/app/carnet", label: carnet },

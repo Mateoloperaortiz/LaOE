@@ -531,3 +531,85 @@
     animation: none;
   }
 }
+
+/* Ruta de permanencia (plan maestro §7): paradas unidas por un camino vertical; la lograda en el
+   acento, la cerrada atenuada y la meta al final. */
+.ruta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--radius-tarjeta);
+  background: var(--superficie);
+}
+.ruta-camino {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ruta-parada {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+}
+.ruta-parada:last-child {
+  padding-bottom: 0;
+}
+.ruta-parada:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 1.5rem;
+  bottom: 0.25rem;
+  left: 0.6875rem;
+  width: 2px;
+  background: var(--superficie-borde);
+}
+.ruta-parada[data-estado="done"]:not(:last-child)::before {
+  background: var(--titulo);
+}
+.ruta-marca {
+  display: inline-flex;
+  flex: none;
+  color: var(--tinta-secundaria);
+}
+.ruta-parada[data-estado="done"] .ruta-marca {
+  color: var(--titulo);
+}
+.ruta-parada[data-estado="progress"] .ruta-marca {
+  color: var(--color-oe-orange);
+}
+.ruta-parada[data-estado="closed"] {
+  opacity: 0.6;
+}
+
+/* «Tu semestre en la OE» (ADR-173): la capa de marca dentro de Mi OE, con numerales grandes. */
+.semestre-tarjeta {
+  display: flex;
+  min-height: 9rem;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  border-radius: var(--radius-cartel, 1.25rem);
+  background: var(--color-oe-navy);
+  color: var(--color-oe-paper, #fff);
+}
+.semestre-tarjeta[data-tarjeta="points"],
+.semestre-tarjeta[data-tarjeta="games"] {
+  background: var(--color-oe-yellow);
+  color: var(--color-oe-navy);
+}
+.semestre-tarjeta[data-tarjeta="badges"] {
+  background: var(--color-oe-orange);
+  color: var(--color-oe-navy);
+}
+.semestre-numero {
+  font-size: 4rem;
+}
+.semestre-etiqueta {
+  font-weight: 600;
+}

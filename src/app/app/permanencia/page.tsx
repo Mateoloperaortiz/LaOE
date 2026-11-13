@@ -18,6 +18,7 @@ import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { noticeText } from "../_ui/avisos";
 import { Vacio } from "../_ui/Vacio";
+import { Ruta } from "./_ui/Ruta";
 
 // Permanencia del miembro (12-permanencia, ADR-036 regla 5): resultado por comité frente a su
 // umbral, calculado en vivo mientras el semestre está abierto y congelado al cerrar; criterio por
@@ -191,6 +192,7 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
         </section>
       ) : null}
 
+      {result ? <Ruta results={result.results} committeeNames={committeeNames} /> : null}
       {result ? (
         <Desglose
           result={result}

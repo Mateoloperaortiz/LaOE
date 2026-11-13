@@ -12,26 +12,31 @@ import type { SurveyFormState } from "./state";
 // dentro de la ventana; la respuesta se guarda sin persona.
 
 const TOKEN = /^[A-Za-z0-9_-]{24,64}$/;
+const INVITE_ID = /^[a-z0-9]{8,64}$/;
 
 export async function answerSurveyAction(
   _previous: SurveyFormState,
   formData: FormData,
 ): Promise<SurveyFormState> {
+  // Por el token del enlace o, con la sesión, por el id de la invitación (ADR-174).
+  const inviteId = String(formData.get("invite") ?? "");
   const token = String(formData.get("token") ?? "");
+  const back = inviteId ? `/app/encuestas/${inviteId}` : `/app/encuesta/${token}`;
   const actor = await getActor();
   if (!actor) {
-    redirect(`/ingresar?next=${encodeURIComponent(`/app/encuesta/${token}`)}`);
+    redirect(`/ingresar?next=${encodeURIComponent(back)}`);
   }
-  if (!TOKEN.test(token)) {
+  if (inviteId ? !INVITE_ID.test(inviteId) : !TOKEN.test(token)) {
     return { done: false, state: "NOT_FOUND", errors: {}, values: {} };
   }
-  const invite = await getSurveyInviteForActor(actor.personId, token);
+  const key = inviteId ? { inviteId } : token;
+  const invite = await getSurveyInviteForActor(actor.personId, key);
   if (invite.state !== "OPEN") {
     return { done: false, state: invite.state, errors: {}, values: {} };
   }
   const raw = answersFromFormData(formData, invite.fields);
   // Sin IP a propósito: la respuesta a la encuesta es anónima por diseño (ADR-082 regla 7).
-  const result = await answerSurveyAs({ personId: actor.personId, ip: null }, token, raw);
+  const result = await answerSurveyAs({ personId: actor.personId, ip: null }, key, raw);
   if (result.ok) {
     return { done: true, state: "OPEN", errors: {}, values: {} };
   }

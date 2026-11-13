@@ -1,6 +1,6 @@
 import { hasWeeklyAvailability } from "@/modules/availability";
 import { listMyEntries, listOpenCalls, listRequestsByPerson } from "@/modules/crm";
-import { listChallengesForMember } from "@/modules/participation";
+import { listChallengesForMember, listPendingSurveys } from "@/modules/participation";
 import { listGroupIdsOf, listGroupRefs } from "@/modules/permanence";
 import { sortTodo, type TodoItem } from "./today-items";
 
@@ -10,8 +10,8 @@ import { sortTodo, type TodoItem } from "./today-items";
 // - Disponibilidad: la de la semana, mientras no la haya marcado en el término.
 // - Convocatorias: las abiertas de grupos donde no está ni se postuló.
 // - Solicitudes: las suyas que siguen en revisión.
-// Las encuestas no entran todavía: su enlace lleva un token que la casa solo guarda cifrado, y llegar a
-// ellas desde Mi OE pide otra forma de abrirlas. Los pasos de bienvenida los pinta la página con su botón.
+// - Encuestas: las que todavía puede responder, abiertas por su id con la sesión (ADR-174).
+// Los pasos de bienvenida los pinta la página con su botón.
 
 export async function loadTodo(
   personId: string,
@@ -20,7 +20,7 @@ export async function loadTodo(
   now = new Date(),
 ): Promise<TodoItem[]> {
   const active = participationAllowed && termId !== null;
-  const [challenges, availabilityDone, openCalls, myEntries, myGroups, requests] =
+  const [challenges, availabilityDone, openCalls, myEntries, myGroups, requests, surveys] =
     await Promise.all([
       active ? listChallengesForMember(personId, termId, now) : [],
       active ? hasWeeklyAvailability(personId, termId) : true,
@@ -28,6 +28,7 @@ export async function loadTodo(
       active ? listMyEntries(personId) : [],
       active ? listGroupIdsOf(personId) : [],
       listRequestsByPerson(personId),
+      participationAllowed ? listPendingSurveys(personId, now) : [],
     ]);
   const applied = new Set(myEntries.map((entry) => entry.callId));
   const inGroup = new Set(myGroups);
@@ -72,5 +73,12 @@ export async function loadTodo(
         href: "/app/solicitudes",
         due: null,
       })),
+    ...surveys.map((survey) => ({
+      id: `encuesta-${survey.inviteId}`,
+      kind: "survey" as const,
+      subject: survey.occasionTitle,
+      href: `/app/encuestas/${survey.inviteId}`,
+      due: survey.due,
+    })),
   ]);
 }

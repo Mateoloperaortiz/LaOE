@@ -29,6 +29,7 @@ import { atHourIn, bogotaHourToUtc, formatDate, todayKey } from "@/shared/lib/da
 import { CALL_ENTRY_STATUSES } from "./domain/calls-pure";
 import { createCardFromSubmission } from "./domain/cards";
 import { openTaskForReasonAs } from "./domain/commands";
+import { deleteCredentialsFor } from "./domain/credentials";
 import { deleteNotesFor, recordAutomaticInteraction } from "./domain/interactions";
 import { recordOnboardingEvidence } from "./domain/onboarding";
 import { REQUEST_STATUSES } from "./domain/requests-pure";
@@ -137,7 +138,12 @@ onEvent(membershipChanged, async ({ personId, to }, ctx) => {
 onEvent(personAnonymized, async ({ personId }, ctx) => {
   const tasks = await deleteTasksFor(getDb(), personId);
   const notes = await deleteNotesFor(personId);
-  ctx.log.info({ personId, tasks, notes }, "tareas y notas borradas por anonimización");
+  // Sus credenciales publicadas dejan de existir (ADR-171 regla 5).
+  const credentials = await deleteCredentialsFor(personId);
+  ctx.log.info(
+    { personId, tasks, notes, credentials },
+    "tareas, notas y credenciales borradas por anonimización",
+  );
 });
 
 // Las tareas que abre el sistema pasan por `openTaskForReason` (ADR-115 regla 9): una sola abierta por

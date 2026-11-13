@@ -213,6 +213,7 @@ export {
 } from "./domain/rewards";
 export { rotatingCodeAt, secondsUntilRotation } from "./domain/rotating-code-pure";
 export { listCommitteeScores, listOccasionScores } from "./domain/scores";
+export { semesterSummaryFor } from "./domain/semester-summary";
 export {
   abandonSudokuAs,
   finishSudokuAs,
@@ -224,6 +225,7 @@ export {
   answerSurveyAs,
   createSurveyInvites,
   getSurveyInviteForActor,
+  listPendingSurveys,
   surveySummary,
   surveySummaryForCommittee,
 } from "./domain/surveys";

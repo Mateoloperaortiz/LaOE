@@ -152,6 +152,7 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 - [ ] Que la próxima versión de la política de datos mencione a los capitanes de The Games: nombre y celular tomados de la inscripción de Días EAFIT, el celular visible para la operación, el nombre en la vitrina y el borrado al archivar la competencia (ADR-095)
 - [ ] Que la próxima versión de la política de datos mencione el centro de avisos de Mi OE ([ADR-166](adr/ADR-166-el-centro-de-avisos-de-mi-oe.md)): la casa guarda 90 días lo que le llega a cada persona por push, por correo de campaña y como momento de la casa, para que lo vuelva a leer, y lo borra al anonimizarla. Nunca guarda códigos ni enlaces de acceso. Lo redacta y aprueba la junta.
 - [ ] Que la próxima versión de la política de datos mencione las vistas guardadas de la Operación ([ADR-170](adr/ADR-170-vistas-guardadas-y-acciones-en-lote.md)): guardan la dirección de una tabla con su búsqueda, que puede llevar un nombre, y se borran al anonimizar a quien las guardó. Lo redacta y aprueba la junta.
+- [ ] Que la próxima versión de la política de datos mencione la trayectoria verificable ([ADR-171](adr/ADR-171-la-trayectoria-verificable.md)): a pedido de la persona, una credencial publicada muestra en una página pública su nombre, lo que hizo en la OE y el semestre, y se puede dejar de publicar; al anonimizarla se borra. Lo redacta y aprueba la junta.
 - [ ] Crear en producción la edición de Días EAFIT 2026 y registrar la Dirección de The Games en su mesa
 
 ## Normativa actualizada del 2026-11-06

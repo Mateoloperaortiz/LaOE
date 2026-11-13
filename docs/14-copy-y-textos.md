@@ -3337,7 +3337,7 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | Código | Dónde | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
 | T-4890 | Hoy: títulos nuevos de los bloques, en orden | Lo que sigue · Te toca · Juegos y retos | MATEO | Propuesta |
-| T-4891 | Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud) | Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión | MATEO | Propuesta |
+| T-4891 | Hoy, «Te toca»: cada pendiente, en el orden de sus tipos (evidencia · disponibilidad · convocatoria · solicitud · encuesta) | Sube la evidencia de «{asunto}» · Marca tu disponibilidad de la semana · Postúlate a {asunto} · Tu solicitud de {asunto} sigue en revisión · Responde la encuesta de «{asunto}» | MATEO | Propuesta |
 | T-4892 | Hoy, «Te toca»: hasta cuándo se puede | Hasta el {fecha} | MATEO | Propuesta |
 | T-4893 | Hoy, «Juegos y retos»: enlace a la biblioteca de juegos | Jugar hoy | MATEO | Propuesta |
 
@@ -3413,4 +3413,32 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | T-4939 | Lote, vista previa: a cuántas aplica | Se aplica a {n} de {total}. | MATEO | Propuesta |
 | T-4940 | Lote, vista previa: confirmar · cancelar · la fila a la que no aplica | Confirmar · Cancelar · No se aplica | MATEO | Propuesta |
 | T-4941 | Lote: resultado | Lote terminado: {hechas} hechas y {fallidas} sin hacer. | MATEO | Propuesta |
+
+### Ola 2: Mi OE, ruta de permanencia, «Yo», trayectoria, empalme, «Tu semestre» y encuestas (ADR-171 a ADR-174)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4942 | Permanencia: título de la ruta | Tu ruta | MATEO | Propuesta |
+| T-4943 | Ruta de permanencia: estado de una parada, en el orden de STOP_STATES | Lograda · En camino · Por hacer · Ya no suma más | MATEO | Propuesta |
+| T-4944 | Ruta de permanencia: puntos de una parada | {n} de {peso} puntos | MATEO | Propuesta |
+| T-4945 | Ruta de permanencia: la meta | Meta: {umbral} % · llevas {total} % | MATEO | Propuesta |
+| T-4946 | «Yo»: insignias recientes · enlace a la colección | Tus insignias · Ver la colección | MATEO | Propuesta |
+| T-4947 | Trayectoria: título · lo que es · sin nada todavía | Tu trayectoria · Lo que hiciste en la OE. Publica lo que quieras mostrar afuera: cada cosa publicada tiene una página donde cualquiera la puede verificar. · Todavía no tienes nada que mostrar: aparece cuando estés en un comité o recibas un reconocimiento. | MATEO | Propuesta |
+| T-4948 | Trayectoria: publicar · dejar de publicar · ver la página pública · agregar a LinkedIn · publicada | Publicar · Dejar de publicar · Ver la página pública · Agregar a LinkedIn · Publicada | MATEO | Propuesta |
+| T-4949 | Trayectoria: lo que dice un comité sin cargo | Miembro de {comité} | MATEO | Propuesta |
+| T-4950 | Trayectoria: lo que dice un comité con cargo | {cargo} de {comité} | MATEO | Propuesta |
+| T-4951 | Página pública de una credencial: título · semestre · emitida por · publicada el · cómo se comprueba | Credencial verificada · Semestre · Emitida por · Publicada el · La casa digital de la OE comprueba esta credencial con sus registros. | MATEO | Propuesta |
+| T-4952 | Página pública: credencial que se dejó de publicar | Esta credencial ya no está publicada. | MATEO | Propuesta |
+| T-4953 | «Yo»: trayectoria, empalme y semestre (rótulos) | Tu trayectoria · Tu empalme · Tu semestre en la OE | MATEO | Propuesta |
+| T-4954 | Empalme en Mi OE: título · qué es · sin cargos | Tu empalme · El documento de cada cargo que tienes o vas a tener: lo que necesita saber quien te recibe. · No tienes cargos este semestre ni el siguiente. | MATEO | Propuesta |
+| T-4955 | Empalme: guardar · verificar · sin verificar · vacío · quién lo escribe | Guardar · Marcar como verificado · Sin verificar · Todavía no tiene nada escrito. · Lo escribe quien tiene el cargo este semestre. | MATEO | Propuesta |
+| T-4956 | Empalme: editar sin tener el cargo | Solo quien tiene este cargo en el comité este semestre edita su empalme. | MATEO | Propuesta |
+| T-4957 | Empalme: documento demasiado largo | El documento no puede pasar de {n} caracteres. | MATEO | Propuesta |
+| T-4958 | Empalme: verificar sin documento | Primero guarda el documento: después lo marcas como verificado. | MATEO | Propuesta |
+| T-4959 | Empalme: quién y cuándo lo verificó | Verificado el {fecha} por {nombre} | MATEO | Propuesta |
+| T-4960 | Comité en la Operación: estado del empalme (título · sin documento · sin verificar · verificado) | Empalme · Sin documento · Sin verificar · Verificado | MATEO | Propuesta |
+| T-4961 | «Tu semestre en la OE»: título · entrada · semestre sin cerrar · sin semestre cerrado | Tu semestre en la OE · Así fue tu semestre {término} en la OE. · Este semestre todavía no cierra: tu resumen sale cuando cierre la permanencia. · Todavía no tienes un semestre cerrado en la OE. | MATEO | Propuesta |
+| T-4962 | «Tu semestre en la OE»: lo que dice cada tarjeta, en el orden de SEMESTER_CARDS | asistencias aprobadas · GH Points sumados · retos completados · insignias desbloqueadas · partidas jugadas | MATEO | Propuesta |
+| T-4963 | «Tu semestre en la OE»: tus comités | Tus comités | MATEO | Propuesta |
+| T-4964 | Centro de avisos: «Tu semestre en la OE» al cerrar la permanencia (título · texto) | Ya está tu semestre en la OE · Mira lo que hiciste este semestre en la OE. | MATEO | Propuesta |
 

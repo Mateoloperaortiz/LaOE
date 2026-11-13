@@ -31,6 +31,8 @@ const YO_ROUTES = [
   "/app/convocatorias",
   "/app/normativa",
   "/app/ajustes",
+  "/app/semestre",
+  "/app/encuestas",
 ];
 
 // Lado de los iconos de la barra: no acompañan a una línea de texto, van sobre ella (ADR-076 regla 3).
