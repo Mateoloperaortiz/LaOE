@@ -442,6 +442,13 @@ export const sanctionKind = pgEnum("sanction_kind", [
   "OFFICE_BAN",
 ]);
 
+/**
+ * Estado de una sanción (ADR-196): la falta que anota la dirección de un comité queda por avalar hasta
+ * que la VP de Gestión Humana la avale o la rechace; lo que registra la VP queda avalado. Solo lo
+ * avalado tiene efecto.
+ */
+export const sanctionStatus = pgEnum("sanction_status", ["PENDING", "APPROVED", "REJECTED"]);
+
 export const sanction = pgTable(
   "sanction",
   {
@@ -467,10 +474,26 @@ export const sanction = pgTable(
     revokedAt: timestampTz(),
     revokedById: text().references(() => person.id, { onDelete: "set null" }),
     revokeReason: text(),
+    /** Las que ya existían quedan avaladas: nada cambia para ellas (ADR-196 regla 1). */
+    status: sanctionStatus().notNull().default("APPROVED"),
+    decidedAt: timestampTz(),
+    decidedById: text().references(() => person.id, { onDelete: "set null" }),
+    /** Si decidió la titular de la VP de GH o la Presidencia que la suple (ADR-195 regla 2). */
+    decidedAs: text(),
+    decisionNote: text().notNull().default(""),
     createdAt: createdAt(),
   },
   (t) => [
     index("sanction_person_idx").on(t.personId, t.expiresOn),
+    index("sanction_status_idx").on(t.status),
+    check(
+      "sanction_decided_as_known",
+      sql`${t.decidedAs} is null or ${t.decidedAs} in ('HOLDER', 'PRESIDENCY')`,
+    ),
+    check(
+      "sanction_pending_undecided",
+      sql`${t.status}::text <> 'PENDING' or (${t.decidedAt} is null and ${t.decidedById} is null)`,
+    ),
     index("sanction_term_idx").on(t.termId),
     check(
       "sanction_suspension_consistent",

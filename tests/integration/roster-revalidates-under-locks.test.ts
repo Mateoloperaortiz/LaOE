@@ -23,6 +23,7 @@ import {
 import { todayKey } from "@/shared/lib/dates";
 import {
   currentTermCode,
+  seedAppointment,
   seedCommittee,
   seedMember,
   seedMembershipTerm,
@@ -62,6 +63,7 @@ async function scenario() {
   const code = currentTermCode();
   await seedCommittee("a3");
   const admin: Admin = { personId: await seedMember("admin.roster@eafit.edu.co"), ip: null };
+  await seedAppointment(admin.personId, termId, "VP_GH");
   const one = { email: "prueba.una@eafit.edu.co", id: await seedMember("prueba.una@eafit.edu.co") };
   const other = {
     email: "prueba.otra@eafit.edu.co",
@@ -112,7 +114,7 @@ const suspend = (admin: Admin, personId: string, termId: string): Promise<unknow
       occurredOn: todayKey(),
       suspendedUntil: todayKey(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)),
     },
-    { by: "ADMIN" },
+    { by: "GH" },
   );
 
 const putOnProbation = (admin: Admin, personId: string, termId: string): Promise<unknown> =>
@@ -156,6 +158,7 @@ async function newGeneralScenario() {
   const code = currentTermCode();
   const committeeId = await seedCommittee("a3");
   const admin: Admin = { personId: await seedMember("admin.roster@eafit.edu.co"), ip: null };
+  await seedAppointment(admin.personId, termId, "VP_GH");
   const member = {
     email: "prueba.una@eafit.edu.co",
     id: await seedMember("prueba.una@eafit.edu.co"),

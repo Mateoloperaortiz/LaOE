@@ -629,7 +629,7 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-2243",
     order: "SANCTION_STATES",
-    positions: { LIVE: 0, EXPIRED: 1, REVOKED: 2 },
+    positions: { LIVE: 0, EXPIRED: 1, REVOKED: 2, PENDING: 3, REJECTED: 4 },
     copies: ["src/modules/people/domain/sanctions.ts"],
   },
   {
@@ -959,7 +959,7 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-5084",
     order: "AVAL_KINDS",
-    positions: { EVENT: 0 },
+    positions: { EVENT: 0, SANCTION: 1 },
     canonical: AVAL_KINDS,
   },
   {

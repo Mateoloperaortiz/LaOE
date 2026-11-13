@@ -3,37 +3,19 @@ import { Bloque } from "@/shared/admin-kit/AdminFields";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
-import { AppLink as Link } from "@/shared/ui/AppLink";
 
 /**
- * Faltas y sanciones de la pestaña Membresía (ADR-060 regla 6): cada sanción con su estado y, si la
- * membresía sigue viva, el camino para registrar otra o revocar una vigente. La suspensión se dice
- * con el texto de la ficha (T-3218), que no afirma que siga: el estado lo dice la insignia, y el
- * texto de Mi OE (T-2237) le habla a la persona suspendida (ADR-116 regla 13).
+ * Faltas y sanciones de la pestaña Membresía (ADR-060 regla 6): cada sanción con su estado. Desde
+ * ADR-196 la ficha solo las muestra: las registra, las avala y las anula quien decide por la VP de
+ * Gestión Humana, desde «Faltas» y «Avales». La suspensión se dice con el texto de la ficha (T-3218),
+ * que no afirma que siga: el estado lo dice la insignia, y el texto de Mi OE (T-2237) le habla a la
+ * persona suspendida (ADR-116 regla 13).
  */
-export function Sanciones({
-  personId,
-  canRecord,
-  sanctions,
-}: {
-  personId: string;
-  /** Solo se sanciona a quien tiene la membresía viva (T-2244). */
-  canRecord: boolean;
-  sanctions: SanctionView[];
-}) {
+export function Sanciones({ sanctions }: { sanctions: SanctionView[] }) {
   const [sancionesTitulo, sinSanciones] = tList("T-2239");
-  const [registrarSancion, revocarSancion] = tList("T-2232");
-  const base = `/admin/personas/${personId}`;
   return (
     <Bloque titulo={sancionesTitulo}>
-      {canRecord ? (
-        <Link
-          href={`${base}?pestana=membresia&accion=sancion`}
-          className="boton-secundario min-h-9 self-start px-4 py-1 text-sm"
-        >
-          {registrarSancion}
-        </Link>
-      ) : null}
+      <p className="text-sm text-tinta-suave">{t("T-5100")}</p>
       {sanctions.length === 0 ? (
         <p className="text-sm text-tinta-suave">{sinSanciones}</p>
       ) : (
@@ -63,13 +45,8 @@ export function Sanciones({
               {item.revokeReason ? (
                 <span className="text-tinta-suave">· {item.revokeReason}</span>
               ) : null}
-              {item.state === "LIVE" ? (
-                <Link
-                  href={`${base}?pestana=membresia&accion=revocar-sancion&sancion=${item.id}`}
-                  className="underline"
-                >
-                  {revocarSancion}
-                </Link>
+              {item.decisionNote ? (
+                <span className="text-tinta-suave">· {item.decisionNote}</span>
               ) : null}
             </li>
           ))}

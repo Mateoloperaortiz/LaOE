@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { changeMembershipStatus, honoraryFacts, recordSanctionAs } from "@/modules/people";
+import { changeMembershipStatus, honoraryFacts } from "@/modules/people";
 // La regla de la vista previa del roster no sale por el `index.ts` del módulo: solo la usa `people`.
 import { honoraryBlockedAmong } from "@/modules/people/domain/membership";
 import { membership } from "@/modules/people/schema";
@@ -10,7 +10,13 @@ import { getCurrentTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { seedMembership, seedMembershipTerm, seedPerson, seedTerm } from "../factories";
+import {
+  seedMembership,
+  seedMembershipTerm,
+  seedPerson,
+  seedSanction,
+  seedTerm,
+} from "../factories";
 import { type CountedQuery, countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
 
@@ -170,20 +176,13 @@ describe("la prueba con la que alguien salió a licencia y el paso a honorario",
   describe("una suspensión vigente", () => {
     async function suspended(email: string): Promise<string> {
       const previous = await seedTerm("2026-1");
-      const admin = { personId: await memberSince2026("admin.gh@eafit.edu.co"), ip: null };
       const personId = await memberSince2026(email);
-      await recordSanctionAs(
-        admin,
-        personId,
-        {
-          termId: previous,
-          kind: "SUSPENSION",
-          cause: "Uso indebido de la oficina, con descargos",
-          occurredOn: todayKey(),
-          suspendedUntil: todayKey(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)),
-        },
-        { by: "ADMIN" },
-      );
+      // Sin semestre vigente nadie decide por la VP de GH (ADR-196): la suspensión se siembra avalada.
+      await seedSanction(personId, previous, "SUSPENSION", {
+        occurredOn: todayKey(),
+        suspendedUntil: todayKey(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)),
+        cause: "Uso indebido de la oficina, con descargos",
+      });
       return personId;
     }
 

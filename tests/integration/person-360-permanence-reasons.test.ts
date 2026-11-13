@@ -15,6 +15,7 @@ import {
 import { closeTermPoints } from "@/modules/terms";
 import { tLabels, tList } from "@/shared/copy";
 import {
+  seedAppointment,
   seedCheckIn,
   seedCommittee,
   seedCommitteeMembership,
@@ -74,7 +75,8 @@ const decisionLabels = tLabels("T-802", DECISIONS);
 const [met, inBand, belowBand, noCommitteeLeft, lostAssembly, sanctions] = tList("T-801");
 const [, , decisionsTitle] = tList("T-829");
 /** ADMIN desde la Persona 360: declara su alcance, sin restricción de tipo ni de comité. */
-const asAdmin = { by: "ADMIN" } as const;
+/** GH sanciona por su cargo de la VP de Gestión Humana en el término vigente (ADR-196). */
+const asGh = { by: "GH" } as const;
 
 function text(node: ReactNode): string {
   if (typeof node === "string" || typeof node === "number") {
@@ -127,6 +129,7 @@ async function setup() {
   const a3 = await seedCommittee("a3", "A3");
   const gh = await seedPerson("gh.motivos@eafit.edu.co");
   await seedMembership(gh, previous);
+  await seedAppointment(gh, await seedTerm(), "VP_GH");
   session.personId = gh;
   const rule = await seedRule(termId, "eventos", {
     committeeId: a3,
@@ -179,7 +182,7 @@ async function setup() {
         actor,
         personId,
         { termId, kind, cause: "Sanción sembrada para el cierre de permanencia", occurredOn },
-        asAdmin,
+        asGh,
       );
       recorded.push(id);
     }
@@ -459,13 +462,7 @@ describe("el motivo de una decisión del cierre en la pestaña de permanencia de
     });
     await confirmAllProposedAs(actor, termId);
 
-    await revokeSanctionAs(
-      actor,
-      warned,
-      major,
-      "Descargos aceptados después de confirmar",
-      asAdmin,
-    );
+    await revokeSanctionAs(actor, warned, major, "Descargos aceptados después de confirmar", asGh);
     await recomputeSnapshots(termId);
     // Sin la falta grave no hay advertencia de expulsión: hoy el cierre le propondría continuar.
     expect(await proposalOf(warned)).toMatchObject({

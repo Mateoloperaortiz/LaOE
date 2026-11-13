@@ -12,7 +12,7 @@ import {
 } from "@/modules/people";
 import { membership, membershipTerm, person, sanction } from "@/modules/people/schema";
 import { todayKey } from "@/shared/lib/dates";
-import { seedMember, seedTerm } from "../factories";
+import { seedAppointment, seedMember, seedTerm } from "../factories";
 import {
   firstThenSecond,
   holdTransaction,
@@ -42,6 +42,7 @@ const db = () => getDb();
 async function scenario() {
   const termId = await seedTerm();
   const admin: Admin = { personId: await seedMember("admin.roster@eafit.edu.co"), ip: null };
+  await seedAppointment(admin.personId, termId, "VP_GH");
   const stays = await seedMember(STAYS);
   const honorary = await seedMember(HONORARY);
   const bytes = new TextEncoder().encode(
@@ -111,7 +112,7 @@ const COMMANDS = [
           occurredOn: todayKey(),
           suspendedUntil: todayKey(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)),
         },
-        { by: "ADMIN" },
+        { by: "GH" },
       ),
     leaves: { sanctions: 1, onProbation: false },
   },

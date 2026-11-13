@@ -1847,7 +1847,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2240 | Sanciones: motivo de la revocación | Motivo de la revocación (descargos o revisión de la junta) | GH | Propuesta |
 | T-2241 | Sanciones: fecha de fin de la suspensión inválida | La suspensión necesita una fecha de fin entre la falta y un mes después (Reglamento, art. 59). | MATEO | Propuesta |
 | T-2242 | Permanencia del comité: registrar una falta, título | Registrar una falta a un miembro del comité | GH | Propuesta |
-| T-2243 | Sanciones: estados (vigente · vencida · revocada) | Vigente · Vencida · Revocada | MATEO | Propuesta |
+| T-2243 | Sanciones: estados (vigente · vencida · revocada · por avalar · rechazada) | Vigente · Vencida · Revocada · Por avalar · Rechazada | MATEO | Propuesta |
 | T-2244 | Sanciones: membresía terminada | Solo se sanciona a un miembro con membresía viva; una persona retirada se da de baja con motivo expulsión. | MATEO | Propuesta |
 | T-2245 | Mi OE, permanencia: sanción revocada o vencida | Sin sanciones vigentes. | MATEO | Propuesta |
 | T-2246 | Representantes ante la Asamblea: roles (en el orden del modelo) | Titular · Suplente | MATEO | Propuesta |
@@ -3747,7 +3747,7 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5081 | Junta del semestre: avisos | Vacante · No está activo · Hay una cosa por revisar · Hay {n} cosas por revisar · La junta y sus comités de trabajo están al día · Sembrar los que faltan | MATEO | Propuesta |
 | T-5082 | Menú de la Operación: la junta del semestre | Junta del semestre | MATEO | Propuesta |
 | T-5083 | Avales: pantalla (título · texto) | Avales · Lo que te toca decidir por tu cargo en la junta. Si rechazas un aval, di por qué: el comité lo ve. | MATEO | Propuesta |
-| T-5084 | Avales: tipos (en el orden del modelo) | Aval de evento | MATEO | Propuesta |
+| T-5084 | Avales: tipos (en el orden del modelo) | Aval de evento · Falta por avalar | MATEO | Propuesta |
 | T-5085 | Avales: campos | Comité · Evento · Fecha del evento · Lo pidió · Estado · Pedido el · Motivo | MATEO | Propuesta |
 | T-5086 | Avales: decisión | Aprobar · Rechazar · Motivo (obligatorio para rechazar) · Lo decide la {cargo} · Decides como Presidencia mientras falte la {cargo} · No hay avales por decidir. · Decididos hace poco · Volver a los avales | MATEO | Propuesta |
 | T-5087 | Aval: rechazo sin motivo | Para rechazar un aval escribe el motivo: el comité lo va a leer. | MATEO | Propuesta |
@@ -3756,3 +3756,12 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5090 | Aviso: aval por decidir (título · texto) | Tienes un aval por decidir · {comité} pidió el aval de «{evento}» para el {fecha}. | MATEO | Propuesta |
 | T-5091 | Aviso: aval decidido (título · aprobado · rechazado) | Ya decidieron tu aval · La Presidencia aprobó el aval de «{evento}». · La Presidencia rechazó el aval de «{evento}»: {motivo} | MATEO | Propuesta |
 | T-5092 | Menú de la Operación: avales | Avales | MATEO | Propuesta |
+| T-5093 | Aviso: falta por avalar (título · texto) | Tienes una falta por avalar · {comité} anotó una falta de {persona} ({tipo}). | MATEO | Propuesta |
+| T-5094 | Aviso: falta decidida (título · avalada · rechazada) | Ya decidieron la falta que anotaste · Se avaló la falta de {persona}. · Se rechazó la falta de {persona}: {motivo} | MATEO | Propuesta |
+| T-5095 | Comité: falta anotada, por avalar | La falta quedó por avalar: la Vicepresidencia de Gestión Humana la revisa y, hasta que la avale, no tiene efecto (Reglamento, art. 70). | GH | Propuesta |
+| T-5096 | Avales: campos de una falta | Persona · Tipo · Lo que pasó y los descargos · Referencia · Fecha de la falta · La anotó · Comité | MATEO | Propuesta |
+| T-5097 | Faltas de Gestión Humana (título · texto) | Faltas y sanciones · Las sanciones del semestre. Lo que anotan los comités te llega a «Avales»; aquí registras suspensiones e inhabilidades y anulas una sanción con su motivo. | GH | Propuesta |
+| T-5098 | Faltas de Gestión Humana: persona | Persona · Elige a la persona · No hay sanciones en este semestre. · Volver a las faltas | MATEO | Propuesta |
+| T-5099 | Menú de la Operación: faltas | Faltas | MATEO | Propuesta |
+| T-5100 | Persona 360: quién sanciona | Las sanciones las registra, las avala y las anula la Vicepresidencia de Gestión Humana, por su cargo. | MATEO | Propuesta |
+| T-5101 | Avales: columnas de la lista | Aval · Tipo · Comité · Fecha · Estado | MATEO | Propuesta |

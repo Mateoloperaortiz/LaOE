@@ -42,6 +42,7 @@ import {
   termStanding,
   wordleGame,
 } from "@/modules/participation/schema";
+import { deriveDates, type SanctionKind } from "@/modules/people/domain/sanction-pure";
 import {
   appointment,
   committee,
@@ -53,6 +54,7 @@ import {
   membershipEvent,
   membershipTerm,
   person,
+  sanction,
   segment,
   tag,
 } from "@/modules/people/schema";
@@ -1659,4 +1661,32 @@ export async function seedCampaignRecipients(
   await db()
     .insert(campaignRecipient)
     .values(recipients.map((recipient) => ({ campaignId, ...recipient })));
+}
+
+/**
+ * Una sanción avalada con las fechas que deja `recordSanction` (ADR-196). Para lo que el comando no
+ * permite armar, como una sanción viva un día sin semestre vigente, en que nadie decide por la VP de
+ * Gestión Humana. Solo escribe la fila: no audita ni emite el evento.
+ */
+export async function seedSanction(
+  personId: string,
+  termId: string,
+  kind: SanctionKind,
+  input: { occurredOn: string; suspendedUntil?: string | null; cause?: string },
+): Promise<string> {
+  const dates = deriveDates(kind, input.occurredOn, input.suspendedUntil ?? null);
+  if ("error" in dates) throw new Error("seed sanction: fechas inválidas");
+  const [row] = await db()
+    .insert(sanction)
+    .values({
+      personId,
+      termId,
+      kind,
+      cause: input.cause ?? "Sanción sembrada para la prueba",
+      occurredOn: input.occurredOn,
+      ...dates,
+    })
+    .returning({ id: sanction.id });
+  if (!row) throw new Error("seed sanction");
+  return row.id;
 }

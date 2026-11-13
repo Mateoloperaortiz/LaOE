@@ -218,10 +218,10 @@ export async function decideExcuseAction(formData: FormData): Promise<void> {
   redirect(back(slug, { guardado: "1", excusa: decision }));
 }
 
-// Faltas del comité (Regl. art. 69 par. 2; ADR-060 regla 6): quien tiene PERMANENCE registra una falta
-// a un miembro de su comité; la suspensión explícita y la revocación quedan para GH. La action exige
-// la capacidad y declara el alcance; a quién y con qué tipo lo decide el comando (ADR-072 regla 1 y
-// ADR-112).
+// Faltas del comité (Regl. art. 70 par. 2; ADR-060 regla 6; ADR-196): quien tiene PERMANENCE anota una
+// falta a un miembro de su comité, que queda por avalar hasta que la VP de Gestión Humana la avale; la
+// suspensión explícita, la inhabilidad y la anulación quedan para ella. La action exige la capacidad y
+// declara el alcance; a quién y con qué tipo lo decide el comando (ADR-072 regla 1 y ADR-112).
 export async function recordCommitteeSanctionAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
   const personId = idSchema.parse(formData.get("personId"));

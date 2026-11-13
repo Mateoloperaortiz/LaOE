@@ -6,7 +6,6 @@ import {
   DOCUMENT_TYPE_CODES,
   type MyMembershipView,
   type Person360,
-  SANCTION_KINDS,
   type TagRow,
 } from "@/modules/people";
 import { STATUS_CODES, statusLabel } from "@/modules/people/admin";
@@ -33,8 +32,6 @@ import {
   endMembershipAction,
   grantAwardAction,
   reactivateAction,
-  recordSanctionAction,
-  revokeSanctionAction,
   setCommitteesAction,
   setProbationAction,
   setTagsAction,
@@ -55,8 +52,6 @@ type Props = {
   note: InteractionView | null;
   /** Término preseleccionado en el panel de condición (`?semestre=`), si existe. */
   semestreId: string | null;
-  /** Sanción a revocar (`?sancion=`), si existe. */
-  sancionId: string | null;
   closeHref: string;
   error: string;
   policyReady: boolean;
@@ -104,7 +99,6 @@ export function Paneles({
   assignees,
   note,
   semestreId,
-  sancionId,
   closeHref,
   error,
   policyReady,
@@ -607,120 +601,6 @@ export function Paneles({
               />
             </Campo>
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
-          </AdminFormBody>
-        </ActionForm>
-      </ResourcePanel>
-    );
-  }
-
-  // Faltas y sanciones (ADR-060 regla 6): registrar sobre una membresía viva y revocar con motivo.
-  if (accion === "sancion" && membership && membership.status !== "INACTIVE") {
-    const [sancionesTitulo] = tList("T-2239");
-    const [campoTipo, campoCausal, campoReferencia, campoFecha, campoHasta, campoComite] =
-      tList("T-2230");
-    const [registrar] = tList("T-2232");
-    const kinds = tLabels("T-2229", SANCTION_KINDS);
-    const selectedTerm = my.term ?? terms[0] ?? null;
-    const personCommittees = [
-      ...new Map(
-        data.committeesByTerm
-          .flatMap((group) => group.items)
-          .map((item) => [item.committeeId, item.committeeName] as const),
-      ),
-    ];
-    return (
-      <ResourcePanel title={sancionesTitulo} closeHref={closeHref} closeLabel={t("T-291")}>
-        {alerta}
-        <p className="text-sm">{t("T-2231")}</p>
-        <ActionForm action={recordSanctionAction} className="flex flex-col gap-4">
-          <AdminFormBody>
-            {hidden}
-            <input type="hidden" name="termId" value={selectedTerm?.id ?? ""} />
-            <Campo id="campo-kind-sancion" label={campoTipo ?? ""}>
-              <select id="campo-kind-sancion" name="kind" required className={inputClass}>
-                {SANCTION_KINDS.map((code) => (
-                  <option key={code} value={code}>
-                    {kinds[code] ?? code}
-                  </option>
-                ))}
-              </select>
-            </Campo>
-            <Campo id="campo-cause-sancion" label={campoCausal ?? ""}>
-              <textarea
-                id="campo-cause-sancion"
-                name="cause"
-                required
-                rows={4}
-                className={inputClass}
-              />
-            </Campo>
-            <Campo id="campo-reference-sancion" label={campoReferencia ?? ""}>
-              <input
-                id="campo-reference-sancion"
-                name="reference"
-                type="text"
-                className={inputClass}
-              />
-            </Campo>
-            <Campo id="campo-occurredOn-sancion" label={campoFecha ?? ""}>
-              <input
-                id="campo-occurredOn-sancion"
-                name="occurredOn"
-                type="date"
-                required
-                defaultValue={todayKey()}
-                className={inputClass}
-              />
-            </Campo>
-            <Campo id="campo-suspendedUntil-sancion" label={campoHasta ?? ""}>
-              <input
-                id="campo-suspendedUntil-sancion"
-                name="suspendedUntil"
-                type="date"
-                className={inputClass}
-              />
-            </Campo>
-            <Campo id="campo-committeeId-sancion" label={campoComite ?? ""}>
-              <select
-                id="campo-committeeId-sancion"
-                name="committeeId"
-                className={inputClass}
-                defaultValue=""
-              >
-                <option value="">—</option>
-                {personCommittees.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </Campo>
-            <Botones enviar={registrar} cancelHref={closeHref} />
-          </AdminFormBody>
-        </ActionForm>
-      </ResourcePanel>
-    );
-  }
-
-  if (accion === "revocar-sancion" && sancionId) {
-    const [, revocar] = tList("T-2232");
-    return (
-      <ResourcePanel title={revocar} closeHref={closeHref} closeLabel={t("T-291")}>
-        {alerta}
-        <ActionForm action={revokeSanctionAction} className="flex flex-col gap-4">
-          <AdminFormBody>
-            {hidden}
-            <input type="hidden" name="sanctionId" value={sancionId} />
-            <Campo id="campo-reason-revocar" label={t("T-2240")}>
-              <textarea
-                id="campo-reason-revocar"
-                name="reason"
-                required
-                rows={3}
-                className={inputClass}
-              />
-            </Campo>
-            <Botones enviar={revocar} cancelHref={closeHref} />
           </AdminFormBody>
         </ActionForm>
       </ResourcePanel>

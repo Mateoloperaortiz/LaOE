@@ -34,7 +34,13 @@ import { type OwnContactInput, requestDeletion, setOwnPhoto, updateOwnContact } 
 import { createPerson, type PersonInput, updatePerson } from "./persons";
 import { type RepresentativeInput, setRepresentative } from "./representatives";
 import type { SanctionScope } from "./sanction-pure";
-import { recordSanction, revokeSanction, type SanctionInput } from "./sanctions";
+import {
+  decideSanction,
+  recordSanction,
+  revokeSanction,
+  type SanctionDecisionInput,
+  type SanctionInput,
+} from "./sanctions";
 import { setPersonTags } from "./tags";
 import { leaveCommittee, type ProbationInput, setProbation } from "./term-outcomes";
 import { lockMembershipCycle } from "./wallet-member";
@@ -248,6 +254,15 @@ export function recordSanctionAs(
     await lockMembershipCycle(ctx.tx, personId);
     return recordSanction(ctx, personId, input, scope);
   });
+}
+
+/** El aval de la VP de Gestión Humana a una falta por avalar (ADR-196 regla 4). */
+export function decideSanctionAs(
+  actor: Actor,
+  sanctionId: string,
+  input: SanctionDecisionInput,
+): Promise<void> {
+  return runCommand(actor, (ctx) => decideSanction(ctx, sanctionId, input));
 }
 
 export function revokeSanctionAs(

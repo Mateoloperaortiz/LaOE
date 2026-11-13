@@ -107,7 +107,8 @@ test("la dirección registra una falta leve a un miembro de su comité y queda a
   await form.getByRole("button", { name: recordLabel, exact: true }).click();
 
   await expect(page).toHaveURL(/[?&]sancion=1/);
-  await expect(page.getByText(t("T-259"), { exact: true })).toBeVisible();
+  // La falta queda por avalar: la VP de Gestión Humana la revisa (ADR-196 regla 3).
+  await expect(page.getByText(t("T-5095"), { exact: true })).toBeVisible();
 
   // Lo que quedó escrito: una sola falta, de esa persona, a nombre del comité y del término de la
   // ruta (el formulario no los manda: los pone la action, ADR-112), con quien la registró.
@@ -128,6 +129,8 @@ test("la dirección registra una falta leve a un miembro de su comité y queda a
     suspendedFrom: today,
     suspendedUntil: daysAfter(today, MINOR_SUSPENSION_DAYS),
     issuedById: scenario.directorId,
+    status: "PENDING",
+    decidedAt: null,
     revokedAt: null,
     revokedById: null,
     revokeReason: null,

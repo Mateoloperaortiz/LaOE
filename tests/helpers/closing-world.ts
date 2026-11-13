@@ -4,6 +4,7 @@ import { recordSanctionAs, revokeSanctionAs } from "@/modules/people";
 import { grantManualCreditAs, listClosingRows, recomputeSnapshots } from "@/modules/permanence";
 import { closeTermPoints } from "@/modules/terms";
 import {
+  seedAppointment,
   seedCheckIn,
   seedCommittee,
   seedCommitteeMembership,
@@ -20,7 +21,8 @@ import {
 // y los comandos de verdad con que GH cambia los hechos de una persona después de confirmar.
 
 /** ADMIN desde la Persona 360: declara su alcance, sin restricción de tipo ni de comité. */
-const asAdmin = { by: "ADMIN" } as const;
+/** GH sanciona por su cargo de la VP de Gestión Humana en el término vigente (ADR-196). */
+const asGh = { by: "GH" } as const;
 
 /** Cómo llega la persona a su comité: cumple, queda en la banda de prueba o queda fuera de ella. */
 type Level = "MEETS" | "BAND" | "BELOW";
@@ -53,6 +55,7 @@ export async function closingWorld() {
   const a3 = await seedCommittee("a3", "A3");
   const gh = await seedPerson("gh.motivo-guardado@eafit.edu.co");
   await seedMembership(gh, previous);
+  await seedAppointment(gh, await seedTerm(), "VP_GH");
   const actor = { personId: gh, ip: null };
   const rules = [
     await seedRule(termId, "eventos", {
@@ -91,7 +94,7 @@ export async function closingWorld() {
         actor,
         personId,
         { termId, kind, cause: "Sanción sembrada para el cierre de permanencia", occurredOn },
-        asAdmin,
+        asGh,
       );
       recorded.push(id);
     }
@@ -132,7 +135,7 @@ export async function closingWorld() {
       personId,
       sanctionId,
       "Descargos aceptados después de confirmar",
-      asAdmin,
+      asGh,
     );
   }
 

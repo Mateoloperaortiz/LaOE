@@ -2,9 +2,12 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { notificationRequested } from "@/domain-events/comms";
 import { grantRecognitionAs } from "@/modules/crm";
 import { interaction } from "@/modules/crm/schema";
 import {
+  APPOINTMENT_KINDS,
+  decideSanctionAs,
   leaveCommitteeAs,
   listSanctionsForPerson,
   recordSanctionAs,
@@ -12,6 +15,7 @@ import {
   type SanctionScope,
   sanctionStateFor,
 } from "@/modules/people";
+import { decideSanction } from "@/modules/people/domain/sanctions";
 import { membership, sanction } from "@/modules/people/schema";
 import {
   applyDecisions,
@@ -23,11 +27,12 @@ import {
 } from "@/modules/permanence";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { closeTermPoints } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import {
+  seedAppointment,
   seedCheckIn,
   seedCommittee,
   seedCommitteeMembership,
@@ -38,17 +43,19 @@ import {
   seedRule,
   seedTerm,
 } from "../factories";
+import { ghActor } from "../helpers/gh";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
-// Faltas y sanciones (Regl. cap. 9; ADR-060 regla 6): registro con fechas derivadas y línea de
-// tiempo, suspensión que bloquea reconocimientos, revocación, y la falta grave más otra sanción que el
-// cierre convierte en expulsión.
+// Faltas y sanciones (Regl. cap. 9; ADR-060 regla 6; ADR-196): registro con fechas derivadas y línea
+// de tiempo, suspensión que bloquea reconocimientos, revocación, y la falta grave más otra sanción que el
+// cierre convierte en expulsión. Registra, avala y anula quien decide por la VP de Gestión Humana; la
+// falta que anota un comité queda por avalar y sin efecto hasta su aval. ADMIN ya no sanciona.
 
 const db = () => getDb();
-/** ADMIN desde la Persona 360: declara su alcance, sin restricción de tipo ni de comité. */
-const asAdmin = { by: "ADMIN" } as const;
+/** Quien decide por la VP de Gestión Humana, desde «Faltas»: sin restricción de tipo ni de comité. */
+const asGh = { by: "GH" } as const;
 
 async function member(email: string, termId: string, committeeId: string) {
   const personId = await seedPerson(email);
@@ -68,6 +75,7 @@ describe("faltas y sanciones", () => {
     const a3 = await seedCommittee("a3", "A3");
     const gh = await seedPerson("gh@eafit.edu.co");
     await seedMembership(gh, termId);
+    await seedAppointment(gh, await seedTerm(), "VP_GH");
     const personId = await member("falta@eafit.edu.co", termId, a3);
     const actor = { personId: gh, ip: null };
     const today = todayKey();
@@ -83,7 +91,7 @@ describe("faltas y sanciones", () => {
         occurredOn: today,
         committeeId: a3,
       },
-      asAdmin,
+      asGh,
     );
     const [row] = await db().select().from(sanction).where(eq(sanction.id, id));
     expect(row).toMatchObject({ kind: "WARNING", suspendedFrom: today, issuedById: gh });
@@ -122,7 +130,7 @@ describe("faltas y sanciones", () => {
       }),
     );
 
-    await expect(revokeSanctionAs(actor, personId, id, " ", asAdmin)).rejects.toBeInstanceOf(
+    await expect(revokeSanctionAs(actor, personId, id, " ", asGh)).rejects.toBeInstanceOf(
       DomainError,
     );
     await revokeSanctionAs(
@@ -130,9 +138,9 @@ describe("faltas y sanciones", () => {
       personId,
       id,
       "La junta aceptó la revisión de los descargos",
-      asAdmin,
+      asGh,
     );
-    await revokeSanctionAs(actor, personId, id, "Repetida: no hace nada", asAdmin);
+    await revokeSanctionAs(actor, personId, id, "Repetida: no hace nada", asGh);
     const views = await listSanctionsForPerson(personId);
     expect(views).toHaveLength(1);
     expect(views[0]).toMatchObject({
@@ -166,6 +174,7 @@ describe("faltas y sanciones", () => {
     const a3 = await seedCommittee("a3", "A3");
     const gh = await seedPerson("gh@eafit.edu.co");
     await seedMembership(gh, termId);
+    await seedAppointment(gh, await seedTerm(), "VP_GH");
     const personId = await member("susp@eafit.edu.co", termId, a3);
     const retired = await seedPerson("retirada@eafit.edu.co", { stage: "ALUMNI" });
     await seedMembership(retired, termId, "INACTIVE");
@@ -181,7 +190,7 @@ describe("faltas y sanciones", () => {
           occurredOn: "2026-09-01",
           suspendedUntil: "2026-10-15",
         },
-        asAdmin,
+        asGh,
       ),
     ).rejects.toBeInstanceOf(DomainError);
     await recordSanctionAs(
@@ -194,7 +203,7 @@ describe("faltas y sanciones", () => {
         occurredOn: "2026-09-01",
         suspendedUntil: "2026-09-28",
       },
-      asAdmin,
+      asGh,
     );
     expect((await listSanctionsForPerson(personId))[0]).toMatchObject({
       suspendedFrom: "2026-09-01",
@@ -211,7 +220,7 @@ describe("faltas y sanciones", () => {
           cause: "No aplica: ya no es miembro",
           occurredOn: "2026-09-01",
         },
-        asAdmin,
+        asGh,
       ),
     ).rejects.toBeInstanceOf(DomainError);
   });
@@ -221,6 +230,7 @@ describe("faltas y sanciones", () => {
     const a3 = await seedCommittee("a3", "A3");
     const gh = await seedPerson("gh@eafit.edu.co");
     await seedMembership(gh, termId);
+    await seedAppointment(gh, await seedTerm(), "VP_GH");
     const personId = await member("ultimo-dia@eafit.edu.co", termId, a3);
     // Llamado de atención del 25 de agosto: suspende siete días (hasta el 1 de septiembre) y vence al año.
     await recordSanctionAs(
@@ -233,7 +243,7 @@ describe("faltas y sanciones", () => {
         occurredOn: "2026-08-25",
         committeeId: a3,
       },
-      asAdmin,
+      asGh,
     );
 
     // 1 de septiembre a las 9 p. m. de Colombia: en UTC ya es 2 de septiembre (ADR-020).
@@ -254,6 +264,7 @@ describe("faltas y sanciones", () => {
     const a3 = await seedCommittee("a3", "A3");
     const gh = await seedPerson("gh@eafit.edu.co");
     await seedMembership(gh, previous);
+    await seedAppointment(gh, await seedTerm(), "VP_GH");
     const personId = await member("grave@eafit.edu.co", termId, a3);
     const eventos = await seedRule(termId, "eventos", {
       committeeId: a3,
@@ -300,7 +311,7 @@ describe("faltas y sanciones", () => {
         cause: "Consumo de alcohol con la camiseta de la OE; descargos del 2 de octubre",
         occurredOn: "2024-10-01",
       },
-      asAdmin,
+      asGh,
     );
     await recomputeSnapshots(termId);
     expect((await getSnapshot(personId, termId))?.expulsionWarning).toBe(false);
@@ -313,7 +324,7 @@ describe("faltas y sanciones", () => {
         cause: "Llegada tarde al turno de GAP del 20 de octubre",
         occurredOn: "2024-10-20",
       },
-      asAdmin,
+      asGh,
     );
     await drainOutbox();
     expect((await getSnapshot(personId, termId))?.expulsionWarning).toBe(true);
@@ -336,6 +347,7 @@ describe("faltas y sanciones", () => {
     const a3 = await seedCommittee("a3", "A3");
     const gh = await seedPerson("gh@eafit.edu.co");
     await seedMembership(gh, termId);
+    await seedAppointment(gh, await seedTerm(), "VP_GH");
     const personId = await member("sin-alcance@eafit.edu.co", termId, a3);
     const actor = { personId: gh, ip: null };
     const suspension = {
@@ -351,7 +363,7 @@ describe("faltas y sanciones", () => {
     await expect(forgotten).rejects.toThrow();
     expect(await listSanctionsForPerson(personId)).toEqual([]);
 
-    // Un alcance que el comando no reconoce se rechaza: no cae en el de ADMIN, que es el más amplio.
+    // Un alcance que el comando no reconoce se rechaza: no cae en el de Gestión Humana, el más amplio.
     const unknownScope = recordSanctionAs(
       actor,
       personId,
@@ -367,7 +379,7 @@ describe("faltas y sanciones", () => {
   });
 
   // El alcance de un comité (ADR-060 regla 6 y ADR-072 regla 1): la dirección registra llamados,
-  // leves y graves, y solo a miembros de su comité; con el alcance de ADMIN no hay restricción.
+  // leves y graves, y solo a miembros de su comité; Gestión Humana no tiene esa restricción.
 
   it("desde el alcance de un comité no se registra una suspensión ni una inhabilidad", async () => {
     const termId = await seedTerm();
@@ -400,8 +412,8 @@ describe("faltas y sanciones", () => {
     ).rejects.toMatchObject({ name: "DomainError", message: t("T-260") });
     expect(await listSanctionsForPerson(personId)).toEqual([]);
 
-    // Con el alcance de ADMIN, desde la Persona 360, la misma suspensión sí se registra.
-    await recordSanctionAs(actor, personId, suspension, asAdmin);
+    // Quien decide por la VP de Gestión Humana sí registra la misma suspensión.
+    await recordSanctionAs(await ghActor(), personId, suspension, asGh);
     expect((await listSanctionsForPerson(personId)).map((view) => view.kind)).toEqual([
       "SUSPENSION",
     ]);
@@ -436,8 +448,8 @@ describe("faltas y sanciones", () => {
       expect((await sanctionStateFor(personId)).suspendedUntil).toBeNull();
     }
 
-    // Con el alcance de ADMIN sí se sanciona a cualquier miembro vivo.
-    await recordSanctionAs(actor, outsider, { ...warning, committeeId: null }, asAdmin);
+    // Gestión Humana sí sanciona a cualquier miembro vivo.
+    await recordSanctionAs(await ghActor(), outsider, { ...warning, committeeId: null }, asGh);
     expect(await listSanctionsForPerson(outsider)).toHaveLength(1);
   });
 
@@ -531,6 +543,7 @@ describe("faltas y sanciones", () => {
     const a3 = await seedCommittee("a3", "A3");
     const gh = await seedPerson("gh@eafit.edu.co");
     await seedMembership(gh, termId);
+    await seedAppointment(gh, await seedTerm(), "VP_GH");
     const sanctioned = await member("sancionada@eafit.edu.co", termId, a3);
     const bystander = await member("otra-ficha@eafit.edu.co", termId, a3);
     const actor = { personId: gh, ip: null };
@@ -544,7 +557,7 @@ describe("faltas y sanciones", () => {
         occurredOn: todayKey(),
         committeeId: a3,
       },
-      asAdmin,
+      asGh,
     );
     return { actor, sanctioned, bystander, id };
   }
@@ -554,7 +567,7 @@ describe("faltas y sanciones", () => {
     const missing = { name: "DomainError", message: t("T-032") };
 
     await expect(
-      revokeSanctionAs(actor, bystander, id, "Motivo escrito en la ficha de otra persona", asAdmin),
+      revokeSanctionAs(actor, bystander, id, "Motivo escrito en la ficha de otra persona", asGh),
     ).rejects.toMatchObject(missing);
     // La misma respuesta que da una sanción que no existe.
     await expect(
@@ -563,7 +576,7 @@ describe("faltas y sanciones", () => {
         bystander,
         "sancion-que-no-existe",
         "Motivo de una sanción inventada",
-        asAdmin,
+        asGh,
       ),
     ).rejects.toMatchObject(missing);
     expect(await listSanctionsForPerson(sanctioned)).toMatchObject([
@@ -578,7 +591,7 @@ describe("faltas y sanciones", () => {
       sanctioned,
       id,
       "La junta aceptó la revisión de los descargos",
-      asAdmin,
+      asGh,
     );
     expect(await listSanctionsForPerson(sanctioned)).toMatchObject([
       { id, state: "REVOKED", revokeReason: "La junta aceptó la revisión de los descargos" },
@@ -587,7 +600,7 @@ describe("faltas y sanciones", () => {
 
     // Ya revocada, desde la ficha ajena sigue sin existir: no es un éxito silencioso.
     await expect(
-      revokeSanctionAs(actor, bystander, id, "Segundo intento desde la ficha ajena", asAdmin),
+      revokeSanctionAs(actor, bystander, id, "Segundo intento desde la ficha ajena", asGh),
     ).rejects.toMatchObject(missing);
     expect((await listSanctionsForPerson(sanctioned))[0]?.revokeReason).toBe(
       "La junta aceptó la revisión de los descargos",
@@ -612,7 +625,7 @@ describe("faltas y sanciones", () => {
           nobody as unknown as string,
           id,
           "Motivo sin persona reconocible",
-          asAdmin,
+          asGh,
         ),
       ).rejects.toMatchObject({ name: "DomainError", message: t("T-032") });
     }
@@ -633,7 +646,7 @@ describe("faltas y sanciones", () => {
           index % 2 === 0 ? sanctioned : bystander,
           id,
           index % 2 === 0 ? `Revisión de la junta ${index}` : `Desde la ficha ajena ${index}`,
-          asAdmin,
+          asGh,
         ),
       ),
     );
@@ -654,10 +667,10 @@ describe("faltas y sanciones", () => {
   });
 
   // Revocar declara desde dónde se revoca (ADR-116 regla 11, enmienda a ADR-112): el alcance es
-  // obligatorio y hoy solo revoca el de ADMIN, desde la Persona 360. El de un comité y uno que no se
+  // obligatorio y solo anula Gestión Humana (ADR-196 regla 5). El de un comité y uno que no se
   // reconoce responden como si la sanción no existiera, sin escribir.
 
-  /** Un llamado de atención que la dirección de un comité le registró a un miembro suyo. */
+  /** Un llamado de atención que la dirección de un comité le anotó a un miembro suyo, ya avalado. */
   async function sanctionFromCommittee() {
     const termId = await seedTerm();
     const a3 = await seedCommittee("a3", "A3");
@@ -677,7 +690,9 @@ describe("faltas y sanciones", () => {
       },
       scope,
     );
-    return { actor, personId, id, scope, committeeId: a3 };
+    const gh = await ghActor();
+    await decideSanctionAs(gh, id, { decision: "APPROVED" });
+    return { actor, gh, personId, id, scope, committeeId: a3 };
   }
 
   it("revocar sin declarar el alcance no compila, y un alcance que no se reconoce no revoca nada", async () => {
@@ -689,14 +704,14 @@ describe("faltas y sanciones", () => {
     const forgotten = revokeSanctionAs(actor, sanctioned, id, reason);
     await expect(forgotten).rejects.toMatchObject(missing);
 
-    // Lo que no es un alcance conocido nunca cae en el de ADMIN, que es el único que revoca.
+    // Lo que no es un alcance conocido nunca cae en el de Gestión Humana, que es el único que anula.
     const unknownScopes = [
       undefined,
       null,
       {},
-      "ADMIN",
-      { by: "admin" },
-      { by: "GH" },
+      "GH",
+      { by: "ADMIN" },
+      { by: "gh" },
       { committeeId: "a3", termId: "2026-2" },
     ];
     for (const unknownScope of unknownScopes) {
@@ -710,8 +725,8 @@ describe("faltas y sanciones", () => {
     expect((await sanctionStateFor(sanctioned)).suspendedUntil).not.toBeNull();
     expect(await revocationTraces(id)).toEqual({ audits: 0, events: 0 });
 
-    // Con el alcance de ADMIN declarado, la misma llamada sí revoca.
-    await revokeSanctionAs(actor, sanctioned, id, reason, asAdmin);
+    // Con el alcance de Gestión Humana declarado, la misma llamada sí revoca.
+    await revokeSanctionAs(actor, sanctioned, id, reason, asGh);
     expect(await listSanctionsForPerson(sanctioned)).toMatchObject([
       { id, state: "REVOKED", revokeReason: reason },
     ]);
@@ -719,7 +734,7 @@ describe("faltas y sanciones", () => {
   });
 
   it("desde el alcance de un comité no se revoca, ni la sanción que ese comité registró", async () => {
-    const { actor, personId, id, scope, committeeId } = await sanctionFromCommittee();
+    const { actor, gh, personId, id, scope, committeeId } = await sanctionFromCommittee();
     const missing = { name: "DomainError", message: t("T-032") };
 
     await expect(
@@ -733,33 +748,27 @@ describe("faltas y sanciones", () => {
     expect((await sanctionStateFor(personId)).suspendedUntil).not.toBeNull();
     expect(await revocationTraces(id)).toEqual({ audits: 0, events: 0 });
 
-    // El alcance no autoriza: lo arma quien autorizó (ADR-112 regla 6). La misma sanción, con el
-    // alcance de ADMIN que declara la Persona 360, sí se revoca.
-    await revokeSanctionAs(
-      actor,
-      personId,
-      id,
-      "La junta aceptó la revisión de los descargos",
-      asAdmin,
-    );
+    // El alcance no autoriza: lo arma quien autorizó (ADR-112 regla 6). La misma sanción, desde
+    // Gestión Humana, sí se revoca.
+    await revokeSanctionAs(gh, personId, id, "La junta aceptó la revisión de los descargos", asGh);
     expect(await listSanctionsForPerson(personId)).toMatchObject([
       { id, state: "REVOKED", revokeReason: "La junta aceptó la revisión de los descargos" },
     ]);
     expect(await revocationTraces(id)).toEqual({ audits: 1, events: 1 });
   });
 
-  it("revocaciones simultáneas con el alcance de ADMIN y con el de un comité dejan una sola, la de ADMIN", async () => {
-    const { actor, personId, id, scope } = await sanctionFromCommittee();
+  it("revocaciones simultáneas con el alcance de Gestión Humana y con el de un comité dejan una sola, la de Gestión Humana", async () => {
+    const { actor, gh, personId, id, scope } = await sanctionFromCommittee();
     await warmPool(8);
 
     const attempts = await Promise.allSettled(
       Array.from({ length: 8 }, (_, index) =>
         revokeSanctionAs(
-          actor,
+          index % 2 === 0 ? gh : actor,
           personId,
           id,
           index % 2 === 0 ? `Revisión de la junta ${index}` : `Desde el comité ${index}`,
-          index % 2 === 0 ? asAdmin : scope,
+          index % 2 === 0 ? asGh : scope,
         ),
       ),
     );
@@ -777,5 +786,158 @@ describe("faltas y sanciones", () => {
     expect(view?.state).toBe("REVOKED");
     expect(view?.revokeReason).toMatch(/^Revisión de la junta [0246]$/);
     expect(await revocationTraces(id)).toEqual({ audits: 1, events: 1 });
+  });
+});
+
+// El aval de la VP de Gestión Humana (ADR-196 reglas 3 y 4): la falta que anota un comité queda por
+// avalar y sin efecto; al avalarla, la suspensión y el año de vigencia empiezan ese día; rechazarla exige
+// el motivo. Lo decide quien decide por la VP de GH, y si no hay VP, la Presidencia. ADMIN no sanciona.
+describe("las faltas por avalar", () => {
+  beforeEach(truncateAll);
+  afterAll(closeDb);
+
+  async function anotada() {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const director = await seedPerson("direccion.gh@eafit.edu.co");
+    await seedMembership(director, termId);
+    const personId = await member("anotada@eafit.edu.co", termId, a3);
+    const { id } = await recordSanctionAs(
+      { personId: director, ip: null },
+      personId,
+      {
+        termId,
+        kind: "WARNING",
+        cause: "Faltó a la reunión del 3 de septiembre sin excusa; en descargos reconoció la falta",
+        occurredOn: "2026-09-01",
+      },
+      { by: "COMMITTEE", committeeId: a3, termId },
+    );
+    return { termId, director, personId, id };
+  }
+
+  async function avisos() {
+    return (
+      await db().select().from(outbox).where(eq(outbox.eventType, notificationRequested.type))
+    ).map(
+      (row) =>
+        row.payload as { dedupeKey: string; body: string; recipients: Array<{ personId: string }> },
+    );
+  }
+
+  async function recorded(id: string): Promise<number> {
+    return (
+      await db().select().from(outbox).where(eq(outbox.eventType, "sanction.recorded"))
+    ).filter((row) => row.payload.sanctionId === id).length;
+  }
+
+  it("la falta de un comité queda por avalar, sin efecto, y le avisa a quien decide por la VP de GH", async () => {
+    const gh = await ghActor();
+    const f = await anotada();
+
+    expect(await listSanctionsForPerson(f.personId)).toMatchObject([
+      { id: f.id, state: "PENDING", status: "PENDING" },
+    ]);
+    expect(await sanctionStateFor(f.personId)).toMatchObject({ suspendedUntil: null });
+    expect(await recorded(f.id)).toBe(0);
+    expect(await avisos()).toEqual([
+      expect.objectContaining({
+        dedupeKey: `falta-por-avalar:${f.id}`,
+        recipients: [expect.objectContaining({ personId: gh.personId })],
+      }),
+    ]);
+  });
+
+  it("al avalarla, la suspensión y el año de vigencia empiezan ese día, y quien la anotó recibe el aviso", async () => {
+    const gh = await ghActor();
+    const f = await anotada();
+
+    await runCommand(gh, (ctx) =>
+      decideSanction(ctx, f.id, { decision: "APPROVED" }, new Date("2026-09-10T15:00:00Z")),
+    );
+
+    const [row] = await db().select().from(sanction).where(eq(sanction.id, f.id));
+    expect(row).toMatchObject({
+      status: "APPROVED",
+      decidedById: gh.personId,
+      decidedAs: "HOLDER",
+      occurredOn: "2026-09-01",
+      suspendedFrom: "2026-09-10",
+      suspendedUntil: "2026-09-17",
+      expiresOn: "2027-09-10",
+    });
+    expect(await recorded(f.id)).toBe(1);
+    expect(
+      (await avisos()).find((aviso) => aviso.dedupeKey === `falta-decidida:${f.id}`),
+    ).toMatchObject({
+      recipients: [expect.objectContaining({ personId: f.director })],
+    });
+    await expect(decideSanctionAs(gh, f.id, { decision: "APPROVED" })).rejects.toThrow(t("T-2296"));
+  });
+
+  it("rechazarla exige el motivo y la deja sin efecto", async () => {
+    const gh = await ghActor();
+    const f = await anotada();
+
+    await expect(decideSanctionAs(gh, f.id, { decision: "REJECTED", note: " " })).rejects.toThrow(
+      t("T-5087"),
+    );
+    await decideSanctionAs(gh, f.id, {
+      decision: "REJECTED",
+      note: "No hubo citación a descargos",
+    });
+
+    expect(await listSanctionsForPerson(f.personId)).toMatchObject([
+      { id: f.id, state: "REJECTED", decisionNote: "No hubo citación a descargos" },
+    ]);
+    expect(await sanctionStateFor(f.personId)).toMatchObject({ suspendedUntil: null });
+    expect(await recorded(f.id)).toBe(0);
+    const decidida = (await avisos()).find((aviso) => aviso.dedupeKey === `falta-decidida:${f.id}`);
+    expect(decidida?.body).toContain("No hubo citación a descargos");
+  });
+
+  it("ni ADMIN ni la dirección del comité la avalan; sin VP de GH, la avala la Presidencia", async () => {
+    const f = await anotada();
+    const sinCargo = t("T-5088", { cargo: tLabels("T-444", APPOINTMENT_KINDS).VP_GH });
+
+    for (const actor of [
+      { personId: null, ip: null },
+      { personId: f.director, ip: null },
+    ]) {
+      await expect(decideSanctionAs(actor, f.id, { decision: "APPROVED" })).rejects.toThrow(
+        sinCargo,
+      );
+    }
+    const presidencia = await seedPerson("presidencia.faltas@eafit.edu.co");
+    await seedMembership(presidencia, f.termId);
+    await seedAppointment(presidencia, f.termId, "PRESIDENT");
+
+    await decideSanctionAs({ personId: presidencia, ip: null }, f.id, { decision: "APPROVED" });
+
+    expect(await listSanctionsForPerson(f.personId)).toMatchObject([
+      { id: f.id, status: "APPROVED", decidedAs: "PRESIDENCY", decidedById: presidencia },
+    ]);
+  });
+
+  it("ADMIN no sanciona: su alcance no existe, y Gestión Humana sin el cargo tampoco registra", async () => {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const personId = await member("sin-admin@eafit.edu.co", termId, a3);
+    const input = {
+      termId,
+      kind: "WARNING",
+      cause: "Faltó a la reunión del 3 de septiembre sin excusa",
+      occurredOn: todayKey(),
+    } as const;
+
+    await expect(
+      recordSanctionAs({ personId: null, ip: null }, personId, input, {
+        by: "ADMIN",
+      } as unknown as SanctionScope),
+    ).rejects.toMatchObject({ name: "DomainError", message: t("T-032") });
+    await expect(
+      recordSanctionAs({ personId: null, ip: null }, personId, input, asGh),
+    ).rejects.toThrow(t("T-5088", { cargo: tLabels("T-444", APPOINTMENT_KINDS).VP_GH }));
+    expect(await listSanctionsForPerson(personId)).toEqual([]);
   });
 });

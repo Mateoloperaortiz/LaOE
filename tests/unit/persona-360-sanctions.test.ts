@@ -38,6 +38,11 @@ function view(id: string, overrides: Partial<SanctionView>): SanctionView {
     revokedAt: null,
     revokedById: null,
     revokeReason: null,
+    status: "APPROVED",
+    decidedAt: null,
+    decidedById: null,
+    decidedAs: null,
+    decisionNote: "",
     createdAt: new Date("2026-09-05T15:00:00Z"),
     kindLabel: tList("T-2229")[3] ?? "",
     committeeName: null,
@@ -49,9 +54,7 @@ function view(id: string, overrides: Partial<SanctionView>): SanctionView {
 
 /** El HTML de cada sanción de la lista, en el orden en que se le pasaron al bloque. */
 function lines(sanctions: SanctionView[]): string[] {
-  const html = renderToStaticMarkup(
-    createElement(Sanciones, { personId: "persona-sintetica", canRecord: true, sanctions }),
-  );
+  const html = renderToStaticMarkup(createElement(Sanciones, { sanctions }));
   return html.split("<li").slice(1);
 }
 
@@ -93,5 +96,17 @@ describe("faltas y sanciones en la Persona 360", () => {
     expect(line).toContain(tList("T-2229")[2]);
     expect(line).not.toContain(t("T-3218", { fecha: until }).split(until)[0]);
     expect(line).not.toContain(t("T-2237", { fecha: until }).split(until)[0]);
+  });
+
+  // Desde ADR-196 la ficha solo muestra: registrar, avalar y anular es de la VP de Gestión Humana.
+  it("no ofrece registrar ni anular: dice que lo hace la VP de Gestión Humana", () => {
+    const html = renderToStaticMarkup(
+      createElement(Sanciones, { sanctions: [view("vigente", {})] }),
+    );
+    const [registrar, revocar] = tList("T-2232");
+
+    expect(html).toContain(t("T-5100"));
+    expect(html).not.toContain(registrar);
+    expect(html).not.toContain(revocar);
   });
 });

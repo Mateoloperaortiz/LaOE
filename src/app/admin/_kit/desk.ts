@@ -8,7 +8,7 @@ import {
   listPendingReviews,
   VIABILITY_ALERTS,
 } from "@/modules/participation";
-import { listCommitteesMissingRequiredRoles } from "@/modules/people";
+import { listCommitteesMissingRequiredRoles, listPendingSanctions } from "@/modules/people";
 import { countPendingFor } from "@/modules/permanence";
 import { countDeadLetters } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
@@ -33,8 +33,8 @@ import {
 // - Quien evalúa un grupo del término: cuántas evaluaciones le faltan.
 // - La VP administrativa: los préstamos vencidos y las novedades del inventario que siguen abiertas
 //   (ADR-191 reglas 3 y 8).
-// - Un cargo de la junta: los avales que le toca decidir (ADR-195 regla 3). Hoy, la Presidencia y los
-//   avales de evento.
+// - Un cargo de la junta: los avales que le toca decidir (ADR-195 regla 3): la Presidencia, los avales
+//   de evento; quien decide por la VP de Gestión Humana, las faltas por avalar (ADR-196).
 // La pintan la página de la Mesa y el contador de la barra superior en el mismo pedido; `cache` hace que
 // se lea una sola vez.
 
@@ -62,6 +62,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     incidents,
     loans,
     eventAvales,
+    pendingFaltas,
   ] = await Promise.all([
     roles.isAdmin
       ? listTasks({
@@ -94,6 +95,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     roles.boardSeats.some((item) => item.seat === "PRESIDENT")
       ? listEventApprovals({ status: "PENDING" })
       : [],
+    roles.boardSeats.some((item) => item.seat === "VP_GH") ? listPendingSanctions() : [],
   ]);
   const overdueLoans = loans.filter((row) => row.status === "OUT" && row.overdue);
   const openIncidents = incidents.filter((row) => row.status === "OPEN");
@@ -161,14 +163,23 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     ),
     ...deskSection(
       "avales",
-      eventAvales.length,
-      eventAvales.map((row) => ({
-        id: row.id,
-        title: row.title,
-        detail: row.committeeName,
-        href: `/admin/avales?aval=${row.id}`,
-        date: { kind: "arrived" as const, at: row.requestedAt },
-      })),
+      eventAvales.length + pendingFaltas.length,
+      [
+        ...eventAvales.map((row) => ({
+          id: row.id,
+          title: row.title,
+          detail: row.committeeName,
+          href: `/admin/avales?aval=${row.id}`,
+          date: { kind: "arrived" as const, at: row.requestedAt },
+        })),
+        ...pendingFaltas.map((row) => ({
+          id: row.id,
+          title: row.personName,
+          detail: [row.kindLabel, row.committeeName].filter(Boolean).join(" · "),
+          href: `/admin/avales?falta=${row.id}`,
+          date: { kind: "arrived" as const, at: row.createdAt },
+        })),
+      ],
       "/admin/avales",
     ),
     ...deskSection(

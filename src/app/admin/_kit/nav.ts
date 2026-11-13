@@ -151,6 +151,8 @@ export function adminNavGroups(): AdminNavGroup[] {
         { href: "/admin/junta/composicion", label: tList("T-5082")[0] ?? "" },
         // Los avales que decide cada cargo de la junta (ADR-195).
         { href: "/admin/avales", label: tList("T-5092")[0] ?? "" },
+        // Las faltas y sanciones que registra y anula la VP de Gestión Humana (ADR-196).
+        { href: "/admin/faltas", label: tList("T-5099")[0] ?? "" },
         { href: "/admin/terminos", label: terminos },
         { href: "/admin/permisos", label: permisos },
         { href: "/admin/horario-preferencial", label: tList("T-2323")[0] },

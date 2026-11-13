@@ -144,7 +144,8 @@ test.describe("operador", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/admin/the-games/${id}?area=seguimiento`);
     await expect(page.getByText(t("T-3182", { registradas: 1, total: 3 }))).toBeVisible();
-    await expect(page.getByText(t("T-3183")).first()).toBeVisible();
+    // Dentro del contenido: el menú tiene «Faltas» (ADR-196), que también contiene «Falta».
+    await expect(page.getByRole("main").getByText(t("T-3183")).first()).toBeVisible();
     await expect(page.getByText(tList("T-3187")[1] ?? "").first()).toBeVisible();
     await expect(page.getByText(t("T-3189"))).toBeVisible();
     await expect(

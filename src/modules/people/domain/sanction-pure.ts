@@ -21,12 +21,14 @@ export const COMMITTEE_SANCTION_KINDS: readonly SanctionKind[] = ["WARNING", "MI
 
 /**
  * Desde dónde se registra una sanción: el alcance que autorizó `src/app` y que todo llamador declara
- * (ADR-072 regla 1; ADR-112). ADMIN, desde la Persona 360, sin restricción de tipo ni de comité; o la
- * dirección de un comité en un término.
+ * (ADR-072 regla 1; ADR-112). Quien decide por la VP de Gestión Humana, desde «Faltas», sin
+ * restricción de tipo ni de comité; o la dirección de un comité en un término, que deja la falta por
+ * avalar (ADR-196). ADMIN ya no registra sanciones.
  */
-export type SanctionScope =
-  | { by: "ADMIN" }
-  | { by: "COMMITTEE"; committeeId: string; termId: string };
+export type SanctionScope = { by: "GH" } | { by: "COMMITTEE"; committeeId: string; termId: string };
+
+/** Estados de una sanción (ADR-196 regla 1): solo la avalada tiene efecto. */
+export type SanctionStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 /** Días calendario de suspensión de derechos y beneficios (Regl. art. 70.1 y 70.2). */
 export const SUSPENSION_DAYS: Partial<Record<SanctionKind, number>> = { WARNING: 7, MINOR: 20 };
@@ -39,6 +41,8 @@ export const VALIDITY_YEARS = 1;
 
 export interface SanctionLike {
   kind: SanctionKind;
+  /** Sin estado se toma como avalada: las lecturas de efectos ya filtran por estado. */
+  status?: SanctionStatus;
   occurredOn: string;
   suspendedFrom: string | null;
   suspendedUntil: string | null;
@@ -101,9 +105,14 @@ export function deriveDates(
   return { suspendedFrom: occurredOn, suspendedUntil: addDays(occurredOn, days), expiresOn };
 }
 
-/** Viva: no revocada y sin vencer al día dado. */
+/** Viva: avalada, no revocada y sin vencer al día dado (ADR-196 regla 2). */
 export function isLive(item: SanctionLike, onKey: string): boolean {
-  return item.revokedAt === null && item.occurredOn <= onKey && item.expiresOn >= onKey;
+  return (
+    (item.status ?? "APPROVED") === "APPROVED" &&
+    item.revokedAt === null &&
+    item.occurredOn <= onKey &&
+    item.expiresOn >= onKey
+  );
 }
 
 /** Derechos y beneficios suspendidos ese día: hasta cuándo, o nulo. */
@@ -133,9 +142,15 @@ export function expulsionWarning(items: ReadonlyArray<SanctionLike>, onKey: stri
   return live.some((item) => item.kind === "MAJOR") && live.length >= 2;
 }
 
-export type SanctionState = "LIVE" | "EXPIRED" | "REVOKED";
+export type SanctionState = "LIVE" | "EXPIRED" | "REVOKED" | "PENDING" | "REJECTED";
 
 export function sanctionState(item: SanctionLike, onKey: string): SanctionState {
+  if (item.status === "PENDING") {
+    return "PENDING";
+  }
+  if (item.status === "REJECTED") {
+    return "REJECTED";
+  }
   if (item.revokedAt !== null) {
     return "REVOKED";
   }

@@ -20,11 +20,13 @@ import { getCurrentTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import {
+  seedAppointment,
   seedCommittee,
   seedMember,
   seedMembership,
   seedMembershipTerm,
   seedPerson,
+  seedSanction,
   seedTerm,
 } from "../factories";
 import {
@@ -57,6 +59,8 @@ interface Scenario {
 async function activeMember(): Promise<Scenario> {
   const termId = await seedTerm();
   const admin = { personId: await seedMember("admin.gh@eafit.edu.co"), ip: null };
+  // Sanciona quien decide por la VP de Gestión Humana (ADR-196), no ADMIN.
+  await seedAppointment(admin.personId, termId, "VP_GH");
   const personId = await seedMember("activa@eafit.edu.co", { entryTermCode: "2026-1" });
   const committeeId = await seedCommittee("sintetico");
   return { termId, admin, personId, committeeId };
@@ -130,7 +134,7 @@ const suspension = (f: Scenario, termId = f.termId): Promise<unknown> =>
       occurredOn: todayKey(),
       suspendedUntil: todayKey(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)),
     },
-    { by: "ADMIN" },
+    { by: "GH" },
   );
 
 /** Lo que le quita los beneficios a alguien activo, por su puerta: cada una toma el consultivo. */
@@ -349,7 +353,11 @@ describe("el aval de evento pedido mientras cambia la condición de la persona",
       personId: await withoutCurrentTerm("suspendida@eafit.edu.co"),
       committeeId: await seedCommittee("sintetico"),
     };
-    await suspension(f, previous);
+    // Sin semestre vigente nadie decide por la VP de GH: la suspensión se siembra ya avalada.
+    await seedSanction(f.personId, previous, "SUSPENSION", {
+      occurredOn: todayKey(),
+      suspendedUntil: todayKey(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)),
+    });
     expect((await getCurrentTerm()) ?? null).toBeNull();
 
     await expect(requestAval(f)).rejects.toThrow(t("T-5089"));

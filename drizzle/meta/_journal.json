@@ -526,6 +526,13 @@
       "when": 1794589626012,
       "tag": "0074_inventario_vp_administrativa",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1794604279031,
+      "tag": "0075_faltas_por_avalar",
+      "breakpoints": true
     }
   ]
 }

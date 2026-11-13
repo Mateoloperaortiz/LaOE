@@ -72,6 +72,8 @@ export default async function PermanenciaComitePage({
   const accion = single(search.accion);
   const error = single(search.error);
   const guardado = single(search.guardado) === "1";
+  // La falta que anota el comité queda por avalar (ADR-196 regla 3): la confirmación lo dice.
+  const faltaAnotada = single(search.sancion) === "1";
   const referencia = single(search.referencia);
   const [nuevoCriterio, copiar, referenciaBtn] = tList("T-715");
   if (!term) {
@@ -141,13 +143,15 @@ export default async function PermanenciaComitePage({
           </p>
           {guardado ? (
             <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-2 text-sm font-semibold text-oe-navy">
-              {referencia
-                ? t("T-735", { n: referencia })
-                : destacado === "publicado"
-                  ? t("T-781", { nombre: destacadoNombre, mes: destacadoMes })
-                  : destacado === "registrado"
-                    ? t("T-782", { nombre: destacadoNombre, mes: destacadoMes })
-                    : t("T-259")}
+              {faltaAnotada
+                ? t("T-5095")
+                : referencia
+                  ? t("T-735", { n: referencia })
+                  : destacado === "publicado"
+                    ? t("T-781", { nombre: destacadoNombre, mes: destacadoMes })
+                    : destacado === "registrado"
+                      ? t("T-782", { nombre: destacadoNombre, mes: destacadoMes })
+                      : t("T-259")}
             </output>
           ) : null}
           {error ? (

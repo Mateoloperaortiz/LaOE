@@ -26,6 +26,7 @@ import {
   seedPerson,
   seedTerm,
 } from "../factories";
+import { ghActor } from "../helpers/gh";
 import { truncateAll } from "./db";
 
 // Inhabilidades y topes al nombrar cargos (Regl. art. 11 y 27; ADR-060 regla 11): entre comités,
@@ -160,7 +161,7 @@ describe("inhabilidades y topes de cargos", () => {
 
     const sancionada = await veteran("sancionada@eafit.edu.co");
     await recordSanctionAs(
-      admin,
+      await ghActor(),
       sancionada,
       {
         termId,
@@ -168,7 +169,7 @@ describe("inhabilidades y topes de cargos", () => {
         cause: "Inhabilidad de prueba",
         occurredOn: todayKey(),
       },
-      { by: "ADMIN" },
+      { by: "GH" },
     );
     await expect(
       addAppointmentAs(admin, sancionada, { kind: "VP_FINANCE", termId }),

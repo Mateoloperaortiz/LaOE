@@ -11,6 +11,7 @@ import { APP_TIME_ZONE, dateKeyIn } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { scopeId } from "@/shared/lib/scope-id";
 import { appointment, committee, macroeventRole, membership, person } from "../schema";
+import { APPOINTMENT_KINDS, type AppointmentKind } from "./appointment-kinds";
 import { assertNoInhabilities, BOARD_KINDS, type Override } from "./inhabilities";
 import { lockMacroeventGovernance } from "./macroevent-lock";
 import { lockMembershipCycles } from "./wallet-member";
@@ -20,20 +21,7 @@ import { lockMembershipCycles } from "./wallet-member";
 // y el cargo del catálogo `macroevent_role`, con un titular y una codirección por cargo, y se nombran
 // desde la edición, no desde la Persona 360.
 
-export type AppointmentKind = (typeof appointment.$inferSelect)["kind"];
-
-export const APPOINTMENT_KINDS = [
-  "PRESIDENT",
-  "VP_GH",
-  "VP_PUBLIC_RELATIONS",
-  "VP_ADMIN",
-  "VP_FINANCE",
-  "VP_COMMUNICATIONS",
-  "GH_HEAD",
-  "GH_DIRECTOR",
-  "MACROEVENT_DIRECTOR",
-  "OTHER",
-] as const satisfies readonly AppointmentKind[];
+export { APPOINTMENT_KINDS, type AppointmentKind } from "./appointment-kinds";
 
 /** Los que se nombran desde la Persona 360; el de macroevento sale de la edición. */
 export const BOARD_APPOINTMENT_KINDS: readonly AppointmentKind[] = APPOINTMENT_KINDS.filter(

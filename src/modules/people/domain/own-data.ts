@@ -303,6 +303,7 @@ export async function collectPersonalData(personId: string) {
         termId: sanction.termId,
         committeeId: sanction.committeeId,
         kind: sanction.kind,
+        status: sanction.status,
         reference: sanction.reference,
         occurredOn: sanction.occurredOn,
         suspendedFrom: sanction.suspendedFrom,

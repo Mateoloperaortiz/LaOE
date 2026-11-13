@@ -46,6 +46,7 @@ export {
   anonymizePersonAs,
   changeMembershipStatusAs,
   createPersonAs,
+  decideSanctionAs,
   endMembershipAs,
   leaveCommitteeAs,
   reactivateMembershipAs,
@@ -233,7 +234,9 @@ export {
 } from "./domain/sanction-pure";
 export {
   listExpulsionWarnings,
+  listPendingSanctions,
   listSanctionsForPerson,
+  listSanctionsOfTerm,
   type SanctionView,
   sanctionInputSchema,
   sanctionStateFor,

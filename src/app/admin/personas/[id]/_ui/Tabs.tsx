@@ -334,11 +334,7 @@ export function TabMembresia({
           </ul>
         )}
       </Bloque>
-      <Sanciones
-        personId={data.person.id}
-        canRecord={Boolean(data.membership && data.membership.status !== "INACTIVE")}
-        sanctions={data.sanctions}
-      />
+      <Sanciones sanctions={data.sanctions} />
     </div>
   );
 }

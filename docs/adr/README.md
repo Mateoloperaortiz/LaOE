@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-196](ADR-196-las-faltas-pasan-por-la-vp-de-gestion-humana.md) | Las faltas pasan por la VP de Gestión Humana | Propuesta |
 | [ADR-195](ADR-195-los-avales-de-la-junta.md) | Los avales de la junta | Aceptada |
 | [ADR-194](ADR-194-la-junta-del-semestre-y-sus-comites-de-trabajo.md) | La junta del semestre y sus comités de trabajo | Aceptada |
 | [ADR-193](ADR-193-la-presidencia-suple-a-la-vp-en-el-inventario.md) | La Presidencia suple a la VP en el inventario | Aceptada |
@@ -90,7 +91,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) | Reglas de estructura y robustez del séptimo ciclo del refactor | Aceptada (enmendada por ADR-120, ADR-123, ADR-124, ADR-125, ADR-127, ADR-129 y ADR-131); enmendada por ADR-144 |
 | [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) | Reglas de corrección del sexto ciclo del refactor | Aceptada (enmendada por ADR-119, ADR-120, ADR-121, ADR-122, ADR-123 y ADR-127); enmendada por ADR-144 |
 | [ADR-117](ADR-117-db-release-comprueba-que-el-diario-quedo-aplicado.md) | `db:release` comprueba que el diario de migraciones quedó aplicado | Aceptada |
-| [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) | Reglas de corrección, privacidad y permisos del quinto ciclo del refactor | Aceptada (enmendada por ADR-118, ADR-119, ADR-120, ADR-121, ADR-123, ADR-124 y ADR-131); enmendada por ADR-144 |
+| [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) | Reglas de corrección, privacidad y permisos del quinto ciclo del refactor | Aceptada (enmendada por ADR-118, ADR-119, ADR-120, ADR-121, ADR-123, ADR-124 y ADR-131); enmendada por ADR-144 y ADR-196 |
 | [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) | Reglas de campañas de correo y tareas de GH del cuarto ciclo del refactor | Aceptada (enmendada por ADR-116, ADR-120 y ADR-121); enmendada por ADR-144 |
 | [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) | Reglas de seguridad, privacidad e integridad del tercer ciclo del refactor | Aceptada (enmendada por ADR-116); enmendada por ADR-143 |
 | [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md) | Reglas de seguridad e integridad del segundo ciclo del refactor | Aceptada (enmendada por ADR-114, ADR-116, ADR-119 y ADR-120) |
@@ -146,7 +147,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-064](ADR-064-gestion-de-macroeventos.md) | Gestión de macroeventos, cargos y GT por semestre | Implementación y verificación (enmendada por ADR-089) |
 | [ADR-066](ADR-066-cargos-vigentes-e-historial.md) | Cargos vigentes e historial por semestre y ámbito | Aceptada; verificada en producción |
 | [ADR-065](ADR-065-areas-y-participacion-gt-gap.md) | Áreas y participación en GT y GAP | Aceptada; enmendada por ADR-071 |
-| [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) | Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026 | Aceptada; enmendada por ADR-061, ADR-073, ADR-111, ADR-112, ADR-118 y ADR-129; en curso por tramos; enmendada por ADR-137 |
+| [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) | Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026 | Aceptada; enmendada por ADR-061, ADR-073, ADR-111, ADR-112, ADR-118, ADR-129 y ADR-196; en curso por tramos; enmendada por ADR-137 |
 | [ADR-059](ADR-059-presupuesto-del-comite.md) | Presupuesto del comité por rubros, gastos y traslados | Propuesta; enmendada por ADR-060 |
 | [ADR-058](ADR-058-direccion-del-comite-por-areas.md) | La dirección del comité por áreas: capacidades por cargo, cargos múltiples y codirección | Aceptada (enmendada por ADR-060 y ADR-115); promovida a producción, verificación con la dirección real pendiente |
 | [ADR-057](ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md) | Vicepresidencia de Comunicaciones y Publicidad como cargo de junta | Aceptada; en producción (enmendada por ADR-194) |

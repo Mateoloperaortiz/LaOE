@@ -51,6 +51,7 @@ export async function blockedBenefits(
     .where(
       and(
         inArray(sanction.personId, personIds),
+        eq(sanction.status, "APPROVED"),
         isNull(sanction.revokedAt),
         gte(sanction.expiresOn, day),
       ),
@@ -107,6 +108,7 @@ export async function assertNotSuspended(
     .where(
       and(
         eq(sanction.personId, personId),
+        eq(sanction.status, "APPROVED"),
         isNull(sanction.revokedAt),
         gte(sanction.expiresOn, day),
       ),

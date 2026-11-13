@@ -37,6 +37,7 @@ import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import {
   currentTermCode,
+  seedAppointment,
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
@@ -985,6 +986,7 @@ describe("importación del roster", () => {
     it("con los derechos suspendidos por una sanción: es un error de esa fila y el resto del archivo se aplica", async () => {
       const result = await rosterWithHonorary(async (juan, adminId) => {
         const termId = await seedTerm();
+        await seedAppointment(adminId, termId, "VP_GH");
         await recordSanctionAs(
           { personId: adminId, ip: null },
           juan,
@@ -995,7 +997,7 @@ describe("importación del roster", () => {
             occurredOn: todayKey(),
             suspendedUntil: todayKey(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)),
           },
-          { by: "ADMIN" },
+          { by: "GH" },
         );
       });
 

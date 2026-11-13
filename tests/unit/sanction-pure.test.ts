@@ -63,7 +63,8 @@ describe("fechas derivadas", () => {
 
   it("los tipos tienen su etiqueta en T-2229 en el mismo orden", () => {
     expect(tList("T-2229")).toHaveLength(SANCTION_KINDS.length);
-    expect(tList("T-2243")).toHaveLength(3);
+    // Vigente, vencida, revocada, por avalar y rechazada (ADR-196 regla 1).
+    expect(tList("T-2243")).toHaveLength(5);
   });
 });
 

@@ -56,6 +56,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         ...(roles.boardSeats.length > 0
           ? [{ href: "/admin/avales", label: tList("T-5092")[0] ?? "" }]
           : []),
+        // Las sanciones de Gestión Humana (ADR-196 regla 5): quien decide por la VP de GH.
+        ...(roles.boardSeats.some((item) => item.seat === "VP_GH")
+          ? [{ href: "/admin/faltas", label: tList("T-5099")[0] ?? "" }]
+          : []),
         // El inventario (ADR-150 regla 2): solo la VP administrativa vigente.
         ...(roles.managesInventory ? [{ href: "/admin/inventario", label: t("T-4300") }] : []),
         ...(roles.operatesInventory

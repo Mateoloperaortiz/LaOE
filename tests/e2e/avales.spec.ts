@@ -5,10 +5,17 @@ import { DESK_SECTIONS } from "@/app/admin/_kit/desk-items";
 import { closeDb, getDb } from "@/db/client";
 import { requestEventApprovalAs } from "@/modules/finance";
 import { eventApproval } from "@/modules/finance/schema";
-import { appointment, person } from "@/modules/people/schema";
+import { recordSanctionAs } from "@/modules/people";
+import { appointment, person, sanction } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tLabels, tList } from "@/shared/copy";
-import { seedAppointment, seedCommittee, seedMembership, seedPerson } from "../factories";
+import {
+  seedAppointment,
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMembership,
+  seedPerson,
+} from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -102,5 +109,52 @@ test.describe("ADMIN", () => {
     await expect(
       page.getByText((loDecide ?? "").replace("{cargo}", "Presidencia"), { exact: true }),
     ).toBeVisible();
+  });
+});
+
+test.describe("la VP de Gestión Humana", () => {
+  test.use({ storageState: "tests/e2e/.auth/member.json" });
+
+  test("ve en su Mesa la falta que anotó un comité y la avala", async ({ page }) => {
+    const [current] = await getDb().select().from(term).where(eq(term.code, E2E_TERM.code));
+    const [member] = await getDb().select().from(person).where(eq(person.email, E2E_MEMBER_EMAIL));
+    if (!current || !member) throw new Error("Faltan el semestre y el miembro sintéticos");
+    const comite = await seedCommittee(`e2e-faltas-gh-${marca}`, `Comité Faltas GH ${marca}`);
+    const direccion = await seedPerson(`e2e-direccion-gh-${marca}@eafit.edu.co`, { source: "E2E" });
+    await seedMembership(direccion, current.id);
+    const anotada = await seedPerson(`e2e-anotada-${marca}@eafit.edu.co`, {
+      firstName: "Persona",
+      lastName: `Anotada ${marca}`,
+      source: "E2E",
+    });
+    await seedMembership(anotada, current.id);
+    await seedCommitteeMembership(anotada, comite, current.id);
+    limpiar.push(await seedAppointment(member.id, current.id, "VP_GH"));
+    const { id } = await recordSanctionAs(
+      { personId: direccion, ip: null },
+      anotada,
+      {
+        termId: current.id,
+        kind: "WARNING",
+        cause: "Faltó a la reunión sin excusa; en descargos reconoció la falta",
+        occurredOn: new Date().toISOString().slice(0, 10),
+      },
+      { by: "COMMITTEE", committeeId: comite, termId: current.id },
+    );
+    await closeDb();
+
+    await page.goto("/admin/mesa");
+    const seccion = page.getByRole("region", {
+      name: new RegExp(`^${tLabels("T-5046", DESK_SECTIONS).avales}`),
+    });
+    await seccion.getByRole("link", { name: new RegExp(`Persona Anotada ${marca}`) }).click();
+    await expect(page).toHaveURL(new RegExp(`/admin/avales\\?falta=${id}`));
+    await sinViolaciones(page);
+    const [aprobar] = tList("T-5086");
+    await page.getByRole("button", { name: aprobar, exact: true }).click();
+    await expect(page.getByRole("main").getByText(t("T-4302"))).toBeVisible();
+
+    const [avalada] = await getDb().select().from(sanction).where(eq(sanction.id, id));
+    expect(avalada).toMatchObject({ status: "APPROVED", decidedById: member.id });
   });
 });
