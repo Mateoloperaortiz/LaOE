@@ -38,10 +38,38 @@ test("GH completa dos criterios con un bono y el miembro ve el motivo en Mi OE",
   await closeDb();
 
   await page.goto(`/admin/permanencia/cumplimiento?termId=${termId}`);
-  await page.getByRole("link", { name: t("T-4860") }).click();
+  const addBonus = page.getByRole("link", { name: t("T-4860"), exact: true });
+  await addBonus.click();
   const panel = page.getByRole("dialog");
-  await panel.getByLabel(t("T-4861")).selectOption(member.id);
-  await panel.getByRole("button", { name: t("T-4862") }).click();
+  const close = panel.getByRole("button", { name: t("T-291"), exact: true });
+  const choosePerson = async () => {
+    await panel.getByLabel(t("T-4861")).selectOption(member.id);
+    await panel.getByRole("button", { name: t("T-4862") }).click();
+  };
+  let finish = () => {};
+  const pending = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  const preview = (url: URL) =>
+    url.pathname === "/admin/permanencia/cumplimiento" &&
+    url.searchParams.get("persona") === member.id;
+  await page.route(preview, async (route) => {
+    await pending;
+    await route.continue();
+  });
+  try {
+    await choosePerson();
+    await expect(close).toBeDisabled();
+  } finally {
+    finish();
+  }
+  await expect(panel.getByRole("link", { name: t("T-4882") })).toBeVisible();
+  await expect(close).toBeEnabled();
+  await close.click();
+  await expect(panel).toBeHidden();
+  await page.unroute(preview);
+  await addBonus.click();
+  await choosePerson();
   await panel.getByRole("checkbox", { name: new RegExp(barra) }).check();
   await panel.getByRole("checkbox", { name: new RegExp(macro) }).check();
   await expect(panel.getByRole("status")).toHaveText(t("T-4864", { n: 10 }));
