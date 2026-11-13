@@ -34,7 +34,7 @@ La causa es una sola. ADR-158 dejó la transición «pantalla por pantalla, por 
    - **Grano.** No va detrás de texto de trabajo.
    - **Títulos y cifras.** La barra de color y la condensada salen de los títulos de trabajo, y las cifras van en Plus Jakarta Sans.
    - **Peso.** El máximo es 600.
-   - **Avisos e insignias.** La insignia de contorno y los avisos usan las líneas neutras; un error lleva el color de error.
+   - **Avisos e insignias.** La insignia de contorno y los avisos usan las líneas neutras. Un aviso de error lleva el estado de error completo de ADR-158 regla 4: su color, sobre su fondo.
    - **Campos.** Superficie blanca con sombra suave en Mi OE y acceso; una línea en la Operación.
    - **Pestañas de área.** Son pastillas, y la elegida va con el color de la acción.
 3. **Las pantallas de acceso entran a la capa funcional.** Son formularios, así que les toca por ADR-158 regla 1. Llevan un marco propio (`AccessFrame`) con el aspecto de Mi OE: el fondo con degradado, los títulos en tipo oración, la acción en navy y los campos con sombra suave. El check-in por QR pasa de un cartel navy a una tarjeta de trabajo; su momento de marca sigue siendo el sello del registro. Las pantallas de «no encontrado» y de error general, que también viven fuera de las áreas, llevan el mismo marco.
@@ -46,7 +46,12 @@ La causa es una sola. ADR-158 dejó la transición «pantalla por pantalla, por 
 5. **El portal no cambia.** Es capa de marca (ADR-158 regla 1 y ADR-163 regla 1). Su rediseño propio sigue atado a los temas y bloques de la plataforma (P2 de ADR-085).
 6. **Cómo se comprueba.**
    - `tests/unit/route-layers.test.ts` revisa que ninguna ruta quede fuera de un marco que declare su capa. Una carpeta nueva sin marco la pone en rojo.
-   - El 2026-11-13 se midieron en el navegador las 150 rutas, con las pestañas de la Persona 360, del comité, de The Games y de un macroevento: 176 medidas por tema, en claro y en oscuro. En cada una se leyeron los estilos ya calculados de lo que se ve. El resultado fue cero piezas del diseño anterior dentro de la capa funcional: ni condensada, ni mayúsculas, ni peso sobre 600, ni grano, ni el borde azul, ni botones redondos, ni naranja en controles o bordes.
+   - El 2026-11-13 se midieron en el navegador las 150 rutas, en tema claro y en oscuro: 304 medidas por tema. En cada una se leyeron los estilos ya calculados de todo lo que se ve, marco incluido.
+     - 176 son la vista de entrada de cada ruta y cada pestaña de la Persona 360, del comité, de The Games y de un macroevento.
+     - 85 son estados que la entrada no muestra: el panel de creación de 27 recursos del kit, formularios con error, la paleta ⌘K, el mapa de atajos, los menús, las herramientas de tabla, la barra de lote, cada sección de ajustes, los resultados del check-in, las pantallas de «no encontrado» y las de acceso con error.
+     - 43 se hicieron con el motor de Safari, con el tamaño, el toque y el agente de un iPhone.
+
+     El resultado fue cero piezas del diseño anterior dentro de la capa funcional: ni condensada, ni mayúsculas, ni peso sobre 600, ni grano, ni el borde azul, ni botones redondos, ni naranja en controles o bordes.
 
 ## Consecuencias
 

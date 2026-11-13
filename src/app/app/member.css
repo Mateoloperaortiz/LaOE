@@ -256,6 +256,8 @@
 :is(.member-shell, .acceso-shell)
   [role="alert"].border-oe-orange:not(:is(.cartel, [data-capa="marca"], [data-capa="juego"]) *) {
   border-color: var(--error);
+  background-color: var(--error-fondo);
+  color: var(--error);
 }
 /* Un error se dice con el color de error, no con el naranja de la marca (ADR-158 regla 4). */
 :is(.member-shell, .acceso-shell)

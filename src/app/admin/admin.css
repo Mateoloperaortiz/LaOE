@@ -151,10 +151,12 @@
 .admin-shell :is(.text-oe-blue, .text-oe-orange) {
   color: var(--titulo);
 }
+/* Un error se dice con el color de error, sobre su fondo (ADR-158 regla 4). */
 .admin-shell [role="alert"].text-oe-orange {
-  border-left: 2px solid var(--color-oe-orange);
+  border-left: 2px solid var(--error);
   padding: 0.75rem;
-  background: var(--panel);
+  background: var(--error-fondo);
+  color: var(--error);
 }
 .admin-shell .boton-secundario.text-oe-orange {
   box-shadow: inset 0 0 0 1px var(--color-oe-orange);
@@ -177,6 +179,8 @@
 }
 .admin-shell [role="alert"].border-oe-orange {
   border-color: var(--error);
+  background-color: var(--error-fondo);
+  color: var(--error);
 }
 /* Las cifras de una pantalla de trabajo van en la familia de contenido (ADR-163 regla 3): 30/36 en
    peso 600. El numeral condensado queda para los momentos de marca. */
