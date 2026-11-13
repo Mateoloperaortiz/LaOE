@@ -33,7 +33,8 @@ test("un ADMIN crea una edición con portada y organizadores y el visitante la v
   const panel = page.getByRole("dialog");
   // El evento viene fijado por la ruta.
   await expect(panel.getByLabel(t("T-347"))).toHaveValue(/.+/);
-  await page.getByLabel(t("T-348")).fill(nombre);
+  // En el panel: la tabla también tiene una casilla de columna con ese nombre (ADR-167 regla 4).
+  await panel.getByLabel(t("T-348")).fill(nombre);
   await panel.getByLabel(t("T-349")).fill(slug);
   const year = new Date().getFullYear() + 1;
   await panel.getByLabel(t("T-350")).fill(`${year}-03-10T18:00`);

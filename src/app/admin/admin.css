@@ -1134,7 +1134,10 @@ body:has(.admin-shell dialog[open]) {
    títulos (plan maestro §5.7) y una cuadrícula de cifras que se acomoda al ancho. */
 .panorama-bloque {
   display: flex;
+  min-width: 0;
   flex-direction: column;
+  /* Con el texto al 200 % en un celular, una palabra larga («Comunicaciones») no saca la página de su ancho. */
+  overflow-wrap: anywhere;
   gap: 1rem;
   padding: 1.25rem;
   border-radius: var(--radius-tarjeta);
@@ -1147,7 +1150,7 @@ body:has(.admin-shell dialog[open]) {
 }
 .panorama-cifras {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(9rem, 100%), 1fr));
   gap: 0.75rem;
   margin: 0;
   padding: 0;

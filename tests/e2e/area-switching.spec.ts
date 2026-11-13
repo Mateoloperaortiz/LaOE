@@ -39,7 +39,8 @@ test.describe("cambio de área con la misma cuenta", () => {
         await admin.focus();
         await page.keyboard.press("Enter");
         await expect(page).toHaveURL(/\/admin$/);
-        await expect(page.getByRole("heading", { name: t("T-236"), exact: true })).toBeVisible();
+        // El inicio de la Operación es el Panorama (ADR-169 regla 2).
+        await expect(page.getByRole("heading", { name: t("T-4929"), exact: true })).toBeVisible();
       }
     });
   }
