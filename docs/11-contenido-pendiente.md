@@ -174,3 +174,10 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 - [ ] Fecha de la inducción de 2027-1. Ya no marca la salida del rediseño, que sale completo ([ADR-164](adr/ADR-164-el-rediseno-sale-de-una-vez.md)), pero la salida tiene que evitar los días de admisión, roster y activación.
 - [ ] Revisión de Comunicaciones de la extensión de marca de ADR-158, que Mateo aceptó el 2026-11-08, y del aspecto sobrio de la capa funcional ([ADR-163](adr/ADR-163-aspecto-sobrio-de-la-capa-funcional.md)), del 2026-11-12.
 - [x] Personas para la medición de base: el comité GEMIS para Mi OE, la junta para la Operación y cinco personas que nombró Mateo (2026-11-08). La lista con nombres queda fuera del repositorio, que es público ([23-medicion-de-base](23-medicion-de-base.md)).
+
+## Portal como afiche vivo · 2026-11-13 ([ADR-189](adr/ADR-189-el-portal-como-afiche-vivo.md))
+
+- [ ] Fotos de la OE para el titular de la portada, con autorización de uso público de quienes aparecen. Hasta tenerlas, el lado gráfico del afiche es un elemento de la marca.
+- [ ] Dónde sube Comunicaciones la foto del titular. Hoy la casa solo tiene imagen publicada en la portada de un evento o de una edición.
+- [ ] Que Comunicaciones confirme los rótulos de las cifras de la portada (T-5037): «el año en que empezamos», «comités» y «macroeventos».
+- [ ] Que Mateo confirme el umbral de «semana de evento» (siete días) y que la convocatoria mande cuando coincide con un evento.

@@ -15,6 +15,7 @@ export function AnuncioCartel({ anuncio, variante, nivel = "h3" }: Props) {
   const resumen = excerpt(anuncio.body, 180);
   return (
     <Cartel
+      className="portal-poster"
       variante={variante}
       nivel={nivel}
       isotipo={false}

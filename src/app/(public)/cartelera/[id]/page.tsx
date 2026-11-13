@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { excerpt, getPublicAnnouncement } from "@/modules/content";
-import { BarraTitulo } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { paginaMetadata } from "@/shared/lib/seo";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Markdown } from "@/shared/ui/Markdown";
+import { Afiche } from "../../_ui/Afiche";
 
 // Un anuncio de la cartelera: la URL que se comparte (y que usará el push de la fase 6).
 
@@ -38,18 +38,23 @@ export default async function AnuncioPage({ params }: PageProps<"/cartelera/[id]
     notFound();
   }
   return (
-    <article className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12">
-      <p className="eyebrow">
-        {t("T-313", { fecha: formatDate(anuncio.publishedAt) })}
-        {anuncio.pinned ? ` · ${t("T-303")}` : null}
-      </p>
-      <BarraTitulo nivel="h1" color="azul" className="self-start">
-        {anuncio.title}
-      </BarraTitulo>
-      <Markdown source={anuncio.body} />
-      <Link href="/cartelera" className="boton-secundario self-start">
-        {t("T-316")}
-      </Link>
+    <article>
+      <Afiche
+        variante="navy"
+        eyebrow={
+          <span>
+            {t("T-313", { fecha: formatDate(anuncio.publishedAt) })}
+            {anuncio.pinned ? ` · ${t("T-303")}` : null}
+          </span>
+        }
+        titulo={anuncio.title}
+      />
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12">
+        <Markdown source={anuncio.body} />
+        <Link href="/cartelera" className="boton-secundario self-start">
+          {t("T-316")}
+        </Link>
+      </div>
     </article>
   );
 }

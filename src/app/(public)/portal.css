@@ -5,6 +5,25 @@
   min-width: 0;
   flex-direction: column;
 }
+/* La cabecera y el pie son navy en los dos temas (ADR-189 regla 7): dentro, los tokens del tema
+   valen lo que vale un cartel navy, y el menú del celular conserva los del tema. */
+.portal-shell .portal-header {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-oe-paper) 14%, transparent);
+  background-color: var(--color-oe-navy);
+  background-image: var(--grano-claro);
+}
+.portal-shell .portal-header-inner,
+.portal-shell .portal-footer {
+  --titulo: var(--color-oe-paper);
+  --enlace: var(--color-oe-paper);
+  --tinta-suave: var(--color-oe-sky);
+  --fondo-suave: color-mix(in srgb, var(--color-oe-paper) 14%, transparent);
+  color: var(--color-oe-paper);
+}
+.portal-shell .portal-footer {
+  background-color: var(--color-oe-navy);
+  background-image: var(--grano-claro);
+}
 .portal-shell .portal-header-inner {
   display: flex;
   max-width: 72rem;
@@ -104,35 +123,6 @@
   gap: 2.5rem;
   padding-block: 1.25rem;
 }
-.portal-shell .portal-hero {
-  min-height: 0;
-  padding: 1.5rem;
-}
-.portal-shell .portal-hero h1 {
-  max-width: 10ch;
-  font-size: 3rem;
-  line-height: 0.94;
-}
-.portal-shell .portal-hero p:not(.eyebrow) {
-  max-width: 38rem;
-  font-size: 1rem;
-  line-height: 1.6;
-}
-.portal-shell .portal-hero .eyebrow {
-  max-width: 28rem;
-  font-size: 0.75rem;
-}
-.portal-shell .portal-hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.625rem;
-  margin-top: 0.25rem;
-}
-.portal-shell .portal-hero-actions a {
-  min-height: 44px;
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
-}
 .portal-shell .portal-committee-search {
   display: flex;
   flex-wrap: wrap;
@@ -171,22 +161,6 @@
     gap: 4rem;
     padding-block: 2rem;
   }
-  .portal-shell .portal-hero {
-    padding: 2.5rem;
-  }
-  .portal-shell .portal-hero h1 {
-    font-size: 4.5rem;
-  }
-  .portal-shell .portal-hero p:not(.eyebrow) {
-    font-size: 1.125rem;
-  }
-  .portal-shell .portal-hero .eyebrow {
-    font-size: 0.875rem;
-  }
-  .portal-shell .portal-hero-actions a {
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-  }
 }
 @media (min-width: 1024px) {
   .portal-shell .portal-desktop-links {
@@ -202,10 +176,327 @@
   .portal-shell .portal-menu-trigger {
     display: none;
   }
-  .portal-shell .portal-hero {
-    padding: 3rem;
+}
+
+/* El afiche (ADR-189 regla 2): una banda de borde a borde con los colores y el grano de un cartel. */
+.portal-shell .portal-afiche {
+  border: 0;
+  border-radius: 0;
+}
+.portal-shell .portal-afiche-inner {
+  display: flex;
+  max-width: 72rem;
+  margin-inline: auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2.5rem 3.5rem;
+  padding: 2rem 1rem 2.75rem;
+}
+.portal-shell .portal-afiche-texto {
+  display: flex;
+  min-width: 0;
+  flex: 1.7 1 20rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.25rem;
+}
+.portal-shell .portal-afiche-visual {
+  position: relative;
+  min-width: 0;
+  flex: 1 1 18rem;
+}
+.portal-shell .portal-afiche :is(h1, h2) {
+  font-size: clamp(3rem, 8vw, 6.5rem);
+  font-weight: 900;
+  line-height: 0.88;
+  overflow-wrap: break-word;
+}
+.portal-shell .portal-afiche[data-tamano="portada"] h1,
+.portal-shell .portal-cierre h2 {
+  font-size: clamp(3.5rem, 9.4vw, 8.5rem);
+  line-height: 0.86;
+}
+.portal-shell .portal-afiche-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.portal-shell .portal-afiche-etiqueta {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: var(--cartel-tinta);
+  color: var(--cartel-fondo);
+  font-weight: 800;
+}
+.portal-shell .portal-afiche[data-variante="navy"] .portal-afiche-etiqueta {
+  background: var(--color-oe-yellow);
+  color: var(--color-oe-navy);
+}
+/* El acento del titular: amarillo sobre navy; en los demás fondos, una barra debajo del texto navy,
+   porque el naranja como texto no alcanza el contraste sobre papel. */
+.portal-shell .portal-afiche-acento {
+  display: inline-block;
+  margin-inline: -0.08em;
+  padding-inline: 0.08em;
+  background-image: linear-gradient(to top, var(--color-oe-orange) 46%, transparent 46%);
+}
+.portal-shell .portal-afiche[data-variante="navy"] .portal-afiche-acento {
+  background-image: none;
+  color: var(--color-oe-yellow);
+}
+.portal-shell .portal-afiche-bajada {
+  max-width: 35rem;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+.portal-shell .portal-afiche-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+/* Dentro de un cartel los enlaces toman su tinta; el botón navy conserva su texto claro. */
+.portal-shell .portal-afiche .boton-primario {
+  color: var(--color-oe-paper);
+}
+.portal-shell .portal-afiche-logo {
+  display: grid;
+  place-items: center;
+}
+.portal-shell .portal-afiche-fecha {
+  padding: 0.5rem 1.25rem 0.125rem;
+  background: var(--cartel-tinta);
+  color: var(--cartel-fondo);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5.6vw, 5rem);
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+.portal-shell .portal-afiche-ficha {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1.25rem;
+  font-size: 1.0625rem;
+}
+.portal-shell .portal-afiche-ficha dd {
+  font-weight: 700;
+}
+
+/* El lado gráfico: un elemento de la marca sobre navy, o la imagen ya publicada. */
+.portal-shell .portal-panel {
+  position: relative;
+  display: grid;
+  width: 100%;
+  max-height: 34rem;
+  aspect-ratio: 4 / 5;
+  place-items: center;
+  border-radius: 1.75rem;
+  background: var(--color-oe-navy);
+}
+.portal-shell .portal-afiche[data-variante="navy"] .portal-panel {
+  background: color-mix(in oklab, var(--color-oe-navy) 84%, var(--color-oe-blue));
+}
+.portal-shell .portal-panel-elemento {
+  width: 62%;
+  color: var(--color-oe-blue);
+}
+.portal-shell .portal-afiche[data-variante="amarillo"] .portal-panel-elemento {
+  color: var(--color-oe-yellow);
+}
+.portal-shell .portal-panel img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+.portal-shell .portal-panel-barras {
+  position: absolute;
+  top: 2rem;
+  right: -1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+.portal-shell .portal-panel-barras span {
+  display: block;
+  width: 10.5rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: var(--color-oe-yellow);
+}
+.portal-shell .portal-panel-barras span:nth-child(2) {
+  width: 7.75rem;
+  background: var(--color-oe-orange);
+}
+.portal-shell .portal-panel-barras span:nth-child(3) {
+  width: 5.125rem;
+  background: var(--color-oe-blue);
+}
+.portal-shell .portal-afiche[data-variante="amarillo"] .portal-panel-barras {
+  top: auto;
+  bottom: 2rem;
+}
+.portal-shell .portal-afiche[data-variante="amarillo"] .portal-panel-barras span:first-child {
+  background: var(--color-oe-paper);
+}
+.portal-shell .portal-sello-redondo {
+  position: absolute;
+  bottom: 3rem;
+  left: clamp(-2.25rem, -3vw, -0.5rem);
+  display: flex;
+  width: 9.5rem;
+  height: 9.5rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-oe-yellow);
+  color: var(--color-oe-navy);
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: rotate(-10deg);
+}
+.portal-shell .portal-sello-redondo[data-color="naranja"] {
+  background: var(--color-oe-orange);
+}
+.portal-shell .portal-sello-redondo[data-posicion="arriba"] {
+  top: -1.5rem;
+  right: clamp(-2rem, -3vw, -0.5rem);
+  bottom: auto;
+  left: auto;
+  transform: rotate(8deg);
+}
+.portal-shell .portal-sello-grande {
+  font-size: 4.25rem;
+  font-weight: 900;
+  line-height: 0.86;
+}
+
+/* La franja de los comités, pegada al titular. */
+.portal-shell .portal-franja .portal-afiche-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding-block: 1.5rem;
+}
+.portal-shell .portal-franja p {
+  font-weight: 700;
+}
+.portal-shell .portal-franja ul {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+  gap: 0 1.125rem;
+  list-style: none;
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.portal-shell .portal-franja a {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  text-decoration: none;
+}
+.portal-shell .portal-franja a:hover {
+  text-decoration: underline;
+}
+
+/* Las cifras de la OE (ADR-189 regla 5). */
+.portal-shell .portal-cifras {
+  display: grid;
+  margin: 0;
+  padding: 1rem 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: 1.5rem 2rem;
+  list-style: none;
+}
+.portal-shell .portal-cifras li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.portal-shell .portal-cifra {
+  color: var(--titulo);
+  font-family: var(--font-display);
+  font-size: clamp(5.5rem, 12vw, 11rem);
+  font-weight: 900;
+  line-height: 0.8;
+}
+
+/* Las tarjetas del portal son afiches (ADR-189 regla 8): más altas y con el título abajo. */
+.portal-shell .portal-poster {
+  min-height: 21rem;
+  height: 100%;
+}
+.portal-shell .portal-poster > div:last-child {
+  justify-content: flex-end;
+}
+.portal-shell .portal-poster :is(h2, h3) {
+  font-size: clamp(2rem, 3.1vw, 2.75rem);
+  line-height: 0.92;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 639px) {
+  .portal-shell .portal-afiche[data-tamano="pagina"] .portal-panel {
+    aspect-ratio: 16 / 9;
   }
-  .portal-shell .portal-hero h1 {
-    font-size: 6.5rem;
+  .portal-shell .portal-afiche[data-tamano="pagina"] .portal-panel-elemento {
+    width: 38%;
   }
+  .portal-shell .portal-afiche[data-tamano="portada"] .portal-panel {
+    aspect-ratio: 4 / 3;
+  }
+  .portal-shell .portal-sello-redondo {
+    width: 7rem;
+    height: 7rem;
+    font-size: 1.25rem;
+  }
+  .portal-shell .portal-sello-grande {
+    font-size: 3rem;
+  }
+}
+@media (min-width: 640px) {
+  .portal-shell .portal-afiche-inner {
+    padding: 2.5rem 1.5rem 3.5rem;
+  }
+  .portal-shell .portal-afiche-bajada {
+    font-size: 1.1875rem;
+  }
+}
+@media (min-width: 1024px) {
+  .portal-shell .portal-afiche[data-tamano="portada"] .portal-afiche-inner {
+    padding-bottom: 5.5rem;
+  }
+  .portal-shell .portal-franja ul {
+    justify-content: space-between;
+  }
+}
+/* El próximo encuentro es un afiche ancho: su título va a tamaño de cartel. */
+.portal-shell .portal-proximo h3 {
+  font-family: var(--font-display);
+  font-size: clamp(2.75rem, 6vw, 5rem);
+  font-weight: 900;
+  line-height: 0.9;
+  text-transform: uppercase;
 }

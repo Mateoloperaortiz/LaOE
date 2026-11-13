@@ -11,6 +11,15 @@ import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 
+/** Cada enlace con ese nombre en el contenido apunta a `href`: el titular y el cierre llevan la misma acción. */
+async function enlacesA(page: import("@playwright/test").Page, nombre: string, href: string) {
+  const enlaces = page.getByRole("main").getByRole("link", { name: nombre, exact: true });
+  await expect(enlaces).not.toHaveCount(0);
+  for (const enlace of await enlaces.all()) {
+    await expect(enlace).toHaveAttribute("href", href);
+  }
+}
+
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test("menú móvil: foco contenido, Escape, retorno y cierre al navegar", async ({ page }) => {
@@ -114,10 +123,10 @@ test("el hero y Unirse reflejan convocatoria cerrada, prospecto y admisión vige
           ),
         );
     await page.goto("/");
-    await expect(page.getByRole("main").getByRole("link", { name: t("T-1543") })).toHaveAttribute(
-      "href",
-      "/unirse",
-    );
+    await enlacesA(page, t("T-1543"), "/unirse");
+    await expect(
+      page.getByRole("main").getByRole("link", { name: t("T-027"), exact: true }),
+    ).toHaveCount(0);
     await page.goto("/unirse");
     await expect(page.getByText(copyPattern("T-1548"))).toBeVisible();
     await expect(page.getByText(copyPattern("T-868"))).toHaveCount(0);
@@ -158,19 +167,19 @@ test("el hero y Unirse reflejan convocatoria cerrada, prospecto y admisión vige
     );
     await expect(page.getByRole("link", { name: t("T-868") })).toHaveCount(0);
     await page.goto("/");
-    await expect(
-      page.getByRole("main").getByRole("link", { name: t("T-027"), exact: true }),
-    ).toHaveAttribute("href", `/f/${admission.slug}`);
+    await enlacesA(page, t("T-027"), `/f/${admission.slug}`);
+    // Con la convocatoria abierta, el titular es la invitación a postularse (ADR-189 regla 3).
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      new RegExp(t("T-025").replace(/[?¿]/g, "\\$&").replace(/\s+/g, "\\s+"), "i"),
+      { useInnerText: true },
+    );
     // Una ventana vencida no debe ofrecer la admisión aunque su estado siga OPEN.
     await db
       .update(form)
       .set({ closesAt: new Date(Date.now() - 60_000) })
       .where(eq(form.id, admission.id));
     await page.reload();
-    await expect(page.getByRole("main").getByRole("link", { name: t("T-1543") })).toHaveAttribute(
-      "href",
-      "/unirse",
-    );
+    await enlacesA(page, t("T-1543"), "/unirse");
     await sinViolaciones(page);
   } finally {
     if (createdForms.length) await db.delete(form).where(inArray(form.id, createdForms));
@@ -195,9 +204,13 @@ for (const width of [360, 390, 768, 1440]) {
         true,
       );
       if (width < 640) {
-        const hero = page.locator(".portal-hero");
+        // El titular es un afiche (ADR-189): su texto y su acción caben en la primera pantalla, y el
+        // lado gráfico queda debajo.
+        const acciones = page.locator(
+          ".portal-afiche[data-tamano='portada'] .portal-afiche-acciones",
+        );
         expect(
-          await hero.evaluate((element) => element.getBoundingClientRect().bottom),
+          await acciones.evaluate((element) => element.getBoundingClientRect().bottom),
         ).toBeLessThan(630);
       }
       await sinViolaciones(page);

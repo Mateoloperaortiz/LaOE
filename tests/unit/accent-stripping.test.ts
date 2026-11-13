@@ -60,6 +60,9 @@ vi.mock("react", async (importOriginal) => {
   };
 });
 vi.mock("@/modules/people", () => ({ listPublishedCommittees: async () => search.committees }));
+// La página cierra con la invitación a postularse (ADR-189): aquí no hay convocatoria abierta.
+vi.mock("@/modules/crm", () => ({ listAdmissionPipelineIds: async () => [] }));
+vi.mock("@/modules/forms", () => ({ findOpenPublicFormForPipelines: async () => null }));
 vi.mock("@/modules/content", async () => {
   const { excerpt } = await import("@/modules/content/domain/markdown-pure");
   return { excerpt };

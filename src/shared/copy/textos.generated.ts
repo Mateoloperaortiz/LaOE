@@ -15111,6 +15111,43 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-5034": {
+    where: "Inicio, titular con la convocatoria abierta (ADR-189): etiqueta · hasta cuándo",
+    text: "Convocatoria abierta · Cierra el {fecha}",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-5035": {
+    where: "Inicio, titular en semana de evento (ADR-189): etiqueta · enlace a la edición",
+    text: "Esta semana · Ver el evento",
+    owner: "COM",
+    status: "Propuesta",
+  },
+  "T-5036": {
+    where:
+      "Inicio, cuánto falta para el evento del titular: varios días (arriba · abajo) · un día (arriba · abajo) · el mismo día (arriba · abajo)",
+    text: "Faltan · días · Falta · día · Es · hoy",
+    owner: "COM",
+    status: "Propuesta",
+  },
+  "T-5037": {
+    where: "Inicio, cifras de la OE (ADR-189): cifra · rótulo, tres pares",
+    text: "1987 · el año en que empezamos · 18 · comités · 4 · macroeventos",
+    owner: "COM",
+    status: "Propuesta",
+  },
+  "T-5038": {
+    where: "Inicio, nombre accesible de las cifras",
+    text: "La OE en cifras",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5039": {
+    where: "Portal, sello redondo del afiche (arriba · abajo)",
+    text: "Desde · 1987",
+    owner: "COM",
+    status: "Propuesta",
+  },
   "T-504": {
     where: "Datos y consentimiento: solicitud de eliminación",
     text: "Pidió la eliminación el {fecha}. Vence el {vence}.",

@@ -36,6 +36,15 @@ export function formatDate(date: Date): string {
   }).format(date);
 }
 
+/** El día y el mes, sin año ("3 de septiembre"), en la zona de la app: para un afiche. */
+export function formatDayMonth(date: Date): string {
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: getEnv().APP_TIMEZONE,
+    day: "numeric",
+    month: "long",
+  }).format(date);
+}
+
 /** Solo la hora ("6:00 p. m."), en la zona de la app. */
 export function formatTime(date: Date): string {
   return new Intl.DateTimeFormat("es-CO", {

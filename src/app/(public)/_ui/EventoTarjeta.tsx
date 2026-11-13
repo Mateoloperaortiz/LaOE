@@ -43,6 +43,7 @@ export function EventoTarjeta({ evento, proxima, cover, variante, nivel = "h3" }
   }
   return (
     <Cartel
+      className="portal-poster"
       variante={variante}
       nivel={nivel}
       eyebrow={eyebrow}

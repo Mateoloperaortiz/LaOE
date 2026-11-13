@@ -3526,3 +3526,9 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | T-5031 | Entrada de un inscrito: texto alternativo del QR | Código QR de tu entrada | MATEO | Propuesta |
 | T-5032 | Formulario propio, confirmación de una inscripción: enlace a la entrada · explicación | Ver tu entrada · Guárdala: con ella entras al evento. | MATEO | Propuesta |
 | T-5033 | Admin, ediciones: enlace a la puerta | Puerta | MATEO | Propuesta |
+| T-5034 | Inicio, titular con la convocatoria abierta (ADR-189): etiqueta · hasta cuándo | Convocatoria abierta · Cierra el {fecha} | GH | Propuesta |
+| T-5035 | Inicio, titular en semana de evento (ADR-189): etiqueta · enlace a la edición | Esta semana · Ver el evento | COM | Propuesta |
+| T-5036 | Inicio, cuánto falta para el evento del titular: varios días (arriba · abajo) · un día (arriba · abajo) · el mismo día (arriba · abajo) | Faltan · días · Falta · día · Es · hoy | COM | Propuesta |
+| T-5037 | Inicio, cifras de la OE (ADR-189): cifra · rótulo, tres pares | 1987 · el año en que empezamos · 18 · comités · 4 · macroeventos | COM | Propuesta |
+| T-5038 | Inicio, nombre accesible de las cifras | La OE en cifras | MATEO | Propuesta |
+| T-5039 | Portal, sello redondo del afiche (arriba · abajo) | Desde · 1987 | COM | Propuesta |

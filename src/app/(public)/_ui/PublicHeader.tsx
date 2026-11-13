@@ -70,7 +70,7 @@ export function PublicHeader({ destinations }: { destinations: Destination[] }) 
   }
 
   return (
-    <header className="portal-header border-b border-borde">
+    <header className="portal-header">
       <div className="portal-header-inner">
         <Link href="/" className="portal-logo text-titulo" aria-label={destinations[0]?.name}>
           <LogoOE height={56} />

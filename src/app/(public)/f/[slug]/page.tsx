@@ -6,11 +6,12 @@ import { getPublicForm, HONEYPOT_FIELD } from "@/modules/forms";
 import { getActor } from "@/modules/identity";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
-import { BarraTitulo, Elemento, SelloOE } from "@/shared/brand";
+import { Elemento, SelloOE } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { paginaMetadata } from "@/shared/lib/seo";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Markdown } from "@/shared/ui/Markdown";
+import { Afiche } from "../../_ui/Afiche";
 import { FormularioPublico } from "./FormularioPublico";
 
 // Formulario propio (ADR-013, ADR-037): público sin sesión o de miembros con sesión; cerrado, agotado
@@ -74,69 +75,67 @@ export default async function FormularioPage({ params, searchParams }: PageProps
       ? await getEdition(formulario.parsedActions.editionId)
       : null;
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-8 sm:px-6 sm:py-12">
-      <header className="flex flex-col gap-4">
-        <BarraTitulo nivel="h1" color="azul" className="self-start">
-          {formulario.title}
-        </BarraTitulo>
+    <>
+      <Afiche variante="azul" titulo={formulario.title} />
+      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-8 sm:px-6 sm:py-12">
         {formulario.description ? <Markdown source={formulario.description} /> : null}
-      </header>
-      {actor?.membershipStatus === "ON_LEAVE" ? (
-        <Aviso>{t("T-2041")}</Aviso>
-      ) : enviado ? (
-        <section aria-live="polite" className="flex max-w-2xl flex-col gap-4">
-          {formulario.thanks ? (
-            <Markdown source={formulario.thanks} />
-          ) : (
-            <p className="text-display-md">{t("T-859")}</p>
-          )}
-          {edicion ? (
-            <p className="text-lg">
-              {t("T-867", { edición: `${edicion.eventName} · ${edicion.name}` })}
-            </p>
-          ) : null}
-          {edicion && entrada ? (
-            <p className="flex flex-col gap-1">
-              <Link
-                href={`/entrada/${entrada}`}
-                className="self-start text-lg font-semibold underline"
-              >
-                {verEntrada}
-              </Link>
-              <span>{guardala}</span>
-            </p>
-          ) : null}
-          <SelloOE tamano="md" />
-        </section>
-      ) : formulario.state === "FULL" ? (
-        <Aviso>{t("T-861")}</Aviso>
-      ) : formulario.state === "CLOSED" ? (
-        <Aviso>{t("T-860")}</Aviso>
-      ) : formulario.consentRequired && !policy.ready ? (
-        <PrivacyPolicyNotice />
-      ) : (
-        <FormularioPublico
-          slug={formulario.slug}
-          fields={formulario.parsedFields}
-          isPublic={formulario.audience === "PUBLIC"}
-          consentRequired={formulario.consentRequired}
-          honeypotName={HONEYPOT_FIELD}
-          memberLine={actor ? t("T-872", { nombre: actor.name, correo: actor.email }) : null}
-          labels={{
-            firstName,
-            lastName,
-            email,
-            requiredNote: t("T-866"),
-            consent: t("T-154"),
-            policyLink: t("T-865"),
-            submit: t("T-852"),
-            honeypot: t("T-873"),
-            multiHelp: t("T-870"),
-            dateHelp: t("T-871"),
-            required: t("T-853"),
-          }}
-        />
-      )}
-    </div>
+        {actor?.membershipStatus === "ON_LEAVE" ? (
+          <Aviso>{t("T-2041")}</Aviso>
+        ) : enviado ? (
+          <section aria-live="polite" className="flex max-w-2xl flex-col gap-4">
+            {formulario.thanks ? (
+              <Markdown source={formulario.thanks} />
+            ) : (
+              <p className="text-display-md">{t("T-859")}</p>
+            )}
+            {edicion ? (
+              <p className="text-lg">
+                {t("T-867", { edición: `${edicion.eventName} · ${edicion.name}` })}
+              </p>
+            ) : null}
+            {edicion && entrada ? (
+              <p className="flex flex-col gap-1">
+                <Link
+                  href={`/entrada/${entrada}`}
+                  className="self-start text-lg font-semibold underline"
+                >
+                  {verEntrada}
+                </Link>
+                <span>{guardala}</span>
+              </p>
+            ) : null}
+            <SelloOE tamano="md" />
+          </section>
+        ) : formulario.state === "FULL" ? (
+          <Aviso>{t("T-861")}</Aviso>
+        ) : formulario.state === "CLOSED" ? (
+          <Aviso>{t("T-860")}</Aviso>
+        ) : formulario.consentRequired && !policy.ready ? (
+          <PrivacyPolicyNotice />
+        ) : (
+          <FormularioPublico
+            slug={formulario.slug}
+            fields={formulario.parsedFields}
+            isPublic={formulario.audience === "PUBLIC"}
+            consentRequired={formulario.consentRequired}
+            honeypotName={HONEYPOT_FIELD}
+            memberLine={actor ? t("T-872", { nombre: actor.name, correo: actor.email }) : null}
+            labels={{
+              firstName,
+              lastName,
+              email,
+              requiredNote: t("T-866"),
+              consent: t("T-154"),
+              policyLink: t("T-865"),
+              submit: t("T-852"),
+              honeypot: t("T-873"),
+              multiHelp: t("T-870"),
+              dateHelp: t("T-871"),
+              required: t("T-853"),
+            }}
+          />
+        )}
+      </div>
+    </>
   );
 }

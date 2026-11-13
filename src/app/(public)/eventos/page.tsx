@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { getPublicMediaRef } from "@/modules/content";
 import { findNextPublicEditions, listPublishedEvents } from "@/modules/events";
-import { BarraTitulo, feedVariant } from "@/shared/brand";
+import { feedVariant } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { paginaMetadata } from "@/shared/lib/seo";
+import { Afiche } from "../_ui/Afiche";
 import { EventoTarjeta } from "../_ui/EventoTarjeta";
+import { findOpenAdmission, PortalCierre } from "../_ui/PortalCierre";
 
 export const metadata: Metadata = paginaMetadata({
   title: t("T-304"),
@@ -14,7 +16,7 @@ export const metadata: Metadata = paginaMetadata({
 
 // Catálogo de eventos permanentes con su próxima edición pública.
 export default async function EventosPage() {
-  const eventos = await listPublishedEvents();
+  const [eventos, admision] = await Promise.all([listPublishedEvents(), findOpenAdmission()]);
   const [proximas, portadas] = await Promise.all([
     findNextPublicEditions(),
     Promise.all(
@@ -24,31 +26,29 @@ export default async function EventosPage() {
     ),
   ]);
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-8 sm:px-6 sm:py-12">
-      <div className="flex flex-col gap-6">
-        <BarraTitulo nivel="h1" color="azul" className="self-start">
-          {t("T-304")}
-        </BarraTitulo>
-        <p className="max-w-prose text-lg">{t("T-014")}</p>
+    <>
+      <Afiche variante="navy" titulo={t("T-304")} bajada={t("T-014")} />
+      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-8 sm:px-6 sm:py-12">
+        <ul className="grid list-none gap-6 p-0 sm:grid-cols-2 lg:grid-cols-3">
+          {eventos.map((evento, index) => (
+            <li key={evento.id}>
+              <EventoTarjeta
+                evento={evento}
+                proxima={proximas.get(evento.id) ?? null}
+                cover={portadas[index] ?? null}
+                variante={feedVariant(index)}
+                nivel="h2"
+              />
+            </li>
+          ))}
+        </ul>
+        <p>
+          <a href="/api/ics/publico.ics" className="boton-secundario">
+            {t("T-308")}
+          </a>
+        </p>
       </div>
-      <ul className="grid list-none gap-6 p-0 sm:grid-cols-2 lg:grid-cols-3">
-        {eventos.map((evento, index) => (
-          <li key={evento.id}>
-            <EventoTarjeta
-              evento={evento}
-              proxima={proximas.get(evento.id) ?? null}
-              cover={portadas[index] ?? null}
-              variante={feedVariant(index)}
-              nivel="h2"
-            />
-          </li>
-        ))}
-      </ul>
-      <p>
-        <a href="/api/ics/publico.ics" className="boton-secundario">
-          {t("T-308")}
-        </a>
-      </p>
-    </div>
+      <PortalCierre admision={admision} />
+    </>
   );
 }
