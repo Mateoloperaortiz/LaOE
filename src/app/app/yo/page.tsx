@@ -179,6 +179,8 @@ export default async function YoPage() {
           { href: "/app/egresados", label: egresados },
           { href: "/app/padrinos", label: tList("T-5008")[2] ?? "" },
           { href: "/app/oportunidades", label: tList("T-5008")[1] ?? "" },
+          // El directorio institucional (ADR-197 regla 3): lo ve toda la OE.
+          { href: "/app/directorio-institucional", label: tList("T-5141")[0] ?? "" },
           { href: "/app/fotos", label: fotos },
         ]}
       />

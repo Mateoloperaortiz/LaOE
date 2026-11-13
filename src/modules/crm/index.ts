@@ -47,6 +47,12 @@ export { linkedInAddUrl } from "./domain/credentials-pure";
 export { dashboardForAdmin } from "./domain/dashboard";
 export { type ExcuseState, listExcuseStates } from "./domain/excuse-states";
 export {
+  addUnitContactAs,
+  createUnitAs,
+  listInstitutionalDirectory,
+  saveDirectoryEntryAs,
+} from "./domain/institutional-directory";
+export {
   type InteractionView,
   latestContact,
   listInteractions,

@@ -64,6 +64,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         ...(roles.boardSeats.some((item) => item.seat === "VP_GH")
           ? [{ href: "/admin/faltas", label: tList("T-5099")[0] ?? "" }]
           : []),
+        // El directorio institucional lo edita la Presidencia (ADR-197 regla 3).
+        ...(roles.boardSeats.some((item) => item.seat === "PRESIDENT" && item.as === "HOLDER")
+          ? [{ href: "/admin/directorio-institucional", label: tList("T-5142")[0] ?? "" }]
+          : []),
         // La bitácora del CAP (ADR-197 regla 4): la Presidencia y el CAP.
         ...(roles.readsCapLog ? [{ href: "/admin/cap", label: tList("T-5130")[0] ?? "" }] : []),
         // El inventario (ADR-150 regla 2): solo la VP administrativa vigente.

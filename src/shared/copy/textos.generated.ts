@@ -16652,6 +16652,39 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-5141": {
+    where:
+      "Directorio institucional en Mi OE (título · texto · buscar · botón · vacío · funciones · atiende)",
+    text: "Directorio institucional · Las personas de la Universidad con las que trabaja la OE, para saber a quién le corresponde cada asunto. · Buscar por nombre, cargo o tema · Buscar · Todavía no hay nadie publicado en el directorio. · Funciones · Atiende",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5142": {
+    where:
+      "Directorio institucional de la Presidencia (título · texto · nueva dependencia · nombre · crear · ver en Mi OE)",
+    text: "Directorio institucional · Las dependencias de la Universidad y su gente. Solo se publica lo que marques, y solo datos de trabajo: el correo sirve para no repetir a la persona y no se publica. La foto va solo con la autorización de la persona. · Nueva dependencia · Nombre de la dependencia · Crear la dependencia · Ver cómo se ve en Mi OE",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5143": {
+    where: "Directorio institucional: guardas",
+    text: "El directorio institucional lo edita la Presidencia. · Eso no es una dependencia de la Universidad. · Para publicar la foto, marca que la persona lo autorizó.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5144": {
+    where: "Directorio institucional: sumar a alguien (nombre · apellido · correo · cargo · botón)",
+    text: "Nombre · Apellido · Correo de trabajo · Cargo · Sumar a la dependencia",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5145": {
+    where:
+      "Directorio institucional: lo que se publica (funciones · atiende · publicar · autorizó · foto · sin foto · guardar · vacío)",
+    text: "Funciones · Qué solicitudes atiende · Publicar en el directorio · La persona autorizó publicar su foto · Foto (de la mediateca) · Sin foto · Guardar · Todavía no hay dependencias en el directorio.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-515": {
     where: "Línea de tiempo: autor del sistema",
     text: "Sistema",

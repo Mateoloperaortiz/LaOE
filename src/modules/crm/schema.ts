@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { publicationStatus } from "@/db/enums";
-import { announcement } from "@/modules/content/schema";
+import { announcement, mediaAsset } from "@/modules/content/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
 import { occasion } from "@/modules/participation/schema";
@@ -479,5 +479,29 @@ export const opportunity = pgTable(
   (t) => [
     index("opportunity_status_closes_idx").on(t.status, t.closesOn),
     index("opportunity_organization_idx").on(t.organizationId),
+  ],
+);
+
+// El directorio institucional (ADR-197 regla 3): lo que se publica de cada contacto de una «Unidad
+// EAFIT». Solo datos de trabajo; la foto, de la mediateca y con la autorización de la persona.
+export const institutionalDirectoryEntry = pgTable(
+  "institutional_directory_entry",
+  {
+    contactId: text()
+      .primaryKey()
+      .references(() => organizationContact.id, { onDelete: "cascade" }),
+    functions: text().notNull().default(""),
+    handles: text().notNull().default(""),
+    published: boolean().notNull().default(false),
+    photoAssetId: text().references(() => mediaAsset.id, { onDelete: "set null" }),
+    photoAuthorizedAt: timestampTz(),
+    updatedById: text().references(() => person.id, { onDelete: "set null" }),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    check(
+      "institutional_directory_entry_photo_authorized",
+      sql`${t.photoAssetId} is null or ${t.photoAuthorizedAt} is not null`,
+    ),
   ],
 );
