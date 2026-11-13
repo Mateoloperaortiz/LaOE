@@ -23,6 +23,8 @@ export const NOTIFICATION_MAX_RECIPIENTS = 1000;
 
 export const notificationRequestedSchema = z.object({
   kind: z.enum(NOTIFICATION_KINDS),
+  /** Si el aviso entra al centro de avisos de Mi OE (ADR-166 regla 2). Solo un enlace de acceso dice que no. */
+  inbox: z.boolean().optional(),
   recipients: z
     .array(
       z.object({

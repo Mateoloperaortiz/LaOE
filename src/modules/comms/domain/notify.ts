@@ -6,6 +6,7 @@ import {
   sendPush,
 } from "@/shared/adapters/pusher";
 import { logger } from "@/shared/log";
+import { recordInbox } from "./inbox";
 import { findRecordedMessage, listAlreadyNotified } from "./messages";
 import { listPreferencesFor } from "./preferences";
 import {
@@ -147,6 +148,18 @@ export async function deliverNotification(raw: unknown, now = new Date()): Promi
       continue;
     }
     already.add(personId);
+    // El centro de avisos lo guarda aunque el push no salga (ADR-166 regla 2): la preferencia y los
+    // dispositivos deciden solo el envío. Lleva el enlace general del pedido, nunca el propio de la
+    // persona: el de una encuesta trae su token, que la casa solo guarda cifrado.
+    if (request.inbox !== false) {
+      await recordInbox(personId, {
+        kind: request.kind,
+        title: request.title,
+        body: request.body,
+        href: request.url,
+        dedupeKey: request.dedupeKey,
+      });
+    }
     const flags = preferences.get(personId);
     if (flags && !shouldDeliver(request.kind, flags)) {
       stats.skippedByPreference += 1;

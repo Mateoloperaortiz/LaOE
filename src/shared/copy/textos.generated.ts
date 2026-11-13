@@ -14107,6 +14107,42 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-4884": {
+    where: "Avisos: título de la pantalla y lo que dice debajo",
+    text: "Avisos · Lo que te llegó en los últimos 90 días, por push o por correo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4885": {
+    where: "Avisos: nombre de los filtros por tipo",
+    text: "Filtrar por tipo",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4886": {
+    where: "Avisos: filtros por tipo, en orden",
+    text: "Cartelera · Recordatorios · Juegos · Puntos y logros · Trámites · Campañas",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4887": {
+    where: "Avisos: todos los tipos, marcar todo como leído y sin leer",
+    text: "Todos · Marcar todo como leído · Sin leer",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4888": {
+    where: "Avisos: sin avisos (título · explicación)",
+    text: "No tienes avisos · Cuando la OE te mande algo por push o por correo, aquí lo vuelves a leer.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4889": {
+    where: "Hoy: la campana de avisos (sin avisos nuevos · uno · varios)",
+    text: "Avisos · Avisos: {n} sin leer · Avisos: {n} sin leer",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-489": {
     where: "Importación: aviso del modo actualización",
     text: "El archivo trae solo algunas columnas: se actualizan esas columnas en las personas que ya existen.",

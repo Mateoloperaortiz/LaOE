@@ -35,6 +35,7 @@ async function notify(
   url: string,
   dedupeKey: string,
   tag?: string,
+  inbox = true,
 ): Promise<DeliveryStats> {
   if (personIds.length === 0) {
     return emptyDeliveryStats();
@@ -48,6 +49,7 @@ async function notify(
     url,
     dedupeKey,
     ...(tag ? { tag } : {}),
+    ...(inbox ? {} : { inbox: false }),
   });
 }
 
@@ -127,6 +129,9 @@ export async function pushAccessGrantIssued(
     t("T-2132"),
     "/app/ajustes",
     `access-grant:${payload.personId}:${eventId}`,
+    undefined,
+    // Un aviso sobre el acceso a la cuenta no se guarda en el centro (ADR-166 regla 2).
+    false,
   );
 }
 

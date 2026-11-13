@@ -14,6 +14,15 @@ export {
   startDueCampaigns,
   updateCampaignAs,
 } from "./domain/campaigns";
+export {
+  countUnreadInbox,
+  INBOX_FILTER_KEYS,
+  type InboxFilter,
+  kindFilter,
+  listInbox,
+  markInboxRead,
+  openInboxItem,
+} from "./domain/inbox";
 export { listMessagesFor, type MessageView } from "./domain/messages";
 export { deliverNotification, setPushSenderForTests } from "./domain/notify";
 export { collectOwnCommsData } from "./domain/own-data";

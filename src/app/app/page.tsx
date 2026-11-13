@@ -1,4 +1,4 @@
-import { countSubscriptionsFor } from "@/modules/comms";
+import { countSubscriptionsFor, countUnreadInbox } from "@/modules/comms";
 import { InstallBanner } from "@/modules/comms/components/InstallBanner";
 import { excerpt, listMemberAnnouncements } from "@/modules/content";
 import { getOnboarding } from "@/modules/crm";
@@ -20,6 +20,8 @@ import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
+import { BellIcon } from "@/shared/ui/icons/BellIcon";
+import { formatCount } from "@/shared/ui/list-navigation";
 import { noticeText } from "./_ui/avisos";
 import { agendaItems, MemberAgenda } from "./_ui/MemberAgenda";
 import { cargoEnComite } from "./_ui/PersonaTarjeta";
@@ -40,6 +42,8 @@ export default async function AppHome() {
     loadGamificationSettings(),
   ]);
   const [avisoTitulo, avisoTexto, avisoBoton] = tList("T-1092");
+  const unread = await countUnreadInbox(actor.personId);
+  const bellLabels = tList("T-4889");
   const onboardingTermId = participationAllowed && mine.term && mine.isNew ? mine.term.id : null;
   const [steps, saldo, ocasiones, permanence] = await Promise.all([
     onboardingTermId ? getOnboarding(actor.personId, onboardingTermId) : Promise.resolve([]),
@@ -67,12 +71,30 @@ export default async function AppHome() {
           <h1>{t("T-060", { "nombre preferido": actor.name })}</h1>
           {mine.term ? <p>{mine.term.code}</p> : null}
         </div>
-        {mine.term ? (
-          <Link href="/app/gh-points" className="member-home-saldo">
-            <strong>{t("T-065", { n: saldo })}</strong>
-            <span>{t("T-555")}</span>
+        <div className="member-home-utilities">
+          <Link
+            href="/app/avisos"
+            className="member-bell"
+            aria-label={
+              unread === 0
+                ? bellLabels[0]
+                : formatCount(unread, { one: bellLabels[1] ?? "", other: bellLabels[2] ?? "" })
+            }
+          >
+            <BellIcon size={20} />
+            {unread > 0 ? (
+              <span className="member-bell-count" aria-hidden="true">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            ) : null}
           </Link>
-        ) : null}
+          {mine.term ? (
+            <Link href="/app/gh-points" className="member-home-saldo">
+              <strong>{t("T-065", { n: saldo })}</strong>
+              <span>{t("T-555")}</span>
+            </Link>
+          ) : null}
+        </div>
       </header>
       {mine.term && teams.size ? (
         <TeamParticipations items={teams.get(actor.personId) ?? []} term={mine.term.code} />

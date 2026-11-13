@@ -31,6 +31,7 @@ import {
   pushRecognition,
   pushRequestDecided,
 } from "./domain/events";
+import { deleteInboxFor, pruneInbox } from "./domain/inbox";
 import { deleteMessagesFor } from "./domain/messages";
 import { type DeliveryStats, deliverNotification } from "./domain/notify";
 import { deletePreferencesFor } from "./domain/preferences";
@@ -149,6 +150,12 @@ async function campaignTick(ctx: JobContext): Promise<void> {
 }
 
 registerHandler("comms.campaign-tick", (_payload, ctx) => campaignTick(ctx));
+
+// El centro de avisos conserva 90 días (ADR-166 regla 3).
+registerHandler("comms.prune", async (_payload, ctx) => {
+  const deleted = await pruneInbox();
+  ctx.log.info({ deleted }, "avisos vencidos borrados");
+});
 onEvent(campaignStart, (_payload, ctx) => campaignTick(ctx));
 
 // Al salir de la OE se borran suscripciones y preferencias (ADR-030, ADR-038 regla 5), si la baja
@@ -173,7 +180,11 @@ onEvent(personAnonymized, async ({ personId }, ctx) => {
   const subscriptions = await deleteSubscriptionsFor(getDb(), personId);
   const preferences = await deletePreferencesFor(getDb(), personId);
   const messages = await deleteMessagesFor(personId);
-  ctx.log.info({ personId, subscriptions, preferences, messages }, "comunicaciones anonimizadas");
+  const inbox = await deleteInboxFor(personId);
+  ctx.log.info(
+    { personId, subscriptions, preferences, messages, inbox },
+    "comunicaciones anonimizadas",
+  );
 });
 
 /** "Asunto · Cuerpo" del inventario de correos: la primera parte es el asunto. */

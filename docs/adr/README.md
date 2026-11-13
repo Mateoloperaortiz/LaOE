@@ -13,12 +13,13 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-166](ADR-166-el-centro-de-avisos-de-mi-oe.md) | El centro de avisos de Mi OE | Aceptada |
 | [ADR-165](ADR-165-la-paleta-por-rol-con-alcance.md) | La paleta ⌘K por rol, con alcance | Aceptada |
 | [ADR-164](ADR-164-el-rediseno-sale-de-una-vez.md) | El rediseño sale de una vez, sin bandera | Aceptada |
 | [ADR-163](ADR-163-aspecto-sobrio-de-la-capa-funcional.md) | Aspecto sobrio de la capa funcional | Aceptada (enmendada por ADR-164) |
 | [ADR-162](ADR-162-grupo-de-decoracion-en-mi-oe.md) | Grupo de decoración en Mi OE | Aceptada |
 | [ADR-161](ADR-161-densidad-de-escritorio-en-la-operacion.md) | Densidad de escritorio en la Operación | Aceptada (enmendada por ADR-163 y ADR-164) |
-| [ADR-160](ADR-160-la-navegacion-de-mi-oe.md) | La navegación de Mi OE: Hoy, Agenda, Asistencia, Juegos y Yo | Aceptada (enmendada por ADR-164) |
+| [ADR-160](ADR-160-la-navegacion-de-mi-oe.md) | La navegación de Mi OE: Hoy, Agenda, Asistencia, Juegos y Yo | Aceptada (enmendada por ADR-164 y ADR-166) |
 | [ADR-159](ADR-159-la-operacion-es-de-escritorio.md) | La Operación es de escritorio | Aceptada (enmendada por ADR-164) |
 | [ADR-158](ADR-158-la-marca-en-dos-capas.md) | La marca en dos capas | Aceptada (enmendada por ADR-161, ADR-163 y ADR-164) |
 | [ADR-157](ADR-157-normativa-actualizada-2026.md) | Normativa actualizada desde 2026-2 | Aceptada; en verificación |

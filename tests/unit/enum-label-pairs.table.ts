@@ -18,6 +18,7 @@ import {
   RECIPIENT_STATUSES,
   SKIP_REASONS,
 } from "@/modules/comms/domain/campaigns";
+import { INBOX_FILTER_KEYS } from "@/modules/comms/domain/inbox";
 import { MARKET_STATUSES } from "@/modules/competition/domain/betting-pure";
 import { powerName } from "@/modules/competition/domain/powers";
 import { POWER_EFFECTS, POWER_TYPES } from "@/modules/competition/domain/powers-pure";
@@ -910,6 +911,12 @@ export const PAIRS: readonly LabelPair[] = [
     order: "DESK_DATE_KINDS",
     positions: { due: 0, overdue: 1, arrived: 2 },
     canonical: DESK_DATE_KINDS,
+  },
+  {
+    code: "T-4886",
+    order: "INBOX_FILTER_KEYS",
+    positions: { cartelera: 0, recordatorios: 1, juegos: 2, puntos: 3, tramites: 4, campanas: 5 },
+    canonical: INBOX_FILTER_KEYS,
   },
 ];
 

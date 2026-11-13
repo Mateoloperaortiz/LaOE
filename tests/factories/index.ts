@@ -1,7 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { campaign, campaignRecipient, emailTemplate, message } from "@/modules/comms/schema";
+import {
+  campaign,
+  campaignRecipient,
+  emailTemplate,
+  inboxItem,
+  message,
+} from "@/modules/comms/schema";
 import { competitionSupport } from "@/modules/competition/schema";
 import { document, mediaAsset, page } from "@/modules/content/schema";
 import {
@@ -867,6 +873,36 @@ export async function seedSubmission(
     })
     .returning({ id: formSubmission.id });
   if (!row) throw new Error("seed submission");
+  return row.id;
+}
+
+/** Un aviso del centro de Mi OE (ADR-166), con su tipo, su clave y, si se pide, su fecha. */
+export async function seedInboxItem(
+  personId: string,
+  item: {
+    kind: (typeof inboxItem.$inferInsert)["kind"];
+    title: string;
+    dedupeKey: string;
+    body?: string;
+    href?: string | null;
+    createdAt?: Date;
+    readAt?: Date | null;
+  },
+): Promise<string> {
+  const [row] = await db()
+    .insert(inboxItem)
+    .values({
+      personId,
+      kind: item.kind,
+      title: item.title,
+      body: item.body ?? "",
+      href: item.href ?? null,
+      dedupeKey: item.dedupeKey,
+      readAt: item.readAt ?? null,
+      ...(item.createdAt ? { createdAt: item.createdAt } : {}),
+    })
+    .returning({ id: inboxItem.id });
+  if (!row) throw new Error("seed inbox item");
   return row.id;
 }
 

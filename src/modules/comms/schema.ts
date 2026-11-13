@@ -229,3 +229,30 @@ export const notificationPreference = pgTable(
     uniqueIndex("notification_preference_token_unique").on(t.unsubscribeToken),
   ],
 );
+
+/**
+ * Un aviso del centro de Mi OE (ADR-166): lo que le llegó a la persona por el bus de notificaciones o
+ * por una campaña, para que lo vuelva a leer. Dura 90 días (`pruneInbox`). Uno por persona y clave:
+ * volver a entregar un pedido no lo duplica. El enlace es un camino de la casa o nada.
+ */
+export const inboxItem = pgTable(
+  "inbox_item",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    kind: messageKind().notNull(),
+    title: text().notNull(),
+    body: text().notNull().default(""),
+    href: text(),
+    dedupeKey: text().notNull(),
+    readAt: timestampTz(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("inbox_item_person_key_idx").on(t.personId, t.dedupeKey),
+    index("inbox_item_person_created_idx").on(t.personId, t.createdAt),
+    index("inbox_item_created_idx").on(t.createdAt),
+  ],
+);

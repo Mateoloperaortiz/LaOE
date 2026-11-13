@@ -3319,3 +3319,14 @@ La barra de Mi OE y las pantallas «Yo» y «Asistencia», que se construyen en 
 | --- | --- | --- | --- | --- |
 | T-4883 | Paleta ⌘K: tipo de un resultado que es una pantalla de la barra lateral | Pantalla | MATEO | Propuesta |
 
+### El centro de avisos (ADR-166)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4884 | Avisos: título de la pantalla y lo que dice debajo | Avisos · Lo que te llegó en los últimos 90 días, por push o por correo. | MATEO | Propuesta |
+| T-4885 | Avisos: nombre de los filtros por tipo | Filtrar por tipo | MATEO | Propuesta |
+| T-4886 | Avisos: filtros por tipo, en orden | Cartelera · Recordatorios · Juegos · Puntos y logros · Trámites · Campañas | MATEO | Propuesta |
+| T-4887 | Avisos: todos los tipos, marcar todo como leído y sin leer | Todos · Marcar todo como leído · Sin leer | MATEO | Propuesta |
+| T-4888 | Avisos: sin avisos (título · explicación) | No tienes avisos · Cuando la OE te mande algo por push o por correo, aquí lo vuelves a leer. | MATEO | Propuesta |
+| T-4889 | Hoy: la campana de avisos (sin avisos nuevos · uno · varios) | Avisos · Avisos: {n} sin leer · Avisos: {n} sin leer | MATEO | Propuesta |
+

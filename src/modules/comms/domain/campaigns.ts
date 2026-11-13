@@ -32,6 +32,7 @@ import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
 import { campaign, campaignRecipient, emailTemplate } from "../schema";
+import { recordInbox } from "./inbox";
 import { ensurePreferencesFor, listPreferencesFor } from "./preferences";
 import { campaignRoom } from "./pure";
 import {
@@ -800,6 +801,16 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
       break;
     }
     await settleRecipient(item, receipt, now);
+    if (receipt.status === "SENT") {
+      // El centro de avisos guarda lo que se le envió (ADR-166 regla 2), una vez por campaña.
+      await recordInbox(item.personId, {
+        kind: "CAMPAIGN",
+        title: rendered.subject,
+        body: rendered.text,
+        href: null,
+        dedupeKey: `campaign:${item.campaignId}`,
+      });
+    }
     if (receipt.status === "SENT" && !receipt.recovered) {
       sent += 1;
     }

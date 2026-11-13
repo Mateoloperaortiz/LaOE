@@ -263,6 +263,7 @@ Una flecha dentro de un rango o de una oración (`apertura → cierre`) y el ata
 | Recoger y mostrar la barra lateral de la Operación | `LayoutSidebarLeftCollapseIcon` · `LayoutSidebarLeftExpandIcon` |
 | La Mesa de la Operación, en la barra lateral y en su contador | `InboxIcon` |
 | La cuenta en la barra superior de la Operación, en el celular | `UserCircleIcon` |
+| La campana del centro de avisos en «Hoy» | `BellIcon` |
 | Orden de una columna de una tabla de trabajo, ascendente o descendente | `ArrowUpIcon` · `ArrowDownIcon` |
 | Abrir la ficha completa · Editar, desde un panel de detalle | `MaximizeIcon` · `PencilIcon` |
 | Abrir o cerrar un grupo de navegación; desplegar una actividad | `PlusIcon` · `MinusIcon` |

@@ -449,6 +449,13 @@
       "when": 1794003407474,
       "tag": "0063_normativa_actualizada_2026",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1794546789694,
+      "tag": "0064_centro_de_avisos",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 # ADR-160: La navegación de Mi OE: Hoy, Agenda, Asistencia, Juegos y Yo
 
-- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1 (enmendada por ADR-164)
+- Estado: Aceptada el 2026-11-08; se implementa por olas desde la ola 1 (enmendada por ADR-164 y ADR-166)
 - Fecha: 2026-11-06
 - Enmienda: [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) reglas 5 y 6; [06-mapa-del-sitio](../06-mapa-del-sitio.md), sección Mi OE
 - Relacionadas: ADR-040, ADR-044, ADR-047, ADR-049, ADR-067, ADR-074, ADR-075, ADR-158, ADR-159

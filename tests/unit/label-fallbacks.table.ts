@@ -59,6 +59,7 @@ export const FALLBACKS_BY_FILE: Record<
   "src/app/app/_ui/MemberAgenda.tsx": [0, 1, 0, 0],
   "src/app/app/_ui/PersonaTarjeta.tsx": [1, 0, 0, 0],
   "src/app/app/ajustes/page.tsx": [2, 0, 0, 0],
+  "src/app/app/avisos/page.tsx": [0, 0, 0, 2],
   "src/app/app/convocatorias/page.tsx": [1, 0, 0, 0],
   "src/app/app/gh-points/_ui/PointsNav.tsx": [1, 0, 0, 0],
   "src/app/app/gh-points/page.tsx": [1, 1, 0, 0],

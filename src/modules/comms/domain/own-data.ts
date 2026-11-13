@@ -1,12 +1,12 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { OWN_DATA_QUERY_LIMIT, ownDataCollections } from "@/shared/lib/own-data";
-import { campaignRecipient, message, pushDelivery } from "../schema";
+import { campaignRecipient, inboxItem, message, pushDelivery } from "../schema";
 
 /** El historial propio usa su tope declarado, independiente de la pestaña de cien mensajes. */
 export async function collectOwnCommsData(personId: string) {
   const db = getDb();
-  const [messages, campaignRecipients, pushDeliveries] = await Promise.all([
+  const [messages, campaignRecipients, pushDeliveries, inbox] = await Promise.all([
     db
       .select({
         id: message.id,
@@ -50,6 +50,21 @@ export async function collectOwnCommsData(personId: string) {
       .where(eq(message.personId, personId))
       .orderBy(desc(pushDelivery.createdAt), desc(pushDelivery.id))
       .limit(OWN_DATA_QUERY_LIMIT),
+    // El centro de avisos de Mi OE (ADR-166 regla 7).
+    db
+      .select({
+        id: inboxItem.id,
+        kind: inboxItem.kind,
+        title: inboxItem.title,
+        body: inboxItem.body,
+        href: inboxItem.href,
+        readAt: inboxItem.readAt,
+        createdAt: inboxItem.createdAt,
+      })
+      .from(inboxItem)
+      .where(eq(inboxItem.personId, personId))
+      .orderBy(desc(inboxItem.createdAt), desc(inboxItem.id))
+      .limit(OWN_DATA_QUERY_LIMIT),
   ]);
-  return ownDataCollections({ messages, campaignRecipients, pushDeliveries });
+  return ownDataCollections({ messages, campaignRecipients, pushDeliveries, inbox });
 }

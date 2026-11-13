@@ -830,12 +830,13 @@ describe("poller del outbox", () => {
     expect(afterRows?.n).toBe(4);
   });
 
-  it("la depuración diaria encola la de identidad, la de personas y la del sistema", async () => {
+  it("la depuración diaria encola la de identidad, la de personas, la del sistema y la de los avisos", async () => {
     const { SCHEDULE } = await import("@/jobs/schedule");
     expect(SCHEDULE.find((entry) => entry.name === "prune")?.events).toEqual([
       "identity.prune",
       "people.prune",
       "system.prune",
+      "comms.prune",
     ]);
   });
 

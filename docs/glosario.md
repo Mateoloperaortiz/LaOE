@@ -145,6 +145,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Suscripción push | `PushSubscription` | Un dispositivo de una persona que recibe notificaciones web (endpoint y claves) |
 | Preferencia de notificación | `NotificationPreference` | Qué quiere recibir cada persona: anuncios, puntos, recordatorios por push y campañas por correo; con su token de baja |
 | Bus de notificaciones | `notification.requested` | Evento único con destinatarios, textos, URL y clave de deduplicación que `comms` entrega por push respetando la preferencia |
+| Aviso del centro | `InboxItem` | Lo que le llegó a una persona por push, por correo de campaña o como momento de la casa, guardado 90 días para que lo vuelva a leer en Mi OE, con leído y no leído; nunca un código ni un enlace de acceso ([ADR-166](adr/ADR-166-el-centro-de-avisos-de-mi-oe.md)) |
 | Invitación de encuesta | `OccasionSurveyInvite` | Token propio de un asistente para responder la encuesta de una ocasión cerrada; marca que respondió, no qué |
 | Respuesta de encuesta | `OccasionSurveyResponse` | Respuesta anónima (sin persona) agregada por ocasión y comité |
 | Token del calendario | `CalendarToken` | Capacidad de solo lectura sobre la agenda propia para suscribir el calendario del celular; se regenera desde Ajustes. Se borra con la baja y con la anonimización |
