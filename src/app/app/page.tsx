@@ -7,8 +7,10 @@ import { findUpcomingEditionsForMembers } from "@/modules/events";
 import { requireActor } from "@/modules/identity";
 import {
   balanceFor,
+  COLLECTIVE_GOAL_METRICS,
   dayKeyFor,
   gameEditionFor,
+  listActiveGoals,
   listMemberAgenda,
   loadGamificationSettings,
   nextChallengeForMember,
@@ -84,13 +86,19 @@ export default async function AppHome() {
     countUnreadInbox(actor.personId),
   ]);
   const onboardingTermId = participationAllowed && mine.term && mine.isNew ? mine.term.id : null;
-  const [steps, saldo, ocasiones, permanence, todo] = await Promise.all([
+  const [steps, saldo, ocasiones, permanence, todo, goals] = await Promise.all([
     onboardingTermId ? getOnboarding(actor.personId, onboardingTermId) : Promise.resolve([]),
     mine.term ? balanceFor(actor.personId, mine.term.id) : Promise.resolve(0),
     mine.term ? listMemberAgenda(mine.term.id) : Promise.resolve([]),
     mine.term ? getPersonPermanence(actor.personId, mine.term) : Promise.resolve(null),
     loadTodo(actor.personId, mine.term?.id ?? null, participationAllowed),
+    // La meta colectiva más cercana a cumplirse (ADR-177 regla 1): una suma sin nombres.
+    listActiveGoals(
+      mine.committees.map((item) => item.committeeId),
+      dayKeyFor(new Date()),
+    ),
   ]);
+  const goal = goals[0];
   const committeeNames = new Map(
     mine.committees.map((item) => [item.committeeId, item.committeeName]),
   );
@@ -308,6 +316,24 @@ export default async function AppHome() {
               </li>
             ))}
           </ul>
+        </Block>
+      ) : null}
+
+      {goal ? (
+        <Block id="meta-del-parche" title={tList("T-4975")[0] ?? ""}>
+          <div className={`flex flex-col gap-2 p-4 ${SURFACE}`}>
+            <span className="font-semibold">{goal.title}</span>
+            <progress
+              max={goal.target}
+              value={Math.min(goal.progress, goal.target)}
+              aria-label={goal.title}
+            />
+            <span className="text-secundario text-tinta-secundaria">
+              {t("T-4976", { n: goal.progress, meta: goal.target })} ·{" "}
+              {tLabels("T-4977", COLLECTIVE_GOAL_METRICS)[goal.metric]}
+            </span>
+            {goal.done ? <span className="font-semibold">{tList("T-4975")[1]}</span> : null}
+          </div>
         </Block>
       ) : null}
 

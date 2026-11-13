@@ -44,6 +44,25 @@ import {
   listParticipationsForExport,
 } from "./domain/exports";
 import { rankGamerFromMembers } from "./domain/gamer";
+import {
+  COLLECTIVE_GOAL_METRICS,
+  type CollectiveGoalRow,
+  createGoal,
+  createReward,
+  type GoalInput,
+  getGoal,
+  getReward,
+  getRewardClaim,
+  listGoals,
+  listRewardClaims,
+  listRewards,
+  markRewardDelivered,
+  type RewardClaimRow,
+  type RewardInput,
+  type ThresholdRewardRow,
+  updateGoal,
+  updateReward,
+} from "./domain/goals";
 import { type LedgerListRow, listLedger } from "./domain/ledger";
 import { POINT_ENTRY_KINDS } from "./domain/ledger-pure";
 import {
@@ -818,5 +837,228 @@ export const aliasesResource: ResourceDefinition<AliasRow, AliasInput> = {
     ruta: row.path,
     ocasion: row.occasionTitle,
     creado: row.createdAt.toISOString(),
+  }),
+};
+
+// La capa social en la Operación (ADR-177): metas colectivas, recompensas por umbral y sus entregas.
+
+const [metasPlural, metasSingular] = tList("T-4986");
+const metaCampos = tList("T-4987");
+const goalMetricLabels = tLabels("T-4977", COLLECTIVE_GOAL_METRICS);
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+export const goalInputSchema = z
+  .object({
+    title: z.string().trim().min(2).max(120),
+    metric: z.enum(COLLECTIVE_GOAL_METRICS),
+    target: z.coerce.number().int().min(1).max(1_000_000),
+    committeeId: z.string().trim().min(1).optional(),
+    startsOn: z.string().regex(DAY),
+    endsOn: z.string().regex(DAY),
+  })
+  .refine((input) => input.endsOn >= input.startsOn, { path: ["endsOn"] });
+
+export const collectiveGoalsResource: ResourceDefinition<CollectiveGoalRow, GoalInput> = {
+  key: "metas-colectivas",
+  names: { plural: metasPlural ?? "", singular: metasSingular ?? "" },
+  basePath: "/admin/gamificacion/metas",
+  columns: [
+    { key: "title", label: metaCampos[0] ?? "", render: (row) => row.title },
+    {
+      key: "metric",
+      label: metaCampos[1] ?? "",
+      render: (row) => goalMetricLabels[row.metric] ?? row.metric,
+    },
+    { key: "target", label: metaCampos[2] ?? "", render: (row) => row.target },
+    {
+      key: "dates",
+      label: `${metaCampos[4] ?? ""} – ${metaCampos[5] ?? ""}`,
+      render: (row) => `${row.startsOn} – ${row.endsOn}`,
+    },
+  ],
+  schema: goalInputSchema,
+  fields: async () => {
+    const committees = await listCommitteesForSelection();
+    return [
+      { name: "title", label: metaCampos[0] ?? "", type: "text", required: true },
+      {
+        name: "metric",
+        label: metaCampos[1] ?? "",
+        type: "select",
+        required: true,
+        options: COLLECTIVE_GOAL_METRICS.map((metric) => ({
+          value: metric,
+          label: goalMetricLabels[metric] ?? metric,
+        })),
+      },
+      { name: "target", label: metaCampos[2] ?? "", type: "number", required: true },
+      {
+        name: "committeeId",
+        label: metaCampos[3] ?? "",
+        type: "select",
+        options: committees.map((item) => ({ value: item.id, label: item.name })),
+      },
+      { name: "startsOn", label: metaCampos[4] ?? "", type: "date", required: true },
+      { name: "endsOn", label: metaCampos[5] ?? "", type: "date", required: true },
+    ];
+  },
+  list: (params) => listGoals({ page: params.page, pageSize: params.pageSize }),
+  get: getGoal,
+  toFormValues: (row) => ({
+    title: row.title,
+    metric: row.metric,
+    target: String(row.target),
+    committeeId: row.committeeId ?? "",
+    startsOn: row.startsOn,
+    endsOn: row.endsOn,
+  }),
+  create: (actor, input) => runCommand(actor, (ctx) => createGoal(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateGoal(ctx, id, input)),
+  inlineEdit: { title: "title", target: "target" },
+  personalData: false,
+  exportRow: (row) => ({
+    titulo: row.title,
+    metrica: row.metric,
+    meta: row.target,
+    comite: row.committeeId,
+    desde: row.startsOn,
+    hasta: row.endsOn,
+  }),
+};
+
+const [recompensasPlural, recompensasSingular] = tList("T-4988");
+const recompensaCampos = tList("T-4989");
+
+export const rewardInputSchema = z.object({
+  termId: z.string().trim().min(1),
+  points: z.coerce.number().int().min(1).max(100_000),
+  title: z.string().trim().min(2).max(80),
+  description: z.string().trim().max(500).optional(),
+});
+
+export const thresholdRewardsResource: ResourceDefinition<ThresholdRewardRow, RewardInput> = {
+  key: "recompensas",
+  names: { plural: recompensasPlural ?? "", singular: recompensasSingular ?? "" },
+  basePath: "/admin/gamificacion/recompensas",
+  columns: [
+    { key: "title", label: recompensaCampos[2] ?? "", render: (row) => row.title },
+    { key: "points", label: recompensaCampos[1] ?? "", render: (row) => row.points },
+  ],
+  schema: rewardInputSchema,
+  fields: async () => {
+    const terms = await listAllTerms();
+    return [
+      {
+        name: "termId",
+        label: recompensaCampos[0] ?? "",
+        type: "select",
+        required: true,
+        options: terms.map((term) => ({ value: term.id, label: term.code })),
+      },
+      { name: "points", label: recompensaCampos[1] ?? "", type: "number", required: true },
+      { name: "title", label: recompensaCampos[2] ?? "", type: "text", required: true },
+      { name: "description", label: recompensaCampos[3] ?? "", type: "textarea" },
+    ];
+  },
+  list: (params) => listRewards({ page: params.page, pageSize: params.pageSize }),
+  get: getReward,
+  toFormValues: (row) => ({
+    termId: row.termId,
+    points: String(row.points),
+    title: row.title,
+    description: row.description,
+  }),
+  create: (actor, input) => runCommand(actor, (ctx) => createReward(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateReward(ctx, id, input)),
+  inlineEdit: { title: "title", points: "points" },
+  personalData: false,
+  exportRow: (row) => ({ titulo: row.title, puntos: row.points, semestre: row.termId }),
+};
+
+const [
+  entregasPlural,
+  entregasSingular,
+  entregaPersona,
+  entregaRecompensa,
+  entregaReclamada,
+  entregaEntregada,
+  marcarEntregada,
+  entregaPendiente,
+] = tList("T-4990");
+
+interface RewardClaimView extends RewardClaimRow {
+  personName: string;
+}
+
+async function claimViews(rows: RewardClaimRow[]): Promise<RewardClaimView[]> {
+  const people = await getPeopleByIds(rows.map((row) => row.personId));
+  return rows.map((row) => ({
+    ...row,
+    personName: people.get(row.personId)?.fullName?.trim() ?? "",
+  }));
+}
+
+export const rewardClaimsResource: ResourceDefinition<RewardClaimView, Record<string, never>> = {
+  key: "entregas-de-recompensas",
+  names: { plural: entregasPlural ?? "", singular: entregasSingular ?? "" },
+  basePath: "/admin/gamificacion/entregas",
+  columns: [
+    { key: "person", label: entregaPersona ?? "", render: (row) => row.personName },
+    { key: "reward", label: entregaRecompensa ?? "", render: (row) => row.rewardTitle },
+    {
+      key: "claimedAt",
+      label: entregaReclamada ?? "",
+      render: (row) => formatDateTime(row.claimedAt),
+    },
+    {
+      key: "deliveredAt",
+      label: entregaEntregada ?? "",
+      render: (row) =>
+        row.deliveredAt
+          ? formatDateTime(row.deliveredAt)
+          : { text: entregaPendiente ?? "", badge: "naranja" },
+    },
+  ],
+  filters: [
+    {
+      key: "estado",
+      label: entregaEntregada ?? "",
+      options: [
+        { value: "pendiente", label: entregaPendiente ?? "" },
+        { value: "entregada", label: entregaEntregada ?? "" },
+      ],
+    },
+  ],
+  schema: z.object({}),
+  fields: [],
+  list: async (params) => {
+    const state = params.filters.estado;
+    const result = await listRewardClaims({
+      pending: state === "pendiente" ? true : state === "entregada" ? false : null,
+      page: params.page,
+      pageSize: params.pageSize,
+    });
+    return { total: result.total, rows: await claimViews(result.rows) };
+  },
+  get: async (id) => {
+    const row = await getRewardClaim(id);
+    return row ? ((await claimViews([row]))[0] ?? null) : null;
+  },
+  toFormValues: () => ({}),
+  rowActions: [
+    { key: "deliver", label: marcarEntregada ?? "", applies: (row) => row.deliveredAt === null },
+  ],
+  batchActions: ["deliver"],
+  runRowAction: async (actor, actionKey, id) => {
+    if (actionKey === "deliver") {
+      await runCommand(actor, (ctx) => markRewardDelivered(ctx, id));
+    }
+  },
+  personalData: true,
+  exportRow: (row) => ({
+    persona: row.personName,
+    recompensa: row.rewardTitle,
+    reclamada: formatDateTime(row.claimedAt),
+    entregada: row.deliveredAt ? formatDateTime(row.deliveredAt) : null,
   }),
 };

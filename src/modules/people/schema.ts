@@ -84,6 +84,8 @@ export const person = pgTable(
     sessionsRevokedAt: timestampTz(),
     deletionRequestedAt: timestampTz(),
     anonymizedAt: timestampTz(),
+    // La actividad en la capa social se ve solo si la persona la prende (ADR-175 regla 1).
+    socialVisible: boolean().notNull().default(false),
     legacyId: text(), // id de Member en GHPOINTS
     createdAt: createdAt(),
     updatedAt: updatedAt(),

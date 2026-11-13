@@ -4,6 +4,13 @@ export type { ColorResult } from "./color-types";
 export { listAgendaForPerson } from "./domain/agenda";
 export { agendaEntries } from "./domain/agenda-pure";
 export {
+  APPLAUSE_MAX,
+  deleteApplauseAs,
+  giveApplauseAs,
+  listApplauseReceived,
+  listCommitteeApplause,
+} from "./domain/applause";
+export {
   assemblyAdjustmentsFor,
   assemblyOverview,
   assemblyStatusFor,
@@ -155,6 +162,14 @@ export {
 export { getGamificationLaunch, setGamificationEnabledAs } from "./domain/gamification-launch";
 export { gamificationOverview } from "./domain/gamification-metrics";
 export { dayKeyFor, gameEditionFor, isVoluntaryOccasion } from "./domain/gamification-pure";
+export {
+  COLLECTIVE_GOAL_METRICS,
+  claimRewardAs,
+  listActiveGoals,
+  listRewardsFor,
+} from "./domain/goals";
+export { LEAGUE_TIERS } from "./domain/league-pure";
+export { myLeague } from "./domain/leagues";
 export {
   balanceFor,
   type LedgerListRow,

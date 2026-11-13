@@ -93,10 +93,16 @@ export default async function JuegosPage({ searchParams }: PageProps<"/app/juego
           <h1 className="text-display-lg">{t("T-2621")}</h1>
           <p className={styles.intro}>{t("T-3486")}</p>
         </div>
-        <Link href="#mas-gamer" className={styles.rankingLink}>
-          {t("T-3400")}
-          <ArrowRightIcon />
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/app/juegos/liga" className={styles.rankingLink}>
+            {tList("T-4982")[0]}
+            <ArrowRightIcon />
+          </Link>
+          <Link href="#mas-gamer" className={styles.rankingLink}>
+            {t("T-3400")}
+            <ArrowRightIcon />
+          </Link>
+        </div>
       </header>
 
       <section className={styles.feature} aria-labelledby="color-feature-title">

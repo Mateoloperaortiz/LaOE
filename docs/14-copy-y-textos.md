@@ -3442,3 +3442,35 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | T-4963 | «Tu semestre en la OE»: tus comités | Tus comités | MATEO | Propuesta |
 | T-4964 | Centro de avisos: «Tu semestre en la OE» al cerrar la permanencia (título · texto) | Ya está tu semestre en la OE · Mira lo que hiciste este semestre en la OE. | MATEO | Propuesta |
 
+### Ola 3: la capa social (ADR-175 a ADR-178)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4965 | Ajustes, comunidad: título · casilla · qué significa · guardar | Comunidad · Mostrar mi actividad en la comunidad · Si la prendes, tus aplausos en tu comité y tu liga de la semana se ven en la comunidad. Si la apagas, todo vuelve a ser privado desde ya. · Guardar | MATEO | Propuesta |
+| T-4966 | Ajustes, comunidad: lo guardado (prendida · apagada) | Listo: tu actividad se ve en la comunidad. · Listo: tu actividad es privada. | MATEO | Propuesta |
+| T-4967 | Muro de un comité: título | Muro de {comité} | MATEO | Propuesta |
+| T-4968 | Aplauso: largo del mensaje | El aplauso va de 2 a {n} caracteres. | MATEO | Propuesta |
+| T-4969 | Aplauso: a quien no es del comité o a sí mismo | Solo aplaudes a otra persona de tu comité este semestre. | MATEO | Propuesta |
+| T-4970 | Aplauso: tope del día | Ya diste {n} aplausos hoy: vuelve mañana. | MATEO | Propuesta |
+| T-4971 | Aviso de un aplauso recibido: título | Te aplaudieron | MATEO | Propuesta |
+| T-4972 | Muro: aplaudir · a quién · mensaje · aplausos · reconocimientos · metas · sin aplausos · borrar | Aplaudir · A quién · Mensaje · Aplausos · Reconocimientos · Metas del comité · Todavía no hay aplausos en el muro. · Borrar | MATEO | Propuesta |
+| T-4973 | Muro: quién aplaudió a quién | {de} aplaudió a {a} | MATEO | Propuesta |
+| T-4974 | «Yo»: aplausos recibidos · sin aplausos · muros | Aplausos que recibiste · Todavía no te han aplaudido. · Muros de tus comités | MATEO | Propuesta |
+| T-4975 | Meta colectiva: título del bloque · cumplida | Meta del parche · ¡Meta cumplida! | MATEO | Propuesta |
+| T-4976 | Meta colectiva: avance | {n} de {meta} | MATEO | Propuesta |
+| T-4977 | Meta colectiva: qué cuenta, en el orden de COLLECTIVE_GOAL_METRICS | asistencias · retos completados · partidas | MATEO | Propuesta |
+| T-4978 | GH Points, recompensas: título · reclamar · reclamada · entregada | Recompensas del semestre · Reclamar · Reclamada · Entregada | MATEO | Propuesta |
+| T-4979 | Recompensa: lo que falta | Te faltan {n} GH Points | MATEO | Propuesta |
+| T-4980 | Recompensa: reclamar sin saldo | Todavía no te alcanza para esta recompensa. | MATEO | Propuesta |
+| T-4981 | Recompensa: ya reclamada | Ya reclamaste esta recompensa. | MATEO | Propuesta |
+| T-4982 | Juegos, liga: título · cómo entrar · tabla · cómo se sube | Tu liga · Prende tu actividad en la comunidad, en tus ajustes, para entrar a las ligas. · Tabla de la semana · Los primeros cinco que sumen suben de liga el lunes. | MATEO | Propuesta |
+| T-4983 | Ligas, en el orden de LEAGUE_TIERS | Bronce · Plata · Oro · Diamante | MATEO | Propuesta |
+| T-4984 | Liga: el momento del ascenso | ¡Subiste a {liga}! | MATEO | Propuesta |
+| T-4985 | Liga: puntos de la semana | {n} GH Points esta semana | MATEO | Propuesta |
+| T-4986 | Admin: metas colectivas (plural · singular) | Metas colectivas · Meta colectiva | MATEO | Propuesta |
+| T-4987 | Admin, meta colectiva: campos | Título · Qué cuenta · Meta · Comité (vacío: toda la OE) · Desde · Hasta | MATEO | Propuesta |
+| T-4988 | Admin: recompensas por umbral (plural · singular) | Recompensas por umbral · Recompensa por umbral | MATEO | Propuesta |
+| T-4989 | Admin, recompensa: campos | Semestre · GH Points · Título · Descripción | MATEO | Propuesta |
+| T-4990 | Admin: entregas de recompensas (plural · singular · persona · recompensa · reclamada · entregada · marcar entregada · pendiente) | Entregas de recompensas · Entrega · Persona · Recompensa · Reclamada · Entregada · Marcar entregada · Pendiente | MATEO | Propuesta |
+| T-4991 | Admin, meta de un comité: solo asistencias | Una meta de un comité solo cuenta asistencias. | MATEO | Propuesta |
+

@@ -29,6 +29,7 @@ vi.mock("@/modules/participation", async () => {
     POINT_ENTRY_KINDS,
     ASSEMBLY_KINDS,
     balanceFor: async () => 0,
+    listRewardsFor: async () => [],
     listEntriesFor: async () => [],
     peopleBoards: () => ({}),
     assemblyStatusFor: async () => ({ assemblies: [] }),

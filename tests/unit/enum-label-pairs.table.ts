@@ -62,6 +62,8 @@ import {
 } from "@/modules/participation/domain/check-in-pure";
 import { checkInStatusLabel } from "@/modules/participation/domain/check-in-transition";
 import { VIABILITY_ALERTS } from "@/modules/participation/domain/committee-viability-pure";
+import { COLLECTIVE_GOAL_METRICS } from "@/modules/participation/domain/goals";
+import { LEAGUE_TIERS } from "@/modules/participation/domain/league-pure";
 import { POINT_ENTRY_KINDS } from "@/modules/participation/domain/ledger-pure";
 import {
   ASSEMBLY_KINDS,
@@ -927,6 +929,18 @@ export const PAIRS: readonly LabelPair[] = [
     order: "TODO_KINDS",
     positions: { evidence: 0, availability: 1, call: 2, request: 3, survey: 4 },
     canonical: TODO_KINDS,
+  },
+  {
+    code: "T-4977",
+    order: "COLLECTIVE_GOAL_METRICS",
+    positions: { CHECKINS: 0, CHALLENGES: 1, GAMES: 2 },
+    canonical: COLLECTIVE_GOAL_METRICS,
+  },
+  {
+    code: "T-4983",
+    order: "LEAGUE_TIERS",
+    positions: { BRONCE: 0, PLATA: 1, ORO: 2, DIAMANTE: 3 },
+    canonical: LEAGUE_TIERS,
   },
   {
     code: "T-4962",

@@ -19,6 +19,7 @@ import {
   canParticipate,
   formatBirthDate,
   getPersonRecord,
+  getSocialVisible,
   listConsents,
   SELF_MANAGED_PURPOSES,
 } from "@/modules/people";
@@ -36,6 +37,7 @@ import {
   requestDeletionAction,
   rotateCalendarAction,
   setPhotoAction,
+  socialVisibilityAction,
 } from "./actions";
 import { PasswordForm } from "./PasswordForm";
 import { SettingsFormBody } from "./SettingsFormBody";
@@ -63,7 +65,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
   const error = typeof params.error === "string" ? params.error : "";
   const confirmar = params.confirmar === "1";
   const downloadPending = isDownloadPending(params);
-  const [who, consents, sessions, deletionDays, policy, devices, preferences, tieneClave] =
+  const [who, consents, sessions, deletionDays, policy, devices, preferences, tieneClave, social] =
     await Promise.all([
       getPersonRecord(actor.personId),
       listConsents(actor.personId),
@@ -73,6 +75,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
       listSubscriptionsFor(actor.personId),
       getPreferences(actor.personId),
       hasPassword(actor.personId),
+      getSocialVisible(actor.personId),
     ]);
 
   const vapidPublicKey = getEnv().VAPID_PUBLIC_KEY ?? null;
@@ -277,6 +280,27 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
           ) : null}
           <h3 className="text-display-md">{t("T-1079")}</h3>
           <PreferencesForm items={preferencias} />
+
+          <div id="comunidad" className="flex flex-col gap-4">
+            <h3 className="text-display-md">{tList("T-4965")[0]}</h3>
+            <p className="max-w-prose text-sm text-tinta-suave">{tList("T-4965")[2]}</p>
+            <ActionForm action={socialVisibilityAction} className="flex flex-col items-start gap-3">
+              <SettingsFormBody>
+                <label className="flex items-center gap-3 font-semibold">
+                  <input type="checkbox" name="socialVisible" defaultChecked={social} />
+                  {tList("T-4965")[1]}
+                </label>
+                <button type="submit" className="boton-secundario text-sm">
+                  {tList("T-4965")[3]}
+                </button>
+                {guardado === "comunidad-on" || guardado === "comunidad-off" ? (
+                  <output className="block text-sm font-semibold text-titulo">
+                    {tList("T-4966")[guardado === "comunidad-on" ? 0 : 1]}
+                  </output>
+                ) : null}
+              </SettingsFormBody>
+            </ActionForm>
+          </div>
         </section>
 
         {calendarUrl ? (

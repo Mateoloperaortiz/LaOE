@@ -25,7 +25,7 @@ export async function generateMetadata({
 
 export default async function ComiteInternoPage({ params }: PageProps<"/app/comites/[slug]">) {
   const { slug } = await params;
-  await requireActor(`/app/comites/${slug}`);
+  const actor = await requireActor(`/app/comites/${slug}`);
   const roster = await listInternalRoster(slug);
   if (!roster) {
     notFound();
@@ -72,6 +72,12 @@ export default async function ComiteInternoPage({ params }: PageProps<"/app/comi
           >
             {t("T-024")}
           </a>
+        ) : null}
+        {/* El muro es de quienes están en el comité este semestre (ADR-176 regla 2). */}
+        {term && members.some((member) => member.personId === actor.personId) ? (
+          <Link href={`/app/comites/${slug}/muro`} className="boton-primario self-start">
+            {t("T-4967", { comité: committee.name })}
+          </Link>
         ) : null}
       </section>
       <section aria-labelledby="cartelera-comite" className="flex flex-col gap-6">

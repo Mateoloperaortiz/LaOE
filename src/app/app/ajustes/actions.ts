@@ -21,6 +21,7 @@ import {
   requestDeletionAs,
   revokeConsentAs,
   setOwnPhotoAs,
+  setSocialVisibleAs,
   updateOwnContactAs,
 } from "@/modules/people";
 import { PrivacyPolicyPendingError } from "@/modules/system";
@@ -248,4 +249,13 @@ export async function changePasswordAction(
   }
   revalidatePath("/app/ajustes");
   return { status: "done", message: t("T-2116"), closed: result.closed };
+}
+
+/** Prender o apagar la actividad en la comunidad (ADR-175 regla 1). */
+export async function socialVisibilityAction(formData: FormData): Promise<void> {
+  const actor = await requireOwnActor();
+  const visible = formRaw(formData, "socialVisible") === "on";
+  await setSocialVisibleAs(await actorContext(actor), visible);
+  revalidatePath("/app/ajustes");
+  back("notificaciones", { guardado: visible ? "comunidad-on" : "comunidad-off" });
 }

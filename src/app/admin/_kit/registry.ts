@@ -17,10 +17,13 @@ import {
   assembliesResource,
   challengeParticipationsResource,
   checkInsResource,
+  collectiveGoalsResource,
   gamerRankingsResource,
   ledgerResource,
   occasionsResource,
   rankingsResource,
+  rewardClaimsResource,
+  thresholdRewardsResource,
 } from "@/modules/participation/admin";
 import { listCommitteesForSelection } from "@/modules/people";
 import {
@@ -205,6 +208,9 @@ const registered: AnyResource[] = [
   erased(messagesResource),
   erased(templatesResource),
   erased(campaignsResource),
+  erased(collectiveGoalsResource),
+  erased(thresholdRewardsResource),
+  erased(rewardClaimsResource),
 ];
 
 const resources = indexResources(registered);

@@ -13,6 +13,10 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-178](ADR-178-las-ligas-semanales.md) | Las ligas semanales | Propuesta |
+| [ADR-177](ADR-177-metas-colectivas-y-recompensas-por-umbral.md) | Metas colectivas y recompensas por umbral | Propuesta |
+| [ADR-176](ADR-176-aplausos-y-el-muro-del-comite.md) | Aplausos y el muro del comité | Propuesta |
+| [ADR-175](ADR-175-la-capa-social-y-su-politica-de-datos.md) | La capa social y su política de datos | Propuesta |
 | [ADR-174](ADR-174-las-encuestas-pendientes-se-abren-desde-te-toca.md) | Las encuestas pendientes se abren desde «Te toca» | Propuesta |
 | [ADR-173](ADR-173-tu-semestre-en-la-oe.md) | «Tu semestre en la OE» | Propuesta |
 | [ADR-172](ADR-172-el-empalme-entre-semestres.md) | El empalme entre semestres | Propuesta |

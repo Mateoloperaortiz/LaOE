@@ -28,6 +28,7 @@ import { requireConfig } from "@/modules/system";
 import { findTermByCode, getCurrentTerm, getTerm, nextTermCode } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { deleteApplauseFor } from "./domain/applause";
 import {
   awardSpecialBadgesForChallenge,
   awardSpecialBadgesForOccasion,
@@ -39,6 +40,7 @@ import { scrubStandingName } from "./domain/closing";
 import { recomputeCommitteeAssembly } from "./domain/committee-assembly";
 import { deleteEvidenceFor, processEvidenceFile } from "./domain/evidence";
 import { runGamerStreakReminder } from "./domain/gamer-streak-reminder";
+import { closeLeagueWeek, deleteLeagueStandingsFor } from "./domain/leagues";
 import { isAutoCloseDue } from "./domain/occasion-pure";
 import { closeOccasion, getOccasion, listOccasionsForTerm } from "./domain/occasions";
 import { reconcilePresenceBonuses, reconcileTermPresenceBonuses } from "./domain/presence-streak";
@@ -241,8 +243,11 @@ onEvent(personAnonymized, async ({ personId }, ctx) => {
   const featured = await clearFeaturedBadges(personId);
   const excuses = await clearExcuseReasonsFor(personId);
   const evidence = await deleteEvidenceFor(personId);
+  // La capa social (ADR-176 regla 4, ADR-178): sus aplausos y sus ligas se van.
+  const applause = await deleteApplauseFor(personId);
+  const leagues = await deleteLeagueStandingsFor(personId);
   ctx.log.info(
-    { personId, changed, invites, featured, excuses, evidence },
+    { personId, changed, invites, featured, excuses, evidence, applause, leagues },
     "participación anonimizada",
   );
 });
@@ -276,4 +281,10 @@ onEvent(evidenceProcess, async ({ fileId }, ctx) => {
 onEvent(gamificationReconcile, async ({ runId, batch }, ctx) => {
   const result = await processReconciliationBatch(runId);
   ctx.log.info({ runId, batch, ...result }, "lote de conciliación procesado");
+});
+
+// Ligas semanales (ADR-178 regla 3): el programado del lunes cierra la semana anterior.
+registerHandler("participation.league-close", async (_payload, ctx) => {
+  const { moved } = await closeLeagueWeek();
+  ctx.log.info({ moved }, "semana de ligas cerrada");
 });

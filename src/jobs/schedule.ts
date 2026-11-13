@@ -42,6 +42,8 @@ export const SCHEDULE: ScheduleEntry[] = [
     events: ["identity.prune", "people.prune", "system.prune", "comms.prune"],
   },
   { name: "backup-check", cron: "30 3 * * *", events: ["system.backup-check"] },
+  // Ligas semanales (ADR-178 regla 3): el lunes temprano cierra la semana anterior; es idempotente.
+  { name: "league-close", cron: "15 0 * * 1", events: ["participation.league-close"] },
   // Relleno de la variante completa de los medios de antes (ADR-114 regla 8): cada hora arranca una
   // pasada, que sigue sola por lotes. Sin medios por rellenar es una consulta.
   { name: "media-backfill", cron: "20 * * * *", events: [mediaBackfill.type] },

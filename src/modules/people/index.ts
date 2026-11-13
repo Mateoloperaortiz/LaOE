@@ -227,6 +227,13 @@ export {
   getSegment,
   listAllSegments,
 } from "./domain/segments";
+export {
+  committeeMembersAmong,
+  getSocialVisible,
+  listCommitteeMates,
+  setSocialVisibleAs,
+  socialVisibleIds,
+} from "./domain/social";
 export { markApplicant } from "./domain/stage";
 export { addPersonTags, listAllTags, listPersonTags, type TagRow } from "./domain/tags";
 export { probationInputSchema } from "./domain/term-outcomes";

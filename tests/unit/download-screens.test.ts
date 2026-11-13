@@ -181,6 +181,7 @@ vi.mock("@/modules/people", () => ({
   canParticipate: () => false,
   formatBirthDate: () => "",
   getPersonRecord: async () => null,
+  getSocialVisible: async () => false,
   listConsents: async () => [],
   getPeopleByIds: async () => new Map(),
   listCommitteesForSelection: async () => [],
@@ -224,6 +225,7 @@ vi.mock("@/app/app/ajustes/actions", () =>
     "requestDeletionAction",
     "rotateCalendarAction",
     "setPhotoAction",
+    "socialVisibilityAction",
   ),
 );
 vi.mock("@/app/admin/permanencia/cumplimiento/actions", () => fake.stubs("recomputeAction"));

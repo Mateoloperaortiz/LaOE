@@ -194,6 +194,8 @@ const GENERIC_PERSON_COLUMNS = new Set([
   "id",
   "kind",
   "legacyId",
+  // La preferencia de la capa social (ADR-175): no identifica a nadie ni sale en ningún exporte.
+  "socialVisible",
   "source",
   "stage",
   "updatedAt",
@@ -466,6 +468,10 @@ function unmarkedPersonColumns(
  */
 const REVIEWED_PATHS: Record<string, readonly string[]> = {
   alias: ["createdAt", "createdAt.toISOString", "occasionTitle", "path"],
+  // Metas colectivas y recompensas (ADR-177): título, métrica, números, fechas y el id del comité o del
+  // semestre; ninguna dice quién.
+  "metas-colectivas": ["committeeId", "endsOn", "metric", "startsOn", "target", "title"],
+  recompensas: ["points", "termId", "title"],
   campanas: [
     "campaignStatusLabel()",
     "failedCount",
@@ -711,6 +717,7 @@ describe("marca de datos personales en el registro del admin", () => {
     expect(marked.map((resource) => resource.key).sort()).toEqual([
       "asambleas",
       "check-ins",
+      "entregas-de-recompensas",
       "gamer-rankings",
       "grupos",
       "horario-preferencial",

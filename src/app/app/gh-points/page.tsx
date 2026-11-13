@@ -10,6 +10,7 @@ import {
   levelCutoffsForTerm,
   levelFor,
   listEntriesFor,
+  listRewardsFor,
   loadGamificationSettings,
   nextChallengeForMember,
   POINT_ENTRY_KINDS,
@@ -24,12 +25,14 @@ import { PresenceStreak } from "@/modules/participation/components/PresenceStrea
 import { getMembershipRef, listCommitteesByIds } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Cartel, Insignia, Numeral, SelloOE } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Vacio } from "../_ui/Vacio";
+import { claimRewardAction } from "./actions";
 import { CommitteePodium, type CommitteePodiumEntry } from "./CommitteePodium";
 import { markSeenAction } from "./coleccion/actions";
 
@@ -78,13 +81,15 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
 
   // El puesto propio y el top 10 salen de los mismos tableros: se arman una vez por vista.
   const boards = peopleBoards(term.id);
-  const [total, entries, position, assemblies, presenceStreak] = await Promise.all([
+  const [total, entries, position, assemblies, presenceStreak, rewards] = await Promise.all([
     balanceFor(actor.personId, term.id),
     listEntriesFor(actor.personId, term.id),
     membership ? boards.position(actor.personId, membership.firstTermId) : Promise.resolve(null),
     assemblyStatusFor(actor.personId, term),
     getPresenceStreak(actor.personId, term.id),
+    listRewardsFor(actor.personId, term.id),
   ]);
+  const [recompensasTitulo, reclamar, reclamada, entregada] = tList("T-4978");
   const assemblyKindLabels = tLabels("T-546", ASSEMBLY_KINDS);
   const [firmada, pendienteAsamblea, noFuiste] = tList("T-547");
   const requiredTotalCount = requiredTotal(assemblies.requirement);
@@ -249,6 +254,60 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
       </Cartel>
 
       <PresenceStreak streak={presenceStreak} />
+
+      {rewards.length > 0 ? (
+        <section
+          id="recompensas"
+          aria-labelledby="recompensas-titulo"
+          className="flex flex-col gap-3"
+        >
+          <h2 id="recompensas-titulo" className="text-display-md">
+            {recompensasTitulo}
+          </h2>
+          {single(search.recompensa) === "1" ? (
+            <output className="block font-semibold text-titulo">{t("T-259")}</output>
+          ) : null}
+          {single(search.recompensa_error) ? (
+            <p role="alert" className="font-semibold text-oe-orange">
+              {single(search.recompensa_error)}
+            </p>
+          ) : null}
+          <ul className="m-0 flex list-none flex-col gap-3 p-0">
+            {rewards.map((reward) => (
+              <li key={reward.id} className="flex flex-col gap-2 rounded-tarjeta bg-superficie p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-semibold">{reward.title}</span>
+                  <span className="text-secundario text-tinta-secundaria">
+                    {t("T-3436", { n: reward.points })}
+                  </span>
+                </div>
+                {reward.description ? <p className="text-sm">{reward.description}</p> : null}
+                <progress
+                  max={reward.points}
+                  value={Math.min(total, reward.points)}
+                  aria-label={reward.title}
+                />
+                {reward.deliveredAt ? (
+                  <span className="etiqueta-corta text-tinta-secundaria">{entregada}</span>
+                ) : reward.claimedAt ? (
+                  <span className="etiqueta-corta text-tinta-secundaria">{reclamada}</span>
+                ) : total >= reward.points ? (
+                  <ActionForm action={claimRewardAction}>
+                    <input type="hidden" name="rewardId" value={reward.id} />
+                    <AdminSubmitButton type="submit" className="boton-primario self-start">
+                      {reclamar}
+                    </AdminSubmitButton>
+                  </ActionForm>
+                ) : (
+                  <span className="text-secundario text-tinta-secundaria">
+                    {t("T-4979", { n: reward.points - total })}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <details className="text-sm">
         <summary className="cursor-pointer font-semibold">{t("T-3435")}</summary>

@@ -1238,3 +1238,116 @@ export const badgeReconciliationRun = pgTable("badge_reconciliation_run", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
+
+// La capa social (ADR-175 a ADR-178). Lo que ve otra persona depende de `person.socialVisible`.
+
+// Aplausos entre miembros de un mismo comité (ADR-176).
+export const applause = pgTable(
+  "applause",
+  {
+    id: id(),
+    fromPersonId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    toPersonId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    committeeId: text()
+      .notNull()
+      .references(() => committee.id, { onDelete: "cascade" }),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    message: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("applause_committee_idx").on(t.committeeId, t.createdAt),
+    index("applause_to_idx").on(t.toPersonId, t.createdAt),
+    index("applause_from_idx").on(t.fromPersonId, t.createdAt),
+    check("applause_not_self", sql`${t.fromPersonId} <> ${t.toPersonId}`),
+  ],
+);
+
+// Metas colectivas (ADR-177 regla 1): un número que se alcanza entre todos en un rango de fechas.
+export const collectiveGoalMetric = pgEnum("collective_goal_metric", [
+  "CHECKINS",
+  "CHALLENGES",
+  "GAMES",
+]);
+
+export const collectiveGoal = pgTable(
+  "collective_goal",
+  {
+    id: id(),
+    title: text().notNull(),
+    metric: collectiveGoalMetric().notNull(),
+    target: integer().notNull(),
+    committeeId: text().references(() => committee.id, { onDelete: "cascade" }),
+    startsOn: date({ mode: "string" }).notNull(),
+    endsOn: date({ mode: "string" }).notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    check("collective_goal_target_positive", sql`${t.target} > 0`),
+    check("collective_goal_dates_ordered", sql`${t.endsOn} >= ${t.startsOn}`),
+    index("collective_goal_dates_idx").on(t.startsOn, t.endsOn),
+  ],
+);
+
+// Recompensas por umbral (ADR-177 regla 2): reclamar no toca el libro de puntos.
+export const thresholdReward = pgTable(
+  "threshold_reward",
+  {
+    id: id(),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    points: integer().notNull(),
+    title: text().notNull(),
+    description: text().notNull().default(""),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    check("threshold_reward_points_positive", sql`${t.points} > 0`),
+    uniqueIndex("threshold_reward_term_title_unique").on(t.termId, t.title),
+  ],
+);
+
+export const thresholdRewardClaim = pgTable(
+  "threshold_reward_claim",
+  {
+    id: id(),
+    rewardId: text()
+      .notNull()
+      .references(() => thresholdReward.id, { onDelete: "cascade" }),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    claimedAt: createdAt(),
+    deliveredAt: timestampTz(),
+  },
+  (t) => [uniqueIndex("threshold_reward_claim_unique").on(t.rewardId, t.personId)],
+);
+
+// Ligas semanales (ADR-178): la liga de cada persona en cada semana (lunes, hora de la OE).
+export const leagueTier = pgEnum("league_tier", ["BRONCE", "PLATA", "ORO", "DIAMANTE"]);
+
+export const leagueStanding = pgTable(
+  "league_standing",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    weekStart: date({ mode: "string" }).notNull(),
+    tier: leagueTier().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("league_standing_person_week_unique").on(t.personId, t.weekStart),
+    index("league_standing_week_tier_idx").on(t.weekStart, t.tier),
+  ],
+);

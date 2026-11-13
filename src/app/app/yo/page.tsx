@@ -3,7 +3,11 @@ import type { ReactNode } from "react";
 import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { requireActor } from "@/modules/identity";
 import { SignOutForm } from "@/modules/identity/components/SignOutForm";
-import { balanceFor, listAchievementsForPerson } from "@/modules/participation";
+import {
+  balanceFor,
+  listAchievementsForPerson,
+  listApplauseReceived,
+} from "@/modules/participation";
 import { BadgeArt } from "@/modules/participation/components/BadgeArt";
 import { getMyMembership } from "@/modules/people";
 import { t, tList } from "@/shared/copy";
@@ -58,11 +62,13 @@ function Group({
 
 export default async function YoPage() {
   const actor = await requireActor("/app/yo");
-  const [mine, roles, achievements] = await Promise.all([
+  const [mine, roles, achievements, applause] = await Promise.all([
     getMyMembership(actor.personId),
     adminAreaRoles(actor),
     listAchievementsForPerson(actor.personId),
+    listApplauseReceived(actor.personId, 5),
   ]);
+  const [aplausosTitulo, sinAplausos] = tList("T-4974");
   const recentBadges = achievements.slice(0, 6);
   const [insigniasTitulo, verColeccion] = tList("T-4946");
   const [trayectoria, empalme, semestre] = tList("T-4953");
@@ -112,6 +118,37 @@ export default async function YoPage() {
           </Link>
         </section>
       ) : null}
+      <section aria-labelledby="yo-aplausos" className="flex flex-col gap-2">
+        <h2 id="yo-aplausos" className="titulo-seccion">
+          {aplausosTitulo}
+        </h2>
+        {applause.length === 0 ? (
+          <p className="text-secundario text-tinta-secundaria">{sinAplausos}</p>
+        ) : (
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+            {applause.map((item) => (
+              <li key={item.id} className="rounded-tarjeta bg-superficie p-3">
+                <span className="font-semibold">{item.fromName}</span>
+                <span className="block">{item.message}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {mine.committees.length > 0 ? (
+          <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+            {mine.committees.map((item) => (
+              <li key={item.committeeId}>
+                <Link
+                  href={`/app/comites/${item.committeeSlug}/muro`}
+                  className="text-sm font-semibold underline"
+                >
+                  {t("T-4967", { comité: item.committeeName })}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
       <Group
         id="yo-participacion"
         title={t("T-1665")}

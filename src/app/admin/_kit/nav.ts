@@ -103,6 +103,10 @@ export function adminNavGroups(): AdminNavGroup[] {
         { href: "/admin/gamificacion/campanas", label: gamificacion[3] },
         { href: "/admin/gamificacion/insignias", label: gamificacion[4] },
         { href: "/admin/gamificacion/limites", label: gamificacion[5] },
+        // La capa social (ADR-177): metas colectivas, recompensas por umbral y sus entregas.
+        { href: "/admin/gamificacion/metas", label: tList("T-4986")[0] ?? "" },
+        { href: "/admin/gamificacion/recompensas", label: tList("T-4988")[0] ?? "" },
+        { href: "/admin/gamificacion/entregas", label: tList("T-4990")[0] ?? "" },
       ],
     },
     {
