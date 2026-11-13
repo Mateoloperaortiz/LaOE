@@ -256,6 +256,7 @@ export const organizationsResource: ResourceDefinition<OrganizationListRow, Orga
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createOrganization(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateOrganization(ctx, id, input)),
+  inlineEdit: { name: "name", kind: "kind", website: "website" },
   personalData: false,
   exportRow: (row) => ({
     nombre: row.name,

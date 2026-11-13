@@ -3347,3 +3347,22 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | --- | --- | --- | --- | --- |
 | T-4894 | Juegos y «Hoy»: número de edición de los juegos del día, contado desde que abrió la biblioteca | Edición n.º {n} | MATEO | Propuesta |
 
+### Ola 2: patrones de escritorio de la Operación (ADR-167)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-4895 | Mapa de atajos de la Operación: título · encabezado de los espacios · lectura entre G y la letra | Atajos de teclado · Espacios · y luego | MATEO | Propuesta |
+| T-4896 | Mapa de atajos: qué hace cada tecla, en orden (⌘K, ?, C, /, J y K, Enter, Esc, X, E, ⌘Enter) | Buscar, ir y hacer · Mostrar estos atajos · Crear algo aquí · Buscar en la tabla · Bajar y subir en una lista · Abrir lo que tiene el foco · Cerrar el panel · Marcar la fila · Editar el registro · Guardar el formulario | MATEO | Propuesta |
+| T-4897 | Operación: botón «Crear» de la barra superior | Crear | MATEO | Propuesta |
+| T-4898 | Favoritos y Recientes: fijar · soltar · título de los favoritos · título de los recientes | Fijar esta pantalla · Quitar de favoritos · Favoritos · Recientes | MATEO | Propuesta |
+| T-4899 | Paleta ⌘K: acción de crear algo | Crear: {cosa} | MATEO | Propuesta |
+| T-4900 | «Crear» y ⌘K: emitir un enlace de activación | Emitir enlace de activación | MATEO | Propuesta |
+| T-4901 | Paleta ⌘K: tipo de un resultado que es una acción | Acción | MATEO | Propuesta |
+| T-4902 | «Crear» y ⌘K: ocasión del comité de quien dirige | Ocasión de {comité} | MATEO | Propuesta |
+| T-4903 | Edición en línea de una celda: editar · guardar · cancelar | Editar · Guardar · Cancelar | MATEO | Propuesta |
+| T-4904 | Edición en línea: el campo no se edita en la tabla | Este campo no se edita en la tabla. Ábrelo con Editar. | MATEO | Propuesta |
+| T-4905 | Tabla: elegir columnas (botón · aplicar) | Columnas · Aplicar | MATEO | Propuesta |
+| T-4906 | Tabla: nombre de la ficha que quita un filtro | Quitar filtro: {filtro} | MATEO | Propuesta |
+| T-4907 | Tabla: ficha de la búsqueda | Búsqueda: «{q}» | MATEO | Propuesta |
+| T-4908 | Imprimir una pantalla de la Operación (lista de asistencia): botón | Imprimir | MATEO | Propuesta |
+

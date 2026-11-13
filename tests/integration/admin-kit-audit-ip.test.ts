@@ -30,10 +30,22 @@ vi.mock("next/navigation", () => ({
 // El barrel del admin kit trae componentes con `next/font`, que no carga fuera de Next: de él la
 // action y los recursos solo usan lo que va nombrado acá (DT-384).
 vi.mock("@/shared/admin-kit", async () => {
-  const { formDataToInput, formDataToValues, MULTI_SEPARATOR, withLockedFormValues } = await import(
-    "@/shared/admin-kit/types"
-  );
-  return { formDataToInput, formDataToValues, MULTI_SEPARATOR, withLockedFormValues };
+  const {
+    formDataToInput,
+    formDataToValues,
+    isInlineField,
+    MULTI_SEPARATOR,
+    storedFormData,
+    withLockedFormValues,
+  } = await import("@/shared/admin-kit/types");
+  return {
+    formDataToInput,
+    formDataToValues,
+    isInlineField,
+    MULTI_SEPARATOR,
+    storedFormData,
+    withLockedFormValues,
+  };
 });
 vi.mock("@/modules/identity", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/identity")>()),

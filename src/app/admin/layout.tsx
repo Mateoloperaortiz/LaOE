@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { AdminShell } from "./_components/AdminShell";
 import { DeskCounter, DeskLink } from "./_components/DeskCounter";
+import { createItemsFor } from "./_kit/create-items";
 import { adminNavGroups } from "./_kit/nav";
 
 // Administración: ADMIN completo; un líder de comité, la dirección de un comité por sus cargos
@@ -89,10 +90,22 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     subtitle: item.space,
     href: item.href,
   }));
+  // Lo que puede crear: el menú «Crear» y, en la paleta, las mismas entradas como acciones (ADR-167).
+  const createItems = createItemsFor(roles);
+  const actions = createItems.map((item) => ({
+    type: "action",
+    id: `crear:${item.href}`,
+    title: item.href.startsWith("/admin/personas/activacion")
+      ? item.label
+      : t("T-4899", { cosa: item.label }),
+    subtitle: null,
+    href: item.href,
+  }));
   return (
     <AdminShell
       groups={groups}
       showHome={actor.isAdmin}
+      createItems={createItems}
       desk={
         <Suspense fallback={<DeskLink total={null} />}>
           <DeskCounter />
@@ -101,7 +114,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       search={
         <CommandPalette
           endpoint="/api/admin/buscar"
-          destinations={destinations}
+          destinations={[...destinations, ...actions]}
           labels={{
             open: t("T-299"),
             placeholder: t("T-264"),
@@ -109,6 +122,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             close: t("T-291"),
             types: {
               destination: t("T-4883"),
+              action: t("T-4901"),
               person: persona,
               committee: comite,
               occasion: ocasion,

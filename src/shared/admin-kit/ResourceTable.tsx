@@ -15,6 +15,8 @@ type Props<Row extends { id: string }> = {
   rowActions?: RowAction<Row>[];
   rowLinks?: RowLink<Row>[];
   rowActionForm?: (row: Row, action: RowAction<Row>) => React.ReactNode;
+  /** La celda editable de una columna (ADR-167 regla 5), o `null` para la de siempre. */
+  inlineCell?: (row: Row, column: Column<Row>, display: React.ReactNode) => React.ReactNode | null;
 };
 
 function Cell({ value }: { value: CellValue }) {
@@ -54,6 +56,7 @@ export function ResourceTable<Row extends { id: string }>({
   rowActions = [],
   rowLinks = [],
   rowActionForm,
+  inlineCell,
 }: Props<Row>) {
   if (rows.length === 0) {
     return (
@@ -103,14 +106,16 @@ export function ResourceTable<Row extends { id: string }>({
               <div key={action.key}>{rowActionForm?.(row, action)}</div>
             ));
             return (
-              <tr key={row.id} className="admin-table-row border-t border-borde align-top">
+              <tr key={row.id} data-row className="admin-table-row border-t border-borde align-top">
                 {columns.map((column) => (
                   <td
                     key={column.key}
                     data-label={column.label}
                     className={`admin-table-cell px-4 py-3 ${column.className ?? ""}`}
                   >
-                    <Cell value={column.render(row)} />
+                    {inlineCell?.(row, column, <Cell value={column.render(row)} />) ?? (
+                      <Cell value={column.render(row)} />
+                    )}
                   </td>
                 ))}
                 {hasActions ? (
@@ -131,6 +136,7 @@ export function ResourceTable<Row extends { id: string }>({
                           href={editHref(row)}
                           scroll={false}
                           data-admin-panel-trigger
+                          data-shortcut="editar"
                           className="boton-secundario min-h-11 px-4 py-2 text-sm"
                         >
                           {labels.edit}

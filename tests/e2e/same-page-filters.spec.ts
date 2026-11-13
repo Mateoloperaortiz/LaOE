@@ -142,12 +142,13 @@ for (const width of [390, 1440]) {
     );
     await expectSameDocument(page, marker);
 
-    const filters = toolbar.locator("details");
+    const filters = toolbar.locator("details.admin-filter-disclosure");
     if (
       !(await filters.evaluate((element) => element instanceof HTMLDetailsElement && element.open))
     )
       await filters.locator("summary").click();
-    const status = toolbar.getByLabel(tList("T-570")[2], { exact: true });
+    // La columna «Estado» del selector de columnas también se llama así: el filtro va en su panel.
+    const status = filters.getByLabel(tList("T-570")[2], { exact: true });
     await status.selectOption("CLOSED");
     await toolbar.getByRole("button", { name: t("T-1421"), exact: true }).click();
     await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBe("CLOSED");
@@ -160,7 +161,7 @@ for (const width of [390, 1440]) {
     await toolbar.getByRole("link", { name: t("T-1422"), exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/ocasiones$/);
     await expect(toolbar.getByRole("searchbox")).toHaveValue("");
-    await expect(toolbar.getByLabel(tList("T-570")[2], { exact: true })).toHaveValue("");
+    await expect(filters.getByLabel(tList("T-570")[2], { exact: true })).toHaveValue("");
     await expectSameDocument(page, marker);
 
     // El CSV conserva el transporte de descarga, sin convertirlo en una ruta del cliente.

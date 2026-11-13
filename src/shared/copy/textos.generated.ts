@@ -14181,9 +14181,96 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-4895": {
+    where:
+      "Mapa de atajos de la Operación: título · encabezado de los espacios · lectura entre G y la letra",
+    text: "Atajos de teclado · Espacios · y luego",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4896": {
+    where:
+      "Mapa de atajos: qué hace cada tecla, en orden (⌘K, ?, C, /, J y K, Enter, Esc, X, E, ⌘Enter)",
+    text: "Buscar, ir y hacer · Mostrar estos atajos · Crear algo aquí · Buscar en la tabla · Bajar y subir en una lista · Abrir lo que tiene el foco · Cerrar el panel · Marcar la fila · Editar el registro · Guardar el formulario",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4897": {
+    where: "Operación: botón «Crear» de la barra superior",
+    text: "Crear",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4898": {
+    where:
+      "Favoritos y Recientes: fijar · soltar · título de los favoritos · título de los recientes",
+    text: "Fijar esta pantalla · Quitar de favoritos · Favoritos · Recientes",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4899": {
+    where: "Paleta ⌘K: acción de crear algo",
+    text: "Crear: {cosa}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-490": {
     where: "Importación: columnas obligatorias que faltan en el archivo",
     text: "Faltan columnas obligatorias: {lista}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4900": {
+    where: "«Crear» y ⌘K: emitir un enlace de activación",
+    text: "Emitir enlace de activación",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4901": {
+    where: "Paleta ⌘K: tipo de un resultado que es una acción",
+    text: "Acción",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4902": {
+    where: "«Crear» y ⌘K: ocasión del comité de quien dirige",
+    text: "Ocasión de {comité}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4903": {
+    where: "Edición en línea de una celda: editar · guardar · cancelar",
+    text: "Editar · Guardar · Cancelar",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4904": {
+    where: "Edición en línea: el campo no se edita en la tabla",
+    text: "Este campo no se edita en la tabla. Ábrelo con Editar.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4905": {
+    where: "Tabla: elegir columnas (botón · aplicar)",
+    text: "Columnas · Aplicar",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4906": {
+    where: "Tabla: nombre de la ficha que quita un filtro",
+    text: "Quitar filtro: {filtro}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4907": {
+    where: "Tabla: ficha de la búsqueda",
+    text: "Búsqueda: «{q}»",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-4908": {
+    where: "Imprimir una pantalla de la Operación (lista de asistencia): botón",
+    text: "Imprimir",
     owner: "MATEO",
     status: "Propuesta",
   },

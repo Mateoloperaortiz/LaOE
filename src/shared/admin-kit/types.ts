@@ -133,6 +133,12 @@ export interface ResourceDefinition<Row extends { id: string }, Input> {
   /** Accesos visibles a las vistas del registro, junto a Editar. */
   rowLinks?: RowLink<Row>[];
   runRowAction?(actor: KitActor, actionKey: string, id: string): Promise<void>;
+  /**
+   * Columnas que se editan en la celda, con el campo del formulario que cambian (ADR-167 regla 5).
+   * Solo campos simples (`INLINE_FIELD_TYPES`) y que no estén bloqueados al editar; guardar pasa por
+   * el mismo `update`.
+   */
+  inlineEdit?: Readonly<Record<string, string>>;
   /** Las escrituras exigen un OTP reciente (ADR-010, step-up). */
   stepUp?: boolean;
   /**
@@ -245,4 +251,44 @@ export function withLockedFormValues(
     }
   }
   return result;
+}
+
+/** Los tipos de campo que se editan en una celda de la tabla (ADR-167 regla 5). */
+export const INLINE_FIELD_TYPES: ReadonlySet<FieldType> = new Set<FieldType>([
+  "text",
+  "number",
+  "date",
+  "datetime",
+  "email",
+  "url",
+  "select",
+]);
+
+/** Si un campo se puede editar en la celda: simple y no bloqueado al editar. */
+export function isInlineField(field: FieldDefinition): boolean {
+  return INLINE_FIELD_TYPES.has(field.type) && !field.lockedOnEdit;
+}
+
+/**
+ * El formulario del panel armado con los valores guardados de un registro (`toFormValues`), para
+ * cambiarle un campo y validarlo entero, como si se hubiera enviado el panel (ADR-167 regla 5).
+ */
+export function storedFormData(
+  fields: FieldDefinition[],
+  storedValues: Record<string, string>,
+): FormData {
+  const data = new FormData();
+  for (const field of fields) {
+    const value = storedValues[field.name] ?? "";
+    if (field.type === "multiselect") {
+      for (const selected of value ? value.split(MULTI_SEPARATOR) : []) {
+        data.append(field.name, selected);
+      }
+    } else if (field.type === "checkbox") {
+      if (value === "true" || value === "on") data.set(field.name, "on");
+    } else {
+      data.set(field.name, value);
+    }
+  }
+  return data;
 }

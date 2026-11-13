@@ -299,7 +299,11 @@ async function Actividades({
         <div className="flex flex-col gap-3">
           <p className="max-w-prose text-sm text-tinta-suave">{t("T-653")}</p>
           <div className="flex flex-wrap gap-3">
-            <Link href={`${closeHref}&accion=nueva`} className="boton-primario">
+            <Link
+              href={`${closeHref}&accion=nueva`}
+              data-shortcut="crear-aqui"
+              className="boton-primario"
+            >
               {nuevaOcasion}
             </Link>
             <Link href={`${closeHref}&accion=serie`} className="boton-secundario">

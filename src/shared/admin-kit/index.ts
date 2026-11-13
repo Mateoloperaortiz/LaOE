@@ -6,13 +6,16 @@ export { ResourcePanel } from "./ResourcePanel";
 export { ResourceSubmitButton } from "./ResourceSubmitButton";
 export { ResourceTable } from "./ResourceTable";
 export { ResourceToolbar } from "./ResourceToolbar";
+export { buildHref, COLUMNS_PARAM, visibleColumnKeys } from "./table-view";
 export {
   type AnyResource,
   EXPORT_ROW_LIMIT,
   type FormState,
   formDataToInput,
   formDataToValues,
+  isInlineField,
   MULTI_SEPARATOR,
   resolveFilters,
+  storedFormData,
   withLockedFormValues,
 } from "./types";

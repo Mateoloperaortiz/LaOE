@@ -452,6 +452,7 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createCommitteeRole(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateCommitteeRole(ctx, id, input)),
+  inlineEdit: { label: "label", sortOrder: "sortOrder" },
   personalData: false,
   exportRow: (row) => ({
     codigo: row.code,
@@ -488,6 +489,7 @@ export const tagsResource: ResourceDefinition<TagRow, TagInput> = {
   toFormValues: (row) => ({ name: row.name, color: row.color ?? "" }),
   create: (actor, input) => runCommand(actor, (ctx) => createTag(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateTag(ctx, id, input)),
+  inlineEdit: { name: "name" },
   personalData: false,
   exportRow: (row) => ({ nombre: row.name, color: row.color }),
 };

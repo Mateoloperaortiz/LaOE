@@ -134,6 +134,7 @@ export function CommandPalette({ endpoint, labels, destinations = [] }: Props) {
     <>
       <button
         type="button"
+        data-shortcut="buscar"
         onClick={() => dialog.current?.showModal()}
         className="boton-secundario min-h-10 px-4 py-2 text-sm"
         aria-label={labels.open}

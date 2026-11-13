@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
-import { t } from "@/shared/copy/client";
+import { t, tList } from "@/shared/copy/client";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
+import { LayoutColumnsIcon } from "@/shared/ui/icons/LayoutColumnsIcon";
+import { XIcon } from "@/shared/ui/icons/XIcon";
+import { buildHref, COLUMNS_PARAM } from "./table-view";
 import type { FilterDefinition } from "./types";
 
 type Props = {
@@ -15,9 +18,14 @@ type Props = {
   createHref: string;
   exportHref: string;
   canCreate: boolean;
+  /** Las columnas de la tabla, para elegir cuáles se ven (ADR-167 regla 4). */
+  columns?: { key: string; label: string }[];
+  /** Las visibles; `null` cuando se ven todas. */
+  visibleColumns?: string[] | null;
 };
 
-// GET conserva una URL compartible. Cambiar búsqueda o filtros reinicia la paginación.
+// GET conserva una URL compartible. Cambiar búsqueda o filtros reinicia la paginación; las columnas
+// elegidas se conservan. Cada filtro activo es una ficha que se quita sola (ADR-167 regla 4).
 export function ResourceToolbar({
   basePath,
   q,
@@ -27,12 +35,17 @@ export function ResourceToolbar({
   createHref,
   exportHref,
   canCreate,
+  columns = [],
+  visibleColumns = null,
 }: Props) {
   const id = useId();
   const disclosure = useRef<HTMLDetailsElement>(null);
   const visibleFilters = filters.filter((filter) => filter.options.length > 0);
   const activeFilters = visibleFilters.filter((filter) => Boolean(filterValues[filter.key])).length;
   const hasQuery = Boolean(q || activeFilters);
+  const columnsParam = visibleColumns ? visibleColumns.join(",") : "";
+  const keep = columnsParam ? { [COLUMNS_PARAM]: columnsParam } : {};
+  const [columnasLabel, aplicarLabel] = tList("T-4905");
   useEffect(() => {
     const media = window.matchMedia("(min-width: 768px)");
     const sync = () => {
@@ -42,6 +55,32 @@ export function ResourceToolbar({
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
   }, [activeFilters]);
+  const chips = [
+    ...(q
+      ? [
+          {
+            key: "q",
+            text: t("T-4907", { q }),
+            href: buildHref(basePath, { ...filterValues, ...keep }),
+          },
+        ]
+      : []),
+    ...visibleFilters.flatMap((filter) => {
+      const value = filterValues[filter.key];
+      if (!value) return [];
+      const option = filter.options.find((item) => item.value === value);
+      const rest = Object.fromEntries(
+        Object.entries(filterValues).filter(([key]) => key !== filter.key),
+      );
+      return [
+        {
+          key: filter.key,
+          text: `${filter.label}: ${option?.label ?? value}`,
+          href: buildHref(basePath, { q, ...rest, ...keep }),
+        },
+      ];
+    }),
+  ];
   return (
     <div className="admin-resource-toolbar flex min-w-0 flex-col gap-4">
       <ActionForm
@@ -50,6 +89,7 @@ export function ResourceToolbar({
         method="get"
         className="flex min-w-0 flex-col gap-3"
       >
+        {columnsParam ? <input type="hidden" name={COLUMNS_PARAM} value={columnsParam} /> : null}
         <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
           <div className="flex min-w-0 flex-1 flex-wrap items-end gap-2">
             <div className="flex min-w-0 flex-1 basis-56 flex-col gap-2">
@@ -116,15 +156,66 @@ export function ResourceToolbar({
             </div>
           </details>
         ) : null}
-        {hasQuery ? (
-          <Link
-            href={basePath}
-            className="self-start text-sm font-semibold underline underline-offset-4"
-          >
-            {t("T-1422")}
-          </Link>
-        ) : null}
       </ActionForm>
+      {chips.length > 0 || columns.length > 1 ? (
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <ul className="admin-chips">
+            {chips.map((chip) => (
+              <li key={chip.key}>
+                <Link
+                  href={chip.href}
+                  className="admin-chip"
+                  aria-label={t("T-4906", { filtro: chip.text })}
+                >
+                  <span>{chip.text}</span>
+                  <XIcon size={14} />
+                </Link>
+              </li>
+            ))}
+            {hasQuery ? (
+              <li>
+                <Link
+                  href={buildHref(basePath, keep)}
+                  className="inline-flex min-h-8 items-center text-sm font-semibold underline underline-offset-4"
+                >
+                  {t("T-1422")}
+                </Link>
+              </li>
+            ) : null}
+          </ul>
+          {columns.length > 1 ? (
+            <details className="admin-columns">
+              <summary className="boton-secundario inline-flex min-h-11 cursor-pointer items-center gap-2 px-4 py-2 text-sm">
+                <LayoutColumnsIcon size={16} />
+                {columnasLabel}
+              </summary>
+              <form action={basePath} method="get" className="admin-columns-panel">
+                {q ? <input type="hidden" name="q" value={q} /> : null}
+                {Object.entries(filterValues).map(([key, value]) =>
+                  value ? <input key={key} type="hidden" name={key} value={value} /> : null,
+                )}
+                <fieldset className="flex flex-col gap-2">
+                  <legend className="sr-only">{columnasLabel}</legend>
+                  {columns.map((column) => (
+                    <label key={column.key} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name={COLUMNS_PARAM}
+                        value={column.key}
+                        defaultChecked={!visibleColumns || visibleColumns.includes(column.key)}
+                      />
+                      {column.label}
+                    </label>
+                  ))}
+                </fieldset>
+                <button type="submit" className="boton-primario min-h-11 px-4 py-2 text-sm">
+                  {aplicarLabel}
+                </button>
+              </form>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

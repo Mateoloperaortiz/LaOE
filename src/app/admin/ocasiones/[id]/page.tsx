@@ -43,6 +43,7 @@ import { t, tLabels, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime, formatTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
+import { PrintButton } from "@/shared/ui/PrintButton";
 import {
   approveAllAction,
   cancelAction,
@@ -137,8 +138,8 @@ export default async function ConsolaPage({
   const toCancel = checkInParam ? checkIns.find((item) => item.id === checkInParam) : undefined;
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-3">
+    <div className="flex flex-col gap-8" data-imprime-solo>
+      <header className="flex flex-col gap-3" data-imprimir>
         <div className="flex flex-wrap items-center gap-2">
           <Insignia fondo={cell.badge}>{cell.text}</Insignia>
           <span className="eyebrow">{occasionKindLabel(occasion)}</span>
@@ -172,6 +173,7 @@ export default async function ConsolaPage({
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
+        <PrintButton />
         {canOpen ? (
           <ActionForm action={lifecycleAction}>
             <AdminFormBody>
@@ -421,7 +423,11 @@ export default async function ConsolaPage({
         </section>
       ) : null}
 
-      <section aria-label={t("T-594")} className="rounded-xl border border-borde bg-fondo p-4">
+      <section
+        aria-label={t("T-594")}
+        data-imprimir
+        className="rounded-xl border border-borde bg-fondo p-4"
+      >
         <details open={Boolean(statusFilter)}>
           <summary className="cursor-pointer py-1 font-semibold">
             {t("T-594")} · {checkIns.length}

@@ -695,6 +695,21 @@ body:has(.admin-shell dialog[open]) {
   .admin-content {
     padding: 1.25rem 1.25rem 2rem;
   }
+  /* Favoritos es un patrón de escritorio (ADR-167 regla 3) y «Crear» queda solo con su icono. */
+  .admin-favorite {
+    display: none;
+  }
+  .admin-create > summary {
+    padding-inline: 0.625rem;
+  }
+  .admin-create-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 @media (max-width: 639px) {
   .admin-topbar {
@@ -826,4 +841,233 @@ body:has(.admin-shell dialog[open]) {
 .admin-shell summary:focus-visible {
   outline: 2px solid var(--color-oe-orange);
   outline-offset: 3px;
+}
+
+/* «Crear», la estrella y el mapa de atajos (ADR-167 reglas 1 a 3). El menú «Crear» se abre como el de
+   la cuenta; la estrella es un botón de icono del alto de los controles. */
+.admin-create {
+  position: relative;
+}
+.admin-create > summary {
+  display: flex;
+  min-height: var(--alto-control);
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-control);
+  background: var(--accion);
+  color: var(--accion-tinta);
+  font-size: 0.875rem;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+.admin-create > summary::-webkit-details-marker {
+  display: none;
+}
+.admin-create-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: 15rem;
+  max-height: min(70vh, 28rem);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.375rem;
+  list-style: none;
+  border: 1px solid var(--superficie-borde);
+  border-radius: var(--radius-tarjeta);
+  background: var(--superficie);
+  box-shadow: var(--sombra-flota);
+}
+.admin-create-menu a {
+  display: flex;
+  min-height: var(--alto-control);
+  align-items: center;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius-control);
+  font-size: 0.875rem;
+}
+.admin-create-menu a:hover,
+.admin-create-menu a:focus-visible {
+  background: var(--relleno);
+}
+.admin-favorite {
+  display: inline-flex;
+  min-width: var(--alto-control);
+  min-height: var(--alto-control);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  color: var(--titulo);
+}
+.admin-favorite:hover {
+  background: var(--relleno);
+}
+.admin-favorite[aria-pressed="true"] {
+  color: var(--color-oe-orange);
+}
+.admin-shortcuts-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+.admin-shortcuts-list > div {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+.admin-shortcuts-list dd {
+  margin: 0;
+  font-size: 0.875rem;
+}
+.admin-shortcuts kbd {
+  display: inline-block;
+  min-width: 1.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  background: var(--relleno);
+  color: var(--titulo);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Fichas de filtro, columnas y celda en edición (ADR-167 reglas 4 y 5). */
+.admin-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.admin-chip {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--relleno);
+  color: var(--titulo);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.admin-chip:hover {
+  box-shadow: inset 0 0 0 1px var(--superficie-borde);
+}
+.admin-columns {
+  position: relative;
+}
+.admin-columns > summary {
+  list-style: none;
+}
+.admin-columns > summary::-webkit-details-marker {
+  display: none;
+}
+.admin-columns-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  width: 16rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--superficie-borde);
+  border-radius: var(--radius-tarjeta);
+  background: var(--superficie);
+  box-shadow: var(--sombra-flota);
+}
+.admin-inline-cell {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+.admin-inline-trigger {
+  display: inline-flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  color: var(--tinta-secundaria);
+  opacity: 0;
+}
+.admin-table-row:hover .admin-inline-trigger,
+.admin-table-row:focus-within .admin-inline-trigger,
+.admin-inline-trigger:focus-visible {
+  opacity: 1;
+}
+.admin-inline-trigger:hover {
+  background: var(--relleno);
+  color: var(--titulo);
+}
+@media (hover: none) {
+  .admin-inline-trigger {
+    opacity: 1;
+  }
+}
+.admin-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+.admin-inline-form .admin-input {
+  min-width: 8rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-control);
+  background: var(--fondo);
+}
+
+/* Imprimir (ADR-167 regla 6): la hoja lleva solo el contenido. El marco, los botones y los
+   formularios no salen; los enlaces se leen como texto. */
+@media print {
+  .admin-sidebar,
+  .admin-topbar,
+  .admin-drawer,
+  .admin-skip-link,
+  [data-no-imprimir],
+  [data-imprime-solo] > :not([data-imprimir]),
+  .admin-content nav,
+  .admin-content form,
+  .admin-content button {
+    display: none;
+  }
+  .admin-shell,
+  .admin-workspace,
+  .admin-content {
+    display: block;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #000;
+  }
+  .admin-content a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .admin-content table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+  }
+  .admin-content th,
+  .admin-content td {
+    border-bottom: 1px solid #999;
+    padding: 4pt 6pt;
+  }
+  .admin-content tr {
+    break-inside: avoid;
+  }
 }

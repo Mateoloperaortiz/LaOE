@@ -16,6 +16,7 @@ import {
   type AdminSpaceIcon,
   activeAdminHref,
 } from "@/shared/admin-kit/navigation";
+import { SPACE_KEYS } from "@/shared/admin-kit/operation-keys";
 import { t, tList } from "@/shared/copy/client";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { AreaSwitch } from "@/shared/ui/AreaSwitch";
@@ -38,6 +39,10 @@ import { UserPlusIcon } from "@/shared/ui/icons/UserPlusIcon";
 import { UsersGroupIcon } from "@/shared/ui/icons/UsersGroupIcon";
 import { UsersIcon } from "@/shared/ui/icons/UsersIcon";
 import { WalletIcon } from "@/shared/ui/icons/WalletIcon";
+import type { CreateItem } from "../_kit/create-items";
+import { CreateMenu } from "./CreateMenu";
+import { OperationShortcuts, type ShortcutSpace } from "./OperationShortcuts";
+import { FavoriteToggle, PinnedLists, RecentTracker } from "./PinnedPages";
 
 // El marco de la Operación (ADR-159 regla 2, con el aspecto de ADR-163 regla 9; rama feat/rediseno).
 // - Desde 1280 px la barra lateral mide 240 px y se recoge a 64 a pedido de la persona; entre 1024 y
@@ -45,6 +50,8 @@ import { WalletIcon } from "@/shared/ui/icons/WalletIcon";
 // - En el riel, cada espacio abre el cajón con el menú completo, abierto en ese espacio.
 // - Arriba de los espacios va la Mesa, para todos los roles, y su contador en la barra superior.
 // - La barra se recoge por persona y por navegador (`localStorage`): es una comodidad, no un dato.
+// - Los patrones de escritorio de ADR-167: «Crear» y la estrella en la barra superior, Favoritos y
+//   Recientes en la barra lateral, y los atajos con su mapa en `?`.
 
 const SPACE_ICONS: Record<AdminSpaceIcon, ComponentType<IconProps>> = {
   personas: UsersIcon,
@@ -138,6 +145,7 @@ function Navigation({
         </span>
         <span className="admin-nav-label">{t("T-4864")}</span>
       </Link>
+      {rail ? null : <PinnedLists onNavigate={onNavigate} />}
       <p className="admin-nav-section">{t("T-4861")}</p>
       {groups.map((group) => {
         const Icon = group.icon ? SPACE_ICONS[group.icon] : null;
@@ -197,10 +205,13 @@ export function AdminShell({
   search,
   theme,
   account,
+  createItems,
 }: {
   groups: AdminNavGroup[];
   showHome: boolean;
   children: ReactNode;
+  /** Lo que el actor puede crear, dentro de su alcance (ADR-167 regla 2). */
+  createItems: CreateItem[];
   /** El contador de la Mesa, que llega en streaming desde el servidor. */
   desk: ReactNode;
   search: ReactNode;
@@ -220,6 +231,17 @@ export function AdminShell({
   );
   const rail = collapsed || midWidth;
   const [recoger, mostrar] = tList("T-4862");
+  // G y una letra: la Mesa, el Inicio y el primer destino de cada espacio que el actor ve.
+  const spaces: ShortcutSpace[] = [
+    { key: SPACE_KEYS.mesa, href: "/admin/mesa", label: t("T-4864") },
+    ...(showHome ? [{ key: SPACE_KEYS.inicio, href: "/admin", label: t("T-1401") }] : []),
+    ...groups.flatMap((group) => {
+      const first = group.items[0];
+      return group.icon && first
+        ? [{ key: SPACE_KEYS[group.icon], href: first.href, label: group.label }]
+        : [];
+    }),
+  ];
 
   useEffect(() => {
     setCollapsed(readCollapsed());
@@ -318,6 +340,8 @@ export function AdminShell({
             </button>
             <span className="admin-topbar-label">{t("T-236")}</span>
             <div className="admin-utilities">
+              <CreateMenu items={createItems} label={t("T-4897")} />
+              <FavoriteToggle />
               {desk}
               <AreaSwitch to="member" />
               {search}
@@ -335,6 +359,8 @@ export function AdminShell({
           <main id="admin-content" tabIndex={-1} className="admin-content">
             {children}
           </main>
+          <OperationShortcuts spaces={spaces} />
+          <RecentTracker />
         </div>
         <dialog
           ref={drawer}

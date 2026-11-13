@@ -28,13 +28,21 @@ vi.mock("@/modules/identity", () => ({
   hasRecentStepUp: state.stepUp,
 }));
 vi.mock("@/app/admin/_kit/actions", () => ({
+  inlineEditAction: vi.fn(),
   rowActionAction: vi.fn(),
   saveResourceAction: vi.fn(),
 }));
 vi.mock("@/shared/admin-kit", async () => {
-  const { resolveFilters } = await import("@/shared/admin-kit/types");
+  const { isInlineField, resolveFilters } = await import("@/shared/admin-kit/types");
+  const { buildHref, COLUMNS_PARAM, visibleColumnKeys } = await import(
+    "@/shared/admin-kit/table-view"
+  );
   return {
+    buildHref,
+    COLUMNS_PARAM,
+    isInlineField,
     resolveFilters,
+    visibleColumnKeys,
     Pagination: () => null,
     ResourceForm: () => null,
     ResourcePanel: () => null,

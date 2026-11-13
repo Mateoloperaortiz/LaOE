@@ -16,8 +16,11 @@ import {
   type FormState,
   formDataToInput,
   formDataToValues,
+  isInlineField,
+  storedFormData,
   withLockedFormValues,
 } from "@/shared/admin-kit";
+import type { InlineState } from "@/shared/admin-kit/InlineEditCell";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { getResource } from "./registry";
@@ -144,4 +147,59 @@ export async function rowActionAction(formData: FormData): Promise<void> {
   }
   revalidateReturn(returnTo);
   redirect(returnTo);
+}
+
+/**
+ * Edición en línea de una celda (ADR-167 regla 5): arma el formulario del panel con lo guardado y el
+ * campo nuevo, lo valida con el mismo esquema y llama al mismo `update`, con el actor de siempre. Solo
+ * vale para un campo que el recurso declaró en `inlineEdit` y que es simple; lo demás se edita en el
+ * panel.
+ */
+export async function inlineEditAction(
+  _previous: InlineState,
+  formData: FormData,
+): Promise<InlineState> {
+  const key = z.string().parse(formData.get("__resource"));
+  const id = z.string().min(1).parse(formData.get("__id"));
+  const fieldName = z.string().parse(formData.get("__field"));
+  const returnTo = safeNextPath(formData.get("__returnTo"), "/admin");
+  const resource = getResource(key);
+  if (!resource?.update) {
+    redirect("/admin");
+  }
+  const actor = await requireAdminForAction(returnTo);
+  if (resource.stepUp && !hasRecentStepUp(actor)) {
+    redirect(`/ingresar/paso?next=${encodeURIComponent(returnTo)}`);
+  }
+  const at = Date.now();
+  const fields = typeof resource.fields === "function" ? await resource.fields() : resource.fields;
+  const field = fields.find((item) => item.name === fieldName);
+  const declared = Object.values(resource.inlineEdit ?? {}).includes(fieldName);
+  if (!field || !declared || !isInlineField(field)) {
+    return { ok: false, message: t("T-4904"), at };
+  }
+  const existing = await resource.get(id);
+  if (!existing) {
+    return { ok: false, message: t("T-032"), at };
+  }
+  const submitted = storedFormData(fields, resource.toFormValues(existing));
+  const raw = formData.get("value");
+  submitted.set(field.name, typeof raw === "string" ? raw : "");
+  const parsed = resource.schema.safeParse(formDataToInput(submitted, fields));
+  if (!parsed.success) {
+    const issue =
+      parsed.error.issues.find((item) => String(item.path[0] ?? "") === field.name) ??
+      parsed.error.issues[0];
+    return { ok: false, message: issue?.message ?? t("T-260"), at };
+  }
+  try {
+    await resource.update(await actorContext(actor), id, parsed.data);
+  } catch (error) {
+    if (error instanceof DomainError) {
+      return { ok: false, message: error.message, at };
+    }
+    throw error;
+  }
+  revalidateReturn(returnTo);
+  return { ok: true, message: null, at };
 }
