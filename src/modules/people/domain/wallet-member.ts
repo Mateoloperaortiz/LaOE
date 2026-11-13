@@ -9,6 +9,9 @@ export interface WalletMemberState {
   status: MembershipStatus;
   walletEpoch: number;
   anonymizedAt: Date | null;
+  /** Por qué y cuándo terminó: un egresado entra con su salida (ADR-184) y la baja depura lo de antes. */
+  endReason: string | null;
+  endedAt: Date | null;
 }
 
 export async function getWalletMemberState(
@@ -21,6 +24,8 @@ export async function getWalletMemberState(
       status: membership.status,
       walletEpoch: membership.walletEpoch,
       anonymizedAt: person.anonymizedAt,
+      endReason: membership.endReason,
+      endedAt: membership.endedAt,
     })
     .from(person)
     .innerJoin(membership, eq(membership.personId, person.id))

@@ -613,3 +613,29 @@ export const handoverDoc = pgTable(
   },
   (t) => [uniqueIndex("handover_doc_committee_role_unique").on(t.committeeId, t.roleCode)],
 );
+
+// Padrinos (ADR-185): un nuevo del semestre tiene a lo sumo un padrino, que es un veterano o un
+// egresado con acceso. Lo asigna la Operación; anonimizar a cualquiera de los dos borra la fila.
+export const mentorship = pgTable(
+  "mentorship",
+  {
+    id: id(),
+    termId: text()
+      .notNull()
+      .references(() => term.id, { onDelete: "cascade" }),
+    menteeId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    mentorId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    assignedById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("mentorship_term_mentee_unique").on(t.termId, t.menteeId),
+    index("mentorship_mentor_idx").on(t.mentorId, t.termId),
+    check("mentorship_not_self", sql`${t.menteeId} <> ${t.mentorId}`),
+  ],
+);

@@ -52,6 +52,8 @@ export function adminNavGroups(): AdminNavGroup[] {
       items: [
         { href: "/admin/personas", label: personas },
         { href: "/admin/personas/activacion", label: t("T-2128") },
+        // Padrinos (ADR-185): a cada nuevo del semestre, un veterano o un egresado.
+        { href: "/admin/personas/padrinos", label: tList("T-5017")[0] ?? "" },
         { href: "/admin/personas/importar", label: importar },
         { href: "/admin/tareas", label: tareas },
         { href: "/admin/solicitudes", label: solicitudes },

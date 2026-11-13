@@ -1,4 +1,4 @@
-import { and, count, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, count, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
 import { getEnv } from "@/env";
@@ -146,10 +146,20 @@ export async function signInWithPassword(input: SignInInput): Promise<SignInResu
  * Borra la contraseña de una persona. La llaman el retiro y la anonimización (ADR-014, ADR-030):
  * quien ya no entra no necesita credencial, y un hash de contraseña no es historia institucional.
  */
-export async function deleteCredentialFor(exec: Executor, personId: string): Promise<number> {
+/** Con `upTo`, solo la contraseña fijada hasta ese instante (la baja de un egresado; ADR-184). */
+export async function deleteCredentialFor(
+  exec: Executor,
+  personId: string,
+  upTo?: Date,
+): Promise<number> {
   const rows = await exec
     .delete(credential)
-    .where(eq(credential.personId, personId))
+    .where(
+      and(
+        eq(credential.personId, personId),
+        upTo === undefined ? undefined : lte(credential.updatedAt, upTo),
+      ),
+    )
     .returning({ id: credential.id });
   return rows.length;
 }

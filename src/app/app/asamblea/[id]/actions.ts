@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { actorContext } from "@/app/_lib/actor";
-import { getActor } from "@/modules/identity";
+import { getMemberActor } from "@/modules/identity";
 import { votePollAs } from "@/modules/participation";
 import { DomainError } from "@/shared/lib/errors";
 
@@ -17,7 +17,7 @@ const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 export async function voteAction(formData: FormData): Promise<void> {
   const occasionId = idSchema.parse(formData.get("occasionId"));
   const back = `/app/asamblea/${occasionId}`;
-  const actor = await getActor();
+  const actor = await getMemberActor();
   if (!actor) redirect(`/ingresar?next=${encodeURIComponent(back)}`);
   try {
     await votePollAs(

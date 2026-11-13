@@ -491,6 +491,13 @@
       "when": 1794556734414,
       "tag": "0069_modo_asamblea",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1794568710927,
+      "tag": "0070_padrinos",
+      "breakpoints": true
     }
   ]
 }

@@ -19,6 +19,17 @@ import {
   listCommittees,
   updateCommittee,
 } from "./domain/committees";
+import {
+  assignMentor,
+  getMentorship,
+  listMentorshipOptions,
+  listMentorships,
+  type MentorshipInput,
+  type MentorshipRow,
+  mentorshipInputSchema,
+  reassignMentor,
+  removeMentorship,
+} from "./domain/mentorship";
 import { DOCUMENT_TYPE_CODES } from "./domain/person-pure";
 import {
   createPerson,
@@ -665,5 +676,63 @@ export const preferentialScheduleResource: ResourceDefinition<
     tipo: preferentialKindLabel(row.kind),
     ámbito: row.scope,
     cargo: row.roleLabel,
+  }),
+};
+
+// Padrinos (ADR-185): ADMIN asigna a cada nuevo del semestre un veterano o un egresado con acceso.
+
+const [
+  padrinosPlural,
+  padrinoSingular,
+  padrinoAhijado,
+  padrinoPadrino,
+  padrinoSemestre,
+  padrinoQuitar,
+] = tList("T-5017");
+
+export const mentorshipsResource: ResourceDefinition<MentorshipRow, MentorshipInput> = {
+  key: "padrinos",
+  names: { plural: padrinosPlural ?? "", singular: padrinoSingular ?? "" },
+  basePath: "/admin/personas/padrinos",
+  columns: [
+    { key: "mentee", label: padrinoAhijado ?? "", render: (row) => row.menteeName },
+    { key: "mentor", label: padrinoPadrino ?? "", render: (row) => row.mentorName },
+    { key: "term", label: padrinoSemestre ?? "", render: (row) => row.termCode },
+  ],
+  schema: mentorshipInputSchema,
+  fields: async () => {
+    const options = await listMentorshipOptions();
+    return [
+      {
+        name: "menteeId",
+        label: padrinoAhijado ?? "",
+        type: "select",
+        required: true,
+        lockedOnEdit: true,
+        options: options.mentees,
+      },
+      {
+        name: "mentorId",
+        label: padrinoPadrino ?? "",
+        type: "select",
+        required: true,
+        options: options.mentors,
+      },
+    ];
+  },
+  list: (params) => listMentorships({ page: params.page, pageSize: params.pageSize }),
+  get: getMentorship,
+  toFormValues: (row) => ({ menteeId: row.menteeId, mentorId: row.mentorId }),
+  create: (actor, input) => runCommand(actor, (ctx) => assignMentor(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => reassignMentor(ctx, id, input)),
+  rowActions: [{ key: "remove", label: padrinoQuitar ?? "" }],
+  runRowAction: async (actor, actionKey, id) => {
+    if (actionKey === "remove") await runCommand(actor, (ctx) => removeMentorship(ctx, id));
+  },
+  personalData: true,
+  exportRow: (row) => ({
+    ahijado: row.menteeName,
+    padrino: row.mentorName,
+    semestre: row.termCode,
   }),
 };

@@ -24,6 +24,7 @@ const actor: Actor = {
   otpVerifiedAt: new Date(),
   sessionLastSeenAt: new Date(),
   sessionRemembered: false,
+  access: "MEMBER",
   isAdmin: true,
 };
 

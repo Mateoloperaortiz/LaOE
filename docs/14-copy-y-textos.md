@@ -3495,3 +3495,18 @@ El inicio de Mi OE ordena sus bloques por urgencia y un bloque sin contenido no 
 | T-5006 | The Games: sala de operación (título · la tabla está oculta para el público) | Sala de operación · La tabla está oculta para el público; aquí la ves igual. | MATEO | Propuesta |
 | T-5007 | Modo anfitrión sin señal: guardado · cuántos esperan | Sin señal: quedó guardado y sube solo cuando vuelva la red. · {n} esperan para subir | MATEO | Propuesta |
 
+
+### Ola 5: hacia afuera (ADR-184 a ADR-187)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-5008 | Mi OE de un egresado: la barra (red · oportunidades · padrinos · tú) | Red · Oportunidades · Padrinos · Tú | MATEO | Propuesta |
+| T-5009 | Mi OE de un egresado: la bienvenida en la red | Ya egresaste, pero sigues en la red: aquí están los egresados, las oportunidades de los aliados y tus ahijados. | MATEO | Propuesta |
+| T-5010 | Padrinos: quien no es nuevo del semestre | Solo un nuevo de este semestre tiene padrino. | MATEO | Propuesta |
+| T-5011 | Padrinos: quien no puede ser padrino | El padrino es un veterano que participa o un egresado con acceso, y no es el mismo nuevo. | MATEO | Propuesta |
+| T-5012 | Padrinos: tope de ahijados | Ese padrino ya acompaña a {n} nuevos este semestre. | MATEO | Propuesta |
+| T-5013 | Padrinos: sin semestre en curso | No hay un semestre en curso para asignar padrinos. | MATEO | Propuesta |
+| T-5014 | Aviso al nuevo cuando le asignan padrino (título · cuerpo) | Ya tienes padrino · {nombre} te acompaña en tu primer semestre en la OE. | MATEO | Propuesta |
+| T-5015 | Aviso al padrino cuando le asignan un nuevo (título · cuerpo) | Tienes un ahijado · {nombre} entró este semestre y tú lo acompañas. | MATEO | Propuesta |
+| T-5016 | Mi OE, padrinos: título · explicación · tu padrino · tus ahijados · egresado · vacío | Padrinos · Cada nuevo tiene quien lo acompañe en su primer semestre: pregúntale lo que sea, de una. · Tu padrino · Tus ahijados · Egresado · Este semestre no tienes padrino ni ahijados. | MATEO | Propuesta |
+| T-5017 | Admin: padrinos (plural · singular · ahijado · padrino · semestre · quitar) | Padrinos · Padrino · Ahijado · Padrino · Semestre · Quitar | MATEO | Propuesta |

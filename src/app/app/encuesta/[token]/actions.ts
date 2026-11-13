@@ -3,7 +3,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { answersFromFormData } from "@/modules/forms";
-import { getActor } from "@/modules/identity";
+import { getMemberActor } from "@/modules/identity";
 import { answerSurveyAs, getSurveyInviteForActor } from "@/modules/participation";
 import { t } from "@/shared/copy";
 import type { SurveyFormState } from "./state";
@@ -22,7 +22,7 @@ export async function answerSurveyAction(
   const inviteId = String(formData.get("invite") ?? "");
   const token = String(formData.get("token") ?? "");
   const back = inviteId ? `/app/encuestas/${inviteId}` : `/app/encuesta/${token}`;
-  const actor = await getActor();
+  const actor = await getMemberActor();
   if (!actor) {
     redirect(`/ingresar?next=${encodeURIComponent(back)}`);
   }

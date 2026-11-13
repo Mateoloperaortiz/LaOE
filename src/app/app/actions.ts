@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { actorContext } from "@/app/_lib/actor";
 import { markOnboardingStepAs } from "@/modules/crm";
-import { getActor } from "@/modules/identity";
+import { getMemberActor } from "@/modules/identity";
 import { DomainError } from "@/shared/lib/errors";
 
 // Acciones del inicio de Mi OE: marcar un paso del onboarding como hecho.
@@ -17,7 +17,7 @@ const stepSchema = z.object({
 });
 
 export async function markStepAction(formData: FormData): Promise<void> {
-  const actor = await getActor();
+  const actor = await getMemberActor();
   if (!actor) {
     redirect("/ingresar?next=%2Fapp");
   }

@@ -7,7 +7,7 @@ import { z } from "zod";
 import { actorContext } from "@/app/_lib/actor";
 import { applyToCallAs, getCall } from "@/modules/crm";
 import { answersFromFormData, getFormView } from "@/modules/forms";
-import { getActor } from "@/modules/identity";
+import { getMemberActor } from "@/modules/identity";
 import { groupJoinBlocker, listGroupIdsOf } from "@/modules/permanence";
 import { DomainError } from "@/shared/lib/errors";
 
@@ -18,7 +18,7 @@ const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 
 export async function applyAction(formData: FormData): Promise<void> {
   const callId = idSchema.parse(formData.get("callId"));
-  const actor = await getActor();
+  const actor = await getMemberActor();
   if (!actor) {
     redirect(`/ingresar?next=${encodeURIComponent(`/app/convocatorias/${callId}`)}`);
   }

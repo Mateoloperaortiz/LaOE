@@ -1,9 +1,11 @@
 // API pública del módulo identity.
 export {
   getActor,
+  getMemberActor,
   requireActor,
   requireAdminActor,
   requireBoardActor,
+  requireSignedIn,
 } from "./current";
 export {
   type AccessGrantKind,

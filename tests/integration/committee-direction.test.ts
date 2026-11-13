@@ -510,6 +510,7 @@ describe("roles del área de administración", () => {
     otpVerifiedAt: new Date(),
     sessionLastSeenAt: new Date(),
     sessionRemembered: false,
+    access: "MEMBER",
     isAdmin: false,
   });
 

@@ -68,6 +68,7 @@ export function walletActor(personId: string): Actor & { ip: string | null } {
     otpVerifiedAt: new Date(),
     sessionLastSeenAt: new Date(),
     sessionRemembered: false,
+    access: "MEMBER",
     isAdmin: false,
   };
 }

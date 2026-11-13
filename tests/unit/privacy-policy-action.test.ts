@@ -52,6 +52,7 @@ function actor(overrides: Partial<Actor> = {}): Actor {
     otpVerifiedAt: new Date(),
     sessionLastSeenAt: new Date(),
     sessionRemembered: false,
+    access: "MEMBER",
     isAdmin: true,
     ...overrides,
   };

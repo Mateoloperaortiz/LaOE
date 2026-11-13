@@ -2,7 +2,14 @@ import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { membershipChanged, personAnonymized, personEmailChanged } from "@/domain-events/people";
 import { onEvent, registerHandler } from "@/jobs/registry";
-import { lockMembershipCycle, purgeIfMembershipEnded, SIGN_IN_STATUSES } from "@/modules/people";
+import {
+  getWalletMemberState,
+  lockMembershipCycle,
+  purgeIfMembershipEnded,
+  SIGN_IN_STATUSES,
+  signInAccess,
+  type WalletMemberState,
+} from "@/modules/people";
 import { deleteAccessGrantsFor } from "./domain/access-grant";
 import { deleteCalendarTokenFor } from "./domain/calendar-token";
 import { deleteCarnetTokenFor } from "./domain/carnet-token";
@@ -20,6 +27,14 @@ registerHandler("identity.prune", async (_payload, ctx) => {
 });
 
 /**
+ * Hasta cuándo depura la baja (ADR-184 regla 3): de un egresado, solo lo que existía cuando salió. El
+ * evento puede llegar después de que la junta le emitió su enlace, y eso no es de la baja.
+ */
+function purgeUpTo(state: WalletMemberState | null): Date | undefined {
+  return state && signInAccess(state) === "ALUMNI" ? (state.endedAt ?? undefined) : undefined;
+}
+
+/**
  * Cierra las sesiones de la persona salvo que hoy esté en un estado con ingreso (ADR-118 regla 5). El
  * evento dice cómo quedó cuando se emitió, y el poller lo puede entregar o reintentar después de que
  * volvió y entró de nuevo: se decide con el estado de ahora, leído bajo el candado del ciclo de
@@ -32,7 +47,7 @@ function closeSessionsUnlessSignedIn(personId: string): Promise<number | null> {
     if (state && SIGN_IN_STATUSES.includes(state.status)) {
       return null;
     }
-    return destroySessionsFor(tx, personId);
+    return destroySessionsFor(tx, personId, undefined, purgeUpTo(state));
   });
 }
 
@@ -60,10 +75,12 @@ onEvent(membershipChanged, async ({ personId, to }, ctx) => {
       // El enlace del calendario es una capacidad en claro: no queda dormida esperando un reingreso
       // (ADR-116 regla 15).
       const calendarTokens = await deleteCalendarTokenFor(command.tx, personId);
-      // Quien sale no vuelve a entrar: su contraseña y sus enlaces dejan de tener para qué existir
-      // y no son historia institucional (ADR-030, ADR-051).
-      const credentials = await deleteCredentialFor(command.tx, personId);
-      const grants = await deleteAccessGrantsFor(command.tx, personId);
+      // Quien sale no vuelve a entrar con lo de antes: su contraseña y sus enlaces dejan de tener para
+      // qué existir y no son historia institucional (ADR-030, ADR-051). Un egresado vuelve con un
+      // enlace nuevo de la junta (ADR-184), y lo nuevo no se toca.
+      const upTo = purgeUpTo(await getWalletMemberState(command.tx, personId));
+      const credentials = await deleteCredentialFor(command.tx, personId, upTo);
+      const grants = await deleteAccessGrantsFor(command.tx, personId, upTo);
       const permissions = await revokeAllPermissionsFor(command, personId);
       return { calendarTokens, credentials, grants, ...permissions };
     });

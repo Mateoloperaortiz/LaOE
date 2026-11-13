@@ -33,7 +33,11 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/modules/identity", async (importOriginal) => {
   const mod = await importOriginal<typeof import("@/modules/identity")>();
-  return { ...mod, requireActor: () => Promise.resolve(session.actor) };
+  return {
+    ...mod,
+    requireActor: () => Promise.resolve(session.actor),
+    requireSignedIn: () => Promise.resolve(session.actor),
+  };
 });
 
 const { default: AppLayout } = await import("@/app/app/layout");
@@ -53,6 +57,7 @@ function memberActor(personId: string): Actor {
     otpVerifiedAt: now,
     sessionLastSeenAt: now,
     sessionRemembered: false,
+    access: "MEMBER",
     isAdmin: false,
   };
 }

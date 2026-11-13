@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -17,6 +17,7 @@ import {
   membership,
   membershipEvent,
   membershipTerm,
+  mentorship,
   person,
 } from "../schema";
 import { blockedBenefits } from "./benefits";
@@ -530,6 +531,10 @@ export async function anonymizePerson(
     })
     .where(eq(person.id, personId));
   await closeOpenCommitteeMemberships(ctx, personId, now);
+  // Padrinos (ADR-185): la relación nombra a dos personas y no es historia institucional.
+  await ctx.tx
+    .delete(mentorship)
+    .where(or(eq(mentorship.menteeId, personId), eq(mentorship.mentorId, personId)));
   await revokeAllConsents(ctx, personId, now);
   // La auditoría anterior guardaba nombre y contacto en before/after: se borra ese contenido, no la traza.
   await redactAuditEntries(ctx, "person", personId);

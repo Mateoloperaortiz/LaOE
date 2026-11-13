@@ -13,7 +13,7 @@ import {
   type RequestKind,
   withdrawRequestAs,
 } from "@/modules/crm";
-import { getActor } from "@/modules/identity";
+import { getMemberActor } from "@/modules/identity";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import type { RequestActionState } from "./form-state";
@@ -22,7 +22,7 @@ const LOGIN = "/ingresar?next=%2Fapp%2Fsolicitudes";
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 
 async function requireOwnActor() {
-  const actor = await getActor();
+  const actor = await getMemberActor();
   if (!actor) redirect(LOGIN);
   return await actorContext(actor);
 }

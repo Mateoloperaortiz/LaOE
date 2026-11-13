@@ -1,6 +1,6 @@
 // API pública del módulo people.
 
-export { canParticipate } from "./domain/access-pure";
+export { canParticipate, type SignInAccess, signInAccess } from "./domain/access-pure";
 export {
   type AdmitInput,
   admitInputSchema,
@@ -142,6 +142,7 @@ export {
   listExpiredLeaves,
   reactivateSchema,
 } from "./domain/membership";
+export { type MentorshipPerson, mentorshipsFor } from "./domain/mentorship";
 export {
   collectPersonalData,
   ownContactSchema,

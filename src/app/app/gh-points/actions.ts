@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { actorContext } from "@/app/_lib/actor";
-import { getActor } from "@/modules/identity";
+import { getMemberActor } from "@/modules/identity";
 import { claimRewardAs } from "@/modules/participation";
 import { DomainError } from "@/shared/lib/errors";
 
@@ -14,7 +14,7 @@ import { DomainError } from "@/shared/lib/errors";
 const BACK = "/app/gh-points";
 
 export async function claimRewardAction(formData: FormData): Promise<void> {
-  const actor = await getActor();
+  const actor = await getMemberActor();
   if (!actor) redirect(`/ingresar?next=${encodeURIComponent(BACK)}`);
   const rewardId = z.string().min(1).max(64).parse(formData.get("rewardId"));
   try {

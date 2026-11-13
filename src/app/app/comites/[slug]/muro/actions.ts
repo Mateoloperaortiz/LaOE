@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { actorContext } from "@/app/_lib/actor";
 import { formRaw } from "@/app/_lib/form";
-import { getActor } from "@/modules/identity";
+import { getMemberActor } from "@/modules/identity";
 import { deleteApplauseAs, giveApplauseAs } from "@/modules/participation";
 import { DomainError } from "@/shared/lib/errors";
 
@@ -22,7 +22,7 @@ function back(slug: string, extra = ""): string {
 
 export async function applaudAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const actor = await getActor();
+  const actor = await getMemberActor();
   if (!actor) redirect(`/ingresar?next=${encodeURIComponent(back(slug))}`);
   try {
     await giveApplauseAs(await actorContext(actor), {
@@ -41,7 +41,7 @@ export async function applaudAction(formData: FormData): Promise<void> {
 
 export async function deleteApplauseAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const actor = await getActor();
+  const actor = await getMemberActor();
   if (!actor) redirect(`/ingresar?next=${encodeURIComponent(back(slug))}`);
   try {
     await deleteApplauseAs(await actorContext(actor), idSchema.parse(formData.get("id")));

@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
@@ -7,7 +7,7 @@ import {
   canParticipate,
   getMemberSummary,
   lockMembershipCycles,
-  SIGN_IN_STATUSES,
+  signInAccess,
   type WalletMemberState,
 } from "@/modules/people";
 import { t } from "@/shared/copy";
@@ -74,7 +74,8 @@ export async function issueAccessGrant(
   // El destinatario se lee con el candado de su ciclo de membresía: una baja que va en vuelo termina
   // primero y esto responde T-2127; una que llega después espera, y lo que depura borra este enlace.
   const recipient = states.get(input.personId);
-  if (!recipient || !SIGN_IN_STATUSES.includes(recipient.status)) {
+  // Un egresado también recibe su enlace (ADR-184): es como vuelve a entrar después de la baja.
+  if (!recipient || !signInAccess(recipient)) {
     throw new DomainError(t("T-2127"));
   }
   if (privilegeRuleApplies) {
@@ -196,10 +197,20 @@ export async function lockAccessGrantsOf(tx: Tx, personId: string): Promise<void
  * Borra los enlaces de una persona: los llaman el retiro y la anonimización, como a la credencial, y
  * la concesión de un permiso (ADR-119 regla 17).
  */
-export async function deleteAccessGrantsFor(exec: Executor, personId: string): Promise<number> {
+/** Con `upTo`, solo los emitidos hasta ese instante (la baja de un egresado; ADR-184). */
+export async function deleteAccessGrantsFor(
+  exec: Executor,
+  personId: string,
+  upTo?: Date,
+): Promise<number> {
   const rows = await exec
     .delete(accessGrant)
-    .where(eq(accessGrant.personId, personId))
+    .where(
+      and(
+        eq(accessGrant.personId, personId),
+        upTo === undefined ? undefined : lte(accessGrant.createdAt, upTo),
+      ),
+    )
     .returning({ id: accessGrant.id });
   return rows.length;
 }

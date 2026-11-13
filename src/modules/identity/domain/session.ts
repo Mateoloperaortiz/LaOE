@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, ne } from "drizzle-orm";
+import { and, desc, eq, gt, lte, ne } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Executor, runCommand } from "@/db/tx";
 import { releaseSubscriptionOnSignOut } from "@/modules/comms";
@@ -121,16 +121,22 @@ export async function signOut(
   });
 }
 
-/** Destruye todas las sesiones de una persona (cambio de estado o de correo), salvo la indicada. */
+/**
+ * Destruye todas las sesiones de una persona (cambio de estado o de correo), salvo la indicada. Con
+ * `upTo`, solo las abiertas hasta ese instante: la baja de un egresado no le cierra la sesión que abrió
+ * después con el enlace de la junta (ADR-184 regla 3).
+ */
 export async function destroySessionsFor(
   exec: Executor,
   personId: string,
   keepSessionId?: string,
+  upTo?: Date,
 ): Promise<number> {
-  const condition =
-    keepSessionId === undefined
-      ? eq(session.personId, personId)
-      : and(eq(session.personId, personId), ne(session.id, keepSessionId));
+  const condition = and(
+    eq(session.personId, personId),
+    keepSessionId === undefined ? undefined : ne(session.id, keepSessionId),
+    upTo === undefined ? undefined : lte(session.createdAt, upTo),
+  );
   const deleted = await exec.delete(session).where(condition).returning({ id: session.id });
   return deleted.length;
 }
@@ -160,7 +166,7 @@ export async function resolveActor(token: string, now = new Date()): Promise<Act
     return null;
   }
   const member = await getMemberSummary(record.personId);
-  if (!member || !member.canSignIn) {
+  if (!member?.access) {
     return null;
   }
   // Cambiar estado o correo estampa la marca en la misma transacción; las sesiones anteriores no valen (ADR-034).
@@ -181,6 +187,7 @@ export async function resolveActor(token: string, now = new Date()): Promise<Act
     name: member.preferredName ?? member.firstName,
     firstName: member.firstName,
     membershipStatus: member.membershipStatus,
+    access: member.access,
     permissions,
     otpVerifiedAt: record.otpVerifiedAt,
     sessionLastSeenAt: record.lastSeenAt,

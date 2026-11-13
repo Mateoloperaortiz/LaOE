@@ -44,6 +44,7 @@ function actorFor(personId: string, isAdmin = false): Actor & { ip: string | nul
     otpVerifiedAt: new Date(0),
     sessionLastSeenAt: new Date(),
     sessionRemembered: false,
+    access: "MEMBER",
     isAdmin,
   };
 }

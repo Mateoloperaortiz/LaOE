@@ -13,6 +13,8 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-185](ADR-185-padrinos.md) | Padrinos | Propuesta |
+| [ADR-184](ADR-184-egresados-con-acceso.md) | Egresados con acceso | Propuesta |
 | [ADR-183](ADR-183-escala-de-las-olas-en-vivo.md) | La escala de las olas en vivo | Propuesta |
 | [ADR-182](ADR-182-registro-sin-senal.md) | El registro sin señal | Propuesta |
 | [ADR-181](ADR-181-the-games-en-vivo-y-pantallas-de-presentacion.md) | The Games en vivo y las pantallas de presentación | Propuesta |

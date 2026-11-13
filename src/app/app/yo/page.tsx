@@ -176,6 +176,8 @@ export default async function YoPage() {
           { href: "/app/personas", label: personas },
           { href: "/app/disponibilidad", label: t("T-4600") },
           { href: "/app/egresados", label: egresados },
+          { href: "/app/padrinos", label: tList("T-5008")[2] ?? "" },
+          { href: "/app/oportunidades", label: tList("T-5008")[1] ?? "" },
           { href: "/app/fotos", label: fotos },
         ]}
       />

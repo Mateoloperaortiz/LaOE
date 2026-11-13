@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { actorContext } from "@/app/_lib/actor";
 import { formRaw } from "@/app/_lib/form";
-import { getActor } from "@/modules/identity";
+import { getMemberActor } from "@/modules/identity";
 import { saveHandoverAs, verifyHandoverAs } from "@/modules/people";
 import { DomainError } from "@/shared/lib/errors";
 
@@ -20,7 +20,7 @@ async function run(
   formData: FormData,
   command: (actor: Awaited<ReturnType<typeof actorContext>>) => Promise<void>,
 ) {
-  const actor = await getActor();
+  const actor = await getMemberActor();
   if (!actor) redirect(`/ingresar?next=${encodeURIComponent(BACK)}`);
   try {
     await command(await actorContext(actor));

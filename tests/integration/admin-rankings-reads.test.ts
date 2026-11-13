@@ -47,6 +47,7 @@ vi.mock("@/modules/identity", async (importOriginal) => {
         otpVerifiedAt: new Date(),
         sessionLastSeenAt: new Date(),
         sessionRemembered: false,
+        access: "MEMBER",
         isAdmin: true,
       }),
   };

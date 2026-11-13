@@ -4,11 +4,11 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { sessionActorContext } from "@/app/_lib/actor";
-import { ForbiddenError, getActor, rotateCarnetTokenAs } from "@/modules/identity";
+import { ForbiddenError, getMemberActor, rotateCarnetTokenAs } from "@/modules/identity";
 
 // Revocar renueva solo el QR de las billeteras; el carnet oe1 y las sesiones siguen vigentes.
 export async function revokeCarnetAction(formData: FormData): Promise<void> {
-  const actor = await getActor();
+  const actor = await getMemberActor();
   if (!actor) {
     redirect("/ingresar?next=%2Fapp%2Fcarnet");
   }

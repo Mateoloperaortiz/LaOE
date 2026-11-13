@@ -725,6 +725,8 @@ describe("marca de datos personales en el registro del admin", () => {
       "insignias",
       "ledger",
       "mensajes",
+      // Padrinos (ADR-185): el nombre del nuevo y el de su padrino.
+      "padrinos",
       "permanencia",
       "permisos",
       "personas",

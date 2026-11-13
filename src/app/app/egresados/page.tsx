@@ -7,11 +7,12 @@ import { t, tList } from "@/shared/copy";
 import { mediaUrl } from "@/shared/lib/media";
 
 // Galería de egresados (ADR-030): un cartel por año de salida con los nombres y una tarjeta por persona.
+// Para un egresado con acceso es su casa en Mi OE (ADR-184 regla 5), con su bienvenida arriba.
 
 export const metadata: Metadata = { title: t("T-074") };
 
 export default async function EgresadosPage() {
-  await requireActor("/app/egresados");
+  const actor = await requireActor("/app/egresados");
   const years = await listAlumniByYear();
   const [tituloCartel, nombres] = tList("T-222");
   return (
@@ -19,6 +20,11 @@ export default async function EgresadosPage() {
       <header className="flex flex-col gap-3">
         <h1 className="text-display-lg">{t("T-074")}</h1>
         <p className="max-w-prose text-lg">{t("T-075")}</p>
+        {actor.access === "ALUMNI" ? (
+          <output className="block max-w-prose rounded-xl border border-borde bg-fondo-suave p-4">
+            {t("T-5009")}
+          </output>
+        ) : null}
       </header>
       {years.length === 0 ? (
         <div className="flex items-center gap-6 rounded-[var(--radius-cartel)] border border-borde bg-fondo-suave p-6 textura-granito">

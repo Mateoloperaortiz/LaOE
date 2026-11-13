@@ -57,6 +57,7 @@ vi.mock("next/server", async (importOriginal) => ({
 vi.mock("@/modules/identity", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/identity")>()),
   getActor: session.getActor,
+  getMemberActor: session.getActor,
   requireActor: session.getActor,
 }));
 // Del lector de normativa acá solo importa lo que agenda al abrir un documento: el documento lo pone
@@ -106,6 +107,7 @@ async function seedSession(email: string): Promise<string> {
     otpVerifiedAt: new Date(),
     sessionLastSeenAt: new Date(),
     sessionRemembered: false,
+    access: "MEMBER",
     isAdmin: false,
   });
   return personId;

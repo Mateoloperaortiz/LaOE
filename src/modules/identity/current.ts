@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { SESSION_COOKIE } from "./cookie";
 import type { Actor } from "./domain/actor";
+import { ALUMNI_HOME, alumniMayOpen } from "./domain/alumni-routes";
 import { canOperate } from "./domain/guards";
 import { findSessionByToken, resolveActor, touchSession } from "./domain/session";
 
@@ -32,13 +33,37 @@ async function redirectRequest(path: string): Promise<never> {
   return redirect(path);
 }
 
-/** Para layouts y páginas: sin sesión válida, a /ingresar y vuelve. */
-export async function requireActor(nextPath: string): Promise<Actor> {
+/**
+ * Para el marco de Mi OE: sin sesión válida, a /ingresar y vuelve. No mira la ruta, porque el layout
+ * no la conoce: cada página la dice con `requireActor`.
+ */
+export async function requireSignedIn(nextPath: string): Promise<Actor> {
   const actor = await getActor();
   if (!actor) {
     return redirectRequest(loginUrl(nextPath));
   }
   return actor;
+}
+
+/**
+ * Para páginas: sin sesión válida, a /ingresar y vuelve. Un egresado (ADR-184 regla 4) entra solo a
+ * las rutas de su red; cualquier otra lo lleva a la de egresados.
+ */
+export async function requireActor(nextPath: string): Promise<Actor> {
+  const actor = await requireSignedIn(nextPath);
+  if (actor.access === "ALUMNI" && !alumniMayOpen(nextPath)) {
+    return redirectRequest(ALUMNI_HOME);
+  }
+  return actor;
+}
+
+/**
+ * Para las acciones de Mi OE que son de miembro: un egresado responde como sin sesión (ADR-184 regla
+ * 4), así que la acción no llega al dominio aunque alguien arme el envío a mano.
+ */
+export async function getMemberActor(): Promise<Actor | null> {
+  const actor = await getActor();
+  return actor?.access === "MEMBER" ? actor : null;
 }
 
 /**

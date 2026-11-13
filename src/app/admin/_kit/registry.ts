@@ -28,6 +28,7 @@ import {
 import { listCommitteesForSelection } from "@/modules/people";
 import {
   committeesResource,
+  mentorshipsResource,
   peopleResource,
   preferentialScheduleResource,
   rolesResource,
@@ -211,6 +212,7 @@ const registered: AnyResource[] = [
   erased(collectiveGoalsResource),
   erased(thresholdRewardsResource),
   erased(rewardClaimsResource),
+  erased(mentorshipsResource),
 ];
 
 const resources = indexResources(registered);
