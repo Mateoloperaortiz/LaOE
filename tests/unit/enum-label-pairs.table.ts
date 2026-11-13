@@ -104,6 +104,7 @@ import { sanctionKindLabel } from "@/modules/people/domain/sanctions";
 import { BOARD_COMMITTEE_STATES } from "@/modules/permanence/domain/board-composition";
 import { CLOSING_FILTERS } from "@/modules/permanence/domain/closing";
 import { COMPLIANCE_FILTERS } from "@/modules/permanence/domain/compliance";
+import { FOLLOW_UP_KINDS } from "@/modules/permanence/domain/follow-up-pure";
 import {
   APPLIES_TO,
   COMMITTEE_FILTERS,
@@ -963,6 +964,18 @@ export const PAIRS: readonly LabelPair[] = [
     order: "AVAL_KINDS",
     positions: { EVENT: 0, SANCTION: 1 },
     canonical: AVAL_KINDS,
+  },
+  {
+    code: "T-5123",
+    order: "FOLLOW_UP_KINDS",
+    positions: {
+      CAP_PLAN: 0,
+      CAP_MEETING: 1,
+      EDITION_PLAN: 2,
+      EDITION_MEETING: 3,
+      EDITION_HANDOVER: 4,
+    },
+    canonical: FOLLOW_UP_KINDS,
   },
   {
     code: "T-5102",

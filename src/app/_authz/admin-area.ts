@@ -11,7 +11,12 @@ import {
   type SeatAuthority,
   seatsDecidedBy,
 } from "@/modules/people";
-import { type GroupRef, hasCmlMembershipInTerm, listMyGroupRoles } from "@/modules/permanence";
+import {
+  type GroupRef,
+  hasCmlMembershipInTerm,
+  isCapMember,
+  listMyGroupRoles,
+} from "@/modules/permanence";
 import { getCurrentTerm } from "@/modules/terms";
 
 // Roles del área de administración (ADR-036 regla 10, ADR-058, ADR-089): ADMIN, líder de comité, junta
@@ -39,6 +44,8 @@ export interface AdminAreaRoles {
   boardSeats: Array<{ seat: BoardSeat; as: SeatAuthority }>;
   /** CML vigente (o la VP): entrega y recibe inventario desde el modo de campo (ADR-191 regla 6). */
   operatesInventory: boolean;
+  /** La Presidencia y quien está en el CAP leen la bitácora del CAP (ADR-197 regla 4). */
+  readsCapLog: boolean;
   /** Semestre ya consultado para componer navegación sin repetir la lectura. */
   currentTermId: string | null;
   /** Comités con permiso técnico `COMMITTEE_LEADER`. */
@@ -65,6 +72,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
       managesInventory: false,
       boardSeats: [],
       operatesInventory: false,
+      readsCapLog: false,
       currentTermId: null,
       ledCommittees: [],
       committees: [],
@@ -84,6 +92,11 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
   const operatesInventory =
     managesInventory ||
     (!onLeave && term !== null && (await hasCmlMembershipInTerm(actor.personId, term.id)));
+  const readsCapLog =
+    !onLeave &&
+    term !== null &&
+    (boardSeats.some((item) => item.seat === "PRESIDENT" && item.as === "HOLDER") ||
+      (await isCapMember(actor.personId, term.id)));
   const ledCommittees = isAdmin
     ? []
     : await listCommitteesByIds(
@@ -127,6 +140,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
     managesInventory,
     boardSeats,
     operatesInventory,
+    readsCapLog,
     currentTermId: term?.id ?? null,
     ledCommittees,
     committees,
@@ -138,6 +152,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
       isBoard ||
       boardSeats.length > 0 ||
       operatesInventory ||
+      readsCapLog ||
       committees.length > 0 ||
       groups.leads.length > 0 ||
       groups.evaluates.length > 0 ||

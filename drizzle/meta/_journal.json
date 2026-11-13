@@ -547,6 +547,13 @@
       "when": 1794609755744,
       "tag": "0077_calendario_de_la_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1794610694814,
+      "tag": "0078_bitacora_del_cap",
+      "breakpoints": true
     }
   ]
 }

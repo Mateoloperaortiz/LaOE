@@ -1,7 +1,6 @@
 // API pública del módulo permanence (ADR-036): lecturas, cálculo y, tramo a tramo, comandos.
 
 export { listAvailabilityWorkGroups } from "./domain/availability";
-
 export { boardExportRows, boardIndicators } from "./domain/board";
 export { BOARD_COMMITTEE_STATES, boardComposition } from "./domain/board-composition";
 export {
@@ -36,6 +35,17 @@ export {
   listEvaluationTray,
 } from "./domain/evaluations";
 export { loadPeopleFacts, loadPermanenceConfig, loadRules, loadTermFacts } from "./domain/facts";
+export {
+  assignCompanionAs,
+  isCapMember,
+  listCapMembers,
+  listCommitteeLog,
+  listCompanions,
+  saveCapEntryAs,
+  saveTemplateAs,
+  templateQuestions,
+} from "./domain/follow-up";
+export { FOLLOW_UP_KINDS, questionsFromText } from "./domain/follow-up-pure";
 export {
   addMembersAs,
   applyMemberImportAs,

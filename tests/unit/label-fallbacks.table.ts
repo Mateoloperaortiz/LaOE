@@ -20,6 +20,7 @@ export const FALLBACKS_BY_FILE: Record<
   "src/app/admin/_kit/desk.ts": [1, 0, 0, 0],
   "src/app/admin/asambleas/page.tsx": [1, 1, 0, 0],
   "src/app/admin/calendario/junta/page.tsx": [0, 0, 0, 1],
+  "src/app/admin/cap/plantillas/page.tsx": [2, 0, 0, 0],
   "src/app/admin/calendario/page.tsx": [0, 0, 0, 2],
   "src/app/admin/campanas/[id]/page.tsx": [2, 0, 0, 0],
   "src/app/admin/comites/[slug]/_ui/Areas.tsx": [1, 0, 0, 0],

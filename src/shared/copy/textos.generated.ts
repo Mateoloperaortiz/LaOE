@@ -16524,9 +16524,86 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-5123": {
+    where: "Bitácora: formatos (en el orden del modelo)",
+    text: "Plan del mes del CAP · Nota de reunión del CAP · Plan del mes del macroevento · Reunión con Desarrollo Estudiantil · Empalme de la dirección",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5124": {
+    where: "Bitácora: preguntas de fábrica del plan del mes del CAP (hoja de la Presidencia 2027)",
+    text: "Objetivos y prioridades del mes · Eventos del mes · Objetivos internos o metas de cada dirección · Responsables y fechas relevantes · Dificultades previstas",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5125": {
+    where:
+      "Bitácora: preguntas de fábrica de la nota de reunión del CAP (hoja de la Presidencia 2027)",
+    text: "Avances · Qué reconocer · Oportunidades de mejora · Observaciones por dirección",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5126": {
+    where:
+      "Bitácora: preguntas de fábrica del plan del mes del macroevento (hoja de la Presidencia 2027)",
+    text: "Objetivos del mes · Metas · Actividades prioritarias · Dificultades previstas · Apoyo que necesitan · Compromisos",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5127": {
+    where:
+      "Bitácora: preguntas de fábrica de la reunión con Desarrollo Estudiantil (hoja de la Presidencia 2027)",
+    text: "Avances · Próximos hitos · Dificultades · Riesgos · Dudas · Recomendaciones recibidas · Compromisos",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5128": {
+    where:
+      "Bitácora: preguntas de fábrica del empalme de una dirección (hoja de la Presidencia 2027)",
+    text: "Planeación · Organización · Ejecución · Evaluación · Aprendizajes · Contactos relevantes · Procesos · Recomendaciones · Dificultades recurrentes · Lo que debe tener continuidad",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5129": {
+    where: "Bitácora: guardas",
+    text: "Esto lo hace la Presidencia. · Elige a alguien que esté en el CAP este semestre. · En la bitácora de un comité escribe su acompañante del CAP o la Presidencia. · Responde al menos una pregunta.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-513": {
     where: "Tarea creada",
     text: "Listo, tarea creada.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5130": {
+    where:
+      "Bitácora del CAP: pantalla (título · texto · sin acompañante · asignar · plantillas · acompañante · volver)",
+    text: "Bitácora del CAP · Cada comité del semestre con su acompañante del CAP. La bitácora la leen la Presidencia y el CAP. · Sin acompañante · Asignar · Cambiar las preguntas de los formatos · Acompañante · Volver a la bitácora del CAP",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5131": {
+    where: "Bitácora del CAP: columnas y vacío",
+    text: "Comité · Acompañante · No hay comités vivos.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5132": {
+    where: "Bitácora del comité: formularios e historia",
+    text: "Plan de {mes} · Guardar el plan · Nota de reunión · Fecha de la reunión · Guardar la nota · La bitácora · Todavía no hay nada en la bitácora.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5133": {
+    where: "Bitácora del comité: entradas de la historia",
+    text: "Plan de {mes} · Reunión del {fecha}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5134": {
+    where: "Preguntas de los formatos (título · texto · campo · botón)",
+    text: "Preguntas de los formatos · Cambia las preguntas sin tocar código. Lo que ya está escrito guarda las preguntas como estaban. · una pregunta por línea · Guardar las preguntas",
     owner: "MATEO",
     status: "Propuesta",
   },

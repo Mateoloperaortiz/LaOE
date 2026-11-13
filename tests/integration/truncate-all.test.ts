@@ -65,6 +65,7 @@ const CHECKED: Record<string, Record<string, string>> = {
   competition_rotation: { planned_seconds: "60" },
   document_article: { number: "1" },
   event_approval_entry: { event_on: "date '2026-01-01'" },
+  follow_up_entry: { committee_id: "'x'", month: "'2026-01'" },
   game2048_run: { seed: "'0123456789abcdef'" },
   gallery_album: { slug: "'album-sintetico'" },
   gallery_collection: { slug: "'coleccion-sintetica'" },

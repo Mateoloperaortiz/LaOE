@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -384,5 +385,118 @@ export const permanenceDecision = pgTable(
       "permanence_decision_proposal_reason_range",
       sql`${t.proposalReason} is null or ${t.proposalReason} between 0 and 5`,
     ),
+  ],
+);
+
+// Los formatos de seguimiento de la Presidencia (ADR-197 reglas 4 y 5): el plan del mes y la nota de
+// reunión del CAP con cada comité, el plan del mes con las direcciones generales de un macroevento, la
+// reunión con Desarrollo Estudiantil y el empalme de cada dirección de la mesa.
+export const followUpKind = pgEnum("follow_up_kind", [
+  "CAP_PLAN",
+  "CAP_MEETING",
+  "EDITION_PLAN",
+  "EDITION_MEETING",
+  "EDITION_HANDOVER",
+]);
+
+// Las preguntas de cada formato, que la Presidencia edita sin código. Sin fila, valen las del catálogo
+// de textos. `roleCode` vacío es la plantilla general; con un cargo de la mesa, sus preguntas propias.
+export const followUpTemplate = pgTable(
+  "follow_up_template",
+  {
+    id: id(),
+    kind: followUpKind().notNull(),
+    roleCode: text(),
+    questions: jsonb().$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    updatedById: text().references(() => person.id, { onDelete: "set null" }),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("follow_up_template_kind_unique").on(t.kind).where(sql`${t.roleCode} is null`),
+    uniqueIndex("follow_up_template_kind_role_unique")
+      .on(t.kind, t.roleCode)
+      .where(sql`${t.roleCode} is not null`),
+    check("follow_up_template_questions_array", sql`jsonb_typeof(${t.questions}) = 'array'`),
+  ],
+);
+
+// El acompañante del CAP de cada comité en el semestre (ADR-197 regla 4): lo asigna la Presidencia
+// entre quienes están en el CAP.
+export const capCompanion = pgTable(
+  "cap_companion",
+  {
+    id: id(),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    committeeId: text()
+      .notNull()
+      .references(() => committee.id, { onDelete: "cascade" }),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    assignedById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("cap_companion_committee_unique").on(t.termId, t.committeeId),
+    index("cap_companion_person_idx").on(t.personId, t.termId),
+  ],
+);
+
+// La bitácora (ADR-197 reglas 4 y 5): cada entrada guarda las preguntas tal como estaban y sus
+// respuestas, para que cambiar la plantilla no cambie lo ya escrito. El plan es uno por mes.
+export const followUpEntry = pgTable(
+  "follow_up_entry",
+  {
+    id: id(),
+    kind: followUpKind().notNull(),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    committeeId: text().references(() => committee.id, { onDelete: "cascade" }),
+    editionId: text().references(() => eventEdition.id, { onDelete: "cascade" }),
+    /** El cargo de la mesa que entrega el empalme. */
+    roleCode: text(),
+    /** "AAAA-MM" en los planes del mes. */
+    month: text(),
+    occurredOn: date({ mode: "string" }).notNull(),
+    answers: jsonb()
+      .$type<Array<{ question: string; answer: string }>>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    authorId: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("follow_up_entry_committee_idx").on(t.committeeId, t.occurredOn),
+    index("follow_up_entry_edition_idx").on(t.editionId, t.occurredOn),
+    uniqueIndex("follow_up_entry_cap_plan_unique")
+      .on(t.committeeId, t.month)
+      .where(sql`${t.kind} = 'CAP_PLAN'`),
+    uniqueIndex("follow_up_entry_edition_plan_unique")
+      .on(t.editionId, t.month)
+      .where(sql`${t.kind} = 'EDITION_PLAN'`),
+    uniqueIndex("follow_up_entry_handover_unique")
+      .on(t.editionId, t.roleCode)
+      .where(sql`${t.kind} = 'EDITION_HANDOVER'`),
+    check(
+      "follow_up_entry_subject",
+      sql`(${t.kind}::text like 'CAP_%') = (${t.committeeId} is not null and ${t.editionId} is null)`,
+    ),
+    check(
+      "follow_up_entry_month",
+      sql`(${t.kind}::text in ('CAP_PLAN', 'EDITION_PLAN')) = (${t.month} is not null)`,
+    ),
+    check(
+      "follow_up_entry_month_format",
+      sql`${t.month} is null or ${t.month} ~ '^[0-9]{4}-[0-9]{2}$'`,
+    ),
+    check(
+      "follow_up_entry_handover_role",
+      sql`(${t.kind}::text = 'EDITION_HANDOVER') = (${t.roleCode} is not null)`,
+    ),
+    check("follow_up_entry_answers_array", sql`jsonb_typeof(${t.answers}) = 'array'`),
   ],
 );
