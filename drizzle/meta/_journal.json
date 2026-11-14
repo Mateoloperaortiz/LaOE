@@ -568,6 +568,13 @@
       "when": 1794612259437,
       "tag": "0080_directorio_institucional",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1794616679439,
+      "tag": "0081_pronosticos_del_athletic",
+      "breakpoints": true
     }
   ]
 }

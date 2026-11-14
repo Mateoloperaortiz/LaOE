@@ -29,6 +29,9 @@ const MODULE_DEPS = {
   participation: ["events", "forms", "people", "system", "terms"],
   people: ["content", "events", "system", "terms"],
   permanence: ["events", "participation", "people", "system", "terms"],
+  // ADR-197 regla 7: los pronósticos del Athletic leen asistencias y escriben GH Points (participation)
+  // y saben quién lidera el Athletic (permanence); por eso no caben en ninguno de los dos.
+  predictions: ["participation", "people", "permanence", "terms"],
   system: [],
   terms: [],
   wallet: ["identity", "people", "terms"],

@@ -15,6 +15,7 @@ import {
   type GroupRef,
   hasCmlMembershipInTerm,
   isCapMember,
+  leadsWorkCommittee,
   listMyGroupRoles,
 } from "@/modules/permanence";
 import { getCurrentTerm } from "@/modules/terms";
@@ -46,6 +47,8 @@ export interface AdminAreaRoles {
   operatesInventory: boolean;
   /** La Presidencia y quien está en el CAP leen la bitácora del CAP (ADR-197 regla 4). */
   readsCapLog: boolean;
+  /** Quien lidera el Athletic en el semestre maneja sus pronósticos (ADR-197 regla 7). */
+  leadsAthletic: boolean;
   /** Semestre ya consultado para componer navegación sin repetir la lectura. */
   currentTermId: string | null;
   /** Comités con permiso técnico `COMMITTEE_LEADER`. */
@@ -73,6 +76,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
       boardSeats: [],
       operatesInventory: false,
       readsCapLog: false,
+      leadsAthletic: false,
       currentTermId: null,
       ledCommittees: [],
       committees: [],
@@ -97,6 +101,8 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
     term !== null &&
     (boardSeats.some((item) => item.seat === "PRESIDENT" && item.as === "HOLDER") ||
       (await isCapMember(actor.personId, term.id)));
+  const leadsAthletic =
+    !onLeave && term !== null && (await leadsWorkCommittee(actor.personId, term.id, "ATHLETIC"));
   const ledCommittees = isAdmin
     ? []
     : await listCommitteesByIds(
@@ -141,6 +147,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
     boardSeats,
     operatesInventory,
     readsCapLog,
+    leadsAthletic,
     currentTermId: term?.id ?? null,
     ledCommittees,
     committees,
@@ -153,6 +160,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
       boardSeats.length > 0 ||
       operatesInventory ||
       readsCapLog ||
+      leadsAthletic ||
       committees.length > 0 ||
       groups.leads.length > 0 ||
       groups.evaluates.length > 0 ||

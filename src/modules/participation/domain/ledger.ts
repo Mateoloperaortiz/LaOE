@@ -197,7 +197,11 @@ type NonGameKind =
   | "LEGACY"
   | "CHALLENGE"
   | "BOOST"
-  | "PRESENCE_STREAK";
+  | "PRESENCE_STREAK"
+  // ADR-197 regla 7: los pronósticos del Athletic no son un juego; son GH Points.
+  | "PREDICTION_STAKE"
+  | "PREDICTION_PAYOUT"
+  | "PREDICTION_REFUND";
 type GameKind = Exclude<PointEntryRow["kind"], NonGameKind>;
 
 /**
@@ -482,4 +486,54 @@ export async function listEntriesForPerson(personId: string): Promise<LedgerList
     reversedById: item.reversedById,
     account: item.account,
   }));
+}
+
+/** Los movimientos de un pronóstico del Athletic (ADR-197 regla 7). */
+export type PredictionEntryKind = "PREDICTION_STAKE" | "PREDICTION_PAYOUT" | "PREDICTION_REFUND";
+
+/**
+ * El saldo GH de la persona en el término, leído dentro de la transacción del pronóstico. Quien llama
+ * bloquea antes a la persona, para que dos pronósticos a la vez no gasten el mismo saldo.
+ */
+export async function ghBalanceIn(
+  ctx: CommandContext,
+  personId: string,
+  termId: string,
+): Promise<number> {
+  const [row] = await ctx.tx
+    .select({ total: sql<number>`coalesce(sum(${pointEntry.points}), 0)::int` })
+    .from(pointEntry)
+    .where(and(eq(pointEntry.personId, personId), eq(pointEntry.termId, termId), ghPointCondition));
+  return row?.total ?? 0;
+}
+
+/**
+ * Escribe un movimiento de pronóstico en el libro de GH Points: lo apostado en negativo, lo ganado o
+ * lo devuelto en positivo. Es idempotente por pronóstico y tipo; un término con los puntos cerrados no
+ * acepta movimientos.
+ */
+export async function recordPredictionEntry(
+  ctx: CommandContext,
+  entry: {
+    personId: string;
+    termId: string;
+    kind: PredictionEntryKind;
+    points: number;
+    ticketId: string;
+    reason: string;
+  },
+): Promise<void> {
+  await lockOpenTermPoints(ctx.tx, entry.termId);
+  await ctx.tx
+    .insert(pointEntry)
+    .values({
+      personId: entry.personId,
+      termId: entry.termId,
+      kind: entry.kind,
+      points: entry.points,
+      reason: entry.reason,
+      predictionTicketId: entry.ticketId,
+      createdById: ctx.actor.personId,
+    })
+    .onConflictDoNothing();
 }

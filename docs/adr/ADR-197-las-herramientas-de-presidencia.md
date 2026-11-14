@@ -60,3 +60,13 @@ Mateo decidió el 2026-11-13 cada punto. Esta ADR fija esas decisiones y los tra
 - **P6 cambia una política.** Hasta hoy los juegos dan puntos de juego y no GH Points. Con los pronósticos, alguien puede perder GH Points ganados por participar, y eso mueve niveles y ranking: por eso el tope por partido y la condición de asistir. Gestión Humana fija el tope antes de abrir el primer partido.
 - **P2 publica datos de funcionarios.** Solo datos de trabajo, y la foto con autorización. Entra en la política de datos que revisa la junta.
 - **El empalme obligatorio puede trabar el cierre de una edición.** Si a una dirección le falta el suyo, la Presidencia lo ve en la Mesa.
+
+## Precisión (2026-11-13): los pronósticos del Athletic
+
+Mateo respondió las dos preguntas que dejaba abierta la regla 7:
+
+- **Quién los maneja.** «La dirección de Gestión Humana del Athletic» es quien lidera el comité de trabajo del Athletic en el semestre (el grupo de trabajo de código ATHLETIC). Crea los pronósticos de cada partido, los abre, registra el resultado y los cancela.
+- **Cómo se paga.** Por bolsa, como las apuestas de The Games ([ADR-091](ADR-091-apuestas-de-the-games.md) regla 4): quienes aciertan se reparten lo que apostaron quienes fallaron, en proporción a lo que apostó cada uno, y el redondeo se reparte por mayor resto. Si nadie acierta o se cancela, se devuelve todo. No se crean GH Points nuevos.
+- **El parley** combina pronósticos de un mismo partido y tiene su propia bolsa: se reparte entre los parleys que acertaron todo cuando ya se resolvió cada pronóstico que incluyen. Un parley con un pronóstico cancelado se devuelve.
+- **Asistir.** Cuenta la asistencia registrada (pendiente o aprobada). Si al resolver la asistencia quedó rechazada o anulada, lo apostado se devuelve y no entra a la bolsa.
+- **El tope** lo fija quien decide por la Vicepresidencia de Gestión Humana, y es por persona y por partido. Sin tope fijado no se abre ningún pronóstico.

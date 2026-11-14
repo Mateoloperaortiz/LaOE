@@ -73,6 +73,10 @@ export const pointEntryKind = pgEnum("point_entry_kind", [
   "PANAL",
   "PRESENCE_STREAK",
   "COLOR",
+  // ADR-197 regla 7: lo que se apuesta, se gana o se devuelve en los pronósticos del Athletic.
+  "PREDICTION_STAKE",
+  "PREDICTION_PAYOUT",
+  "PREDICTION_REFUND",
 ]);
 
 export const wordleStatus = pgEnum("wordle_status", ["IN_PROGRESS", "WON", "LOST", "EXPIRED"]);
@@ -572,6 +576,8 @@ export const pointEntry = pgTable(
     colorRunId: text().references(() => colorRun.id),
     panalGameId: text().references(() => panalGame.id),
     panalCheckpoint: integer(),
+    /** El pronóstico del Athletic de un movimiento PREDICTION_* (módulo `predictions`, sin clave foránea). */
+    predictionTicketId: text(),
     rewardId: text().references((): AnyPgColumn => reward.id),
     presenceBonusId: text().references((): AnyPgColumn => presenceBonus.id),
     kind: pointEntryKind().notNull(),
@@ -613,6 +619,18 @@ export const pointEntry = pgTable(
     uniqueIndex("point_entry_reward_kind_unique")
       .on(t.rewardId, t.kind)
       .where(sql`${t.rewardId} is not null`),
+    // Un movimiento de cada tipo por pronóstico: apostar, cobrar y devolver no se repiten.
+    uniqueIndex("point_entry_prediction_kind_unique")
+      .on(t.predictionTicketId, t.kind)
+      .where(sql`${t.predictionTicketId} is not null`),
+    check(
+      "point_entry_prediction_consistent",
+      sql`(${t.kind}::text like 'PREDICTION_%') = (${t.predictionTicketId} is not null)`,
+    ),
+    check(
+      "point_entry_prediction_sign",
+      sql`${t.kind}::text not like 'PREDICTION_%' or (${t.kind}::text = 'PREDICTION_STAKE') = (${t.points} < 0)`,
+    ),
     uniqueIndex("point_entry_legacy_id_unique")
       .on(t.legacyId)
       .where(sql`${t.legacyId} is not null`),

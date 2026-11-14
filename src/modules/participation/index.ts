@@ -182,10 +182,13 @@ export { LEAGUE_TIERS } from "./domain/league-pure";
 export { myLeague } from "./domain/leagues";
 export {
   balanceFor,
+  ghBalanceIn,
   type LedgerListRow,
   listEntriesFor,
   listEntriesForPerson,
   listLedger,
+  type PredictionEntryKind,
+  recordPredictionEntry,
 } from "./domain/ledger";
 export {
   levelCutoffsForTerm,
@@ -207,6 +210,7 @@ export {
   getOccasion,
   getOccasionByPublicId,
   getOccasionsByIds,
+  listAthleticMatches,
   listMemberAgenda,
   listOccasions,
   listOccasionsBetween,

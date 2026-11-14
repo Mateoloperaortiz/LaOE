@@ -714,3 +714,31 @@ export async function createOccasionSeries(
   }
   return { created, skipped: dates.length - created, lastStartsAt: dates.at(-1) ?? null };
 }
+
+export interface AthleticMatch {
+  id: string;
+  title: string;
+  startsAt: Date;
+  status: OccasionStatus;
+}
+
+/** Los partidos del Athletic que empiezan en un rango, sin los cancelados (ADR-197 regla 7). */
+export async function listAthleticMatches(from: Date, to: Date): Promise<AthleticMatch[]> {
+  return getDb()
+    .select({
+      id: occasion.id,
+      title: occasion.title,
+      startsAt: occasion.startsAt,
+      status: occasion.status,
+    })
+    .from(occasion)
+    .where(
+      and(
+        eq(occasion.category, "ATHLETIC_MATCH"),
+        gte(occasion.startsAt, from),
+        lt(occasion.startsAt, to),
+        ne(occasion.status, "CANCELLED"),
+      ),
+    )
+    .orderBy(asc(occasion.startsAt));
+}

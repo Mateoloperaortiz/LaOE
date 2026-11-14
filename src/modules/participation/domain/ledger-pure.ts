@@ -12,7 +12,10 @@ export type PointEntryKind =
   | "SUDOKU"
   | "PANAL"
   | "PRESENCE_STREAK"
-  | "COLOR";
+  | "COLOR"
+  | "PREDICTION_STAKE"
+  | "PREDICTION_PAYOUT"
+  | "PREDICTION_REFUND";
 export const POINT_ENTRY_KINDS = [
   "CHECKIN",
   "ADJUSTMENT",
@@ -29,6 +32,10 @@ export const POINT_ENTRY_KINDS = [
   "PANAL",
   "PRESENCE_STREAK",
   "COLOR",
+  // ADR-197 regla 7: pronósticos del Athletic, que sí son GH Points.
+  "PREDICTION_STAKE",
+  "PREDICTION_PAYOUT",
+  "PREDICTION_REFUND",
 ] as const satisfies readonly PointEntryKind[];
 
 export interface Level {

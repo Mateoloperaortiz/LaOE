@@ -888,3 +888,28 @@ export async function hasCmlMembershipInTerm(
     .limit(1);
   return row !== undefined;
 }
+
+/**
+ * Si la persona lidera en el término el comité de trabajo de ese código. Quien lidera el Athletic
+ * maneja sus pronósticos (ADR-197 regla 7).
+ */
+export async function leadsWorkCommittee(
+  personId: string,
+  termId: string,
+  code: string,
+  exec: Executor = getDb(),
+): Promise<boolean> {
+  const [row] = await exec
+    .select({ id: workGroup.id })
+    .from(workGroup)
+    .where(
+      and(
+        eq(workGroup.termId, termId),
+        eq(workGroup.kind, "WORK_COMMITTEE"),
+        eq(workGroup.code, code),
+        eq(workGroup.leaderPersonId, personId),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}

@@ -165,6 +165,8 @@ export default async function YoPage() {
           { href: "/app/solicitudes", label: solicitudes },
           { href: "/app/convocatorias", label: convocatorias },
           { href: "/app/carnet", label: carnet },
+          // Los pronósticos del Athletic (ADR-197 regla 7), con GH Points.
+          { href: "/app/pronosticos", label: tList("T-5150")[0] ?? "" },
           { href: "/app/inventario", label: t("T-4300") },
           { href: "/app/normativa", label: normativa },
         ]}

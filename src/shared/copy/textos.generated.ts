@@ -455,7 +455,7 @@ export const textos = {
   },
   "T-085": {
     where: "Movimientos, tipos",
-    text: "Asistencia · Ajuste · Reversión · Histórico · Wordle · Reto · Impulso · 2048 · Sudoku · Panal · Constancia presencial · Color",
+    text: "Asistencia · Ajuste · Reversión · Histórico · Wordle · Reto · Impulso · 2048 · Sudoku · Panal · Constancia presencial · Color · Pronóstico apostado · Pronóstico ganado · Pronóstico devuelto",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16685,9 +16685,60 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-5146": {
+    where:
+      "Pronósticos del Athletic, Operación (título · texto · tope · campo · guardar · sin tope · tope actual)",
+    text: "Pronósticos del Athletic · Los pronósticos de cada partido, con la bolsa de cada opción. Los crea, los abre y les registra el resultado quien lidera el Athletic; el tope lo fija Gestión Humana. · Tope por partido · GH Points por persona y por partido · Guardar el tope · Todavía no hay tope: sin él no se abre ningún pronóstico. · Tope actual: {n} GH Points por persona y por partido.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5147": {
+    where:
+      "Pronósticos: un partido (nuevo · qué · opciones · crear · abrir · cancelar · resultado · registrar · bolsa · bolsa de parleys · sin partidos · ganó)",
+    text: "Nuevo pronóstico · Qué se pronostica · Opciones (una por línea) · Crear el pronóstico · Abrir · Cancelar · Resultado · Registrar el resultado · Bolsa: {n} · Bolsa de parleys: {n} · No hay partidos del Athletic en estos dos meses. · Ganó",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5148": {
+    where: "Pronósticos: estados (en el orden del modelo)",
+    text: "Borrador · Abierto · Resuelto · Cancelado",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5149": {
+    where: "Pronósticos: guardas",
+    text: "Los pronósticos los maneja quien lidera el Athletic este semestre. · Eso no es un partido del Athletic. · El tope lo fija Gestión Humana. · El partido ya empezó. · Escribe al menos dos opciones distintas. · Ese pronóstico ya no está en ese estado. · Gestión Humana todavía no fija el tope. · El resultado se registra cuando el partido empieza. · Esa opción no es de ese pronóstico. · Pronostica quien registró su asistencia al partido. · Elige una opción por pronóstico. · Ese pronóstico ya no está abierto. · No te alcanzan los GH Points.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-515": {
     where: "Línea de tiempo: autor del sistema",
     text: "Sistema",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5150": {
+    where:
+      "Pronósticos en Mi OE (título · texto · saldo · te quedan · sencillo · parley · cuánto · pronosticar · tuyos · vacío · sin partidos · ninguna · listo)",
+    text: "Pronósticos del Athletic · Si registraste tu asistencia a un partido, pronostica con tus GH Points hasta que empiece. Se paga por bolsa: quienes aciertan se reparten lo que apostaron quienes fallaron. · Tienes {n} GH Points · En este partido te quedan {n} GH Points por apostar · Pronóstico sencillo · Parley: varios pronósticos del partido; ganas solo si aciertas todos · Cuántos GH Points · Pronosticar · Tus pronósticos · Todavía no has pronosticado. · Ahora no hay partidos en los que puedas pronosticar. · Ninguna · Listo: tu pronóstico quedó en juego.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5151": {
+    where: "Pronósticos: estados de lo pronosticado (en el orden del modelo)",
+    text: "En juego · Ganado · Perdido · Devuelto",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5152": {
+    where: "Pronósticos: motivos en el libro de GH Points",
+    text: "Apostaste en un pronóstico de {partido} · Ganaste un pronóstico de {partido} · Te devolvieron un pronóstico de {partido}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5153": {
+    where: "Pronósticos: tope superado",
+    text: "En este partido solo te quedan {n} GH Points por apostar.",
     owner: "MATEO",
     status: "Propuesta",
   },

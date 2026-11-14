@@ -68,6 +68,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         ...(roles.boardSeats.some((item) => item.seat === "PRESIDENT" && item.as === "HOLDER")
           ? [{ href: "/admin/directorio-institucional", label: tList("T-5142")[0] ?? "" }]
           : []),
+        // Los pronósticos del Athletic (ADR-197 regla 7): quien lidera el Athletic y quien fija el tope.
+        ...(roles.leadsAthletic || roles.boardSeats.some((item) => item.seat === "VP_GH")
+          ? [{ href: "/admin/pronosticos", label: tList("T-5146")[0] ?? "" }]
+          : []),
         // La bitácora del CAP (ADR-197 regla 4): la Presidencia y el CAP.
         ...(roles.readsCapLog ? [{ href: "/admin/cap", label: tList("T-5130")[0] ?? "" }] : []),
         // El inventario (ADR-150 regla 2): solo la VP administrativa vigente.

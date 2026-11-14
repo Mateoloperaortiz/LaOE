@@ -115,4 +115,5 @@ export const FALLBACKS_BY_FILE: Record<
   "src/modules/permanence/components/TablaReglas.tsx": [1, 1, 0, 0],
   "src/modules/permanence/components/TeamParticipations.tsx": [0, 0, 0, 1],
   "src/modules/permanence/domain/team-areas.ts": [1, 0, 0, 0],
+  "src/modules/predictions/domain/predictions.ts": [2, 0, 0, 0],
 };

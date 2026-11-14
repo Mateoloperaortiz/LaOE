@@ -115,6 +115,11 @@ import {
 } from "@/modules/permanence/domain/params";
 import { COMPLIANCE_STATES } from "@/modules/permanence/domain/snapshot-pure";
 import { TEAM_AREA_CODES, teamAreaLabel } from "@/modules/permanence/domain/team-areas";
+import { marketStatusLabel, ticketStatusLabel } from "@/modules/predictions/domain/predictions";
+import {
+  PREDICTION_MARKET_STATUSES,
+  PREDICTION_TICKET_STATUSES,
+} from "@/modules/predictions/domain/predictions-pure";
 import { tLabels, type tList } from "@/shared/copy";
 
 const LABELS = {
@@ -122,6 +127,8 @@ const LABELS = {
   area: (value) => areaLabel(value as never),
   approvalStatus: (value) => approvalStatusLabel(value as never),
   riskLevel: (value) => riskLevelLabel(value as never),
+  predictionMarketStatus: (value) => marketStatusLabel(value as never),
+  predictionTicketStatus: (value) => ticketStatusLabel(value as never),
   award: (value) => awardLabel(value),
   budgetKind: (value) => budgetKindLabel(value as never),
   budgetStatus: (value) => budgetStatusLabel(value as never),
@@ -181,6 +188,9 @@ export const PAIRS: readonly LabelPair[] = [
       PANAL: 9,
       PRESENCE_STREAK: 10,
       COLOR: 11,
+      PREDICTION_STAKE: 12,
+      PREDICTION_PAYOUT: 13,
+      PREDICTION_REFUND: 14,
     },
     canonical: POINT_ENTRY_KINDS,
   },
@@ -964,6 +974,20 @@ export const PAIRS: readonly LabelPair[] = [
     order: "AVAL_KINDS",
     positions: { EVENT: 0, SANCTION: 1 },
     canonical: AVAL_KINDS,
+  },
+  {
+    code: "T-5148",
+    order: "PREDICTION_MARKET_STATUSES",
+    positions: { DRAFT: 0, OPEN: 1, RESOLVED: 2, CANCELLED: 3 },
+    canonical: PREDICTION_MARKET_STATUSES,
+    label: LABELS.predictionMarketStatus,
+  },
+  {
+    code: "T-5151",
+    order: "PREDICTION_TICKET_STATUSES",
+    positions: { OPEN: 0, WON: 1, LOST: 2, REFUNDED: 3 },
+    canonical: PREDICTION_TICKET_STATUSES,
+    label: LABELS.predictionTicketStatus,
   },
   {
     code: "T-5123",

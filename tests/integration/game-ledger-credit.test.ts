@@ -66,6 +66,7 @@ function entry(own: Own): Entry {
     colorRunId: null,
     panalGameId: null,
     panalCheckpoint: null,
+    predictionTicketId: null,
     rewardId: null,
     presenceBonusId: null,
     reversalOfId: null,

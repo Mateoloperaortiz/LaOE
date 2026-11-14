@@ -69,6 +69,7 @@ export {
   groupJoinBlocker,
   hasCmlMembershipInTerm,
   isOfficeDecorationGroup,
+  leadsWorkCommittee,
   listGroupIdsOf,
   listGroupOptions,
   listGroupRefs,
