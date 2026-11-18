@@ -30,7 +30,13 @@ export function ResourcePanel({ title, closeHref, closeLabel, children }: Props)
     heading.current?.focus({ preventScroll: true });
     const updateBusy = () => setBusy(Boolean(element.querySelector('[aria-busy="true"]')));
     const observer = new MutationObserver(updateBusy);
-    observer.observe(element, { attributes: true, subtree: true, attributeFilter: ["aria-busy"] });
+    // El formulario ocupado puede desmontarse al llegar el resultado de la navegación.
+    observer.observe(element, {
+      attributes: true,
+      attributeFilter: ["aria-busy"],
+      childList: true,
+      subtree: true,
+    });
     updateBusy();
     return () => {
       observer.disconnect();
