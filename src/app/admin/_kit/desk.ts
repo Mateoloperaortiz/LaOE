@@ -8,7 +8,11 @@ import {
   listPendingReviews,
   VIABILITY_ALERTS,
 } from "@/modules/participation";
-import { listCommitteesMissingRequiredRoles, listPendingSanctions } from "@/modules/people";
+import {
+  listCommitteesMissingRequiredRoles,
+  listPendingSanctions,
+  pendingCandidacies,
+} from "@/modules/people";
 import { countPendingFor, editionsPendingClosure } from "@/modules/permanence";
 import { countDeadLetters } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
@@ -63,6 +67,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     loans,
     eventAvales,
     pendingFaltas,
+    candidacies,
     pendingClosures,
   ] = await Promise.all([
     roles.isAdmin
@@ -97,6 +102,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
       ? listEventApprovals({ status: "PENDING" })
       : [],
     roles.boardSeats.some((item) => item.seat === "VP_GH") ? listPendingSanctions() : [],
+    roles.boardSeats.some((item) => item.seat === "VP_GH") ? pendingCandidacies(now) : [],
     // Los seguimientos de macroeventos que ya terminaron y no se cierran (ADR-197 regla 5).
     roles.boardSeats.some((item) => item.seat === "PRESIDENT" && item.as === "HOLDER")
       ? editionsPendingClosure(now)
@@ -178,13 +184,20 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     ),
     ...deskSection(
       "avales",
-      eventAvales.length + pendingFaltas.length,
+      eventAvales.length + pendingFaltas.length + candidacies.length,
       [
         ...eventAvales.map((row) => ({
           id: row.id,
           title: row.title,
           detail: row.committeeName,
           href: `/admin/avales?aval=${row.id}`,
+          date: { kind: "arrived" as const, at: row.requestedAt },
+        })),
+        ...candidacies.map((row) => ({
+          id: row.id,
+          title: row.personName,
+          detail: [row.roleLabel, row.committeeName].join(" · "),
+          href: `/admin/avales?postulacion=${row.id}`,
           date: { kind: "arrived" as const, at: row.requestedAt },
         })),
         ...pendingFaltas.map((row) => ({

@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-198](ADR-198-el-aval-de-postulacion-a-una-mesa.md) | El aval de postulación a una mesa | Propuesta |
 | [ADR-197](ADR-197-las-herramientas-de-presidencia.md) | Las herramientas de Presidencia | Aceptada |
 | [ADR-196](ADR-196-las-faltas-pasan-por-la-vp-de-gestion-humana.md) | Las faltas pasan por la VP de Gestión Humana | Propuesta |
 | [ADR-195](ADR-195-los-avales-de-la-junta.md) | Los avales de la junta | Aceptada; enmendada por ADR-197 |

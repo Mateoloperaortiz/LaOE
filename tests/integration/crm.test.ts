@@ -142,7 +142,11 @@ describe("etiquetas y segmentos", () => {
     const termId = await seedTerm();
     const a3 = await seedCommittee("a3");
     const pixel = await seedCommittee("pixel");
-    const ana = await seedMember("ana@eafit.edu.co", { firstName: "Ana", lastName: "Arango" });
+    const ana = await seedMember("ana@eafit.edu.co", {
+      firstName: "Ana",
+      lastName: "Arango",
+      entryTermCode: "2024-2",
+    });
     const bruno = await seedMember("bruno@eafit.edu.co", {
       firstName: "Bruno",
       lastName: "Betancur",
@@ -153,14 +157,9 @@ describe("etiquetas y segmentos", () => {
     });
     // Los tres son nuevos: el cargo de mesa de Ana entra con el aval registrado (ADR-060 regla 11).
     await runCommand(SYSTEM_ACTOR, (ctx) =>
-      setCommitteeMemberships(
-        ctx,
-        ana,
-        termId,
-        [{ committeeId: a3, roleCode: "GENERAL", transferredIn: false }],
-        new Date(),
-        { reason: "Aval de la Vicepresidencia de GH" },
-      ),
+      setCommitteeMemberships(ctx, ana, termId, [
+        { committeeId: a3, roleCode: "GENERAL", transferredIn: false },
+      ]),
     );
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       setCommitteeMemberships(ctx, bruno, termId, [
@@ -193,8 +192,12 @@ describe("etiquetas y segmentos", () => {
         segmentFilterSchema.parse({ roleCodes: ["GENERAL"], tagIds: [vip.id] }),
       ),
     ).toEqual([ana]);
-    expect((await findPeopleByFilter(segmentFilterSchema.parse({ entry: "NEW" }))).length).toBe(3);
-    expect(await findPeopleByFilter(segmentFilterSchema.parse({ entry: "VETERAN" }))).toEqual([]);
+    expect((await findPeopleByFilter(segmentFilterSchema.parse({ entry: "NEW" }))).sort()).toEqual(
+      [bruno, cami].sort(),
+    );
+    expect(await findPeopleByFilter(segmentFilterSchema.parse({ entry: "VETERAN" }))).toEqual([
+      ana,
+    ]);
 
     const created = await runCommand(SYSTEM_ACTOR, (ctx) =>
       createSegment(ctx, { name: "A3 sin comunicaciones", ...filter }),

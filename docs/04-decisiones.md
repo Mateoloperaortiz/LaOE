@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [198](adr/ADR-198-el-aval-de-postulacion-a-una-mesa.md) | Aval de postulación | La VP de GH avala la postulación de una persona nueva para un cargo, un comité y un semestre | Propuesta |
 | [165](adr/ADR-165-bonos-de-permanencia-por-criterio.md) | Bonos de permanencia | GH ingresa el total exacto de los faltantes elegidos. La persona ve los puntos por criterio y el motivo | Aceptada |
 | [164](adr/ADR-164-el-rediseno-sale-de-una-vez.md) | El rediseño sale de una vez | Sin bandera por persona: el rediseño se construye en la rama `feat/rediseno`, con `main` mezclado cada semana y migraciones solo aditivas; cada ola se prueba en staging y el rediseño sale completo, las olas 1 a 5, para todos en un solo PR; si algo falla, se vuelve al SHA anterior | Aceptada |
 | [163](adr/ADR-163-aspecto-sobrio-de-la-capa-funcional.md) | Aspecto sobrio de la capa funcional | En la Operación, Mi OE y el modo de campo: fondo con degradado suave y superficies blancas sin borde, peso máximo 600, etiqueta corta en tipo oración, navy como único acento fuerte y acción principal de las dos áreas, botón secundario sin borde y pastillas para pestañas y filtros; el naranja queda en el botón de Asistencia y en los momentos de marca | Aceptada |

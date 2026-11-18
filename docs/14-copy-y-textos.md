@@ -1886,8 +1886,8 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2279 | Cambiar estado: ayuda del regreso previsto | Obligatorio para la licencia: desde mañana y máximo un año (Estatutos, art. 5.4). Al volver a activo retoma la condición que tenía. | MATEO | Propuesta |
 | T-2280 | Membresía: licencia con regreso previsto | En licencia hasta el {fecha} | MATEO | Propuesta |
 | T-2281 | Inhabilidades para cargos: motivos (en el orden del modelo) | Tiene una inhabilidad para cargos vigente · Es de la Junta Directiva y la junta no convive con la mesa de un comité (Reglamento, art. 11) · Es nuevo: un cargo de mesa necesita el aval de la Vicepresidencia de GH (art. 27) · Ya dirige otro macroevento · Ya es General de otro comité · Ya es Financiero de otro comité · Superaría dos cargos directivos · Con dos cargos directivos, al menos uno debe ser codirección | GH | Propuesta; Reglamento art. 11 y 27 par. 3 y 4 |
-| T-2282 | Inhabilidades: guarda al nombrar | No se puede nombrar: {motivos}. ADMIN puede registrar una excepción con motivo. | MATEO | Propuesta |
-| T-2283 | Inhabilidades: campo de excepción (Persona 360, mesa de macroevento) y su ayuda | Excepción registrada (motivo) · Solo si hay una inhabilidad: el aval de la Vicepresidencia de GH o la decisión de la junta quedan auditados con este motivo. | MATEO | Propuesta |
+| T-2282 | Inhabilidades: guarda al nombrar | No se puede nombrar. {motivos}. | MATEO | Propuesta |
+| T-2283 | Inhabilidades: campo de excepción (Persona 360, mesa de macroevento) y su ayuda | Excepción registrada (motivo) · El aval para postularte lo decide la VP de Gestión Humana. Este motivo documenta otras excepciones de la junta. | MATEO | Propuesta |
 | T-2284 | Grupos de trabajo: tope de comités de trabajo por persona | {nombre} ya está en dos comités de trabajo este semestre (Estatutos, art. 4 par. 3). | GH | Propuesta |
 | T-2285 | Roster: aviso de inhabilidad en la vista previa | Inhabilidad al nombrar ({motivos}): se aplica igual y queda auditada con el motivo del roster. | MATEO | Propuesta |
 | T-2286 | Presupuesto: tipos (en el orden del modelo) | Ordinario · Extraordinario | MATEO | Propuesta |
@@ -3747,7 +3747,7 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5081 | Junta del semestre: avisos | Vacante · No está activo · Hay una cosa por revisar · Hay {n} cosas por revisar · La junta y sus comités de trabajo están al día · Sembrar los que faltan | MATEO | Propuesta |
 | T-5082 | Menú de la Operación: la junta del semestre | Junta del semestre | MATEO | Propuesta |
 | T-5083 | Avales: pantalla (título · texto) | Avales · Lo que te toca decidir por tu cargo en la junta, con el riesgo más alto primero. Puedes devolver un aval con comentarios para que el comité lo corrija; si lo rechazas, di por qué: el comité lo ve. | MATEO | Propuesta |
-| T-5084 | Avales: tipos (en el orden del modelo) | Aval de evento · Falta por avalar | MATEO | Propuesta |
+| T-5084 | Avales: tipos (en el orden del modelo) | Aval de evento · Falta por avalar · Aval de postulación | MATEO | Propuesta |
 | T-5085 | Avales: campos | Comité · Evento · Fecha del evento · Lo pidió · Estado · Pedido el · Motivo | MATEO | Propuesta |
 | T-5086 | Avales: decisión | Aprobar · Rechazar · Motivo (obligatorio para rechazar) · Lo decide la {cargo} · Decides como Presidencia mientras falte la {cargo} · No hay avales por decidir. · Decididos hace poco · Volver a los avales | MATEO | Propuesta |
 | T-5087 | Aval: rechazo sin motivo | Para rechazar un aval escribe el motivo: el comité lo va a leer. | MATEO | Propuesta |
@@ -3817,3 +3817,8 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5151 | Pronósticos: estados de lo pronosticado (en el orden del modelo) | En juego · Ganado · Perdido · Devuelto | MATEO | Propuesta |
 | T-5152 | Pronósticos: motivos en el libro de GH Points | Apostaste en un pronóstico de {partido} · Ganaste un pronóstico de {partido} · Te devolvieron un pronóstico de {partido} | MATEO | Propuesta |
 | T-5153 | Pronósticos: tope superado | En este partido solo te quedan {n} GH Points por apostar. | MATEO | Propuesta |
+| T-5154 | Postulación en Mi OE | Aval de postulación · Si eres nuevo y quieres postularte a la mesa de un comité, pide el aval de Gestión Humana para ese cargo. · Comité · Cargo de la mesa · Pedir aval · Tus postulaciones · Motivo de la decisión | JUNTA | Propuesta |
+| T-5155 | Aval de postulación disponible | El aval de postulación se pide como miembro nuevo para un cargo directivo vigente del comité. | JUNTA | Propuesta |
+| T-5156 | Postulación por avalar y decisión | Tienes una postulación por avalar · Hay una solicitud para la mesa de {comité}. · Ya decidieron tu postulación · Tu aval para {cargo} en {comité} quedó {estado}. | JUNTA | Propuesta |
+| T-5157 | Estados del aval de la junta | Pendiente · Aprobado · Rechazado | JUNTA | Propuesta |
+| T-5158 | Roster sin aval de postulación | Falta el aval de la VP de Gestión Humana para el cargo de mesa. Esta fila queda pendiente de corregir. | JUNTA | Propuesta |

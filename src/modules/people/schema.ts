@@ -13,7 +13,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
-import { publicationStatus } from "@/db/enums";
+import { boardApprovalStatus, publicationStatus } from "@/db/enums";
 import { event, eventEdition } from "@/modules/events/schema";
 import { term } from "@/modules/terms/schema";
 
@@ -429,6 +429,43 @@ export const segment = pgTable("segment", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
+
+// Aval personal de la VP de GH para postularse a una mesa (ADR-195, A3).
+export const candidacyApproval = pgTable(
+  "candidacy_approval",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    committeeId: text()
+      .notNull()
+      .references(() => committee.id),
+    roleCode: text()
+      .notNull()
+      .references(() => committeeRole.code),
+    status: boardApprovalStatus().notNull().default("PENDING"),
+    requestedAt: createdAt(),
+    decidedAt: timestampTz(),
+    decidedById: text().references(() => person.id, { onDelete: "set null" }),
+    decidedAs: text(),
+    decisionNote: text().notNull().default(""),
+  },
+  (t) => [
+    uniqueIndex("candidacy_approval_live_unique")
+      .on(t.personId, t.termId, t.committeeId, t.roleCode)
+      .where(sql`${t.status} in ('PENDING', 'APPROVED')`),
+    index("candidacy_approval_queue_idx").on(t.termId, t.status, t.requestedAt),
+    check("candidacy_approval_decision", sql`(${t.status} = 'PENDING') = (${t.decidedAt} is null)`),
+    check(
+      "candidacy_approval_authority",
+      sql`${t.decidedAs} is null or ${t.decidedAs} in ('HOLDER', 'PRESIDENCY')`,
+    ),
+  ],
+);
 
 // Faltas y sanciones del Reglamento (cap. 9 y Anexo 1; ADR-060 regla 6): un llamado de atención
 // suspende derechos y beneficios 7 días y una falta leve 20; una suspensión explícita dura hasta un

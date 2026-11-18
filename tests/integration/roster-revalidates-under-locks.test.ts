@@ -22,7 +22,6 @@ import {
 } from "@/modules/people/schema";
 import { todayKey } from "@/shared/lib/dates";
 import {
-  currentTermCode,
   seedAppointment,
   seedCommittee,
   seedMember,
@@ -60,14 +59,18 @@ const db = () => getDb();
  */
 async function scenario() {
   const termId = await seedTerm();
-  const code = currentTermCode();
+  const code = "2024-2";
+  await seedTerm(code);
   await seedCommittee("a3");
   const admin: Admin = { personId: await seedMember("admin.roster@eafit.edu.co"), ip: null };
   await seedAppointment(admin.personId, termId, "VP_GH");
-  const one = { email: "prueba.una@eafit.edu.co", id: await seedMember("prueba.una@eafit.edu.co") };
+  const one = {
+    email: "prueba.una@eafit.edu.co",
+    id: await seedMember("prueba.una@eafit.edu.co", { entryTermCode: code }),
+  };
   const other = {
     email: "prueba.otra@eafit.edu.co",
-    id: await seedMember("prueba.otra@eafit.edu.co"),
+    id: await seedMember("prueba.otra@eafit.edu.co", { entryTermCode: code }),
   };
   // La importación toma los consultivos de menor a mayor `id` (ADR-122 regla 5). En el de la de menor
   // `id` la prueba la detiene, cuando ya validó y todavía no tomó el de quien pasa a honoraria.
@@ -155,13 +158,14 @@ async function expectRowSkipped(scene: Scenario, imported: PromiseSettledResult<
  */
 async function newGeneralScenario() {
   const termId = await seedTerm();
-  const code = currentTermCode();
+  const code = "2024-2";
+  await seedTerm(code);
   const committeeId = await seedCommittee("a3");
   const admin: Admin = { personId: await seedMember("admin.roster@eafit.edu.co"), ip: null };
   await seedAppointment(admin.personId, termId, "VP_GH");
   const member = {
     email: "prueba.una@eafit.edu.co",
-    id: await seedMember("prueba.una@eafit.edu.co"),
+    id: await seedMember("prueba.una@eafit.edu.co", { entryTermCode: code }),
   };
   const expelledId = await seedMember("prueba.vieja@eafit.edu.co");
   await endMembershipAs(admin, expelledId, {
@@ -303,7 +307,7 @@ describe("la importación del roster vuelve a validar con los candados de las pe
   // escribió a cada persona (ADR-127 regla 1, DT-386). Este es el caso de control de la carrera de
   // abajo, con la misma espera y sin que nadie toque nada mientras tanto: la fila crea a la persona,
   // la deja de General en A3 y por eso la propone.
-  it("la fila que trae a alguien nuevo como General de un comité lo deja en ese comité y propone su permiso de líder", async () => {
+  it("la fila que incorpora a un veterano como General de un comité lo deja en ese comité y propone su permiso de líder", async () => {
     const { admin, member, incoming, committeeId, jobId } = await newGeneralScenario();
     const before = await getRosterPreview(jobId);
     expect(before?.proposals).toEqual([expect.objectContaining({ email: incoming })]);

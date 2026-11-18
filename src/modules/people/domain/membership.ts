@@ -12,6 +12,7 @@ import { t } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import {
+  candidacyApproval,
   committeeMembership,
   type LeaveCondition,
   membership,
@@ -510,6 +511,7 @@ export async function anonymizePerson(
       actorId: ctx.actor.personId,
     });
   }
+  await ctx.tx.delete(candidacyApproval).where(eq(candidacyApproval.personId, personId));
   await ctx.tx
     .update(person)
     .set({

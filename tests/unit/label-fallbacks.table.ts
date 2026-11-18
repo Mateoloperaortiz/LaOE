@@ -109,6 +109,7 @@ export const FALLBACKS_BY_FILE: Record<
   "src/modules/people/admin.ts": [5, 0, 0, 0],
   "src/modules/people/domain/appointments.ts": [1, 0, 0, 0],
   "src/modules/people/domain/preferential-schedule.ts": [1, 0, 0, 0],
+  "src/modules/people/domain/board-approval.ts": [0, 0, 0, 2],
   "src/modules/people/domain/sanctions.ts": [2, 0, 0, 0],
   "src/modules/permanence/admin.ts": [6, 0, 0, 0],
   "src/modules/permanence/components/Desglose.tsx": [5, 0, 0, 0],

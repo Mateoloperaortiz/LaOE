@@ -37,7 +37,7 @@ import {
   setCommitteeMembershipsIfChanged,
 } from "./committee-memberships";
 import { listAllCommittees } from "./committees";
-import { leadershipContext } from "./inhabilities";
+import { lacksCandidacyApproval, leadershipContext } from "./inhabilities";
 import {
   type HeldRole,
   INHABILITY_CODES,
@@ -294,6 +294,7 @@ async function warnInhabilities(
   existing: Map<string, ExistingPerson>,
   roles: CommitteeRoleRow[],
   termId: string,
+  termCode: string | undefined,
 ): Promise<void> {
   const leadership = new Set(roles.filter((role) => role.isLeadership).map((role) => role.code));
   const labels = tLabels("T-2281", INHABILITY_CODES);
@@ -317,15 +318,30 @@ async function warnInhabilities(
     const who = existing.get(row.email);
     const context = who
       ? await leadershipContext(getDb(), who.personId, termId)
-      : { existing: [], hasBoardAppointment: false, isNew: true, officeBan: false };
+      : {
+          existing: [],
+          hasBoardAppointment: false,
+          isNew: !row.entryTerm || row.entryTerm === termCode,
+          officeBan: false,
+        };
+    const willWrite = committeesToWrite(who, row);
+    if (!willWrite) continue;
+    const isNew =
+      who && !who.entryTerm ? !row.entryTerm || row.entryTerm === termCode : context.isNew;
     const codes = inhabilities({
       existing: context.existing.filter((role) => role.kind === "MACROEVENT"),
       wanted,
       hasBoardAppointment: context.hasBoardAppointment,
-      isNew: context.isNew,
+      isNew:
+        isNew &&
+        (!who ||
+          (await lacksCandidacyApproval(getDb(), who.personId, termId, wanted, context.existing))),
       officeBan: context.officeBan,
     });
-    if (codes.length > 0) {
+    if (codes.includes("NEW_MEMBER")) {
+      row.group = "ERROR";
+      row.errors.push(t("T-5158"));
+    } else if (codes.length > 0) {
       row.warnings.push(t("T-2285", { motivos: inhabilityLabels(codes, labels).join("; ") }));
     }
   }
@@ -418,7 +434,13 @@ async function buildPreview(
     group: item.group,
     changes: item.changes,
   }));
-  await warnInhabilities(rows, existing, roles, termId);
+  await warnInhabilities(
+    rows,
+    existing,
+    roles,
+    termId,
+    terms.find((item) => item.id === termId)?.code,
+  );
   const proposals: LeaderProposal[] = [];
   for (const row of rows) {
     if (row.group === "ERROR" || !row.email) {

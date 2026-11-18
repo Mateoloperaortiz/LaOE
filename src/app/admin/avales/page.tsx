@@ -12,9 +12,15 @@ import {
   type RiskLevel,
   riskLevelLabel,
 } from "@/modules/finance";
-import { APPOINTMENT_KINDS, getPeopleByIds, listPendingSanctions } from "@/modules/people";
+import {
+  APPOINTMENT_KINDS,
+  boardApprovalLabel,
+  getPeopleByIds,
+  listPendingSanctions,
+  pendingCandidacies,
+} from "@/modules/people";
 import { t, tLabels, tList } from "@/shared/copy";
-import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Badge } from "@/shared/ui/Badge";
 import { Banner } from "@/shared/ui/Banner";
@@ -26,7 +32,7 @@ import { SplitView } from "@/shared/ui/SplitView";
 import { EmptyState } from "@/shared/ui/States";
 import { WorkTable } from "@/shared/ui/WorkTable";
 import { AvalHistoria, RiesgoBadge, RiesgoRojo } from "../_kit/aval";
-import { AVAL_KINDS } from "./_ui/kinds";
+import { AVAL_KINDS, avalParam } from "./_ui/kinds";
 import { changeRiskAction, decideAvalAction, returnAvalAction } from "./actions";
 
 // Los avales de la junta (ADR-195): cada cargo ve lo que le toca decidir. El aval de evento lo decide la
@@ -48,9 +54,10 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
   const decides = (seat: string) => roles.boardSeats.some((item) => item.seat === seat);
   const decidesEvents = decides("PRESIDENT");
   const decidesFaltas = decides("VP_GH");
-  const [events, faltas] = await Promise.all([
+  const [events, faltas, candidacies] = await Promise.all([
     decidesEvents || roles.isAdmin ? listEventApprovals({}) : [],
     decidesFaltas || roles.isAdmin ? listPendingSanctions() : [],
+    decidesFaltas || roles.isAdmin ? pendingCandidacies() : [],
   ]);
   // Abiertos: por decidir y devueltos al comité, del riesgo más alto al más bajo (ADR-197 regla 2).
   const openEvents = events
@@ -65,6 +72,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
     selectedId ? findPublishedCrisisProtocol() : null,
   ]);
   const selectedFalta = faltas.find((row) => row.id === single(query.falta)) ?? null;
+  const selectedCandidacy = candidacies.find((row) => row.id === single(query.postulacion));
   const people = await getPeopleByIds([
     ...new Set([
       ...events.flatMap((row) => (row.requestedById ? [row.requestedById] : [])),
@@ -120,8 +128,17 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
     statusLabel: row.stateLabel,
     risk: undefined,
   });
-  const isSelected = (row: Row) =>
-    row.kind === "EVENT" ? row.id === selectedEvent?.id : row.id === selectedFalta?.id;
+  const candidacyRows: Row[] = candidacies.map((row) => ({
+    kind: "CANDIDACY",
+    id: row.id,
+    title: `${row.personName} · ${row.roleLabel}`,
+    committee: row.committeeName,
+    date: todayKey(row.requestedAt),
+    status: row.status,
+    statusLabel: boardApprovalLabel(row.status),
+    risk: undefined,
+  }));
+  const isSelected = (row: Row) => single(query[avalParam(row.kind)]) === row.id;
 
   const table = (rows: Row[], caption: string) => (
     <WorkTable
@@ -140,7 +157,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
         cells: {
           que: (
             <Link
-              href={withQuery(close, row.kind === "EVENT" ? { aval: row.id } : { falta: row.id })}
+              href={withQuery(close, { [avalParam(row.kind)]: row.id })}
               scroll={false}
               className="font-semibold text-tinta no-underline hover:underline"
             >
@@ -287,6 +304,21 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
       ) : null}
       <AvalHistoria entries={selectedEvent.entries} names={names} headingId="aval-historia" />
     </DetailPanel>
+  ) : selectedCandidacy ? (
+    <DetailPanel
+      title={selectedCandidacy.personName}
+      eyebrow={kinds.CANDIDACY}
+      closeHref={close}
+      closeLabel={volver ?? ""}
+    >
+      <p>
+        {selectedCandidacy.committeeName} · {selectedCandidacy.roleLabel}
+      </p>
+      <p>
+        {pedidoEl} · {formatDateTime(selectedCandidacy.requestedAt)}
+      </p>
+      {decision("CANDIDACY", selectedCandidacy.id, decidesFaltas, cargos.VP_GH)}
+    </DetailPanel>
   ) : selectedFalta ? (
     <DetailPanel
       title={selectedFalta.personName}
@@ -331,7 +363,10 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
       <SplitView
         list={
           <div className="flex flex-col gap-6">
-            {table([...faltas.map(faltaRow), ...openEvents.map(eventRow)], heading ?? "")}
+            {table(
+              [...faltas.map(faltaRow), ...candidacyRows, ...openEvents.map(eventRow)],
+              heading ?? "",
+            )}
             {recentEvents.length > 0 ? table(recentEvents.map(eventRow), decididos ?? "") : null}
           </div>
         }

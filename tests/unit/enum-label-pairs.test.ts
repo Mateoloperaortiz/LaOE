@@ -132,7 +132,7 @@ const inlineCopies = copies.filter(
 
 describe("la tabla de los pares", () => {
   it("trae los pares históricos de la spec, los de asistencia y excusa separadas y los dos del inventario", () => {
-    expect(PAIRS).toHaveLength(101);
+    expect(PAIRS).toHaveLength(102);
     expect(UNEVEN_PAIRS.filter((pair) => pair.seen)).toHaveLength(0);
     // Los que completan los 93 son el par de largo distinto de T-791, que la migración deshizo, el
     // de T-427, que dejó el `zip` por posiciones escritas, y el de T-801, que dejó de ser un par: la

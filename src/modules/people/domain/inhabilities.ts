@@ -4,6 +4,7 @@ import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   appointment,
+  candidacyApproval,
   committeeRole,
   committeeRoleAssignment,
   membership,
@@ -78,26 +79,9 @@ export async function leadershipContext(
     })
     .from(appointment)
     .where(and(eq(appointment.personId, personId), eq(appointment.termId, termId)));
-  const [member] = await exec
-    .select({ firstTermId: membership.firstTermId })
-    .from(membership)
-    .where(eq(membership.personId, personId))
-    .limit(1);
-  const veteran = await exec
-    .select({
-      reportAsVeteran: membershipTerm.reportAsVeteran,
-      resumedNew: membershipTerm.resumedNew,
-    })
-    .from(membershipTerm)
-    .where(
-      and(
-        eq(membershipTerm.personId, personId),
-        eq(membershipTerm.termId, termId),
-        isNull(membershipTerm.committeeId),
-      ),
-    )
-    .limit(1);
+  const isNew = await isNewForLeadership(exec, personId, termId);
   const sanctions = await sanctionStateFor(personId, now, exec);
+
   const existing: HeldRole[] = [
     ...committeeRoles.map((row) => ({
       kind: "COMMITTEE" as const,
@@ -123,16 +107,73 @@ export async function leadershipContext(
     hasBoardAppointment: appointments.some((row) =>
       (BOARD_KINDS as readonly string[]).includes(row.kind),
     ),
-    isNew: isNewMemberInTerm(
-      {
-        firstTermId: member?.firstTermId ?? null,
-        resumedNew: veteran[0]?.resumedNew ?? false,
-        reportAsVeteran: veteran[0]?.reportAsVeteran ?? false,
-      },
-      termId,
-    ),
+    isNew,
     officeBan: sanctions.officeBan,
   };
+}
+
+export async function isNewForLeadership(exec: Executor, personId: string, termId: string) {
+  const [facts] = await exec
+    .select({
+      firstTermId: membership.firstTermId,
+      resumedNew: membershipTerm.resumedNew,
+      reportAsVeteran: membershipTerm.reportAsVeteran,
+    })
+    .from(membership)
+    .leftJoin(
+      membershipTerm,
+      and(
+        eq(membershipTerm.personId, membership.personId),
+        eq(membershipTerm.termId, termId),
+        isNull(membershipTerm.committeeId),
+      ),
+    )
+    .where(eq(membership.personId, personId));
+  return isNewMemberInTerm(
+    {
+      firstTermId: facts?.firstTermId ?? null,
+      resumedNew: facts?.resumedNew ?? false,
+      reportAsVeteran: facts?.reportAsVeteran ?? false,
+    },
+    termId,
+  );
+}
+
+/** Solo un nombramiento nuevo necesita aval. Editar el roster conserva los cargos anteriores a A3. */
+export async function lacksCandidacyApproval(
+  exec: Executor,
+  personId: string,
+  termId: string,
+  wanted: readonly HeldRole[],
+  held: readonly HeldRole[],
+): Promise<boolean> {
+  const needed = wanted.filter(
+    (role) =>
+      role.kind === "COMMITTEE" &&
+      !held.some(
+        (existing) =>
+          existing.kind === "COMMITTEE" &&
+          existing.scopeId === role.scopeId &&
+          existing.roleCode === role.roleCode,
+      ),
+  );
+  if (needed.length === 0) return false;
+  const approvals = await exec
+    .select({ committeeId: candidacyApproval.committeeId, roleCode: candidacyApproval.roleCode })
+    .from(candidacyApproval)
+    .where(
+      and(
+        eq(candidacyApproval.personId, personId),
+        eq(candidacyApproval.termId, termId),
+        eq(candidacyApproval.status, "APPROVED"),
+      ),
+    );
+  return needed.some(
+    (role) =>
+      !approvals.some(
+        (approval) => approval.committeeId === role.scopeId && approval.roleCode === role.roleCode,
+      ),
+  );
 }
 
 export interface InhabilityCheck {
@@ -170,14 +211,22 @@ export async function assertNoInhabilities(
     wanted: check.wanted,
     wantsBoard: check.wantsBoard ?? false,
     hasBoardAppointment: context.hasBoardAppointment,
-    isNew: context.isNew,
+    isNew:
+      context.isNew &&
+      (await lacksCandidacyApproval(
+        ctx.tx,
+        check.personId,
+        check.termId,
+        check.wanted,
+        context.existing,
+      )),
     officeBan: context.officeBan,
   });
   if (codes.length === 0) {
     return [];
   }
   const reason = check.override?.reason.trim();
-  if (reason) {
+  if (reason && !codes.includes("NEW_MEMBER")) {
     await ctx.audit({
       action: "inhabilities.overridden",
       entityType: "person",

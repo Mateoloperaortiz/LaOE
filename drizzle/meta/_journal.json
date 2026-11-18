@@ -575,6 +575,13 @@
       "when": 1794616679439,
       "tag": "0081_pronosticos_del_athletic",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1795034550564,
+      "tag": "0082_aval_de_postulacion",
+      "breakpoints": true
     }
   ]
 }

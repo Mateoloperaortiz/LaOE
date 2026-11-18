@@ -4,9 +4,11 @@ import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { personImported } from "@/domain-events/people";
 import {
+  decideCandidacyAs,
   endMembershipAs,
   lockMembershipCycle,
   recordSanctionAs,
+  requestCandidacyAs,
   setProbationAs,
 } from "@/modules/people";
 import { changeMembershipStatus } from "@/modules/people/domain/membership";
@@ -77,6 +79,32 @@ async function preview(
 describe("importación del roster", () => {
   beforeEach(truncateAll);
   afterAll(() => closeDb());
+
+  it("la fila de una persona en su primer semestre queda en error hasta recibir el aval para ese cargo", async () => {
+    const termId = await seedTerm();
+    const committeeId = await seedCommittee("a3");
+    const adminId = await seedMember("gh@eafit.edu.co");
+    await seedAppointment(adminId, termId, "VP_GH");
+    const candidate = await seedMember("persona@eafit.edu.co");
+    const file = csv([
+      `Una;Persona;persona@eafit.edu.co;;Derecho;A3;${currentTermCode()};Activo;General de A3`,
+    ]);
+    const first = await preview(adminId, termId, file);
+    expect(first.rows[0]).toMatchObject({
+      group: "ERROR",
+      errors: [expect.stringMatching(copyPattern("T-5158"))],
+    });
+    const admin = { personId: adminId, ip: null };
+    expect((await applyRosterImportAs(admin, first.jobId)).skipped).toBe(1);
+    const req = await requestCandidacyAs(
+      { personId: candidate, ip: null },
+      { termId, committeeId, roleCode: "GENERAL" },
+    );
+    await decideCandidacyAs(admin, req.id, { decision: "APPROVED" });
+    const second = await preview(adminId, termId, file);
+    expect(second.counts.ERROR).toBe(0);
+    expect((await applyRosterImportAs(admin, second.jobId)).proposals).toHaveLength(1);
+  });
 
   it("importa A–L, conserva vacíos opcionales e historia y repite sin duplicar", async () => {
     const termId = await seedTerm();
@@ -303,9 +331,9 @@ describe("importación del roster", () => {
 
   // ADR-118 regla 11 por el roster: los comités se cambian solo a quien queda con membresía vigente.
   // La fila de alguien de baja conserva su estado y el resto del archivo se aplica.
-  async function rosterConBaja(endReason: "EXPULSION" | "RESIGNATION") {
+  async function rosterConBaja(endReason: "EXPULSION" | "RESIGNATION", code = currentTermCode()) {
     const termId = await seedTerm();
-    const code = currentTermCode();
+    await seedTerm(code);
     await Promise.all(["a3", "pixel"].map((slug) => seedCommittee(slug)));
     const adminId = await seedMember("admin@eafit.edu.co");
     const base = await preview(
@@ -415,7 +443,7 @@ describe("importación del roster", () => {
     ["fue expulsado", "Honorario", "EXPULSION", []],
     ["renunció", "Activo", "RESIGNATION", ["pixel"]],
   ] as const)("a quien %s y figura como %s y General de un comité se le propone el permiso de líder solo si el roster lo deja en ese comité", async (_left, listedAs, endReason, stays) => {
-    const { termId, code, adminId, juan } = await rosterConBaja(endReason);
+    const { termId, code, adminId, juan } = await rosterConBaja(endReason, "2024-2");
 
     const next = await preview(
       adminId,
@@ -522,7 +550,8 @@ describe("importación del roster", () => {
     ),
   )("a quien %s y figura %s y General de su comité, la fila le escribe los comités y le propone el permiso de líder solo si lo deja con membresía vigente", async (_who, _listedAs, today, word, left) => {
     const termId = await seedTerm();
-    const code = currentTermCode();
+    const code = "2024-2";
+    const entryTermId = await seedTerm(code);
     const a3 = await seedCommittee("a3");
     const adminId = await seedMember("admin@eafit.edu.co");
     const email = "prueba.juan@eafit.edu.co";
@@ -536,10 +565,10 @@ describe("importación del roster", () => {
         stage: !hasMembership ? "APPLICANT" : inForce ? "MEMBER" : "ALUMNI",
       });
       if (today === "ACTIVE" || today === "ON_LEAVE" || today === "HONORARY") {
-        await seedMembership(juan, termId, today);
+        await seedMembership(juan, entryTermId, today);
         await seedCommitteeMembership(juan, a3, termId);
       } else if (today !== "NO_MEMBERSHIP") {
-        await seedMembership(juan, termId, "INACTIVE", { endReason: today });
+        await seedMembership(juan, entryTermId, "INACTIVE", { endReason: today });
       }
     }
 

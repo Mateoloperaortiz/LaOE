@@ -1,6 +1,11 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
 // Enums que comparten varios módulos.
+export const boardApprovalStatus = pgEnum("board_approval_status", [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+]);
 export const publicationStatus = pgEnum("publication_status", ["DRAFT", "PUBLISHED"]);
 
 /** A quién se dirige un contenido: a cualquiera o solo a miembros con sesión (ADR-033). */

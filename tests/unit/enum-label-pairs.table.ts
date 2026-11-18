@@ -11,6 +11,7 @@ import { END_REASONS, TABS, TIMELINE_FILTERS } from "@/app/admin/personas/[id]/_
 import { TODO_KINDS } from "@/app/app/_ui/today-items";
 import { STOP_STATES } from "@/app/app/permanencia/_ui/route-stops";
 import { SEMESTER_CARDS } from "@/app/app/semestre/semester-cards";
+import { boardApprovalStatus } from "@/db/enums";
 import {
   campaignStatusLabel,
   channelLabel,
@@ -972,8 +973,14 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-5084",
     order: "AVAL_KINDS",
-    positions: { EVENT: 0, SANCTION: 1 },
+    positions: { EVENT: 0, SANCTION: 1, CANDIDACY: 2 },
     canonical: AVAL_KINDS,
+  },
+  {
+    code: "T-5157",
+    order: "boardApprovalStatus.enumValues",
+    positions: { PENDING: 0, APPROVED: 1, REJECTED: 2 },
+    canonical: boardApprovalStatus.enumValues,
   },
   {
     code: "T-5148",

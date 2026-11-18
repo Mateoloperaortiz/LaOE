@@ -24,6 +24,7 @@ export {
 } from "./domain/appointments";
 export { listAvailabilityCommittees, listAvailabilityPeople } from "./domain/availability";
 export { assertBenefitsAvailable, assertNotSuspended } from "./domain/benefits";
+export { boardApprovalLabel } from "./domain/board-approval";
 export {
   boardCalendarStatus,
   cancelBoardEventAs,
@@ -44,6 +45,12 @@ export {
   seatDeciders,
   seatsDecidedBy,
 } from "./domain/board-seats";
+export {
+  decideCandidacyAs,
+  myCandidacies,
+  pendingCandidacies,
+  requestCandidacyAs,
+} from "./domain/candidacies";
 export {
   areasFor,
   COMMITTEE_AREA_KEYS,

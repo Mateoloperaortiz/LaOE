@@ -4762,13 +4762,13 @@ export const textos = {
   },
   "T-2282": {
     where: "Inhabilidades: guarda al nombrar",
-    text: "No se puede nombrar: {motivos}. ADMIN puede registrar una excepción con motivo.",
+    text: "No se puede nombrar. {motivos}.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2283": {
     where: "Inhabilidades: campo de excepción (Persona 360, mesa de macroevento) y su ayuda",
-    text: "Excepción registrada (motivo) · Solo si hay una inhabilidad: el aval de la Vicepresidencia de GH o la decisión de la junta quedan auditados con este motivo.",
+    text: "Excepción registrada (motivo) · El aval para postularte lo decide la VP de Gestión Humana. Este motivo documenta otras excepciones de la junta.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16266,7 +16266,7 @@ export const textos = {
   },
   "T-5084": {
     where: "Avales: tipos (en el orden del modelo)",
-    text: "Aval de evento · Falta por avalar",
+    text: "Aval de evento · Falta por avalar · Aval de postulación",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16740,6 +16740,36 @@ export const textos = {
     where: "Pronósticos: tope superado",
     text: "En este partido solo te quedan {n} GH Points por apostar.",
     owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5154": {
+    where: "Postulación en Mi OE",
+    text: "Aval de postulación · Si eres nuevo y quieres postularte a la mesa de un comité, pide el aval de Gestión Humana para ese cargo. · Comité · Cargo de la mesa · Pedir aval · Tus postulaciones · Motivo de la decisión",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5155": {
+    where: "Aval de postulación disponible",
+    text: "El aval de postulación se pide como miembro nuevo para un cargo directivo vigente del comité.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5156": {
+    where: "Postulación por avalar y decisión",
+    text: "Tienes una postulación por avalar · Hay una solicitud para la mesa de {comité}. · Ya decidieron tu postulación · Tu aval para {cargo} en {comité} quedó {estado}.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5157": {
+    where: "Estados del aval de la junta",
+    text: "Pendiente · Aprobado · Rechazado",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5158": {
+    where: "Roster sin aval de postulación",
+    text: "Falta el aval de la VP de Gestión Humana para el cargo de mesa. Esta fila queda pendiente de corregir.",
+    owner: "JUNTA",
     status: "Propuesta",
   },
   "T-516": {
