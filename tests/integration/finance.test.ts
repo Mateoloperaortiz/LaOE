@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
+import { decideFinancialApprovalAs, requestTransferAs } from "@/modules/finance";
 import { decideEventApproval, listEventApprovals } from "@/modules/finance/domain/approvals";
 import { getBudgetSummary, listCommitteeBudgets } from "@/modules/finance/domain/budgets";
 import {
@@ -11,7 +12,6 @@ import {
   decideEventApprovalAs,
   openBudgetAs,
   recordExpenseAs,
-  recordTransferAs,
   requestEventApprovalAs,
   sanctionBudgetAs,
   setBudgetLinesAs,
@@ -150,7 +150,7 @@ describe("presupuesto del comité", () => {
       ),
     ).rejects.toThrow(copyPattern("T-2196", { rubro: "Logística" }));
     await expect(
-      recordTransferAs(
+      requestTransferAs(
         actor,
         {
           budgetId: id,
@@ -169,7 +169,7 @@ describe("presupuesto del comité", () => {
       amount: 400,
       reason: "Sobró logística",
     };
-    await expect(recordTransferAs(actor, transfer, { committeeId: a3 })).rejects.toThrow(
+    await expect(requestTransferAs(actor, transfer, { committeeId: a3 })).rejects.toThrow(
       t("T-2294"),
     );
     const { id: approvedId } = await requestEventApprovalAs(actor, {
@@ -180,8 +180,9 @@ describe("presupuesto del comité", () => {
       riskLevel: "GREEN",
       riskJustification: "Actividad de rutina, sin publicaciones sensibles",
     });
-    await decideEventApprovalAs(await presidencia(), approvedId, { decision: "APPROVED" });
-    await recordTransferAs(
+    const presi = await presidencia();
+    await decideEventApprovalAs(presi, approvedId, { decision: "APPROVED" });
+    const asked = await requestTransferAs(
       actor,
       {
         budgetId: id,
@@ -193,6 +194,8 @@ describe("presupuesto del comité", () => {
       },
       { committeeId: a3 },
     );
+    expect((await getBudgetSummary(id))?.transfers).toHaveLength(0);
+    await decideFinancialApprovalAs(presi, asked.id, { decision: "APPROVED" });
     const summary = await getBudgetSummary(id);
     expect(summary?.lines.map((line) => [line.name, line.available])).toEqual([
       ["Logística", 500],
@@ -365,7 +368,7 @@ describe("presupuesto del comité", () => {
     ).rejects.toThrow(t("T-2294"));
     // Las reasignaciones se presentan antes del evento (Est. art. 38 par. 2).
     await expect(
-      recordTransferAs(
+      requestTransferAs(
         actor,
         {
           budgetId: id,
@@ -378,7 +381,7 @@ describe("presupuesto del comité", () => {
         { committeeId: a3 },
       ),
     ).rejects.toThrow(copyPattern("T-2295"));
-    await recordTransferAs(
+    const asked = await requestTransferAs(
       actor,
       {
         budgetId: id,
@@ -390,6 +393,7 @@ describe("presupuesto del comité", () => {
       },
       { committeeId: a3 },
     );
+    await decideFinancialApprovalAs(presi, asked.id, { decision: "APPROVED" });
     const summary = await getBudgetSummary(id);
     expect(summary?.expenses[0]?.approvalTitle).toBe("Noche de talentos");
     expect(summary?.transfers[0]?.approvalTitle).toBe("Noche de talentos");
@@ -459,12 +463,13 @@ describe("presupuesto del comité", () => {
       riskLevel: "GREEN",
       riskJustification: "Actividad de rutina, sin publicaciones sensibles",
     });
-    await decideEventApprovalAs(await presidencia(), aval, {
+    const presi = await presidencia();
+    await decideEventApprovalAs(presi, aval, {
       decision: "APPROVED",
       note: "Adelante",
     });
     const move = (reason: string) =>
-      recordTransferAs(
+      requestTransferAs(
         actor,
         {
           budgetId: id,
@@ -479,7 +484,10 @@ describe("presupuesto del comité", () => {
 
     // Logística tiene 1000: cada traslado de 600 cabe solo, los dos juntos no.
     await warmPool();
-    const outcomes = await Promise.allSettled([move("Refrigerios"), move("Almuerzos")]);
+    const requests = await Promise.all([move("Refrigerios"), move("Almuerzos")]);
+    const outcomes = await Promise.allSettled(
+      requests.map((req) => decideFinancialApprovalAs(presi, req.id, { decision: "APPROVED" })),
+    );
 
     expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
     const rejections = outcomes.filter(

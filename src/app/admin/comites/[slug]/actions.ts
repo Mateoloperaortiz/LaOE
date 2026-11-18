@@ -16,8 +16,9 @@ import {
   getBudget,
   prerequestInputSchema,
   recordExpenseAs,
-  recordTransferAs,
   requestEventApprovalAs,
+  requestExtraordinaryAs,
+  requestTransferAs,
   resubmitEventApprovalAs,
   submitPrerequestAs,
   transferInputSchema,
@@ -455,7 +456,16 @@ export async function recordExpenseAction(formData: FormData): Promise<void> {
   );
 }
 
-export async function recordTransferAction(formData: FormData): Promise<void> {
+export async function requestExtraordinaryAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const id = formText(formData, "budgetId");
+  const { actor, committee } = await financeOf(slug, id);
+  await runFinance(slug, "extraordinario", () =>
+    requestExtraordinaryAs(actor, id, { committeeId: committee.id }),
+  );
+}
+
+export async function requestTransferAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
   const budgetId = formText(formData, "budgetId");
   const { actor, committee } = await financeOf(slug, budgetId);
@@ -471,7 +481,7 @@ export async function recordTransferAction(formData: FormData): Promise<void> {
     redirect(back(slug, { ...finanzas, error: t("T-260") }));
   }
   await runFinance(slug, "traslado", () =>
-    recordTransferAs(actor, parsed.data, { committeeId: committee.id }),
+    requestTransferAs(actor, parsed.data, { committeeId: committee.id }),
   );
 }
 

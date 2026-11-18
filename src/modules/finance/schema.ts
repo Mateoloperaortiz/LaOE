@@ -4,6 +4,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -11,6 +12,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
+import { boardApprovalStatus } from "@/db/enums";
 import { eventEdition } from "@/modules/events/schema";
 import { committee, person } from "@/modules/people/schema";
 
@@ -18,6 +20,28 @@ import { committee, person } from "@/modules/people/schema";
 // o extraordinario, aprobado por Desarrollo Estudiantil y la Vicepresidencia Financiera antes de
 // abrirse (Regl. art. 51), rubros, presolicitud mensual (Est. art. 38.3), aval de evento (Regl. art.
 // 35 par. 1), gastos y traslados ligados al aval. Montos en pesos con dos decimales.
+
+/** Lo que la VP recibió, incluso si después cambia el nombre o desaparece un rubro. */
+export type BudgetProposal =
+  | {
+      kind: "TRANSFER";
+      fromLineId: string;
+      fromName: string;
+      toLineId: string;
+      toName: string;
+      amount: number;
+      reason: string;
+      approvalId: string;
+      eventTitle: string;
+      eventOn: string;
+    }
+  | {
+      kind: "EXTRAORDINARY";
+      title: string;
+      submittedOn: string;
+      notes: string;
+      lines: { id: string; name: string; assigned: number }[];
+    };
 
 export const budgetKind = pgEnum("budget_kind", ["ORDINARY", "EXTRAORDINARY"]);
 export const budgetStatus = pgEnum("budget_status", ["DRAFT", "OPEN", "CLOSED"]);
@@ -239,5 +263,44 @@ export const budgetTransfer = pgTable(
     index("budget_transfer_budget_idx").on(t.budgetId, t.createdAt),
     check("budget_transfer_amount_positive", sql`${t.amount} > 0`),
     check("budget_transfer_distinct_lines", sql`${t.fromLineId} <> ${t.toLineId}`),
+  ],
+);
+
+/** A4. La propuesta se conserva tal como se presentó; solo la decisión favorable crea el traslado. */
+export const budgetApproval = pgTable(
+  "budget_approval",
+  {
+    id: id(),
+    budgetId: text()
+      .notNull()
+      .references(() => committeeBudget.id, { onDelete: "cascade" }),
+    committeeId: text()
+      .notNull()
+      .references(() => committee.id),
+    year: integer().notNull(),
+    proposal: jsonb().$type<BudgetProposal>().notNull(),
+    status: boardApprovalStatus().notNull().default("PENDING"),
+    requestedById: text().references(() => person.id, { onDelete: "set null" }),
+    requestedAt: createdAt(),
+    decidedById: text().references(() => person.id, { onDelete: "set null" }),
+    decidedAt: timestampTz(),
+    decidedAs: text(),
+    decisionNote: text().notNull().default(""),
+    transferId: text().references(() => budgetTransfer.id),
+  },
+  (t) => [
+    index("budget_approval_queue_idx").on(t.status, t.requestedAt),
+    index("budget_approval_budget_idx").on(t.budgetId, t.committeeId, t.requestedAt),
+    uniqueIndex("budget_approval_transfer_unique").on(t.transferId),
+    check("budget_approval_kind", sql`${t.proposal}->>'kind' in ('TRANSFER','EXTRAORDINARY')`),
+    check("budget_approval_decision", sql`(${t.status} = 'PENDING') = (${t.decidedAt} is null)`),
+    check(
+      "budget_approval_authority",
+      sql`(${t.status} = 'PENDING' and ${t.decidedAs} is null) or (${t.status} <> 'PENDING' and ${t.decidedAs} is not null and ${t.decidedAs} in ('HOLDER','PRESIDENCY'))`,
+    ),
+    check(
+      "budget_approval_posted",
+      sql`(${t.status} = 'APPROVED' and ${t.proposal}->>'kind' = 'TRANSFER') = (${t.transferId} is not null)`,
+    ),
   ],
 );

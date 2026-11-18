@@ -22,6 +22,7 @@ import {
   task,
 } from "@/modules/crm/schema";
 import { event, eventEdition } from "@/modules/events/schema";
+import { eventApproval } from "@/modules/finance/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
 import { createWalletCarnetToken } from "@/modules/identity/domain/carnet-pure";
 import { hashPassword } from "@/modules/identity/domain/pure";
@@ -371,6 +372,22 @@ export async function seedCommittee(
     .returning({ id: committee.id });
   if (!row) throw new Error("seed committee");
   return row.id;
+}
+
+/** Aval de evento ya concedido para probar los movimientos financieros posteriores. */
+export async function seedApprovedBudgetEvent(input: {
+  committeeId: string;
+  budgetId: string;
+  title: string;
+  eventOn: string;
+  decidedAt: Date;
+}) {
+  const [row] = await db()
+    .insert(eventApproval)
+    .values({ ...input, status: "APPROVED" })
+    .returning({ id: eventApproval.id });
+  if (!row) throw new Error("Falta el aval de evento de prueba");
+  return row;
 }
 
 /** Una fecha de desactivación en el pasado, para que el comité quede fuera sin depender del reloj. */

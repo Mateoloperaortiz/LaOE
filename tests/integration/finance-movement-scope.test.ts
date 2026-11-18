@@ -1,19 +1,19 @@
 import { eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { getBudgetSummary } from "@/modules/finance";
+import { getBudgetSummary, requestTransferAs } from "@/modules/finance";
 import {
   approveBudgetAs,
   createBudgetAs,
   decideEventApprovalAs,
   openBudgetAs,
   recordExpenseAs,
-  recordTransferAs,
   requestEventApprovalAs,
   setBudgetLinesAs,
   submitPrerequestAs,
 } from "@/modules/finance/domain/commands";
 import {
+  budgetApproval,
   budgetExpense,
   budgetPrerequest,
   budgetTransfer,
@@ -98,7 +98,7 @@ function movementsOn(f: Fixture, scope: never) {
         scope,
       ),
     () =>
-      recordTransferAs(
+      requestTransferAs(
         f.actor,
         {
           budgetId: f.other.id,
@@ -119,6 +119,7 @@ async function written() {
   return {
     prerequests: (await db.select({ id: budgetPrerequest.id }).from(budgetPrerequest)).length,
     expenses: (await db.select({ id: budgetExpense.id }).from(budgetExpense)).length,
+    requests: (await db.select({ id: budgetApproval.id }).from(budgetApproval)).length,
     transfers: (await db.select({ id: budgetTransfer.id }).from(budgetTransfer)).length,
     audits: (await db.select({ id: auditLog.id }).from(auditLog)).length,
   };
@@ -179,7 +180,8 @@ describe("los movimientos de un presupuesto desde la página de finanzas de su c
     expect(await written()).toEqual({
       prerequests: before.prerequests + 1,
       expenses: before.expenses + 1,
-      transfers: before.transfers + 1,
+      transfers: before.transfers,
+      requests: before.requests + 1,
       audits: before.audits + 3,
     });
   });

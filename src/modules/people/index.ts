@@ -24,7 +24,13 @@ export {
 } from "./domain/appointments";
 export { listAvailabilityCommittees, listAvailabilityPeople } from "./domain/availability";
 export { assertBenefitsAvailable, assertNotSuspended } from "./domain/benefits";
-export { boardApprovalLabel } from "./domain/board-approval";
+export {
+  type BoardDecision,
+  boardApprovalLabel,
+  notifyApproval,
+  readBoardDecision,
+  requireApprovalAuthority,
+} from "./domain/board-approval";
 export {
   boardCalendarStatus,
   cancelBoardEventAs,

@@ -52,6 +52,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Serie semanal | `createOccasionSeries` | Reuniones de comité creadas de una vez, mismo día y hora hasta el fin del término, cada una una ocasión independiente |
 | Vista del comité | `/admin/comites/[slug]` | Lo que ve quien dirige un comité o es su líder técnico: pestañas por área según sus capacidades ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)) |
 | Rubro | `BudgetLine` | Partida del presupuesto anual de un comité con su monto asignado |
+| Aval financiero | `BudgetApproval` | Solicitud de reasignación entre rubros o de aprobación financiera de un presupuesto extraordinario que decide la VP Financiera, con la propuesta y su decisión en el historial ([ADR-199](adr/ADR-199-los-avales-de-la-vp-financiera.md)) |
 | Traslado | `BudgetTransfer` | Movimiento de disponible entre dos rubros del mismo presupuesto, con motivo ([ADR-059](adr/ADR-059-presupuesto-del-comite.md)) |
 | Entrada de puntos | `PointEntry` | Fila del ledger: crédito por check-in, ajuste, reversión o legado |
 | GH Points | `GhPoints` | Reconocimiento principal semestral de la OE por check-ins, retos presenciales, trivias, misiones con evidencia y beneficios GH; los videojuegos no se suman a su clasificación |

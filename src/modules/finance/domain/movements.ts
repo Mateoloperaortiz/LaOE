@@ -5,15 +5,15 @@ import { t } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { formatMoney } from "@/shared/lib/money";
-import { scopeId } from "@/shared/lib/scope-id";
 import {
   budgetExpense,
   budgetLine,
   budgetPrerequest,
   budgetTransfer,
-  committeeBudget,
+  type committeeBudget,
   eventApproval,
 } from "../schema";
+import { lockBudget } from "./budget-lock";
 import { availableOf, monthKey } from "./budget-pure";
 
 // Movimientos del Financiero (ADR-059 regla 3; ADR-060 regla 12): presolicitud mensual, gasto y
@@ -47,7 +47,7 @@ export const transferInputSchema = z.object({
   budgetId: z.string().trim().min(1),
   fromLineId: z.string().trim().min(1),
   toLineId: z.string().trim().min(1),
-  amount: money,
+  amount: money.max(9_999_999_999.99).multipleOf(0.01),
   reason: z.string().trim().min(2).max(500),
   approvalId: z.string().trim().min(1).optional(),
 });
@@ -65,19 +65,8 @@ export interface MovementScope {
  * se toma.
  */
 async function openBudgetOf(ctx: CommandContext, budgetId: string, scope: MovementScope) {
-  // Falla cerrado: sin el comité de la página no hay presupuesto sobre el que registrar.
-  const committeeId = scopeId(scope, "committeeId");
-  if (committeeId === null) {
-    throw new DomainError(t("T-032"));
-  }
-  const [budget] = await ctx.tx
-    .select()
-    .from(committeeBudget)
-    .where(and(eq(committeeBudget.id, budgetId), eq(committeeBudget.committeeId, committeeId)))
-    .for("update");
-  if (!budget) {
-    throw new DomainError(t("T-032"));
-  }
+  if (!scope) throw new DomainError(t("T-032"));
+  const budget = await lockBudget(ctx, budgetId, scope);
   if (budget.status !== "OPEN") {
     throw new DomainError(t("T-2204", { año: budget.year }));
   }
@@ -227,12 +216,12 @@ export async function recordExpense(
   return row;
 }
 
-export async function recordTransfer(
+export async function validateTransfer(
   ctx: CommandContext,
   raw: TransferInput,
   scope: MovementScope,
-  now = new Date(),
-): Promise<{ id: string }> {
+  now: Date,
+) {
   const input = transferInputSchema.parse(raw);
   if (input.fromLineId === input.toLineId) {
     throw new DomainError(t("T-2293"), "toLineId");
@@ -254,37 +243,26 @@ export async function recordTransfer(
   if (!input.approvalId) {
     throw new DomainError(t("T-2294"), "approvalId");
   }
-  {
-    // Las reasignaciones se presentan con el aval y antes del evento (Est. art. 38 par. 2).
-    const approval = await approvedApproval(ctx, input.approvalId, budget);
-    if (approval.eventOn <= todayKey(now)) {
-      throw new DomainError(
-        t("T-2295", { fecha: formatDate(new Date(`${approval.eventOn}T12:00:00Z`)) }),
-        "approvalId",
-      );
-    }
+  const approval = await approvedApproval(ctx, input.approvalId, budget);
+  if (approval.eventOn <= todayKey(now)) {
+    throw new DomainError(
+      t("T-2295", { fecha: formatDate(new Date(`${approval.eventOn}T12:00:00Z`)) }),
+      "approvalId",
+    );
   }
-  const values = {
-    budgetId: budget.id,
-    fromLineId: from.id,
-    toLineId: to.id,
-    approvalId: input.approvalId ?? null,
-    amount: input.amount,
-    reason: input.reason,
-    registeredById: ctx.actor.personId,
+  return {
+    budget,
+    proposal: {
+      kind: "TRANSFER" as const,
+      fromLineId: from.id,
+      fromName: from.name,
+      toLineId: to.id,
+      toName: to.name,
+      amount: input.amount,
+      reason: input.reason,
+      approvalId: approval.id,
+      eventTitle: approval.title,
+      eventOn: approval.eventOn,
+    },
   };
-  const [row] = await ctx.tx
-    .insert(budgetTransfer)
-    .values(values)
-    .returning({ id: budgetTransfer.id });
-  if (!row) {
-    throw new Error("No se pudo registrar el traslado");
-  }
-  await ctx.audit({
-    action: "budget.transfer",
-    entityType: "committee_budget",
-    entityId: budget.id,
-    after: { ...values, transferId: row.id },
-  });
-  return row;
 }

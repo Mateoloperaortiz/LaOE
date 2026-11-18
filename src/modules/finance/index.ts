@@ -11,6 +11,13 @@ export {
   riskLevelLabel,
 } from "./domain/approvals";
 export {
+  decideFinancialApprovalAs,
+  pendingFinancialApprovals,
+  proposalTitle,
+  requestExtraordinaryAs,
+  requestTransferAs,
+} from "./domain/budget-approvals";
+export {
   APPROVERS,
   byRisk,
   LATE_BUDGET_SANCTION_PERCENT,
@@ -35,7 +42,6 @@ export {
   decideEventApprovalAs,
   openBudgetAs,
   recordExpenseAs,
-  recordTransferAs,
   requestEventApprovalAs,
   resubmitEventApprovalAs,
   returnEventApprovalAs,

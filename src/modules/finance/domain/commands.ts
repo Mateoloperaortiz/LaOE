@@ -30,9 +30,7 @@ import {
   type MovementScope,
   type PrerequestInput,
   recordExpense,
-  recordTransfer,
   submitPrerequest,
-  type TransferInput,
 } from "./movements";
 
 // Comandos del módulo (ADR-003): cada uno corre en runCommand con auditoría; quién puede llamarlos lo
@@ -91,14 +89,6 @@ export function recordExpenseAs(
   scope: MovementScope,
 ): Promise<{ id: string }> {
   return runCommand(actor, (ctx) => recordExpense(ctx, input, scope));
-}
-
-export function recordTransferAs(
-  actor: Actor,
-  input: TransferInput,
-  scope: MovementScope,
-): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => recordTransfer(ctx, input, scope));
 }
 
 export function requestEventApprovalAs(

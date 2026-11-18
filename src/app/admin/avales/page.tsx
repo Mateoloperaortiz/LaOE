@@ -8,6 +8,8 @@ import {
   byRisk,
   getEventApprovalDetail,
   listEventApprovals,
+  pendingFinancialApprovals,
+  proposalTitle,
   RISK_LEVELS,
   type RiskLevel,
   riskLevelLabel,
@@ -21,6 +23,7 @@ import {
 } from "@/modules/people";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
+import { formatMoney } from "@/shared/lib/money";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Badge } from "@/shared/ui/Badge";
 import { Banner } from "@/shared/ui/Banner";
@@ -54,10 +57,12 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
   const decides = (seat: string) => roles.boardSeats.some((item) => item.seat === seat);
   const decidesEvents = decides("PRESIDENT");
   const decidesFaltas = decides("VP_GH");
-  const [events, faltas, candidacies] = await Promise.all([
+  const decidesFinance = decides("VP_FINANCE");
+  const [events, faltas, candidacies, finance] = await Promise.all([
     decidesEvents || roles.isAdmin ? listEventApprovals({}) : [],
     decidesFaltas || roles.isAdmin ? listPendingSanctions() : [],
     decidesFaltas || roles.isAdmin ? pendingCandidacies() : [],
+    decidesFinance || roles.isAdmin ? pendingFinancialApprovals() : [],
   ]);
   // Abiertos: por decidir y devueltos al comité, del riesgo más alto al más bajo (ADR-197 regla 2).
   const openEvents = events
@@ -73,8 +78,10 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
   ]);
   const selectedFalta = faltas.find((row) => row.id === single(query.falta)) ?? null;
   const selectedCandidacy = candidacies.find((row) => row.id === single(query.postulacion));
+  const financial = finance.find((row) => row.id === single(query.finanzas));
   const people = await getPeopleByIds([
     ...new Set([
+      ...(financial?.requestedById ? [financial.requestedById] : []),
       ...events.flatMap((row) => (row.requestedById ? [row.requestedById] : [])),
       ...(selectedEvent?.entries ?? []).flatMap((entry) =>
         entry.authorId ? [entry.authorId] : [],
@@ -132,6 +139,16 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
     kind: "CANDIDACY",
     id: row.id,
     title: `${row.personName} · ${row.roleLabel}`,
+    committee: row.committeeName,
+    date: todayKey(row.requestedAt),
+    status: row.status,
+    statusLabel: boardApprovalLabel(row.status),
+    risk: undefined,
+  }));
+  const financialRows: Row[] = finance.map((row) => ({
+    kind: row.proposal.kind,
+    id: row.id,
+    title: proposalTitle(row.proposal),
     committee: row.committeeName,
     date: todayKey(row.requestedAt),
     status: row.status,
@@ -304,6 +321,45 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
       ) : null}
       <AvalHistoria entries={selectedEvent.entries} names={names} headingId="aval-historia" />
     </DetailPanel>
+  ) : financial ? (
+    <DetailPanel
+      title={proposalTitle(financial.proposal)}
+      eyebrow={kinds[financial.proposal.kind]}
+      closeHref={close}
+      closeLabel={volver ?? ""}
+    >
+      <p>
+        {financial.committeeName} · {financial.year}
+      </p>
+      <p>
+        {loPidio} · {names.get(financial.requestedById ?? "") ?? "—"} ·{" "}
+        {formatDateTime(financial.requestedAt)}
+      </p>
+      {financial.proposal.kind === "TRANSFER" ? (
+        <>
+          <p>
+            {financial.proposal.eventTitle} · {day(financial.proposal.eventOn)}
+          </p>
+          <p>{financial.proposal.reason}</p>
+        </>
+      ) : (
+        <>
+          <p>
+            {tList("T-2288")[2]} · {day(financial.proposal.submittedOn)}
+          </p>
+          {financial.proposal.notes && <p>{financial.proposal.notes}</p>}
+          <dl>
+            {financial.proposal.lines.map((line) => (
+              <div key={line.id} className="flex justify-between gap-4">
+                <dt>{line.name}</dt>
+                <dd>{formatMoney(line.assigned)}</dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      )}
+      {decision(financial.proposal.kind, financial.id, decidesFinance, cargos.VP_FINANCE)}
+    </DetailPanel>
   ) : selectedCandidacy ? (
     <DetailPanel
       title={selectedCandidacy.personName}
@@ -364,7 +420,12 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
         list={
           <div className="flex flex-col gap-6">
             {table(
-              [...faltas.map(faltaRow), ...candidacyRows, ...openEvents.map(eventRow)],
+              [
+                ...faltas.map(faltaRow),
+                ...candidacyRows,
+                ...financialRows,
+                ...openEvents.map(eventRow),
+              ],
               heading ?? "",
             )}
             {recentEvents.length > 0 ? table(recentEvents.map(eventRow), decididos ?? "") : null}

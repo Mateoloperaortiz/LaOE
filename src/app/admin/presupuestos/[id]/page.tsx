@@ -21,7 +21,15 @@ import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
-import { approveAction, closeAction, openAction, sanctionAction, setLinesAction } from "./actions";
+import { FinancialApprovals } from "../../_kit/FinancialApprovals";
+import {
+  approveAction,
+  closeAction,
+  openAction,
+  requestExtraordinaryAction,
+  sanctionAction,
+  setLinesAction,
+} from "./actions";
 
 // Detalle de un presupuesto (ADR-059, ADR-060 regla 12): rubros, aprobaciones, apertura y cierre,
 // sanción, presolicitudes, avales (la Presidencia decide) y movimientos.
@@ -156,7 +164,14 @@ export default async function Page({
             </tbody>
           </table>
         </AdminTableRegion>
-        {editable ? (
+        {editable &&
+        !(
+          budget.kind === "EXTRAORDINARY" &&
+          budget.status === "OPEN" &&
+          summary.financialApprovals.some(
+            (r) => r.proposal.kind === "EXTRAORDINARY" && r.status === "APPROVED",
+          )
+        ) ? (
           <ActionForm action={setLinesAction} className="flex flex-col gap-3">
             <AdminFormBody>
               <input type="hidden" name="budgetId" value={budget.id} />
@@ -223,6 +238,11 @@ export default async function Page({
           {budget.studentDevelopmentApprovedOn ? civil(budget.studentDevelopmentApprovedOn) : "—"} ·{" "}
           {aprobVP}: {budget.vpFinanceApprovedOn ? civil(budget.vpFinanceApprovedOn) : "—"}
         </p>
+        <FinancialApprovals
+          budget={budget}
+          history={summary.financialApprovals}
+          action={requestExtraordinaryAction}
+        />
         {editable ? (
           <div className="flex flex-wrap items-end gap-4">
             <ActionForm action={approveAction} className="flex flex-wrap items-end gap-3">
@@ -230,7 +250,9 @@ export default async function Page({
                 <input type="hidden" name="budgetId" value={budget.id} />
                 <Campo id="aprobacion-approver" label={quienAprueba ?? ""}>
                   <select id="aprobacion-approver" name="approver" required className={inputClass}>
-                    {APPROVERS.map((code) => (
+                    {APPROVERS.filter(
+                      (code) => budget.kind !== "EXTRAORDINARY" || code === "STUDENT_DEVELOPMENT",
+                    ).map((code) => (
                       <option key={code} value={code}>
                         {aprobadores[code] ?? code}
                       </option>

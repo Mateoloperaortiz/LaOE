@@ -582,6 +582,13 @@
       "when": 1795034550564,
       "tag": "0082_aval_de_postulacion",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1795035668644,
+      "tag": "0083_avales_financieros",
+      "breakpoints": true
     }
   ]
 }

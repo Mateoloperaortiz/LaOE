@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 import { closeDb, getDb } from "@/db/client";
 import { approveBudgetAs, closeBudgetAs, openBudgetAs, setBudgetLinesAs } from "@/modules/finance";
 import { budgetsResource } from "@/modules/finance/admin";
+import { committeeBudget } from "@/modules/finance/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -81,7 +82,15 @@ async function opened(f: Fixture, overrides: Partial<BudgetInput> = {}): Promise
     lines: [{ name: "Logística", assigned: 1000, sortOrder: 1 }],
   });
   await approveBudgetAs(actor(f.admin), id, { approver: "STUDENT_DEVELOPMENT", on: "2026-01-09" });
-  await approveBudgetAs(actor(f.admin), id, { approver: "VP_FINANCE", on: "2026-01-10" });
+  if (overrides.kind === "EXTRAORDINARY") {
+    // Expediente anterior a A4: ya tenía registrada la aprobación de la VP cuando empezó a operar.
+    await db()
+      .update(committeeBudget)
+      .set({ vpFinanceApprovedOn: "2026-01-10" })
+      .where(eq(committeeBudget.id, id));
+  } else {
+    await approveBudgetAs(actor(f.admin), id, { approver: "VP_FINANCE", on: "2026-01-10" });
+  }
   await openBudgetAs(actor(f.admin), id);
   return id;
 }

@@ -11,6 +11,7 @@ import { withQuery } from "@/app/_lib/search";
 import {
   changeEventApprovalRiskAs,
   decideEventApprovalAs,
+  decideFinancialApprovalAs,
   RISK_LEVELS,
   returnEventApprovalAs,
 } from "@/modules/finance";
@@ -44,6 +45,8 @@ export async function decideAvalAction(formData: FormData): Promise<void> {
       EVENT: decideEventApprovalAs,
       SANCTION: decideSanctionAs,
       CANDIDACY: decideCandidacyAs,
+      TRANSFER: decideFinancialApprovalAs,
+      EXTRAORDINARY: decideFinancialApprovalAs,
     };
     await decide[kind](actor, id, input);
   } catch (error) {

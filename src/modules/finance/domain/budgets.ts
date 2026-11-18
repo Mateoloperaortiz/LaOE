@@ -7,6 +7,7 @@ import { listCommitteesByIds } from "@/modules/people";
 import { t, tLabels } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
+  budgetApproval,
   budgetExpense,
   budgetLine,
   budgetPrerequest,
@@ -14,6 +15,12 @@ import {
   committeeBudget,
   eventApproval,
 } from "../schema";
+import {
+  assertNoPendingExtraordinary,
+  budgetApprovalHistory,
+  type FinancialApproval,
+} from "./budget-approvals";
+import { lockBudget } from "./budget-lock";
 import {
   APPROVERS,
   BUDGET_KINDS,
@@ -228,18 +235,6 @@ export async function createBudget(ctx: CommandContext, raw: BudgetInput): Promi
   }
 }
 
-async function lockBudget(ctx: CommandContext, id: string): Promise<BudgetRow> {
-  const [row] = await ctx.tx
-    .select()
-    .from(committeeBudget)
-    .where(eq(committeeBudget.id, id))
-    .for("update");
-  if (!row) {
-    throw new DomainError(t("T-032"));
-  }
-  return row;
-}
-
 /** En borrador se edita todo; abierto o cerrado, solo notas, actividad y fecha de presentación. */
 export async function updateBudget(
   ctx: CommandContext,
@@ -249,9 +244,26 @@ export async function updateBudget(
   const current = await lockBudget(ctx, id);
   const input = budgetInputSchema.parse(raw);
   const values = toValues(input);
+  const materialChange =
+    current.kind !== values.kind ||
+    current.committeeId !== values.committeeId ||
+    current.year !== values.year ||
+    current.title !== values.title ||
+    current.notes !== values.notes ||
+    current.submittedOn !== values.submittedOn;
+  const revisesExtraordinary =
+    current.status === "DRAFT" &&
+    materialChange &&
+    (current.kind === "EXTRAORDINARY" || values.kind === "EXTRAORDINARY");
+  if (revisesExtraordinary) await assertNoPendingExtraordinary(ctx, id);
   const patch =
     current.status === "DRAFT"
-      ? values
+      ? {
+          ...values,
+          ...(revisesExtraordinary && current.vpFinanceApprovedOn
+            ? { vpFinanceApprovedOn: null }
+            : {}),
+        }
       : {
           notes: values.notes,
           // Fuera de borrador el tipo no se edita, así que la actividad la decide el guardado y no el
@@ -276,6 +288,9 @@ export async function updateBudget(
     // con las dos puntas se reconstruye qué fecha de presentación, año o comité había (ADR-122 regla 8).
     before: {
       status: current.status,
+      ...(revisesExtraordinary && current.vpFinanceApprovedOn
+        ? { vpFinanceApprovedOn: current.vpFinanceApprovedOn }
+        : {}),
       committeeId: current.committeeId,
       year: current.year,
       kind: current.kind,
@@ -299,6 +314,31 @@ export async function setBudgetLines(
   }
   const { lines } = budgetLinesInputSchema.parse(raw);
   const current = await ctx.tx.select().from(budgetLine).where(eq(budgetLine.budgetId, budgetId));
+  if (budget.kind === "EXTRAORDINARY") {
+    const byId = new Map(current.map((line) => [line.id, line]));
+    const changed =
+      lines.length !== current.length ||
+      new Set(lines.map((line) => line.id)).size !== current.length ||
+      lines.some((line) => {
+        const previous = line.id ? byId.get(line.id) : undefined;
+        return !previous || previous.name !== line.name || previous.assigned !== line.assigned;
+      });
+    if (changed) {
+      if (budget.status === "OPEN") {
+        const approved = await ctx.tx
+          .select({ proposal: budgetApproval.proposal })
+          .from(budgetApproval)
+          .where(and(eq(budgetApproval.budgetId, budgetId), eq(budgetApproval.status, "APPROVED")));
+        if (approved.some((r) => r.proposal.kind === "EXTRAORDINARY"))
+          throw new DomainError(t("T-5164"));
+      } else await assertNoPendingExtraordinary(ctx, budgetId);
+      if (budget.status === "DRAFT" && budget.vpFinanceApprovedOn)
+        await ctx.tx
+          .update(committeeBudget)
+          .set({ vpFinanceApprovedOn: null })
+          .where(eq(committeeBudget.id, budgetId));
+    }
+  }
   const keep = new Set(lines.map((line) => line.id).filter((id): id is string => Boolean(id)));
   const removed = current.filter((line) => !keep.has(line.id));
   if (removed.length > 0) {
@@ -339,7 +379,9 @@ export async function approveBudget(
   id: string,
   input: ApproveBudgetInput,
 ): Promise<void> {
-  await lockBudget(ctx, id);
+  const budget = await lockBudget(ctx, id);
+  if (budget.kind === "EXTRAORDINARY" && input.approver === "VP_FINANCE")
+    throw new DomainError(t("T-5163"));
   const patch =
     input.approver === "STUDENT_DEVELOPMENT"
       ? { studentDevelopmentApprovedOn: input.on }
@@ -461,6 +503,7 @@ export interface BudgetSummary {
   approvals: ApprovalView[];
   expenses: ExpenseView[];
   transfers: TransferView[];
+  financialApprovals: FinancialApproval[];
 }
 
 /** Todo lo de un presupuesto para el detalle de ADMIN y el área Finanzas del comité. */
@@ -470,38 +513,41 @@ export async function getBudgetSummary(id: string): Promise<BudgetSummary | null
     return null;
   }
   const db = getDb();
-  const [rawLines, expenses, transfers, prerequests, approvals] = await Promise.all([
-    db
-      .select()
-      .from(budgetLine)
-      .where(eq(budgetLine.budgetId, id))
-      .orderBy(asc(budgetLine.sortOrder), asc(budgetLine.name)),
-    db
-      .select()
-      .from(budgetExpense)
-      .where(eq(budgetExpense.budgetId, id))
-      .orderBy(desc(budgetExpense.spentOn), desc(budgetExpense.createdAt)),
-    db
-      .select()
-      .from(budgetTransfer)
-      .where(eq(budgetTransfer.budgetId, id))
-      .orderBy(desc(budgetTransfer.createdAt)),
-    db
-      .select()
-      .from(budgetPrerequest)
-      .where(eq(budgetPrerequest.budgetId, id))
-      .orderBy(desc(budgetPrerequest.month)),
-    db
-      .select()
-      .from(eventApproval)
-      .where(eq(eventApproval.committeeId, budget.committeeId))
-      .orderBy(desc(eventApproval.requestedAt)),
-  ]);
+  const [financialApprovals, rawLines, expenses, transfers, prerequests, approvals] =
+    await Promise.all([
+      budgetApprovalHistory(id, budget.committeeId),
+      db
+        .select()
+        .from(budgetLine)
+        .where(eq(budgetLine.budgetId, id))
+        .orderBy(asc(budgetLine.sortOrder), asc(budgetLine.name)),
+      db
+        .select()
+        .from(budgetExpense)
+        .where(eq(budgetExpense.budgetId, id))
+        .orderBy(desc(budgetExpense.spentOn), desc(budgetExpense.createdAt)),
+      db
+        .select()
+        .from(budgetTransfer)
+        .where(eq(budgetTransfer.budgetId, id))
+        .orderBy(desc(budgetTransfer.createdAt)),
+      db
+        .select()
+        .from(budgetPrerequest)
+        .where(eq(budgetPrerequest.budgetId, id))
+        .orderBy(desc(budgetPrerequest.month)),
+      db
+        .select()
+        .from(eventApproval)
+        .where(eq(eventApproval.committeeId, budget.committeeId))
+        .orderBy(desc(eventApproval.requestedAt)),
+    ]);
   const lineName = new Map(rawLines.map((line) => [line.id, line.name]));
   const approvalTitle = new Map(approvals.map((item) => [item.id, item.title]));
   const lines = summarizeLines(rawLines, expenses, transfers, budget.sanctionPercent);
   return {
     budget,
+    financialApprovals,
     lines,
     rawLines,
     totals: totalsOf(lines),

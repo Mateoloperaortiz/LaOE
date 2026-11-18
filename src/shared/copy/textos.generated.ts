@@ -4204,7 +4204,7 @@ export const textos = {
   },
   "T-2193": {
     where: "Área Finanzas: botón y panel de traslado",
-    text: "Trasladar entre rubros",
+    text: "Pedir aval de reasignación",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4240,7 +4240,7 @@ export const textos = {
   },
   "T-2199": {
     where: "Trasladar entre rubros: confirmación",
-    text: "Traslado registrado.",
+    text: "La VP Financiera recibió la solicitud de reasignación.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4282,7 +4282,7 @@ export const textos = {
   },
   "T-2205": {
     where: "Área Finanzas: ayuda",
-    text: "Registra cada gasto en su rubro y, si un rubro va a sobrar, trasládalo a tiempo: lo que no se ejecuta en el año se pierde.",
+    text: "Registra cada gasto en su rubro. Si un rubro va a sobrar, pide el aval de la VP Financiera para reasignarlo antes del evento.",
     owner: "JUNTA",
     status: "Propuesta",
   },
@@ -16266,7 +16266,7 @@ export const textos = {
   },
   "T-5084": {
     where: "Avales: tipos (en el orden del modelo)",
-    text: "Aval de evento · Falta por avalar · Aval de postulación",
+    text: "Aval de evento · Falta por avalar · Aval de postulación · Reasignación entre rubros · Presupuesto extraordinario",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16772,9 +16772,45 @@ export const textos = {
     owner: "JUNTA",
     status: "Propuesta",
   },
+  "T-5159": {
+    where: "Solicitudes a la VP Financiera",
+    text: "Avales financieros · Pedir aval del presupuesto extraordinario · Solicitud enviada a la VP Financiera.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
   "T-516": {
     where: "Propósitos de consentimiento (etiquetas cortas, en el orden del modelo)",
     text: "Membresía · Comunicaciones · Foto en el directorio · Galería de egresados · Tratamiento de datos",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5160": {
+    where: "Presupuesto extraordinario listo para solicitar",
+    text: "Para pedir este aval, el presupuesto extraordinario debe estar en borrador, con fecha de presentación y sin aprobación financiera previa.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5161": {
+    where: "Cambios durante el aval",
+    text: "La VP Financiera tiene esta propuesta por decidir. Podrás cambiarla una vez que decida.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5162": {
+    where: "Avisos de aval financiero",
+    text: "Tienes una solicitud de aval financiero · Ya decidieron la solicitud de aval financiero",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5163": {
+    where: "Decisión del extraordinario",
+    text: "La VP Financiera decide este aval desde su Mesa.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5164": {
+    where: "Rubros de un extraordinario abierto",
+    text: "Los rubros son los aprobados por la VP Financiera. Para mover saldo entre ellos, solicita una reasignación.",
     owner: "JUNTA",
     status: "Propuesta",
   },

@@ -973,7 +973,7 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-5084",
     order: "AVAL_KINDS",
-    positions: { EVENT: 0, SANCTION: 1, CANDIDACY: 2 },
+    positions: { EVENT: 0, SANCTION: 1, CANDIDACY: 2, TRANSFER: 3, EXTRAORDINARY: 4 },
     canonical: AVAL_KINDS,
   },
   {

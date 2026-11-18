@@ -11,6 +11,7 @@ import {
   budgetLinesInputSchema,
   closeBudgetAs,
   openBudgetAs,
+  requestExtraordinaryAs,
   sanctionBudgetAs,
   sanctionBudgetSchema,
   setBudgetLinesAs,
@@ -27,7 +28,7 @@ function base(id: string): string {
   return `/admin/presupuestos/${id}`;
 }
 
-async function run(id: string, work: () => Promise<void>): Promise<void> {
+async function run(id: string, work: () => Promise<unknown>): Promise<void> {
   try {
     await work();
   } catch (error) {
@@ -83,6 +84,14 @@ export async function approveAction(formData: FormData): Promise<void> {
     redirect(`${base(id)}?error=${encodeURIComponent("T-260")}`);
   }
   await run(id, () => approveBudgetAs(actor, id, parsed.data));
+}
+
+export async function requestExtraordinaryAction(formData: FormData): Promise<void> {
+  const id = budgetId(formData);
+  const actor = await requireAdminContext(base(id));
+  await run(id, () =>
+    requestExtraordinaryAs(actor, id, { committeeId: formText(formData, "committeeId") }),
+  );
 }
 
 export async function openAction(formData: FormData): Promise<void> {

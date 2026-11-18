@@ -16,10 +16,12 @@ import { formatMoney } from "@/shared/lib/money";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { RiesgoBadge } from "../../../_kit/aval";
+import { FinancialApprovals } from "../../../_kit/FinancialApprovals";
 import {
   recordExpenseAction,
-  recordTransferAction,
   requestApprovalAction,
+  requestExtraordinaryAction,
+  requestTransferAction,
   resubmitApprovalAction,
   submitPrerequestAction,
 } from "../actions";
@@ -109,6 +111,7 @@ export function Finanzas({ slug, year, budgets, approvals, returned, editions, g
   const confirmaciones: Record<string, string | undefined> = {
     gasto: t("T-2198"),
     traslado: t("T-2199"),
+    extraordinario: tList("T-5159")[2],
     presolicitud: presolOk,
     aval: avalOk,
     version: versionOk,
@@ -123,7 +126,7 @@ export function Finanzas({ slug, year, budgets, approvals, returned, editions, g
         </output>
       ) : null}
       {budgets.length === 0 ? <p className="text-lg">{t("T-2197", { año: year })}</p> : null}
-      {budgets.map(({ budget, lines, rawLines, totals, prerequests }) => (
+      {budgets.map(({ budget, lines, rawLines, totals, prerequests, financialApprovals }) => (
         <section
           key={budget.id}
           aria-labelledby={`presupuesto-${budget.id}`}
@@ -145,6 +148,12 @@ export function Finanzas({ slug, year, budgets, approvals, returned, editions, g
               <span className="text-tinta-suave"> · {t("T-2204", { año: budget.year })}</span>
             ) : null}
           </p>
+          <FinancialApprovals
+            budget={budget}
+            history={financialApprovals}
+            action={requestExtraordinaryAction}
+            slug={slug}
+          />
           <AdminTableRegion
             label={`${rubrosTitulo ?? ""} ${tituloPresupuesto ?? ""}`.trim()}
             className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde"
@@ -282,7 +291,7 @@ export function Finanzas({ slug, year, budgets, approvals, returned, editions, g
                   </AdminSubmitButton>
                 </AdminFormBody>
               </ActionForm>
-              <ActionForm action={recordTransferAction} className="flex flex-col gap-3">
+              <ActionForm action={requestTransferAction} className="flex flex-col gap-3">
                 <AdminFormBody>
                   {hidden}
                   <input type="hidden" name="budgetId" value={budget.id} />
