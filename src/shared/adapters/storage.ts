@@ -182,10 +182,25 @@ function limitStreamInactivity(
   );
 }
 
-export async function presignRead(key: string, expiresInSeconds: number): Promise<string> {
-  return getSignedUrl(s3(), new GetObjectCommand({ Bucket: getEnv().S3_BUCKET, Key: key }), {
-    expiresIn: expiresInSeconds,
-  });
+export async function presignRead(
+  key: string,
+  expiresInSeconds: number,
+  downloadName?: string,
+): Promise<string> {
+  const disposition =
+    downloadName &&
+    `attachment; filename*=UTF-8''${encodeURIComponent(downloadName).replace(/['()*]/g, (char) => `%${char.charCodeAt(0).toString(16)}`)}`;
+  return getSignedUrl(
+    s3(),
+    new GetObjectCommand({
+      Bucket: getEnv().S3_BUCKET,
+      Key: key,
+      ResponseContentDisposition: disposition,
+    }),
+    {
+      expiresIn: expiresInSeconds,
+    },
+  );
 }
 
 /** @public Subida desde el servidor (scripts, jobs, variantes); nunca desde el navegador. */

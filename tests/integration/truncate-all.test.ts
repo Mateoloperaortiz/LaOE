@@ -46,7 +46,11 @@ const CAMPAIGNS_UNSEEDED = {
 // nueva cuyo CHECK rechace el relleno pone la prueba en rojo con el nombre de la restricción, y se
 // suma acá.
 const DIGITS = "123456789".repeat(9);
+const contractFile = { name: "ejemplo.pdf", digest: "0".repeat(64) };
 const CHECKED: Record<string, Record<string, string>> = {
+  finance_contract: {
+    files: `'${JSON.stringify({ contract: contractFile, legal: contractFile, coordinator: contractFile })}'`,
+  },
   appointment_election_record: { origin: "'ELECTED'" },
   macroevent_review: { year: "2026", status: "'ENABLED'" },
   macroevent_reactivation: { year: "2027" },

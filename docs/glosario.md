@@ -52,8 +52,9 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Serie semanal | `createOccasionSeries` | Reuniones de comité creadas de una vez, mismo día y hora hasta el fin del término, cada una una ocasión independiente |
 | Vista del comité | `/admin/comites/[slug]` | Lo que ve quien dirige un comité o es su líder técnico: pestañas por área según sus capacidades ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)) |
 | Rubro | `BudgetLine` | Partida del presupuesto anual de un comité con su monto asignado |
-| Aval financiero | `BudgetApproval` | Solicitud de reasignación entre rubros o de aprobación financiera de un presupuesto extraordinario que decide la VP Financiera, con la propuesta y su decisión en el historial ([ADR-199](adr/ADR-199-los-avales-de-la-vp-financiera.md)) |
+| Aval financiero | `BudgetApproval` | Solicitud de compra, de reasignación entre rubros o de aprobación de un presupuesto extraordinario que decide la VP Financiera. El historial de la compra vincula el aval con el pago registrado ([ADR-199](adr/ADR-199-los-avales-de-la-vp-financiera.md), [ADR-200](adr/ADR-200-aval-de-cada-compra.md)). |
 | Traslado | `BudgetTransfer` | Movimiento de disponible entre dos rubros del mismo presupuesto, con motivo ([ADR-059](adr/ADR-059-presupuesto-del-comite.md)) |
+| Contrato de la OE | `FinanceContract` | Expediente del comité con el contrato, la revisión del abogado de la Universidad, el visto bueno del coordinador del macroproceso y la decisión de la VP Financiera o la Presidencia. [ADR-201](adr/ADR-201-respaldos-y-firma-de-contratos.md) |
 | Entrada de puntos | `PointEntry` | Fila del ledger: crédito por check-in, ajuste, reversión o legado |
 | GH Points | `GhPoints` | Reconocimiento principal semestral de la OE por check-ins, retos presenciales, trivias, misiones con evidencia y beneficios GH; los videojuegos no se suman a su clasificación |
 | Puntos gamer | `GamerPoints` | Premio competitivo de los videojuegos según el desempeño de la primera partida acreditable del día (primera completa en Color), con avances acumulativos de Panal; separado de GH Points |

@@ -1793,20 +1793,20 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | --- | --- | --- | --- | --- |
 | T-2190 | Área Finanzas: títulos | Presupuesto {año} · Rubros · Gastos · Traslados | MATEO | Propuesta |
 | T-2191 | Área Finanzas: columnas del resumen por rubro | Rubro · Asignado · Gastado · Trasladado · Disponible | MATEO | Propuesta |
-| T-2192 | Área Finanzas: botón y panel de gasto | Registrar gasto | MATEO | Propuesta |
+| T-2192 | Área Finanzas, solicitud de compra | Solicitar aval de compra | MATEO | Propuesta |
 | T-2193 | Área Finanzas: botón y panel de traslado | Pedir aval de reasignación | MATEO | Propuesta |
-| T-2194 | Registrar gasto: campos | Fecha · Rubro · Monto · Descripción | MATEO | Propuesta |
+| T-2194 | Solicitud de compra, campos | Fecha prevista de pago · Rubro · Monto · Descripción | MATEO | Propuesta |
 | T-2195 | Trasladar entre rubros: campos | Desde · Hacia · Monto · Motivo | MATEO | Propuesta |
 | T-2196 | Guarda: sin disponible en el rubro | No hay disponible en {rubro}: quedan {monto}. | MATEO | Propuesta |
 | T-2197 | Área Finanzas: sin presupuesto del año | Sin presupuesto cargado para {año}: pídeselo a la junta. | MATEO | Propuesta |
-| T-2198 | Registrar gasto: confirmación | Gasto registrado. | MATEO | Propuesta |
+| T-2198 | Solicitud de compra, confirmación | Compra enviada a la VP Financiera. | MATEO | Propuesta |
 | T-2199 | Trasladar entre rubros: confirmación | La VP Financiera recibió la solicitud de reasignación. | MATEO | Propuesta |
 | T-2200 | Recurso Presupuestos: nombre (plural · singular) | Presupuestos · Presupuesto | MATEO | Propuesta |
 | T-2201 | Recurso Presupuestos: campos | Comité · Año · Estado · Notas | MATEO | Propuesta |
 | T-2202 | Presupuesto: estados | Borrador · Abierto · Cerrado | MATEO | Propuesta |
 | T-2203 | Rubros: campos | Nombre · Asignado · Orden | MATEO | Propuesta |
 | T-2204 | Guarda: presupuesto que no está abierto | El presupuesto {año} no está abierto: solo la junta lo cambia. | MATEO | Propuesta |
-| T-2205 | Área Finanzas: ayuda | Registra cada gasto en su rubro. Si un rubro va a sobrar, pide el aval de la VP Financiera para reasignarlo antes del evento. | JUNTA | Propuesta |
+| T-2205 | Área Finanzas, ayuda | Pide el aval de la VP Financiera para cada compra. Cuando se haga el pago, regístralo en la compra aprobada. Si un rubro va a sobrar, pide el aval para reasignarlo antes del evento. | JUNTA | Propuesta |
 
 ## Normativa 2026 (ADR-060)
 
@@ -3747,7 +3747,7 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5081 | Junta del semestre: avisos | Vacante · No está activo · Hay una cosa por revisar · Hay {n} cosas por revisar · La junta y sus comités de trabajo están al día · Sembrar los que faltan | MATEO | Propuesta |
 | T-5082 | Menú de la Operación: la junta del semestre | Junta del semestre | MATEO | Propuesta |
 | T-5083 | Avales: pantalla (título · texto) | Avales · Lo que te toca decidir por tu cargo en la junta, con el riesgo más alto primero. Puedes devolver un aval con comentarios para que el comité lo corrija; si lo rechazas, di por qué: el comité lo ve. | MATEO | Propuesta |
-| T-5084 | Avales: tipos (en el orden del modelo) | Aval de evento · Falta por avalar · Aval de postulación · Reasignación entre rubros · Presupuesto extraordinario | MATEO | Propuesta |
+| T-5084 | Avales: tipos (en el orden del modelo) | Aval de evento · Falta por avalar · Aval de postulación · Reasignación entre rubros · Presupuesto extraordinario · Compra · Contrato | MATEO | Propuesta |
 | T-5085 | Avales: campos | Comité · Evento · Fecha del evento · Lo pidió · Estado · Pedido el · Motivo | MATEO | Propuesta |
 | T-5086 | Avales: decisión | Aprobar · Rechazar · Motivo (obligatorio para rechazar) · Lo decide la {cargo} · Decides como Presidencia mientras falte la {cargo} · No hay avales por decidir. · Decididos hace poco · Volver a los avales | MATEO | Propuesta |
 | T-5087 | Aval: rechazo sin motivo | Para rechazar un aval escribe el motivo: el comité lo va a leer. | MATEO | Propuesta |
@@ -3828,3 +3828,16 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5162 | Avisos de aval financiero | Tienes una solicitud de aval financiero · Ya decidieron la solicitud de aval financiero | JUNTA | Propuesta |
 | T-5163 | Decisión del extraordinario | La VP Financiera decide este aval desde su Mesa. | JUNTA | Propuesta |
 | T-5164 | Rubros de un extraordinario abierto | Los rubros son los aprobados por la VP Financiera. Para mover saldo entre ellos, solicita una reasignación. | JUNTA | Propuesta |
+| T-5165 | Compra aprobada, registro del pago | Registrar pago · Fecha de pago · Pendiente de pago · Pago registrado | JUNTA | Propuesta |
+| T-5166 | Confirmación del registro | Pago registrado en el rubro de la compra. | JUNTA | Propuesta |
+| T-5167 | Pago sin aprobación | Para registrar el pago, la compra necesita el aval de la VP Financiera. | JUNTA | Propuesta |
+| T-5168 | Fecha del pago | Elige una fecha de pago entre el día de la aprobación y hoy. | JUNTA | Propuesta |
+| T-5169 | Reenvío con cambios | Esta solicitud ya se envió con otros datos. Abre el formulario de nuevo para pedir otro aval. | JUNTA | Propuesta |
+| T-5170 | Pago ya registrado | Esta compra ya tiene un pago registrado con otra fecha. | JUNTA | Propuesta |
+| T-5171 | Contratos del comité | Contratos · Objeto del contrato · Proveedor · Monto en pesos · Enviar para firma · Registrar mi firma | JUNTA | Propuesta |
+| T-5172 | Documentos del expediente | Contrato · Revisión del abogado de la Universidad · Visto bueno del coordinador del macroproceso | JUNTA | Aprobado |
+| T-5173 | Estado del contrato | Por firmar · Firma registrada · Rechazado | JUNTA | Propuesta |
+| T-5174 | Respaldo del contrato inválido | Adjunta el contrato y los dos respaldos. Cada archivo debe tener contenido y pesar hasta 20 MB. | JUNTA | Propuesta |
+| T-5175 | Avisos de contrato | Tienes un contrato por firmar · Ya decidieron el contrato · Contrato enviado para firma. | JUNTA | Propuesta |
+| T-5176 | Competencia para firmar | La VP Financiera o la Presidencia pueden registrar su firma. | JUNTA | Propuesta |
+| T-5177 | Archivos durante la carga | Subiendo los archivos… · No se pudo completar el envío. Intenta de nuevo. | JUNTA | Propuesta |

@@ -1,7 +1,7 @@
 import { listAllCommittees, listCommitteesForSelection } from "@/modules/people";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
-import { formatMoney } from "@/shared/lib/money";
+import { formatExactMoney } from "@/shared/lib/money";
 import { BUDGET_KINDS, BUDGET_STATUSES } from "./domain/budget-pure";
 import {
   type BudgetInput,
@@ -82,7 +82,7 @@ export const budgetsResource: ResourceDefinition<BudgetListRow, BudgetInput> = {
     {
       key: "assigned",
       label: tList("T-2191")[1] ?? "",
-      render: (row) => formatMoney(row.assignedTotal),
+      render: (row) => formatExactMoney(row.assignedTotal),
     },
     {
       key: "detail",

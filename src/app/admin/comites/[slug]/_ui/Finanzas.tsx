@@ -1,7 +1,12 @@
+import { createId } from "@paralleldrive/cuid2";
 import type { BudgetSummary, EventApprovalListRow } from "@/modules/finance";
 import {
   approvalStatusLabel,
   budgetKindLabel,
+  CONTRACT_FILE_MAX_BYTES,
+  CONTRACT_FILE_SLOTS,
+  contractStatusLabel,
+  type listContracts,
   RISK_LEVELS,
   riskLevelLabel,
 } from "@/modules/finance";
@@ -10,21 +15,24 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
-import { formatMoney } from "@/shared/lib/money";
+import { formatExactMoney } from "@/shared/lib/money";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { RiesgoBadge } from "../../../_kit/aval";
+import { ContractDetails } from "../../../_kit/ContractDetails";
 import { FinancialApprovals } from "../../../_kit/FinancialApprovals";
 import {
-  recordExpenseAction,
+  recordPurchasePaymentAction,
   requestApprovalAction,
   requestExtraordinaryAction,
+  requestPurchaseAction,
   requestTransferAction,
   resubmitApprovalAction,
   submitPrerequestAction,
 } from "../actions";
+import { ContractForm } from "./ContractForm";
 
 // Área Finanzas del comité (ADR-059 regla 2; ADR-060 regla 12): con la capacidad FINANCE se ve el
 // resumen por rubro de cada presupuesto del año, se registra la presolicitud del mes, un gasto o un
@@ -35,6 +43,7 @@ interface Props {
   slug: string;
   year: number;
   budgets: BudgetSummary[];
+  contracts: Awaited<ReturnType<typeof listContracts>>;
   approvals: EventApprovalListRow[];
   /** Los comentarios de la última devolución de cada aval devuelto. */
   returned: Record<string, string>;
@@ -94,7 +103,17 @@ function civil(key: string): string {
   return formatDate(new Date(`${key}T12:00:00Z`));
 }
 
-export function Finanzas({ slug, year, budgets, approvals, returned, editions, guardado }: Props) {
+export function Finanzas({
+  slug,
+  year,
+  budgets,
+  approvals,
+  contracts,
+  returned,
+  editions,
+  guardado,
+}: Props) {
+  const contractFormId = createId();
   const [tituloPresupuesto, rubrosTitulo] = tList("T-2190");
   const [rubro, asignado, gastado, trasladado, disponible] = tList("T-2191");
   const [fecha, rubroCampo, monto, descripcion] = tList("T-2194");
@@ -109,7 +128,9 @@ export function Finanzas({ slug, year, budgets, approvals, returned, editions, g
   const aprobados = approvals.filter((item) => item.status === "APPROVED");
   const hidden = <input type="hidden" name="slug" value={slug} />;
   const confirmaciones: Record<string, string | undefined> = {
-    gasto: t("T-2198"),
+    compra: t("T-2198"),
+    pago: t("T-5166"),
+    contrato: tList("T-5175")[2],
     traslado: t("T-2199"),
     extraordinario: tList("T-5159")[2],
     presolicitud: presolOk,
@@ -140,9 +161,9 @@ export function Finanzas({ slug, year, budgets, approvals, returned, editions, g
           </h3>
           <p className="text-sm">
             {t("T-2310", {
-              asignado: formatMoney(totals.assigned),
-              gastado: formatMoney(totals.spent),
-              disponible: formatMoney(totals.available),
+              asignado: formatExactMoney(totals.assigned),
+              gastado: formatExactMoney(totals.spent),
+              disponible: formatExactMoney(totals.available),
             })}
             {budget.status !== "OPEN" ? (
               <span className="text-tinta-suave"> · {t("T-2204", { año: budget.year })}</span>
@@ -152,6 +173,7 @@ export function Finanzas({ slug, year, budgets, approvals, returned, editions, g
             budget={budget}
             history={financialApprovals}
             action={requestExtraordinaryAction}
+            paymentAction={recordPurchasePaymentAction}
             slug={slug}
           />
           <AdminTableRegion
@@ -172,12 +194,12 @@ export function Finanzas({ slug, year, budgets, approvals, returned, editions, g
                 {lines.map((line) => (
                   <tr key={line.id} className="border-t border-borde">
                     <td className="px-3 py-2">{line.name}</td>
-                    <td className="px-3 py-2">{formatMoney(line.assigned)}</td>
-                    <td className="px-3 py-2">{formatMoney(line.spent)}</td>
+                    <td className="px-3 py-2">{formatExactMoney(line.assigned)}</td>
+                    <td className="px-3 py-2">{formatExactMoney(line.spent)}</td>
                     <td className="px-3 py-2">
-                      {formatMoney(line.transferredIn - line.transferredOut)}
+                      {formatExactMoney(line.transferredIn - line.transferredOut)}
                     </td>
-                    <td className="px-3 py-2 font-semibold">{formatMoney(line.available)}</td>
+                    <td className="px-3 py-2 font-semibold">{formatExactMoney(line.available)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -211,15 +233,16 @@ export function Finanzas({ slug, year, budgets, approvals, returned, editions, g
                   </AdminSubmitButton>
                 </AdminFormBody>
               </ActionForm>
-              <ActionForm action={recordExpenseAction} className="flex flex-col gap-3">
+              <ActionForm action={requestPurchaseAction} className="flex flex-col gap-3">
                 <AdminFormBody>
                   {hidden}
                   <input type="hidden" name="budgetId" value={budget.id} />
                   <h4 className="font-semibold">{t("T-2192")}</h4>
-                  <Campo id={`gasto-${budget.id}-spentOn`} label={fecha ?? ""}>
+                  <input type="hidden" name="requestId" value={createId()} />
+                  <Campo id={`compra-${budget.id}-plannedOn`} label={fecha ?? ""}>
                     <input
-                      id={`gasto-${budget.id}-spentOn`}
-                      name="spentOn"
+                      id={`compra-${budget.id}-plannedOn`}
+                      name="plannedOn"
                       type="date"
                       required
                       defaultValue={todayKey()}
@@ -245,7 +268,7 @@ export function Finanzas({ slug, year, budgets, approvals, returned, editions, g
                       id={`gasto-${budget.id}-amount`}
                       name="amount"
                       type="number"
-                      min={1}
+                      min="0.01"
                       step="0.01"
                       required
                       className={inputClass}
@@ -368,6 +391,32 @@ export function Finanzas({ slug, year, budgets, approvals, returned, editions, g
         </section>
       ))}
 
+      <section aria-labelledby="contratos-comite" className="flex flex-col gap-3">
+        <h3 id="contratos-comite" className="text-display-md">
+          {tList("T-5171")[0]}
+        </h3>
+        {contracts.map((row) => (
+          <details key={row.id} className="rounded-xl border border-borde p-3">
+            <summary>
+              {row.title} · {contractStatusLabel(row.status)}
+            </summary>
+            <ContractDetails row={row} />
+          </details>
+        ))}
+        <ContractForm
+          key={slug}
+          id={contractFormId}
+          maxBytes={CONTRACT_FILE_MAX_BYTES}
+          slug={slug}
+          slots={CONTRACT_FILE_SLOTS.map((slot) => ({
+            slot,
+            label: tLabels("T-5172", CONTRACT_FILE_SLOTS)[slot],
+          }))}
+          fields={tList("T-5171")}
+          invalid={t("T-5174")}
+          progress={tList("T-5177")}
+        />
+      </section>
       <section aria-labelledby="avales-comite" className="flex flex-col gap-3">
         <h3 id="avales-comite" className="text-display-md">
           {avalesTitulo}

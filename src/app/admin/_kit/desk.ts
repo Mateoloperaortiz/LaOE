@@ -1,7 +1,12 @@
 import { cache } from "react";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { listPendingExcusesForCommittee, listRequests, listTasks } from "@/modules/crm";
-import { listEventApprovals, pendingFinancialApprovals, proposalTitle } from "@/modules/finance";
+import {
+  listContracts,
+  listEventApprovals,
+  pendingFinancialApprovals,
+  proposalTitle,
+} from "@/modules/finance";
 import { listIncidents, listReservations } from "@/modules/inventory";
 import {
   listCommitteeViability,
@@ -69,6 +74,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     pendingFaltas,
     candidacies,
     finance,
+    contracts,
     pendingClosures,
   ] = await Promise.all([
     roles.isAdmin
@@ -105,6 +111,9 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     roles.boardSeats.some((item) => item.seat === "VP_GH") ? listPendingSanctions() : [],
     roles.boardSeats.some((item) => item.seat === "VP_GH") ? pendingCandidacies(now) : [],
     roles.boardSeats.some((item) => item.seat === "VP_FINANCE") ? pendingFinancialApprovals() : [],
+    roles.boardSeats.some((item) => item.seat === "VP_FINANCE" || item.seat === "PRESIDENT")
+      ? listContracts({ pendingOnly: true })
+      : [],
     // Los seguimientos de macroeventos que ya terminaron y no se cierran (ADR-197 regla 5).
     roles.boardSeats.some((item) => item.seat === "PRESIDENT" && item.as === "HOLDER")
       ? editionsPendingClosure(now)
@@ -186,7 +195,11 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     ),
     ...deskSection(
       "avales",
-      eventAvales.length + pendingFaltas.length + candidacies.length + finance.length,
+      eventAvales.length +
+        pendingFaltas.length +
+        candidacies.length +
+        finance.length +
+        contracts.length,
       [
         ...eventAvales.map((row) => ({
           id: row.id,
@@ -200,6 +213,13 @@ export const loadDesk = cache(async (): Promise<Desk> => {
           title: proposalTitle(row.proposal),
           detail: row.committeeName,
           href: `/admin/avales?finanzas=${row.id}`,
+          date: { kind: "arrived" as const, at: row.requestedAt },
+        })),
+        ...contracts.map((row) => ({
+          id: row.id,
+          title: row.title,
+          detail: row.committeeName,
+          href: `/admin/avales?contrato=${row.id}`,
           date: { kind: "arrived" as const, at: row.requestedAt },
         })),
         ...candidacies.map((row) => ({

@@ -589,6 +589,20 @@
       "when": 1795035668644,
       "tag": "0083_avales_financieros",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1795039090547,
+      "tag": "0084_aval_de_cada_compra",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1795039727510,
+      "tag": "0085_contratos_con_respaldos",
+      "breakpoints": true
     }
   ]
 }

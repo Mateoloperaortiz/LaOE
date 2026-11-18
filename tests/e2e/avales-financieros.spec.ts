@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { getBudgetSummary } from "@/modules/finance";
+import { getBudgetSummary, listContracts } from "@/modules/finance";
 import {
   approveBudgetAs,
   createBudgetAs,
@@ -9,6 +9,7 @@ import {
   setBudgetLinesAs,
 } from "@/modules/finance/domain/commands";
 import { person } from "@/modules/people/schema";
+import { deleteObject } from "@/shared/adapters/storage";
 import { t, tList } from "@/shared/copy";
 import { seedAppointment, seedApprovedBudgetEvent, seedCommittee, seedTerm } from "../factories";
 import { E2E_CALENDAR } from "./calendar";
@@ -16,6 +17,71 @@ import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
 
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
+
+test("el comité adjunta el contrato y los dos respaldos y la VP registra su firma desde la Mesa", async ({
+  page,
+  browser,
+}) => {
+  await appointVp();
+  const committeeId = await seedCommittee("teatro-contratos", "Teatro de contratos");
+  const fields = tList("T-5171");
+  const fileLabels = tList("T-5172");
+  const slots = ["contract", "legal", "coordinator"] as const;
+  const title = "Contrato de escenario sintético";
+  await page.goto("/admin/comites/teatro-contratos?area=finanzas");
+  const section = page.getByRole("region", { name: fields[0], exact: true });
+  await section.getByLabel(fields[1], { exact: true }).fill(title);
+  await section.getByLabel(fields[2], { exact: true }).fill("Proveedor sintético");
+  await section.getByLabel(fields[3], { exact: true }).fill("10800");
+  for (const [index, slot] of slots.entries()) {
+    await section.getByLabel(fileLabels[index] ?? "", { exact: true }).setInputFiles({
+      name: `${slot}.pdf`,
+      mimeType: "application/pdf",
+      buffer: Buffer.from(`%PDF-1.4\nRespaldo sintético de ${slot}\n%%EOF`),
+    });
+  }
+  const scope = { committeeId };
+  try {
+    await section.getByRole("button", { name: fields[4], exact: true }).click();
+    await expect(page.getByRole("status")).toContainText(tList("T-5175")[2]);
+    const context = await browser.newContext({ storageState: "tests/e2e/.auth/member.json" });
+    const vp = await context.newPage();
+    const visitor = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    await vp.goto(new URL("/admin/mesa", page.url()).href);
+    await vp.getByRole("link").filter({ hasText: title }).click();
+    for (const [index, slot] of slots.entries()) {
+      const href = await vp
+        .getByRole("link", { name: `${fileLabels[index]} · ${slot}.pdf`, exact: true })
+        .getAttribute("href");
+      if (!href) throw new Error("Falta el enlace al archivo");
+      const url = new URL(href, page.url()).href;
+      const response = await vp.request.get(url);
+      expect(response.status()).toBe(200);
+      expect(await response.text()).toContain(`Respaldo sintético de ${slot}`);
+      expect(response.headers()["content-disposition"]).toContain("attachment");
+      expect((await visitor.request.get(url, { maxRedirects: 0 })).status()).toBe(401);
+    }
+    await visitor.close();
+    await vp.getByRole("button", { name: fields[5], exact: true }).click();
+    await expect(vp).toHaveURL(/guardado=1/);
+    await page.reload();
+    await expect(section).toContainText(tList("T-5173")[1]);
+    expect((await listContracts(scope))[0]).toMatchObject({
+      title,
+      status: "APPROVED",
+      decidedSeat: "VP_FINANCE",
+    });
+    await context.close();
+  } finally {
+    for (const row of await listContracts(scope)) {
+      await Promise.all(
+        slots.map((slot) =>
+          deleteObject(`contracts/files/${row.id}/${slot}/${row.files[slot].digest}`),
+        ),
+      );
+    }
+  }
+});
 
 const year = Number(E2E_CALENDAR.day.slice(0, 4));
 const operator = { personId: null, ip: null };

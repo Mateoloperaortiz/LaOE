@@ -7,6 +7,7 @@ import {
   getBudgetSummary,
   getEventApprovalDetail,
   listCommitteeBudgets,
+  listContracts,
   listEventApprovals,
 } from "@/modules/finance";
 import {
@@ -634,10 +635,11 @@ async function FinanzasArea({
   guardado: string;
 }) {
   const year = Number.parseInt(todayKey().slice(0, 4), 10);
-  const [budgets, approvals, editions] = await Promise.all([
+  const [budgets, approvals, editions, contracts] = await Promise.all([
     listCommitteeBudgets(committeeId, year),
     listEventApprovals({ committeeId }),
     listEditionsByCommittee(committeeId),
+    listContracts({ committeeId }),
   ]);
   const [summaries, returnedDetails] = await Promise.all([
     Promise.all(budgets.map((budget) => getBudgetSummary(budget.id))),
@@ -659,6 +661,7 @@ async function FinanzasArea({
       year={year}
       budgets={summaries.flatMap((summary) => (summary ? [summary] : []))}
       approvals={approvals}
+      contracts={contracts}
       returned={returned}
       editions={editions.map((item) => ({
         id: item.id,

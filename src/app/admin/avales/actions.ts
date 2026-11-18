@@ -10,6 +10,7 @@ import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
 import {
   changeEventApprovalRiskAs,
+  decideContractAs,
   decideEventApprovalAs,
   decideFinancialApprovalAs,
   RISK_LEVELS,
@@ -47,6 +48,8 @@ export async function decideAvalAction(formData: FormData): Promise<void> {
       CANDIDACY: decideCandidacyAs,
       TRANSFER: decideFinancialApprovalAs,
       EXTRAORDINARY: decideFinancialApprovalAs,
+      PURCHASE: decideFinancialApprovalAs,
+      CONTRACT: decideContractAs,
     };
     await decide[kind](actor, id, input);
   } catch (error) {

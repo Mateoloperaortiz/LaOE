@@ -55,7 +55,7 @@ Hasta hoy ningún cargo de la junta decide nada por su nombramiento, salvo la VP
 ## Preguntas que se resuelven antes de su tramo
 
 - **A2.** ¿Una falta que registra ADMIN también espera el aval de la VP de GH, o solo las que anotan las direcciones de GH de los comités?
-- **A5.** ¿Toda compra pide aval, o solo desde un monto? ¿Qué debe traer un contrato (documento, proveedor, monto, visto bueno del abogado) y quién lo firma: la VP Financiera, la Presidencia o cualquiera de las dos?
+- **A5.** Toda compra necesita aval antes del pago, por cualquier monto. El comité adjunta el contrato, el análisis del abogado de la Universidad y el visto bueno del coordinador del macroproceso. La VP Financiera o la Presidencia registra su firma. [ADR-200](ADR-200-aval-de-cada-compra.md) y [ADR-201](ADR-201-respaldos-y-firma-de-contratos.md)
 - **A6.** ¿Para qué canales se piden las piezas, y la pieza aprobada se publica sola o la publica el comité?
 - **A7.** ¿Toda reserva pide aval, o solo las que la VP marque, por material o por cantidad?
 - **A8.** ¿Qué espacios administra la OE? ¿«Cruce de planes» es un aviso cuando dos actividades caen a la misma hora, o un aval que pide quien agenda?

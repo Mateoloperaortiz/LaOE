@@ -4,6 +4,8 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [201](adr/ADR-201-respaldos-y-firma-de-contratos.md) | Contratos | El comité adjunta el contrato y ambos respaldos para que la VP Financiera o la Presidencia registre su firma | Aceptada |
+| [200](adr/ADR-200-aval-de-cada-compra.md) | Compras y pagos | La VP Financiera aprueba cada compra antes de que Finanzas registre el pago | Aceptada |
 | [199](adr/ADR-199-los-avales-de-la-vp-financiera.md) | Avales financieros | Reasignaciones y extraordinarios pasan por la Mesa de la VP Financiera | Propuesta |
 | [198](adr/ADR-198-el-aval-de-postulacion-a-una-mesa.md) | Aval de postulación | La VP de GH avala la postulación de una persona nueva para un cargo, un comité y un semestre | Propuesta |
 | [165](adr/ADR-165-bonos-de-permanencia-por-criterio.md) | Bonos de permanencia | GH ingresa el total exacto de los faltantes elegidos. La persona ve los puntos por criterio y el motivo | Aceptada |

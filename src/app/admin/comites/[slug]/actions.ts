@@ -12,12 +12,16 @@ import { committeeAnnouncementSchema, createCommitteeAnnouncementAs } from "@/mo
 import {
   approvalRequestSchema,
   approvalVersionSchema,
-  expenseInputSchema,
+  contractRequestSchema,
   getBudget,
   prerequestInputSchema,
-  recordExpenseAs,
+  purchasePaymentSchema,
+  purchaseRequestSchema,
+  recordPurchasePaymentAs,
+  requestContractAs,
   requestEventApprovalAs,
   requestExtraordinaryAs,
+  requestPurchaseAs,
   requestTransferAs,
   resubmitEventApprovalAs,
   submitPrerequestAs,
@@ -435,14 +439,15 @@ export async function submitPrerequestAction(formData: FormData): Promise<void> 
   );
 }
 
-export async function recordExpenseAction(formData: FormData): Promise<void> {
+export async function requestPurchaseAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
   const budgetId = formText(formData, "budgetId");
   const { actor, committee } = await financeOf(slug, budgetId);
-  const parsed = expenseInputSchema.safeParse({
+  const parsed = purchaseRequestSchema.safeParse({
+    requestId: formText(formData, "requestId"),
     budgetId,
     lineId: formText(formData, "lineId"),
-    spentOn: formText(formData, "spentOn"),
+    plannedOn: formText(formData, "plannedOn"),
     amount: formText(formData, "amount"),
     description: formText(formData, "description"),
     supplier: formText(formData, "supplier"),
@@ -451,8 +456,43 @@ export async function recordExpenseAction(formData: FormData): Promise<void> {
   if (!parsed.success) {
     redirect(back(slug, { ...finanzas, error: t("T-260") }));
   }
-  await runFinance(slug, "gasto", () =>
-    recordExpenseAs(actor, parsed.data, { committeeId: committee.id }),
+  await runFinance(slug, "compra", () =>
+    requestPurchaseAs(actor, parsed.data, { committeeId: committee.id }),
+  );
+}
+
+export async function submitContractAction(
+  slug: string,
+  raw: unknown,
+): Promise<{ error?: string }> {
+  const validSlug = slugSchema.parse(slug);
+  const { actor, committee } = await financeOf(validSlug, "");
+  const input = contractRequestSchema.safeParse(raw);
+  if (!input.success) return { error: t("T-260") };
+  try {
+    await requestContractAs(actor, input.data, { committeeId: committee.id });
+  } catch (error) {
+    if (error instanceof DomainError) return { error: error.message };
+    throw error;
+  }
+  revalidatePath(back(validSlug));
+  revalidatePath("/admin/avales");
+  revalidatePath("/admin/mesa");
+  return {};
+}
+
+export async function recordPurchasePaymentAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const budgetId = formText(formData, "budgetId");
+  const { actor, committee } = await financeOf(slug, budgetId);
+  const parsed = purchasePaymentSchema.safeParse({
+    budgetId,
+    purchaseId: formText(formData, "purchaseId"),
+    paidOn: formText(formData, "paidOn"),
+  });
+  if (!parsed.success) redirect(back(slug, { ...finanzas, error: t("T-260") }));
+  await runFinance(slug, "pago", () =>
+    recordPurchasePaymentAs(actor, parsed.data, { committeeId: committee.id }),
   );
 }
 

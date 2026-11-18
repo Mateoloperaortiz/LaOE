@@ -25,13 +25,7 @@ import {
   setBudgetLines,
   updateBudget,
 } from "./budgets";
-import {
-  type ExpenseInput,
-  type MovementScope,
-  type PrerequestInput,
-  recordExpense,
-  submitPrerequest,
-} from "./movements";
+import { type MovementScope, type PrerequestInput, submitPrerequest } from "./movements";
 
 // Comandos del módulo (ADR-003): cada uno corre en runCommand con auditoría; quién puede llamarlos lo
 // decide src/app (ADMIN para presupuestos y avales; FINANCE del comité para los movimientos).
@@ -81,14 +75,6 @@ export function submitPrerequestAs(
   scope: MovementScope,
 ): Promise<{ id: string }> {
   return runCommand(actor, (ctx) => submitPrerequest(ctx, input, scope));
-}
-
-export function recordExpenseAs(
-  actor: Actor,
-  input: ExpenseInput,
-  scope: MovementScope,
-): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => recordExpense(ctx, input, scope));
 }
 
 export function requestEventApprovalAs(

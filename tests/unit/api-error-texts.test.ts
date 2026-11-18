@@ -110,7 +110,7 @@ describe("los textos con que las rutas de API responden un error", () => {
       files: new Set(written.map(({ key }) => key.split(" › ")[0])).size,
       catalog: total("catalog"),
       passed: total("passed"),
-    }).toEqual({ shown: 32, unread: 29, files: 25, catalog: 11, passed: 12 });
+    }).toEqual({ shown: 32, unread: 29, files: 25, catalog: 12, passed: 12 });
   });
 });
 

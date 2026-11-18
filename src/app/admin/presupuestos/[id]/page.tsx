@@ -18,7 +18,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
-import { formatMoney } from "@/shared/lib/money";
+import { formatExactMoney } from "@/shared/lib/money";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { FinancialApprovals } from "../../_kit/FinancialApprovals";
@@ -105,9 +105,9 @@ export default async function Page({
           </Insignia>
           <span>
             {t("T-2310", {
-              asignado: formatMoney(totals.assigned),
-              gastado: formatMoney(totals.spent),
-              disponible: formatMoney(totals.available),
+              asignado: formatExactMoney(totals.assigned),
+              gastado: formatExactMoney(totals.spent),
+              disponible: formatExactMoney(totals.available),
             })}
           </span>
           {budget.submittedOn ? (
@@ -153,12 +153,12 @@ export default async function Page({
               {lines.map((line) => (
                 <tr key={line.id} className="border-t border-borde">
                   <td className="px-3 py-2">{line.name}</td>
-                  <td className="px-3 py-2">{formatMoney(line.assigned)}</td>
-                  <td className="px-3 py-2">{formatMoney(line.spent)}</td>
+                  <td className="px-3 py-2">{formatExactMoney(line.assigned)}</td>
+                  <td className="px-3 py-2">{formatExactMoney(line.spent)}</td>
                   <td className="px-3 py-2">
-                    {formatMoney(line.transferredIn - line.transferredOut)}
+                    {formatExactMoney(line.transferredIn - line.transferredOut)}
                   </td>
-                  <td className="px-3 py-2 font-semibold">{formatMoney(line.available)}</td>
+                  <td className="px-3 py-2 font-semibold">{formatExactMoney(line.available)}</td>
                 </tr>
               ))}
             </tbody>
@@ -399,7 +399,7 @@ export default async function Page({
           <ul className="flex list-none flex-col gap-1 p-0 text-sm">
             {expenses.map((item) => (
               <li key={item.id}>
-                {civil(item.spentOn)} · {item.lineName} · {formatMoney(item.amount)} ·{" "}
+                {civil(item.spentOn)} · {item.lineName} · {formatExactMoney(item.amount)} ·{" "}
                 {item.description}
                 {item.supplier ? ` · ${item.supplier}` : ""}
                 {item.approvalTitle ? ` · ${item.approvalTitle}` : ""}
@@ -408,7 +408,7 @@ export default async function Page({
             {transfers.map((item) => (
               <li key={item.id}>
                 {formatDateTime(item.createdAt)} · {item.fromLineName} → {item.toLineName} ·{" "}
-                {formatMoney(item.amount)} · {item.reason}
+                {formatExactMoney(item.amount)} · {item.reason}
                 {item.approvalTitle ? ` · ${item.approvalTitle}` : ""}
               </li>
             ))}

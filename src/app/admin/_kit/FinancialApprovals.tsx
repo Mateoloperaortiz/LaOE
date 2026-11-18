@@ -1,24 +1,28 @@
 import type { BudgetSummary } from "@/modules/finance";
 import { proposalTitle } from "@/modules/finance";
 import { boardApprovalLabel } from "@/modules/people";
+import { Campo, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { tList } from "@/shared/copy";
-import { formatDate } from "@/shared/lib/dates";
+import { formatDate, todayKey } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
 
 export function FinancialApprovals({
   budget,
   history,
   action,
+  paymentAction,
   slug,
 }: {
   budget: BudgetSummary["budget"];
   history: BudgetSummary["financialApprovals"];
   action: (data: FormData) => Promise<void>;
+  paymentAction?: (data: FormData) => Promise<void>;
   slug?: string;
 }) {
   const [heading, ask] = tList("T-5159");
+  const [register, dateLabel, awaitingPayment, paid] = tList("T-5165");
   const canRequest =
     budget.kind === "EXTRAORDINARY" &&
     budget.status === "DRAFT" &&
@@ -35,6 +39,36 @@ export function FinancialApprovals({
               {proposalTitle(row.proposal)} · {formatDate(row.requestedAt)} ·{" "}
               {boardApprovalLabel(row.status)}
               {row.decisionNote && <p>{row.decisionNote}</p>}
+              {row.proposal.kind === "PURCHASE" && row.status === "APPROVED" && (
+                <>
+                  {" · "}
+                  {row.expenseId ? paid : awaitingPayment}
+                  {paymentAction && slug && budget.status === "OPEN" && !row.expenseId && (
+                    <ActionForm action={paymentAction}>
+                      <AdminFormBody>
+                        <input type="hidden" name="slug" value={slug} />
+                        <input type="hidden" name="budgetId" value={budget.id} />
+                        <input type="hidden" name="purchaseId" value={row.id} />
+                        <Campo id={`pago-${row.id}`} label={dateLabel ?? ""}>
+                          <input
+                            id={`pago-${row.id}`}
+                            className={inputClass}
+                            name="paidOn"
+                            type="date"
+                            required
+                            min={row.decidedAt ? todayKey(row.decidedAt) : undefined}
+                            max={todayKey()}
+                            defaultValue={todayKey()}
+                          />
+                        </Campo>
+                        <AdminSubmitButton type="submit" className="boton-secundario self-start">
+                          {register}
+                        </AdminSubmitButton>
+                      </AdminFormBody>
+                    </ActionForm>
+                  )}
+                </>
+              )}
             </li>
           ))}
         </ul>

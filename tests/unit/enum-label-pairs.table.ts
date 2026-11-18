@@ -57,6 +57,7 @@ import {
   RISK_LEVELS,
 } from "@/modules/finance/domain/budget-pure";
 import { budgetKindLabel, budgetStatusLabel } from "@/modules/finance/domain/budgets";
+import { CONTRACT_FILE_SLOTS } from "@/modules/finance/schema";
 import { FIELD_TYPES } from "@/modules/forms/domain/pure";
 import { occasionStatusCell } from "@/modules/participation/admin";
 import { ASSEMBLY_POLL_STATUSES } from "@/modules/participation/domain/assembly-polls";
@@ -973,8 +974,28 @@ export const PAIRS: readonly LabelPair[] = [
   {
     code: "T-5084",
     order: "AVAL_KINDS",
-    positions: { EVENT: 0, SANCTION: 1, CANDIDACY: 2, TRANSFER: 3, EXTRAORDINARY: 4 },
+    positions: {
+      EVENT: 0,
+      SANCTION: 1,
+      CANDIDACY: 2,
+      TRANSFER: 3,
+      EXTRAORDINARY: 4,
+      PURCHASE: 5,
+      CONTRACT: 6,
+    },
     canonical: AVAL_KINDS,
+  },
+  {
+    code: "T-5172",
+    order: "CONTRACT_FILE_SLOTS",
+    positions: { contract: 0, legal: 1, coordinator: 2 },
+    canonical: CONTRACT_FILE_SLOTS,
+  },
+  {
+    code: "T-5173",
+    order: "boardApprovalStatus.enumValues",
+    positions: { PENDING: 0, APPROVED: 1, REJECTED: 2 },
+    canonical: boardApprovalStatus.enumValues,
   },
   {
     code: "T-5157",

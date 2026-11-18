@@ -24,6 +24,17 @@ import { committee, person } from "@/modules/people/schema";
 /** Lo que la VP recibió, incluso si después cambia el nombre o desaparece un rubro. */
 export type BudgetProposal =
   | {
+      kind: "PURCHASE";
+      lineId: string;
+      lineName: string;
+      plannedOn: string;
+      amount: number;
+      description: string;
+      supplier: string;
+      approvalId?: string;
+      eventTitle?: string;
+    }
+  | {
       kind: "TRANSFER";
       fromLineId: string;
       fromName: string;
@@ -44,6 +55,9 @@ export type BudgetProposal =
     };
 
 export const budgetKind = pgEnum("budget_kind", ["ORDINARY", "EXTRAORDINARY"]);
+export const CONTRACT_FILE_SLOTS = ["contract", "legal", "coordinator"] as const;
+export type ContractFileSlot = (typeof CONTRACT_FILE_SLOTS)[number];
+export type ContractFiles = Record<ContractFileSlot, { name: string; digest: string }>;
 export const budgetStatus = pgEnum("budget_status", ["DRAFT", "OPEN", "CLOSED"]);
 export const eventApprovalStatus = pgEnum("event_approval_status", [
   "PENDING",
@@ -61,6 +75,40 @@ export const eventApprovalEntryKind = pgEnum("event_approval_entry_kind", [
 ]);
 
 const money = () => numeric({ precision: 12, scale: 2, mode: "number" });
+
+export const financeContract = pgTable(
+  "finance_contract",
+  {
+    id: id(),
+    committeeId: text()
+      .notNull()
+      .references(() => committee.id),
+    title: text().notNull(),
+    supplier: text().notNull(),
+    amount: money().notNull(),
+    files: jsonb().$type<ContractFiles>().notNull(),
+    requestedById: text().references(() => person.id, { onDelete: "set null" }),
+    requestedAt: createdAt(),
+    status: boardApprovalStatus().notNull().default("PENDING"),
+    decidedById: text().references(() => person.id, { onDelete: "set null" }),
+    decidedAt: timestampTz(),
+    decidedSeat: text().$type<"PRESIDENT" | "VP_FINANCE">(),
+    decisionNote: text().notNull().default(""),
+  },
+  (t) => [
+    index("finance_contract_committee_idx").on(t.committeeId, t.requestedAt),
+    index("finance_contract_queue_idx").on(t.status, t.requestedAt),
+    check("finance_contract_amount", sql`${t.amount} > 0`),
+    check(
+      "finance_contract_files",
+      sql`jsonb_typeof(${t.files}) = 'object' and ${t.files} ?& array['contract','legal','coordinator']`,
+    ),
+    check(
+      "finance_contract_decision",
+      sql`(${t.status} = 'PENDING' and ${t.decidedAt} is null and ${t.decidedSeat} is null) or (${t.status} <> 'PENDING' and ${t.decidedAt} is not null and ${t.decidedSeat} is not null and ${t.decidedSeat} in ('PRESIDENT','VP_FINANCE'))`,
+    ),
+  ],
+);
 
 export const committeeBudget = pgTable(
   "committee_budget",
@@ -266,7 +314,7 @@ export const budgetTransfer = pgTable(
   ],
 );
 
-/** A4. La propuesta se conserva tal como se presentó; solo la decisión favorable crea el traslado. */
+/** Propuesta y decisión de la VP, con el movimiento que se registró a partir del aval. */
 export const budgetApproval = pgTable(
   "budget_approval",
   {
@@ -287,12 +335,21 @@ export const budgetApproval = pgTable(
     decidedAs: text(),
     decisionNote: text().notNull().default(""),
     transferId: text().references(() => budgetTransfer.id),
+    expenseId: text().references(() => budgetExpense.id),
   },
   (t) => [
     index("budget_approval_queue_idx").on(t.status, t.requestedAt),
     index("budget_approval_budget_idx").on(t.budgetId, t.committeeId, t.requestedAt),
     uniqueIndex("budget_approval_transfer_unique").on(t.transferId),
-    check("budget_approval_kind", sql`${t.proposal}->>'kind' in ('TRANSFER','EXTRAORDINARY')`),
+    uniqueIndex("budget_approval_expense_unique").on(t.expenseId),
+    check(
+      "budget_approval_kind",
+      sql`${t.proposal}->>'kind' in ('TRANSFER','EXTRAORDINARY','PURCHASE')`,
+    ),
+    check(
+      "budget_approval_purchase_paid",
+      sql`${t.expenseId} is null or (${t.status} = 'APPROVED' and ${t.proposal}->>'kind' = 'PURCHASE')`,
+    ),
     check("budget_approval_decision", sql`(${t.status} = 'PENDING') = (${t.decidedAt} is null)`),
     check(
       "budget_approval_authority",

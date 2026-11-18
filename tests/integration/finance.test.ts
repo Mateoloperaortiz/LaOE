@@ -2,7 +2,12 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
-import { decideFinancialApprovalAs, requestTransferAs } from "@/modules/finance";
+import {
+  decideFinancialApprovalAs,
+  recordPurchasePaymentAs,
+  requestPurchaseAs,
+  requestTransferAs,
+} from "@/modules/finance";
 import { decideEventApproval, listEventApprovals } from "@/modules/finance/domain/approvals";
 import { getBudgetSummary, listCommitteeBudgets } from "@/modules/finance/domain/budgets";
 import {
@@ -11,7 +16,6 @@ import {
   createBudgetAs,
   decideEventApprovalAs,
   openBudgetAs,
-  recordExpenseAs,
   requestEventApprovalAs,
   sanctionBudgetAs,
   setBudgetLinesAs,
@@ -108,12 +112,12 @@ describe("presupuesto del comité", () => {
 
     // Sin presolicitud del mes no hay acceso a los recursos (Est. art. 38.3).
     await expect(
-      recordExpenseAs(
+      requestPurchaseAs(
         actor,
         {
           budgetId: id,
           lineId: logistica,
-          spentOn: "2026-09-13",
+          plannedOn: "2026-09-13",
           amount: 100,
           description: "Carpas",
         },
@@ -124,25 +128,32 @@ describe("presupuesto del comité", () => {
     await expect(
       submitPrerequestAs(actor, { budgetId: id, month: "2026-09" }, { committeeId: a3 }),
     ).rejects.toThrow(t("T-2297", { mes: "2026-09" }));
-    await recordExpenseAs(
+    const purchase = await requestPurchaseAs(
       actor,
       {
         budgetId: id,
         lineId: logistica,
-        spentOn: "2026-09-13",
+        plannedOn: "2026-09-13",
         amount: 100,
         description: "Carpas",
         supplier: "Carpas del Valle",
       },
       { committeeId: a3 },
     );
+    const presi = await presidencia();
+    await decideFinancialApprovalAs(presi, purchase.id, { decision: "APPROVED" });
+    await recordPurchasePaymentAs(
+      actor,
+      { budgetId: id, purchaseId: purchase.id, paidOn: "2026-09-13" },
+      { committeeId: a3 },
+    );
     await expect(
-      recordExpenseAs(
+      requestPurchaseAs(
         actor,
         {
           budgetId: id,
           lineId: logistica,
-          spentOn: "2026-09-14",
+          plannedOn: "2026-09-14",
           amount: 901,
           description: "Demasiado",
         },
@@ -180,7 +191,6 @@ describe("presupuesto del comité", () => {
       riskLevel: "GREEN",
       riskJustification: "Actividad de rutina, sin publicaciones sensibles",
     });
-    const presi = await presidencia();
     await decideEventApprovalAs(presi, approvedId, { decision: "APPROVED" });
     const asked = await requestTransferAs(
       actor,
@@ -298,12 +308,12 @@ describe("presupuesto del comité", () => {
     });
     // Pendiente no sirve como aval.
     await expect(
-      recordExpenseAs(
+      requestPurchaseAs(
         actor,
         {
           budgetId: id,
           lineId: logistica,
-          spentOn: "2026-09-13",
+          plannedOn: "2026-09-13",
           amount: 50,
           description: "Sonido",
           approvalId: aval,
@@ -327,12 +337,12 @@ describe("presupuesto del comité", () => {
       decideEventApprovalAs(presi, aval, { decision: "REJECTED", note: "Tarde" }),
     ).rejects.toThrow(t("T-2296"));
     await expect(
-      recordExpenseAs(
+      requestPurchaseAs(
         actor,
         {
           budgetId: id,
           lineId: logistica,
-          spentOn: "2026-09-12",
+          plannedOn: "2026-09-12",
           amount: 50,
           description: "Anterior al aval",
           approvalId: aval,
@@ -340,25 +350,31 @@ describe("presupuesto del comité", () => {
         { committeeId: a3 },
       ),
     ).rejects.toThrow(t("T-2330"));
-    await recordExpenseAs(
+    const purchase = await requestPurchaseAs(
       actor,
       {
         budgetId: id,
         lineId: logistica,
-        spentOn: "2026-09-13",
+        plannedOn: "2026-09-13",
         amount: 50,
         description: "Sonido",
         approvalId: aval,
       },
       { committeeId: a3 },
     );
+    await decideFinancialApprovalAs(presi, purchase.id, { decision: "APPROVED" });
+    await recordPurchasePaymentAs(
+      actor,
+      { budgetId: id, purchaseId: purchase.id, paidOn: "2026-09-13" },
+      { committeeId: a3 },
+    );
     await expect(
-      recordExpenseAs(
+      requestPurchaseAs(
         actor,
         {
           budgetId: id,
           lineId: logistica,
-          spentOn: "2026-09-13",
+          plannedOn: "2026-09-13",
           amount: 50,
           description: "Ajeno",
           approvalId: ajeno,
@@ -413,13 +429,13 @@ describe("presupuesto del comité", () => {
     const id = await openBudgetFor(a3);
     const { logistica } = await lineIds(id);
     await submitPrerequestAs(actor, { budgetId: id, month: "2026-09" }, { committeeId: a3 });
-    const spend = (description: string) =>
-      recordExpenseAs(
+    const ask = (description: string) =>
+      requestPurchaseAs(
         actor,
         {
           budgetId: id,
           lineId: logistica,
-          spentOn: "2026-09-13",
+          plannedOn: "2026-09-13",
           amount: 600,
           description,
         },
@@ -428,7 +444,19 @@ describe("presupuesto del comité", () => {
 
     // Logística tiene 1000: cada gasto de 600 cabe solo, los dos juntos no.
     await warmPool();
-    const outcomes = await Promise.allSettled([spend("Carpas"), spend("Sonido")]);
+    const presi = await presidencia();
+    const purchases = await Promise.all([ask("Carpas"), ask("Sonido")]);
+    for (const p of purchases)
+      await decideFinancialApprovalAs(presi, p.id, { decision: "APPROVED" });
+    const outcomes = await Promise.allSettled(
+      purchases.map((p) =>
+        recordPurchasePaymentAs(
+          actor,
+          { budgetId: id, purchaseId: p.id, paidOn: "2026-09-13" },
+          { committeeId: a3 },
+        ),
+      ),
+    );
 
     expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
     const rejections = outcomes.filter(

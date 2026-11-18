@@ -8,17 +8,20 @@ import {
   openBudgetAs,
   setBudgetLinesAs,
 } from "@/modules/finance/domain/commands";
-import { committee } from "@/modules/people/schema";
+import { committee, person } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
+import { seedAppointment, seedTerm } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_CALENDAR } from "./calendar";
 import { test } from "./fixtures";
+import { E2E_MEMBER_EMAIL } from "./global-setup";
 
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
-test("finanzas exige presolicitud, registra el gasto y pide aval para trasladar", async ({
+test("cada compra pasa por la VP Financiera y el comité registra el pago una sola vez", async ({
   page,
+  browser,
 }) => {
   const [home] = await getDb()
     .select()
@@ -27,6 +30,12 @@ test("finanzas exige presolicitud, registra el gasto y pide aval para trasladar"
     .orderBy(asc(committee.name))
     .limit(1);
   if (!home) throw new Error("Falta comité sintético");
+  const [vp] = await getDb()
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.email, E2E_MEMBER_EMAIL));
+  if (!vp) throw new Error("Falta la VP Financiera de prueba");
+  await seedAppointment(vp.id, await seedTerm(), "VP_FINANCE");
   const actor = { personId: null, ip: null };
   const { id } = await createBudgetAs(actor, {
     committeeId: home.id,
@@ -57,6 +66,26 @@ test("finanzas exige presolicitud, registra el gasto y pide aval para trasladar"
   await expense.getByLabel(tList("T-2194")[3], { exact: true }).fill("Gasto operativo sintético");
   await expense.getByRole("button", { name: t("T-2192"), exact: true }).click();
   await expect(page.getByRole("status")).toContainText(t("T-2198"));
+  const [register, , waiting, paid] = tList("T-5165");
+  const history = page.getByRole("region", { name: tList("T-5159")[0], exact: true });
+  await expect(history).toContainText("Pendiente");
+  await expect(page.getByRole("button", { name: register, exact: true })).toHaveCount(0);
+  expect((await getBudgetSummary(id))?.totals.spent).toBe(0);
+  const context = await browser.newContext({ storageState: "tests/e2e/.auth/member.json" });
+  const desk = await context.newPage();
+  await desk.goto(new URL("/admin/mesa", page.url()).href);
+  await desk.getByRole("link").filter({ hasText: "Gasto operativo sintético" }).click();
+  await expect(desk.getByText("Logística", { exact: true })).toBeVisible();
+  await desk.getByRole("button", { name: tList("T-5086")[0], exact: true }).click();
+  await expect(desk).toHaveURL(/guardado=1/);
+  await page.reload();
+  await expect(history).toContainText(waiting);
+  expect((await getBudgetSummary(id))?.totals.spent).toBe(0);
+  await history.getByRole("button", { name: register, exact: true }).click();
+  await expect(page.getByRole("status")).toContainText(t("T-5166"));
+  await expect(history).toContainText(paid);
+  await expect(history.getByRole("button", { name: register, exact: true })).toHaveCount(0);
+  await context.close();
   await expect(page.getByLabel(t("T-2334"), { exact: true })).toHaveAttribute("required", "");
   await sinViolaciones(page);
   const summary = await getBudgetSummary(id);

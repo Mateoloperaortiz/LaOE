@@ -1,5 +1,6 @@
 // API pública del módulo finance (ADR-059, ADR-060 regla 12): presupuestos, rubros, presolicitudes,
 // avales de evento, gastos y traslados. Lo usan src/app y nadie más.
+
 export {
   approvalRequestSchema,
   approvalStatusLabel,
@@ -41,7 +42,6 @@ export {
   closeBudgetAs,
   decideEventApprovalAs,
   openBudgetAs,
-  recordExpenseAs,
   requestEventApprovalAs,
   resubmitEventApprovalAs,
   returnEventApprovalAs,
@@ -50,7 +50,24 @@ export {
   submitPrerequestAs,
 } from "./domain/commands";
 export {
-  expenseInputSchema,
+  CONTRACT_FILE_MAX_BYTES,
+  contractFileUrl,
+  contractRequestSchema,
+  contractStatusLabel,
+  contractUploadSchema,
+  decideContractAs,
+  listContracts,
+  prepareContractUpload,
+  requestContractAs,
+} from "./domain/contracts";
+export {
   prerequestInputSchema,
+  purchaseRequestSchema,
   transferInputSchema,
 } from "./domain/movements";
+export {
+  purchasePaymentSchema,
+  recordPurchasePaymentAs,
+  requestPurchaseAs,
+} from "./domain/purchases";
+export { CONTRACT_FILE_SLOTS } from "./schema";

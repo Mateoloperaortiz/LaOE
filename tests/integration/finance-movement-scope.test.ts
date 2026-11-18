@@ -1,13 +1,12 @@
 import { eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { getBudgetSummary, requestTransferAs } from "@/modules/finance";
+import { getBudgetSummary, requestPurchaseAs, requestTransferAs } from "@/modules/finance";
 import {
   approveBudgetAs,
   createBudgetAs,
   decideEventApprovalAs,
   openBudgetAs,
-  recordExpenseAs,
   requestEventApprovalAs,
   setBudgetLinesAs,
   submitPrerequestAs,
@@ -86,12 +85,12 @@ function movementsOn(f: Fixture, scope: never) {
   return [
     () => submitPrerequestAs(f.actor, { budgetId: f.other.id, month: "2026-10" }, scope),
     () =>
-      recordExpenseAs(
+      requestPurchaseAs(
         f.actor,
         {
           budgetId: f.other.id,
           lineId: f.other.logistica,
-          spentOn: "2026-09-13",
+          plannedOn: "2026-09-13",
           amount: 100,
           description: "Carpas",
         },
@@ -179,9 +178,9 @@ describe("los movimientos de un presupuesto desde la página de finanzas de su c
 
     expect(await written()).toEqual({
       prerequests: before.prerequests + 1,
-      expenses: before.expenses + 1,
+      expenses: before.expenses,
       transfers: before.transfers,
-      requests: before.requests + 1,
+      requests: before.requests + 2,
       audits: before.audits + 3,
     });
   });

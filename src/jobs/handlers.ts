@@ -2,6 +2,7 @@
 import "@/modules/availability/jobs";
 import "@/modules/comms/jobs";
 import "@/modules/crm/jobs";
+import "@/modules/finance/jobs";
 import "@/modules/forms/jobs";
 import "@/modules/identity/jobs";
 import "@/modules/inventory/jobs";

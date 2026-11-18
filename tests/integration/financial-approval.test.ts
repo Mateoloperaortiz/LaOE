@@ -1,3 +1,4 @@
+import { createId } from "@paralleldrive/cuid2";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
@@ -5,7 +6,9 @@ import {
   decideFinancialApprovalAs,
   getBudgetSummary,
   pendingFinancialApprovals,
+  recordPurchasePaymentAs,
   requestExtraordinaryAs,
+  requestPurchaseAs,
   requestTransferAs,
 } from "@/modules/finance";
 import {
@@ -13,6 +16,7 @@ import {
   createBudgetAs,
   openBudgetAs,
   setBudgetLinesAs,
+  submitPrerequestAs,
   updateBudgetAs,
 } from "@/modules/finance/domain/commands";
 import { outbox } from "@/modules/system/schema";
@@ -39,6 +43,86 @@ async function fixture() {
 describe("avales de la VP Financiera", () => {
   beforeEach(truncateAll);
   afterAll(closeDb);
+  it("hasta la compra de un centavo necesita el aval de la VP antes de registrar el pago", async () => {
+    const f = await fixture();
+    await seedAppointment(f.vp.personId, f.termId, "VP_FINANCE");
+    const scope = { committeeId: f.committeeId };
+    const { id: budgetId } = await createBudgetAs(f.actor, { ...scope, year: 2026 });
+    await setBudgetLinesAs(f.actor, budgetId, { lines: [{ name: "Escenario", assigned: 50 }] });
+    for (const approver of ["STUDENT_DEVELOPMENT", "VP_FINANCE"] as const)
+      await approveBudgetAs(f.actor, budgetId, { approver, on: "2026-09-01" });
+    await openBudgetAs(f.actor, budgetId);
+    await submitPrerequestAs(f.actor, { budgetId, month: "2026-09" }, scope);
+    const [line] = (await getBudgetSummary(budgetId))?.rawLines ?? [];
+    if (!line) throw new Error("Falta el rubro");
+    const input = {
+      requestId: createId(),
+      budgetId,
+      lineId: line.id,
+      plannedOn: "2026-09-13",
+      amount: 0.01,
+      description: "Cinta de muestra",
+      supplier: "Proveedor de prueba",
+    };
+    const [req, resent] = await Promise.all([
+      requestPurchaseAs(f.actor, input, scope, now),
+      requestPurchaseAs(f.actor, input, scope, now),
+    ]);
+    expect(resent.id).toBe(req.id);
+    const payment = { budgetId, purchaseId: req.id, paidOn: "2026-09-13" };
+    await expect(recordPurchasePaymentAs(f.actor, payment, scope, now)).rejects.toThrow(
+      t("T-5167"),
+    );
+    const other = await requestPurchaseAs(f.actor, { ...input, requestId: createId() }, scope, now);
+    expect(other.id).not.toBe(req.id);
+    await decideFinancialApprovalAs(
+      f.vp,
+      other.id,
+      { decision: "REJECTED", note: "Se canceló la segunda compra" },
+      now,
+    );
+    await expect(
+      recordPurchasePaymentAs(f.actor, { ...payment, purchaseId: other.id }, scope, now),
+    ).rejects.toThrow(t("T-5167"));
+    await expect(
+      decideFinancialApprovalAs(f.president, req.id, { decision: "APPROVED" }, now),
+    ).rejects.toThrow();
+    await decideFinancialApprovalAs(f.vp, req.id, { decision: "APPROVED" }, now);
+    await expect(
+      recordPurchasePaymentAs(f.actor, payment, { committeeId: "otro-comite" }, now),
+    ).rejects.toThrow(t("T-032"));
+    for (const paidOn of ["2026-09-12", "2026-09-14"])
+      await expect(
+        recordPurchasePaymentAs(f.actor, { ...payment, paidOn }, scope, now),
+      ).rejects.toThrow(t("T-5168"));
+    await expect(
+      recordPurchasePaymentAs(
+        f.actor,
+        { ...payment, paidOn: "2026-10-01" },
+        scope,
+        new Date("2026-10-01T15:00:00Z"),
+      ),
+    ).rejects.toThrow(t("T-2292", { mes: "2026-10" }));
+    expect((await getBudgetSummary(budgetId))?.expenses).toHaveLength(0);
+    const [paid, retry] = await Promise.all([
+      recordPurchasePaymentAs(f.actor, payment, scope, now),
+      recordPurchasePaymentAs(f.actor, payment, scope, now),
+    ]);
+    expect(retry.id).toBe(paid.id);
+    const summary = await getBudgetSummary(budgetId);
+    expect(summary?.expenses).toMatchObject([
+      { id: paid.id, amount: 0.01, supplier: input.supplier },
+    ]);
+    expect(summary?.totals.available).toBe(49.99);
+    expect(summary?.financialApprovals.find((r) => r.id === req.id)).toMatchObject({
+      expenseId: paid.id,
+      decidedById: f.vp.personId,
+    });
+    expect(await requestPurchaseAs(f.actor, input, scope, now)).toEqual(req);
+    await expect(requestPurchaseAs(f.actor, { ...input, amount: 3 }, scope, now)).rejects.toThrow(
+      t("T-5169"),
+    );
+  });
   it("revalida el saldo bajo candado y aplica una sola vez el traslado que la VP aprueba", async () => {
     const f = await fixture();
     await seedAppointment(f.vp.personId, f.termId, "VP_FINANCE");

@@ -6,7 +6,9 @@ import { findPublishedCrisisProtocol } from "@/modules/content";
 import {
   approvalStatusLabel,
   byRisk,
+  contractStatusLabel,
   getEventApprovalDetail,
+  listContracts,
   listEventApprovals,
   pendingFinancialApprovals,
   proposalTitle,
@@ -23,7 +25,7 @@ import {
 } from "@/modules/people";
 import { t, tLabels, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
-import { formatMoney } from "@/shared/lib/money";
+import { formatExactMoney } from "@/shared/lib/money";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Badge } from "@/shared/ui/Badge";
 import { Banner } from "@/shared/ui/Banner";
@@ -35,6 +37,7 @@ import { SplitView } from "@/shared/ui/SplitView";
 import { EmptyState } from "@/shared/ui/States";
 import { WorkTable } from "@/shared/ui/WorkTable";
 import { AvalHistoria, RiesgoBadge, RiesgoRojo } from "../_kit/aval";
+import { ContractDetails } from "../_kit/ContractDetails";
 import { AVAL_KINDS, avalParam } from "./_ui/kinds";
 import { changeRiskAction, decideAvalAction, returnAvalAction } from "./actions";
 
@@ -58,11 +61,13 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
   const decidesEvents = decides("PRESIDENT");
   const decidesFaltas = decides("VP_GH");
   const decidesFinance = decides("VP_FINANCE");
-  const [events, faltas, candidacies, finance] = await Promise.all([
+  const signsContracts = decidesFinance || decidesEvents;
+  const [events, faltas, candidacies, finance, contracts] = await Promise.all([
     decidesEvents || roles.isAdmin ? listEventApprovals({}) : [],
     decidesFaltas || roles.isAdmin ? listPendingSanctions() : [],
     decidesFaltas || roles.isAdmin ? pendingCandidacies() : [],
     decidesFinance || roles.isAdmin ? pendingFinancialApprovals() : [],
+    signsContracts || roles.isAdmin ? listContracts({ pendingOnly: false }) : [],
   ]);
   // Abiertos: por decidir y devueltos al comité, del riesgo más alto al más bajo (ADR-197 regla 2).
   const openEvents = events
@@ -79,6 +84,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
   const selectedFalta = faltas.find((row) => row.id === single(query.falta)) ?? null;
   const selectedCandidacy = candidacies.find((row) => row.id === single(query.postulacion));
   const financial = finance.find((row) => row.id === single(query.finanzas));
+  const contract = contracts.find((row) => row.id === single(query.contrato));
   const people = await getPeopleByIds([
     ...new Set([
       ...(financial?.requestedById ? [financial.requestedById] : []),
@@ -156,6 +162,20 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
     risk: undefined,
   }));
   const isSelected = (row: Row) => single(query[avalParam(row.kind)]) === row.id;
+  const contractRows: Row[] = contracts.map((row) => ({
+    kind: "CONTRACT",
+    id: row.id,
+    title: row.title,
+    committee: row.committeeName,
+    date: todayKey(row.requestedAt),
+    status: row.status,
+    statusLabel: contractStatusLabel(row.status),
+    risk: undefined,
+  }));
+  const recent = [
+    ...contractRows.filter((row) => row.status !== "PENDING").slice(0, 10),
+    ...recentEvents.map(eventRow),
+  ];
 
   const table = (rows: Row[], caption: string) => (
     <WorkTable
@@ -206,7 +226,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
         </Field>
         <div className="flex flex-wrap gap-2">
           <Button type="submit" name="decision" value="APPROVED" area="operacion">
-            {aprobar}
+            {kind === "CONTRACT" ? tList("T-5171")[5] : aprobar}
           </Button>
           <Button
             type="submit"
@@ -321,6 +341,17 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
       ) : null}
       <AvalHistoria entries={selectedEvent.entries} names={names} headingId="aval-historia" />
     </DetailPanel>
+  ) : contract ? (
+    <DetailPanel
+      title={contract.title}
+      eyebrow={kinds.CONTRACT}
+      closeHref={close}
+      closeLabel={volver ?? ""}
+    >
+      <ContractDetails row={contract} />
+      {contract.status === "PENDING" &&
+        (signsContracts ? decision("CONTRACT", contract.id, true, "") : <p>{t("T-5176")}</p>)}
+    </DetailPanel>
   ) : financial ? (
     <DetailPanel
       title={proposalTitle(financial.proposal)}
@@ -335,7 +366,22 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
         {loPidio} · {names.get(financial.requestedById ?? "") ?? "—"} ·{" "}
         {formatDateTime(financial.requestedAt)}
       </p>
-      {financial.proposal.kind === "TRANSFER" ? (
+      {financial.proposal.kind === "PURCHASE" ? (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+          <dt>{tList("T-2194")[1]}</dt>
+          <dd>{financial.proposal.lineName}</dd>
+          <dt>{tList("T-2307")[1]}</dt>
+          <dd>{financial.proposal.supplier || "—"}</dd>
+          <dt>{tList("T-2194")[0]}</dt>
+          <dd>{day(financial.proposal.plannedOn)}</dd>
+          {financial.proposal.eventTitle && (
+            <>
+              <dt>{tList("T-2299")[1]}</dt>
+              <dd>{financial.proposal.eventTitle}</dd>
+            </>
+          )}
+        </dl>
+      ) : financial.proposal.kind === "TRANSFER" ? (
         <>
           <p>
             {financial.proposal.eventTitle} · {day(financial.proposal.eventOn)}
@@ -352,7 +398,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
             {financial.proposal.lines.map((line) => (
               <div key={line.id} className="flex justify-between gap-4">
                 <dt>{line.name}</dt>
-                <dd>{formatMoney(line.assigned)}</dd>
+                <dd>{formatExactMoney(line.assigned)}</dd>
               </div>
             ))}
           </dl>
@@ -424,11 +470,12 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
                 ...faltas.map(faltaRow),
                 ...candidacyRows,
                 ...financialRows,
+                ...contractRows.filter((row) => row.status === "PENDING"),
                 ...openEvents.map(eventRow),
               ],
               heading ?? "",
             )}
-            {recentEvents.length > 0 ? table(recentEvents.map(eventRow), decididos ?? "") : null}
+            {recent.length > 0 ? table(recent, decididos ?? "") : null}
           </div>
         }
         detail={detail}

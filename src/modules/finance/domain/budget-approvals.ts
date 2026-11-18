@@ -14,7 +14,7 @@ import { getCurrentTerm } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { formatMoney } from "@/shared/lib/money";
+import { formatExactMoney } from "@/shared/lib/money";
 import {
   type BudgetProposal,
   budgetApproval,
@@ -22,16 +22,22 @@ import {
   budgetTransfer,
   committeeBudget,
 } from "../schema";
-import { lockBudget } from "./budget-lock";
-import { type MovementScope, type TransferInput, validateTransfer } from "./movements";
+import { lockBudget, lockCommitteeBudget } from "./budget-lock";
+import {
+  type MovementScope,
+  type TransferInput,
+  validatePurchase,
+  validateTransfer,
+} from "./movements";
 
 type Budget = typeof committeeBudget.$inferSelect;
 export type FinancialApproval = typeof budgetApproval.$inferSelect;
 
 export function proposalTitle(p: BudgetProposal) {
+  if (p.kind === "PURCHASE") return `${p.description} · ${formatExactMoney(p.amount)}`;
   return p.kind === "EXTRAORDINARY"
     ? p.title
-    : `${p.fromName} → ${p.toName} · ${formatMoney(p.amount)}`;
+    : `${p.fromName} → ${p.toName} · ${formatExactMoney(p.amount)}`;
 }
 
 export async function pendingFinancialApprovals() {
@@ -54,7 +60,12 @@ export function budgetApprovalHistory(budgetId: string, committeeId: string) {
 }
 
 /** El presupuesto ya está tomado. Un doble envío de la misma propuesta conserva su solicitud. */
-async function request(ctx: CommandContext, budget: Budget, proposal: BudgetProposal, now: Date) {
+async function request(
+  ctx: CommandContext,
+  budget: Budget,
+  proposal: Exclude<BudgetProposal, { kind: "PURCHASE" }>,
+  now: Date,
+) {
   const pending = await ctx.tx
     .select()
     .from(budgetApproval)
@@ -70,9 +81,20 @@ async function request(ctx: CommandContext, budget: Budget, proposal: BudgetProp
         p.approvalId === proposal.approvalId,
   );
   if (existing) return { id: existing.id };
+  return submitFinancialApproval(ctx, budget, proposal, now);
+}
+
+export async function submitFinancialApproval(
+  ctx: CommandContext,
+  budget: Budget,
+  proposal: BudgetProposal,
+  now: Date,
+  id?: string,
+) {
   const [row] = await ctx.tx
     .insert(budgetApproval)
     .values({
+      id,
       budgetId: budget.id,
       committeeId: budget.committeeId,
       year: budget.year,
@@ -80,8 +102,9 @@ async function request(ctx: CommandContext, budget: Budget, proposal: BudgetProp
       requestedById: ctx.actor.personId,
       requestedAt: now,
     })
+    .onConflictDoNothing({ target: budgetApproval.id })
     .returning({ id: budgetApproval.id });
-  if (!row) throw new Error("No se pudo registrar el aval financiero");
+  if (!row) throw new DomainError(t("T-5169"));
   await ctx.audit({
     action: "budget-approval.requested",
     entityType: "budget_approval",
@@ -119,8 +142,7 @@ export function requestExtraordinaryAs(
   now = new Date(),
 ) {
   return runCommand(actor, async (ctx) => {
-    if (!scope) throw new DomainError(t("T-032"));
-    const budget = await lockBudget(ctx, id, scope);
+    const budget = await lockCommitteeBudget(ctx, id, scope);
     if (
       budget.kind !== "EXTRAORDINARY" ||
       budget.status !== "DRAFT" ||
@@ -184,7 +206,9 @@ export function decideFinancialApprovalAs(
     const p = row.proposal;
     let transferId: string | null = null;
     if (input.decision === "APPROVED") {
-      if (p.kind === "TRANSFER") {
+      if (p.kind === "PURCHASE") {
+        await validatePurchase(ctx, budget, p);
+      } else if (p.kind === "TRANSFER") {
         await validateTransfer(
           ctx,
           { budgetId: budget.id, ...p },

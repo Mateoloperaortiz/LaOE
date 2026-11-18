@@ -1,10 +1,11 @@
+import { createId } from "@paralleldrive/cuid2";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
 import { t } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { formatMoney } from "@/shared/lib/money";
+import { formatExactMoney } from "@/shared/lib/money";
 import {
   budgetExpense,
   budgetLine,
@@ -13,7 +14,7 @@ import {
   type committeeBudget,
   eventApproval,
 } from "../schema";
-import { lockBudget } from "./budget-lock";
+import { lockCommitteeBudget } from "./budget-lock";
 import { availableOf, monthKey } from "./budget-pure";
 
 // Movimientos del Financiero (ADR-059 regla 3; ADR-060 regla 12): presolicitud mensual, gasto y
@@ -31,17 +32,16 @@ export const prerequestInputSchema = z.object({
 
 export type PrerequestInput = z.input<typeof prerequestInputSchema>;
 
-export const expenseInputSchema = z.object({
+export const purchaseRequestSchema = z.object({
+  requestId: z.cuid2().length(24).default(createId),
   budgetId: z.string().trim().min(1),
   lineId: z.string().trim().min(1),
-  spentOn: z.iso.date(),
-  amount: money,
+  plannedOn: z.iso.date(),
+  amount: money.max(9_999_999_999.99).multipleOf(0.01),
   description: z.string().trim().min(2).max(500),
   supplier: z.string().trim().max(200).default(""),
   approvalId: z.string().trim().min(1).optional(),
 });
-
-export type ExpenseInput = z.input<typeof expenseInputSchema>;
 
 export const transferInputSchema = z.object({
   budgetId: z.string().trim().min(1),
@@ -65,12 +65,13 @@ export interface MovementScope {
  * se toma.
  */
 async function openBudgetOf(ctx: CommandContext, budgetId: string, scope: MovementScope) {
-  if (!scope) throw new DomainError(t("T-032"));
-  const budget = await lockBudget(ctx, budgetId, scope);
-  if (budget.status !== "OPEN") {
-    throw new DomainError(t("T-2204", { año: budget.year }));
-  }
+  const budget = await lockCommitteeBudget(ctx, budgetId, scope);
+  assertOpen(budget);
   return budget;
+}
+
+function assertOpen(budget: typeof committeeBudget.$inferSelect) {
+  if (budget.status !== "OPEN") throw new DomainError(t("T-2204", { año: budget.year }));
 }
 
 /** El aval debe estar aprobado y ser del comité del presupuesto (Regl. art. 36 par. 1). */
@@ -153,16 +154,17 @@ export async function submitPrerequest(
   return row;
 }
 
-export async function recordExpense(
+/** El presupuesto está tomado. La fecha corresponde a la solicitud o al pago efectivo. */
+export async function validatePurchase(
   ctx: CommandContext,
-  raw: ExpenseInput,
-  scope: MovementScope,
-): Promise<{ id: string }> {
-  const input = expenseInputSchema.parse(raw);
-  const budget = await openBudgetOf(ctx, input.budgetId, scope);
-  const month = monthKey(input.spentOn);
-  if (Number(input.spentOn.slice(0, 4)) !== budget.year) {
-    throw new DomainError(t("T-2329", { año: budget.year }), "spentOn");
+  budget: typeof committeeBudget.$inferSelect,
+  input: Omit<z.output<typeof purchaseRequestSchema>, "requestId" | "budgetId">,
+  on = input.plannedOn,
+) {
+  assertOpen(budget);
+  const month = monthKey(on);
+  if (Number(on.slice(0, 4)) !== budget.year) {
+    throw new DomainError(t("T-2329", { año: budget.year }));
   }
   const [prerequest] = await ctx.tx
     .select({ id: budgetPrerequest.id })
@@ -170,7 +172,7 @@ export async function recordExpense(
     .where(and(eq(budgetPrerequest.budgetId, budget.id), eq(budgetPrerequest.month, month)))
     .limit(1);
   if (!prerequest) {
-    throw new DomainError(t("T-2292", { mes: month }), "spentOn");
+    throw new DomainError(t("T-2292", { mes: month }));
   }
   const { lines, expenses, transfers } = await movementsOf(ctx, budget.id);
   const line = lines.find((item) => item.id === input.lineId);
@@ -180,40 +182,24 @@ export async function recordExpense(
   const available = availableOf(line.id, lines, expenses, transfers, budget.sanctionPercent);
   if (input.amount > available) {
     throw new DomainError(
-      t("T-2196", { rubro: line.name, monto: formatMoney(available) }),
+      t("T-2196", { rubro: line.name, monto: formatExactMoney(available) }),
       "amount",
     );
   }
-  if (input.approvalId) {
-    const approval = await approvedApproval(ctx, input.approvalId, budget);
-    if (!approval.decidedAt || todayKey(approval.decidedAt) > input.spentOn) {
-      throw new DomainError(t("T-2330"), "approvalId");
-    }
+  const event = input.approvalId ? await approvedApproval(ctx, input.approvalId, budget) : null;
+  if (event && (!event.decidedAt || todayKey(event.decidedAt) > on)) {
+    throw new DomainError(t("T-2330"), "approvalId");
   }
-  const values = {
-    budgetId: budget.id,
+  return {
+    kind: "PURCHASE" as const,
     lineId: line.id,
-    approvalId: input.approvalId ?? null,
-    spentOn: input.spentOn,
+    lineName: line.name,
+    plannedOn: input.plannedOn,
     amount: input.amount,
     description: input.description,
     supplier: input.supplier,
-    registeredById: ctx.actor.personId,
+    ...(event && { approvalId: event.id, eventTitle: event.title }),
   };
-  const [row] = await ctx.tx
-    .insert(budgetExpense)
-    .values(values)
-    .returning({ id: budgetExpense.id });
-  if (!row) {
-    throw new Error("No se pudo registrar el gasto");
-  }
-  await ctx.audit({
-    action: "budget.expense",
-    entityType: "committee_budget",
-    entityId: budget.id,
-    after: { ...values, expenseId: row.id },
-  });
-  return row;
 }
 
 export async function validateTransfer(
@@ -236,7 +222,7 @@ export async function validateTransfer(
   const available = availableOf(from.id, lines, expenses, transfers, budget.sanctionPercent);
   if (input.amount > available) {
     throw new DomainError(
-      t("T-2196", { rubro: from.name, monto: formatMoney(available) }),
+      t("T-2196", { rubro: from.name, monto: formatExactMoney(available) }),
       "amount",
     );
   }

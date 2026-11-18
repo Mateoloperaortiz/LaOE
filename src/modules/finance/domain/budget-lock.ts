@@ -22,3 +22,12 @@ export async function lockBudget(ctx: CommandContext, id: string, scope?: { comm
   if (!budget) throw new DomainError(t("T-032"));
   return budget;
 }
+
+export function lockCommitteeBudget(
+  ctx: CommandContext,
+  id: string,
+  scope: { committeeId: string },
+) {
+  if (!scope) throw new DomainError(t("T-032"));
+  return lockBudget(ctx, id, scope);
+}

@@ -5,6 +5,17 @@ const pesos = new Intl.NumberFormat("es-CO", {
   maximumFractionDigits: 0,
 });
 
+const pesosConCentavos = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
 export function formatMoney(amount: number): string {
   return pesos.format(amount);
+}
+
+export function formatExactMoney(amount: number): string {
+  return pesosConCentavos.format(amount);
 }
