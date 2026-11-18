@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
+import { canReadCreativeBoard } from "@/app/_authz/creative";
 import { getMemberAnnouncement } from "@/modules/content";
-import { requireActor } from "@/modules/identity";
+import { getActor, requireActor } from "@/modules/identity";
 import { listCommitteesByIds } from "@/modules/people";
 import { BarraTitulo, Insignia } from "@/shared/brand";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Markdown } from "@/shared/ui/Markdown";
@@ -13,9 +15,14 @@ import { Markdown } from "@/shared/ui/Markdown";
 
 const ID = /^[a-z0-9]{10,40}$/;
 
-async function cargar(id: string) {
-  return ID.test(id) ? getMemberAnnouncement(id) : null;
-}
+const cargar = cache(async (id: string) => {
+  const row = ID.test(id) ? await getMemberAnnouncement(id) : null;
+  if (!row?.creativeApprovalId) return row;
+  const actor = await getActor();
+  return actor && row.committeeId && (await canReadCreativeBoard(actor, row.committeeId))
+    ? row
+    : null;
+});
 
 export async function generateMetadata({
   params,
@@ -48,7 +55,20 @@ export default async function AnuncioInternoPage({ params }: PageProps<"/app/car
       <BarraTitulo nivel="h1" color="naranja" className="self-start">
         {anuncio.title}
       </BarraTitulo>
-      <Markdown source={anuncio.body} />
+      {anuncio.creativeApprovalId ? (
+        <>
+          {anuncio.body && <p className="whitespace-pre-wrap break-words">{anuncio.body}</p>}
+          <a
+            href={`/api/piezas/${anuncio.creativeApprovalId}`}
+            download
+            className="boton-primario self-start"
+          >
+            {tList("T-5182")[3]}
+          </a>
+        </>
+      ) : (
+        <Markdown source={anuncio.body} />
+      )}
       <Link href="/app" className="boton-secundario self-start">
         {t("T-1094")}
       </Link>

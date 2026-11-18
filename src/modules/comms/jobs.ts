@@ -1,5 +1,5 @@
 import { getDb } from "@/db/client";
-import { campaignStart, notificationRequested } from "@/domain-events/comms";
+import { campaignStart, creativeUploadExpires, notificationRequested } from "@/domain-events/comms";
 import { announcementPushRequested } from "@/domain-events/content";
 import { callOpened, recognitionGranted, requestDecided } from "@/domain-events/crm";
 import { accessGrantIssued } from "@/domain-events/identity";
@@ -15,6 +15,7 @@ import { permanenceDecided } from "@/domain-events/permanence";
 import { getEnv } from "@/env";
 import { type JobContext, onEvent, registerHandler } from "@/jobs/registry";
 import { purgeIfMembershipEnded } from "@/modules/people";
+import { deleteObject } from "@/shared/adapters/storage";
 import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { runCampaignTick } from "./domain/campaigns";
@@ -290,4 +291,7 @@ onEvent(requestDecided, async (payload, ctx) => {
     "respuesta a la solicitud enviada",
   );
   logDelivery(ctx, delivered.stats, "push de la solicitud entregado");
+});
+onEvent(creativeUploadExpires, async ({ key }) => {
+  await deleteObject(key);
 });

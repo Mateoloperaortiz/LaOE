@@ -575,6 +575,12 @@ export const textosCliente = {
   "T-5072": "Recuperamos lo que llevabas sin confirmar. Revísalo antes de confirmar.",
   "T-5073":
     "Sin señal. Quedó guardado en el teléfono y lo confirmamos solo cuando vuelva la conexión.",
+  "T-5177": "Subiendo los archivos… · No se pudo completar el envío. Intenta de nuevo.",
+  "T-5178":
+    "Piezas de comunicación · Título de la pieza · Canal de difusión · Texto que acompaña la pieza · Archivo de la pieza · Pedir aval",
+  "T-5180":
+    "Adjunta la versión que vas a difundir. El archivo debe tener contenido y pesar hasta 20 MB.",
+  "T-5181": "Cartelera del comité en Mi OE · Otro canal propio del grupo · Nombre del canal",
   "T-585": "Registrados · Pendientes · Rechazados · Anulados",
   "T-878": "Retirar solicitud",
   "T-880": "Cuéntanos por qué",

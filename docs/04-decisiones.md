@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [202](adr/ADR-202-aval-y-publicacion-de-piezas.md) | Piezas de comunicación | La VP avala la pieza para el canal propio elegido y el comité la publica manualmente | Aceptada |
 | [201](adr/ADR-201-respaldos-y-firma-de-contratos.md) | Contratos | El comité adjunta el contrato y ambos respaldos para que la VP Financiera o la Presidencia registre su firma | Aceptada |
 | [200](adr/ADR-200-aval-de-cada-compra.md) | Compras y pagos | La VP Financiera aprueba cada compra antes de que Finanzas registre el pago | Aceptada |
 | [199](adr/ADR-199-los-avales-de-la-vp-financiera.md) | Avales financieros | Reasignaciones y extraordinarios pasan por la Mesa de la VP Financiera | Propuesta |

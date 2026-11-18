@@ -14,6 +14,7 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
+| 2026-11-18 | Junta · Avales A6 | El comité presenta la pieza, su texto y el canal propio a la VP de Comunicaciones. Después del aval, el comité publica el archivo aprobado en su cartelera o registra la difusión manual por otro canal. Migración 0086. Pasaron el check y las 354 pruebas E2E. [ADR-202](adr/ADR-202-aval-y-publicacion-de-piezas.md). |
 | 2026-11-18 | Junta · Avales A5 | La VP Financiera avala cada compra. Finanzas registra el pago efectivo una sola vez. El comité adjunta el contrato, la revisión del abogado y el visto bueno del coordinador para que la VP o la Presidencia registre su firma. Migraciones 0084 y 0085. Pasaron el check y las 352 pruebas E2E. [ADR-200](adr/ADR-200-aval-de-cada-compra.md) y [ADR-201](adr/ADR-201-respaldos-y-firma-de-contratos.md). |
 | 2026-11-18 | Junta · Avales A4 | Reasignaciones y presupuestos extraordinarios llegan a la Mesa de la VP Financiera. La decisión aprobatoria registra el traslado tras comprobar saldo y evento, o acredita la parte financiera del extraordinario. El comité conserva la propuesta, el estado y el motivo. [ADR-199](adr/ADR-199-los-avales-de-la-vp-financiera.md), migración 0083. Pasaron el check y las 351 pruebas E2E. |
 | 2026-11-18 | Junta · Avales A3 | El miembro nuevo solicita el aval en Mi OE para un cargo, comité y semestre. La VP de GH o la Presidencia en suplencia decide desde su Mesa. La ficha y la importación del roster consultan la decisión antes de nombrar. [ADR-198](adr/ADR-198-el-aval-de-postulacion-a-una-mesa.md), migración 0082. Pasaron el check y las 349 pruebas E2E. |
@@ -1204,7 +1205,7 @@ Propuesto el 2026-11-06, a pedido de Mateo: una app usable aunque cambie el leng
   - [x] A5 · Compras y pagos, y contratos, a la VP Financiera.
     - [x] Compras y pagos. Cada compra requiere aval antes de registrar el pago ([ADR-200](adr/ADR-200-aval-de-cada-compra.md)).
     - [x] Contratos. Adjuntar el contrato y ambos respaldos para la firma de la VP Financiera o la Presidencia ([ADR-201](adr/ADR-201-respaldos-y-firma-de-contratos.md)).
-  - [ ] A6 · Piezas, a la VP de Comunicaciones.
+  - [x] A6 · Piezas para todos los canales propios, con aval de la VP de Comunicaciones y publicación manual del comité. [ADR-202](adr/ADR-202-aval-y-publicacion-de-piezas.md)
   - [ ] A7 · Préstamo puntual, a la VP Administrativa.
   - [ ] A8 · Instalaciones y cruce de planes, a la VP Administrativa.
   - [ ] A9 · Revisión con la junta y salida con el rediseño.

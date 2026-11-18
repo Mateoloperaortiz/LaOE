@@ -56,7 +56,7 @@ Hasta hoy ningún cargo de la junta decide nada por su nombramiento, salvo la VP
 
 - **A2.** ¿Una falta que registra ADMIN también espera el aval de la VP de GH, o solo las que anotan las direcciones de GH de los comités?
 - **A5.** Toda compra necesita aval antes del pago, por cualquier monto. El comité adjunta el contrato, el análisis del abogado de la Universidad y el visto bueno del coordinador del macroproceso. La VP Financiera o la Presidencia registra su firma. [ADR-200](ADR-200-aval-de-cada-compra.md) y [ADR-201](ADR-201-respaldos-y-firma-de-contratos.md)
-- **A6.** ¿Para qué canales se piden las piezas, y la pieza aprobada se publica sola o la publica el comité?
+- **A6.** El comité pide el aval para todos los canales propios del grupo, incluida su cartelera de Mi OE. Después del aval, el comité publica manualmente en el canal elegido. [ADR-202](ADR-202-aval-y-publicacion-de-piezas.md)
 - **A7.** ¿Toda reserva pide aval, o solo las que la VP marque, por material o por cantidad?
 - **A8.** ¿Qué espacios administra la OE? ¿«Cruce de planes» es un aviso cuando dos actividades caen a la misma hora, o un aval que pide quien agenda?
 

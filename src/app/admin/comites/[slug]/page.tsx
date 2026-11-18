@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { requireCommitteeAccess } from "@/app/_authz/committee";
+import { canReadCreativeBoard } from "@/app/_authz/creative";
 import { single } from "@/app/_lib/search";
+import { listCreativeApprovals } from "@/modules/comms";
 import { listCommitteeAnnouncements } from "@/modules/content";
 import { listEditionsByCommittee } from "@/modules/events";
 import {
@@ -147,6 +149,12 @@ export default async function ComitePage({
         {guardado ? (
           <output className="block font-semibold text-oe-blue">{t("T-259")}</output>
         ) : null}
+        {area === "comunicacion" && single(search.guardado) === "pieza" && (
+          <output>{tList("T-5179")[2]}</output>
+        )}
+        {area === "comunicacion" && single(search.guardado) === "difusion" && (
+          <output>{tList("T-5182")[2]}</output>
+        )}
         {agregado ? (
           <output className="block font-semibold text-oe-blue">
             {t("T-2161", { nombre: agregado })}
@@ -222,7 +230,19 @@ export default async function ComitePage({
           slug={slug}
           base={base}
           committee={roster.committee}
-          announcements={await listCommitteeAnnouncements(roster.committee.id, 12)}
+          announcements={
+            await listCommitteeAnnouncements(
+              roster.committee.id,
+              12,
+              capabilities.has("BOARD") ||
+                (await canReadCreativeBoard(access.actor, roster.committee.id)),
+            )
+          }
+          pieces={
+            capabilities.has("BOARD")
+              ? await listCreativeApprovals({ committeeId: roster.committee.id })
+              : []
+          }
           canBoard={capabilities.has("BOARD")}
           canProfile={capabilities.has("PROFILE")}
           accion={accion}

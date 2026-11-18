@@ -64,6 +64,7 @@ const CHECKED: Record<string, Record<string, string>> = {
     targets: `'[{"h":0,"s":50,"l":50},{"h":120,"s":50,"l":50},{"h":240,"s":50,"l":50}]'`,
   },
   committee_budget: { year: "2026" },
+  creative_approval: { digest: `'${"a".repeat(64)}'` },
   competition_extra_jury_score: { scores: "'{5,5,5,5,5}'" },
   competition_point_entry: { result_id: "'x'" },
   competition_rotation: { planned_seconds: "60" },

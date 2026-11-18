@@ -1,0 +1,10 @@
+# ADR-202 · Aval y publicación de piezas de comunicación
+
+Aceptada el 18 de noviembre de 2026. Desarrolla A6 de la [ADR-195](ADR-195-los-avales-de-la-junta.md) y enmienda la regla 5 de la [ADR-058](ADR-058-direccion-del-comite-por-areas.md).
+
+El art. 33.2 del Reglamento exige el aval de la VP de Comunicaciones para las piezas que elabora un miembro o que se contratan con un externo. Mateo confirmó que el comité lo pide para **todos los canales propios del grupo**, incluida la cartelera de la app, y que **el comité publica manualmente** después del aval. La difusión por canales institucionales ajenos al grupo se rige por el art. 33.1 y su parágrafo.
+
+1. Desde Comunicación, quien tiene la capacidad de cartelera del comité presenta el archivo final, el título, el texto que lo acompaña y un canal de destino. Para la cartelera elige la del propio comité. Para otro canal indica su nombre. Cada solicitud conserva la versión que revisa la junta en el bucket privado, con un máximo de 20 MB.
+2. La VP de Comunicaciones y Mercadeo recibe la pieza en su Mesa. La aprueba o escribe el motivo del rechazo. Se aplica la suplencia de la Presidencia de la ADR-195. El comité recibe la decisión y conserva el nombre de quien decidió, el cargo en que actuó y la fecha. Un cambio al archivo, al texto o al destino requiere otra solicitud.
+3. **Cartelera de Mi OE.** Una vez aprobado el aval, el comité elige «Publicar en la cartelera». La app publica el archivo y el texto aprobados en la cartelera interna del comité. Sus integrantes pueden abrir la pieza allí. La publicación queda registrada una sola vez, incluso si se reintenta. Los avisos ordinarios de texto siguen en «Nuevo anuncio». Las imágenes de los nuevos avisos de comité pasan por el aval de piezas.
+4. **Otros canales propios.** El comité descarga el archivo aprobado, lo publica en el canal indicado y registra la publicación en la app. El registro guarda quién lo hizo y cuándo. El expediente y el archivo siguen disponibles para el comité que lo gestiona, la autoridad que decide y ADMIN.

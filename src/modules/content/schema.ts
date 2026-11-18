@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { audience, publicationStatus } from "@/db/enums";
+import { creativeApproval } from "@/modules/comms/schema";
 import { committee, person } from "@/modules/people/schema";
 import type { DocumentBlock } from "./domain/documents-pure";
 
@@ -177,6 +178,7 @@ export const announcement = pgTable(
     body: text().notNull().default(""), // Markdown
     audience: audience().notNull().default("PUBLIC"),
     committeeId: text().references(() => committee.id), // cartelera interna de un comité (ADR-036)
+    creativeApprovalId: text().references(() => creativeApproval.id),
     publishedAt: timestampTz(),
     pinned: boolean().notNull().default(false),
     // Push del anuncio (ADR-038 regla 6): se pide una vez desde el admin; comms estampa el envío.
@@ -190,6 +192,11 @@ export const announcement = pgTable(
   (t) => [
     index("announcement_public_idx").on(t.audience, t.publishedAt),
     index("announcement_committee_idx").on(t.committeeId, t.publishedAt),
+    uniqueIndex("announcement_creative_unique").on(t.creativeApprovalId),
+    check(
+      "announcement_creative_audience",
+      sql`${t.creativeApprovalId} is null or (${t.committeeId} is not null and ${t.audience} = 'MEMBERS')`,
+    ),
   ],
 );
 

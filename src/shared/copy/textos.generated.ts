@@ -16266,7 +16266,7 @@ export const textos = {
   },
   "T-5084": {
     where: "Avales: tipos (en el orden del modelo)",
-    text: "Aval de evento · Falta por avalar · Aval de postulación · Reasignación entre rubros · Presupuesto extraordinario · Compra · Contrato",
+    text: "Aval de evento · Falta por avalar · Aval de postulación · Reasignación entre rubros · Presupuesto extraordinario · Compra · Contrato · Pieza de comunicación",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -16898,10 +16898,58 @@ export const textos = {
     owner: "JUNTA",
     status: "Propuesta",
   },
+  "T-5178": {
+    where: "Aval de piezas en el comité",
+    text: "Piezas de comunicación · Título de la pieza · Canal de difusión · Texto que acompaña la pieza · Archivo de la pieza · Pedir aval",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5179": {
+    where: "Avisos del aval de piezas",
+    text: "Tienes una pieza por revisar · Ya decidieron el aval de tu pieza · Pieza enviada a la VP de Comunicaciones.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
   "T-518": {
     where: "Documentos: error de subida",
     text: "No se pudo subir el PDF. Intenta de nuevo.",
     owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5180": {
+    where: "Archivo de una pieza",
+    text: "Adjunta la versión que vas a difundir. El archivo debe tener contenido y pesar hasta 20 MB.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5181": {
+    where: "Canales de la pieza",
+    text: "Cartelera del comité en Mi OE · Otro canal propio del grupo · Nombre del canal",
+    owner: "JUNTA",
+    status: "Aprobado",
+  },
+  "T-5182": {
+    where: "Publicación manual de una pieza",
+    text: "Publicar en la cartelera · Registrar que ya la publiqué · Publicación registrada · Descargar pieza · Publicada por",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5183": {
+    where: "Pieza pendiente de aval",
+    text: "Para publicar esta pieza, primero necesitas el aval de la VP de Comunicaciones.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5184": {
+    where: "Cambios a una pieza aprobada",
+    text: "Para cambiar la pieza, su texto o su canal, presenta la nueva versión a la VP de Comunicaciones.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5185": {
+    where: "Pieza gráfica en un aviso del comité",
+    text: "Pide el aval en Piezas de comunicación para publicar una imagen en la cartelera del comité.",
+    owner: "JUNTA",
     status: "Propuesta",
   },
   "T-519": {

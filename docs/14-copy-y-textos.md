@@ -3747,7 +3747,7 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5081 | Junta del semestre: avisos | Vacante · No está activo · Hay una cosa por revisar · Hay {n} cosas por revisar · La junta y sus comités de trabajo están al día · Sembrar los que faltan | MATEO | Propuesta |
 | T-5082 | Menú de la Operación: la junta del semestre | Junta del semestre | MATEO | Propuesta |
 | T-5083 | Avales: pantalla (título · texto) | Avales · Lo que te toca decidir por tu cargo en la junta, con el riesgo más alto primero. Puedes devolver un aval con comentarios para que el comité lo corrija; si lo rechazas, di por qué: el comité lo ve. | MATEO | Propuesta |
-| T-5084 | Avales: tipos (en el orden del modelo) | Aval de evento · Falta por avalar · Aval de postulación · Reasignación entre rubros · Presupuesto extraordinario · Compra · Contrato | MATEO | Propuesta |
+| T-5084 | Avales: tipos (en el orden del modelo) | Aval de evento · Falta por avalar · Aval de postulación · Reasignación entre rubros · Presupuesto extraordinario · Compra · Contrato · Pieza de comunicación | MATEO | Propuesta |
 | T-5085 | Avales: campos | Comité · Evento · Fecha del evento · Lo pidió · Estado · Pedido el · Motivo | MATEO | Propuesta |
 | T-5086 | Avales: decisión | Aprobar · Rechazar · Motivo (obligatorio para rechazar) · Lo decide la {cargo} · Decides como Presidencia mientras falte la {cargo} · No hay avales por decidir. · Decididos hace poco · Volver a los avales | MATEO | Propuesta |
 | T-5087 | Aval: rechazo sin motivo | Para rechazar un aval escribe el motivo: el comité lo va a leer. | MATEO | Propuesta |
@@ -3841,3 +3841,11 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5175 | Avisos de contrato | Tienes un contrato por firmar · Ya decidieron el contrato · Contrato enviado para firma. | JUNTA | Propuesta |
 | T-5176 | Competencia para firmar | La VP Financiera o la Presidencia pueden registrar su firma. | JUNTA | Propuesta |
 | T-5177 | Archivos durante la carga | Subiendo los archivos… · No se pudo completar el envío. Intenta de nuevo. | JUNTA | Propuesta |
+| T-5178 | Aval de piezas en el comité | Piezas de comunicación · Título de la pieza · Canal de difusión · Texto que acompaña la pieza · Archivo de la pieza · Pedir aval | JUNTA | Propuesta |
+| T-5179 | Avisos del aval de piezas | Tienes una pieza por revisar · Ya decidieron el aval de tu pieza · Pieza enviada a la VP de Comunicaciones. | JUNTA | Propuesta |
+| T-5180 | Archivo de una pieza | Adjunta la versión que vas a difundir. El archivo debe tener contenido y pesar hasta 20 MB. | JUNTA | Propuesta |
+| T-5181 | Canales de la pieza | Cartelera del comité en Mi OE · Otro canal propio del grupo · Nombre del canal | JUNTA | Aprobado |
+| T-5182 | Publicación manual de una pieza | Publicar en la cartelera · Registrar que ya la publiqué · Publicación registrada · Descargar pieza · Publicada por | JUNTA | Propuesta |
+| T-5183 | Pieza pendiente de aval | Para publicar esta pieza, primero necesitas el aval de la VP de Comunicaciones. | JUNTA | Propuesta |
+| T-5184 | Cambios a una pieza aprobada | Para cambiar la pieza, su texto o su canal, presenta la nueva versión a la VP de Comunicaciones. | JUNTA | Propuesta |
+| T-5185 | Pieza gráfica en un aviso del comité | Pide el aval en Piezas de comunicación para publicar una imagen en la cartelera del comité. | JUNTA | Propuesta |

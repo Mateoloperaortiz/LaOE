@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "tests/unit/api-error-texts.table.ts"
+        ],
+        "createdAt": "2026-11-18T23:04:46.716Z",
+        "reason": "La línea 55 es una frase de una prueba que explica la respuesta de /admin/medios y menciona la etiqueta img. No renderiza HTML."
+      }
+    ]
+  }
+}

@@ -8,6 +8,7 @@ import { requireCommitteeCapability } from "@/app/_authz/committee";
 import { actorContext } from "@/app/_lib/actor";
 import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
+import { creativeRequestSchema, publishCreativeAs, requestCreativeAs } from "@/modules/comms";
 import { committeeAnnouncementSchema, createCommitteeAnnouncementAs } from "@/modules/content";
 import {
   approvalRequestSchema,
@@ -300,6 +301,52 @@ export async function requestRemovalAction(formData: FormData): Promise<void> {
 // Área Comunicación (ADR-058, decisión 5): cartelera interna con BOARD y ficha con PROFILE.
 
 const comunicacion = { area: "comunicacion" };
+
+export async function submitCreativeAction(
+  slug: string,
+  raw: unknown,
+): Promise<{ error?: string }> {
+  const validSlug = slugSchema.parse(slug);
+  const access = await requireCommitteeCapability(
+    validSlug,
+    "BOARD",
+    back(validSlug, comunicacion),
+  );
+  const parsed = creativeRequestSchema.safeParse(raw);
+  if (!parsed.success) return { error: t("T-260") };
+  try {
+    await requestCreativeAs(
+      await actorContext(access.actor),
+      access.roster.committee.id,
+      parsed.data,
+    );
+  } catch (error) {
+    if (error instanceof DomainError) return { error: error.message };
+    throw error;
+  }
+  revalidatePath(back(validSlug));
+  revalidatePath("/admin/avales");
+  revalidatePath("/admin/mesa");
+  return {};
+}
+
+export async function publishCreativeAction(data: FormData) {
+  const slug = slugSchema.parse(data.get("slug"));
+  const access = await requireCommitteeCapability(slug, "BOARD", back(slug, comunicacion));
+  const id = z.cuid2().safeParse(data.get("pieceId"));
+  if (!id.success) redirect(back(slug, { ...comunicacion, error: t("T-260") }));
+  try {
+    await publishCreativeAs(await actorContext(access.actor), access.roster.committee.id, id.data);
+  } catch (error) {
+    if (error instanceof DomainError)
+      redirect(back(slug, { ...comunicacion, error: error.message }));
+    throw error;
+  }
+  revalidatePath(back(slug));
+  revalidatePath(`/app/comites/${slug}`);
+  revalidatePath("/admin/avales");
+  redirect(back(slug, { ...comunicacion, guardado: "difusion" }));
+}
 
 export async function createCommitteeAnnouncementAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));

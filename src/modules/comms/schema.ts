@@ -10,12 +10,54 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
-import { person, segment } from "@/modules/people/schema";
+import { boardApprovalStatus } from "@/db/enums";
+import { committee, person, segment } from "@/modules/people/schema";
 
 // Comunicaciones (ADR-015, ADR-023, ADR-038): registro de todo envío a una persona, suscripciones
 // push y preferencias, plantillas de correo y campañas por segmento con su audiencia congelada.
 
 export const messageChannel = pgEnum("message_channel", ["EMAIL", "PUSH"]);
+export const creativeApproval = pgTable(
+  "creative_approval",
+  {
+    id: id(),
+    committeeId: text()
+      .notNull()
+      .references(() => committee.id),
+    title: text().notNull(),
+    /** Nulo para la cartelera del comité. Los demás canales propios se identifican por su nombre. */
+    channel: text(),
+    caption: text().notNull().default(""),
+    fileName: text().notNull(),
+    digest: text().notNull(),
+    status: boardApprovalStatus().notNull().default("PENDING"),
+    requestedAt: createdAt(),
+    requestedById: text().references(() => person.id, { onDelete: "set null" }),
+    decidedAt: timestampTz(),
+    decidedById: text().references(() => person.id, { onDelete: "set null" }),
+    decidedAs: text().$type<"HOLDER" | "PRESIDENCY">(),
+    decisionNote: text().notNull().default(""),
+    publishedAt: timestampTz(),
+    publishedById: text().references(() => person.id, { onDelete: "set null" }),
+  },
+  (t) => [
+    index("creative_approval_committee_idx").on(t.committeeId, t.requestedAt),
+    index("creative_approval_queue_idx").on(t.status, t.requestedAt),
+    check("creative_approval_digest", sql`${t.digest} ~ '^[a-f0-9]{64}$'`),
+    check(
+      "creative_approval_publication",
+      sql`${t.publishedAt} is null or ${t.status} = 'APPROVED'`,
+    ),
+    check(
+      "creative_approval_decision",
+      sql`
+      (${t.status} = 'PENDING' and ${t.decidedAt} is null and ${t.decidedAs} is null)
+      or (${t.status} <> 'PENDING' and ${t.decidedAt} is not null and
+          ${t.decidedAs} is not null and ${t.decidedAs} in ('HOLDER','PRESIDENCY'))
+    `,
+    ),
+  ],
+);
 export const messageStatus = pgEnum("message_status", ["SENT", "FAILED"]);
 export const messageKind = pgEnum("message_kind", [
   "TRANSACTIONAL",

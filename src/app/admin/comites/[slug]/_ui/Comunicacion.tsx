@@ -1,5 +1,9 @@
+import { createId } from "@paralleldrive/cuid2";
+import { CreativeDetails } from "@/app/admin/_kit/CreativeDetails";
+import type { listCreativeApprovals } from "@/modules/comms";
 import type { MemberAnnouncement } from "@/modules/content";
-import type { InternalCommittee } from "@/modules/people";
+import { boardApprovalLabel, type InternalCommittee } from "@/modules/people";
+import { REVIEW_FILE_MAX_BYTES } from "@/shared/adapters/review-file";
 import { ResourcePanel } from "@/shared/admin-kit";
 import { Casilla } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
@@ -8,7 +12,12 @@ import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ActionForm } from "@/shared/ui/ActionForm";
 import { AppLink as Link } from "@/shared/ui/AppLink";
-import { createCommitteeAnnouncementAction, updateProfileAction } from "../actions";
+import {
+  createCommitteeAnnouncementAction,
+  publishCreativeAction,
+  updateProfileAction,
+} from "../actions";
+import { CreativeForm } from "./CreativeForm";
 
 // Área Comunicación de la vista del comité (ADR-058, decisión 5): la cartelera interna del comité
 // (BOARD) y la presentación y el contacto de la ficha (PROFILE); publicar la ficha y el logo siguen con ADMIN.
@@ -21,6 +30,7 @@ export function Comunicacion({
   base,
   committee,
   announcements,
+  pieces,
   canBoard,
   canProfile,
   accion,
@@ -30,12 +40,15 @@ export function Comunicacion({
   base: string;
   committee: InternalCommittee;
   announcements: MemberAnnouncement[];
+  pieces: Awaited<ReturnType<typeof listCreativeApprovals>>;
   canBoard: boolean;
   canProfile: boolean;
   accion: string;
   error: string;
 }) {
   const [carteleraTitulo, nuevoAnuncio, fichaTitulo] = tList("T-2182");
+  const [piecesTitle, , , , , request] = tList("T-5178");
+  const [publish, record] = tList("T-5182");
   const closeHref = `${base}?area=comunicacion`;
   const alerta = error ? (
     <p role="alert" className="font-semibold text-oe-orange">
@@ -45,6 +58,44 @@ export function Comunicacion({
 
   return (
     <div className="flex flex-col gap-8">
+      {canBoard && (
+        <section aria-label={piecesTitle} className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 className="text-display-md">{piecesTitle}</h2>
+            <Link href={`${closeHref}&accion=pieza`} className="boton-primario">
+              {request}
+            </Link>
+          </div>
+          {pieces.length > 0 && (
+            <ul className="grid list-none gap-3 p-0">
+              {pieces.map((piece) => (
+                <li
+                  key={piece.id}
+                  className="grid gap-2 rounded-xl border border-borde bg-fondo px-4 py-3"
+                >
+                  <h3 className="font-semibold">{piece.title}</h3>
+                  {piece.status === "PENDING" && <p>{boardApprovalLabel(piece.status)}</p>}
+                  <CreativeDetails piece={piece} />
+                  {piece.status === "APPROVED" && !piece.publishedAt && (
+                    <ActionForm action={publishCreativeAction}>
+                      <input type="hidden" name="slug" value={slug} />
+                      <input type="hidden" name="pieceId" value={piece.id} />
+                      <AdminSubmitButton type="submit" className="boton-secundario">
+                        {piece.channel === null ? publish : record}
+                      </AdminSubmitButton>
+                    </ActionForm>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+      {canBoard && accion === "pieza" && (
+        <ResourcePanel title={request} closeHref={closeHref} closeLabel={t("T-291")}>
+          <CreativeForm id={createId()} slug={slug} maxBytes={REVIEW_FILE_MAX_BYTES} />
+        </ResourcePanel>
+      )}
       {canBoard ? (
         <section aria-label={carteleraTitulo} className="flex flex-col gap-3">
           <div className="flex flex-wrap items-end justify-between gap-3">

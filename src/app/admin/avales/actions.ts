@@ -8,6 +8,7 @@ import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { actorContext } from "@/app/_lib/actor";
 import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
+import { decideCreativeAs } from "@/modules/comms";
 import {
   changeEventApprovalRiskAs,
   decideContractAs,
@@ -50,6 +51,7 @@ export async function decideAvalAction(formData: FormData): Promise<void> {
       EXTRAORDINARY: decideFinancialApprovalAs,
       PURCHASE: decideFinancialApprovalAs,
       CONTRACT: decideContractAs,
+      CREATIVE: decideCreativeAs,
     };
     await decide[kind](actor, id, input);
   } catch (error) {

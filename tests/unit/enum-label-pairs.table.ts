@@ -982,6 +982,7 @@ export const PAIRS: readonly LabelPair[] = [
       EXTRAORDINARY: 4,
       PURCHASE: 5,
       CONTRACT: 6,
+      CREATIVE: 7,
     },
     canonical: AVAL_KINDS,
   },

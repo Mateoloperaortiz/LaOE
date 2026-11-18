@@ -15,6 +15,15 @@ export {
   updateCampaignAs,
 } from "./domain/campaigns";
 export {
+  creativeFileUrl,
+  creativeRequestSchema,
+  decideCreativeAs,
+  listCreativeApprovals,
+  prepareCreativeUpload,
+  publishCreativeAs,
+  requestCreativeAs,
+} from "./domain/creative-approvals";
+export {
   countUnreadInbox,
   INBOX_FILTER_KEYS,
   type InboxFilter,

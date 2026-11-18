@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { defineEvent } from "./define";
 
+export const creativeUploadExpires = defineEvent(
+  "comms.creative-upload-expires",
+  z.object({
+    key: z
+      .string()
+      .regex(
+        /^creatives\/incoming\/[a-z0-9]+\/[a-z0-9]+\/[a-z0-9]{24}\/[a-f0-9]{64}\/[a-z0-9]{24}$/,
+      ),
+  }),
+);
+
 // Pedidos que atiende `comms`. No son hechos de un productor sino encargos: cualquier módulo pide una
 // notificación y comms la entrega (ADR-038 regla 2). Por eso el contrato vive con quien lo atiende y no
 // con quien lo emite, y por eso `kind` sí es un enumerado: el vocabulario lo fija comms, y un tipo que

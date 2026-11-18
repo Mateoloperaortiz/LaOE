@@ -219,6 +219,9 @@ export const API_ERROR_TEXTS: Record<string, readonly ErrorTextRow[]> = {
   "contratos/subidas/[slug]/route.ts": [
     { status: 400, via: "error", class: "catalog", code: "T-5174" },
   ],
+  "piezas/subidas/[slug]/route.ts": [
+    { status: 400, via: "error", class: "catalog", code: "T-5180" },
+  ],
   "retos/evidencia/presign/route.ts": [
     { status: 401, via: "error", class: "unread", text: "Sin sesión", reader: EVIDENCE_UPLOADER },
     {

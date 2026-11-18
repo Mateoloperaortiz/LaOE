@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
+import { listCreativeApprovals } from "@/modules/comms";
 import { listPendingExcusesForCommittee, listRequests, listTasks } from "@/modules/crm";
 import {
   listContracts,
@@ -75,6 +76,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     candidacies,
     finance,
     contracts,
+    creatives,
     pendingClosures,
   ] = await Promise.all([
     roles.isAdmin
@@ -113,6 +115,9 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     roles.boardSeats.some((item) => item.seat === "VP_FINANCE") ? pendingFinancialApprovals() : [],
     roles.boardSeats.some((item) => item.seat === "VP_FINANCE" || item.seat === "PRESIDENT")
       ? listContracts({ pendingOnly: true })
+      : [],
+    roles.boardSeats.some((item) => item.seat === "VP_COMMUNICATIONS")
+      ? listCreativeApprovals({ pendingOnly: true })
       : [],
     // Los seguimientos de macroeventos que ya terminaron y no se cierran (ADR-197 regla 5).
     roles.boardSeats.some((item) => item.seat === "PRESIDENT" && item.as === "HOLDER")
@@ -199,7 +204,8 @@ export const loadDesk = cache(async (): Promise<Desk> => {
         pendingFaltas.length +
         candidacies.length +
         finance.length +
-        contracts.length,
+        contracts.length +
+        creatives.length,
       [
         ...eventAvales.map((row) => ({
           id: row.id,
@@ -220,6 +226,13 @@ export const loadDesk = cache(async (): Promise<Desk> => {
           title: row.title,
           detail: row.committeeName,
           href: `/admin/avales?contrato=${row.id}`,
+          date: { kind: "arrived" as const, at: row.requestedAt },
+        })),
+        ...creatives.map((row) => ({
+          id: row.id,
+          title: row.title,
+          detail: row.committeeName,
+          href: `/admin/avales?pieza=${row.id}`,
           date: { kind: "arrived" as const, at: row.requestedAt },
         })),
         ...candidacies.map((row) => ({

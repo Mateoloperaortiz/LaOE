@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { single, withQuery } from "@/app/_lib/search";
+import { listCreativeApprovals } from "@/modules/comms";
 import { findPublishedCrisisProtocol } from "@/modules/content";
 import {
   approvalStatusLabel,
@@ -38,6 +39,7 @@ import { EmptyState } from "@/shared/ui/States";
 import { WorkTable } from "@/shared/ui/WorkTable";
 import { AvalHistoria, RiesgoBadge, RiesgoRojo } from "../_kit/aval";
 import { ContractDetails } from "../_kit/ContractDetails";
+import { CreativeDetails } from "../_kit/CreativeDetails";
 import { AVAL_KINDS, avalParam } from "./_ui/kinds";
 import { changeRiskAction, decideAvalAction, returnAvalAction } from "./actions";
 
@@ -61,13 +63,15 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
   const decidesEvents = decides("PRESIDENT");
   const decidesFaltas = decides("VP_GH");
   const decidesFinance = decides("VP_FINANCE");
+  const decidesCreatives = decides("VP_COMMUNICATIONS");
   const signsContracts = decidesFinance || decidesEvents;
-  const [events, faltas, candidacies, finance, contracts] = await Promise.all([
+  const [events, faltas, candidacies, finance, contracts, creatives] = await Promise.all([
     decidesEvents || roles.isAdmin ? listEventApprovals({}) : [],
     decidesFaltas || roles.isAdmin ? listPendingSanctions() : [],
     decidesFaltas || roles.isAdmin ? pendingCandidacies() : [],
     decidesFinance || roles.isAdmin ? pendingFinancialApprovals() : [],
     signsContracts || roles.isAdmin ? listContracts({ pendingOnly: false }) : [],
+    decidesCreatives || roles.isAdmin ? listCreativeApprovals({ pendingOnly: false }) : [],
   ]);
   // Abiertos: por decidir y devueltos al comité, del riesgo más alto al más bajo (ADR-197 regla 2).
   const openEvents = events
@@ -85,6 +89,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
   const selectedCandidacy = candidacies.find((row) => row.id === single(query.postulacion));
   const financial = finance.find((row) => row.id === single(query.finanzas));
   const contract = contracts.find((row) => row.id === single(query.contrato));
+  const creative = creatives.find((row) => row.id === single(query.pieza));
   const people = await getPeopleByIds([
     ...new Set([
       ...(financial?.requestedById ? [financial.requestedById] : []),
@@ -172,7 +177,18 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
     statusLabel: contractStatusLabel(row.status),
     risk: undefined,
   }));
+  const creativeRows: Row[] = creatives.map((row) => ({
+    kind: "CREATIVE",
+    id: row.id,
+    title: row.title,
+    committee: row.committeeName,
+    date: todayKey(row.requestedAt),
+    status: row.status,
+    statusLabel: boardApprovalLabel(row.status),
+    risk: undefined,
+  }));
   const recent = [
+    ...creativeRows.filter((row) => row.status !== "PENDING").slice(0, 10),
     ...contractRows.filter((row) => row.status !== "PENDING").slice(0, 10),
     ...recentEvents.map(eventRow),
   ];
@@ -341,6 +357,17 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
       ) : null}
       <AvalHistoria entries={selectedEvent.entries} names={names} headingId="aval-historia" />
     </DetailPanel>
+  ) : creative ? (
+    <DetailPanel
+      title={creative.title}
+      eyebrow={kinds.CREATIVE}
+      closeHref={close}
+      closeLabel={volver ?? ""}
+    >
+      <CreativeDetails piece={creative} />
+      {creative.status === "PENDING" &&
+        decision("CREATIVE", creative.id, decidesCreatives, cargos.VP_COMMUNICATIONS)}
+    </DetailPanel>
   ) : contract ? (
     <DetailPanel
       title={contract.title}
@@ -471,6 +498,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/avales">)
                 ...candidacyRows,
                 ...financialRows,
                 ...contractRows.filter((row) => row.status === "PENDING"),
+                ...creativeRows.filter((row) => row.status === "PENDING"),
                 ...openEvents.map(eventRow),
               ],
               heading ?? "",

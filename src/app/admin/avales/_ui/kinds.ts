@@ -7,6 +7,7 @@ export const AVAL_KINDS = [
   "EXTRAORDINARY",
   "PURCHASE",
   "CONTRACT",
+  "CREATIVE",
 ] as const;
 const params = {
   EVENT: "aval",
@@ -16,6 +17,7 @@ const params = {
   EXTRAORDINARY: "finanzas",
   PURCHASE: "finanzas",
   CONTRACT: "contrato",
+  CREATIVE: "pieza",
 } as const;
 export function avalParam(kind: (typeof AVAL_KINDS)[number]) {
   return params[kind];

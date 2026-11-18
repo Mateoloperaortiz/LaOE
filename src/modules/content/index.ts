@@ -7,6 +7,7 @@ export {
   getAnnouncement,
   getMemberAnnouncement,
   getPublicAnnouncement,
+  isCreativeOnBoard,
   listCommitteeAnnouncements,
   listMemberAnnouncements,
   listPublicAnnouncements,

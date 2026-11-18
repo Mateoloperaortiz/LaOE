@@ -1,6 +1,4 @@
-import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
-import { createId } from "@paralleldrive/cuid2";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -19,44 +17,33 @@ import {
 } from "@/modules/people";
 import { getCurrentTerm } from "@/modules/terms";
 import {
-  deleteObject,
-  getObject,
-  headObject,
-  presignRead,
-  presignUpload,
-  putObject,
-} from "@/shared/adapters/storage";
+  archiveReviewFile,
+  ownsReviewUpload,
+  REVIEW_FILE_MAX_BYTES,
+  reviewFile,
+  reviewId,
+  reviewUpload,
+  signReviewUpload,
+  submittedReviewFile,
+} from "@/shared/adapters/review-file";
+import { deleteObject, presignRead } from "@/shared/adapters/storage";
 import { t, tLabels, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { CONTRACT_FILE_SLOTS, type ContractFileSlot, financeContract } from "../schema";
 
-export const CONTRACT_FILE_MAX_BYTES = 20 * 1024 * 1024;
-const binary = "application/octet-stream";
-const digest = z.string().regex(/^[a-f0-9]{64}$/);
-const file = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1)
-    .max(200)
-    .regex(/^[^/\\\p{Cc}]+$/u),
-  digest,
-});
-const idSchema = z.cuid2().length(24);
-const upload = file.extend({ key: z.string().max(400) });
-const storedFiles = z.object({ contract: file, legal: file, coordinator: file });
-export const contractUploadSchema = z.object({
-  id: idSchema,
-  slot: z.enum(CONTRACT_FILE_SLOTS),
-  digest,
-  byteSize: z.number().int().positive().max(CONTRACT_FILE_MAX_BYTES),
-});
+export const CONTRACT_FILE_MAX_BYTES = REVIEW_FILE_MAX_BYTES;
+const storedFiles = z.object({ contract: reviewFile, legal: reviewFile, coordinator: reviewFile });
+export const contractUploadSchema = reviewUpload.extend({ slot: z.enum(CONTRACT_FILE_SLOTS) });
 export const contractRequestSchema = z.object({
-  id: idSchema,
+  id: reviewId,
   title: z.string().trim().min(2).max(200),
   supplier: z.string().trim().min(1).max(200),
   amount: z.coerce.number().positive().max(9_999_999_999.99).multipleOf(0.01),
-  files: z.object({ contract: upload, legal: upload, coordinator: upload }),
+  files: z.object({
+    contract: submittedReviewFile,
+    legal: submittedReviewFile,
+    coordinator: submittedReviewFile,
+  }),
 });
 type Scope = { committeeId: string };
 const sourcePrefix = (
@@ -75,13 +62,8 @@ export async function prepareContractUpload(
   raw: z.input<typeof contractUploadSchema>,
 ) {
   const { id, slot, digest: hash, byteSize } = contractUploadSchema.parse(raw);
-  const key = `${sourcePrefix(owner, scope, id, slot, hash)}/${createId()}`;
-  const signed = await presignUpload({
-    key,
-    contentType: binary,
-    minBytes: byteSize,
-    maxBytes: byteSize,
-  });
+  const signed = await signReviewUpload(sourcePrefix(owner, scope, id, slot, hash), byteSize);
+  const key = signed.key;
   await enqueueEvent(
     getDb(),
     eventOf(contractUploadExpires, { key }),
@@ -102,12 +84,8 @@ export async function requestContractAs(
   const files = storedFiles.parse(input.files);
   for (const slot of CONTRACT_FILE_SLOTS) {
     const attachment = input.files[slot];
-    const prefix = `${sourcePrefix(owner, scope, input.id, slot, attachment.digest)}/`;
-    if (
-      !attachment.key.startsWith(prefix) ||
-      !idSchema.safeParse(attachment.key.slice(prefix.length)).success
-    )
-      throw new DomainError(t("T-5174"));
+    const prefix = sourcePrefix(owner, scope, input.id, slot, attachment.digest);
+    if (!ownsReviewUpload(prefix, attachment.key)) throw new DomainError(t("T-5174"));
   }
   const result = await runCommand(actor, async (ctx) => {
     await ctx.tx.execute(
@@ -133,21 +111,9 @@ export async function requestContractAs(
     try {
       for (const slot of CONTRACT_FILE_SLOTS) {
         const source = input.files[slot].key;
-        const info = await headObject(source);
-        if (
-          !info?.byteSize ||
-          info.byteSize > CONTRACT_FILE_MAX_BYTES ||
-          info.contentType !== binary
-        )
-          throw new DomainError(t("T-5174"));
-        const bytes = await getObject(source);
-        const hash = createHash("sha256").update(bytes).digest("hex");
-        if (hash !== input.files[slot].digest || bytes.byteLength !== info.byteSize)
-          throw new DomainError(t("T-5174"));
-        // La dirección expedida al navegador solo escribe en incoming. La copia archivada queda fuera de su alcance.
-        const stored = filedKey(input.id, slot, hash);
+        const stored = filedKey(input.id, slot, input.files[slot].digest);
         archived.push(stored);
-        await putObject(stored, bytes, binary);
+        await archiveReviewFile(source, stored, input.files[slot].digest, t("T-5174"));
       }
       const values = { ...input, ...scope, files, requestedById: owner, requestedAt: now };
       await ctx.tx.insert(financeContract).values(values);

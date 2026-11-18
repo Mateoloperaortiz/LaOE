@@ -111,3 +111,13 @@ export async function uploadToBucket(
   }
   return { key: prepared.key, confirmation };
 }
+
+/** Sube al espacio temporal la versión exacta que se presentará para un aval. */
+export async function uploadReviewFile(file: File, url: string, fields: Record<string, string>) {
+  const hash = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  const digest = Array.from(new Uint8Array(hash), (b) => b.toString(16).padStart(2, "0")).join("");
+  const { key } = await uploadToBucket(file, {
+    presign: { url, body: { ...fields, digest, byteSize: file.size } },
+  });
+  return { name: file.name, digest, key };
+}

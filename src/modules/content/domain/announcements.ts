@@ -1,4 +1,5 @@
 import { and, count, desc, eq, ilike, inArray, isNotNull, isNull, lte } from "drizzle-orm";
+import { fromMarkdown } from "mdast-util-from-markdown";
 import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -84,13 +85,27 @@ function toValues(input: AnnouncementInput) {
   };
 }
 
+/** La cartelera puede publicar avisos de texto directamente. Las imágenes se presentan como pieza. */
+function checkCommitteeNotice(committeeId: string | null, body: string) {
+  if (!committeeId || !body.includes("!")) return;
+  type Node = { type: string; children?: Node[] };
+  const containsImage = (node: Node): boolean =>
+    node.type === "image" ||
+    node.type === "imageReference" ||
+    (node.children?.some(containsImage) ?? false);
+  if (containsImage(fromMarkdown(body))) throw new DomainError(t("T-5185"), "body");
+}
+
 export async function createAnnouncement(
   ctx: CommandContext,
   input: AnnouncementInput,
+  creativeApprovalId?: string,
 ): Promise<{ id: string }> {
+  const values = { ...toValues(input), creativeApprovalId };
+  if (!creativeApprovalId) checkCommitteeNotice(values.committeeId, values.body);
   const [row] = await ctx.tx
     .insert(announcement)
-    .values({ ...toValues(input), createdById: ctx.actor.personId })
+    .values({ ...values, createdById: ctx.actor.personId })
     .returning({ id: announcement.id });
   if (!row) {
     throw new Error("No se pudo crear el anuncio");
@@ -99,7 +114,7 @@ export async function createAnnouncement(
     action: "announcement.created",
     entityType: "announcement",
     entityId: row.id,
-    after: toValues(input),
+    after: values,
   });
   return row;
 }
@@ -114,6 +129,19 @@ export async function updateAnnouncement(
     throw new DomainError(t("T-032"));
   }
   const values = toValues(input);
+  if (before.creativeApprovalId) {
+    if (
+      before.title !== values.title ||
+      before.body !== values.body ||
+      (input.committeeId !== undefined && input.committeeId !== before.committeeId) ||
+      input.audience !== before.audience
+    )
+      throw new DomainError(t("T-5184"));
+    // El editor general puede fijar un anuncio; su formulario no envía el comité.
+    values.committeeId = before.committeeId;
+  }
+  if (before.body !== values.body || before.committeeId !== values.committeeId)
+    checkCommitteeNotice(values.committeeId, values.body);
   await ctx.tx.update(announcement).set(values).where(eq(announcement.id, id));
   await ctx.audit({
     action: "announcement.updated",
@@ -137,6 +165,7 @@ export async function publishAnnouncement(
   if (before.publishedAt !== null) {
     return;
   }
+  if (!before.creativeApprovalId) checkCommitteeNotice(before.committeeId, before.body);
   await ctx.tx.update(announcement).set({ publishedAt: now }).where(eq(announcement.id, id));
   await ctx.audit({
     action: "announcement.published",
@@ -350,12 +379,17 @@ export const listMemberAnnouncements = cache(async (limit = 12): Promise<MemberA
 
 /** Un anuncio de miembros o de comité ya publicado, para su página en Mi OE (ADR-038 regla 6). */
 export const getMemberAnnouncement = cache(
-  async (id: string): Promise<(MemberAnnouncement & { committeeId: string | null }) | null> => {
+  async (
+    id: string,
+  ): Promise<
+    (MemberAnnouncement & { committeeId: string | null; creativeApprovalId: string | null }) | null
+  > => {
     const [row] = await getDb()
       .select({
         ...publicColumns,
         audience: announcement.audience,
         committeeId: announcement.committeeId,
+        creativeApprovalId: announcement.creativeApprovalId,
       })
       .from(announcement)
       .where(and(eq(announcement.id, id), lte(announcement.publishedAt, new Date())))
@@ -367,18 +401,43 @@ export const getMemberAnnouncement = cache(
       ...asPublic(row),
       audience: row.audience === "MEMBERS" ? "MEMBERS" : "PUBLIC",
       committeeId: row.committeeId,
+      creativeApprovalId: row.creativeApprovalId,
     };
   },
 );
 
+/** El adjunto de una pieza tiene la misma audiencia y fecha de publicación que su anuncio en Mi OE. */
+export async function isCreativeOnBoard(creativeId: string, committeeId: string) {
+  const [row] = await getDb()
+    .select({ id: announcement.id })
+    .from(announcement)
+    .where(
+      and(
+        eq(announcement.creativeApprovalId, creativeId),
+        eq(announcement.committeeId, committeeId),
+        eq(announcement.audience, "MEMBERS"),
+        lte(announcement.publishedAt, new Date()),
+      ),
+    );
+  return Boolean(row);
+}
+
 /** La cartelera interna de un comité: anuncios publicados con su `committeeId`, los fijados primero. */
 export const listCommitteeAnnouncements = cache(
-  async (committeeId: string, limit = 12): Promise<MemberAnnouncement[]> => {
+  async (
+    committeeId: string,
+    limit = 12,
+    includeCreatives = true,
+  ): Promise<MemberAnnouncement[]> => {
     const rows = await getDb()
       .select({ ...publicColumns, audience: announcement.audience })
       .from(announcement)
       .where(
-        and(eq(announcement.committeeId, committeeId), lte(announcement.publishedAt, new Date())),
+        and(
+          eq(announcement.committeeId, committeeId),
+          lte(announcement.publishedAt, new Date()),
+          includeCreatives ? undefined : isNull(announcement.creativeApprovalId),
+        ),
       )
       .orderBy(desc(announcement.pinned), desc(announcement.publishedAt))
       .limit(limit);

@@ -4,7 +4,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { useRouter } from "next/navigation";
 import { type SubmitEvent, useRef, useState } from "react";
 import { Button } from "@/shared/ui/Button";
-import { uploadToBucket } from "@/shared/ui/bucket-upload";
+import { uploadReviewFile } from "@/shared/ui/bucket-upload";
 import { Field, TextInput as Input } from "@/shared/ui/Field";
 import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
 import { submitContractAction } from "../actions";
@@ -51,17 +51,7 @@ export function ContractForm({
       const files: Record<string, { name: string; digest: string; key: string }> = {};
       for (const { slot, file } of selected) {
         if (!(file instanceof File)) throw new UploadError(invalid);
-        const hash = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-        const digest = Array.from(new Uint8Array(hash), (b) =>
-          b.toString(16).padStart(2, "0"),
-        ).join("");
-        const { key } = await uploadToBucket(file, {
-          presign: {
-            url: `/api/contratos/subidas/${slug}`,
-            body: { id, slot, digest, byteSize: file.size },
-          },
-        });
-        files[slot] = { name: file.name, digest, key };
+        files[slot] = await uploadReviewFile(file, `/api/contratos/subidas/${slug}`, { id, slot });
       }
       const response = await submitContractAction(slug, {
         id,

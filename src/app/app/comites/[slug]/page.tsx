@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { canReadCreativeBoard } from "@/app/_authz/creative";
 import { listCommitteeAnnouncements } from "@/modules/content";
 import { listRecognitionsByPeople, monthName, type RecognitionView } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
@@ -32,7 +33,7 @@ export default async function ComiteInternoPage({ params }: PageProps<"/app/comi
   }
   const { committee, term, members } = roster;
   const [announcements, recognitions] = await Promise.all([
-    listCommitteeAnnouncements(committee.id, 6),
+    listCommitteeAnnouncements(committee.id, 6, await canReadCreativeBoard(actor, committee.id)),
     term
       ? listRecognitionsByPeople(
           members.map((member) => member.personId),
@@ -93,7 +94,9 @@ export default async function ComiteInternoPage({ params }: PageProps<"/app/comi
                 key={item.id}
                 className="flex flex-col gap-1 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
               >
-                <span className="font-semibold">{item.title}</span>
+                <Link href={`/app/cartelera/${item.id}`} className="font-semibold">
+                  {item.title}
+                </Link>
                 {item.publishedAt ? (
                   <span className="text-sm text-tinta-suave">{formatDate(item.publishedAt)}</span>
                 ) : null}
