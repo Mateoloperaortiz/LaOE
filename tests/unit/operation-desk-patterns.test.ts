@@ -105,6 +105,12 @@ describe("Favoritos y Recientes (regla 3)", () => {
     ).toEqual([{ href: "/admin/personas", label: "Personas" }]);
   });
 
+  it("conserva el destino de las entradas antiguas que se guardaron sin nombre", () => {
+    expect(parsePinned(JSON.stringify([{ href: "/admin/cap", label: "  " }]))).toEqual([
+      { href: "/admin/cap", label: "/admin/cap" },
+    ]);
+  });
+
   it("fijar pone primero y no pasa del tope; fijar lo fijado lo suelta", () => {
     const many = Array.from({ length: MAX_FAVORITES }, (_, index) => ({
       href: `/admin/p${index}`,

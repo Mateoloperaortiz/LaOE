@@ -31,14 +31,16 @@ export function parsePinned(raw: string | null): PinnedPage[] {
   try {
     const value: unknown = JSON.parse(raw);
     if (!Array.isArray(value)) return [];
-    return value.filter(
-      (item): item is PinnedPage =>
-        typeof item === "object" &&
-        item !== null &&
-        typeof (item as PinnedPage).href === "string" &&
-        (item as PinnedPage).href.startsWith("/admin") &&
-        typeof (item as PinnedPage).label === "string",
-    );
+    return value
+      .filter(
+        (item): item is PinnedPage =>
+          typeof item === "object" &&
+          item !== null &&
+          typeof (item as PinnedPage).href === "string" &&
+          (item as PinnedPage).href.startsWith("/admin") &&
+          typeof (item as PinnedPage).label === "string",
+      )
+      .map(({ href, label }) => ({ href, label: label.trim() || href }));
   } catch {
     return [];
   }

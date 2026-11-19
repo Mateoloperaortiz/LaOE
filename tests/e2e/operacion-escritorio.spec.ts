@@ -73,6 +73,32 @@ test("la estrella fija la pantalla en Favoritos y la quita", async ({ page }) =>
   await expect(lista).toBeHidden();
 });
 
+test("Favoritos y Recientes conservan el nombre cuando el título del documento llega tarde", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (location.pathname === "/admin/etiquetas") {
+      // Reproduce la llegada del encabezado antes que la metadata de Next.
+      Object.defineProperty(document, "title", { get: () => "" });
+    }
+  });
+  await page.goto("/admin/etiquetas");
+  const heading = page.getByRole("heading", { level: 1, name: etiquetas });
+  await expect(heading).toHaveText(/\S/);
+  const name = await heading.innerText();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("oe.operacion.recientes")))
+    .toContain("/admin/etiquetas");
+  await page.getByRole("button", { name: fijar, exact: true }).click();
+  const pinned = page.locator(".admin-sidebar [data-lista='favoritos'] a[href='/admin/etiquetas']");
+  await expect.soft(pinned).toHaveAccessibleName(name);
+  await page.getByRole("button", { name: soltar, exact: true }).click();
+  await page.goto("/admin/mesa");
+  const recent = page.locator(".admin-sidebar [data-lista='recientes'] a[href='/admin/etiquetas']");
+  await expect(recent).toHaveAccessibleName(name);
+  await sinViolaciones(page);
+});
+
 test("las columnas elegidas viajan en la dirección y la búsqueda es una ficha", async ({
   page,
 }) => {

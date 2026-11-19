@@ -59,14 +59,17 @@ function useStored(key: string): PinnedPage[] {
   return parsePinned(raw);
 }
 
-function currentPage(): PinnedPage {
-  return {
-    href: pinnableHref(window.location.pathname, window.location.search),
-    label: labelFromTitle(document.title),
-  };
+function currentPage(
+  href = pinnableHref(window.location.pathname, window.location.search),
+): PinnedPage {
+  // Next puede entregar la metadata después del contenido de la pantalla.
+  const label =
+    labelFromTitle(document.title) ||
+    document.querySelector("#admin-content h1")?.textContent?.trim();
+  return { href, label: label || href };
 }
 
-/** Anota la visita en Recientes cuando cambia la pantalla, con el título que ya puso la página. */
+/** Anota la visita en Recientes cuando cambia la pantalla, con sus filtros vigentes. */
 export function RecentTracker() {
   const pathname = usePathname();
   useEffect(() => {
@@ -96,12 +99,7 @@ export function FavoriteToggle() {
       aria-pressed={pinned}
       aria-label={label}
       title={label}
-      onClick={() =>
-        write(
-          FAVORITES_KEY,
-          toggleFavorite(favorites, { href, label: labelFromTitle(document.title) }),
-        )
-      }
+      onClick={() => write(FAVORITES_KEY, toggleFavorite(favorites, currentPage(href)))}
     >
       {pinned ? <StarFilledIcon size={18} /> : <StarIcon size={18} />}
     </button>
