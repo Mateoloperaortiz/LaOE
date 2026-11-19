@@ -150,3 +150,11 @@ export function utcToZonedInput(date: Date, timeZone: string): string {
   const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
   return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
 }
+
+/** Dos actividades coinciden al empezar juntas o si la segunda comienza antes de terminar la primera. */
+export function calendarOverlap(
+  a: { startsAt: Date; endsAt: Date },
+  b: { startsAt: Date; endsAt: Date },
+): boolean {
+  return +a.startsAt === +b.startsAt || (a.startsAt < b.endsAt && b.startsAt < a.endsAt);
+}

@@ -273,3 +273,42 @@ export const inventoryIncident = pgTable(
     index("inventory_incident_status_idx").on(t.status),
   ],
 );
+
+export const inventorySpace = pgTable(
+  "inventory_space",
+  {
+    id: id(),
+    name: text().notNull(),
+    active: integer().default(1).notNull(),
+  },
+  (s) => [uniqueIndex("inventory_space_name_unique").on(sql`lower(${s.name})`)],
+);
+
+export const spaceBooking = pgTable(
+  "space_booking",
+  {
+    id: id(),
+    spaceId: text()
+      .notNull()
+      .references(() => inventorySpace.id),
+    requesterId: text()
+      .notNull()
+      .references(() => person.id),
+    sourceId: text().notNull(),
+    sourceKind: text().notNull(),
+    scopeLabel: text().notNull(),
+    startsAt: timestampTz().notNull(),
+    endsAt: timestampTz().notNull(),
+    purpose: text().notNull(),
+    status: boardApprovalStatus().notNull().default("PENDING"),
+    requestedAt: createdAt(),
+    decidedById: text().references(() => person.id),
+    decidedAs: text().$type<"HOLDER" | "PRESIDENCY">(),
+    decidedAt: timestampTz(),
+    decisionNote: text(),
+  },
+  (s) => [
+    index("space_booking_calendar_idx").on(s.spaceId, s.status, s.startsAt),
+    check("space_booking_interval", sql`${s.startsAt} < ${s.endsAt}`),
+  ],
+);

@@ -2,7 +2,7 @@
 // seis semanas, en días "AAAA-MM-DD" de la hora de la OE. Lógica pura, para probarla sin base. La suma
 // de días es la única de la casa (`addDays`, ADR-121 regla 6).
 
-import { addDays } from "@/shared/lib/dates-pure";
+import { addDays, calendarOverlap } from "@/shared/lib/dates-pure";
 
 export const CALENDAR_VIEWS = ["semana", "mes"] as const;
 export type CalendarView = (typeof CALENDAR_VIEWS)[number];
@@ -96,8 +96,7 @@ export function overlappingIds(
     for (let j = i + 1; j < sorted.length; j += 1) {
       const b = sorted[j];
       if (!b) continue;
-      const sameStart = b.startsAt.getTime() === a.startsAt.getTime();
-      if (!sameStart && b.startsAt >= a.endsAt) break;
+      if (!calendarOverlap(a, b)) break;
       ids.add(a.id);
       ids.add(b.id);
     }

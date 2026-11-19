@@ -31,3 +31,7 @@ El inventario no sale por su rama: entra a `feat/rediseno` y sale con el redise�
 ## Enmienda (2026-11-13, ADR-193)
 
 La regla 2 se amplía: si el término no tiene una VP Administrativa con membresía operativa, la Presidencia vigente administra el inventario y sus cargos logísticos, con las mismas facultades, hasta que vuelva a haber una VP ([ADR-193](ADR-193-la-presidencia-suple-a-la-vp-en-el-inventario.md), Reglamento art. 54).
+
+## Enmienda del 18 de noviembre de 2026
+
+[ADR-204](ADR-204-aval-logistico-de-materiales.md) actualiza la confirmación de la regla 3. Logística confirma existencias contra una lista de materiales ya avalada por Administrativa. Las reservas anteriores siguen su curso con el CML.

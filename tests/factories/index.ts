@@ -575,6 +575,8 @@ type OccasionOverrides = Partial<{
   requireRotatingCode: boolean;
   rotatingSecret: string | null;
   committeeId: string | null;
+  editionId: string | null;
+  endsAt: Date | null;
   startsAt: Date;
   openedAt: Date | null;
   checkInOpensAt: Date;
@@ -620,6 +622,8 @@ export async function seedOccasion(
       requireRotatingCode: overrides.requireRotatingCode ?? false,
       rotatingSecret: overrides.rotatingSecret ?? null,
       committeeId: overrides.committeeId ?? null,
+      editionId: overrides.editionId ?? null,
+      endsAt: overrides.endsAt ?? null,
       startsAt: overrides.startsAt ?? new Date(now),
       checkInOpensAt: overrides.checkInOpensAt ?? new Date(now - 3_600_000),
       checkInClosesAt: overrides.checkInClosesAt ?? new Date(now + 3_600_000),

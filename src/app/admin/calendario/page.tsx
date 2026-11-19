@@ -198,6 +198,12 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/admin
         </div>
         <nav aria-label={titulo} className="flex flex-wrap items-center gap-2">
           <Link
+            href={`/app/coordinacion?fecha=${anchor}`}
+            className="boton-secundario min-h-11 px-3 py-2 text-sm"
+          >
+            {tList("T-5195")[0]}
+          </Link>
+          <Link
             href={href({ fecha: previous })}
             className="boton-secundario min-h-11 px-3 py-2 text-sm"
           >

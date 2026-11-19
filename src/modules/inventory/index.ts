@@ -72,3 +72,12 @@ export {
   remainingLoanLines,
   requestLoanApprovalAs,
 } from "./domain/loan-approvals";
+
+export {
+  addSpaceAs,
+  decideSpaceAs,
+  requestSpaceAs,
+  setSpaceActiveAs,
+  spaceBookingsFor,
+  spaceCatalogFor,
+} from "./domain/spaces";

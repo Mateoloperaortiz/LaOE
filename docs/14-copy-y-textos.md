@@ -3858,3 +3858,12 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5192 | Autorización de materiales | La reserva debe ajustarse a los materiales, cantidades y fechas aprobados por la VP. | INV | Propuesta |
 | T-5193 | Avisos de la bodega | Hay un aval de materiales pendiente · Ya decidieron tu aval de materiales · La reserva del evento se habilita 15 días antes. · Puedes reservar los materiales disponibles con tu aval aprobado. · Pedir aval · Selecciona el evento · Cantidad por reservar | INV | Propuesta |
 | T-5194 | Fechas y estado del préstamo | Devolución prevista · Decidir aval de materiales | INV | Propuesta |
+
+| T-5195 | Coordinación en Mi OE | Coordinación de horarios y espacios · Cruces de la semana · Semana del · Ver semana · Qué intentaron acordar las direcciones · Enviar el cruce · Cruces enviados · Resolución · Registrar resolución · Pendiente · Resuelto · No hay cruces que puedas enviar esta semana. · Actividad de otro comité · No hay cruces enviados. | Junta | Propuesta |
+| T-5196 | Catálogo de instalaciones | Espacios de la OE · Nombre del espacio · Agregar espacio · Retirar del catálogo · Volver a ofrecer · Disponible · Retirado · No hay espacios cargados. | INV | Propuesta |
+| T-5197 | Solicitudes de espacios | Pedir un espacio · Espacio · Dirección logística · Desde · Hasta · Para qué lo necesitas · Enviar solicitud · Solicitudes de espacios · No hay solicitudes de espacios. · Motivo de la decisión · Aprobar espacio · Rechazar solicitud | INV | Propuesta |
+| T-5198 | Restricciones de coordinación | Este cruce ya no está vigente o no corresponde a una de tus direcciones. | Junta | Propuesta |
+| T-5199 | Ocupación del espacio | El espacio ya está aprobado para otra solicitud en esa franja. | INV | Propuesta |
+| T-5200 | Espacio válido | Elige un espacio del catálogo de la OE. La valla queda fuera de este trámite. | INV | Propuesta |
+| T-5201 | Avisos de coordinación | Hay un cruce de horarios por resolver · Tu cruce tiene resolución · Hay una solicitud de espacio · Ya decidieron tu solicitud de espacio · Cambio registrado · Franja del cruce | Junta | Propuesta |
+| T-5202 | Agenda de espacios | Espacios ocupados en la semana elegida | INV | Propuesta |

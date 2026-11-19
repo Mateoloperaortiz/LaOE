@@ -1,7 +1,14 @@
 import { and, asc, eq, gt, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import {
+  type Actor,
+  type CommandContext,
+  type Executor,
+  enqueueEvent,
+  runCommand,
+  SYSTEM_ACTOR,
+} from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { boardCalendarPush } from "@/domain-events/people";
 import { getCurrentTerm } from "@/modules/terms";
@@ -199,8 +206,12 @@ export async function cancelBoardEvent(ctx: CommandContext, id: string): Promise
 }
 
 /** Las fechas de la junta que tocan un rango, sin las quitadas, en orden. */
-export async function listBoardEventsBetween(from: Date, to: Date): Promise<BoardEventRow[]> {
-  return getDb()
+export async function listBoardEventsBetween(
+  from: Date,
+  to: Date,
+  exec: Executor = getDb(),
+): Promise<BoardEventRow[]> {
+  return exec
     .select()
     .from(boardCalendarEvent)
     .where(

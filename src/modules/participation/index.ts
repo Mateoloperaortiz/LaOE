@@ -241,6 +241,12 @@ export {
   reverseReward,
 } from "./domain/rewards";
 export { rotatingCodeAt, secondsUntilRotation } from "./domain/rotating-code-pure";
+export {
+  reportConflictAs,
+  reportedConflictsFor,
+  resolveConflictAs,
+  weeklyScheduleConflicts,
+} from "./domain/schedule-conflicts";
 export { listCommitteeScores, listOccasionScores } from "./domain/scores";
 export { semesterSummaryFor } from "./domain/semester-summary";
 export {

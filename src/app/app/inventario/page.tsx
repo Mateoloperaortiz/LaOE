@@ -132,6 +132,7 @@ export default async function InventarioPage({ searchParams }: PageProps<"/app/i
       <header className="flex flex-col gap-2">
         <h1>{t("T-4300")}</h1>
         <p className="text-tinta-secundaria">{t("T-4304")}</p>
+        <Link href="/app/coordinacion#espacios">{tList("T-5196")[0]}</Link>
         {context.canManage || context.canOperate ? (
           <div className="flex flex-wrap gap-2">
             {context.canManage ? (

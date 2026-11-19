@@ -624,6 +624,13 @@
       "when": 1795047084761,
       "tag": "0088_aval_puntual_de_materiales",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1795047872294,
+      "tag": "0089_coordinacion_de_espacios_y_horarios",
+      "breakpoints": true
     }
   ]
 }

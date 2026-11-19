@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-205](ADR-205-coordinacion-de-cruces-y-espacios.md) | VP competente en un cruce y reserva de espacios de la OE | Aceptada |
 | [ADR-204](ADR-204-aval-logistico-de-materiales.md) | Aval logístico y saldo autorizado para reservar materiales | Aceptada |
 | [ADR-203](ADR-203-acompanamiento-de-mercadeo.md) | Acompañamiento del CCM a las tres primeras publicaciones de cada dirección de Mercadeo | Aceptada |
 | [ADR-202](ADR-202-aval-y-publicacion-de-piezas.md) | Aval y publicación de piezas de comunicación | Aceptada |

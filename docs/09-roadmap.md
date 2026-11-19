@@ -14,6 +14,7 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
+| 2026-11-18 | Junta · Coordinación A8 | Las direcciones elevan cruces horarios. GH decide entre macroeventos y Administrativa coordina los demás. Administrativa carga los espacios y Logística los solicita desde Mi OE. [ADR-205](adr/ADR-205-coordinacion-de-cruces-y-espacios.md). En local. |
 | 2026-11-18 | Junta · Avales A7 | La VP Administrativa autoriza la lista de materiales. Logística confirma cantidades disponibles y el CML registra los movimientos. Migración 0088. [ADR-204](adr/ADR-204-aval-logistico-de-materiales.md) |
 | 2026-11-18 | Junta · Acompañamiento del CCM | Desde Mi OE el CCM comenta las tres primeras publicaciones del feed por dirección de Mercadeo. El comité identifica el destino y conserva la publicación manual. Migración 0087. [ADR-203](adr/ADR-203-acompanamiento-de-mercadeo.md) |
 | 2026-11-18 | Junta · Avales A6 | El comité presenta la pieza, su texto y el canal propio a la VP de Comunicaciones. Después del aval, el comité publica el archivo aprobado en su cartelera o registra la difusión manual por otro canal. Migración 0086. Pasaron el check y las 354 pruebas E2E. [ADR-202](adr/ADR-202-aval-y-publicacion-de-piezas.md). |
@@ -1210,8 +1211,8 @@ Propuesto el 2026-11-06, a pedido de Mateo: una app usable aunque cambie el leng
   - [x] A6 · Piezas para todos los canales propios, con aval de la VP de Comunicaciones y publicación manual del comité. [ADR-202](adr/ADR-202-aval-y-publicacion-de-piezas.md)
     - [x] Acompañamiento del CCM a las tres primeras publicaciones de cada director de Mercadeo de comité. [ADR-203](adr/ADR-203-acompanamiento-de-mercadeo.md)
   - [x] A7 · Aval de la lista de materiales y confirmación por Logística. [ADR-204](adr/ADR-204-aval-logistico-de-materiales.md)
-  - [ ] A8 · Instalaciones y cruce de planes, a la VP Administrativa.
-  - [ ] A9 · Revisión con la junta y salida con el rediseño.
+  - [x] A8 · Coordinación de cruces por GH o Administrativa y solicitud de espacios por Logística. [ADR-205](adr/ADR-205-coordinacion-de-cruces-y-espacios.md)
+  - [ ] A9 · Revisión con la Junta y salida con el rediseño. Recorridos locales para la sesión: [publicación y CCM](../tests/e2e/avales-piezas.spec.ts), [préstamo](../tests/e2e/inventario-reservas.spec.ts), [devolución parcial](../tests/integration/inventory.test.ts) y [coordinación](../tests/e2e/coordinacion.spec.ts). La batería conjunta de navegador pasó en local el 18 de noviembre. La base `casa_r6_rediseno` quedó en 0089. Pendiente la conformidad de los cargos.
 - [x] Las herramientas de Presidencia ([ADR-197](adr/ADR-197-las-herramientas-de-presidencia.md), aceptada el 2026-11-13; los seis tramos hechos en local): lo que la Presidencia 2027 propuso y toca la casa. Plan en `LaOE/informes/plan-propuestas-presidencia-2027.md`.
   - [x] P1 · Avales con ida y vuelta (devolver con comentarios y versiones), semáforo de riesgo y PDF.
   - [x] P5 · Calendario de la junta, sincronizado en los dos sentidos con Google Calendar, junto con A8 (cruces). Falta que Mateo conecte el Google Calendar de la junta (runbook).

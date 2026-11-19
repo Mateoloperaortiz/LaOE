@@ -8,10 +8,16 @@ import {
   pendingFinancialApprovals,
   proposalTitle,
 } from "@/modules/finance";
-import { listIncidents, listLoanApprovals, listReservations } from "@/modules/inventory";
+import {
+  listIncidents,
+  listLoanApprovals,
+  listReservations,
+  spaceBookingsFor,
+} from "@/modules/inventory";
 import {
   listCommitteeViability,
   listPendingReviews,
+  reportedConflictsFor,
   VIABILITY_ALERTS,
 } from "@/modules/participation";
 import {
@@ -78,6 +84,8 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     contracts,
     creatives,
     materialApprovals,
+    spaceRequests,
+    scheduleConflicts,
     pendingClosures,
   ] = await Promise.all([
     roles.isAdmin
@@ -121,6 +129,10 @@ export const loadDesk = cache(async (): Promise<Desk> => {
       ? listCreativeApprovals({ pendingOnly: true })
       : [],
     roles.managesInventory ? listLoanApprovals({ pendingOnly: true }) : [],
+    roles.managesInventory ? spaceBookingsFor(personId, true) : [],
+    roles.boardSeats.some(({ seat }) => seat === "VP_GH" || seat === "VP_ADMIN")
+      ? reportedConflictsFor(personId, true)
+      : [],
     // Los seguimientos de macroeventos que ya terminaron y no se cierran (ADR-197 regla 5).
     roles.boardSeats.some((item) => item.seat === "PRESIDENT" && item.as === "HOLDER")
       ? editionsPendingClosure(now)
@@ -208,7 +220,9 @@ export const loadDesk = cache(async (): Promise<Desk> => {
         finance.length +
         contracts.length +
         creatives.length +
-        materialApprovals.length,
+        materialApprovals.length +
+        spaceRequests.length +
+        scheduleConflicts.length,
       [
         ...eventAvales.map((row) => ({
           id: row.id,
@@ -229,6 +243,20 @@ export const loadDesk = cache(async (): Promise<Desk> => {
           title: row.title,
           detail: row.committeeName,
           href: `/admin/avales?contrato=${row.id}`,
+          date: { kind: "arrived" as const, at: row.requestedAt },
+        })),
+        ...spaceRequests.map((row) => ({
+          id: row.id,
+          title: row.name,
+          detail: row.scopeLabel,
+          href: "/app/coordinacion#" + row.id,
+          date: { kind: "arrived" as const, at: row.requestedAt },
+        })),
+        ...scheduleConflicts.map((row) => ({
+          id: row.id,
+          title: row.firstTitle + " · " + row.secondTitle,
+          detail: row.attempts,
+          href: "/app/coordinacion#" + row.id,
           date: { kind: "arrived" as const, at: row.requestedAt },
         })),
         ...materialApprovals.map((row) => ({

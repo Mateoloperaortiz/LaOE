@@ -272,7 +272,10 @@ describe("inventario y préstamos de la OE", () => {
     );
   });
 
-  it("la devolución parcial conserva faltantes, el daño va a cuarentena y una pérdida no inventa regreso", async () => {
+  it.each([
+    "actual",
+    "anterior al aval",
+  ] as const)("la devolución parcial conserva faltantes y daños en una reserva %s", async (version) => {
     const f = await fixture();
     const item = await createQuantity(f.vp, 10);
     const r = await reserveFromApprovedList(actor(f.director), {
@@ -281,6 +284,12 @@ describe("inventario y préstamos de la OE", () => {
       collectorId: f.delegate,
       lines: [{ itemId: item.id, quantity: 5 }],
     });
+    if (version === "anterior al aval") {
+      await getDb()
+        .update(inventoryReservation)
+        .set({ approvalId: null, requestKey: null })
+        .where(eq(inventoryReservation.id, r.id));
+    }
     const future = await reserveFromApprovedList(actor(f.director), {
       ...f.ref,
       ...laterInterval,

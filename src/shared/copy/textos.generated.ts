@@ -17012,10 +17012,58 @@ export const textos = {
     owner: "INV",
     status: "Propuesta",
   },
+  "T-5195": {
+    where: "Coordinación en Mi OE",
+    text: "Coordinación de horarios y espacios · Cruces de la semana · Semana del · Ver semana · Qué intentaron acordar las direcciones · Enviar el cruce · Cruces enviados · Resolución · Registrar resolución · Pendiente · Resuelto · No hay cruces que puedas enviar esta semana. · Actividad de otro comité · No hay cruces enviados.",
+    owner: "Junta",
+    status: "Propuesta",
+  },
+  "T-5196": {
+    where: "Catálogo de instalaciones",
+    text: "Espacios de la OE · Nombre del espacio · Agregar espacio · Retirar del catálogo · Volver a ofrecer · Disponible · Retirado · No hay espacios cargados.",
+    owner: "INV",
+    status: "Propuesta",
+  },
+  "T-5197": {
+    where: "Solicitudes de espacios",
+    text: "Pedir un espacio · Espacio · Dirección logística · Desde · Hasta · Para qué lo necesitas · Enviar solicitud · Solicitudes de espacios · No hay solicitudes de espacios. · Motivo de la decisión · Aprobar espacio · Rechazar solicitud",
+    owner: "INV",
+    status: "Propuesta",
+  },
+  "T-5198": {
+    where: "Restricciones de coordinación",
+    text: "Este cruce ya no está vigente o no corresponde a una de tus direcciones.",
+    owner: "Junta",
+    status: "Propuesta",
+  },
+  "T-5199": {
+    where: "Ocupación del espacio",
+    text: "El espacio ya está aprobado para otra solicitud en esa franja.",
+    owner: "INV",
+    status: "Propuesta",
+  },
   "T-520": {
     where: "Documentos: subida confirmada",
     text: "De una: el PDF quedó guardado. Ahora carga los artículos.",
     owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5200": {
+    where: "Espacio válido",
+    text: "Elige un espacio del catálogo de la OE. La valla queda fuera de este trámite.",
+    owner: "INV",
+    status: "Propuesta",
+  },
+  "T-5201": {
+    where: "Avisos de coordinación",
+    text: "Hay un cruce de horarios por resolver · Tu cruce tiene resolución · Hay una solicitud de espacio · Ya decidieron tu solicitud de espacio · Cambio registrado · Franja del cruce",
+    owner: "Junta",
+    status: "Propuesta",
+  },
+  "T-5202": {
+    where: "Agenda de espacios",
+    text: "Espacios ocupados en la semana elegida",
+    owner: "INV",
     status: "Propuesta",
   },
   "T-521": {

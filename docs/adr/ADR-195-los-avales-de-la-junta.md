@@ -70,3 +70,9 @@ Hasta hoy ningún cargo de la junta decide nada por su nombramiento, salvo la VP
 ## Enmienda (2026-11-13, ADR-197)
 
 Regla 1: la Presidencia puede devolver el aval de evento con comentarios antes de decidirlo. Devolver no decide: el comité lo corrige y lo envía otra vez como una versión nueva, y queda la historia de versiones y comentarios. Aprobar o rechazar sigue siendo una sola vez ([ADR-197](ADR-197-las-herramientas-de-presidencia.md) regla 1).
+
+## Resoluciones del 18 de noviembre de 2026
+
+**A7.** [ADR-204](ADR-204-aval-logistico-de-materiales.md) establece que aprobar la lista, cantidades y fechas es el aval puntual de la VP para confirmar las existencias.
+
+**A8.** [ADR-205](ADR-205-coordinacion-de-cruces-y-espacios.md) recoge el reparto acordado entre GH y Administrativa y el trámite de espacios para Logística.

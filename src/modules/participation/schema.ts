@@ -1423,3 +1423,29 @@ export const assemblyTally = pgTable(
   },
   (t) => [uniqueIndex("assembly_tally_unique").on(t.pollId, t.optionIndex)],
 );
+
+export const scheduleConflict = pgTable(
+  "schedule_conflict",
+  {
+    id: id(),
+    pairKey: text().notNull().unique(),
+    scopeKeys: jsonb().$type<string[]>().notNull(),
+    firstRef: text().notNull(),
+    secondRef: text().notNull(),
+    firstTitle: text().notNull(),
+    secondTitle: text().notNull(),
+    startsAt: timestampTz().notNull(),
+    endsAt: timestampTz().notNull(),
+    seat: text().$type<"VP_ADMIN" | "VP_GH">().notNull(),
+    requesterId: text()
+      .notNull()
+      .references(() => person.id),
+    attempts: text().notNull(),
+    requestedAt: createdAt(),
+    resolution: text(),
+    resolvedById: text().references(() => person.id),
+    resolvedAs: text().$type<"HOLDER" | "PRESIDENCY">(),
+    resolvedAt: timestampTz(),
+  },
+  (s) => [index("schedule_conflict_inbox_idx").on(s.seat, s.resolvedAt)],
+);

@@ -8,3 +8,7 @@ El art. 33.2 del Reglamento exige el aval de la VP de Comunicaciones para las pi
 2. La VP de Comunicaciones y Mercadeo recibe la pieza en su Mesa. La aprueba o escribe el motivo del rechazo. Se aplica la suplencia de la Presidencia de la ADR-195. El comité recibe la decisión y conserva el nombre de quien decidió, el cargo en que actuó y la fecha. Un cambio al archivo, al texto o al destino requiere otra solicitud.
 3. **Cartelera de Mi OE.** Una vez aprobado el aval, el comité elige «Publicar en la cartelera». La app publica el archivo y el texto aprobados en la cartelera interna del comité. Sus integrantes pueden abrir la pieza allí. La publicación queda registrada una sola vez, incluso si se reintenta. Los avisos ordinarios de texto siguen en «Nuevo anuncio». Las imágenes de los nuevos avisos de comité pasan por el aval de piezas.
 4. **Otros canales propios.** El comité descarga el archivo aprobado, lo publica en el canal indicado y registra la publicación en la app. El registro guarda quién lo hizo y cuándo. El expediente y el archivo siguen disponibles para el comité que lo gestiona, la autoridad que decide y ADMIN.
+
+## Acompañamiento del 18 de noviembre de 2026
+
+[ADR-203](ADR-203-acompanamiento-de-mercadeo.md) incorpora las observaciones del CCM sobre las tres primeras publicaciones del feed de cada dirección de Mercadeo de comité. Se conserva el aval previo de la VP y la publicación manual del comité.

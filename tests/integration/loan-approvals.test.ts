@@ -18,6 +18,9 @@ import {
   seedApprovedBudgetEvent,
   seedCommittee,
   seedCommitteeMembership,
+  seedEdition,
+  seedEvent,
+  seedMacroeventDirector,
   seedMember,
   seedTerm,
 } from "../factories";
@@ -113,4 +116,68 @@ it("la misma autorización permite reservar solo el saldo y el rechazo no habili
   await expect(
     reserveAs(actor(director), { ...confirmation, approvalId: late.id }),
   ).rejects.toThrow(t("T-5192"));
+});
+
+it("la Presidencia suplente puede avalar un macroevento tardío con respaldo; el plazo corre desde el cierre", async () => {
+  const term = await seedTerm("2026-2");
+  const president = await seedMember("aval-suplente@eafit.edu.co");
+  const director = await seedMember("aval-macro@eafit.edu.co");
+  await seedAppointment(president, term, "PRESIDENT");
+  const edition = await seedEdition(
+    await seedEvent("inventiva", "Inventiva"),
+    "turno",
+    "Turno de prueba",
+    { startsAt: new Date("2026-09-20T16:00:00Z") },
+  );
+  const sourceId = await seedMacroeventDirector(director, term, edition, "LOGISTICA");
+  const ref = { sourceKind: "MACROEVENT_APPOINTMENT" as const, sourceId };
+  await setReservationGrantAs(actor(president), { ...ref, enabled: true });
+  const item = await createItemAs(actor(president), {
+    name: "Cable de prueba",
+    mode: "QUANTITY",
+    total: 2,
+    box: "A",
+    location: "Bodega",
+  });
+  const request = {
+    ...ref,
+    id: createId(),
+    purpose: "MACROEVENT" as const,
+    eventStartsOn: "2026-09-20",
+    eventEndsOn: "2026-09-22",
+    title: "Ensayos",
+    minutes: "Acta de planeación de Inventiva",
+    startsAt: "2026-09-19T17:00:00Z",
+    lines: [{ itemId: item.id, quantity: 1 }],
+    lateReason: "La sala cambió el plazo",
+  };
+  await expect(requestLoanApprovalAs(actor(director), request)).rejects.toThrow(t("T-5190"));
+  await expect(
+    requestLoanApprovalAs(actor(director), {
+      ...request,
+      purpose: "OTHER",
+      returnAt: "2026-09-24T12:00:00Z",
+    }),
+  ).rejects.toThrow(t("T-5190"));
+  const loan = await requestLoanApprovalAs(actor(director), {
+    ...request,
+    supportingRecord: "Acta INV-12, punto 4",
+  });
+  vi.setSystemTime(new Date("2026-09-19T17:15:00Z"));
+  await decideLoanApprovalAs(actor(president), loan.id, { decision: "APPROVED" });
+  const [approved] = await listLoanApprovals({ requesterId: director });
+  expect(approved).toMatchObject({
+    decidedAs: "PRESIDENCY",
+    endsAt: new Date("2026-09-28T05:00:00Z"),
+  });
+  const reserve = {
+    ...ref,
+    approvalId: loan.id,
+    requestKey: createId(),
+    startsAt: loan.startsAt.toISOString(),
+    endsAt: loan.endsAt.toISOString(),
+    lines: request.lines,
+  };
+  const confirmed = await reserveAs(actor(director), reserve);
+  expect(await reserveAs(actor(director), reserve)).toEqual(confirmed);
 });

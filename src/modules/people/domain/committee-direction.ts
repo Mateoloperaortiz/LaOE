@@ -67,8 +67,12 @@ export interface DirectedCommittee {
  * comité activo. Las capacidades son la unión de las de sus cargos.
  */
 export const listMyCommitteeCapabilities = cache(
-  async (personId: string, termId: string): Promise<DirectedCommittee[]> => {
-    const rows = await getDb()
+  async (
+    personId: string,
+    termId: string,
+    exec: Executor = getDb(),
+  ): Promise<DirectedCommittee[]> => {
+    const rows = await exec
       .select({
         id: committee.id,
         slug: committee.slug,
