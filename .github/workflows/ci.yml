@@ -20,6 +20,8 @@ defaults:
 env:
   CI: "true"
   NODE_OPTIONS: --max-old-space-size=2048
+  # En frío, TypeScript usa más de 2 GiB tanto en typecheck como en next build.
+  CI_TYPESCRIPT_NODE_OPTIONS: --max-old-space-size=3072
   INTEGRATION_WORKERS: "2"
   DATABASE_URL: postgresql://casa:casa@127.0.0.1:5433/casa_digital
   APP_URL: http://localhost:3000
@@ -94,6 +96,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+        env:
+          NODE_OPTIONS: ${{ env.CI_TYPESCRIPT_NODE_OPTIONS }}
       - run: npm run deps:check
       - run: npm run deadcode
 
@@ -153,6 +157,7 @@ jobs:
             ${{ runner.os }}-node24-next-quality-${{ hashFiles('package-lock.json', 'next.config.ts', 'tsconfig.json') }}-
       - run: npm run build
         env:
+          NODE_OPTIONS: ${{ env.CI_TYPESCRIPT_NODE_OPTIONS }}
           NODE_ENV: production
           OTP_FIXED_CODE: ""
       - name: Inventario completo de E2E, sin crear base ni arrancar servidor
@@ -350,6 +355,7 @@ jobs:
       - name: Build de producción para e2e
         run: npm run build
         env:
+          NODE_OPTIONS: ${{ env.CI_TYPESCRIPT_NODE_OPTIONS }}
           NODE_ENV: production
           OTP_FIXED_CODE: ""
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
