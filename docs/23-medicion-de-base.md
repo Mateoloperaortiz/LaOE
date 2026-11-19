@@ -119,5 +119,5 @@ Aquí solo se publican agregados por grupo y por tarea. La hoja de cada persona 
 
 - [x] Preparador de cuentas y escenarios para ambos grupos y comprobación con datos sintéticos.
 - [x] Generador del guion y de la hoja privada de registro por participante, tarea y SUS.
-- [ ] Preparar la base y guardar el guion de la tanda que se medirá en staging.
+- [x] El 18 de noviembre de 2026 se preparó la base de staging y se guardó el guion privado. Las diez tareas pasaron con dos perfiles técnicos que se retiraron al terminar. Las 15 cuentas de GEMIS y las 12 de la Operación quedaron disponibles para la primera tanda.
 - [ ] Las sesiones y, al final, los agregados en este documento.
