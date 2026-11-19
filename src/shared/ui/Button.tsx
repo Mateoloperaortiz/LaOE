@@ -10,7 +10,7 @@ type Area = "mi-oe" | "operacion";
 type Size = "normal" | "compacto";
 
 const BASE =
-  "inline-flex items-center justify-center gap-2 rounded-control font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 rounded-control font-semibold disabled:cursor-not-allowed disabled:opacity-60";
 
 // En Mi OE la zona táctil mide al menos 44 px (ADR-158 regla 8). En la Operación, 40 px con letra de 14
 // y 32 px con letra de 13 el compacto (ADR-161 regla 3). Las esquinas salen de `--radius-control`: 14 px

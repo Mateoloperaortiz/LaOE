@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { expect } from "@playwright/test";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { seedCommittee } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
@@ -45,6 +45,7 @@ test("directorio legible en escritorio, móvil y ambos temas", async ({ page }) 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/app/comites");
   await page.evaluate(() => document.fonts.ready);
+  const requestButton = page.getByRole("button", { name: tList("T-5154")[4], exact: true });
   const screenshotDir = process.env.COMMITTEES_REVIEW_DIR;
   if (screenshotDir) await mkdir(screenshotDir, { recursive: true });
   for (const [width, theme, name] of [
@@ -55,10 +56,18 @@ test("directorio legible en escritorio, móvil y ambos temas", async ({ page }) 
     [1979, "light", "user-1979"],
   ] as const) {
     await page.setViewportSize({ width, height: 1000 });
-    await page.evaluate((value) => {
+    const hasColorTransition = await requestButton.evaluate((button, value) => {
       document.documentElement.dataset.theme = value;
       window.scrollTo(0, 0);
+      return button
+        .getAnimations()
+        .some(
+          (animation) =>
+            animation instanceof CSSTransition &&
+            ["color", "background-color"].includes(animation.transitionProperty),
+        );
     }, theme);
+    expect(hasColorTransition).toBe(false);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-309"));
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       width,
