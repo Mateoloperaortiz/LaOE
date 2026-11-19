@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { expect } from "@playwright/test";
 import { and, eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { createItemAs, readCatalog, reserveAs, setReservationGrantAs } from "@/modules/inventory";
+import { createItemAs, readCatalog, setReservationGrantAs } from "@/modules/inventory";
 import {
   inventoryIncident,
   inventoryItem,
@@ -23,6 +23,7 @@ import {
   seedWorkGroup,
   seedWorkGroupMembership,
 } from "../factories";
+import { reserveFromApprovedList } from "../factories/inventory-loan";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -91,7 +92,7 @@ test("el CML entrega con la señal caída y recibe una devolución parcial con d
       box: "Caja E2E",
     },
   );
-  const reserva = await reserveAs(
+  const reserva = await reserveFromApprovedList(
     { personId: director, ip: null },
     {
       sourceKind: source.kind,

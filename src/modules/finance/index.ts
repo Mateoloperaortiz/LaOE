@@ -5,6 +5,7 @@ export {
   approvalRequestSchema,
   approvalStatusLabel,
   approvalVersionSchema,
+  approvedEventForCommittee,
   type EventApprovalDetail,
   type EventApprovalListRow,
   getEventApprovalDetail,

@@ -16970,10 +16970,46 @@ export const textos = {
     owner: "JUNTA",
     status: "Propuesta",
   },
+  "T-5189": {
+    where: "Aval logístico de materiales",
+    text: "Avales de materiales · Pedir aval de materiales · Evento de comité · Macroevento · Préstamo sin evento · Evento autorizado por fuerza mayor · Tipo de préstamo · Aval de evento aprobado · Primer día · Último día del evento · Retiro previsto · Devolución del préstamo sin evento · Planeación y actas · Referencia del respaldo · Motivo de la solicitud tardía · Materiales autorizados · Confirmar reserva · Solicitud enviada · Reserva confirmada",
+    owner: "INV",
+    status: "Propuesta",
+  },
   "T-519": {
     where: "Documentos: archivo fuera de tamaño",
     text: "El PDF debe pesar entre 1 KB y 20 MB.",
     owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-5190": {
+    where: "Requisitos del aval logístico",
+    text: "Comprueba el cargo, el evento y las fechas. Incluye las actas o su referencia y el respaldo que corresponde al préstamo.",
+    owner: "INV",
+    status: "Propuesta",
+  },
+  "T-5191": {
+    where: "Solicitud logística tardía",
+    text: "Faltan menos de 15 días para el evento. Indica el motivo para que la VP pueda revisarlo.",
+    owner: "INV",
+    status: "Propuesta",
+  },
+  "T-5192": {
+    where: "Autorización de materiales",
+    text: "La reserva debe ajustarse a los materiales, cantidades y fechas aprobados por la VP.",
+    owner: "INV",
+    status: "Propuesta",
+  },
+  "T-5193": {
+    where: "Avisos de la bodega",
+    text: "Hay un aval de materiales pendiente · Ya decidieron tu aval de materiales · La reserva del evento se habilita 15 días antes. · Puedes reservar los materiales disponibles con tu aval aprobado. · Pedir aval · Selecciona el evento · Cantidad por reservar",
+    owner: "INV",
+    status: "Propuesta",
+  },
+  "T-5194": {
+    where: "Fechas y estado del préstamo",
+    text: "Devolución prevista · Decidir aval de materiales",
+    owner: "INV",
     status: "Propuesta",
   },
   "T-520": {

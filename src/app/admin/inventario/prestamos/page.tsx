@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { requireInventoryAccess } from "@/app/_authz/inventory";
 import { single, withQuery } from "@/app/_lib/search";
-import { listReservations, readCatalog } from "@/modules/inventory";
-import { t } from "@/shared/copy";
+import { LoanDetails } from "@/app/app/inventario/_ui/LoanDetails";
+import { listLoanApprovals, listReservations, readCatalog } from "@/modules/inventory";
+import { t, tList } from "@/shared/copy";
 import { APP_TIME_ZONE, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Badge } from "@/shared/ui/Badge";
@@ -16,7 +17,7 @@ import { reservationTone, statusLabel } from "../_ui/estado";
 import { LineaDeTiempo } from "../_ui/LineaDeTiempo";
 import { InventarioMarco } from "../_ui/Marco";
 import { buildTimeline, timelineDays } from "../_ui/timeline";
-import { cancelReservationAction, writeOffAction } from "../actions";
+import { cancelReservationAction, decideLoanAction, writeOffAction } from "../actions";
 
 // Las reservas y los préstamos de toda la OE (ADR-150 reglas 4 y 6): quién reservó, quién recoge, el
 // estado y lo que falta por devolver. La VP cancela una reserva con su motivo y declara una pérdida con
@@ -143,6 +144,40 @@ export default async function InventarioPrestamosPage({
 
   return (
     <InventarioMarco active="prestamos" managerRole={context.managerRole} query={query}>
+      <section className="grid gap-3">
+        <h2>{tList("T-5189")[0]}</h2>
+        {(await listLoanApprovals({ pendingOnly: false })).map((row) => (
+          <article
+            key={row.id}
+            id={row.id}
+            className="grid gap-3 rounded-tarjeta border border-borde p-4"
+          >
+            <LoanDetails row={row} />
+            {row.status === "PENDING" && (
+              <form action={decideLoanAction} className="grid gap-2">
+                <input type="hidden" name="id" value={row.id} />
+                <label>
+                  {tList("T-5154")[6]}
+                  <textarea className="campo w-full" name="note" maxLength={500} />
+                </label>
+                <div className="flex gap-2">
+                  <button type="submit" className="boton-primario" name="decision" value="APPROVED">
+                    {tList("T-5086")[0]}
+                  </button>
+                  <button
+                    type="submit"
+                    className="boton-secundario"
+                    name="decision"
+                    value="REJECTED"
+                  >
+                    {tList("T-5086")[1]}
+                  </button>
+                </div>
+              </form>
+            )}
+          </article>
+        ))}
+      </section>
       <LineaDeTiempo
         rows={timeline}
         days={days}

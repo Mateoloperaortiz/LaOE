@@ -65,3 +65,10 @@ export const manageIncidentAs = (actor: Actor, input: ManageIncidentInput) =>
   runCommand(actor, (ctx) => manageIncident(ctx, input));
 export const referIncidentAs = (actor: Actor, input: { incidentId: string }) =>
   runCommand(actor, (ctx) => referIncident(ctx, input));
+
+export {
+  decideLoanApprovalAs,
+  listLoanApprovals,
+  remainingLoanLines,
+  requestLoanApprovalAs,
+} from "./domain/loan-approvals";

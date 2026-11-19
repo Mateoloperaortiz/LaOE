@@ -377,7 +377,7 @@ export async function seedCommittee(
 /** Aval de evento ya concedido para probar los movimientos financieros posteriores. */
 export async function seedApprovedBudgetEvent(input: {
   committeeId: string;
-  budgetId: string;
+  budgetId: string | null;
   title: string;
   eventOn: string;
   decidedAt: Date;

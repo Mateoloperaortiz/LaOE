@@ -3,13 +3,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { notificationRequested } from "@/domain-events/comms";
-import {
-  checkoutAs,
-  createItemAs,
-  readCatalog,
-  reserveAs,
-  setReservationGrantAs,
-} from "@/modules/inventory";
+import { checkoutAs, createItemAs, readCatalog, setReservationGrantAs } from "@/modules/inventory";
 import { sendReturnReminders } from "@/modules/inventory/domain/reminders";
 import { listLogisticsSources } from "@/modules/people";
 import { updateOwnContact } from "@/modules/people/domain/own-data";
@@ -24,6 +18,7 @@ import {
   seedWorkGroup,
   seedWorkGroupMembership,
 } from "../factories";
+import { reserveFromApprovedList } from "../factories/inventory-loan";
 import { truncateAll } from "./db";
 
 // Los avisos de devolución (ADR-191 regla 8): uno cuando faltan 24 horas y otro al vencerse, a quien
@@ -69,7 +64,7 @@ async function prestamo() {
     location: "Bodega sintética",
     box: "Caja A",
   });
-  const reserva = await reserveAs(actor(director), {
+  const reserva = await reserveFromApprovedList(actor(director), {
     ...ref,
     ...interval,
     collectorId: delegate,

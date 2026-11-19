@@ -14,6 +14,7 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
+| 2026-11-18 | Junta · Avales A7 | La VP Administrativa autoriza la lista de materiales. Logística confirma cantidades disponibles y el CML registra los movimientos. Migración 0088. [ADR-204](adr/ADR-204-aval-logistico-de-materiales.md) |
 | 2026-11-18 | Junta · Acompañamiento del CCM | Desde Mi OE el CCM comenta las tres primeras publicaciones del feed por dirección de Mercadeo. El comité identifica el destino y conserva la publicación manual. Migración 0087. [ADR-203](adr/ADR-203-acompanamiento-de-mercadeo.md) |
 | 2026-11-18 | Junta · Avales A6 | El comité presenta la pieza, su texto y el canal propio a la VP de Comunicaciones. Después del aval, el comité publica el archivo aprobado en su cartelera o registra la difusión manual por otro canal. Migración 0086. Pasaron el check y las 354 pruebas E2E. [ADR-202](adr/ADR-202-aval-y-publicacion-de-piezas.md). |
 | 2026-11-18 | Junta · Avales A5 | La VP Financiera avala cada compra. Finanzas registra el pago efectivo una sola vez. El comité adjunta el contrato, la revisión del abogado y el visto bueno del coordinador para que la VP o la Presidencia registre su firma. Migraciones 0084 y 0085. Pasaron el check y las 352 pruebas E2E. [ADR-200](adr/ADR-200-aval-de-cada-compra.md) y [ADR-201](adr/ADR-201-respaldos-y-firma-de-contratos.md). |
@@ -1208,7 +1209,7 @@ Propuesto el 2026-11-06, a pedido de Mateo: una app usable aunque cambie el leng
     - [x] Contratos. Adjuntar el contrato y ambos respaldos para la firma de la VP Financiera o la Presidencia ([ADR-201](adr/ADR-201-respaldos-y-firma-de-contratos.md)).
   - [x] A6 · Piezas para todos los canales propios, con aval de la VP de Comunicaciones y publicación manual del comité. [ADR-202](adr/ADR-202-aval-y-publicacion-de-piezas.md)
     - [x] Acompañamiento del CCM a las tres primeras publicaciones de cada director de Mercadeo de comité. [ADR-203](adr/ADR-203-acompanamiento-de-mercadeo.md)
-  - [ ] A7 · Préstamo puntual, a la VP Administrativa.
+  - [x] A7 · Aval de la lista de materiales y confirmación por Logística. [ADR-204](adr/ADR-204-aval-logistico-de-materiales.md)
   - [ ] A8 · Instalaciones y cruce de planes, a la VP Administrativa.
   - [ ] A9 · Revisión con la junta y salida con el rediseño.
 - [x] Las herramientas de Presidencia ([ADR-197](adr/ADR-197-las-herramientas-de-presidencia.md), aceptada el 2026-11-13; los seis tramos hechos en local): lo que la Presidencia 2027 propuso y toca la casa. Plan en `LaOE/informes/plan-propuestas-presidencia-2027.md`.

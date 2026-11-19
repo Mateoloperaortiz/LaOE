@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { open, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createId } from "@paralleldrive/cuid2";
 import { count, eq, inArray, sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -13,8 +14,10 @@ import { credential, permission } from "@/modules/identity/schema";
 import {
   checkoutAs,
   createItemAs,
+  decideLoanApprovalAs,
   listReservations,
   readCatalog,
+  requestLoanApprovalAs,
   reserveAs,
   returnAs,
   setReservationGrantAs,
@@ -369,7 +372,28 @@ async function main() {
     seedStage = "reservations";
     const start = new Date(Date.now() + 86400000);
     const end = new Date(start.getTime() + 3600000);
-    const returned = await reserveAs(
+    async function reserveReview(
+      actor: Parameters<typeof reserveAs>[0],
+      input: Omit<Parameters<typeof reserveAs>[1], "requestKey" | "approvalId">,
+    ) {
+      const loan = await requestLoanApprovalAs(actor, {
+        id: createId(),
+        sourceKind: input.sourceKind,
+        sourceId: input.sourceId,
+        purpose: "OTHER",
+        title: "Préstamo de revisión",
+        minutes: "Acta sintética del recorrido",
+        supportingRecord: "Revisión local de inventario",
+        eventStartsOn: input.startsAt.slice(0, 10),
+        eventEndsOn: input.endsAt.slice(0, 10),
+        startsAt: input.startsAt,
+        returnAt: input.endsAt,
+        lines: input.lines,
+      });
+      await decideLoanApprovalAs(manager, loan.id, { decision: "APPROVED" });
+      return reserveAs(actor, { ...input, approvalId: loan.id, requestKey: createId() });
+    }
+    const returned = await reserveReview(
       { personId: ids.director, ip: null },
       {
         sourceKind: directorSource.kind,
@@ -380,7 +404,7 @@ async function main() {
         lines: [{ itemId: extension.id, quantity: 1 }],
       },
     );
-    const incident = await reserveAs(
+    const incident = await reserveReview(
       { personId: ids.director, ip: null },
       {
         sourceKind: directorSource.kind,
@@ -390,7 +414,7 @@ async function main() {
         lines: [{ itemId: tape.id, quantity: 5 }],
       },
     );
-    const pending = await reserveAs(
+    const pending = await reserveReview(
       { personId: ids.macro, ip: null },
       {
         sourceKind: macroSource.kind,

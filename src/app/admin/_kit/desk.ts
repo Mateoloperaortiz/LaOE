@@ -8,7 +8,7 @@ import {
   pendingFinancialApprovals,
   proposalTitle,
 } from "@/modules/finance";
-import { listIncidents, listReservations } from "@/modules/inventory";
+import { listIncidents, listLoanApprovals, listReservations } from "@/modules/inventory";
 import {
   listCommitteeViability,
   listPendingReviews,
@@ -77,6 +77,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     finance,
     contracts,
     creatives,
+    materialApprovals,
     pendingClosures,
   ] = await Promise.all([
     roles.isAdmin
@@ -119,6 +120,7 @@ export const loadDesk = cache(async (): Promise<Desk> => {
     roles.boardSeats.some((item) => item.seat === "VP_COMMUNICATIONS")
       ? listCreativeApprovals({ pendingOnly: true })
       : [],
+    roles.managesInventory ? listLoanApprovals({ pendingOnly: true }) : [],
     // Los seguimientos de macroeventos que ya terminaron y no se cierran (ADR-197 regla 5).
     roles.boardSeats.some((item) => item.seat === "PRESIDENT" && item.as === "HOLDER")
       ? editionsPendingClosure(now)
@@ -205,7 +207,8 @@ export const loadDesk = cache(async (): Promise<Desk> => {
         candidacies.length +
         finance.length +
         contracts.length +
-        creatives.length,
+        creatives.length +
+        materialApprovals.length,
       [
         ...eventAvales.map((row) => ({
           id: row.id,
@@ -226,6 +229,13 @@ export const loadDesk = cache(async (): Promise<Desk> => {
           title: row.title,
           detail: row.committeeName,
           href: `/admin/avales?contrato=${row.id}`,
+          date: { kind: "arrived" as const, at: row.requestedAt },
+        })),
+        ...materialApprovals.map((row) => ({
+          id: row.id,
+          title: row.title,
+          detail: row.scopeLabel,
+          href: `/admin/inventario/prestamos#${row.id}`,
           date: { kind: "arrived" as const, at: row.requestedAt },
         })),
         ...creatives.map((row) => ({

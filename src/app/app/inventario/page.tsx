@@ -1,8 +1,15 @@
+import { createId } from "@paralleldrive/cuid2";
 import { requireInventoryAccess } from "@/app/_authz/inventory";
 import { single } from "@/app/_lib/search";
-import { getAvailability, listReservations } from "@/modules/inventory";
+import { listEventApprovals } from "@/modules/finance";
+import {
+  getAvailability,
+  listLoanApprovals,
+  listReservations,
+  remainingLoanLines,
+} from "@/modules/inventory";
 import { getPersonRecord, listAllCommittees, listInternalRoster } from "@/modules/people";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { AppLink as Link } from "@/shared/ui/AppLink";
 import { Badge } from "@/shared/ui/Badge";
@@ -11,7 +18,8 @@ import { buttonClass } from "@/shared/ui/Button";
 import { EmptyState } from "@/shared/ui/States";
 import { reservationTone, statusLabel } from "../../admin/inventario/_ui/estado";
 import { Carrito } from "./_ui/Carrito";
-import { cancelReservationAction, reserveAction } from "./actions";
+import { LoanDetails } from "./_ui/LoanDetails";
+import { cancelReservationAction, requestLoanAction, reserveAction } from "./actions";
 import { inventoryRange } from "./range";
 
 // El inventario en Mi OE (ADR-150 regla 4, ADR-191 regla 5), pensado para el celular: eliges las
@@ -94,9 +102,20 @@ export default async function InventarioPage({ searchParams }: PageProps<"/app/i
         : (roster?.members ?? [])
             .filter((member) => member.status === "ACTIVE" && member.personId !== session.personId)
             .map((member) => ({ id: member.personId, name: member.fullName }));
-      return { value: `${source.kind}:${source.id}`, label: source.label, delegates };
+      const approved = source.committeeId
+        ? await listEventApprovals({ committeeId: source.committeeId, status: "APPROVED" })
+        : [];
+      return {
+        value: `${source.kind}:${source.id}`,
+        label: source.label,
+        delegates,
+        macro: !!source.editionId,
+        events: approved.map(({ id, title, eventOn }) => ({ id, title, eventOn })),
+      };
     }),
   );
+  const ownApprovals = await listLoanApprovals({ requesterId: session.personId });
+  const labels = tList("T-5189");
   const live = (row: Reservation) => row.status === "CONFIRMED" || row.status === "OUT";
   const inRange = range
     ? reservations.filter(
@@ -133,6 +152,8 @@ export default async function InventarioPage({ searchParams }: PageProps<"/app/i
       </header>
       {error ? (
         <Banner tone="error" title={error} />
+      ) : single(query.guardado) === "solicitud" ? (
+        <Banner tone="exito" title={labels[17]} />
       ) : single(query.guardado) === "1" ? (
         <Banner tone="exito" title={t("T-4302")} />
       ) : null}
@@ -175,7 +196,8 @@ export default async function InventarioPage({ searchParams }: PageProps<"/app/i
           <EmptyState title={t("T-4358")} />
         ) : context.canReserve && sources.length > 0 ? (
           <Carrito
-            action={reserveAction}
+            action={requestLoanAction}
+            requestKey={createId()}
             items={items}
             sources={sources}
             startsAt={startsAt}
@@ -203,6 +225,74 @@ export default async function InventarioPage({ searchParams }: PageProps<"/app/i
           </>
         )}
       </section>
+      {ownApprovals.length > 0 && (
+        <section className="grid gap-3">
+          <h2>{labels[0]}</h2>
+          {
+            await Promise.all(
+              ownApprovals.map(async (row) => {
+                const source = sources.find((s) => s.value === `${row.sourceKind}:${row.sourceId}`);
+                const remaining =
+                  row.status === "APPROVED" && source && row.endsAt > new Date()
+                    ? await remainingLoanLines(row)
+                    : [];
+                return (
+                  <article
+                    key={row.id}
+                    id={row.id}
+                    className="grid gap-3 rounded-tarjeta bg-superficie p-4"
+                  >
+                    <LoanDetails row={row} />
+                    {source && remaining.some((line) => line.remaining > 0) && (
+                      <form action={reserveAction} className="grid gap-2">
+                        <input type="hidden" name="requestKey" value={createId()} />
+                        <input type="hidden" name="approvalId" value={row.id} />
+                        <input type="hidden" name="source" value={source.value} />
+                        <input
+                          type="hidden"
+                          name="startsAt"
+                          value={utcToBogotaInput(row.startsAt)}
+                        />
+                        <input type="hidden" name="endsAt" value={utcToBogotaInput(row.endsAt)} />
+                        {remaining
+                          .filter((line) => line.remaining > 0)
+                          .map((line) => (
+                            <label key={line.itemId}>
+                              {tList("T-5193")[6]} · {line.name}
+                              <input type="hidden" name="itemId" value={line.itemId} />
+                              <input
+                                className="campo"
+                                name={`quantity-${line.itemId}`}
+                                type="number"
+                                min={0}
+                                max={line.remaining}
+                                defaultValue={line.remaining}
+                              />
+                            </label>
+                          ))}
+                        <label>
+                          {t("T-4316")}
+                          <select name="collectorId" className="campo">
+                            <option value="">{t("T-4317")}</option>
+                            {source.delegates.map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <button type="submit" className="boton-primario">
+                          {labels[16]}
+                        </button>
+                      </form>
+                    )}
+                  </article>
+                );
+              }),
+            )
+          }
+        </section>
+      )}
       <section aria-labelledby="reservadas" className="flex flex-col gap-3">
         <h2 id="reservadas">{t("T-4320")}</h2>
         {inRange.length === 0 ? (

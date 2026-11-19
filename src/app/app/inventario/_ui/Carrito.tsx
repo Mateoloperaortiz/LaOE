@@ -5,7 +5,12 @@ import { useFormStatus } from "react-dom";
 import { t, tList } from "@/shared/copy/client";
 
 type Item = { id: string; name: string; available: number; location: string; box: string };
-type Source = { value: string; label: string; delegates: { id: string; name: string }[] };
+type Source = {
+  value: string;
+  label: string;
+  macro: boolean;
+  events: { id: string; title: string; eventOn: string }[];
+};
 
 const fieldClass = "campo min-h-11 w-full";
 
@@ -17,7 +22,7 @@ function Reservar({ count }: { count: number }) {
       className="boton-primario min-h-11 shrink-0"
       disabled={pending || count === 0}
     >
-      {t(pending ? "T-4400" : "T-4314")}
+      {pending ? t("T-4400") : tList("T-5189")[1]}
     </button>
   );
 }
@@ -27,12 +32,14 @@ function Reservar({ count }: { count: number }) {
 // servidor al confirmar (ADR-150 regla 4).
 export function Carrito({
   items,
+  requestKey,
   sources,
   startsAt,
   endsAt,
   action,
 }: {
   items: Item[];
+  requestKey: string;
   sources: Source[];
   startsAt: string;
   endsAt: string;
@@ -41,6 +48,10 @@ export function Carrito({
   const [sourceId, setSourceId] = useState(sources[0]?.value ?? "");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const source = sources.find((entry) => entry.value === sourceId);
+  const [purpose, setPurpose] = useState(sources[0]?.macro ? "MACROEVENT" : "COMMITTEE_EVENT");
+  const [selectedEvent, setSelectedEvent] = useState("");
+  const labels = tList("T-5189");
+  const event = source?.events.find((row) => row.id === selectedEvent);
   const total = Object.values(quantities).reduce((sum, value) => sum + value, 0);
   const [one, other] = tList("T-5069");
   const change = (id: string, max: number, delta: number) =>
@@ -50,6 +61,7 @@ export function Carrito({
     }));
   return (
     <form action={action} className="flex flex-col gap-4">
+      <input type="hidden" name="requestKey" value={requestKey} />
       <input type="hidden" name="startsAt" value={startsAt} />
       <input type="hidden" name="endsAt" value={endsAt} />
       <div className="grid gap-3 sm:grid-cols-2">
@@ -59,7 +71,16 @@ export function Carrito({
             name="source"
             value={sourceId}
             required
-            onChange={(event) => setSourceId(event.target.value)}
+            onChange={(event) => {
+              const value = event.target.value;
+              setSourceId(value);
+              setSelectedEvent("");
+              setPurpose(
+                sources.find((row) => row.value === value)?.macro
+                  ? "MACROEVENT"
+                  : "COMMITTEE_EVENT",
+              );
+            }}
             className={fieldClass}
           >
             {sources.map((entry) => (
@@ -70,18 +91,108 @@ export function Carrito({
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="font-semibold">{t("T-4316")}</span>
-          <select key={sourceId} name="collectorId" defaultValue="" className={fieldClass}>
-            <option value="">{t("T-4317")}</option>
-            {source?.delegates.map((entry) => (
-              <option key={entry.id} value={entry.id}>
-                {entry.name}
+          <span className="font-semibold">{labels[6]}</span>
+          <select
+            name="purpose"
+            className={fieldClass}
+            value={purpose}
+            onChange={(e) => {
+              setPurpose(e.target.value);
+              setSelectedEvent("");
+            }}
+          >
+            {source?.macro ? (
+              <option value="MACROEVENT">{labels[3]}</option>
+            ) : (
+              <option value="COMMITTEE_EVENT">{labels[2]}</option>
+            )}
+            <option value="OTHER">{labels[4]}</option>
+            {!source?.macro && <option value="EXCEPTION">{labels[5]}</option>}
+          </select>
+        </label>
+      </div>
+      {purpose === "COMMITTEE_EVENT" ? (
+        <label>
+          {labels[7]}
+          <select
+            className={fieldClass}
+            name="eventApprovalId"
+            required
+            value={selectedEvent}
+            onChange={(e) => setSelectedEvent(e.target.value)}
+          >
+            <option value="">{tList("T-5193")[5]}</option>
+            {source?.events.map((row) => (
+              <option key={row.id} value={row.id}>
+                {row.title} · {row.eventOn}
               </option>
             ))}
           </select>
         </label>
-      </div>
-      <p className="text-sm text-tinta-secundaria">{t("T-4365")}</p>
+      ) : (
+        <label>
+          {labels[13]}
+          <textarea
+            className={fieldClass}
+            name="supportingRecord"
+            required
+            minLength={3}
+            maxLength={2000}
+          />
+        </label>
+      )}
+      {event ? (
+        <input type="hidden" name="title" value={event.title} />
+      ) : (
+        <label>
+          {t("T-335")}
+          <input className={fieldClass} name="title" required minLength={2} maxLength={180} />
+        </label>
+      )}
+      {purpose === "OTHER" ? (
+        <>
+          <input type="hidden" name="eventStartsOn" value={startsAt.slice(0, 10)} />
+          <input type="hidden" name="eventEndsOn" value={endsAt.slice(0, 10)} />
+          <p>
+            {labels[11]} · {endsAt.replace("T", " ")}
+          </p>
+        </>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-2" key={event?.id ?? purpose}>
+          <label>
+            {labels[8]}
+            <input
+              className={fieldClass}
+              name="eventStartsOn"
+              type="date"
+              readOnly={!!event}
+              defaultValue={event?.eventOn}
+              required
+            />
+          </label>
+          <label>
+            {labels[9]}
+            <input
+              className={fieldClass}
+              name="eventEndsOn"
+              type="date"
+              defaultValue={event?.eventOn}
+              min={event?.eventOn}
+              required
+            />
+          </label>
+        </div>
+      )}
+      <label>
+        {labels[12]}
+        <textarea className={fieldClass} name="minutes" required minLength={3} maxLength={6000} />
+      </label>
+      {purpose !== "OTHER" && (
+        <label>
+          {labels[14]}
+          <input className={fieldClass} name="lateReason" maxLength={2000} />
+        </label>
+      )}
       <ul className="flex list-none flex-col gap-2 p-0">
         {items.map((item) => {
           const value = quantities[item.id] ?? 0;

@@ -20,6 +20,7 @@ import {
 } from "../schema";
 import { assertManager, getInventoryContext, hasReservationGrant, lockActors } from "./access";
 import { peakReserved } from "./availability-pure";
+import { checkLoanAllowance } from "./loan-approvals";
 import { allocationsFor, busyUnitIds } from "./reads";
 import { INVENTORY_SOURCE_KINDS } from "./types";
 
@@ -30,6 +31,8 @@ const source = z.object({
 const grantSchema = source.extend({ enabled: z.boolean() });
 export type ReservationGrantInput = z.input<typeof grantSchema>;
 const reserveSchema = source.extend({
+  approvalId: z.cuid2(),
+  requestKey: z.cuid2(),
   startsAt: z.iso.datetime({ offset: true }),
   endsAt: z.iso.datetime({ offset: true }),
   collectorId: z.string().min(1).max(160).optional(),
@@ -142,8 +145,9 @@ export async function reserve(ctx: CommandContext, raw: ReserveInput): Promise<{
   const actorId = await lockActors(ctx.tx, ctx.actor, input.collectorId ? [input.collectorId] : []);
   const startsAt = new Date(input.startsAt);
   const endsAt = new Date(input.endsAt);
-  if (startsAt >= endsAt || endsAt <= new Date() || startsAt < new Date())
-    throw new DomainError(t("T-4201"));
+  const previousId = await checkLoanAllowance(ctx, input, new Date());
+  if (previousId) return { id: previousId };
+  if (startsAt >= endsAt || endsAt <= new Date()) throw new DomainError(t("T-4201"));
   if (new Set(input.lines.map((line) => line.itemId)).size !== input.lines.length)
     throw new DomainError(t("T-4202"));
   // Revocar y reservar comparten el ciclo del destinatario y este lock de la fuente.
@@ -198,6 +202,8 @@ export async function reserve(ctx: CommandContext, raw: ReserveInput): Promise<{
     .insert(inventoryReservation)
     .values({
       requesterId: actorId,
+      approvalId: input.approvalId,
+      requestKey: input.requestKey,
       requesterName: requester.fullName ?? `${requester.firstName} ${requester.lastName}`,
       termId: resolved.termId,
       sourceKind: input.sourceKind,

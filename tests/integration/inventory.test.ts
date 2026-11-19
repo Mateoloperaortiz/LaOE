@@ -18,7 +18,6 @@ import {
   readCatalog,
   recordIncidentAs,
   referIncidentAs,
-  reserveAs,
   returnAs,
   setReservationGrantAs,
   writeOffAs,
@@ -41,6 +40,7 @@ import {
   seedWorkGroup,
   seedWorkGroupMembership,
 } from "../factories";
+import { reserveFromApprovedList } from "../factories/inventory-loan";
 import { firstThenSecond, holdTransaction } from "../helpers/locks";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
@@ -132,12 +132,12 @@ describe("inventario y préstamos de la OE", () => {
   it("confirma directamente, permite horarios consecutivos y calcula el pico de cantidades", async () => {
     const f = await fixture();
     const item = await createQuantity(f.vp, 10);
-    await reserveAs(actor(f.director), {
+    await reserveFromApprovedList(actor(f.director), {
       ...f.ref,
       ...interval,
       lines: [{ itemId: item.id, quantity: 6 }],
     });
-    await reserveAs(actor(f.director), {
+    await reserveFromApprovedList(actor(f.director), {
       ...f.ref,
       startsAt: interval.endsAt,
       endsAt: "2026-10-30T18:00:00Z",
@@ -149,7 +149,7 @@ describe("inventario y préstamos de la OE", () => {
     });
     expect(available?.available).toBe(4);
     await expect(
-      reserveAs(actor(f.director), {
+      reserveFromApprovedList(actor(f.director), {
         ...f.ref,
         ...interval,
         lines: [{ itemId: item.id, quantity: 5 }],
@@ -175,13 +175,13 @@ describe("inventario y préstamos de la OE", () => {
     const results = await firstThenSecond(
       held,
       () =>
-        reserveAs(actor(f.director), {
+        reserveFromApprovedList(actor(f.director), {
           ...f.ref,
           ...interval,
           lines: [{ itemId: item.id, quantity: 1 }],
         }),
       () =>
-        reserveAs(actor(other), {
+        reserveFromApprovedList(actor(other), {
           ...otherRef,
           ...interval,
           lines: [{ itemId: item.id, quantity: 1 }],
@@ -194,14 +194,14 @@ describe("inventario y préstamos de la OE", () => {
   it("revocar impide reservar de nuevo y conserva la reserva y la cancelación propia", async () => {
     const f = await fixture();
     const item = await createQuantity(f.vp);
-    const r = await reserveAs(actor(f.director), {
+    const r = await reserveFromApprovedList(actor(f.director), {
       ...f.ref,
       ...interval,
       lines: [{ itemId: item.id, quantity: 2 }],
     });
     await setReservationGrantAs(actor(f.vp), { ...f.ref, enabled: false });
     await expect(
-      reserveAs(actor(f.director), {
+      reserveFromApprovedList(actor(f.director), {
         ...f.ref,
         ...interval,
         lines: [{ itemId: item.id, quantity: 1 }],
@@ -237,7 +237,7 @@ describe("inventario y préstamos de la OE", () => {
   it("entrega solo dentro del horario, al mismo comité y con UID, y el reintento no duplica", async () => {
     const f = await fixture();
     const item = await createQuantity(f.vp);
-    const r = await reserveAs(actor(f.director), {
+    const r = await reserveFromApprovedList(actor(f.director), {
       ...f.ref,
       ...interval,
       collectorId: f.delegate,
@@ -275,13 +275,13 @@ describe("inventario y préstamos de la OE", () => {
   it("la devolución parcial conserva faltantes, el daño va a cuarentena y una pérdida no inventa regreso", async () => {
     const f = await fixture();
     const item = await createQuantity(f.vp, 10);
-    const r = await reserveAs(actor(f.director), {
+    const r = await reserveFromApprovedList(actor(f.director), {
       ...f.ref,
       ...interval,
       collectorId: f.delegate,
       lines: [{ itemId: item.id, quantity: 5 }],
     });
-    const future = await reserveAs(actor(f.director), {
+    const future = await reserveFromApprovedList(actor(f.director), {
       ...f.ref,
       ...laterInterval,
       lines: [{ itemId: item.id, quantity: 8 }],
@@ -373,13 +373,13 @@ describe("inventario y préstamos de la OE", () => {
       location: "Bodega",
       box: "Caja B",
     });
-    const r = await reserveAs(actor(f.director), {
+    const r = await reserveFromApprovedList(actor(f.director), {
       ...f.ref,
       ...interval,
       collectorId: f.delegate,
       lines: [{ itemId: item.id, quantity: 2 }],
     });
-    const future = await reserveAs(actor(f.director), {
+    const future = await reserveFromApprovedList(actor(f.director), {
       ...f.ref,
       ...laterInterval,
       lines: [{ itemId: item.id, quantity: 1 }],
@@ -455,7 +455,7 @@ describe("inventario y préstamos de la OE", () => {
   it("CML anota, VP gestiona y remite una vez sin registrar sanciones ni liberar pendientes", async () => {
     const f = await fixture();
     const item = await createQuantity(f.vp);
-    const r = await reserveAs(actor(f.director), {
+    const r = await reserveFromApprovedList(actor(f.director), {
       ...f.ref,
       ...interval,
       collectorId: f.delegate,
@@ -538,14 +538,14 @@ describe("inventario y préstamos de la OE", () => {
     await setReservationGrantAs(actor(f.vp), { ...ref, enabled: true });
     const item = await createQuantity(f.vp);
     await expect(
-      reserveAs(actor(f.director), {
+      reserveFromApprovedList(actor(f.director), {
         ...ref,
         ...interval,
         collectorId: f.delegate,
         lines: [{ itemId: item.id, quantity: 1 }],
       }),
     ).rejects.toThrow(t("T-4204"));
-    const r = await reserveAs(actor(f.director), {
+    const r = await reserveFromApprovedList(actor(f.director), {
       ...ref,
       ...interval,
       lines: [{ itemId: item.id, quantity: 1 }],

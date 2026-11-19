@@ -2,7 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { checkoutAs, createItemAs, reserveAs, setReservationGrantAs } from "@/modules/inventory";
+import { checkoutAs, createItemAs, setReservationGrantAs } from "@/modules/inventory";
 import { inventoryItem, inventoryReservation } from "@/modules/inventory/schema";
 import {
   currentInventoryManagerRole,
@@ -39,6 +39,7 @@ import {
   seedWorkGroup,
   seedWorkGroupMembership,
 } from "../factories";
+import { reserveFromApprovedList } from "../factories/inventory-loan";
 import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
 import { truncateAll } from "./db";
 
@@ -296,7 +297,7 @@ describe("barreras de retiro de cargos y pertenencias logísticas", () => {
       box: "Caja sintética",
     });
     const reserve = () =>
-      reserveAs(
+      reserveFromApprovedList(
         { personId: f.candidate, ip: null },
         {
           sourceKind: source.kind,
@@ -363,7 +364,7 @@ describe("barreras de retiro de cargos y pertenencias logísticas", () => {
       location: "Bodega sintética",
       box: "Caja sintética",
     });
-    const reservation = await reserveAs(
+    const reservation = await reserveFromApprovedList(
       { personId: f.candidate, ip: null },
       {
         sourceKind: source.kind,

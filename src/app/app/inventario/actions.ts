@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { ZodError, z } from "zod";
 import { requireInventoryAccess } from "@/app/_authz/inventory";
 import { formText } from "@/app/_lib/form";
-import { cancelReservationAs, reserveAs } from "@/modules/inventory";
+import { cancelReservationAs, requestLoanApprovalAs, reserveAs } from "@/modules/inventory";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { inventoryRange } from "./range";
@@ -26,6 +26,14 @@ function refresh() {
 }
 
 export async function reserveAction(formData: FormData): Promise<void> {
+  return submitMaterials(formData, false);
+}
+
+export async function requestLoanAction(formData: FormData): Promise<void> {
+  return submitMaterials(formData, true);
+}
+
+async function submitMaterials(formData: FormData, request: boolean): Promise<void> {
   const { actor } = await requireInventoryAccess("/app/inventario");
   const startsAt = formText(formData, "startsAt");
   const endsAt = formText(formData, "endsAt");
@@ -45,20 +53,44 @@ export async function reserveAction(formData: FormData): Promise<void> {
     return quantity > 0 ? [{ itemId: value, quantity }] : [];
   });
   try {
-    await reserveAs(actor, {
-      ...parsed.data,
-      startsAt: range.start.toISOString(),
-      endsAt: range.end.toISOString(),
-      collectorId: formText(formData, "collectorId") || undefined,
-      lines,
-    });
+    if (request) {
+      const purpose = z
+        .enum(["COMMITTEE_EVENT", "MACROEVENT", "OTHER", "EXCEPTION"])
+        .parse(formText(formData, "purpose"));
+      await requestLoanApprovalAs(actor, {
+        ...parsed.data,
+        id: formText(formData, "requestKey"),
+        purpose,
+        title: formText(formData, "title"),
+        startsAt: range.start.toISOString(),
+        returnAt: range.end.toISOString(),
+        eventStartsOn: formText(formData, "eventStartsOn"),
+        eventEndsOn: formText(formData, "eventEndsOn"),
+        eventApprovalId: formText(formData, "eventApprovalId"),
+        minutes: formText(formData, "minutes"),
+        supportingRecord: formText(formData, "supportingRecord"),
+        lateReason: formText(formData, "lateReason"),
+        lines,
+      });
+    } else {
+      await reserveAs(actor, {
+        ...parsed.data,
+        approvalId: formText(formData, "approvalId"),
+        requestKey: formText(formData, "requestKey"),
+        startsAt: range.start.toISOString(),
+        endsAt: range.end.toISOString(),
+        collectorId: formText(formData, "collectorId") || undefined,
+        lines,
+      });
+    }
   } catch (error) {
     if (!(error instanceof DomainError) && !(error instanceof ZodError)) throw error;
     query.set("error", error instanceof DomainError ? error.message : t("T-4357"));
     redirect(back());
   }
   refresh();
-  query.set("guardado", "1");
+  query.set("guardado", request ? "solicitud" : "1");
+  revalidatePath("/admin/mesa");
   redirect(back());
 }
 

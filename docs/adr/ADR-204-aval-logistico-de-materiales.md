@@ -1,0 +1,8 @@
+# ADR-204 · La VP autoriza la lista de materiales del préstamo
+
+Aceptada el 18 de noviembre de 2026. Desarrolla A7 de [ADR-195](ADR-195-los-avales-de-la-junta.md) y enmienda la confirmación directa de [ADR-150](ADR-150-inventario-reservas-y-operacion-logistica.md). Fuentes de la OE: Reglamento, arts. 36 y 54, y propuesta de Administrativa, págs. 8 y 12–13.
+
+1. Logística presenta el aval del evento de su comité aprobado por Presidencia, las actas o su referencia, los materiales y las fechas. Para macroeventos y préstamos sin evento registra un respaldo identificable. En la excepción por fuerza mayor referencia la respuesta escrita de la Junta. Las solicitudes a menos de quince días del evento llevan motivo para revisión de la VP.
+2. La VP Administrativa decide la lista una vez. La Presidencia la suple cuando el cargo está ausente. La decisión incluye el cargo, la persona, la fecha y el motivo de rechazo. Solicitud y resultado producen avisos.
+3. La persona habilitada reserva desde Mi OE contra esa lista por las fechas aprobadas. La confirmación comprueba el cargo, la concesión, el saldo de material autorizado y la disponibilidad por intervalo. Las reservas del evento se abren quince días antes del inicio. La devolución se espera el quinto día después del final, en Colombia. Para un préstamo sin evento se usa la fecha de devolución solicitada. Un cambio de fechas, material nuevo o aumento requiere presentar otra lista.
+4. Al cancelar una reserva, el material vuelve al saldo de la lista. Las reservas y préstamos anteriores a la migración 0088 completan su recorrido con su estado registrado. El CML y la VP conservan la entrega y la devolución física.

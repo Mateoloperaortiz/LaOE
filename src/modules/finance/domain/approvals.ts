@@ -1,7 +1,7 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { notificationRequested } from "@/domain-events/comms";
 import { eventOf } from "@/domain-events/define";
 import {
@@ -527,4 +527,23 @@ export async function getEventApprovalDetail(id: string): Promise<EventApprovalD
 
 export function approvalStatusLabel(status: EventApprovalRow["status"]): string {
   return tLabels("T-2300", APPROVAL_STATUSES)[status] ?? status;
+}
+
+/** Referencia mínima para el préstamo de materiales del mismo evento. */
+export async function approvedEventForCommittee(
+  id: string,
+  committeeId: string,
+  exec: Executor = getDb(),
+) {
+  const [row] = await exec
+    .select({ id: eventApproval.id, title: eventApproval.title, eventOn: eventApproval.eventOn })
+    .from(eventApproval)
+    .where(
+      and(
+        eq(eventApproval.id, id),
+        eq(eventApproval.committeeId, committeeId),
+        eq(eventApproval.status, "APPROVED"),
+      ),
+    );
+  return row ?? null;
 }

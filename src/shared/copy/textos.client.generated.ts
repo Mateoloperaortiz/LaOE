@@ -362,6 +362,7 @@ export const textosCliente = {
   "T-3296": "Fotos de {coleccion} · Comunidad OE",
   "T-3297": "Visor de fotos",
   "T-3299": "Comunidad",
+  "T-335": "Título",
   "T-3430":
     "Los puntos gamer dependen del intento en que acertés. Ganar cumple tu participación del día, sin importar cuántos intentos necesités. No se convierten en GH Points.",
   "T-3431":
@@ -474,13 +475,8 @@ export const textosCliente = {
   "T-4302": "Los cambios quedaron guardados.",
   "T-4309": "Disponibles",
   "T-4313": "Cantidad",
-  "T-4314": "Reservar materiales",
   "T-4315": "Comité o macroevento",
-  "T-4316": "Quién recoge",
-  "T-4317": "Yo recojo los materiales",
   "T-4318": "La reserva muestra tu nombre y el comité o macroevento a los miembros de la OE.",
-  "T-4365":
-    "Puedes delegar la recogida en un miembro activo de tu comité. En un macroevento recoge el director que reservó.",
   "T-4366": "Escanear código de barras",
   "T-4367": "Detener cámara",
   "T-4368":
@@ -584,6 +580,10 @@ export const textosCliente = {
   "T-5186":
     "Acompañamiento de Mercadeo · Feed de Instagram · Director de Mercadeo responsable · Observaciones del CCM · Agregar observación · Aún no hay publicaciones para acompañar. · Confirmar que se publicó en el feed",
   "T-5187": "Elige un director de Mercadeo vigente de este comité.",
+  "T-5189":
+    "Avales de materiales · Pedir aval de materiales · Evento de comité · Macroevento · Préstamo sin evento · Evento autorizado por fuerza mayor · Tipo de préstamo · Aval de evento aprobado · Primer día · Último día del evento · Retiro previsto · Devolución del préstamo sin evento · Planeación y actas · Referencia del respaldo · Motivo de la solicitud tardía · Materiales autorizados · Confirmar reserva · Solicitud enviada · Reserva confirmada",
+  "T-5193":
+    "Hay un aval de materiales pendiente · Ya decidieron tu aval de materiales · La reserva del evento se habilita 15 días antes. · Puedes reservar los materiales disponibles con tu aval aprobado. · Pedir aval · Selecciona el evento · Cantidad por reservar",
   "T-585": "Registrados · Pendientes · Rechazados · Anulados",
   "T-878": "Retirar solicitud",
   "T-880": "Cuéntanos por qué",

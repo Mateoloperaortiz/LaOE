@@ -11,6 +11,7 @@ import {
   adjustStockAs,
   cancelReservationAs,
   createItemAs,
+  decideLoanApprovalAs,
   manageIncidentAs,
   referIncidentAs,
   setReservationGrantAs,
@@ -185,4 +186,25 @@ export async function referIncidentAction(formData: FormData): Promise<void> {
   await run({ tab: "novedades", keep: { novedad: incidentId } }, () =>
     referIncidentAs(actor, { incidentId }),
   );
+}
+
+export async function decideLoanAction(data: FormData) {
+  const path = "/admin/inventario/prestamos";
+  const { actor } = await requireInventoryAccess(path, "MANAGE");
+  try {
+    await decideLoanApprovalAs(actor, formText(data, "id"), {
+      decision: z.enum(["APPROVED", "REJECTED"]).parse(formText(data, "decision")),
+      note: formText(data, "note"),
+    });
+  } catch (error) {
+    if (error instanceof DomainError || error instanceof ZodError)
+      redirect(
+        withQuery(path, { error: error instanceof DomainError ? error.message : t("T-260") }),
+      );
+    throw error;
+  }
+  revalidatePath(path);
+  revalidatePath("/admin/mesa");
+  revalidatePath("/app/inventario");
+  redirect(withQuery(path, { guardado: "1" }));
 }

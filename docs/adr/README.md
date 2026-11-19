@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-204](ADR-204-aval-logistico-de-materiales.md) | Aval logístico y saldo autorizado para reservar materiales | Aceptada |
 | [ADR-203](ADR-203-acompanamiento-de-mercadeo.md) | Acompañamiento del CCM a las tres primeras publicaciones de cada dirección de Mercadeo | Aceptada |
 | [ADR-202](ADR-202-aval-y-publicacion-de-piezas.md) | Aval y publicación de piezas de comunicación | Aceptada |
 | [ADR-201](ADR-201-respaldos-y-firma-de-contratos.md) | El contrato y sus dos respaldos para la firma | Aceptada |

@@ -1,7 +1,19 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, pgEnum, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  check,
+  date,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
+import { boardApprovalStatus } from "@/db/enums";
 import { eventEdition } from "@/modules/events/schema";
+import { eventApproval } from "@/modules/finance/schema";
 import { committee, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 
@@ -91,6 +103,47 @@ export const inventoryGrant = pgTable(
   ],
 );
 
+export const inventoryLoanApproval = pgTable(
+  "inventory_loan_approval",
+  {
+    id: id(),
+    requesterId: text()
+      .notNull()
+      .references(() => person.id),
+    sourceId: text().notNull(),
+    sourceKind: text().notNull(),
+    scopeLabel: text().notNull(),
+    committeeId: text().references(() => committee.id),
+    editionId: text().references(() => eventEdition.id),
+    purpose: text().$type<"COMMITTEE_EVENT" | "MACROEVENT" | "OTHER" | "EXCEPTION">().notNull(),
+    eventApprovalId: text().references(() => eventApproval.id),
+    eventStartsOn: date({ mode: "string" }).notNull(),
+    eventEndsOn: date({ mode: "string" }).notNull(),
+    startsAt: timestampTz().notNull(),
+    endsAt: timestampTz().notNull(),
+    title: text().notNull(),
+    minutes: text().notNull(),
+    supportingRecord: text().notNull(),
+    lateReason: text().notNull(),
+    lines: jsonb().$type<{ itemId: string; name: string; quantity: number }[]>().notNull(),
+    fingerprint: text().notNull(),
+    status: boardApprovalStatus().notNull().default("PENDING"),
+    requestedAt: createdAt(),
+    decidedById: text().references(() => person.id),
+    decidedAt: timestampTz(),
+    decidedAs: text().$type<"HOLDER" | "PRESIDENCY">(),
+    decisionNote: text().notNull().default(""),
+  },
+  (t) => [
+    index("inventory_approval_owner_idx").on(t.requesterId, t.requestedAt),
+    index("inventory_approval_queue_idx").on(t.status, t.requestedAt),
+    check(
+      "inventory_approval_range",
+      sql`${t.startsAt}<${t.endsAt} and ${t.eventStartsOn}<=${t.eventEndsOn}`,
+    ),
+  ],
+);
+
 export const inventoryReservation = pgTable(
   "inventory_reservation",
   {
@@ -99,6 +152,8 @@ export const inventoryReservation = pgTable(
       .notNull()
       .references(() => person.id),
     requesterName: text().notNull(),
+    approvalId: text().references(() => inventoryLoanApproval.id),
+    requestKey: text(),
     termId: text()
       .notNull()
       .references(() => term.id),
@@ -120,6 +175,7 @@ export const inventoryReservation = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
+    uniqueIndex("inventory_reservation_request_idx").on(t.approvalId, t.requestKey),
     index("inventory_reservation_interval_idx").on(t.startsAt, t.endsAt),
     index("inventory_reservation_requester_idx").on(t.requesterId, t.status),
     check("inventory_reservation_interval_valid", sql`${t.startsAt} < ${t.endsAt}`),

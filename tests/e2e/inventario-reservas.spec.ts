@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { expect } from "@playwright/test";
 import { eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { createItemAs, reserveAs, setReservationGrantAs } from "@/modules/inventory";
+import { createItemAs, setReservationGrantAs } from "@/modules/inventory";
 import { inventoryReservation } from "@/modules/inventory/schema";
 import { listLogisticsSources } from "@/modules/people";
 import { appointment, person } from "@/modules/people/schema";
@@ -15,10 +15,11 @@ import {
   seedMembership,
   seedPerson,
 } from "../factories";
+import { reserveFromApprovedList } from "../factories/inventory-loan";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
-import { E2E_MEMBER_EMAIL } from "./global-setup";
+import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
 
 // Reservar desde Mi OE (ADR-191 regla 5) y verlo en la Operación (regla 4): el miembro de pruebas es
 // dirección logística de un comité sintético con el permiso de la VP; reserva con el carrito, «Hoy» le
@@ -69,6 +70,7 @@ test.afterEach(async () => {
 
 test("la dirección logística reserva con el carrito y «Hoy» le recuerda recoger", async ({
   page,
+  browser,
 }) => {
   const preparado = await preparar();
   await closeDb();
@@ -84,7 +86,34 @@ test("la dirección logística reserva con el carrito y «Hoy» le recuerda reco
   await sinViolaciones(page);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByRole("button", { name: t("T-4314"), exact: true }).click();
+  const labels = tList("T-5189");
+  await page.getByLabel(labels[6]).selectOption("OTHER");
+  await page.getByLabel(labels[13]).fill("Acta logística de la jornada de prueba");
+  await page.getByLabel(t("T-335"), { exact: true }).fill("Préstamo sintético del comité");
+  await page.getByLabel(labels[12]).fill("Acta de planeación del comité");
+  await page.getByRole("button", { name: labels[1], exact: true }).click();
+  await expect(page.getByText(labels[17], { exact: true })).toBeVisible();
+  const [admin] = await getDb()
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.email, E2E_EMAIL));
+  if (!admin) throw new Error("Falta la persona de Operación");
+  appointments.push(await seedAppointment(admin.id, preparado.current.id, "VP_ADMIN"));
+  const context = await browser.newContext({ storageState: "tests/e2e/.auth/admin.json" });
+  try {
+    const vp = await context.newPage();
+    await vp.goto("/admin/inventario/prestamos");
+    await vp
+      .getByRole("article")
+      .filter({ hasText: "Préstamo sintético del comité" })
+      .getByRole("button", { name: tList("T-5086")[0], exact: true })
+      .click();
+    await expect(vp).toHaveURL(/guardado=1/);
+  } finally {
+    await context.close();
+  }
+  await page.reload();
+  await page.getByRole("button", { name: labels[16], exact: true }).click();
   await expect(page.getByText(t("T-4302"), { exact: true })).toBeVisible();
   const misReservas = page.getByRole("region", { name: t("T-4405") });
   await expect(misReservas.getByText(`2 × ${preparado.material}`)).toBeVisible();
@@ -95,7 +124,7 @@ test("la dirección logística reserva con el carrito y «Hoy» le recuerda reco
   expect(reserva?.status).toBe("CONFIRMED");
 
   // Una reserva que empieza en dos horas entra a «Te toca».
-  await reserveAs(
+  await reserveFromApprovedList(
     { personId: preparado.member.id, ip: null },
     {
       sourceKind: preparado.source.kind,
@@ -121,7 +150,7 @@ test("la VP ve la reserva en la línea de tiempo y en el Calendario", async ({ p
   const preparado = await preparar();
   appointments.push(await seedAppointment(preparado.member.id, preparado.current.id, "VP_ADMIN"));
   const inicio = new Date(Date.now() + 26 * 3_600_000);
-  await reserveAs(
+  await reserveFromApprovedList(
     { personId: preparado.member.id, ip: null },
     {
       sourceKind: preparado.source.kind,
