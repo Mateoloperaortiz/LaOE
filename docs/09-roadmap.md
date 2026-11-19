@@ -14,6 +14,7 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
+| 2026-11-18 | Mantenimiento · Next.js | La casa pasó de Next.js 16.4.1 a 16.4.6 para corregir dos avisos de seguridad. Pasaron `npm run check` y las 360 pruebas de navegador. [GHSA-mfr8-8qww-v76h](https://github.com/advisories/GHSA-mfr8-8qww-v76h) · [GHSA-vc7v-qv4w-wrv8](https://github.com/advisories/GHSA-vc7v-qv4w-wrv8) |
 | 2026-11-18 | Junta · Ensayo A9 | Los once avales tienen un guion, cuentas por cargo, expedientes ficticios y un acta por sesión. En local pasaron las 25 pruebas de navegador de los avales, incluidos los cuatro recorridos compartidos. La nueva Junta hará la revisión en 2027. [Guía del ensayo](revision-avales-junta.md) |
 | 2026-11-18 | Junta · Coordinación A8 | Las direcciones elevan cruces horarios. GH decide entre macroeventos y Administrativa coordina los demás. Administrativa carga los espacios y Logística los solicita desde Mi OE. [ADR-205](adr/ADR-205-coordinacion-de-cruces-y-espacios.md). En local. |
 | 2026-11-18 | Junta · Avales A7 | La VP Administrativa autoriza la lista de materiales. Logística confirma cantidades disponibles y el CML registra los movimientos. Migración 0088. [ADR-204](adr/ADR-204-aval-logistico-de-materiales.md) |

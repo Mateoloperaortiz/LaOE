@@ -65,7 +65,7 @@
     "exceljs": "^4.4.0",
     "jsqr": "^1.4.0",
     "mdast-util-from-markdown": "2.0.3",
-    "next": "16.4.1",
+    "next": "16.4.6",
     "passkit-generator": "^3.5.8",
     "pg": "^8.23.0",
     "pino": "^10.3.1",
