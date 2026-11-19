@@ -35,6 +35,8 @@
     "ghpoints:import": "node --conditions=react-server --env-file-if-exists=.env --import tsx scripts/import-ghpoints.ts",
     "copy:sync": "node --import tsx scripts/copy-sync.ts && biome check --write src/shared/copy/textos.generated.ts src/shared/copy/textos.client.generated.ts",
     "prepare": "node scripts/install-hooks.mjs",
+    "junta:ensayo": "node --conditions=react-server --env-file-if-exists=.env --import tsx scripts/board-review.ts",
+    "test:avales": "npm run test:e2e -- tests/e2e/avales.spec.ts tests/e2e/comite-faltas.spec.ts tests/e2e/postulacion-mesa.spec.ts tests/e2e/avales-financieros.spec.ts tests/e2e/finanzas-normativa.spec.ts tests/e2e/avales-piezas.spec.ts tests/e2e/inventario-reservas.spec.ts tests/e2e/inventario-cml.spec.ts tests/e2e/inventario-presidencia.spec.ts tests/e2e/coordinacion.spec.ts tests/e2e/ensayo-junta.spec.ts",
     "test:e2e": "node --conditions=react-server --env-file-if-exists=.env --import tsx scripts/test-e2e.ts",
     "wallet:assets": "node --import tsx scripts/wallet-assets.ts",
     "wallet:check": "node --env-file-if-exists=.env --import tsx scripts/wallet-check.ts",
