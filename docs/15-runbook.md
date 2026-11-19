@@ -1121,3 +1121,23 @@ Se usó el importador de ADR-042 desde una copia del código desplegado y un tú
 Verificación posterior mediante las lecturas que usa la app: exactamente dos documentos de normativa publicados, contenido portable idéntico al revisado, descargas HTTP 200 con SHA-256 idéntico a los adjuntos, imagen PRIVATE/READY y objetos sin firma HTTP 403. La lectura de borradores para miembros quedó denegada; el acceso HTTP anónimo a Normativa y PDF sigue protegido. Cinco búsquedas positivas: organigrama (estatutos art. 4), almuerzo (reglamento art. 37), reactivación (art. 28), judiciales/notariales y psicológica/terapéutica (Anexo 1); ninguna devuelve las versiones retiradas. Repetir la publicación respondió `unchanged` para ambos. Auditoría: seis eventos de carga/contenido/publicación y dos de despublicación, sin duplicados.
 
 Originales, perfiles, imagen, JSON, manifiesto, respaldo previo, helpers y evidencias `verification-draft.json`, `verification-published.json`, `verification-final.json` y `audit.json` están en el paquete privado `informes/normativa-2026-11-06/`, fuera del checkout. La verificación fue de contenido, descarga, búsqueda y permisos; no se creó una sesión de miembro ni se registró onboarding para comprobar la interfaz.
+
+## Medición de base en staging
+
+Para comparar con el rediseño, usa una instancia de la interfaz de `main` y una base sintética dedicada a las sesiones. Registra el SHA de la interfaz que devuelve `/api/health`. El preparador puede ejecutarse desde el checkout local que lo contiene. [Protocolo de medición](23-medicion-de-base.md).
+
+1. Confirma en Railway el servicio y la base que usa esa instancia. Si staging aloja otra revisión, conserva su base y prepara una instancia de medición separada. El término vigente debe cubrir la ventana pedida y tener abiertos la permanencia y los GH Points. Hacen falta GEMIS y al menos uno de A3, CIGMA o EPIC activos, una política de datos de prueba vigente y la gamificación habilitada. Una base nueva puede prepararse con las migraciones y el seed de la versión medida. Usa el transporte de correo de prueba (`MAILER=console`) en la instancia que procesa los avisos de las solicitudes sintéticas.
+2. Abre el túnel al Postgres de esa instancia con el proyecto y el entorno explícitos. El comando `railway connect Postgres --tunnel-only` imprime la contraseña, así que dirige su salida a un archivo privado. En el proceso local del preparador, carga las variables de esa instancia, con `APP_URL` de la web y `DATABASE_URL` de su base por el túnel. El script lee las variables del proceso. Verifica el origen de la app y el nombre de la base antes de escribir.
+3. Elige una carpeta privada fuera de Git y un archivo nuevo por tanda. Este ejemplo da catorce días para las sesiones. Los valores por defecto son 15 miembros, 12 de Operación y 21 días.
+
+   ```bash
+   umask 077
+   directorio_medicion="$HOME/.local/share/laoe/medicion-de-base"
+   mkdir -p "$directorio_medicion"
+   NODE_ENV=development npm run medicion:preparar -- \
+     --miembros 15 --operacion 12 --dias 14 --salida "$directorio_medicion/guion-01.md"
+   ```
+
+   `NODE_ENV=development` corresponde solo al proceso local. El preparador comprueba también el dominio de producción y el nombre del entorno de Railway. El guion se crea con permisos `600` e incluye los escenarios y las hojas de registro.
+4. Para el primer acceso del moderador, ejecuta `npm run bootstrap:access -- --email oe.medicion.moderacion@eafit.edu.co` con las variables confirmadas. Guarda la salida en un archivo privado y entrega el enlace al moderador. Sirve una sola vez y vence a la hora. Antes de cada sesión, el moderador emite el enlace del participante desde su Persona 360. En M1 abre la consola de anfitrión de la ocasión indicada en el guion para mostrar el QR y leer el código rotativo.
+5. Si hace falta más tiempo, repite el paso 3 con otro nombre de archivo. Asigna a cada nuevo participante una cuenta que nadie haya usado. Al terminar la medición, ejecuta `NODE_ENV=development npm run medicion:preparar -- --retirar` con las mismas variables. El preparador revoca ADMIN a sus cuentas de Operación y de moderación. Debe quedar un ADMIN de la instancia ajeno a la medición, como el del seed. Conserva el guion y los resultados en privado, cierra el túnel y publica solamente los agregados del protocolo.

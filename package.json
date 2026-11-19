@@ -29,6 +29,7 @@
     "push:check": "node --conditions=react-server --env-file-if-exists=.env --import tsx scripts/push-check.ts",
     "bootstrap:admin": "node --conditions=react-server --import tsx scripts/bootstrap-admin.ts",
     "bootstrap:access": "node --conditions=react-server --import tsx scripts/bootstrap-access.ts",
+    "medicion:preparar": "node --conditions=react-server --import tsx scripts/medicion-de-base.ts",
     "smoke": "node scripts/smoke.ts",
     "test:backup": "bash tests/backup/run.sh",
     "ghpoints:import": "node --conditions=react-server --env-file-if-exists=.env --import tsx scripts/import-ghpoints.ts",

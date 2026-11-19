@@ -146,10 +146,8 @@ const EXCEPTIONS: Exceptions = {
     "solo-pruebas": `
       CarnetMetadata
       getOrCreateCarnetToken
-      grantPermission
       requestOtp
       resolveActor
-      revokePermission
       signInWithPassword
       signOut
       verifyOtp

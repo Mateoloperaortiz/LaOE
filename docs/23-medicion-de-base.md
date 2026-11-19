@@ -22,7 +22,7 @@ Es el último paso de la ola 0 de [ADR-158](adr/ADR-158-la-marca-en-dos-capas.md
 
 ## Tareas
 
-Se le lee cada tarea a la persona tal como está escrita, sin decirle dónde está. Una tarea termina cuando la persona llega al criterio o cuando se rinde, y tiene un tope de cinco minutos.
+Se le lee cada tarea a la persona tal como está escrita, sin decirle dónde está. Los nombres de O1, O2 y O3 salen del guion de su cuenta. Una tarea termina cuando la persona llega al criterio o cuando se rinde, y tiene un tope de cinco minutos.
 
 ### Mi OE
 
@@ -32,17 +32,17 @@ Se le lee cada tarea a la persona tal como está escrita, sin decirle dónde est
 | M2 | Averigua cuánto te falta para alcanzar la permanencia en tu comité. | Dice lo que le falta | «Hoy» y la permanencia |
 | M3 | Dinos cuántos GH Points tienes y en qué puesto vas. | Dice el saldo y el puesto | «Hoy» y «Yo» |
 | M4 | Inscríbete en la convocatoria que está abierta. | Queda inscrita o en lista de espera | «Te toca» |
-| M5 | Pide una licencia hasta el último día de este mes. | La solicitud queda enviada | «Te toca» y «Yo» |
+| M5 | Pide una licencia hasta el último día de este mes. Volverás el primer día del mes siguiente. | La solicitud queda enviada con esa fecha de regreso | «Te toca» y «Yo» |
 
 ### La Operación
 
 | # | Tarea | Termina cuando | Qué pantalla mide |
 | --- | --- | --- | --- |
 | O1 | Busca a la persona que te nombramos y dinos en qué comités está y cómo va su permanencia. | Dice los comités y el estado | Persona 360 |
-| O2 | Responde la solicitud de licencia que está pendiente. | Queda aprobada o rechazada | Mesa |
-| O3 | Revisa diez evidencias de retos pendientes y aprueba o rechaza cada una. | Las diez quedan resueltas | Mesa |
-| O4 | Arma una campaña para los miembros de un comité, sin enviarla. | Queda guardada sin enviar | Tabla de trabajo |
-| O5 | Crea una ocasión del comité para el próximo jueves a las 6 p. m., con registro por código. | La ocasión queda creada | Calendario |
+| O2 | Responde la solicitud de licencia de la persona que te nombramos. | Queda aprobada o rechazada | Mesa |
+| O3 | Revisa las diez evidencias del reto que te nombramos y aprueba o rechaza cada una. | Las diez quedan resueltas | Mesa |
+| O4 | Arma una campaña para los miembros de GEMIS y guárdala como borrador. | La campaña queda en borrador con el segmento de GEMIS | Tabla de trabajo |
+| O5 | Crea una ocasión de GEMIS para el próximo jueves a las 6 p. m., con registro por código. | La ocasión queda creada | Calendario |
 
 El plan maestro proponía cerrar la permanencia de un comité, activar un lote de personas y reservar inventario. Esas tres tareas quedan fuera por estas razones:
 
@@ -99,13 +99,25 @@ Aquí solo se publican agregados por grupo y por tarea. La hoja de cada persona 
 | Miembros | — |
 | Operación | — |
 
+## Cuentas y datos en staging
+
+`npm run medicion:preparar` crea las cuentas y los datos sintéticos. El guion privado asigna los datos de cada tarea y trae la hoja de registro con cinco filas y diez respuestas SUS por participante. Para una tanda nueva, usa cuentas que nadie haya probado. Repetir el comando completa los datos pendientes, amplía la ventana de M1 y M4 y conserva las decisiones ya tomadas. Consulta los pasos en el [runbook](15-runbook.md#medición-de-base-en-staging).
+
+| Cuenta | Para qué |
+| --- | --- |
+| `oe.medicion.m01` en adelante | Miembros de GEMIS con asistencia a dos de tres reuniones y a una o dos charlas para que todos vean un saldo y un puesto en GH Points |
+| `oe.medicion.o01` en adelante | La Operación, con ADMIN. Cada una tiene su persona para buscar (`p…`), su licencia pendiente (`s…`) y su reto con diez evidencias |
+| `oe.medicion.moderacion` | El moderador, con ADMIN, para emitir los enlaces y leer el código de la ocasión |
+
+- **Asistencia y permanencia.** En M1 el moderador muestra el QR de «Reunión semanal de GEMIS (prueba)» y lee el código rotativo en la consola de anfitrión. En M2, cuando GEMIS carece de reglas para el término, el preparador añade un criterio sintético de asistencia a reuniones.
+- **Convocatoria.** En M4 la convocatoria «Apoyo logístico para la feria de comités (prueba)» recibe inscripciones por orden de llegada, sin límite de cupos.
+- **Campaña.** Para O4 están disponibles el segmento «GEMIS · medición de base», con los miembros activos del comité, y la plantilla «Aviso de GEMIS (prueba)».
+- **Acceso.** Las cuentas nuevas eligen contraseña mediante un enlace de un solo uso. Antes de la sesión, el moderador abre la Persona 360 de la cuenta y emite el enlace, que dura una hora. [ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md)
+- **Al cerrar la medición**, `npm run medicion:preparar -- --retirar` les quita ADMIN a las cuentas de la Operación y del moderador.
+
 ## Lo que falta para correrla
 
-- [ ] Cuentas de demostración en staging, una por persona, con sus permisos.
-- [ ] Datos sintéticos para cada tarea:
-  - una ocasión abierta con código;
-  - una permanencia a medias, con saldo y puesto;
-  - una convocatoria abierta;
-  - y, por cada cuenta de la Operación, una persona para buscar, una solicitud de licencia pendiente, diez evidencias de retos y un comité con miembros.
-- [ ] La hoja de registro, por persona y por tarea, fuera del repositorio.
+- [x] Preparador de cuentas y escenarios para ambos grupos y comprobación con datos sintéticos.
+- [x] Generador del guion y de la hoja privada de registro por participante, tarea y SUS.
+- [ ] Preparar la base y guardar el guion de la tanda que se medirá en staging.
 - [ ] Las sesiones y, al final, los agregados en este documento.
