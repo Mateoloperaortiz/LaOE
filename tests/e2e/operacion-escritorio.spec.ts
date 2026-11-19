@@ -47,15 +47,20 @@ test("«Crear» abre el alta de una etiqueta y ⌘K ofrece la misma acción", as
     .getByRole("link", { name: etiqueta, exact: true })
     .click();
   await expect(page).toHaveURL(/\/admin\/etiquetas\?nuevo=1/);
-  await expect(page.getByRole("dialog")).toBeVisible();
+  const editor = page.getByRole("dialog");
+  await editor.getByRole("button", { name: t("T-291"), exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/etiquetas$/);
+  await expect(editor).toBeHidden();
 
-  await page.goto("/admin/mesa");
   await page.keyboard.press("ControlOrMeta+k");
-  const paleta = page.getByRole("dialog");
+  const paleta = page.getByRole("dialog", { name: t("T-299"), exact: true });
+  await expect(paleta).toBeVisible();
   await paleta.getByRole("searchbox", { name: t("T-264"), exact: true }).fill("crear: etiq");
-  await expect(
-    paleta.getByRole("link", { name: new RegExp(t("T-4899", { cosa: etiqueta ?? "" })) }),
-  ).toBeVisible();
+  const action = paleta.getByRole("link", {
+    name: new RegExp(t("T-4899", { cosa: etiqueta ?? "" })),
+  });
+  await expect(action).toBeVisible();
+  await expect(action).toHaveAttribute("href", "/admin/etiquetas?nuevo=1");
 });
 
 test("la estrella fija la pantalla en Favoritos y la quita", async ({ page }) => {
