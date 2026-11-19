@@ -8,7 +8,12 @@ import { requireCommitteeCapability } from "@/app/_authz/committee";
 import { actorContext } from "@/app/_lib/actor";
 import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
-import { creativeRequestSchema, publishCreativeAs, requestCreativeAs } from "@/modules/comms";
+import {
+  creativeRequestSchema,
+  publishCreativeAs,
+  requestCreativeAs,
+  verifyHistoricalFeedAs,
+} from "@/modules/comms";
 import { committeeAnnouncementSchema, createCommitteeAnnouncementAs } from "@/modules/content";
 import {
   approvalRequestSchema,
@@ -610,4 +615,24 @@ export async function resubmitApprovalAction(formData: FormData): Promise<void> 
   await runFinance(slug, "version", () =>
     resubmitEventApprovalAs(actor, approvalId, parsed.data, { committeeId: committee.id }),
   );
+}
+
+export async function verifyHistoricalFeedAction(data: FormData) {
+  const slug = slugSchema.parse(data.get("slug"));
+  const access = await requireCommitteeCapability(slug, "BOARD", back(slug, comunicacion));
+  try {
+    await verifyHistoricalFeedAs(
+      await actorContext(access.actor),
+      access.roster.committee.id,
+      formText(data, "pieceId"),
+      formText(data, "director"),
+    );
+  } catch (error) {
+    if (error instanceof DomainError)
+      redirect(back(slug, { ...comunicacion, error: error.message }));
+    throw error;
+  }
+  revalidatePath(back(slug));
+  revalidatePath("/app/mercadeo");
+  redirect(back(slug, comunicacion));
 }

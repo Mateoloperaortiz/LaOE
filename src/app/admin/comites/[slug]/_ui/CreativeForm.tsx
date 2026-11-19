@@ -13,10 +13,12 @@ export function CreativeForm({
   slug,
   id: initialId,
   maxBytes,
+  directors,
 }: {
   slug: string;
   id: string;
   maxBytes: number;
+  directors: { id: string; name: string | null }[];
 }) {
   const router = useRouter();
   const [id] = useState(initialId);
@@ -25,6 +27,7 @@ export function CreativeForm({
   const [loading, setLoading] = useState(false);
   const busy = useRef(false);
   const [, title, channel, caption, attachment, send] = tList("T-5178");
+  const [, feed, director] = tList("T-5186");
   const [board, other, channelName] = tList("T-5181");
   const [progress, fallback] = tList("T-5177");
 
@@ -46,7 +49,8 @@ export function CreativeForm({
         id,
         title: data.get("title"),
         caption: data.get("caption"),
-        channel: data.get("destination") === "board" ? null : data.get("channel"),
+        channel: destination === "other" ? data.get("channel") : null,
+        marketingAssignmentId: destination === "feed" ? data.get("director") : undefined,
         file: uploaded,
       });
       if (response.error) throw new UploadError(response.error);
@@ -74,9 +78,22 @@ export function CreativeForm({
             onChange={(e) => setDestination(e.target.value)}
           >
             <option value="board">{board}</option>
+            <option value="feed">{feed}</option>
             <option value="other">{other}</option>
           </Select>
         </Field>
+        {destination === "feed" && (
+          <Field id="pieza-direccion" label={director}>
+            <Select id="pieza-direccion" name="director" required defaultValue="">
+              <option value="">{t("T-5187")}</option>
+              {directors.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
         {destination === "other" && (
           <Field id="pieza-canal" label={channelName}>
             <TextInput id="pieza-canal" name="channel" required minLength={2} maxLength={120} />

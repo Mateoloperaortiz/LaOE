@@ -610,6 +610,13 @@
       "when": 1795042919262,
       "tag": "0086_aval_de_piezas",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1795046646469,
+      "tag": "0087_acompanamiento_de_mercadeo",
+      "breakpoints": true
     }
   ]
 }

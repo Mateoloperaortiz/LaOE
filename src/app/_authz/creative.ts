@@ -7,6 +7,7 @@ import { adminAreaRoles } from "./admin-area";
 export const creativeAccess = cache(async (actor: Actor) => {
   const roles = await adminAreaRoles(actor);
   return {
+    ...(actor.access === "MEMBER" ? { personId: actor.personId } : {}),
     all: roles.isAdmin || roles.boardSeats.some((item) => item.seat === "VP_COMMUNICATIONS"),
     committees: roles.committees
       .filter((row) => row.capabilities.includes("BOARD"))

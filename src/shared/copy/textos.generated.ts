@@ -16952,6 +16952,24 @@ export const textos = {
     owner: "JUNTA",
     status: "Propuesta",
   },
+  "T-5186": {
+    where: "Seguimiento de Mercadeo",
+    text: "Acompañamiento de Mercadeo · Feed de Instagram · Director de Mercadeo responsable · Observaciones del CCM · Agregar observación · Aún no hay publicaciones para acompañar. · Confirmar que se publicó en el feed",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5187": {
+    where: "Nombramiento de Mercadeo",
+    text: "Elige un director de Mercadeo vigente de este comité.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-5188": {
+    where: "Observación de Mercadeo",
+    text: "Publicación {n} de 3 · Escribe tu observación · Observación guardada",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
   "T-519": {
     where: "Documentos: archivo fuera de tamaño",
     text: "El PDF debe pesar entre 1 KB y 20 MB.",

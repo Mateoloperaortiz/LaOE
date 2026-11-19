@@ -1,12 +1,22 @@
 import { expect } from "@playwright/test";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { listCreativeApprovals } from "@/modules/comms";
 import { listCommitteeAnnouncements } from "@/modules/content";
+import { listMarketingDirectors } from "@/modules/people";
 import { appointment, person } from "@/modules/people/schema";
+import { workGroup } from "@/modules/permanence/schema";
 import { deleteObject } from "@/shared/adapters/storage";
 import { tList } from "@/shared/copy";
-import { seedAppointment, seedCommittee, seedCommitteeMembership, seedTerm } from "../factories";
+import {
+  seedAppointment,
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMember,
+  seedTerm,
+  seedWorkGroupMembership,
+} from "../factories";
+import { seedCreativePiece } from "../factories/creative";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
 
@@ -90,3 +100,48 @@ for (const destination of ["cartelera", "externo"] as const) {
     }
   });
 }
+
+test("un integrante del CCM comenta la primera publicación desde Mi OE", async ({ browser }) => {
+  const term = await seedTerm();
+  const committee = await seedCommittee("ccm-lectura", "Comité sintético CCM");
+  const director = await seedMember("mercadeo.ccm@eafit.edu.co");
+  await seedCommitteeMembership(director, committee, term, "MERCADEO");
+  const [assignment] = await listMarketingDirectors(committee, term);
+  if (!assignment) throw new Error("Falta el cargo");
+  const [member] = await getDb()
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.email, E2E_MEMBER_EMAIL));
+  if (!member) throw new Error("Falta el miembro");
+  const [ccm] = await getDb()
+    .select({ id: workGroup.id })
+    .from(workGroup)
+    .where(and(eq(workGroup.code, "CCM"), eq(workGroup.termId, term)));
+  if (!ccm) throw new Error("Falta el CCM del semestre");
+  await seedWorkGroupMembership(ccm.id, member.id);
+  await seedCreativePiece({
+    committeeId: committee,
+    title: "Afiche de prueba del feed",
+    channel: "Feed de Instagram",
+    fileName: "afiche.png",
+    digest: "a".repeat(64),
+    status: "APPROVED",
+    decidedAt: new Date(),
+    decidedAs: "HOLDER",
+    publishedAt: new Date(),
+    marketingDirectorId: director,
+    marketingAssignmentId: assignment.id,
+    marketingTermId: term,
+    channelVerified: true,
+  });
+  const ctx = await browser.newContext({ storageState: "tests/e2e/.auth/member.json" });
+  try {
+    const page = await ctx.newPage();
+    await page.goto("/app/mercadeo");
+    await page.getByLabel(tList("T-5188")[1]).fill("Cuida el margen del afiche");
+    await page.getByRole("button", { name: tList("T-5186")[4] }).click();
+    await expect(page.getByText("Cuida el margen del afiche")).toBeVisible();
+  } finally {
+    await ctx.close();
+  }
+});

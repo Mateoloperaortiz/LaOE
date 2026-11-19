@@ -581,6 +581,9 @@ export const textosCliente = {
   "T-5180":
     "Adjunta la versión que vas a difundir. El archivo debe tener contenido y pesar hasta 20 MB.",
   "T-5181": "Cartelera del comité en Mi OE · Otro canal propio del grupo · Nombre del canal",
+  "T-5186":
+    "Acompañamiento de Mercadeo · Feed de Instagram · Director de Mercadeo responsable · Observaciones del CCM · Agregar observación · Aún no hay publicaciones para acompañar. · Confirmar que se publicó en el feed",
+  "T-5187": "Elige un director de Mercadeo vigente de este comité.",
   "T-585": "Registrados · Pendientes · Rechazados · Anulados",
   "T-878": "Retirar solicitud",
   "T-880": "Cuéntanos por qué",

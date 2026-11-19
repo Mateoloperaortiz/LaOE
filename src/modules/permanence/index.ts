@@ -68,6 +68,7 @@ export {
   getGroupDetail,
   groupJoinBlocker,
   hasCmlMembershipInTerm,
+  hasWorkCommitteeMembership,
   isOfficeDecorationGroup,
   leadsWorkCommittee,
   listGroupIdsOf,

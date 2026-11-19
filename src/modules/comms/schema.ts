@@ -11,7 +11,9 @@ import {
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { boardApprovalStatus } from "@/db/enums";
-import { committee, person, segment } from "@/modules/people/schema";
+import { committee, committeeRoleAssignment, person, segment } from "@/modules/people/schema";
+
+import { term } from "@/modules/terms/schema";
 
 // Comunicaciones (ADR-015, ADR-023, ADR-038): registro de todo envío a una persona, suscripciones
 // push y preferencias, plantillas de correo y campañas por segmento con su audiencia congelada.
@@ -27,6 +29,13 @@ export const creativeApproval = pgTable(
     title: text().notNull(),
     /** Nulo para la cartelera del comité. Los demás canales propios se identifican por su nombre. */
     channel: text(),
+    /** El nombramiento identifica el feed que acompaña el CCM, incluso si otra persona lo publica. */
+    marketingAssignmentId: text().references(() => committeeRoleAssignment.id, {
+      onDelete: "set null",
+    }),
+    marketingDirectorId: text().references(() => person.id, { onDelete: "set null" }),
+    marketingTermId: text().references(() => term.id),
+    channelVerified: boolean().notNull().default(false),
     caption: text().notNull().default(""),
     fileName: text().notNull(),
     digest: text().notNull(),
@@ -41,6 +50,12 @@ export const creativeApproval = pgTable(
     publishedById: text().references(() => person.id, { onDelete: "set null" }),
   },
   (t) => [
+    index("creative_mentoring_order_idx").on(
+      t.marketingTermId,
+      t.marketingAssignmentId,
+      t.publishedAt,
+      t.id,
+    ),
     index("creative_approval_committee_idx").on(t.committeeId, t.requestedAt),
     index("creative_approval_queue_idx").on(t.status, t.requestedAt),
     check("creative_approval_digest", sql`${t.digest} ~ '^[a-f0-9]{64}$'`),
@@ -297,4 +312,18 @@ export const inboxItem = pgTable(
     index("inbox_item_person_created_idx").on(t.personId, t.createdAt),
     index("inbox_item_created_idx").on(t.createdAt),
   ],
+);
+
+export const creativeFeedback = pgTable(
+  "creative_feedback",
+  {
+    id: id(),
+    pieceId: text()
+      .notNull()
+      .references(() => creativeApproval.id, { onDelete: "cascade" }),
+    authorId: text().references(() => person.id, { onDelete: "set null" }),
+    body: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("creative_feedback_piece_idx").on(t.pieceId, t.createdAt)],
 );

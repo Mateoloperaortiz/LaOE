@@ -176,6 +176,7 @@ export {
   MACROEVENT_STATUSES,
   REACTIVATION_STATUSES,
 } from "./domain/macroevent-governance-pure";
+export { listMarketingDirectors } from "./domain/marketing-directors";
 export {
   changeMembershipStatus,
   changeStatusSchema,

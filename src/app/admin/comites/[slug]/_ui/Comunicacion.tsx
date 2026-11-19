@@ -16,6 +16,7 @@ import {
   createCommitteeAnnouncementAction,
   publishCreativeAction,
   updateProfileAction,
+  verifyHistoricalFeedAction,
 } from "../actions";
 import { CreativeForm } from "./CreativeForm";
 
@@ -31,6 +32,7 @@ export function Comunicacion({
   committee,
   announcements,
   pieces,
+  directors,
   canBoard,
   canProfile,
   accion,
@@ -40,6 +42,7 @@ export function Comunicacion({
   base: string;
   committee: InternalCommittee;
   announcements: MemberAnnouncement[];
+  directors: { id: string; name: string | null }[];
   pieces: Awaited<ReturnType<typeof listCreativeApprovals>>;
   canBoard: boolean;
   canProfile: boolean;
@@ -66,6 +69,7 @@ export function Comunicacion({
               {request}
             </Link>
           </div>
+          <Link href="/app/mercadeo">{tList("T-5186")[0]}</Link>
           {pieces.length > 0 && (
             <ul className="grid list-none gap-3 p-0">
               {pieces.map((piece) => (
@@ -76,6 +80,29 @@ export function Comunicacion({
                   <h3 className="font-semibold">{piece.title}</h3>
                   {piece.status === "PENDING" && <p>{boardApprovalLabel(piece.status)}</p>}
                   <CreativeDetails piece={piece} />
+                  {piece.publishedAt &&
+                    piece.channel &&
+                    !piece.channelVerified &&
+                    directors.length > 0 && (
+                      <ActionForm action={verifyHistoricalFeedAction}>
+                        <input type="hidden" name="slug" value={slug} />
+                        <input type="hidden" name="pieceId" value={piece.id} />
+                        <label>
+                          {tList("T-5186")[2]}
+                          <select name="director" required defaultValue="">
+                            <option value="">{t("T-5187")}</option>
+                            {directors.map((row) => (
+                              <option key={row.id} value={row.id}>
+                                {row.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <button type="submit" className="boton-secundario">
+                          {tList("T-5186")[6]}
+                        </button>
+                      </ActionForm>
+                    )}
                   {piece.status === "APPROVED" && !piece.publishedAt && (
                     <ActionForm action={publishCreativeAction}>
                       <input type="hidden" name="slug" value={slug} />
@@ -93,7 +120,12 @@ export function Comunicacion({
       )}
       {canBoard && accion === "pieza" && (
         <ResourcePanel title={request} closeHref={closeHref} closeLabel={t("T-291")}>
-          <CreativeForm id={createId()} slug={slug} maxBytes={REVIEW_FILE_MAX_BYTES} />
+          <CreativeForm
+            directors={directors}
+            id={createId()}
+            slug={slug}
+            maxBytes={REVIEW_FILE_MAX_BYTES}
+          />
         </ResourcePanel>
       )}
       {canBoard ? (

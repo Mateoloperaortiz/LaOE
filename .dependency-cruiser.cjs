@@ -7,7 +7,7 @@ const { findModuleCycle } = require("./scripts/ci/module-cycle.mjs");
 // quedan fuera (regla schema-solo-importa-schema).
 const MODULE_DEPS = {
   availability: ["people", "permanence", "terms"],
-  comms: ["content", "participation", "people", "system", "terms"],
+  comms: ["content", "participation", "people", "permanence", "system", "terms"],
   competition: ["events", "forms", "people"],
   content: [],
   crm: [

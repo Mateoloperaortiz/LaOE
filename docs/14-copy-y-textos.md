@@ -3849,3 +3849,6 @@ Llegan de `feat/inventario-vp-administrativa` con sus códigos; las pantallas se
 | T-5183 | Pieza pendiente de aval | Para publicar esta pieza, primero necesitas el aval de la VP de Comunicaciones. | JUNTA | Propuesta |
 | T-5184 | Cambios a una pieza aprobada | Para cambiar la pieza, su texto o su canal, presenta la nueva versión a la VP de Comunicaciones. | JUNTA | Propuesta |
 | T-5185 | Pieza gráfica en un aviso del comité | Pide el aval en Piezas de comunicación para publicar una imagen en la cartelera del comité. | JUNTA | Propuesta |
+| T-5186 | Seguimiento de Mercadeo | Acompañamiento de Mercadeo · Feed de Instagram · Director de Mercadeo responsable · Observaciones del CCM · Agregar observación · Aún no hay publicaciones para acompañar. · Confirmar que se publicó en el feed | JUNTA | Propuesta |
+| T-5187 | Nombramiento de Mercadeo | Elige un director de Mercadeo vigente de este comité. | JUNTA | Propuesta |
+| T-5188 | Observación de Mercadeo | Publicación {n} de 3 · Escribe tu observación · Observación guardada | JUNTA | Propuesta |

@@ -870,6 +870,15 @@ export async function hasCmlMembershipInTerm(
   termId: string,
   exec: Executor = getDb(),
 ): Promise<boolean> {
+  return hasWorkCommitteeMembership(personId, termId, "CML", exec);
+}
+
+export async function hasWorkCommitteeMembership(
+  personId: string,
+  termId: string,
+  code: "CCM" | "CML",
+  exec: Executor = getDb(),
+): Promise<boolean> {
   const member = await getMembershipRef(personId, exec);
   if (!member || !["ACTIVE", "HONORARY"].includes(member.status)) return false;
   const [row] = await exec
@@ -881,7 +890,7 @@ export async function hasCmlMembershipInTerm(
         eq(workGroupMembership.personId, personId),
         eq(workGroup.termId, termId),
         eq(workGroup.kind, "WORK_COMMITTEE"),
-        eq(workGroup.code, "CML"),
+        eq(workGroup.code, code),
         isNull(workGroupMembership.leftAt),
       ),
     )

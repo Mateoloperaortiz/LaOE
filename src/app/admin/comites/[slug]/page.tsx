@@ -30,6 +30,7 @@ import {
   listCommitteeRoles,
   listCommitteesMissingRequiredRoles,
   listInternalRoster,
+  listMarketingDirectors,
   listRepresentatives,
   searchEligibleMembers,
 } from "@/modules/people";
@@ -237,6 +238,11 @@ export default async function ComitePage({
               capabilities.has("BOARD") ||
                 (await canReadCreativeBoard(access.actor, roster.committee.id)),
             )
+          }
+          directors={
+            term && capabilities.has("BOARD")
+              ? await listMarketingDirectors(roster.committee.id, term.id)
+              : []
           }
           pieces={
             capabilities.has("BOARD")

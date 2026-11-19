@@ -24,6 +24,11 @@ export {
   requestCreativeAs,
 } from "./domain/creative-approvals";
 export {
+  creativeMentoringFor,
+  leaveCreativeFeedbackAs,
+  verifyHistoricalFeedAs,
+} from "./domain/creative-mentoring";
+export {
   countUnreadInbox,
   INBOX_FILTER_KEYS,
   type InboxFilter,

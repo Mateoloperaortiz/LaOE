@@ -28,10 +28,12 @@ import { deleteObject, presignRead } from "@/shared/adapters/storage";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { creativeApproval } from "../schema";
+import { canReadMentoredPiece, marketingAttribution } from "./creative-mentoring";
 
 export const creativeRequestSchema = z.object({
   id: reviewId,
   title: z.string().trim().min(2).max(140),
+  marketingAssignmentId: z.string().min(1).max(160).optional(),
   channel: z.string().trim().min(2).max(120).nullable(),
   caption: z.string().trim().max(20_000).default(""),
   file: submittedReviewFile,
@@ -64,7 +66,15 @@ export async function requestCreativeAs(
 ) {
   const owner = actor.personId;
   if (!owner || !committeeId) throw new DomainError(t("T-032"));
-  const { id, title, caption, channel, file } = creativeRequestSchema.parse(raw);
+  const {
+    id,
+    title,
+    caption,
+    channel: rawChannel,
+    file,
+    marketingAssignmentId,
+  } = creativeRequestSchema.parse(raw);
+  const channel = marketingAssignmentId ? tList("T-5186")[1] : rawChannel;
   if (!ownsReviewUpload(uploadPrefix(committeeId, owner, id, file.digest), file.key))
     throw new DomainError(t("T-5180"));
   const result = await runCommand(actor, async (ctx) => {
@@ -81,6 +91,7 @@ export async function requestCreativeAs(
         existing.committeeId !== committeeId ||
         existing.requestedById !== owner ||
         existing.title !== title ||
+        existing.marketingAssignmentId !== (marketingAssignmentId ?? null) ||
         existing.channel !== channel ||
         existing.caption !== caption ||
         existing.fileName !== file.name ||
@@ -90,7 +101,12 @@ export async function requestCreativeAs(
       return { id };
     }
     const key = archiveKey(id, file.digest);
+    const attribution = marketingAssignmentId
+      ? await marketingAttribution(committeeId, marketingAssignmentId, now, ctx.tx)
+      : {};
     const values = {
+      ...attribution,
+      channelVerified: true,
       id,
       title,
       caption,
@@ -130,11 +146,18 @@ export async function requestCreativeAs(
 
 export async function creativeFileUrl(
   id: string,
-  access: { all: boolean; committees: string[]; readableCommittees: string[] },
+  access: { all: boolean; committees: string[]; readableCommittees: string[]; personId?: string },
 ) {
   const [row] = await getDb().select().from(creativeApproval).where(eq(creativeApproval.id, id));
   if (!row) return null;
-  const reviewer = access.all || access.committees.includes(row.committeeId);
+  const reviewer =
+    access.all ||
+    access.committees.includes(row.committeeId) ||
+    Boolean(
+      row.marketingAssignmentId &&
+        access.personId &&
+        (await canReadMentoredPiece(access.personId, id)),
+    );
   if (
     !reviewer &&
     (!access.readableCommittees.includes(row.committeeId) ||
